@@ -244,6 +244,7 @@ class IssuesEventWebhook(GitlabWebhook):
         # GitLab supports multiple assignees, but Sentry currently only supports one
         # Take the first assignee from the current state
         first_assignee = assignees[0]
+        assignee_id = first_assignee.get("id")
         assignee_username = first_assignee.get("username")
 
         if not assignee_username:
@@ -264,6 +265,7 @@ class IssuesEventWebhook(GitlabWebhook):
             external_user_name=assignee_name,
             external_issue_key=external_issue_key,
             assign=True,
+            external_user_id=assignee_id,
         )
 
         logger.info(
@@ -271,6 +273,7 @@ class IssuesEventWebhook(GitlabWebhook):
             extra={
                 "integration_id": integration.id,
                 "external_issue_key": external_issue_key,
+                "assignee_id": assignee_id,
                 "assignee_name": assignee_name,
                 "total_assignees": len(assignees),
             },

@@ -204,6 +204,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                     }
                 ],
             ) as get_transaction_volumes,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ) as transaction_balancing,
         ):
             result = run_calculations_per_org_task(org.id)
 
@@ -216,7 +220,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         compare_rebalanced_projects.assert_called_once_with(
             project_config, rebalanced_projects, cached_sample_rates
         )
-        _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_balancing.assert_called_once_with(
+            transaction_config, get_transaction_volumes.return_value
+        )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_project_volumes(self) -> None:
@@ -337,6 +344,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                     }
                 ],
             ) as get_transaction_volumes,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ) as transaction_balancing,
         ):
             result = run_calculations_per_org_task(org.id)
 
@@ -344,7 +355,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         get_blended_sample_rate.assert_not_called()
         _assert_called_once_with_config(get_volume, org.id)
         get_project_volumes.assert_not_called()
-        _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_balancing.assert_called_once_with(
+            transaction_config, get_transaction_volumes.return_value
+        )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
@@ -392,6 +406,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                     }
                 ],
             ) as get_transaction_volumes,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ) as transaction_balancing,
         ):
             result = run_calculations_per_org_task(org.id)
 
@@ -404,7 +422,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         compare_rebalanced_projects.assert_called_once_with(
             project_config, rebalanced_projects, cached_sample_rates
         )
-        _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_balancing.assert_called_once_with(
+            transaction_config, get_transaction_volumes.return_value
+        )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_project_mode_without_project_rates(self) -> None:
@@ -476,6 +497,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                     }
                 ],
             ) as get_transaction_volumes,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ) as transaction_balancing,
         ):
             result = run_calculations_per_org_task(org.id)
 
@@ -488,7 +513,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         compare_rebalanced_projects.assert_called_once_with(
             project_config, rebalanced_projects, cached_sample_rates
         )
-        _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_balancing.assert_called_once_with(
+            transaction_config, get_transaction_volumes.return_value
+        )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_org_without_transaction_sample_rate(self) -> None:

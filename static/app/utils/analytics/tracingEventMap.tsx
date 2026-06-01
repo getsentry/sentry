@@ -1,3 +1,4 @@
+import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {CrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
@@ -60,6 +61,10 @@ export type TracingEventParameters = {
     direction: string;
     num_results: number;
     type: 'samples' | 'traces' | 'aggregates';
+  };
+  'trace.explorer.table_tab_changed': {
+    organization: Organization;
+    tab: string;
   };
   'trace.load.empty_state': {
     source: TraceTreeSource;
@@ -220,6 +225,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.schema_hints_drawer':
     'Improved Trace Explorer: Schema Hints Drawer Events',
   'trace.explorer.table_pagination': 'Trace Explorer Table Pagination',
+  'trace.explorer.table_tab_changed': 'Trace Explorer: Table Tab Changed',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',

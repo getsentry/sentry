@@ -213,13 +213,6 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-trace-light/${TRACE_ID}/`,
-    body: trace
-      ? {transactions: [trace], orphan_errors: []}
-      : {transactions: [], orphan_errors: []},
-  });
-
-  MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
     body: [],
   });

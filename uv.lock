@@ -810,19 +810,6 @@ wheels = [
 ]
 
 [[package]]
-name = "google-re2"
-version = "1.1.20251105"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/google_re2-1.1.20251105-1-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:83292e23963aa1b219d5f64a65365b0880448a6a060276027b55270bc5b18c7e" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/google_re2-1.1.20251105-1-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:0b1458d9ca588124cd61aa1bf5388a216e1247e7d474f8e5e1530498044f5c87" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/google_re2-1.1.20251105-1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a52cb204e49d20cdbb66faf394d57f476e96c39c23a328442ab0194fc6bd1a2b" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/google_re2-1.1.20251105-1-cp314-cp314-macosx_15_0_arm64.whl", hash = "sha256:79ce664038194a31bbcf422137f9607ae3d9946a5cff98cf0efbeb7f9411e64b" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/google_re2-1.1.20251105-1-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:85feec3161ffdc12f6b144e37a2f91f80b771c72ffadde60191e89a49f6d7e81" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/google_re2-1.1.20251105-1-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a7bfaa2cf55daf0c5c650e68526bb20b61e37d7f3ae53f6893013acc1c91c116" },
-]
-
-[[package]]
 name = "google-resumable-media"
 version = "2.7.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -2213,7 +2200,6 @@ dependencies = [
     { name = "google-cloud-storage", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-cloud-storage-transfer", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "google-crc32c", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "google-re2", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "googleapis-common-protos", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "granian", extra = ["pname", "reload", "uvloop"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "grpc-google-iam-v1", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2388,7 +2374,6 @@ requires-dist = [
     { name = "google-cloud-storage", specifier = ">=2.18.0" },
     { name = "google-cloud-storage-transfer", specifier = ">=1.17.0" },
     { name = "google-crc32c", specifier = ">=1.6.0" },
-    { name = "google-re2", specifier = ">=1.1.20251105" },
     { name = "googleapis-common-protos", specifier = ">=1.63.2" },
     { name = "granian", extras = ["pname", "reload", "uvloop"], specifier = ">=2.7" },
     { name = "grpc-google-iam-v1", specifier = ">=0.13.1" },
@@ -2434,12 +2419,12 @@ requires-dist = [
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
     { name = "sentry-arroyo", specifier = ">=2.39.2" },
-    { name = "sentry-conventions", specifier = ">=0.8.0" },
+    { name = "sentry-conventions", specifier = ">=0.10.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.1.27" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-options", specifier = ">=1.0.13" },
-    { name = "sentry-protos", specifier = ">=0.17.0" },
+    { name = "sentry-protos", specifier = ">=0.21.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
     { name = "sentry-scm", specifier = "==0.20.0" },
@@ -2547,10 +2532,10 @@ wheels = [
 
 [[package]]
 name = "sentry-conventions"
-version = "0.8.0"
+version = "0.10.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.8.0-py3-none-any.whl", hash = "sha256:a4c788d78f8ab09068d25fe1fc0345fa874a7e733016571368938698ae2168c9" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.10.0-py3-none-any.whl", hash = "sha256:c6497828adcc1cbe4fb1195a6148f12baa54c328e77615284d7b6ba9f015da20" },
 ]
 
 [[package]]
@@ -2623,7 +2608,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.17.0"
+version = "0.21.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2631,7 +2616,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.17.0-py3-none-any.whl", hash = "sha256:e5a7c320678a6204cfa6e8a8981952e8dd1080131de076c5cec8702a24f62d7d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.21.0-py3-none-any.whl", hash = "sha256:ef3bc29f77af8f8fa17fc1a58fe96ae2aa22b2c2201e532047bce4889074a121" },
 ]
 
 [[package]]
