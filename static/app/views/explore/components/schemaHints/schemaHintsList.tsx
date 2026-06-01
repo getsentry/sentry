@@ -161,7 +161,7 @@ function formatHintOperator(hint: Tag) {
     return '>';
   }
   if (CONVERSATIONS_INCLUDES_KEYS.has(hint.key)) {
-    return 'includes';
+    return 'contains';
   }
   return 'is';
 }
