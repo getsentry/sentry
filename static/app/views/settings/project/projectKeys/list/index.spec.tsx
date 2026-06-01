@@ -353,7 +353,7 @@ describe('ProjectKeys', () => {
       initialRouterConfig,
     });
 
-    await screen.findByRole('heading', {name: 'Client Keys'});
+    await screen.findByRole('textbox', {name: 'DSN URL'});
     expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
   });

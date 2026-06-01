@@ -3,15 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {getOverride, registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {HookStore} from 'sentry/stores/hookStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {App} from 'sentry/views/app';
 
-function HookWrapper(props: any) {
+function OverrideWrapper(props: any) {
   return (
-    <div data-test-id="hook-wrapper">
+    <div data-test-id="override-wrapper">
       {props.children}
       <span>{JSON.stringify(props?.organization ?? {}, null, 2)}</span>
     </div>
@@ -41,8 +41,6 @@ describe('App', () => {
 
     ConfigStore.init();
     ConfigStore.loadInitialData(configState);
-
-    HookStore.init();
 
     MockApiClient.addMockResponse({
       url: '/organizations/',
@@ -135,22 +133,26 @@ describe('App', () => {
       partnerDisplayName: 'Foo',
       agreements: ['standard', 'partner_presence'],
     });
-    HookStore.set('component:partnership-agreement', () => <HookWrapper key={0} />);
+    registerOverride('component:partnership-agreement', () => (
+      <OverrideWrapper key={0} />
+    ));
     render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
-    expect(HookStore.get('component:partnership-agreement')).toBeDefined();
-    expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
+    expect(getOverride('component:partnership-agreement')).toBeDefined();
+    expect(screen.getByTestId('override-wrapper')).toBeInTheDocument();
   });
 
   it('does not render PartnerAgreement for non-partnered orgs', async () => {
     ConfigStore.set('partnershipAgreementPrompt', null);
-    HookStore.set('component:partnership-agreement', () => <HookWrapper key={0} />);
+    registerOverride('component:partnership-agreement', () => (
+      <OverrideWrapper key={0} />
+    ));
     render(<App />, {initialRouterConfig: defaultRouterConfig});
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
     expect(screen.getByText('placeholder content')).toBeInTheDocument();
-    expect(screen.queryByTestId('hook-wrapper')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('override-wrapper')).not.toBeInTheDocument();
   });
 
   it('renders InstallWizard for self-hosted', async () => {

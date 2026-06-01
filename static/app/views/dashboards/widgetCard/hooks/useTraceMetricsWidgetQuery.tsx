@@ -7,9 +7,16 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import {
+  getEquationAliasIndex,
+  isEquation,
+  isEquationAlias,
+  type AggregationOutputType,
+  type DataUnit,
+} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -280,7 +287,23 @@ export function useTraceMetricsTableQuery(
       };
 
       if (query.orderby) {
-        requestParams.sort = toArray(query.orderby);
+        const baseSort = decodeSorts(query.orderby)[0];
+        if (isEquationAlias(baseSort?.field ?? '')) {
+          const fields = query.fields ?? [...query.columns, ...query.aggregates];
+          const equations = fields.filter(isEquation);
+          const equationIndex = getEquationAliasIndex(baseSort?.field ?? '');
+          const equation = equations[equationIndex];
+          if (equation) {
+            requestParams.sort = toArray(
+              baseSort?.kind === 'desc' ? `-${equation}` : equation
+            );
+          } else {
+            // In case we failed to find an equation by its index, reset the sort
+            requestParams.sort = undefined;
+          }
+        } else {
+          requestParams.sort = toArray(query.orderby);
+        }
       }
 
       const queryParams = {

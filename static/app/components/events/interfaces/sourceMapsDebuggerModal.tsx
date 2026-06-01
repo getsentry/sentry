@@ -1,6 +1,7 @@
 import type {PropsWithChildren, ReactNode} from 'react';
 import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import BadStackTraceExample from 'sentry-images/issue_details/bad-stack-trace-example.png';
@@ -1984,7 +1985,11 @@ function SourceMapStepNotRequiredNote() {
 }
 
 const StyledTabPanels = styled(TabPanels)<{hideAllTabs: boolean}>`
-  ${p => !p.hideAllTabs && `padding-top: ${p.theme.space.xl};`}
+  ${p =>
+    !p.hideAllTabs &&
+    css`
+      padding-top: ${p.theme.space.xl};
+    `}
 `;
 
 const CheckList = styled('ul')`

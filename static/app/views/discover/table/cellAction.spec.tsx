@@ -5,7 +5,12 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {
+  Actions,
+  ActionTriggerType,
+  CellAction,
+  updateQuery,
+} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 const defaultData: TableDataRow = {
@@ -32,6 +37,8 @@ function renderComponent({
   handleCellAction = jest.fn(),
   columnIndex = 0,
   data = defaultData,
+  pin,
+  triggerType,
 }: {
   eventView: EventView;
   columnIndex?: number;
@@ -40,12 +47,16 @@ function renderComponent({
     action: Actions,
     value: string | number | null[] | string[] | null
   ) => void;
+  pin?: React.ReactNode;
+  triggerType?: ActionTriggerType;
 }) {
   return render(
     <CellAction
       dataRow={data}
       column={eventView.getColumns()[columnIndex]!}
       handleCellAction={handleCellAction}
+      pin={pin}
+      triggerType={triggerType}
     >
       <strong>some content</strong>
     </CellAction>
@@ -178,6 +189,95 @@ describe('Discover -> CellAction', () => {
         'show_less_than',
         '2020-06-09T01:46:25+00:00'
       );
+    });
+
+    it('does not offer link actions for wildcard URLs', async () => {
+      const urlView = EventView.fromLocation(
+        LocationFixture({
+          query: {
+            ...location.query,
+            field: ['url'],
+          },
+        })
+      );
+
+      render(
+        <CellAction
+          dataRow={{id: '1', url: 'http://*/v1/api/auth/register'}}
+          column={urlView.getColumns()[0]!}
+          handleCellAction={handleCellAction}
+        >
+          <strong>http://*/v1/api/auth/register</strong>
+        </CellAction>
+      );
+
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open external link'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not offer open link for invalid external anchors', async () => {
+      const urlView = EventView.fromLocation(
+        LocationFixture({
+          query: {
+            ...location.query,
+            field: ['url'],
+          },
+        })
+      );
+      const wildcardUrl = 'http://*/v1/api/auth/register';
+
+      render(
+        <CellAction
+          dataRow={{id: '1'}}
+          column={urlView.getColumns()[0]!}
+          handleCellAction={handleCellAction}
+        >
+          <a href={wildcardUrl}>{wildcardUrl}</a>
+        </CellAction>
+      );
+
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open external link'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('uses the full anchor href for external link actions', async () => {
+      const urlView = EventView.fromLocation(
+        LocationFixture({
+          query: {
+            ...location.query,
+            field: ['url'],
+          },
+        })
+      );
+      const fullUrl = 'https://example.com/v1/api/auth/register';
+
+      render(
+        <CellAction
+          dataRow={{id: '1', url: '/v1/api/auth/register'}}
+          column={urlView.getColumns()[0]!}
+          handleCellAction={handleCellAction}
+        >
+          <a href={fullUrl}>/v1/api/auth/register</a>
+        </CellAction>
+      );
+
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Open external link'})
+      ).toHaveAttribute('href', fullUrl);
     });
 
     it('error.handled with null adds condition', async () => {
@@ -387,6 +487,28 @@ describe('Discover -> CellAction', () => {
         },
       });
       expect(screen.queryByRole('button', {name: 'Actions'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('pin prop', () => {
+    it('renders the pin element with the bold hover trigger', () => {
+      renderComponent({
+        eventView: view,
+        triggerType: ActionTriggerType.BOLD_HOVER,
+        pin: <button type="button">pin me</button>,
+      });
+
+      expect(screen.getByRole('button', {name: 'pin me'})).toBeInTheDocument();
+    });
+
+    it('renders the pin element with the ellipsis trigger', () => {
+      renderComponent({
+        eventView: view,
+        triggerType: ActionTriggerType.ELLIPSIS,
+        pin: <button type="button">pin me</button>,
+      });
+
+      expect(screen.getByRole('button', {name: 'pin me'})).toBeInTheDocument();
     });
   });
 });

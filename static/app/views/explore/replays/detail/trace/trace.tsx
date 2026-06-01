@@ -110,6 +110,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
   const rootEvent = useTraceRootEvent({
     tree,
     logs: undefined,
+    timestamp: firstTrace?.timestamp,
     traceId: firstTrace?.traceSlug ?? '',
   });
 

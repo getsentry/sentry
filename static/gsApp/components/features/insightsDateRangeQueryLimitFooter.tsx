@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {withOrganization} from 'sentry/utils/withOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import DateRangeQueryLimitFooter from 'getsentry/components/features/dateRangeQueryLimitFooter';
 import {withSubscription} from 'getsentry/components/withSubscription';
@@ -8,7 +8,6 @@ import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {Subscription} from 'getsentry/types';
 
 interface Props {
-  organization: Organization;
   subscription: Subscription;
 }
 
@@ -18,7 +17,8 @@ const DESCRIPTION = t(
 
 const QUERY_LIMIT_REFERRER = 'insights-query-limit-footer';
 
-export function InsightsDateRangeQueryLimitFooter({organization, subscription}: Props) {
+export function InsightsDateRangeQueryLimitFooter({subscription}: Props) {
+  const organization = useOrganization();
   const shouldShowQueryLimitFooter = useHasRequiredFeatures(organization, subscription);
 
   if (!shouldShowQueryLimitFooter) {
@@ -53,6 +53,4 @@ const useHasRequiredFeatures = (
   return enabledFeatures.includes('insights-query-date-range-limit');
 };
 
-export default withOrganization(
-  withSubscription(InsightsDateRangeQueryLimitFooter, {noLoader: true})
-);
+export default withSubscription(InsightsDateRangeQueryLimitFooter, {noLoader: true});

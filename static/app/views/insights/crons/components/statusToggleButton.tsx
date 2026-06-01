@@ -3,7 +3,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {ObjectStatus} from 'sentry/types/core';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/insights/crons/types';
@@ -21,7 +21,7 @@ export function StatusToggleButton({
   const organization = useOrganization();
   const {status} = monitor;
   const isDisabled = status === 'disabled';
-  const onMonitorCreated = HookStore.get('callback:on-monitor-created');
+  const onMonitorCreated = getOverride('callback:on-monitor-created');
 
   const Icon = isDisabled ? IconPlay : IconPause;
 

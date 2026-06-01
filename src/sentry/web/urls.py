@@ -802,9 +802,9 @@ urlpatterns += [
         ),
     ),
     re_path(
-        r"^extensions/external-install/(?P<provider_id>\w+)/(?P<installation_id>\w+)/$",
+        r"^extensions/(?P<integration_slug>[^/]+)/link/$",
         react_page_view,
-        name="integration-installation",
+        name="sentry-integration-installation-link",
     ),
     re_path(
         r"^unsubscribe/(?P<organization_slug>[^/]+)/project/(?P<project_id>\d+)/$",
@@ -989,12 +989,6 @@ urlpatterns += [
         react_page_view,
         name="feedback-details",
     ),
-    # Prevent (Codecov features)
-    re_path(
-        r"^prevent/",
-        react_page_view,
-        name="prevent",
-    ),
     # Monitors
     re_path(
         r"^monitors/",
@@ -1103,6 +1097,11 @@ urlpatterns += [
                     r"^(?P<organization_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/events/(?P<client_event_id>[^/]+)/$",
                     ProjectEventRedirect.as_view(),
                     name="sentry-organization-project-event-redirect",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/projects/(?P<project_id_or_slug>[^/]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/export/$",
+                    GroupTagExportView.as_view(),
+                    name="sentry-organization-group-tag-export",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/api-keys/$",
@@ -1220,9 +1219,15 @@ urlpatterns += [
         name="sentry-user-avatar-url",
     ),
     re_path(
-        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
+        r"^organization-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url",
+    ),
+    # Deprecated because it lacks an organization slug
+    re_path(
+        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
+        OrganizationAvatarPhotoView.as_view(),
+        name="sentry-organization-avatar-url-deprecated",
     ),
     re_path(
         r"^sentry-app-avatar/(?P<avatar_id>[^/]+)/$",

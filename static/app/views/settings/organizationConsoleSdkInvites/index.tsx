@@ -18,7 +18,6 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
@@ -26,7 +25,6 @@ import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
   const user = useUser();
-  const hasPageFrame = useHasPageFrameFeature();
   const {
     data: invites,
     isPending,
@@ -62,19 +60,14 @@ export default function ConsoleSDKInvitesSettings() {
       <SentryDocumentTitle title={t('Console SDK Invites')} orgSlug={organization.slug} />
       <SettingsPageHeader
         title={t('Console SDK Invites')}
+        action={action}
         subtitle={t(
           'Manage invitations to our private gaming console SDK GitHub repositories.'
         )}
-        action={hasPageFrame ? undefined : action}
       />
       {!userHasConsoleAccess && <NoAccessAlert />}
       {!isPending && !isError && userHasConsoleAccess && !userHasQuotaRemaining && (
         <NoQuotaRemaining organization={organization} />
-      )}
-      {hasPageFrame && (
-        <Flex justify="end" marginTop="xl">
-          {action}
-        </Flex>
       )}
       <InvitesTable>
         <SimpleTable.Header>

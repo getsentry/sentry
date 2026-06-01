@@ -21,7 +21,6 @@ import type {User} from './user';
  */
 export interface OrganizationSummary {
   avatar: Avatar;
-  codecovAccess: boolean;
   dateCreated: string;
   hideAiFeatures: boolean;
   id: string;
@@ -98,7 +97,6 @@ export interface Organization extends OrganizationSummary {
   streamlineOnly: boolean | null;
   targetSampleRate: number;
   teamRoleList: TeamRole[];
-  trustedRelays: Relay[];
   consoleSdkInviteQuota?: number;
   dashboardsAsyncQueueParallelLimit?: number;
   defaultAutofixAutomationTuning?:
@@ -123,6 +121,7 @@ export interface Organization extends OrganizationSummary {
   ingestThroughTrustedRelaysOnly?: 'enabled' | 'disabled';
   orgRole?: string;
   planSampleRate?: number | null;
+  trustedRelays?: Relay[];
 }
 
 export interface Team {

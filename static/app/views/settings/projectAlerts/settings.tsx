@@ -20,7 +20,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectAlertsOutlet} from 'sentry/views/settings/projectAlerts';
@@ -39,8 +38,6 @@ function makeFetchProjectPluginsQueryKey(
 export default function ProjectAlertSettings() {
   const organization = useOrganization();
   const {canEditRule, project} = useProjectAlertsOutlet();
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
   const {
     data: pluginList = [],
     isPending: isPluginListLoading,
@@ -65,29 +62,18 @@ export default function ProjectAlertSettings() {
       <SentryDocumentTitle
         title={routeTitleGen(t('Alerts Settings'), project.slug, false)}
       />
-      <SettingsPageHeader
-        title={t('Alerts Settings')}
-        action={
-          !hasPageFrameFeature && (
-            <LinkButton to={alertRulesTo} size="sm">
-              {t('View Alert Rules')}
-            </LinkButton>
-          )
-        }
-      />
+      <SettingsPageHeader title={t('Alerts Settings')} />
       <ProjectPermissionAlert project={project} />
 
       {isPluginListLoading ? (
         <LoadingIndicator />
       ) : (
         <Fragment>
-          {hasPageFrameFeature && (
-            <Flex justify="end" paddingBottom="sm">
-              <LinkButton to={alertRulesTo} size="sm">
-                {t('View Alert Rules')}
-              </LinkButton>
-            </Flex>
-          )}
+          <Flex justify="end" paddingBottom="sm">
+            <LinkButton to={alertRulesTo} size="sm">
+              {t('View Alert Rules')}
+            </LinkButton>
+          </Flex>
           <Form
             saveOnBlur
             allowUndo

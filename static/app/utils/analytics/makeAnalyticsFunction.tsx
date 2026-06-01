@@ -1,6 +1,6 @@
-import {HookStore} from 'sentry/stores/hookStore';
-import type {Hooks} from 'sentry/types/hooks';
+import {getOverride} from 'sentry/overrideRegistry';
 import type {Organization} from 'sentry/types/organization';
+import type {Overrides} from 'sentry/types/overrides';
 
 /**
  * Should NOT be used directly. Instead, use makeAnalyticsFunction to generate
@@ -10,15 +10,15 @@ import type {Organization} from 'sentry/types/organization';
  * analytics.tsx imports makeAnalyticsFunction, and makeAnalyticsFunction calls
  * rawTrackAnalyticsEvent.
  */
-const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (data, options) =>
-  HookStore.get('analytics:raw-track-event')?.(data, options);
+const rawTrackAnalyticsEvent: Overrides['analytics:raw-track-event'] = (data, options) =>
+  getOverride('analytics:raw-track-event')?.(data, options);
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
 type OptionalOrg = {
   organization: Organization | string | null;
 };
-type Options = Parameters<Hooks['analytics:raw-track-event']>[1];
+type Options = Parameters<Overrides['analytics:raw-track-event']>[1];
 
 /**
  * Generates functions used to track an event for analytics.

@@ -2,10 +2,10 @@ import {useMemo} from 'react';
 
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
-import {HookStore} from 'sentry/stores/hookStore';
+import {getOverride} from 'sentry/overrideRegistry';
 
 export function SentryTrackingProvider({children}: {children: React.ReactNode}) {
-  const useButtonTracking = HookStore.get('react-hook:use-button-tracking');
+  const useButtonTracking = getOverride('react-hook:use-button-tracking');
   const trackingContextValue = useMemo(() => ({useButtonTracking}), [useButtonTracking]);
 
   return (

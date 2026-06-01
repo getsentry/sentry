@@ -14,8 +14,7 @@ import {
   type RawCrumb,
 } from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
-import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 const DEFAULT_STRUCTURED_DATA_PROPS = {
@@ -23,8 +22,6 @@ const DEFAULT_STRUCTURED_DATA_PROPS = {
   withAnnotatedText: true,
   withOnlyFormattedText: true,
 };
-
-const MESSAGE_PREVIEW_CHAR_LIMIT = 200;
 
 interface BreadcrumbItemContentProps {
   breadcrumb: RawCrumb;
@@ -47,20 +44,7 @@ export function BreadcrumbItemContent({
 
   const defaultMessage = defined(bc.message) ? (
     <BreadcrumbText>
-      {fullyExpanded ? (
-        <StructuredData
-          value={bc.message}
-          meta={meta?.message}
-          {...structuredDataProps}
-        />
-      ) : (
-        <StructuredData
-          value={ellipsize(bc.message, MESSAGE_PREVIEW_CHAR_LIMIT)}
-          // Note: Annotations applying to trimmed content will not be applied.
-          meta={meta?.message}
-          {...structuredDataProps}
-        />
-      )}
+      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
     </BreadcrumbText>
   ) : null;
 
@@ -133,13 +117,13 @@ function HTTPCrumbContent({
     status_code: statusCode,
     ...otherData
   } = cleanBreadcrumbData(breadcrumb?.data) ?? {};
-  const isValidUrl = !meta && defined(url) && isUrl(url);
+  const showUrlAsLink = !meta && defined(url) && isValidUrl(url);
   return (
     <Fragment>
       {children}
       <BreadcrumbText>
         {defined(method) && `${method}: `}
-        {isValidUrl ? (
+        {showUrlAsLink ? (
           <Link
             role="link"
             onClick={() => openNavigateToExternalLinkModal({linkText: url})}
@@ -272,6 +256,7 @@ const SQLText = styled('pre')`
 
 const BreadcrumbText = styled(Timeline.Text)`
   white-space: pre-wrap;
+  word-break: break-all;
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};

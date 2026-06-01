@@ -27,7 +27,6 @@ import {DataCategory} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -396,7 +395,6 @@ export function FiltersBar({
               </Button>
             </Grid>
           )}
-        <ToggleOnDemand />
       </FiltersRow>
       <Grid flow="column" align="center" gap="md">
         <CompactSelect

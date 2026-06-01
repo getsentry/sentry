@@ -8,7 +8,10 @@ from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import MarkTimeou
 from sentry.monitors.clock_tasks.producer import MONITORS_CLOCK_TASKS_CODEC, produce_task
 
 
-@override_settings(KAFKA_TOPIC_OVERRIDES={"monitors-clock-tasks": "monitors-test-topic"})
+@override_settings(
+    KAFKA_TOPIC_OVERRIDES={"monitors-clock-tasks": "monitors-test-topic"},
+    KAFKA_TOPIC_TO_CLUSTER={"monitors-test-topic": "default"},
+)
 @mock.patch("sentry.monitors.clock_tasks.producer._clock_task_producer")
 def test_produce_task(mock_producer: mock.MagicMock) -> None:
     message: MarkTimeout = {

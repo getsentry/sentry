@@ -266,6 +266,10 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 [formatYAxisValue.tsx](static/app/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue.tsx) · Integers → `formatAbbreviatedNumber`. Non-integers → `toLocaleString({maximumFractionDigits: 20})` (full precision, trusts ECharts to provide round values).
 
+### `formatYAxisValue(value, 'number'/'integer', ...)`
+
+[formatYAxisValue.tsx](static/app/views/dashboards/widgets/heatMapWidget/formatters/formatYAxisValue.tsx) · NOTE: This function is ONLY for HEAT MAPS! Integers → `formatAbbreviatedNumber`. Non-integers → `formatNumberWithDynamicDecimalPoints(value)` (ECharts treats heat map y-axis as categories so it will not do a great job at formatting and providing round values. Hence we are rounding them off ourselves).
+
 ### `formatTooltipValue(value, 'number'/'integer', ...)`
 
 [formatTooltipValue.tsx](static/app/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue.tsx) · `toLocaleString({maximumFractionDigits: 4})`. If `0 < value < 0.0001`: switches to `{maximumSignificantDigits: 4}` to avoid `"0.0000"`.
@@ -523,13 +527,13 @@ Only `static/app/utils/discover/charts.tsx` (discover y-axis formatter for durat
 
 ## `getExactDuration` — ~7 call sites
 
-| Where                                                                      | Pattern                                          |
-| -------------------------------------------------------------------------- | ------------------------------------------------ |
-| `gsApp/views/spikeProtection/spikeProtectionHistoryTable.tsx`              | `getExactDuration(duration, true)` (abbreviated) |
-| `views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection.tsx` | Default                                          |
-| `views/detectors/components/details/metric/detect.tsx` (×2)                | Default                                          |
-| `views/settings/project/projectKeys/details/keyRateLimitsForm.tsx` (×2)    | Default                                          |
-| `components/duration.tsx`                                                  | Conditional via `<Duration exact>` prop          |
+| Where                                                                   | Pattern                                          |
+| ----------------------------------------------------------------------- | ------------------------------------------------ |
+| `gsApp/views/spikeProtection/spikeProtectionHistoryTable.tsx`           | `getExactDuration(duration, true)` (abbreviated) |
+| `views/issueDetails/sidebar/metricDetectorTriggeredSection.tsx`         | Default                                          |
+| `views/detectors/components/details/metric/detect.tsx` (×2)             | Default                                          |
+| `views/settings/project/projectKeys/details/keyRateLimitsForm.tsx` (×2) | Default                                          |
+| `components/duration.tsx`                                               | Conditional via `<Duration exact>` prop          |
 
 Used only where a full breakdown is desired (e.g., `"1 hour 25 minutes 15 seconds"` for an alert time window, not `"1.4 hours"`).
 
