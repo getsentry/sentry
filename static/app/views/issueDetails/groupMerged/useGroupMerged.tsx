@@ -25,6 +25,8 @@ export interface FingerprintWithLatestEvent extends Fingerprint {
   latestEvent: Event;
 }
 
+export const MERGED_HASH_LIMIT = 50;
+
 interface FingerprintState {
   busy?: boolean;
   checked?: boolean;
@@ -54,7 +56,7 @@ interface UnmergeMessages {
 export function createInitialGroupMergedState(): GroupMergedState {
   return {
     fingerprintState: new Map(),
-    unmergeLastCollapsed: false,
+    unmergeLastCollapsed: true,
     unmergeList: new Map(),
   };
 }
@@ -124,7 +126,9 @@ export function groupMergedReducer(
       };
     }
     case 'toggleCollapsed': {
-      const collapsed = state.fingerprintState.get(action.fingerprintId)?.collapsed;
+      const collapsed =
+        state.fingerprintState.get(action.fingerprintId)?.collapsed ??
+        state.unmergeLastCollapsed;
 
       return {
         ...state,
@@ -222,7 +226,12 @@ export function useGroupMergedHashes({
       '/organizations/$organizationIdOrSlug/issues/$issueId/hashes/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: groupId},
-        query: {...location.query, limit: 50, query: location.query.query ?? ''},
+        query: {
+          ...location.query,
+          full: '0',
+          limit: MERGED_HASH_LIMIT,
+          query: location.query.query ?? '',
+        },
         staleTime: 30_000,
       }
     ),

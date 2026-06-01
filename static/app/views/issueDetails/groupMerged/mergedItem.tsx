@@ -1,17 +1,17 @@
-import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChevron, IconLink} from 'sentry/icons';
+import {TimeSince} from 'sentry/components/timeSince';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {createIssueLink} from 'sentry/views/issueList/utils';
 
 import {type FingerprintWithLatestEvent, type GroupMergedState} from './useGroupMerged';
 
@@ -30,12 +30,10 @@ export function MergedItem({
   toggleSelected,
   totalFingerprint,
 }: Props) {
-  const theme = useTheme();
   const organization = useOrganization();
-  const location = useLocation();
   const stateForId = state.fingerprintState.get(fingerprint.id);
   const busy = Boolean(stateForId?.busy);
-  const collapsed = Boolean(stateForId?.collapsed);
+  const collapsed = stateForId?.collapsed ?? state.unmergeLastCollapsed;
   const checked = Boolean(stateForId?.checked);
 
   function handleToggleEvents() {
@@ -49,30 +47,19 @@ export function MergedItem({
       return;
     }
 
-    // clicking anywhere in the row will toggle the checkbox
     toggleSelected(fingerprint.id, latestEvent.id);
-  }
-
-  function handleCheckClick() {
-    // noop because of react warning about being a controlled input without `onChange`
-    // we handle change via row click
   }
 
   const {latestEvent, id} = fingerprint;
   const checkboxDisabled = busy || totalFingerprint === 1;
+  const latestEventTimestamp = latestEvent.dateCreated ?? latestEvent.dateReceived;
 
-  const issueLink = createIssueLink({
-    organization,
-    location,
-    data: latestEvent,
-    eventId: latestEvent.id,
-    referrer: 'merged-item',
-  });
+  const issueLink = `/organizations/${organization.slug}/issues/${latestEvent.groupID}/events/${latestEvent.id}/?project=${latestEvent.projectID}&referrer=merged-item`;
 
   return (
     <MergedGroup busy={busy}>
-      <Controls expanded={!collapsed}>
-        <FingerprintLabel onClick={handleToggle}>
+      <EventRow>
+        <Flex align="center" gap="sm" minWidth={0}>
           <Tooltip
             containerDisplayMode="flex"
             disabled={!checkboxDisabled}
@@ -82,17 +69,45 @@ export function MergedItem({
                 : undefined
             }
           >
-            <Checkbox
-              value={id}
-              checked={checked}
-              disabled={checkboxDisabled}
-              onChange={handleCheckClick}
-              size="xs"
-            />
+            <Flex
+              align="center"
+              justify="center"
+              flexShrink={0}
+              width="20px"
+              height="20px"
+            >
+              <Checkbox
+                aria-label={t('Select fingerprint %s', id)}
+                value={id}
+                checked={checked}
+                disabled={checkboxDisabled}
+                onChange={handleToggle}
+              />
+            </Flex>
           </Tooltip>
-          {id}
-          {fingerprint.mergedBySeer && ' (merged by Sentry)'}
-        </FingerprintLabel>
+
+          <Flex direction="column" gap="xs" minWidth={0}>
+            <Text size="md" data-issue-title-primary>
+              {latestEvent.title}
+            </Text>
+            {latestEventTimestamp && (
+              <Text as="span" size="sm" variant="muted">
+                <Link to={issueLink}>{t('Latest event')}</Link>{' '}
+                <TimeSince
+                  date={latestEventTimestamp}
+                  unitStyle="short"
+                  variant="muted"
+                />
+                {fingerprint.mergedBySeer && (
+                  <MergedBySentryLabel>
+                    <span aria-hidden="true">·</span>
+                    {t('Merged by Sentry')}
+                  </MergedBySentryLabel>
+                )}
+              </Text>
+            )}
+          </Flex>
+        </Flex>
 
         <Button
           aria-label={
@@ -103,65 +118,92 @@ export function MergedItem({
           icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />}
           onClick={handleToggleEvents}
         />
-      </Controls>
+      </EventRow>
 
       {!collapsed && (
-        <MergedEventList>
-          <Flex align="center" gap="xs">
-            <LinkButton
-              to={issueLink}
-              icon={<IconLink variant="accent" />}
-              tooltipProps={{title: t('View latest event')}}
-              aria-label={t('View latest event')}
-              variant="transparent"
-              size="xs"
-              style={{marginLeft: theme.space.md}}
-            />
-            <Flex justify="between" padding="md">
-              <Text size="md" data-issue-title-primary>
-                {latestEvent.title}
+        <FingerprintRow>
+          <FingerprintConnector aria-hidden="true" />
+          <Flex align="center" gap="sm" minWidth={0}>
+            <FingerprintText>
+              <Text as="span" size="sm">
+                {t('Fingerprint %s', id)}
               </Text>
-            </Flex>
+            </FingerprintText>
           </Flex>
-        </MergedEventList>
+        </FingerprintRow>
       )}
     </MergedGroup>
   );
 }
 
 const MergedGroup = styled('div')<{busy: boolean}>`
-  ${p => p.busy && 'opacity: 0.2'};
-`;
+  ${p =>
+    p.busy &&
+    css`
+      opacity: 0.2;
+    `}
 
-const Controls = styled('div')<{expanded: boolean}>`
-  display: flex;
-  justify-content: space-between;
-  background-color: ${p => p.theme.tokens.background.secondary};
-  ${p => p.expanded && `border-bottom: 1px solid ${p.theme.tokens.border.secondary}`};
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-
-  ${MergedGroup}:not(:first-child) & {
+  & + & {
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
+`;
 
-  ${MergedGroup}:last-child & {
-    ${p => !p.expanded && 'border-bottom: none'};
-    ${p => !p.expanded && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
+const EventRow = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  background-color: ${p => p.theme.tokens.background.primary};
+  padding: ${p => p.theme.space.md};
+`;
+
+const FingerprintRow = styled('div')`
+  display: grid;
+  grid-template-columns:
+    calc(${p => p.theme.space.xl} + ${p => p.theme.space.sm} - 2px)
+    minmax(0, 1fr);
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  background-color: ${p => p.theme.tokens.background.secondary};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+  padding: ${p => p.theme.space.md};
+`;
+
+const FingerprintConnector = styled('span')`
+  position: relative;
+  width: ${p => p.theme.space.xl};
+  align-self: stretch;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-color: ${p => p.theme.tokens.border.secondary};
+    opacity: 0.55;
+  }
+
+  &::before {
+    left: calc(${p => p.theme.space.lg} - 2px);
+    top: -${p => p.theme.space.md};
+    height: calc(50% + ${p => p.theme.space.md});
+    border-left: 1px solid;
+  }
+
+  &::after {
+    left: calc(${p => p.theme.space.lg} - 2px);
+    top: 50%;
+    width: ${p => p.theme.space.sm};
+    border-top: 1px solid;
   }
 `;
 
-const FingerprintLabel = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  font-family: ${p => p.theme.font.family.mono};
-  line-height: 1;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  margin: 0;
+const FingerprintText = styled('div')`
+  overflow-wrap: anywhere;
 `;
 
-const MergedEventList = styled('div')`
-  overflow: hidden;
-  border: none;
-  background-color: ${p => p.theme.tokens.background.primary};
+const MergedBySentryLabel = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  margin-left: ${p => p.theme.space.xs};
 `;

@@ -1,10 +1,11 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
+
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QueryCount} from 'sentry/components/queryCount';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -24,6 +25,9 @@ type Props = {
   location: Location;
   project: Project;
 };
+
+export const MERGED_ISSUES_DOCS_LINK =
+  'https://docs.sentry.io/product/issues/grouping-and-fingerprints/#merging-similar-issues';
 
 interface GroupMergedContentProps {
   error: boolean;
@@ -72,7 +76,6 @@ function GroupMergedContent({
 }: GroupMergedContentProps) {
   const {
     enableFingerprintCompare,
-    fingerprintsWithLatestEvent,
     selectedEventIds,
     state,
     toggleAllCollapsed,
@@ -100,29 +103,30 @@ function GroupMergedContent({
   const isLoadedSuccessfully = !isError && !loading;
 
   return (
-    <Fragment>
-      <HeaderWrapper>
-        <Title>
-          {tct('Fingerprints included in this issue [count]', {
-            count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
-          })}
-        </Title>
-        <small>
+    <Stack gap="xl">
+      <Stack gap="sm">
+        <Heading as="h4" size="lg">
+          {t('Fingerprints included in this issue')}
+        </Heading>
+        <Text as="p" size="sm" variant="muted">
           {
             // TODO: Once clickhouse is upgraded and the lag is no longer an issue, revisit this wording.
             // See https://github.com/getsentry/sentry/issues/56334.
-            t(
-              'This is an experimental feature. All changes may take up to 24 hours take effect.'
+            tct(
+              'These fingerprints identify events that have been merged into this issue. Changes may take up to 24 hours to take effect. [learnMore:Learn more]',
+              {
+                learnMore: <ExternalLink href={MERGED_ISSUES_DOCS_LINK} />,
+              }
             )
           }
-        </small>
-      </HeaderWrapper>
+        </Text>
+      </Stack>
 
       {loading && <LoadingIndicator />}
       {isError && (
         <LoadingError
           message={t('Unable to load merged events, please try again later')}
-          onRetry={() => refetch()}
+          onRetry={refetch}
         />
       )}
 
@@ -141,19 +145,6 @@ function GroupMergedContent({
           onToggleCollapse={toggleAllCollapsed}
         />
       )}
-    </Fragment>
+    </Stack>
   );
 }
-
-const Title = styled('h4')`
-  font-size: ${p => p.theme.font.size.lg};
-  margin-bottom: ${p => p.theme.space.sm};
-`;
-
-const HeaderWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-
-  small {
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-`;

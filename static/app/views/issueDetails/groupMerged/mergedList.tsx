@@ -1,17 +1,26 @@
-import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {parseCursor} from 'sentry/utils/cursor';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {MergedItem} from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
-import {hasLatestEvent, type Fingerprint, type GroupMergedState} from './useGroupMerged';
+import {
+  hasLatestEvent,
+  MERGED_HASH_LIMIT,
+  type Fingerprint,
+  type GroupMergedState,
+} from './useGroupMerged';
 
 type Props = {
   enableFingerprintCompare: boolean;
@@ -40,8 +49,15 @@ export function MergedList({
   toggleSelected,
   unmergeDisabled,
 }: Props) {
+  const location = useLocation();
   const fingerprintsWithLatestEvent = fingerprints.filter(hasLatestEvent);
   const hasResults = fingerprintsWithLatestEvent.length > 0;
+  const paginationCaption = getMergedHashesPaginationCaption({
+    cursor: decodeScalar(location.query.cursor),
+    pageLength: fingerprintsWithLatestEvent.length,
+    pageLinks,
+  });
+
   if (!hasResults) {
     return (
       <Panel>
@@ -53,8 +69,8 @@ export function MergedList({
   }
 
   return (
-    <Fragment>
-      <Panel>
+    <div>
+      <MergedPanel>
         <MergedToolbar
           enableFingerprintCompare={enableFingerprintCompare}
           fingerprints={fingerprints}
@@ -78,8 +94,40 @@ export function MergedList({
             />
           ))}
         </PanelBody>
-      </Panel>
-      {pageLinks && <Pagination pageLinks={pageLinks} />}
-    </Fragment>
+      </MergedPanel>
+      <Pagination caption={paginationCaption} pageLinks={pageLinks} />
+    </div>
   );
 }
+
+function getMergedHashesPaginationCaption({
+  cursor,
+  pageLength,
+  pageLinks,
+}: {
+  cursor: string | undefined;
+  pageLength: number;
+  pageLinks: string | undefined;
+}) {
+  if (!pageLinks || pageLength === 0) {
+    return;
+  }
+
+  const offset = parseCursor(cursor)?.offset ?? 0;
+  const end = offset * MERGED_HASH_LIMIT + pageLength;
+  const links = parseLinkHeader(pageLinks);
+
+  if (links.next?.results === false) {
+    return tct('[count] of [total]', {
+      count: end.toLocaleString(),
+      total: end.toLocaleString(),
+    });
+  }
+
+  return tct('[count] shown', {count: end.toLocaleString()});
+}
+
+const MergedPanel = styled(Panel)`
+  margin-bottom: 0;
+  overflow: hidden;
+`;

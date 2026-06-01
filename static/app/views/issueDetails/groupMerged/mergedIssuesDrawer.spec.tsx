@@ -7,6 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {MERGED_ISSUES_DOCS_LINK} from 'sentry/views/issueDetails/groupMerged';
 import {MergedIssuesDrawer} from 'sentry/views/issueDetails/groupMerged/mergedIssuesDrawer';
 
 describe('MergedIssuesDrawer', () => {
@@ -39,6 +40,10 @@ describe('MergedIssuesDrawer', () => {
     expect(
       await screen.findByRole('heading', {name: 'Merged Issues'})
     ).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: 'Learn more'})).toHaveAttribute(
+      'href',
+      MERGED_ISSUES_DOCS_LINK
+    );
     expect(screen.getByText('Fingerprints included in this issue')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Close Drawer'})).toBeInTheDocument();
   });
