@@ -42,7 +42,7 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
         const timestamp = getTraceIssueTimestamp(issue, node_space);
         const className = getTraceIssueSeverityClassName(issue);
 
-        if (additionalIssueCount) {
+        if (additionalIssueCount !== undefined) {
           const clampedTimestamp = clamp(
             timestamp,
             node_space[0],
