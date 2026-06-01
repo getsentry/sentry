@@ -10,14 +10,16 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {parseCursor} from 'sentry/utils/cursor';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {MergedItem} from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
-import {hasLatestEvent, type Fingerprint, type GroupMergedState} from './useGroupMerged';
+import {type FingerprintWithLatestEvent, type GroupMergedState} from './useGroupMerged';
 
 type Props = {
-  cursor: string | undefined;
   enableFingerprintCompare: boolean;
+  fingerprints: FingerprintWithLatestEvent[];
   groupId: Group['id'];
   onToggleCollapse: () => void;
   onUnmerge: () => void;
@@ -26,13 +28,11 @@ type Props = {
   toggleCollapsed: (fingerprintId: string) => void;
   toggleSelected: (fingerprintId: string, eventId: string) => void;
   unmergeDisabled: boolean;
-  fingerprints?: Fingerprint[];
   pageLinks?: string;
 };
 
 export function MergedList({
-  cursor,
-  fingerprints = [],
+  fingerprints,
   pageLinks,
   onToggleCollapse,
   onUnmerge,
@@ -44,11 +44,12 @@ export function MergedList({
   toggleSelected,
   unmergeDisabled,
 }: Props) {
-  const fingerprintsWithLatestEvent = fingerprints.filter(hasLatestEvent);
-  const hasResults = fingerprintsWithLatestEvent.length > 0;
+  const location = useLocation();
+  const hasResults = fingerprints.length > 0;
+  const canSelect = fingerprints.length > 1;
   const paginationCaption = getMergedHashesPaginationCaption({
-    cursor,
-    pageLength: fingerprintsWithLatestEvent.length,
+    cursor: decodeScalar(location.query.cursor),
+    pageLength: fingerprints.length,
     pageLinks,
   });
 
@@ -77,14 +78,14 @@ export function MergedList({
         />
 
         <PanelBody>
-          {fingerprintsWithLatestEvent.map(fingerprint => (
+          {fingerprints.map(fingerprint => (
             <MergedItem
               key={fingerprint.id}
+              canSelect={canSelect}
               fingerprint={fingerprint}
               state={state}
               toggleCollapsed={toggleCollapsed}
               toggleSelected={toggleSelected}
-              totalFingerprint={fingerprintsWithLatestEvent.length}
             />
           ))}
         </PanelBody>

@@ -9,7 +9,6 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -74,9 +73,9 @@ function GroupMergedContent({
   project,
   refetch,
 }: GroupMergedContentProps) {
-  const location = useLocation();
   const {
     enableFingerprintCompare,
+    fingerprintsWithLatestEvent,
     selectedEventIds,
     state,
     toggleAllCollapsed,
@@ -134,8 +133,7 @@ function GroupMergedContent({
       {isLoadedSuccessfully && (
         <MergedList
           project={project}
-          cursor={decodeScalar(location.query.cursor)}
-          fingerprints={fingerprints}
+          fingerprints={fingerprintsWithLatestEvent}
           pageLinks={pageLinks}
           groupId={groupId}
           enableFingerprintCompare={enableFingerprintCompare}

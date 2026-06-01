@@ -16,19 +16,19 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {type FingerprintWithLatestEvent, type GroupMergedState} from './useGroupMerged';
 
 interface Props {
+  canSelect: boolean;
   fingerprint: FingerprintWithLatestEvent;
   state: GroupMergedState;
   toggleCollapsed: (fingerprintId: string) => void;
   toggleSelected: (fingerprintId: string, eventId: string) => void;
-  totalFingerprint: number;
 }
 
 export function MergedItem({
+  canSelect,
   fingerprint,
   state,
   toggleCollapsed,
   toggleSelected,
-  totalFingerprint,
 }: Props) {
   const organization = useOrganization();
   const stateForId = state.fingerprintState.get(fingerprint.id);
@@ -51,7 +51,10 @@ export function MergedItem({
   }
 
   const {latestEvent, id} = fingerprint;
-  const checkboxDisabled = busy || totalFingerprint === 1;
+  const checkboxDisabledReason = canSelect
+    ? undefined
+    : t('To check, the list must contain 2 or more items');
+  const checkboxDisabled = busy || checkboxDisabledReason !== undefined;
   const latestEventTimestamp = latestEvent.dateCreated ?? latestEvent.dateReceived;
 
   const issueLink = `/organizations/${organization.slug}/issues/${latestEvent.groupID}/events/${latestEvent.id}/?project=${latestEvent.projectID}&referrer=merged-item`;
@@ -62,12 +65,8 @@ export function MergedItem({
         <Flex align="center" gap="sm" minWidth={0}>
           <Tooltip
             containerDisplayMode="flex"
-            disabled={!checkboxDisabled}
-            title={
-              checkboxDisabled && totalFingerprint === 1
-                ? t('To check, the list must contain 2 or more items')
-                : undefined
-            }
+            disabled={checkboxDisabledReason === undefined}
+            title={checkboxDisabledReason}
           >
             <Flex
               align="center"
