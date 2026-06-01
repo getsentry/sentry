@@ -2,6 +2,15 @@
 Handler for GitLab merge_request webhook events.
 https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request-events
 
+Award emoji parity with the GitHub webhook forwarder
+-----------------------------------------------------
+
+The GitHub pull_request handler adds :eyes: to the PR description (and removes
+any stale :tada:) to signal that a Seer review run is in progress. This handler
+replicates that behaviour for GitLab merge requests using the GitLab award emoji
+API (``/projects/:id/merge_requests/:mr_iid/award_emoji``). The call is skipped
+for close/merge actions since those are cleanup events, not new review triggers.
+
 Known limitations
 -----------------
 
@@ -58,6 +67,12 @@ from ..metrics import (
 from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, _common_codegen_request_payload
 from .task import process_github_webhook_event
+
+# GitLab award emoji names used by the Seer code-review flow.
+# "tada" is the GitLab equivalent of GitHub's "hooray" (:tada: 🎉).
+# "eyes" is the same on both platforms (:eyes: 👀).
+GITLAB_EMOJI_TADA = "tada"
+GITLAB_EMOJI_EYES = "eyes"
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +182,64 @@ def _resolve_review_trigger(
     return None
 
 
+def _delete_existing_awards_and_add_award(
+    *,
+    integration: RpcIntegration,
+    organization_id: int,
+    repo: Repository,
+    mr_iid: str,
+    emojis_to_delete: list[str],
+    emoji_to_add: str | None,
+) -> None:
+    """
+    Delete stale award emojis on the MR description and add a fresh one.
+
+    Mirrors ``delete_existing_reactions_and_add_reaction`` from the GitHub webhook
+    path, adapted for the GitLab award emoji API. Errors are logged and swallowed
+    so that a failing emoji call never blocks the Seer review task.
+    """
+    try:
+        client = integration.get_installation(organization_id=organization_id).get_client()
+    except Exception:
+        logger.warning("gitlab.webhook.merge_request.award.missing_installation")
+        return
+
+    project_id = str(repo.config.get("project_id", ""))
+    if not project_id:
+        logger.warning("gitlab.webhook.merge_request.award.missing_project_id")
+        return
+
+    if emojis_to_delete:
+        try:
+            # Identify awards placed by the current OAuth user (our integration bot)
+            # so we only delete our own awards, not those from other users.
+            current_user = client.get_user() or {}
+            current_user_id = current_user.get("id")
+            existing_awards = client.get_merge_request_awards(project_id, mr_iid) or []
+            if current_user_id is not None:
+                for award in existing_awards:
+                    if (
+                        award.get("user", {}).get("id") == current_user_id
+                        and award.get("id")
+                        and award.get("name") in emojis_to_delete
+                    ):
+                        client.delete_merge_request_award(
+                            project_id, mr_iid, str(award["id"])
+                        )
+        except Exception:
+            logger.warning(
+                "gitlab.webhook.merge_request.award.delete_failed", exc_info=True
+            )
+
+    if emoji_to_add:
+        try:
+            client.create_merge_request_award(project_id, mr_iid, emoji_to_add)
+        except Exception:
+            logger.warning(
+                "gitlab.webhook.merge_request.award.add_failed", exc_info=True
+            )
+
+
 def handle_merge_request_event(
     *,
     event: Mapping[str, Any],
@@ -270,6 +343,21 @@ def handle_merge_request_event(
     if _is_duplicate_delivery(seen_key):
         logger.warning("gitlab.webhook.merge_request.duplicate_delivery_skipped")
         return
+
+    # Mirror the GitHub pull_request handler: add :eyes: to the MR description to
+    # signal a Seer review run is in progress, and remove any stale :tada: left
+    # over from a previous run. Skip for close/merge since those are not new runs.
+    if action not in CLOSE_ACTIONS:
+        mr_iid = object_attributes.get("iid")
+        if mr_iid is not None:
+            _delete_existing_awards_and_add_award(
+                integration=integration,
+                organization_id=org.id,
+                repo=repo,
+                mr_iid=str(mr_iid),
+                emojis_to_delete=[GITLAB_EMOJI_TADA],
+                emoji_to_add=GITLAB_EMOJI_EYES,
+            )
 
     _schedule_task(
         action=action,
