@@ -17,6 +17,7 @@ import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
+import {useScmPlatformDetection} from 'sentry/views/onboarding/components/useScmPlatformDetection';
 import {useScmProviders} from 'sentry/views/onboarding/components/useScmProviders';
 
 const CREATE_PROJECT_MAX_WIDTH = '760px';
@@ -61,6 +62,8 @@ export function ScmCreateProject() {
   // below re-measure and animate position shifts. React Query dedupes with
   // the child's call.
   useScmProviders();
+
+  useScmPlatformDetection(selectedRepository);
 
   const completeRepoStep = () => {
     setState(s => ({...s, repoStepCompleted: true}));
