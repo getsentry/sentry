@@ -2,7 +2,10 @@ import {useMemo, type ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import type Fuse from 'fuse.js';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderConfig,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {
   KeySectionItem,
   SearchKeyItem,
@@ -171,9 +174,9 @@ export function useSortedFilterKeyItems({
     disallowLogicalOperators,
     replaceRawSearchKeys,
     matchKeySuggestions,
-    enableAISearch,
     getTagKeys,
-  } = useSearchQueryBuilder();
+  } = useSearchQueryBuilderConfig();
+  const {enableAISearch} = useSearchQueryBuilderAI();
 
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;

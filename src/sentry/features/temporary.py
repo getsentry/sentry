@@ -117,6 +117,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-consent", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable LLM-generated title and description for external issue details
     manager.add("organizations:external-issues-ai-generate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:inbound-filters-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable increased issue_owners rate limit for auto-assignment
     manager.add("organizations:increased-issue-owners-rate-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Starfish: extract metrics from the spans
@@ -191,12 +192,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-discover-get-custom-measurements-reduced-range", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Detect performance issues in the new standalone spans pipeline instead of on transactions
     manager.add("organizations:performance-issues-spans", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
-    # Enable AI and MCP module dashboards on dashboards platform
-    manager.add("organizations:insights-ai-and-mcp-dashboard-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable all registered prebuilt dashboards to be synced to the database
     manager.add("organizations:dashboards-sync-all-registered-prebuilt-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable sentry convention fields
-    manager.add("organizations:performance-sentry-conventions-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Suggestions for Web Vitals Module
     manager.add("organizations:performance-web-vitals-seer-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the warning banner to inform users of pending deprecation of the transactions dataset
@@ -251,6 +248,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer PR code review for GitHub Enterprise Server organizations
     manager.add("organizations:seer-code-review-github-enterprise", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable Seer MR code review for GitLab organizations
+    manager.add("organizations:seer-code-review-gitlab", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the Seer Config Reminder in the primary nav
     manager.add("organizations:seer-config-reminder", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Agent panel for AI-powered data exploration
@@ -287,10 +286,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:root-cause-stopping-point", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the Seer Wizard and related prompts/links/banners
     manager.add("organizations:seer-wizard", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the Seer issues view
-    manager.add("organizations:seer-issue-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable Autofix to use Seer Agent instead of legacy Celery pipeline
-    manager.add("organizations:autofix-on-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable autofix introspection for early stopping of autofix runs
     manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Workflows in Slack (released, kept until overrides are removed)
@@ -299,8 +294,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-slack-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show Seer run ID in Slack notification footers
     manager.add("organizations:seer-run-id-in-slack", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable Seer activity events in the issue activity timeline
-    manager.add("organizations:seer-activity-timeline", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Gate display of Seer action events in the issue activity timeline
+    # https://linear.app/getsentry/project/add-seer-actions-to-issue-activityaction-log-0e641e1f5dac/overview
+    manager.add("organizations:display-seer-actions-as-issue-activities", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Gate outbox-based mirroring of SeerRun records to Seer
     manager.add("organizations:seer-run-mirror", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Gate outbox-based mirroring for autofix writes
@@ -311,7 +307,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:search-query-attribute-validation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable search query builder raw search replacement
     manager.add("organizations:search-query-builder-raw-search-replacement", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("organizations:seer-agent-pr-consolidation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disables the enableSeerCoding setting, preventing orgs from changing code generation behavior
     manager.add("organizations:seer-disable-coding-setting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GitLab as a supported SCM provider for Seer

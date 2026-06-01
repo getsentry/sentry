@@ -7,9 +7,11 @@ const evidenceData: LowValueSpanEvidenceData = {
   op: 'function',
   description: 'compute_checksum',
   count: 1234,
+  extrapolatedCount: 60_000,
   avgDurationMs: 0.4,
   estimatedCostUsd: 12.34,
   sdkName: 'sentry.javascript.nextjs',
+  spanOrigin: 'auto',
 };
 
 describe('LowValueSpanIssues ProblemSection', () => {
@@ -17,18 +19,28 @@ describe('LowValueSpanIssues ProblemSection', () => {
     render(<ProblemSection evidenceData={evidenceData} />);
 
     expect(screen.getByText('Problem')).toBeInTheDocument();
-    expect(screen.getByText('function')).toBeInTheDocument();
     expect(screen.getByText('function - compute_checksum')).toBeInTheDocument();
-    expect(screen.getByText('1,234')).toBeInTheDocument();
+    expect(screen.getByText('Span count')).toBeInTheDocument();
+    expect(screen.getByText('60,000')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('More information')).toHaveLength(2);
     expect(screen.getByText('Estimated cost')).toBeInTheDocument();
     expect(screen.getByText('$12.34')).toBeInTheDocument();
-    expect(
-      screen.getByLabelText('More information', {
-        selector: '[aria-label="More information"]',
-      })
-    ).toBeInTheDocument();
     expect(screen.getByText('<1ms')).toBeInTheDocument();
-    expect(screen.getByText('sentry.javascript.nextjs')).toBeInTheDocument();
+    expect(screen.queryByText('sentry.javascript.nextjs')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the sampled span count when extrapolated count is unavailable', () => {
+    render(
+      <ProblemSection
+        evidenceData={{
+          ...evidenceData,
+          extrapolatedCount: null,
+        }}
+      />
+    );
+
+    expect(screen.getByText('1,234')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('More information')).toHaveLength(1);
   });
 
   it('does not render estimated cost when unavailable', () => {

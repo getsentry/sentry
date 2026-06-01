@@ -748,102 +748,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         assert links["previous"]["href"] is not None
 
-    def test_tags_list_sentry_conventions(self) -> None:
-        for tag in [
-            "foo",
-            "bar",
-            "baz",
-            "lcp",
-            "fcp",
-            "http.decoded_response_content_length",
-            "http.response_content_length",
-            "http.response_transfer_size",
-            "http.response.body.size",
-        ]:
-            self.store_segment(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                organization_id=self.organization.id,
-                parent_span_id=None,
-                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-                transaction="foo",
-                duration=100,
-                exclusive_time=100,
-                measurements={tag: 0},
-            )
-
-        response = self.do_request(
-            {
-                "attributeType": "number",
-            },
-            features={
-                "organizations:visibility-explore-view": True,
-                "organizations:performance-sentry-conventions-fields": True,
-            },
-        )
-        assert response.status_code == 200, response.data
-        assert sorted(response.data, key=itemgetter("key")) == sorted(
-            [
-                {
-                    "key": "tags[bar,number]",
-                    "name": "bar",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "user"},
-                },
-                {
-                    "key": "tags[baz,number]",
-                    "name": "baz",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "user"},
-                },
-                {
-                    "key": "browser.web_vital.fcp.value",
-                    "name": "browser.web_vital.fcp.value",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-                {
-                    "key": "tags[foo,number]",
-                    "name": "foo",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "user"},
-                },
-                {
-                    "key": "http.decoded_response_content_length",
-                    "name": "http.decoded_response_content_length",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-                {
-                    "key": "http.response.body.size",
-                    "name": "http.response.body.size",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-                {
-                    "key": "http.response.size",
-                    "name": "http.response.size",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-                {
-                    "key": "browser.web_vital.lcp.value",
-                    "name": "browser.web_vital.lcp.value",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-                {
-                    "key": "span.duration",
-                    "name": "span.duration",
-                    "attributeType": "number",
-                    "attributeSource": {"source_type": "sentry"},
-                },
-            ],
-            key=itemgetter("key"),
-        )
-
     def test_attribute_collision(self) -> None:
         self.store_segment(
             self.project.id,
@@ -994,9 +898,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.content
 
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 2
+        assert len(keys) == 4
         assert "transaction.op" in keys
         assert "span.op" in keys
+        # These two are unrelated, but happen to match.
+        assert "db.operation" in keys
+        assert "db.operation.name" in keys
 
         response = self.do_request(query={"attributeType": "string", "substringMatch": "sentry.op"})
         assert response.status_code == 200, response.content
@@ -1112,7 +1019,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "tag.op" in keys
         assert "tag.op2" in keys
 
-    @pytest.mark.skip(reason="Re-enable once Snuba PR #7689 stops boolean double-writing")
     def test_empty_attribute_type_for_all_attribute_types(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {
@@ -1136,7 +1042,6 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert ("tag.string", "string") in keys
         assert ("tags[tag.number,number]", "number") in keys
 
-    @pytest.mark.skip(reason="Re-enable once Snuba PR #7689 stops boolean double-writing")
     def test_multiple_attribute_types(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
         span1["data"] = {
@@ -1160,6 +1065,32 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert ("tags[tag.boolean,boolean]", "boolean") not in keys
         assert ("tags[tag.number,number]", "number") in keys
         assert ("tag.string", "string") in keys
+
+    def test_sentry_environment_attribute_name(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            environment="prod",
+        )
+
+        response = self.do_request(
+            query={
+                "attributeType": "string",
+                "substringMatch": "environment",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        names = {item["name"] for item in response.data}
+        assert "environment" in names
 
 
 class OrganizationTraceItemAttributesEndpointTraceMetricsTest(

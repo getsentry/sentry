@@ -253,7 +253,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/events-sql/'
   | '/organizations/$organizationIdOrSlug/events-stats/'
   | '/organizations/$organizationIdOrSlug/events-timeseries/'
-  | '/organizations/$organizationIdOrSlug/events-trace-light/$traceId/'
   | '/organizations/$organizationIdOrSlug/events-trace-meta/$traceId/'
   | '/organizations/$organizationIdOrSlug/events-trace/$traceId/'
   | '/organizations/$organizationIdOrSlug/events-trends-stats/'
