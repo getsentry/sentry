@@ -339,13 +339,10 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         mock.provider = "github_copilot"
         return mock
 
-    def test_github_copilot_shown_when_installed_and_feature_flag_enabled(self):
-        """Test GET endpoint shows GitHub Copilot when installed and feature flag is enabled."""
+    def test_github_copilot_shown_when_installed(self):
+        """Test GET endpoint shows GitHub Copilot when installed."""
         copilot = self._mock_github_copilot_integration()
-        with (
-            self.feature("organizations:integrations-github-copilot-agent"),
-            self.mock_integration_service_calls(integrations=[copilot]),
-        ):
+        with self.mock_integration_service_calls(integrations=[copilot]):
             response = self.get_success_response(self.organization.slug)
 
             integrations = response.data["integrations"]
@@ -357,11 +354,8 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
             assert integrations[0]["has_identity"] is False
 
     def test_github_copilot_not_shown_when_not_installed(self):
-        """Test GET endpoint does not show GitHub Copilot when feature flag is on but integration is not installed."""
-        with (
-            self.feature("organizations:integrations-github-copilot-agent"),
-            self.mock_integration_service_calls(integrations=[]),
-        ):
+        """Test GET endpoint does not show GitHub Copilot when integration is not installed."""
+        with self.mock_integration_service_calls(integrations=[]):
             response = self.get_success_response(self.organization.slug)
             assert response.data["integrations"] == []
 
@@ -373,10 +367,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         mock_identity_service.get_access_token_for_user.return_value = "mock-access-token"
         copilot = self._mock_github_copilot_integration()
 
-        with (
-            self.feature("organizations:integrations-github-copilot-agent"),
-            self.mock_integration_service_calls(integrations=[copilot]),
-        ):
+        with self.mock_integration_service_calls(integrations=[copilot]):
             response = self.get_success_response(self.organization.slug)
 
             integrations = response.data["integrations"]
@@ -395,10 +386,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         mock_identity_service.get_access_token_for_user.return_value = None
         copilot = self._mock_github_copilot_integration()
 
-        with (
-            self.feature("organizations:integrations-github-copilot-agent"),
-            self.mock_integration_service_calls(integrations=[copilot]),
-        ):
+        with self.mock_integration_service_calls(integrations=[copilot]):
             response = self.get_success_response(self.organization.slug)
 
             integrations = response.data["integrations"]
@@ -421,10 +409,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         )
         copilot = self._mock_github_copilot_integration()
 
-        with (
-            self.feature("organizations:integrations-github-copilot-agent"),
-            self.mock_integration_service_calls(integrations=[copilot]),
-        ):
+        with self.mock_integration_service_calls(integrations=[copilot]):
             response = self.get_success_response(self.organization.slug)
 
             integrations = response.data["integrations"]
@@ -434,17 +419,6 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
             mock_identity_service.get_access_token_for_user.assert_called_once_with(
                 user_id=self.user.id
             )
-
-    def test_github_copilot_not_shown_without_feature_flag(self) -> None:
-        """Test GET endpoint does not show GitHub Copilot without feature flag."""
-        with (
-            self.feature({"organizations:integrations-github-copilot-agent": False}),
-            self.mock_integration_service_calls(integrations=[]),
-        ):
-            response = self.get_success_response(self.organization.slug)
-
-            integrations = response.data["integrations"]
-            assert len(integrations) == 0
 
 
 class OrganizationCodingAgentsPostCodingDisabledTest(BaseOrganizationCodingAgentsTest):
@@ -1118,10 +1092,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
 
         data = {"provider": "github_copilot", "run_id": 123}
 
-        with (
-            self.feature("organizations:integrations-github-copilot-agent"),
-            patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"),
-        ):
+        with patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             assert response.data["success"] is False
             assert response.data["failed_count"] >= 1
@@ -1161,10 +1132,7 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
 
         data = {"provider": "github_copilot", "run_id": 123}
 
-        with (
-            self.feature("organizations:integrations-github-copilot-agent"),
-            patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"),
-        ):
+        with patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             assert response.data["success"] is False
             assert response.data["failed_count"] >= 1
