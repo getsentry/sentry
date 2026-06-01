@@ -1,7 +1,7 @@
-import {useCallback} from 'react';
+import {useEffect, useRef} from 'react';
 
-import type {OAuthCallbackData} from 'sentry/components/pipeline/shared/oauthLoginStep';
-import {OAuthLoginStep} from 'sentry/components/pipeline/shared/oauthLoginStep';
+import {Text} from '@sentry/scraps/text';
+
 import type {
   PipelineDefinition,
   PipelineStepProps,
@@ -10,26 +10,25 @@ import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 
-function VercelOAuthLoginStep({
+function VercelInstallStep({
   stepData,
   advance,
-  isAdvancing,
-}: PipelineStepProps<{oauthUrl?: string}, {code: string; state: string}>) {
-  const handleOAuthCallback = useCallback(
-    (data: OAuthCallbackData) => {
-      advance({code: data.code, state: data.state});
-    },
-    [advance]
-  );
+}: PipelineStepProps<{state: string}, {state: string}>) {
+  // Vercel installs are initiated from the Vercel marketplace, which performs
+  // the OAuth grant and forwards the `code` as initialData. By the time the
+  // modal opens everything the pipeline needs is already bound to state, so we
+  // advance immediately with no user interaction. The ref guards against React
+  // strict mode double-firing the effect.
+  const hasAutoAdvanced = useRef(false);
+  useEffect(() => {
+    if (!stepData?.state || hasAutoAdvanced.current) {
+      return;
+    }
+    hasAutoAdvanced.current = true;
+    advance({state: stepData.state});
+  }, [stepData, advance]);
 
-  return (
-    <OAuthLoginStep
-      oauthUrl={stepData?.oauthUrl}
-      isLoading={isAdvancing}
-      serviceName="Vercel"
-      onOAuthCallback={handleOAuthCallback}
-    />
-  );
+  return <Text>{t('Finishing up Vercel integration installation...')}</Text>;
 }
 
 export const vercelIntegrationPipeline = {
@@ -41,8 +40,8 @@ export const vercelIntegrationPipeline = {
   steps: [
     {
       stepId: 'oauth_login',
-      shortDescription: t('Authorizing via Vercel OAuth'),
-      component: VercelOAuthLoginStep,
+      shortDescription: t('Finishing installation'),
+      component: VercelInstallStep,
     },
   ],
 } as const satisfies PipelineDefinition;
