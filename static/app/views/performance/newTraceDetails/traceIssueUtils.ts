@@ -2,10 +2,10 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 export const TRACE_ICON_WIDTH = 18;
-export const TRACE_ICON_GROUP_GLYPH_WIDTH = 12;
-export const TRACE_ICON_GROUP_GAP = 2;
-export const TRACE_ICON_GROUP_HORIZONTAL_PADDING = 10;
-export const TRACE_ICON_GROUP_COUNT_MIN_WIDTH = 8;
+const TRACE_ICON_GROUP_GLYPH_WIDTH = 12;
+const TRACE_ICON_GROUP_GAP = 2;
+const TRACE_ICON_GROUP_HORIZONTAL_PADDING = 10;
+const TRACE_ICON_GROUP_COUNT_MIN_WIDTH = 8;
 
 interface RenderableTraceIssue {
   issue: TraceTree.TraceIssue;
