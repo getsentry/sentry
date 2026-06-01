@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from django.db import models
+from django.db import models, router, transaction
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
@@ -18,29 +18,39 @@ class ProjectRepositorySource(models.IntegerChoices):
     SEER_PREFERENCE = 4, "seer_preference"
 
 
+# Indicates how strong of a signal each source is. A higher number indicates
+# more confidence that the project-repo linking is correct.
+SOURCE_PRIORITY: dict[int, int] = {
+    ProjectRepositorySource.AUTO_NAME_MATCH: 100,
+    ProjectRepositorySource.AUTO_EVENT: 200,
+    ProjectRepositorySource.SCM_ONBOARDING: 500,
+    ProjectRepositorySource.MANUAL: 500,
+    ProjectRepositorySource.SEER_PREFERENCE: 500,
+}
+
+
 class ProjectRepositoryManager(BaseManager["ProjectRepository"]):
     def get_or_create_with_source(
         self,
         project_id: int,
         repository_id: int,
-        source: int,
+        source: ProjectRepositorySource,
     ) -> tuple[ProjectRepository, bool]:
         """
         Like get_or_create, but upgrades the source if the existing row
-        was created by a lower-confidence mechanism (AUTO_NAME_MATCH).
+        was created by a lower-priority mechanism.
         """
         project_repo, created = self.get_or_create(
             project_id=project_id,
             repository_id=repository_id,
             defaults={"source": source},
         )
-        if (
-            not created
-            and project_repo.source == ProjectRepositorySource.AUTO_NAME_MATCH
-            and source != ProjectRepositorySource.AUTO_NAME_MATCH
-        ):
-            project_repo.source = source
-            project_repo.save(update_fields=["source"])
+        new_priority = SOURCE_PRIORITY.get(source, 0)
+        current_priority = SOURCE_PRIORITY.get(project_repo.source, 0)
+        if not created and new_priority > current_priority:
+            with transaction.atomic(router.db_for_write(type(project_repo))):
+                project_repo.source = source
+                project_repo.save(update_fields=["source", "date_updated"])
         return project_repo, created
 
 

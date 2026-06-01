@@ -36,6 +36,7 @@ class ProjectRepositoryManagerTest(TestCase):
             source=ProjectRepositorySource.SCM_ONBOARDING,
         )
         assert not created
+        pr.refresh_from_db()
         assert pr.source == ProjectRepositorySource.MANUAL
 
     def test_upgrades_auto_name_match_to_manual(self) -> None:
@@ -82,6 +83,21 @@ class ProjectRepositoryManagerTest(TestCase):
         assert not created
         pr.refresh_from_db()
         assert pr.source == ProjectRepositorySource.AUTO_EVENT
+
+    def test_upgrades_auto_event_to_manual(self) -> None:
+        ProjectRepository.objects.create(
+            project=self.project,
+            repository=self.repo,
+            source=ProjectRepositorySource.AUTO_EVENT,
+        )
+        pr, created = ProjectRepository.objects.get_or_create_with_source(
+            project_id=self.project.id,
+            repository_id=self.repo.id,
+            source=ProjectRepositorySource.MANUAL,
+        )
+        assert not created
+        pr.refresh_from_db()
+        assert pr.source == ProjectRepositorySource.MANUAL
 
     def test_does_not_upgrade_auto_name_match_to_auto_name_match(self) -> None:
         pr_original = ProjectRepository.objects.create(
