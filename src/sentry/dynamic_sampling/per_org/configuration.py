@@ -185,9 +185,7 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
         self.sample_rate = float(
             self.organization.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
         )
-        self.project_sample_rates = {
-            project.id: self.get_sample_rate() for project in self.projects
-        }
+        self.project_sample_rates = {}
 
     @property
     def is_enabled(self) -> bool:
