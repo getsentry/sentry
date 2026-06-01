@@ -84,6 +84,14 @@ class BaseDynamicSamplingConfiguration(ABC):
     def is_segment_based(self) -> bool:
         return self.measure == SamplingMeasure.SEGMENTS
 
+    @property
+    def min_implicit_factor(self) -> float:
+        """Floor on the implicit factor (implicit_rate / project_sample_rate)
+        that the per-org transaction balancing pipeline must satisfy. 0.0 = off."""
+        return float(
+            options.get("dynamic-sampling.per_org.transaction_balancing.min_implicit_factor")
+        )
+
     def _get_sampling_measure(self) -> SamplingMeasure:
         if options.get("dynamic-sampling.check_span_feature_flag") and self.organization.id in (
             options.get("dynamic-sampling.measure.spans") or []

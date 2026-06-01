@@ -2428,6 +2428,19 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Minimum allowed value of the implicit factor (= implicit_rate / project_sample_rate)
+# emitted by the per-org transaction balancing pipeline. 0.0 disables the feature
+# (the model's natural output is used unmodified). Values > 0.0 clamp the implicit
+# rate up to `min_implicit_factor * project_sample_rate` and compensate by reducing
+# the explicit pool's budget so the overall budget is preserved. Set to 1.0 to
+# guarantee that the long-tail bucket is sampled at least at the project's base
+# rate (Relay factor >= 1.0).
+register(
+    "dynamic-sampling.per_org.transaction_balancing.min_implicit_factor",
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables a feature flag check in dynamic sampling tasks that switches
 # organizations between transactions and spans for rebalancing. This check is
 # expensive, so it can be disabled using this option.

@@ -152,6 +152,7 @@ class TransactionBalancingCalculationsTest(TestCase):
         project_b = self.create_project(organization=org)
         config = Mock()
         config.organization = org
+        config.min_implicit_factor = 0.0
         config.get_project_sample_rates.return_value = {project_a.id: 0.2, project_b.id: 0.8}
 
         with patch(
@@ -176,6 +177,7 @@ class TransactionBalancingCalculationsTest(TestCase):
         project_b = self.create_project(organization=org)
         config = Mock()
         config.organization = org
+        config.min_implicit_factor = 0.0
         config.get_project_sample_rates.return_value = {project_a.id: 0.5, project_b.id: None}
 
         with patch(
@@ -294,3 +296,110 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert extras[1]["generic_metrics_sample_rate"] is None
         assert extras[1]["relative_deviation"] is None
         assert extras[1]["is_equal"] is False
+
+
+def _branch3_transactions(org_id: int, project_id: int) -> ProjectTransactions:
+    """Construct an input that drives TransactionsRebalancingModel into branch 3
+    (explicit pool too small to absorb its budget share), producing an implicit
+    rate below the base sample rate."""
+    return {
+        "org_id": org_id,
+        "project_id": project_id,
+        "transaction_counts": [("tiny", 5.0)],
+        "total_num_transactions": 1000.0,
+        "total_num_classes": 10,
+    }
+
+
+class TransactionBalancingImplicitFactorFloorTest(TestCase):
+    """Tests for the min_implicit_factor option that clamps the implicit factor
+    via budget redistribution from the explicit pool."""
+
+    def test_disabled_by_default_leaves_implicit_rate_unchanged(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.min_implicit_factor = 0.0
+        config.get_project_sample_rates.return_value = {project.id: 0.1}
+
+        result = run_transaction_balancing(config, [_branch3_transactions(org.id, project.id)])
+
+        _, implicit_rate = result[project.id]
+        # Branch 3: implicit_rate = (100 - 5) / 995 ≈ 0.0955 — below base of 0.10.
+        assert implicit_rate == pytest.approx(0.0955, abs=1e-3)
+
+    def test_factor_one_lifts_implicit_rate_to_base(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.min_implicit_factor = 1.0
+        config.get_project_sample_rates.return_value = {project.id: 0.1}
+
+        result = run_transaction_balancing(config, [_branch3_transactions(org.id, project.id)])
+
+        named_rates, implicit_rate = result[project.id]
+        assert implicit_rate == pytest.approx(0.1)
+        # Explicit rate is reduced from 1.0 to absorb the extra implicit budget,
+        # so the overall budget remains at total * base_sample_rate = 100.
+        assert len(named_rates) == 1
+        new_explicit_rate = named_rates[0].new_sample_rate
+        total = 1000.0
+        total_explicit = 5.0
+        total_implicit = total - total_explicit
+        kept = new_explicit_rate * total_explicit + implicit_rate * total_implicit
+        assert kept == pytest.approx(total * 0.1, abs=1e-6)
+
+    def test_factor_two_lifts_implicit_to_double_base(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.min_implicit_factor = 2.0
+        config.get_project_sample_rates.return_value = {project.id: 0.1}
+
+        result = run_transaction_balancing(config, [_branch3_transactions(org.id, project.id)])
+
+        _, implicit_rate = result[project.id]
+        assert implicit_rate == pytest.approx(0.2)
+
+    def test_floor_above_total_budget_zeros_explicit(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        # min_implicit_factor=20 means floor = 2.0, which is impossible. The
+        # function clamps to the requested rate but zeroes explicit (and any
+        # remaining overshoot must be absorbed by the recalibration loop).
+        config.min_implicit_factor = 20.0
+        config.get_project_sample_rates.return_value = {project.id: 0.1}
+
+        result = run_transaction_balancing(config, [_branch3_transactions(org.id, project.id)])
+
+        named_rates, implicit_rate = result[project.id]
+        assert implicit_rate == pytest.approx(2.0)
+        assert all(item.new_sample_rate == 0.0 for item in named_rates)
+
+    def test_no_change_when_implicit_already_above_floor(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.min_implicit_factor = 1.0
+        config.get_project_sample_rates.return_value = {project.id: 0.1}
+
+        # Branch 2 scenario: small long tail relative to its share → implicit_rate=1.0,
+        # which is already well above any factor floor we'd set.
+        project_data: ProjectTransactions = {
+            "org_id": org.id,
+            "project_id": project.id,
+            "transaction_counts": [("heavy", 1000.0)],
+            "total_num_transactions": 1010.0,
+            "total_num_classes": 11,
+        }
+
+        result = run_transaction_balancing(config, [project_data])
+
+        _, implicit_rate = result[project.id]
+        assert implicit_rate == 1.0
