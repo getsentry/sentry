@@ -129,6 +129,9 @@ class ActionType(StrEnum):
     UNSUBSCRIBE = "unsubscribe"
     MARK_REVIEWED = "mark_reviewed"
     TRIGGER_AUTOFIX = "trigger_autofix"
+    LINK_EXTERNAL_ISSUE = "link_external_issue"
+    CREATE_EXTERNAL_ISSUE = "create_external_issue"
+    UNLINK_EXTERNAL_ISSUE = "unlink_external_issue"
 
 
 @dataclass(frozen=True)

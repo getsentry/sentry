@@ -7,6 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log import ActionType, publish_action, resolve_action_source
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 
@@ -28,5 +29,15 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
             return Response(status=404)
 
         deletions.exec_sync(external_issue)
+
+        publish_action(
+            action=ActionType.UNLINK_EXTERNAL_ISSUE,
+            source=resolve_action_source(request),
+            group_id=group.id,
+            organization_id=group.project.organization_id,
+            project_id=group.project_id,
+            actor_id=request.user.id if request.user.is_authenticated else None,
+            metadata={"external_issue_display_name": external_issue.display_name},
+        )
 
         return Response(status=204)

@@ -3,10 +3,12 @@ from unittest.mock import MagicMock, patch
 
 import sentry.api.helpers.group_index.update
 import sentry.issues.endpoints.group_details
+import sentry.issues.endpoints.group_integration_details
 import sentry.issues.priority
 import sentry.issues.status_change
 import sentry.models.groupassignee
 import sentry.models.groupinbox
+import sentry.sentry_apps.api.endpoints.group_external_issue_details
 from sentry.issues.action_log import (
     ActionContext,
     ActionType,
@@ -351,3 +353,115 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         ]
         assert len(merge_from) == 1
         assert len(merge_into) == 1
+
+
+class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.group = self.create_group(
+            status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING
+        )
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+        )
+        self.base_url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{self.integration.id}/"
+
+    @patch.object(
+        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
+    )
+    def test_create_external_issue_emits_action(self, mock_publish: MagicMock) -> None:
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.post(
+                self.base_url, data={"assignee": "foo@sentry.io"}, format="json"
+            )
+        assert response.status_code == 201
+        mock_publish.assert_called_once()
+        assert mock_publish.call_args.kwargs["action"] == ActionType.CREATE_EXTERNAL_ISSUE
+        assert mock_publish.call_args.kwargs["group_id"] == self.group.id
+        assert mock_publish.call_args.kwargs["metadata"]["provider"] == "example"
+
+    @patch.object(
+        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
+    )
+    def test_link_external_issue_emits_action(self, mock_publish: MagicMock) -> None:
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.put(
+                self.base_url, data={"externalIssue": "APP-123"}, format="json"
+            )
+        assert response.status_code == 201
+        mock_publish.assert_called_once()
+        assert mock_publish.call_args.kwargs["action"] == ActionType.LINK_EXTERNAL_ISSUE
+        assert mock_publish.call_args.kwargs["group_id"] == self.group.id
+
+    @patch.object(
+        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
+    )
+    def test_unlink_external_issue_emits_action(self, mock_publish: MagicMock) -> None:
+        from sentry.integrations.models.external_issue import ExternalIssue
+        from sentry.models.grouplink import GroupLink
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key="APP-123",
+        )
+        GroupLink.objects.create(
+            group_id=self.group.id,
+            project_id=self.group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.delete(
+                f"{self.base_url}?externalIssue={external_issue.id}", format="json"
+            )
+        assert response.status_code == 204
+        mock_publish.assert_called_once()
+        assert mock_publish.call_args.kwargs["action"] == ActionType.UNLINK_EXTERNAL_ISSUE
+
+    @patch.object(
+        sentry.issues.endpoints.group_integration_details, "publish_action", autospec=True
+    )
+    def test_unlink_unlinked_external_issue_skips_action(self, mock_publish: MagicMock) -> None:
+        from sentry.integrations.models.external_issue import ExternalIssue
+
+        # The external issue exists but is not linked to this group, so nothing is
+        # removed. The endpoint still returns 204, but no action should be recorded.
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key="APP-123",
+        )
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.delete(
+                f"{self.base_url}?externalIssue={external_issue.id}", format="json"
+            )
+        assert response.status_code == 204
+        mock_publish.assert_not_called()
+
+    @patch.object(
+        sentry.sentry_apps.api.endpoints.group_external_issue_details,
+        "publish_action",
+        autospec=True,
+    )
+    def test_delete_platform_external_issue_emits_action(self, mock_publish: MagicMock) -> None:
+        external_issue = self.create_platform_external_issue(
+            group=self.group,
+            service_type="sentry-app",
+            display_name="App#issue-1",
+            web_url="https://example.com/app/issues/1",
+        )
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/external-issues/{external_issue.id}/"
+        response = self.client.delete(url, format="json")
+        assert response.status_code == 204
+        mock_publish.assert_called_once()
+        assert mock_publish.call_args.kwargs["action"] == ActionType.UNLINK_EXTERNAL_ISSUE
+        assert mock_publish.call_args.kwargs["group_id"] == self.group.id
+        assert mock_publish.call_args.kwargs["metadata"]["external_issue_display_name"] == (
+            "App#issue-1"
+        )
