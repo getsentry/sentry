@@ -47,10 +47,11 @@ const PictureInPictureContext = createContext<PictureInPictureContextValue | nul
  * Copies the document's static stylesheets into the picture-in-picture window so
  * its content renders with the same styles.
  *
- * Nodes are cloned directly rather than serialized rule-by-rule via `cssRules`:
- * cloning a `<link>` is a cheap reference to the (already cached) file, and
- * cloning a `<style>` copies its text as-is — both far faster than reading every
- * rule's `cssText`, and they avoid cross-origin access errors.
+ * Styles must be applied *synchronously* — content that measures itself on mount
+ * (e.g. autosizing textareas reading `getComputedStyle`) would otherwise compute
+ * the wrong size before async styles load. So linked stylesheets are inlined
+ * rule-by-rule rather than cloned (a cloned `<link>` fetches asynchronously);
+ * `<style>` tags are cloned since their text is already present.
  *
  * Emotion's own style tags are skipped because `PictureInPicturePortal`
  * re-injects them via a PiP-scoped cache. Copying them here would duplicate a
@@ -66,6 +67,23 @@ function copyStyles(source: Document, target: Window) {
     if (node instanceof HTMLStyleElement && node.dataset.emotion) {
       continue;
     }
+
+    // Inline linked stylesheets so they apply immediately. Cross-origin sheets
+    // throw on `cssRules` access — fall back to cloning the <link> for those.
+    if (node instanceof HTMLLinkElement) {
+      try {
+        const cssText = Array.from(node.sheet?.cssRules ?? [])
+          .map(rule => rule.cssText)
+          .join('');
+        const style = target.document.createElement('style');
+        style.textContent = cssText;
+        target.document.head.appendChild(style);
+        continue;
+      } catch {
+        // Cross-origin stylesheet — clone the <link> (loads asynchronously).
+      }
+    }
+
     target.document.head.appendChild(node.cloneNode(true));
   }
 }
