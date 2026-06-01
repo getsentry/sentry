@@ -94,10 +94,9 @@ type SplitPanelPanelProps = {
 };
 
 function Panel({children}: SplitPanelPanelProps) {
-  const {size, max} = useSplitPanelContext('SplitPanel.Panel');
+  const {size} = useSplitPanelContext('SplitPanel.Panel');
   const isSized = useIsSizedPanel();
 
-  // Clamp to `max` so the sized pane can't overflow when the container shrinks.
   return (
     <Flex
       direction="column"
@@ -105,7 +104,7 @@ function Panel({children}: SplitPanelPanelProps) {
       minWidth="0"
       flexGrow={isSized ? 0 : 1}
       flexShrink={isSized ? 0 : 1}
-      flexBasis={isSized ? `${Math.min(size, max)}px` : 0}
+      flexBasis={isSized ? `${size}px` : 0}
     >
       {children}
     </Flex>
@@ -366,7 +365,8 @@ function Root({
       onKeyDown: handleKeyDown,
       onMouseDown: handleMouseDown,
       orientation,
-      size: containerSize,
+      // Clamped visible size so pane width and divider aria-valuenow match.
+      size: Math.min(containerSize, max),
     }),
     [
       containerSize,
