@@ -351,7 +351,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         allow_null=True,
     )
     defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
-    defaultAutomatedRunStoppingPoint = serializers.CharField(required=False)
+    defaultAutomatedRunStoppingPoint = serializers.CharField(required=False, allow_null=True)
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)
     defaultCodeReviewTriggers = serializers.ListField(
