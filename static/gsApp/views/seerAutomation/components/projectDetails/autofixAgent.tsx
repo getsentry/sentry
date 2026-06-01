@@ -6,7 +6,6 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
@@ -103,23 +102,19 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
         {field => (
           <field.Layout.Row
             label={t('Handoff to Agent')}
-            hintText={
-              <Text variant="muted">
-                {tct(
-                  'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. [manageLink:Manage Coding Agents].',
-                  {
-                    manageLink: (
-                      <Link
-                        to={{
-                          pathname: `/settings/${organization.slug}/integrations/`,
-                          query: {category: 'coding agent'},
-                        }}
-                      />
-                    ),
-                  }
-                )}
-              </Text>
-            }
+            hintText={tct(
+              'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. [manageLink:Manage Coding Agents].',
+              {
+                manageLink: (
+                  <Link
+                    to={{
+                      pathname: `/settings/${organization.slug}/integrations/`,
+                      query: {category: 'coding agent'},
+                    }}
+                  />
+                ),
+              }
+            )}
           >
             {agentOptions.isPending ? (
               <Placeholder height="36px" width="100%" />
