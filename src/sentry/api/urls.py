@@ -72,19 +72,6 @@ from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
 from sentry.auth_v2.urls import AUTH_V2_URLS
-from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
-from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
-from sentry.codecov.endpoints.repository.repository import RepositoryEndpoint
-from sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate import (
-    RepositoryTokenRegenerateEndpoint,
-)
-from sentry.codecov.endpoints.repository_tokens.repository_tokens import RepositoryTokensEndpoint
-from sentry.codecov.endpoints.sync_repos.sync_repos import SyncReposEndpoint
-from sentry.codecov.endpoints.test_results.test_results import TestResultsEndpoint
-from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates import (
-    TestResultsAggregatesEndpoint,
-)
-from sentry.codecov.endpoints.test_suites.test_suites import TestSuitesEndpoint
 from sentry.conduit.endpoints.organization_conduit_demo import OrganizationConduitDemoEndpoint
 from sentry.core.endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
@@ -1136,54 +1123,6 @@ RELAY_URLS = [
         r"^(?P<relay_id>[^/]+)/$",
         RelayDetailsEndpoint.as_view(),
         name="sentry-api-0-relays-details",
-    ),
-]
-
-PREVENT_URLS = [
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
-        TestResultsEndpoint.as_view(),
-        name="sentry-api-0-test-results",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-suites/$",
-        TestSuitesEndpoint.as_view(),
-        name="sentry-api-0-test-suites",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
-        TestResultsAggregatesEndpoint.as_view(),
-        name="sentry-api-0-test-results-aggregates",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/branches/$",
-        RepositoryBranchesEndpoint.as_view(),
-        name="sentry-api-0-repository-branches",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/$",
-        RepositoryEndpoint.as_view(),
-        name="sentry-api-0-repository",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repositories/$",
-        RepositoriesEndpoint.as_view(),
-        name="sentry-api-0-repositories",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repositories/tokens/$",
-        RepositoryTokensEndpoint.as_view(),
-        name="sentry-api-0-repository-tokens",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/token/regenerate/$",
-        RepositoryTokenRegenerateEndpoint.as_view(),
-        name="sentry-api-0-repository-token-regenerate",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repositories/sync/$",
-        SyncReposEndpoint.as_view(),
-        name="sentry-api-0-repositories-sync",
     ),
 ]
 
@@ -2715,10 +2654,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/insights/tree/$",
         OrganizationInsightsTreeEndpoint.as_view(),
         name="sentry-api-0-organization-insights-tree",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/prevent/",
-        include(PREVENT_URLS),
     ),
     *workflow_urls.organization_urlpatterns,
     re_path(
