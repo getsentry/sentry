@@ -54,13 +54,20 @@ export function ExplorerDrawerContent({
   } = useSeerExplorerPip();
   const isPoppedOut = pipWindow !== null;
 
+  const rootRef = useRef<HTMLDivElement>(null);
+
   const handleTogglePictureInPicture = () => {
     if (isPoppedOut) {
       // Re-dock back into the drawer.
       closePipWindow();
       return;
     }
-    requestPipWindow({width: 480, height: Math.round(window.innerHeight * 0.9)})
+    // Match the popped-out window to the current (resizable) drawer width.
+    const drawerWidth = rootRef.current?.getBoundingClientRect().width;
+    requestPipWindow({
+      width: drawerWidth ? Math.round(drawerWidth) : 480,
+      height: Math.round(window.innerHeight * 0.9),
+    })
       .then(() => closeDrawer())
       .catch(() => {
         // Failed to open the PiP window — keep the drawer open.
@@ -393,7 +400,7 @@ export function ExplorerDrawerContent({
           : 'disabled';
 
   return (
-    <DrawerContentContainer data-seer-explorer-root="">
+    <DrawerContentContainer ref={rootRef} data-seer-explorer-root="">
       <ExplorerDrawerHeader
         disableNewChatButton={runId === null}
         onNewChatClick={() => {

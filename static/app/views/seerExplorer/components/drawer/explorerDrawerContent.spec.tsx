@@ -63,9 +63,11 @@ describe('ExplorerDrawerContent', () => {
   describe('Empty State', () => {
     it('renders the drawer root element', async () => {
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -76,9 +78,11 @@ describe('ExplorerDrawerContent', () => {
 
     it('shows empty state when no messages exist', async () => {
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -90,9 +94,11 @@ describe('ExplorerDrawerContent', () => {
 
     it('shows input', async () => {
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -112,9 +118,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -139,9 +147,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -161,9 +171,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -184,9 +196,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -213,7 +227,10 @@ describe('ExplorerDrawerContent', () => {
             },
             {
               id: 'msg-2',
-              message: {role: 'assistant', content: 'This is a null pointer exception.'},
+              message: {
+                role: 'assistant',
+                content: 'This is a null pointer exception.',
+              },
               timestamp: '2024-01-01T00:01:00Z',
               loading: false,
             },
@@ -225,9 +242,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -244,9 +263,11 @@ describe('ExplorerDrawerContent', () => {
   describe('Input Handling', () => {
     it('can type in the textarea', async () => {
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -264,9 +285,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -288,9 +311,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -359,9 +384,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -388,9 +415,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -411,9 +440,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -459,9 +490,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -483,9 +516,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       const {unmount} = render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {organization}
       );
 
@@ -496,9 +531,11 @@ describe('ExplorerDrawerContent', () => {
       unmount();
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {organization}
       );
 
@@ -512,9 +549,11 @@ describe('ExplorerDrawerContent', () => {
       useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 1});
 
       const {rerender} = render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {organization}
       );
 
@@ -525,9 +564,11 @@ describe('ExplorerDrawerContent', () => {
 
       useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 2});
       rerender(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>
       );
 
       await waitFor(() =>
@@ -539,9 +580,11 @@ describe('ExplorerDrawerContent', () => {
 
       useSeerExplorerSpy.mockReturnValue({...defaultHookReturn, runId: 1});
       rerender(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>
       );
 
       await waitFor(() =>
@@ -553,9 +596,11 @@ describe('ExplorerDrawerContent', () => {
       const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
 
       const {unmount} = render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {organization}
       );
 
@@ -580,9 +625,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {organization}
       );
 
@@ -611,9 +658,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -641,9 +690,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -671,9 +722,11 @@ describe('ExplorerDrawerContent', () => {
       });
 
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -692,9 +745,11 @@ describe('ExplorerDrawerContent', () => {
 
     it('does not show toggle without the feature flag', async () => {
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization,
         }
@@ -707,9 +762,11 @@ describe('ExplorerDrawerContent', () => {
 
     it('shows toggle when feature flag is enabled', async () => {
       render(
-        <SeerExplorerSessionsProvider>
-          <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
-        </SeerExplorerSessionsProvider>,
+        <SeerExplorerPipProvider>
+          <SeerExplorerSessionsProvider>
+            <ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />
+          </SeerExplorerSessionsProvider>
+        </SeerExplorerPipProvider>,
         {
           organization: orgWithFlag,
         }
