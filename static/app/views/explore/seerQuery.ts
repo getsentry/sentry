@@ -19,7 +19,7 @@ import {
 
 type SeerVisualization = AskSeerSearchQuery['visualizations'][number];
 
-export interface SeerExploreQuery {
+interface SeerExploreQuery {
   datetime: SeerDateTimeSelection;
   groupBys: string[];
   mode: Mode;
