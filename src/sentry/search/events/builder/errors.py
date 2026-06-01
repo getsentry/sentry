@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Sequence
+from typing import cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -17,7 +19,9 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.api.event_search import QueryToken
 from sentry.issues.issue_search import convert_query_values, convert_status_value
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import (
     DiscoverQueryBuilder,
     TimeseriesQueryBuilder,
@@ -30,7 +34,7 @@ from sentry.snuba.entity_subscription import ENTITY_TIME_COLUMNS, get_entity_key
 value_converters = {"status": convert_status_value}
 
 
-class ErrorsQueryBuilderMixin:
+class ErrorsQueryBuilderMixin(BaseQueryBuilder):
     def __init__(self, *args, **kwargs):
         self.match = None
         self.entities = set()
@@ -39,7 +43,7 @@ class ErrorsQueryBuilderMixin:
     def parse_query(self, query: str | None) -> ParsedTerms:
         parsed_terms = super().parse_query(query)
         parsed_terms = convert_query_values(
-            parsed_terms,
+            cast("Sequence[QueryToken]", parsed_terms),
             self.params.projects,
             self.params.user,
             list(filter(None, self.params.environments)),
