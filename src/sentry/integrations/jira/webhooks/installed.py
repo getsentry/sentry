@@ -92,11 +92,16 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 )
 
             # Bind iss to whichever value build_integration will persist as
-            # Integration.external_id. Branch on state["jira"] (the parent
-            # dict) to match build_integration exactly — branching on the
-            # inner external_id's truthiness diverges when it's empty.
+            # Integration.external_id, mirroring its branch order exactly. The
+            # request body is attacker-controlled and not covered by the JWT, so
+            # the issuer must be validated against the same external_id we store;
+            # otherwise a valid token for one tenant could install an integration
+            # keyed to another tenant. Branch on the parent dicts (not the inner
+            # external_id's truthiness, which diverges when it's empty).
             jira_state = state.get(IntegrationProviderSlug.JIRA.value)
-            if jira_state:
+            if "external_id" in state and "metadata" in state:
+                expected_external_id = state.get("external_id")
+            elif jira_state:
                 expected_external_id = jira_state.get("external_id")
             else:
                 expected_external_id = state.get("clientKey")

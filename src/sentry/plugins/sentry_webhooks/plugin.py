@@ -144,7 +144,6 @@ class WebHooksPlugin(notify.NotificationPlugin):
                     tags={"outcome": LegacyWebhookOutcome.ERROR},
                     sample_rate=1.0,
                 )
-                raise
             except (ConnectionError, ReadTimeout):
                 metrics.incr(
                     "legacy_webhook.plugin.send",

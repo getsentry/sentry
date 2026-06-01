@@ -1,10 +1,10 @@
 import {useEffect, type ReactNode} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';
@@ -40,8 +40,8 @@ function getReplayTabs({
     [TabKey.AI]:
       hasAiSummary && (!isVideoReplay || hasMobileSummary) ? (
         <Flex align="center" gap="sm">
-          <Tooltip
-            isHoverable
+          <InfoText
+            variant="inherit"
             title={tct(
               'Powered by generative AI. Learn more about our [link:AI privacy principles].',
               {
@@ -52,7 +52,7 @@ function getReplayTabs({
             )}
           >
             {t('AI Summary')}
-          </Tooltip>
+          </InfoText>
           <FeatureBadge type="new" />
         </Flex>
       ) : null,

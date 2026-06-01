@@ -875,7 +875,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.scheduled",
     "sentry.deletions.tasks.seer",
     "sentry.demo_mode.tasks",
-    "sentry.dynamic_sampling.per_org.tasks.scheduler",
+    "sentry.dynamic_sampling.per_org.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
@@ -2909,8 +2909,6 @@ SEER_PREVENT_AI_URL = SEER_DEFAULT_URL  # for local development, these share a U
 SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-
-SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
 SEER_SCORING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 

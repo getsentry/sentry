@@ -12,10 +12,11 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -244,6 +245,15 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
             status=GroupHistoryStatus.REGRESSED,
             project__in=projects,
         ).values_list("group_id", flat=True),
+    )
+
+
+def issue_agent_filter(activity_types: list[int], projects: Sequence[Project]) -> Q:
+    return Q(
+        id__in=Activity.objects.filter(
+            project__in=projects,
+            type__in=activity_types,
+        ).values_list("group_id", flat=True)
     )
 
 
@@ -595,11 +605,10 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
             "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
-            "issue.seer_last_run": ScalarCondition(
-                "seer_explorer_autofix_last_triggered"
-                if features.has("organizations:autofix-on-explorer", organization)
-                else "seer_autofix_last_triggered"
+            "issue.agent": QCallbackCondition(
+                functools.partial(issue_agent_filter, projects=projects)
             ),
+            "issue.seer_last_run": ScalarCondition("seer_explorer_autofix_last_triggered"),
             "issue.id": QCallbackCondition(
                 lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])
             ),

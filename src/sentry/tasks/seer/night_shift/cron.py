@@ -343,7 +343,6 @@ def run_night_shift_execution(
         results = _run_autofix_for_candidates(
             run=run,
             candidates=candidates,
-            options=resolved_options,
             stopping_point_by_project_id=stopping_point_by_project_id,
             log_extra=log_extra,
         )
@@ -493,7 +492,6 @@ def _get_eligible_projects(
 def _run_autofix_for_candidates(
     run: SeerNightShiftRun,
     candidates: Sequence[TriageResult],
-    options: SeerNightShiftRunOptions,
     stopping_point_by_project_id: Mapping[int, AutofixStoppingPoint],
     log_extra: dict[str, object],
 ) -> list[SeerNightShiftRunResult]:
@@ -534,8 +532,6 @@ def _run_autofix_for_candidates(
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,
                 stopping_point=stopping_point,
-                intelligence_level=options["intelligence_level"],
-                reasoning_effort=options["reasoning_effort"],
                 user_context=user_context,
             )
         except Exception:

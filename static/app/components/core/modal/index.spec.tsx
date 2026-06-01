@@ -9,8 +9,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InfoText} from '@sentry/scraps/info';
 import {useModal} from '@sentry/scraps/modal';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
 
@@ -286,9 +286,7 @@ describe('GlobalModal', () => {
     act(() =>
       openModal(({Body}) => (
         <Body>
-          <Tooltip title={<button onClick={buttonClick}>Click me</button>} isHoverable>
-            Hi
-          </Tooltip>
+          <InfoText title={<button onClick={buttonClick}>Click me</button>}>Hi</InfoText>
         </Body>
       ))
     );

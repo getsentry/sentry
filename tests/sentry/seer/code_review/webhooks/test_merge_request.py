@@ -1,0 +1,778 @@
+from collections.abc import Generator
+from typing import Any
+from unittest.mock import patch
+
+import orjson
+import pytest
+
+from fixtures.gitlab import MERGE_REQUEST_OPENED_EVENT, GitLabTestCase
+from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
+from sentry.models.repositorysettings import CodeReviewTrigger
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.code_review.webhooks.merge_request import (
+    WEBHOOK_SEEN_KEY_PREFIX,
+    handle_merge_request_event,
+)
+from sentry.testutils.helpers.features import with_feature
+from sentry.utils.redis import redis_clusters
+
+
+def _make_event(action: str = "open", **overrides: object) -> dict[str, Any]:
+    event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+    event["object_attributes"]["action"] = action
+    # GitLab sends "changes" as a top-level payload field; everything else here
+    # (oldrev, draft, work_in_progress, last_commit, ...) lives in object_attributes.
+    if "changes" in overrides:
+        event["changes"] = overrides.pop("changes")
+    for key, value in overrides.items():
+        event["object_attributes"][key] = value
+    return event
+
+
+def _rpc_org(org: Organization) -> RpcOrganization:
+    return RpcOrganization(
+        id=org.id,
+        slug=org.slug,
+        name=org.name,
+    )
+
+
+class MergeRequestEventWebhookTest(GitLabTestCase):
+    CODE_REVIEW_FEATURES = {
+        "organizations:gen-ai-features",
+        "organizations:code-review-beta",
+        "organizations:seer-code-review-gitlab",
+    }
+
+    @pytest.fixture(autouse=True)
+    def mock_seer_request(self) -> Generator[None]:
+        with patch("sentry.seer.code_review.webhooks.task.make_seer_request") as mock_seer:
+            self.mock_seer = mock_seer
+            yield
+
+    def _setup_code_review(
+        self,
+        triggers: list[CodeReviewTrigger] | None = None,
+        name: str = "Cool Group / Sentry",
+        path: str = "cool-group/sentry",
+    ) -> None:
+        if triggers is None:
+            triggers = [
+                CodeReviewTrigger.ON_NEW_COMMIT,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            ]
+
+        # GitLab stores Repository.name as the display "name_with_namespace"; the
+        # URL slug used to address the project lives in config["path"].
+        repo = self.create_gitlab_repo(name=name)
+        repo.config["path"] = path
+        repo.save()
+
+        trigger_values = [t.value for t in triggers]
+        self.create_repository_settings(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=trigger_values,
+        )
+
+        OrganizationContributors.objects.get_or_create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="51",
+            defaults={"alias": "root"},
+        )
+
+        self.repo = repo
+
+    def _call_handler(self, event: dict[str, Any]) -> None:
+        handle_merge_request_event(
+            event=event,
+            organization=_rpc_org(self.organization),
+            repo=self.repo,
+            integration=self.integration,
+        )
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_open_uses_review_request_endpoint(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        call_kwargs = self.mock_seer.call_args[1]
+        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+
+    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    def test_skips_when_gitlab_flag_disabled(self) -> None:
+        # The GitLab MR handler is gated on organizations:seer-code-review-gitlab,
+        # independent of the other code-review flags.
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_close_uses_pr_closed_endpoint(self) -> None:
+        self._setup_code_review()
+        event = _make_event("close")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        call_kwargs = self.mock_seer.call_args[1]
+        assert call_kwargs["path"] == "/v1/scm_code_review/pr-closed"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_merge_uses_pr_closed_endpoint(self) -> None:
+        self._setup_code_review()
+        event = _make_event("merge")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        call_kwargs = self.mock_seer.call_args[1]
+        assert call_kwargs["path"] == "/v1/scm_code_review/pr-closed"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_update_uses_review_request_endpoint(self) -> None:
+        self._setup_code_review()
+        event = _make_event("update", oldrev="0" * 40)
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        call_kwargs = self.mock_seer.call_args[1]
+        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_update_without_oldrev_is_skipped(self) -> None:
+        self._setup_code_review()
+        event = _make_event("update")
+        assert "oldrev" not in event["object_attributes"]
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_update_with_unrelated_changes_is_skipped(self) -> None:
+        # An "update" that only edits metadata (no new commit, no un-draft) must not
+        # trigger a review.
+        self._setup_code_review()
+        event = _make_event("update", changes={"title": {"previous": "a", "current": "b"}})
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_undraft_update_uses_review_request_endpoint(self) -> None:
+        # GitLab has no "ready_for_review" action; un-drafting arrives as an "update"
+        # whose changes flip draft -> false, and must be treated as ready-for-review.
+        self._setup_code_review()
+        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
+        assert "oldrev" not in event["object_attributes"]
+        # GitLab delivers "changes" at the top level, not under object_attributes.
+        assert "changes" in event and "changes" not in event["object_attributes"]
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_undraft_update_via_work_in_progress_uses_review_request_endpoint(self) -> None:
+        self._setup_code_review()
+        event = _make_event(
+            "update", changes={"work_in_progress": {"previous": True, "current": False}}
+        )
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_undraft_update_trigger_is_ready_for_review(self) -> None:
+        self._setup_code_review()
+        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        payload = self.mock_seer.call_args[1]["payload"]
+        assert payload["data"]["config"]["trigger"] == "on_ready_for_review"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_undraft_update_filtered_when_ready_trigger_disabled(self) -> None:
+        # An un-draft maps to ON_READY_FOR_REVIEW, so a repo that only enabled
+        # ON_NEW_COMMIT must not get a review for it.
+        self._setup_code_review(triggers=[CodeReviewTrigger.ON_NEW_COMMIT])
+        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_skips_draft_mr(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open", draft=True)
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_skips_work_in_progress_mr(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open", work_in_progress=True)
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_close_still_sends_for_draft_mr(self) -> None:
+        self._setup_code_review()
+        event = _make_event("close", draft=True)
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_skips_unsupported_action(self) -> None:
+        self._setup_code_review()
+        event = _make_event("approved")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_skips_unknown_action(self) -> None:
+        self._setup_code_review()
+        event = _make_event("future_action_not_in_enum")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_skips_missing_action(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        del event["object_attributes"]["action"]
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_skips_when_integration_is_none(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            handle_merge_request_event(
+                event=event,
+                organization=_rpc_org(self.organization),
+                repo=self.repo,
+                integration=None,
+            )
+
+        self.mock_seer.assert_not_called()
+
+    def test_skips_when_code_review_not_enabled(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_skips_missing_last_commit(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        del event["object_attributes"]["last_commit"]
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_open_filtered_when_trigger_disabled(self) -> None:
+        self._setup_code_review(triggers=[CodeReviewTrigger.ON_NEW_COMMIT])
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_update_filtered_when_trigger_disabled(self) -> None:
+        self._setup_code_review(triggers=[CodeReviewTrigger.ON_READY_FOR_REVIEW])
+        event = _make_event("update", oldrev="0" * 40)
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_close_filtered_when_no_triggers_configured(self) -> None:
+        self._setup_code_review(triggers=[])
+        event = _make_event("close")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_not_called()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_close_sends_when_triggers_configured(self) -> None:
+        self._setup_code_review(triggers=[CodeReviewTrigger.ON_READY_FOR_REVIEW])
+        event = _make_event("close")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_contains_correct_pr_id(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        call_kwargs = self.mock_seer.call_args[1]
+        payload = call_kwargs["payload"]
+        assert payload["data"]["pr_id"] == 1
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_contains_gitlab_provider(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        call_kwargs = self.mock_seer.call_args[1]
+        payload = call_kwargs["payload"]
+        assert payload["data"]["repo"]["provider"] == "gitlab"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_owner_and_name_use_path_not_display_name(self) -> None:
+        # Repository.name is the display "Cool Group / Sentry"; Seer must receive
+        # the URL slugs derived from config["path"] ("cool-group/sentry").
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["owner"] == "cool-group"
+        assert repo["name"] == "sentry"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_owner_and_name_handle_subgroups(self) -> None:
+        self._setup_code_review(name="Group / Subgroup / Project", path="group/subgroup/project")
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["owner"] == "group"
+        assert repo["name"] == "subgroup/project"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_is_private_true_for_private_project(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        event["project"]["visibility_level"] = 0
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["is_private"] is True
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_is_private_true_for_internal_project(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        event["project"]["visibility_level"] = 10
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["is_private"] is True
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_is_private_false_for_public_project(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        event["project"]["visibility_level"] = 20
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["is_private"] is False
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_is_private_none_when_visibility_absent(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        del event["project"]["visibility_level"]
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
+        assert repo["is_private"] is None
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_trigger_on_ready_for_review_for_open(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        call_kwargs = self.mock_seer.call_args[1]
+        payload = call_kwargs["payload"]
+        assert payload["data"]["config"]["trigger"] == "on_ready_for_review"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_trigger_on_new_commit_for_update(self) -> None:
+        self._setup_code_review()
+        event = _make_event("update", oldrev="0" * 40)
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        call_kwargs = self.mock_seer.call_args[1]
+        payload = call_kwargs["payload"]
+        assert payload["data"]["config"]["trigger"] == "on_new_commit"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_payload_contains_trigger_user_from_event(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        call_kwargs = self.mock_seer.call_args[1]
+        payload = call_kwargs["payload"]
+        assert payload["data"]["config"]["trigger_user"] == "root"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_duplicate_delivery_within_window_skipped(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with self.tasks():
+            self._call_handler(event)
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_duplicate_delivery_after_ttl_processes_again(self) -> None:
+        self._setup_code_review()
+        event = _make_event("open")
+        commit_sha = event["object_attributes"]["last_commit"]["id"]
+        iid = event["object_attributes"]["iid"]
+
+        with self.tasks():
+            self._call_handler(event)
+        assert self.mock_seer.call_count == 1
+
+        # Simulate TTL expiry so the same delivery can be processed again.
+        seen_key = (
+            f"{WEBHOOK_SEEN_KEY_PREFIX}{self.organization.id}:{self.repo.id}:"
+            f"{iid}:open:{commit_sha}"
+        )
+        redis_clusters.get("default").delete(seen_key)
+
+        with self.tasks():
+            self._call_handler(event)
+        assert self.mock_seer.call_count == 2
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_distinct_commits_are_not_deduped(self) -> None:
+        # Two new-commit pushes have different last_commit ids, so they are distinct
+        # operations and both must reach Seer despite sharing the same MR and action.
+        self._setup_code_review()
+        first = _make_event("update", oldrev="0" * 40)
+        second = _make_event("update", oldrev="0" * 40)
+        second["object_attributes"]["last_commit"] = {
+            **second["object_attributes"]["last_commit"],
+            "id": "f" * 40,
+        }
+
+        with self.tasks():
+            self._call_handler(first)
+            self._call_handler(second)
+
+        assert self.mock_seer.call_count == 2

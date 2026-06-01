@@ -8,7 +8,7 @@ import type {Node} from '@react-types/shared';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {FilterKeyCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyCombobox';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
@@ -30,7 +30,7 @@ type FilterKeyProps = {
 
 export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {disabled, getFieldDefinition} = useSearchQueryBuilder();
+  const {disabled, getFieldDefinition} = useSearchQueryBuilderConfig();
   const fieldDefinition = getFieldDefinition(token.key.text);
 
   const [isEditing, setIsEditing] = useState(false);
