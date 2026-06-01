@@ -26,7 +26,7 @@ class OrganizationSupergroupDetailsPermission(OrganizationPermission):
 @cell_silo_endpoint
 class OrganizationSupergroupDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUE_DETECTION_BACKEND
     permission_classes = (OrganizationSupergroupDetailsPermission,)

@@ -31,7 +31,7 @@ from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 class OrganizationEventsAnomaliesEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.ALERTS_MONITORS
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAlertRulePermission,)
 

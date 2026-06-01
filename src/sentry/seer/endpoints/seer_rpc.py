@@ -219,7 +219,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     authentication_classes = (SeerRpcSignatureAuthentication,)
