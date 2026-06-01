@@ -185,8 +185,7 @@ function buildSplitPanelTree(children: React.ReactNode): {
 
   // Count panels up front. A panel is only treated as sized when there's a
   // second pane to absorb the remaining space; with a single panel it always
-  // fills the container regardless of its `defaultSize` (e.g. replay
-  // VIDEO_ONLY renders just one panel that still declares a default size).
+  // fills the container regardless of its `defaultSize`.
   let panelCount = 0;
   let sizedCount = 0;
   for (const child of flatChildren) {

@@ -71,10 +71,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 } {
   const rafIdRef = useRef<number | null>(null);
   const currentMouseVectorRaf = useRef<[number, number] | null>(null);
-  // Once the user actively resizes (drag, keyboard, double-click), we stop
-  // following `initialSize` so their choice sticks. Until then, `size` tracks
-  // `initialSize` so the pane picks up a meaningful default — e.g. when a sized
-  // pane first appears after the layout started as a single panel.
+  // Once the user resizes manually, stop following `initialSize`.
   const hasUserResizedRef = useRef(false);
   const [size, setSize] = useState<number>(() => {
     const storedSize = options.sizeStorageKey
@@ -103,8 +100,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
   // invoke the onResize callback with the previously stored dimensions.
-  // A direction change means the layout fundamentally changed, so reset back to
-  // the default size and let it follow `initialSize` again.
+  // A direction change is a layout change, so reset to the default size.
   useLayoutEffect(() => {
     hasUserResizedRef.current = false;
     options.onResize(options.initialSize ?? 0, size, false);
@@ -115,11 +111,9 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const sizeRef = useRef(size);
   sizeRef.current = size;
 
-  // Follow `initialSize` when it changes, as long as the user hasn't taken over
-  // by resizing manually. This is what makes a sized pane adopt its default
-  // size when it appears mid-mount (e.g. the replay focus pane after leaving
-  // VIDEO_ONLY); without it the pane would stay stuck at its previous size
-  // (often 0px) until the user dragged the divider.
+  // Follow `initialSize` until the user resizes, so a sized pane adopts its
+  // default when it first appears mid-mount instead of staying stuck at its
+  // previous size.
   useLayoutEffect(() => {
     if (hasUserResizedRef.current || sizeRef.current === (options.initialSize ?? 0)) {
       return;
@@ -177,9 +171,8 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   );
 
   const dragStartSizeRef = useRef<number | null>(null);
-  // Track the exact listener instances attached on mousedown so the unmount
-  // cleanup can detach them — their identities change across renders, so the
-  // cleanup can't recreate them.
+  // Remember the listeners attached on mousedown so the unmount cleanup can
+  // detach the exact instances (their identities change across renders).
   const attachedListenersRef = useRef<{
     onMouseMove: (event: MouseEvent) => void;
     onMouseUp: () => void;
@@ -193,10 +186,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     document.removeEventListener('mouseup', onMouseUp);
     attachedListenersRef.current = null;
 
-    // A mousemove can leave a frame scheduled that hasn't run yet. Cancel it so
-    // it can't mutate size after we report the final size — otherwise onResize
-    // would fire after onResizeEnd and the persisted/reported endSize would lag
-    // the actual pane width by a frame.
+    // Cancel any frame still scheduled so it can't change size after onResizeEnd.
     if (rafIdRef.current !== null) {
       window.cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
@@ -204,10 +194,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     currentMouseVectorRaf.current = null;
 
     setIsHeld(false);
-    // Only report a resize if the size actually changed. A plain click on the
-    // divider (mousedown + mouseup with no movement) leaves start === end, and
-    // firing onResizeEnd there would log a bogus resize with a meaningless
-    // direction.
+    // No movement means no resize — don't report a plain click as one.
     if (
       dragStartSizeRef.current !== null &&
       dragStartSizeRef.current !== sizeRef.current
@@ -236,16 +223,13 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const onDoubleClick = useCallback(() => {
     const startSize = sizeRef.current;
     updateSize(options.initialSize, true);
-    // Mirror drag end so consumers that only persist/track on resize end (e.g.
-    // saving the split width) capture the double-click reset too.
+    // Mirror drag end so consumers that persist on resize end capture the reset.
     options.onResizeEnd?.({startSize, endSize: options.initialSize});
   }, [updateSize, options]);
 
-  // Unmount-only cleanup. If we unmount mid-drag, tear down everything an
-  // in-flight drag left behind: the global listeners and the document styles it
-  // mutated (pointer-events/cursor/user-select), plus any pending frame.
-  // Without this, navigating away while holding the divider leaves the whole
-  // app non-interactive because body pointer-events stay disabled.
+  // On unmount mid-drag, detach the listeners and restore the document styles
+  // the drag set (pointer-events/cursor/user-select), plus cancel any pending
+  // frame — otherwise the app is left non-interactive.
   useLayoutEffect(() => {
     return () => {
       if (attachedListenersRef.current) {
