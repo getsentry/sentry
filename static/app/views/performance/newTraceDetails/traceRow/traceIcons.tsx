@@ -45,9 +45,13 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
           );
           const width = getTraceIconGroupApproximateWidth(additionalIssueCount);
           const edge = props.manager.computeTraceIconEdge(clampedTimestamp, width);
-          const anchorTimestamp = props.manager.computeTraceIconAnchorTimestamp(
-            clampedTimestamp,
-            edge
+          // The anchor timestamp may snap to the visible viewport edge, which can
+          // fall outside the span when the viewport extends past it. Clamp it back
+          // into the span so the pill stays flush within the bar (0%-100%).
+          const anchorTimestamp = clamp(
+            props.manager.computeTraceIconAnchorTimestamp(clampedTimestamp, edge),
+            props.node_space![0],
+            props.node_space![0] + props.node_space![1]
           );
           const left = props.manager.computeRelativeLeftPositionFromOrigin(
             anchorTimestamp,
@@ -83,9 +87,10 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
           clampedTimestamp,
           TRACE_ICON_WIDTH
         );
-        const anchorTimestamp = props.manager.computeTraceIconAnchorTimestamp(
-          clampedTimestamp,
-          edge
+        const anchorTimestamp = clamp(
+          props.manager.computeTraceIconAnchorTimestamp(clampedTimestamp, edge),
+          props.node_space![0],
+          props.node_space![0] + props.node_space![1]
         );
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
           anchorTimestamp,
