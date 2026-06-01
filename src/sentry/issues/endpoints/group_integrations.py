@@ -16,7 +16,10 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs
-from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
+from sentry.integrations.api.serializers.models.integration import (
+    IntegrationSerializer,
+    IntegrationSerializerResponse,
+)
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -27,6 +30,10 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+
+
+class IntegrationIssueSerializerResponse(IntegrationSerializerResponse):
+    externalIssues: list[dict[str, Any]]
 
 
 class IntegrationIssueSerializer(IntegrationSerializer):
@@ -77,10 +84,9 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[str, Any]:
-        data = super().serialize(obj, attrs, user)
-        data["externalIssues"] = attrs.get("external_issues", [])
-        return data
+    ) -> IntegrationIssueSerializerResponse:
+        base = super().serialize(obj, attrs, user)
+        return {**base, "externalIssues": attrs.get("external_issues", [])}
 
 
 @cell_silo_endpoint
