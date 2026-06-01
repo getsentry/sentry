@@ -1,8 +1,12 @@
 import logging
-import os
 from dataclasses import replace
 from typing import Any, Literal
 
+from sentry_conventions.attributes import (
+    ATTRIBUTE_METADATA,
+    AttributeMetadata,
+    DeprecationStatus,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
 from sentry.insights.models import InsightsStarredSegment
@@ -14,7 +18,6 @@ from sentry.search.eap.columns import (
     simple_sentry_field,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
-from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
 from sentry.search.events.constants import (
     PRECISE_FINISH_TS,
     PRECISE_START_TS,
@@ -22,7 +25,6 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
-from sentry.utils import json
 from sentry.utils.validators import (
     is_empty_string,
     is_event_id_or_list,
@@ -505,13 +507,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
     ]
 }
 
-DEPRECATED_ATTRIBUTES: list[dict[str, Any]] = []
-try:
-    with open(os.path.join(SENTRY_CONVENTIONS_DIRECTORY, "deprecated_attributes.json"), "rb") as f:
-        DEPRECATED_ATTRIBUTES = json.loads(f.read())["attributes"]
-except Exception:
-    logger.exception("Failed to load deprecated attributes from 'deprecated_attributes.json'")
-
 
 def _normalize_convention_attribute_type(attr_type: str) -> constants.SearchType | None:
     # Convention types are generic value types like integer, double, string, boolean.
@@ -526,81 +521,81 @@ def _normalize_convention_attribute_type(attr_type: str) -> constants.SearchType
 
 
 def _update_attribute_definitions_with_deprecations(
-    attribute_definitions: dict[str, ResolvedAttribute], deprecated_attributes: list[dict[str, Any]]
+    attribute_definitions: dict[str, ResolvedAttribute],
+    convention_attributes: dict[str, AttributeMetadata],
 ) -> None:
     span_attribute_definitions_by_internal_name = {
         definition.internal_name: definition for definition in attribute_definitions.values()
     }
 
-    for attribute in deprecated_attributes:
-        deprecation = attribute.get("deprecation", {})
-        key = attribute["key"]
+    for key, metadata in convention_attributes.items():
+        deprecation = metadata.deprecation
         if (
-            "replacement" in deprecation
-            and "_status" in deprecation
-            and deprecation["_status"] == "backfill"
+            deprecation is None
+            or deprecation.replacement is None
+            or deprecation.status not in (DeprecationStatus.BACKFILL, DeprecationStatus.NORMALIZE)
         ):
-            status = deprecation["_status"]
-            replacement = deprecation["replacement"]
-            deprecated_attr = attribute_definitions.get(key)
-            deprecated_public_alias = key
-            if deprecated_attr is None:
-                deprecated_attr = span_attribute_definitions_by_internal_name.get(key)
-                if deprecated_attr is not None:
-                    deprecated_public_alias = deprecated_attr.public_alias
+            continue
 
+        status = deprecation.status.value
+        replacement = deprecation.replacement
+        deprecated_attr = attribute_definitions.get(key)
+        deprecated_public_alias = key
+        if deprecated_attr is None:
+            deprecated_attr = span_attribute_definitions_by_internal_name.get(key)
             if deprecated_attr is not None:
-                attribute_definitions[deprecated_public_alias] = replace(
+                deprecated_public_alias = deprecated_attr.public_alias
+
+        if deprecated_attr is not None:
+            attribute_definitions[deprecated_public_alias] = replace(
+                deprecated_attr,
+                replacement=replacement,
+                deprecation_status=status,
+            )
+            # TODO: Introduce units to attribute schema.
+            if (
+                replacement not in attribute_definitions
+                and replacement not in span_attribute_definitions_by_internal_name
+            ):
+                attribute_definitions[replacement] = replace(
                     deprecated_attr,
-                    replacement=replacement,
-                    deprecation_status=status,
+                    public_alias=replacement,
+                    internal_name=replacement,
+                    secondary_alias=False,
                 )
-                # TODO: Introduce units to attribute schema.
-                if (
-                    replacement not in attribute_definitions
-                    and replacement not in span_attribute_definitions_by_internal_name
-                ):
-                    attribute_definitions[replacement] = replace(
-                        deprecated_attr,
-                        public_alias=replacement,
-                        internal_name=replacement,
-                        secondary_alias=False,
-                    )
-            else:
-                attr_type = _normalize_convention_attribute_type(attribute.get("type", "string"))
-                if attr_type is None:
-                    continue
-                attribute_definitions[key] = ResolvedAttribute(
-                    public_alias=key,
-                    internal_name=key,
+        else:
+            attr_type = _normalize_convention_attribute_type(metadata.type.value)
+            if attr_type is None:
+                continue
+            attribute_definitions[key] = ResolvedAttribute(
+                public_alias=key,
+                internal_name=key,
+                search_type=attr_type,
+                replacement=replacement,
+                deprecation_status=status,
+            )
+
+            if (
+                replacement not in attribute_definitions
+                and replacement not in span_attribute_definitions_by_internal_name
+            ):
+                attribute_definitions[replacement] = ResolvedAttribute(
+                    public_alias=replacement,
+                    internal_name=replacement,
                     search_type=attr_type,
-                    replacement=replacement,
-                    deprecation_status=status,
                 )
 
-                if (
-                    replacement not in attribute_definitions
-                    and replacement not in span_attribute_definitions_by_internal_name
-                ):
-                    attribute_definitions[replacement] = ResolvedAttribute(
-                        public_alias=replacement,
-                        internal_name=replacement,
-                        search_type=attr_type,
-                    )
-
-            span_attribute_definitions_by_internal_name[key] = attribute_definitions[
-                deprecated_public_alias
+        span_attribute_definitions_by_internal_name[key] = attribute_definitions[
+            deprecated_public_alias
+        ]
+        if replacement in attribute_definitions:
+            span_attribute_definitions_by_internal_name[replacement] = attribute_definitions[
+                replacement
             ]
-            if replacement in attribute_definitions:
-                span_attribute_definitions_by_internal_name[replacement] = attribute_definitions[
-                    replacement
-                ]
 
 
 try:
-    _update_attribute_definitions_with_deprecations(
-        SPAN_ATTRIBUTE_DEFINITIONS, DEPRECATED_ATTRIBUTES
-    )
+    _update_attribute_definitions_with_deprecations(SPAN_ATTRIBUTE_DEFINITIONS, ATTRIBUTE_METADATA)
 
 except Exception as e:
     logger.exception("Failed to update attribute definitions: %s", e)

@@ -46,8 +46,6 @@ class SpansBufferStore:
         self.assigned_shards = list(assigned_shards)
         self.slice_id = slice_id
         self.add_buffer_sha: str | None = None
-        self._current_compression_level: int | None = None
-        self._zstd_compressor: zstandard.ZstdCompressor | None = None
 
     def get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         """
@@ -102,11 +100,17 @@ class SpansBufferStore:
         Store subsegment payload bytes in Redis sets keyed by subsegment salt.
         """
         compression_level = options.get("spans.buffer.compression.level")
+        zstd_compressor = (
+            None if compression_level == -1 else zstandard.ZstdCompressor(level=compression_level)
+        )
 
         for batch in batches:
             with self.client.pipeline(transaction=False) as p:
                 for subsegment in batch:
-                    set_members = self._prepare_payloads(subsegment.spans, compression_level)
+                    set_members = self._prepare_payloads(
+                        subsegment.spans,
+                        zstd_compressor,
+                    )
                     payload_key = self.get_payload_key(
                         subsegment.project_and_trace,
                         subsegment.salt,
@@ -116,22 +120,19 @@ class SpansBufferStore:
 
                 p.execute()
 
-    def _prepare_payloads(self, spans: list[Span], compression_level: int) -> set[str | bytes]:
-        if compression_level != self._current_compression_level:
-            self._current_compression_level = compression_level
-            if compression_level == -1:
-                self._zstd_compressor = None
-            else:
-                self._zstd_compressor = zstandard.ZstdCompressor(level=compression_level)
-
-        if self._zstd_compressor is None:
+    def _prepare_payloads(
+        self,
+        spans: list[Span],
+        zstd_compressor: zstandard.ZstdCompressor | None,
+    ) -> set[str | bytes]:
+        if zstd_compressor is None:
             return {span.payload for span in spans}
 
         combined = b"\x00".join(span.payload for span in spans)
         original_size = len(combined)
 
         with metrics.timer("spans.buffer.compression.cpu_time"):
-            compressed = self._zstd_compressor.compress(combined)
+            compressed = zstd_compressor.compress(combined)
 
         compressed_size = len(compressed)
 

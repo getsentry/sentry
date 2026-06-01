@@ -69,7 +69,9 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
             ),
         ],
     )
-    def get(self, request: Request, organization, repo_id) -> Response:
+    def get(
+        self, request: Request, organization, repo_id
+    ) -> Response[list[CommitSerializerResponse]]:
         """
         List a Repository's Commits
         """

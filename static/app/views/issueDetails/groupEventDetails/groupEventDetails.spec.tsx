@@ -213,13 +213,6 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-trace-light/${TRACE_ID}/`,
-    body: trace
-      ? {transactions: [trace], orphan_errors: []}
-      : {transactions: [], orphan_errors: []},
-  });
-
-  MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
     body: [],
   });
@@ -537,7 +530,7 @@ describe('groupEventDetails', () => {
       initialRouterConfig,
     });
 
-    expect(await screen.findByRole('region', {name: 'tags'})).toBeInTheDocument();
+    expect(await screen.findByRole('region', {name: 'Tags'})).toBeInTheDocument();
     const highlights = screen.getByRole('region', {name: 'Highlights'});
 
     expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();

@@ -53,7 +53,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization) -> Response[list[DataForwarderResponse]]:
         """
         Returns a list of data forwarders for an organization.
         """
@@ -79,7 +79,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization) -> Response[DataForwarderResponse]:
         """
         Creates a new data forwarder for an organization.
         Only one data forwarder can be created per provider for a given organization.

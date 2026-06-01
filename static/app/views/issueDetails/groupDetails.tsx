@@ -61,6 +61,7 @@ import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIs
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/hooks/useSimilarIssuesDrawer';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
+  IssueDetailsTourModal,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
@@ -836,6 +837,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
       TourContext={IssueDetailsTourContext}
     >
+      <IssueDetailsTourModal />
       <GroupDetailsContent
         project={projectWithFallback}
         group={props.group}

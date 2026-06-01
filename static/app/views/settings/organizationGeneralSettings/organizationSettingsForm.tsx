@@ -1,11 +1,9 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {mutationOptions, useQuery} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Tag} from '@sentry/scraps/badge';
 import {
   AutoSaveForm,
   defaultFormOptions,
@@ -20,12 +18,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import Feature from 'sentry/components/acl/feature';
-import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
-import {Hovercard} from 'sentry/components/hovercard';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
-import {IconCodecov, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -38,10 +32,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
-
-const OverriddenCodecovSettingsLink = OverrideOrDefault({
-  overrideName: 'component:codecov-integration-settings-link',
-});
 
 const OverriddenOrganizationMembershipSettings = OverrideOrDefault({
   overrideName: 'component:organization-membership-settings',
@@ -62,7 +52,6 @@ const generalSchema = z.object({
   organizationId: z.string(),
   isEarlyAdopter: z.boolean(),
   hideAiFeatures: z.boolean(),
-  codecovAccess: z.boolean(),
   slug: z.string().min(1, t('Organization slug is required')),
 });
 
@@ -641,60 +630,6 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
               </field.Layout.Row>
             )}
           </AutoSaveForm>
-
-          {/* Enable Code Coverage Insights */}
-          <AutoSaveForm
-            name="codecovAccess"
-            schema={generalSchema}
-            initialValue={initialData.codecovAccess}
-            mutationOptions={orgMutationOptions}
-          >
-            {field => (
-              <field.Layout.Row
-                label={
-                  <PoweredByCodecov>
-                    {t('Enable Code Coverage Insights')}{' '}
-                    <Feature
-                      overrideName="feature-disabled:codecov-integration-setting"
-                      renderDisabled={p => (
-                        <Hovercard
-                          body={
-                            <FeatureDisabled
-                              features={p.features}
-                              hideHelpToggle
-                              featureName={t('Codecov Coverage')}
-                            />
-                          }
-                        >
-                          <Tag variant="muted" role="status" icon={<IconLock locked />}>
-                            {t('disabled')}
-                          </Tag>
-                        </Hovercard>
-                      )}
-                      features="organizations:codecov-integration"
-                    >
-                      {() => null}
-                    </Feature>
-                  </PoweredByCodecov>
-                }
-                hintText={
-                  <PoweredByCodecov>
-                    {t('powered by')} <IconCodecov /> Codecov{' '}
-                    <OverriddenCodecovSettingsLink organization={organization} />
-                  </PoweredByCodecov>
-                }
-              >
-                <field.Switch
-                  checked={field.state.value ?? false}
-                  onChange={field.handleChange}
-                  disabled={
-                    !organization.features.includes('codecov-integration') ||
-                    !hasWriteAccess
-                  }
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
         </FieldGroup>
       </FormSearch>
 
@@ -714,14 +649,3 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
     </Fragment>
   );
 }
-
-const PoweredByCodecov = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-
-  & > span {
-    display: flex;
-    align-items: center;
-  }
-`;

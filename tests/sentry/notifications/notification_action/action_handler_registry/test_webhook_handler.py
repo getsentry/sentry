@@ -227,6 +227,23 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
         mock_sentry_app.assert_not_called()
 
     @responses.activate
+    @with_feature(
+        {
+            "organizations:legacy-webhook-new-path": True,
+            "organizations:legacy-webhook-disable-old-path": True,
+        }
+    )
+    def test_new_path_disabled_webhooks_does_not_send(self) -> None:
+        responses.add(responses.POST, "http://example.com/hook")
+        webhook_plugin = plugins.get("webhooks")
+        webhook_plugin.set_option("enabled", False, self.project)
+
+        with self.tasks():
+            WebhookActionHandler.execute(self.invocation)
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
     @mock.patch(
         "sentry.notifications.notification_action.action_handler_registry.webhook_handler.execute_via_group_type_registry",
         side_effect=Exception("legacy path error"),
