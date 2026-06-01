@@ -21,7 +21,7 @@ export const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
       &:active {
         background: ${p.theme.tokens.interactive.transparent.neutral.background.active};
       }
-    `};
+    `}
 
   &:not(:first-child) {
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};

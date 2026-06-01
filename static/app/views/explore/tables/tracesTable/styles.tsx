@@ -63,7 +63,7 @@ export const StyledPanelItem = styled(PanelItem)<{
           overflow: hidden;
           text-overflow: ellipsis;
         `
-      : null};
+      : null}
   ${p =>
     p.align === 'center'
       ? css`

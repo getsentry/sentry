@@ -335,13 +335,6 @@ class ProjectPreprodSnapshotTest(APITestCase):
                 self._get_create_url(), self._selective_data(**overrides), format="json"
             )
 
-    def _post_regex(self, patterns, **overrides):
-        data = self._selective_data(**overrides)
-        del data["all_image_file_names"]
-        data["all_image_file_names_as_regex"] = patterns
-        with self.feature("organizations:preprod-snapshots"):
-            return self.client.post(self._get_create_url(), data, format="json")
-
     def test_all_image_file_names_rejects_empty_list(self):
         response = self._post_selective(images={}, all_image_file_names=[])
         assert response.status_code == 400
@@ -372,48 +365,6 @@ class ProjectPreprodSnapshotTest(APITestCase):
     def test_selective_with_all_image_file_names_accepted(self):
         response = self._post_selective()
         assert response.status_code == 200
-
-    def test_all_image_file_names_as_regex_accepted(self):
-        response = self._post_regex([r".*\.png"])
-        assert response.status_code == 200
-
-    def test_all_image_file_names_as_regex_mutually_exclusive(self):
-        response = self._post_selective(all_image_file_names_as_regex=[r".*\.png"])
-        assert response.status_code == 400
-        assert "mutually exclusive" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_requires_selective(self):
-        response = self._post_regex([r".*\.png"], selective=False)
-        assert response.status_code == 400
-        assert "selective" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_rejects_empty_list(self):
-        response = self._post_regex([])
-        assert response.status_code == 400
-        assert "empty" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_rejects_invalid_pattern(self):
-        response = self._post_regex(["["])
-        assert response.status_code == 400
-        assert "all_image_file_names_as_regex" in response.data["detail"]
-        assert "invalid regex pattern" in response.data["detail"]
-        assert "[" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_rejects_unsupported_construct(self):
-        response = self._post_regex([r"screen(?=\.png)"])
-        assert response.status_code == 400
-        assert "invalid regex pattern" in response.data["detail"]
-        assert r"screen(?=\.png)" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_must_match_all_images(self):
-        response = self._post_regex([r"other\.png"])
-        assert response.status_code == 400
-        assert "must match a pattern" in response.data["detail"]
-
-    def test_all_image_file_names_as_regex_rejects_overlong_pattern(self):
-        response = self._post_regex(["a" * 501])
-        assert response.status_code == 400
-        assert "all_image_file_names_as_regex" in response.data["detail"]
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_preprod_session")
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
