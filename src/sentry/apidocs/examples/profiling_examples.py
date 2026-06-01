@@ -141,9 +141,7 @@ PROFILE_DETAILS_RESPONSE = {
         "deployCount": 0,
         "lastDeploy": None,
         "authors": [],
-        "projects": [
-            {"id": 1, "slug": "my-project", "name": "my-project", "platform": "python"}
-        ],
+        "projects": [{"id": 1, "slug": "my-project", "name": "my-project", "platform": "python"}],
         "firstEvent": "2026-04-15T18:05:00Z",
         "lastEvent": "2026-04-15T18:30:00Z",
         "currentProjectMeta": {},
