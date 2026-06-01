@@ -8,6 +8,7 @@ import {discordIntegrationPipeline} from './integrationDiscord';
 import {githubIntegrationPipeline} from './integrationGitHub';
 import {githubEnterpriseIntegrationPipeline} from './integrationGitHubEnterprise';
 import {gitlabIntegrationPipeline} from './integrationGitLab';
+import {msTeamsIntegrationPipeline} from './integrationMsTeams';
 import {opsgenieIntegrationPipeline} from './integrationOpsgenie';
 import {pagerDutyIntegrationPipeline} from './integrationPagerDuty';
 import {perforceIntegrationPipeline} from './integrationPerforce';
@@ -32,6 +33,7 @@ export const PIPELINE_REGISTRY = [
   githubIntegrationPipeline,
   githubEnterpriseIntegrationPipeline,
   gitlabIntegrationPipeline,
+  msTeamsIntegrationPipeline,
   opsgenieIntegrationPipeline,
   pagerDutyIntegrationPipeline,
   perforceIntegrationPipeline,

@@ -594,7 +594,9 @@ describe('ActivitySection', () => {
       project,
     });
 
-    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+    const org = OrganizationFixture({
+      features: ['display-seer-actions-as-issue-activities'],
+    });
 
     render(<ActivitySection group={seerGroup} />, {organization: org});
     expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
@@ -650,7 +652,9 @@ describe('ActivitySection', () => {
       project,
     });
 
-    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+    const org = OrganizationFixture({
+      features: ['display-seer-actions-as-issue-activities'],
+    });
 
     render(<ActivitySection group={seerPrGroup} />, {organization: org});
     expect(screen.queryByText('Pull Request Created')).not.toBeInTheDocument();

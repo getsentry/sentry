@@ -67,9 +67,8 @@ class FooEndpoint:
     m = mismatches[0]
     assert m.cls == "FooEndpoint"
     assert m.method == "get"
-    assert m.status == 200
-    assert m.decl == "FooResponse"
-    assert m.annot == "BarResponse"
+    assert m.decl == frozenset({"FooResponse"})
+    assert m.annot == frozenset({"BarResponse"})
 
 
 def test_unmigrated_endpoint_skipped() -> None:
@@ -109,9 +108,8 @@ class FooEndpoint:
 
 
 def test_canned_response_constant_skipped() -> None:
-    """Non-inline_sentry_response_serializer entries (e.g. RESPONSE_BAD_REQUEST)
-    are not comparable and must not produce false positives.
-    """
+    """Non-`inline_sentry_response_serializer` entries (e.g. RESPONSE_BAD_REQUEST)
+    are not comparable and must not produce false positives."""
     source = """
 from typing import TypedDict
 from drf_spectacular.utils import extend_schema
@@ -135,10 +133,36 @@ class FooEndpoint:
     assert _run(source) == []
 
 
-def test_only_2xx_entries_compared() -> None:
-    """Even if a 4xx/5xx entry used inline_sentry_response_serializer (unusual),
-    it should not be compared to the success-path annotation.
-    """
+def test_union_annotation_matches_multi_status_decorator() -> None:
+    """Union return type matching a decorator with multiple typed responses."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+
+class FooResponse(TypedDict):
+    x: int
+
+class ErrorBody(TypedDict):
+    detail: str
+
+class FooEndpoint:
+    @extend_schema(
+        responses={
+            200: inline_sentry_response_serializer("Foo", FooResponse),
+            400: inline_sentry_response_serializer("Err", ErrorBody),
+        },
+    )
+    def get(self) -> Response[FooResponse] | Response[ErrorBody]:
+        return Response({"x": 1})
+"""
+    assert _run(source) == []
+
+
+def test_union_annotation_missing_decorator_T_fires() -> None:
+    """If the decorator declares two typed responses but the annotation only
+    covers one, the set-equality check must fail."""
     source = """
 from typing import TypedDict
 from drf_spectacular.utils import extend_schema
@@ -159,6 +183,87 @@ class FooEndpoint:
         },
     )
     def get(self) -> Response[FooResponse]:
+        return Response({"x": 1})
+"""
+    mismatches = _run(source)
+    assert len(mismatches) == 1
+    assert mismatches[0].decl == frozenset({"FooResponse", "ErrorBody"})
+    assert mismatches[0].annot == frozenset({"FooResponse"})
+
+
+def test_annotation_has_extra_T_not_in_decorator_fires() -> None:
+    """If the annotation union declares a `T` that the decorator doesn't, fail."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+
+class FooResponse(TypedDict):
+    x: int
+
+class GhostResponse(TypedDict):
+    y: int
+
+class FooEndpoint:
+    @extend_schema(
+        responses={200: inline_sentry_response_serializer("Foo", FooResponse)},
+    )
+    def get(self) -> Response[FooResponse] | Response[GhostResponse]:
+        return Response({"x": 1})
+"""
+    mismatches = _run(source)
+    assert len(mismatches) == 1
+    assert mismatches[0].decl == frozenset({"FooResponse"})
+    assert mismatches[0].annot == frozenset({"FooResponse", "GhostResponse"})
+
+
+def test_multi_2xx_decorator_with_union_annotation() -> None:
+    """Multiple 2xx schemas (e.g. 200 + 201) with a union annotation covering both."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+
+class GetResponse(TypedDict):
+    x: int
+
+class CreatedResponse(TypedDict):
+    id: str
+
+class FooEndpoint:
+    @extend_schema(
+        responses={
+            200: inline_sentry_response_serializer("Foo", GetResponse),
+            201: inline_sentry_response_serializer("FooCreated", CreatedResponse),
+        },
+    )
+    def post(self) -> Response[GetResponse] | Response[CreatedResponse]:
+        return Response({"x": 1})
+"""
+    assert _run(source) == []
+
+
+def test_union_with_non_response_arm_skipped() -> None:
+    """If the union contains an arm that isn't `Response[T]` (e.g. a bare
+    `HttpResponse`), the method is treated as unmigrated and skipped — there's
+    no clean comparison to make."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from django.http import HttpResponse
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    @extend_schema(
+        responses={200: inline_sentry_response_serializer("Foo", FooResponse)},
+    )
+    def get(self) -> Response[FooResponse] | HttpResponse:
         return Response({"x": 1})
 """
     assert _run(source) == []
@@ -186,14 +291,12 @@ class FooEndpoint:
 """
     mismatches = _run(source)
     assert len(mismatches) == 1
-    assert mismatches[0].decl == "FooResponse"
-    assert mismatches[0].annot == "BarResponse"
+    assert mismatches[0].decl == frozenset({"FooResponse"})
+    assert mismatches[0].annot == frozenset({"BarResponse"})
 
 
 def test_dotted_response_annotation_handled() -> None:
-    """Some files write the annotation as `rest_framework.response.Response[T]`.
-    The linter must extract T from both `Name` and `Attribute` forms.
-    """
+    """Some files write the annotation as `rest_framework.response.Response[T]`."""
     source = """
 from typing import TypedDict
 import rest_framework.response
@@ -215,8 +318,8 @@ class FooEndpoint:
 """
     mismatches = _run(source)
     assert len(mismatches) == 1
-    assert mismatches[0].decl == "FooResponse"
-    assert mismatches[0].annot == "BarResponse"
+    assert mismatches[0].decl == frozenset({"FooResponse"})
+    assert mismatches[0].annot == frozenset({"BarResponse"})
 
 
 def test_main_returns_zero_on_clean(tmp_path: Path) -> None:
@@ -268,3 +371,49 @@ class FooEndpoint:
     assert "FooResponse" in captured.out
     assert "BarResponse" in captured.out
     assert "mismatch" in captured.err
+
+
+def test_direct_serializer_class_reference_skipped() -> None:
+    """Decorator entries that are bare class references (e.g. `MonitorSerializer`)
+    carry a typed output by sentry convention but no statically-resolvable link
+    to a TypedDict. The linter skips them silently — neither false-positives nor
+    false-negatives. Resolving these waits on the generic-`Serializer[T]`
+    refactor, or on migrating the entry to `inline_sentry_response_serializer`.
+    """
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+
+class MonitorSerializer: ...
+
+class MonitorSerializerResponse(TypedDict):
+    id: str
+
+class MonitorEndpoint:
+    @extend_schema(responses={200: MonitorSerializer})
+    def get(self) -> Response[MonitorSerializerResponse]:
+        return Response({"id": "x"})
+"""
+    assert _run(source) == []
+
+
+def test_openapi_response_wrapper_skipped() -> None:
+    """`OpenApiResponse(...)` and similar wrappers don't carry a comparable T —
+    skip silently."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    @extend_schema(
+        responses={200: OpenApiResponse(description="ok")},
+    )
+    def get(self) -> Response[FooResponse]:
+        return Response({"x": 1})
+"""
+    assert _run(source) == []

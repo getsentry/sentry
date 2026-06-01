@@ -47,6 +47,7 @@ import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEven
 import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
+import {useExploreSchemaHintsRemoval} from 'sentry/views/explore/useExploreSchemaHintsRemoval';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 
 function SpansSearchBar({
@@ -153,6 +154,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
+  const schemaHintsRemoval = useExploreSchemaHintsRemoval();
+
   return (
     <Layout.Main width="full">
       <SearchQueryBuilderProvider
@@ -197,7 +200,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                   <SpansTabCrossEventSearchBars hasIndependentDateColumn />
                 ) : null}
               </Grid>
-              {hasCrossEvents ? null : (
+              {hasCrossEvents || schemaHintsRemoval ? null : (
                 <ExploreSchemaHintsSection>
                   <SchemaHintsList
                     supportedAggregates={
