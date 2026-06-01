@@ -72,6 +72,14 @@ class TestResolveActionSource(TestCase):
         request = _make_request(successful_authenticator=authenticator)
         assert resolve_action_source(request) == "seer:explorer"
 
+    def test_seer_referrer_takes_priority_over_rpc_auth(self) -> None:
+        authenticator = MagicMock(spec=SeerRpcSignatureAuthentication)
+        request = _make_request(
+            meta={"HTTP_X_SEER_REFERRER": "seer-slack"},
+            successful_authenticator=authenticator,
+        )
+        assert resolve_action_source(request) == "seer:slack"
+
     def test_frontend_request(self) -> None:
         request = _make_request(cookies={"session": "abc"})
         request.auth = None

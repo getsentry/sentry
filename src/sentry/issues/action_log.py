@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+from django.core.cache import cache
 from rest_framework.request import Request
 
 from sentry.middleware import is_frontend_request
@@ -67,8 +68,6 @@ class ActionSource(StrEnum):
 
 
 def _get_mcp_application_id() -> int | None:
-    from django.core.cache import cache
-
     cached = cache.get(MCP_APP_ID_CACHE_KEY)
     if cached is not None:
         return cached if cached > 0 else None
