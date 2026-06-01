@@ -42,6 +42,18 @@ const {
   MERGE_BASE,
   MERGE_BASE_STRATEGY,
 } = process.env;
+console.log({
+  CI,
+  JEST_TEST_BALANCER,
+  CI_NODE_TOTAL,
+  CI_NODE_INDEX,
+  GITHUB_PR_SHA,
+  GITHUB_PR_REF,
+  GITHUB_RUN_ID,
+  GITHUB_RUN_ATTEMPT,
+  MERGE_BASE,
+  MERGE_BASE_STRATEGY,
+});
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
