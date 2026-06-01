@@ -9,10 +9,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  CopyMarkdownButton,
-  CopySetupInstructionsGate,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -284,13 +281,11 @@ export function MonitorQuickStartGuide({monitorSlug, project}: Props) {
           onChange={({value}) => setSelectedGuide(value)}
           size="sm"
         />
-        <CopySetupInstructionsGate>
-          <CopyMarkdownButton
-            borderless
-            getMarkdown={getGuideMarkdown}
-            source="crons_onboarding"
-          />
-        </CopySetupInstructionsGate>
+        <CopyMarkdownButton
+          borderless
+          getMarkdown={getGuideMarkdown}
+          source="crons_onboarding"
+        />
       </Flex>
       <div ref={guideContainerRef}>
         <Guide {...guideProps} />

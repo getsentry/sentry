@@ -11,10 +11,7 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -95,8 +92,6 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     useSourcePackageRegistries(organization);
 
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
-
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(p => p.id === currentPlatformKey)!;
 
@@ -208,7 +203,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                       stepKey={title}
                       title={title}
                       trailingItems={
-                        index === 0 && copyEnabled ? (
+                        index === 0 ? (
                           <OnboardingCopyMarkdownButton
                             borderless
                             steps={steps}

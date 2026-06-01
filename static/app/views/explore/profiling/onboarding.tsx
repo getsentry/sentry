@@ -9,10 +9,7 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -203,8 +200,6 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
-  const copyEnabled = useCopySetupInstructionsEnabled();
-
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
     : undefined;
@@ -321,7 +316,7 @@ export function Onboarding() {
             stepIndex={index}
             isLastStep={index === steps.length - 1}
             trailingItems={
-              index === 0 && copyEnabled ? (
+              index === 0 ? (
                 <OnboardingCopyMarkdownButton
                   borderless
                   steps={steps}

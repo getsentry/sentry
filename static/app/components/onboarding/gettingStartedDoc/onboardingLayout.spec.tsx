@@ -75,22 +75,13 @@ function renderLayout(docsConfig: Docs, features: string[] = []) {
 
 describe('OnboardingLayout', () => {
   describe('hideInstructionsCopy', () => {
-    const COPY_FEATURE = 'onboarding-copy-setup-instructions-project-creation';
-
-    it('shows copy instructions button when feature flag is enabled', () => {
-      renderLayout(makeDocsConfig(), [COPY_FEATURE]);
+    it('shows copy instructions button by default', () => {
+      renderLayout(makeDocsConfig());
       expect(screen.getByRole('button', {name: 'Copy instructions'})).toBeInTheDocument();
     });
 
     it('hides copy instructions button when hideInstructionsCopy is set', () => {
-      renderLayout(makeDocsConfig({hideInstructionsCopy: true}), [COPY_FEATURE]);
-      expect(
-        screen.queryByRole('button', {name: 'Copy instructions'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('hides copy instructions button when feature flag is not enabled', () => {
-      renderLayout(makeDocsConfig());
+      renderLayout(makeDocsConfig({hideInstructionsCopy: true}));
       expect(
         screen.queryByRole('button', {name: 'Copy instructions'})
       ).not.toBeInTheDocument();

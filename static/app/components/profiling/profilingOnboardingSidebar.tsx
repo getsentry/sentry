@@ -11,10 +11,7 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -276,8 +273,6 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     useSourcePackageRegistries(organization);
 
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
-
   if (isLoading) {
     return <LoadingIndicator />;
   }
@@ -376,7 +371,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
                 stepIndex={index}
                 {...step}
                 trailingItems={
-                  index === 0 && copyEnabled ? (
+                  index === 0 ? (
                     <OnboardingCopyMarkdownButton
                       borderless
                       steps={steps}

@@ -7,10 +7,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -74,7 +71,6 @@ export function OnboardingLayout({
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
-  const copyEnabled = useCopySetupInstructionsEnabled('project_creation');
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
@@ -208,7 +204,7 @@ export function OnboardingLayout({
           <Divider withBottomMargin />
           <div>
             {steps.map((step, index) => {
-              const showCopy = copyEnabled && index === 0 && !hideInstructionsCopy;
+              const showCopy = index === 0 && !hideInstructionsCopy;
               const copyButton = showCopy ? (
                 <OnboardingCopyMarkdownButton
                   steps={steps}

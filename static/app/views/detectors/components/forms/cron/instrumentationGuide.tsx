@@ -10,10 +10,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {
-  CopyMarkdownButton,
-  CopySetupInstructionsGate,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
@@ -215,13 +212,11 @@ export function InstrumentationGuide() {
                     }))}
                   />
                 )}
-                <CopySetupInstructionsGate>
-                  <CopyMarkdownButton
-                    borderless
-                    getMarkdown={getGuideMarkdown}
-                    source="crons_detector_guide"
-                  />
-                </CopySetupInstructionsGate>
+                <CopyMarkdownButton
+                  borderless
+                  getMarkdown={getGuideMarkdown}
+                  source="crons_detector_guide"
+                />
               </Flex>
             }
           >
