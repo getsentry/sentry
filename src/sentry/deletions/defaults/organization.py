@@ -8,6 +8,7 @@ from sentry.deletions.base import (
     ModelDeletionTask,
     ModelRelation,
 )
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
@@ -36,7 +37,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.dashboard import Dashboard
         from sentry.models.environment import Environment
-        from sentry.models.groupenvironment import GroupEnvironment
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.project import Project
         from sentry.models.promptsactivity import PromptsActivity
@@ -109,7 +109,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
                 )
 
 
-class GroupEnvironmentBulkDeletionTask(BulkModelDeletionTask):
+class GroupEnvironmentBulkDeletionTask(BulkModelDeletionTask[GroupEnvironment]):
     """
     Deletes GroupEnvironment rows by resolving environment IDs first to avoid
     a cross-table JOIN that times out for large orgs.
