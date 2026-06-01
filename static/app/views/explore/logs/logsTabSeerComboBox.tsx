@@ -45,12 +45,11 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   getSeerExploreQuery,
   getSeerWritableAggregateFields,
-  type SeerExploreQuery,
 } from 'sentry/views/explore/seerQuery';
 
 interface LogsSeerLocationQueryResult {
   query: Location['query'];
-  seerQuery: SeerExploreQuery;
+  seerQuery: ReturnType<typeof getSeerExploreQuery>;
 }
 
 export function getLogsSeerLocationQuery({
