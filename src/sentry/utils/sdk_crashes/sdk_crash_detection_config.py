@@ -168,6 +168,20 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="*",
                     function_pattern="**SentrySwizzleWrapper**",
                 ),
+                # SentryCoreDataTracker and SentryCoreDataSwizzlingHelper swizzle
+                # NSManagedObjectContext save:/executeFetchRequest: to add tracing spans.
+                # The swizzled methods transparently call the original implementation.
+                # Crashes inside CoreData internals (e.g., doesNotRecognizeSelector: during
+                # merge policy resolution or validation logging) are app-level CoreData
+                # misconfigurations, not SDK bugs.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentryCoreDataTracker**",
+                ),
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentryCoreDataSwizzlingHelper**",
+                ),
             },
         )
         configs.append(cocoa_config)
