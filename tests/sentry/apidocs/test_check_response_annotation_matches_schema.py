@@ -417,3 +417,84 @@ class FooEndpoint:
         return Response({"x": 1})
 """
     assert _run(source) == []
+
+
+def test_union_with_detailresponse_passes() -> None:
+    """`Response[T] | Response[DetailResponse]` — the DetailResponse arm is
+    the canonical error-body shape and has no comparable decorator entry
+    (error statuses use opaque RESPONSE_* constants, already skipped).
+    The linter must exclude DetailResponse from the comparison set."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.apidocs.response_types import DetailResponse
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    @extend_schema(
+        responses={200: inline_sentry_response_serializer("Foo", FooResponse)},
+    )
+    def get(self) -> Response[FooResponse] | Response[DetailResponse]:
+        return Response({"x": 1})
+"""
+    assert _run(source) == []
+
+
+def test_union_with_detailresponse_and_wrong_success_still_fails() -> None:
+    """The DetailResponse arm is excluded but the success arm still has to match."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.apidocs.response_types import DetailResponse
+
+class FooResponse(TypedDict):
+    x: int
+
+class BarResponse(TypedDict):
+    y: int
+
+class FooEndpoint:
+    @extend_schema(
+        responses={200: inline_sentry_response_serializer("Foo", FooResponse)},
+    )
+    def get(self) -> Response[BarResponse] | Response[DetailResponse]:
+        return Response({"y": 1})
+"""
+    mismatches = _run(source)
+    assert len(mismatches) == 1
+    assert mismatches[0].decl == frozenset({"FooResponse"})
+    assert mismatches[0].annot == frozenset({"BarResponse"})
+
+
+def test_aliased_detailresponse_not_recognized() -> None:
+    """The linter matches DetailResponse by exact AST name. Aliased imports
+    (`from ... import DetailResponse as ErrorDetail`) are treated as a
+    distinct comparable arm — the decorator set won't match and the linter
+    will emit a mismatch. Migrations must use the canonical name."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.apidocs.response_types import DetailResponse as ErrorDetail
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooEndpoint:
+    @extend_schema(
+        responses={200: inline_sentry_response_serializer("Foo", FooResponse)},
+    )
+    def get(self) -> Response[FooResponse] | Response[ErrorDetail]:
+        return Response({"x": 1})
+"""
+    mismatches = _run(source)
+    assert len(mismatches) == 1
+    assert mismatches[0].decl == frozenset({"FooResponse"})
+    assert mismatches[0].annot == frozenset({"FooResponse", "ErrorDetail"})

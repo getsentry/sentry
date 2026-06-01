@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable
+from typing import Any
 
 from mypy.build import PRI_MYPY
 from mypy.errorcodes import ATTR_DEFINED
 from mypy.messages import format_type
-from mypy.nodes import ARG_POS, MypyFile, TypeInfo
+from mypy.nodes import ARG_POS, DictExpr, MypyFile, StrExpr, TypeInfo
 from mypy.plugin import (
     AttributeContext,
     ClassDefContext,
@@ -19,6 +20,7 @@ from mypy.plugin import (
 )
 from mypy.plugins.common import add_attribute_to_class
 from mypy.subtypes import find_member
+from mypy.subtypes import is_subtype as _is_subtype
 from mypy.typeanal import make_optional_type
 from mypy.types import (
     AnyType,
@@ -27,8 +29,10 @@ from mypy.types import (
     Instance,
     NoneType,
     Type,
+    TypedDictType,
     TypeOfAny,
     UnionType,
+    get_proper_type,
 )
 
 
@@ -188,6 +192,38 @@ def _lazy_service_wrapper_attribute(ctx: AttributeContext, *, attr: str) -> Type
         return member
 
 
+_RESPONSE_FULLNAME = "rest_framework.response.Response"
+_ASYNC_WRAPPERS = frozenset(
+    {
+        "typing.Coroutine",
+        "typing.Awaitable",
+        "typing.AsyncGenerator",
+        "typing.AsyncIterator",
+        "typing.AsyncIterable",
+    }
+)
+
+
+def _unwrap_response_instances_from_return(expected: Type) -> list[Instance]:
+    """From a (possibly async-wrapped, possibly union) return type, collect every
+    `Response[...]` Instance for inspection. Shared by `_check_response_body_not_any`
+    and `_narrow_response_dict_literal_in_union` so both hooks see the enclosing
+    return type the same way.
+    """
+    out: list[Instance] = []
+    pending: list[Type] = [expected]
+    while pending:
+        t = get_proper_type(pending.pop())
+        if isinstance(t, UnionType):
+            pending.extend(t.items)
+        elif isinstance(t, Instance):
+            if t.type.fullname in _ASYNC_WRAPPERS and t.args:
+                pending.extend(t.args)
+            else:
+                out.append(t)
+    return out
+
+
 def _check_response_body_not_any(ctx: FunctionContext) -> Type:
     """Hard-error when `Response[T](body)` is constructed in a context that
     expects `T = <Specific>` but `body` evaluates to `Any`.
@@ -221,37 +257,13 @@ def _check_response_body_not_any(ctx: FunctionContext) -> Type:
     # Inspect the surrounding type-checker frame for the expected return type.
     # `chk.return_types` is the stack of expected return types for enclosing
     # functions. The innermost frame is the function containing this call.
+    # Async wrappers (Coroutine/Awaitable/etc.) and union arms are unwrapped
+    # by `_unwrap_response_instances_from_return`.
     chk = ctx.api.expr_checker.chk  # type: ignore[attr-defined]
     if not getattr(chk, "return_types", None):
         return ctx.default_return_type
-    expected = chk.return_types[-1]
-    # Strip Awaitable/Coroutine wrappers (async views return
-    # `Coroutine[Any, Any, Response[T]]`) and union arms.
-    expected_instances: list[Instance] = []
-    pending: list[Type] = [expected]
-    _ASYNC_WRAPPERS = frozenset(
-        {
-            "typing.Coroutine",
-            "typing.Awaitable",
-            "typing.AsyncGenerator",
-            "typing.AsyncIterator",
-            "typing.AsyncIterable",
-        }
-    )
-    while pending:
-        t = pending.pop()
-        if isinstance(t, UnionType):
-            pending.extend(t.items)
-        elif isinstance(t, Instance):
-            if t.type.fullname in _ASYNC_WRAPPERS and t.args:
-                # Coroutine[Y, S, R] → return type R is the last type arg.
-                # Awaitable/AsyncGenerator/etc. — recurse into all args, the
-                # `Response[T]` we care about will surface from whichever slot.
-                pending.extend(t.args)
-            else:
-                expected_instances.append(t)
-    for inst in expected_instances:
-        if inst.type.fullname != "rest_framework.response.Response":
+    for inst in _unwrap_response_instances_from_return(chk.return_types[-1]):
+        if inst.type.fullname != _RESPONSE_FULLNAME:
             continue
         if not inst.args:
             continue
@@ -267,10 +279,129 @@ def _check_response_body_not_any(ctx: FunctionContext) -> Type:
     return ctx.default_return_type
 
 
+def _dict_literal_matches_typeddict(
+    body: DictExpr,
+    td: TypedDictType,
+    expr_checker: Any,
+) -> bool:
+    """Return True if `body` (a dict literal AST) structurally satisfies `td`.
+
+    Conservative match — required keys all present, no unknown extras, value
+    types are mypy-subtypes of the declared field types. We deliberately
+    re-check shape here instead of routing through mypy's
+    `check_typeddict_call_with_dict` because that method emits errors directly
+    on the call site; the plugin needs to probe silently across union arms.
+    """
+    literal_keys: set[str] = set()
+    literal_items: dict[str, Type] = {}
+    for k_expr, v_expr in body.items:
+        if not isinstance(k_expr, StrExpr):
+            # Non-literal key (e.g. dynamic key expression) — can't safely
+            # match a TypedDict at compile time. Bail.
+            return False
+        literal_keys.add(k_expr.value)
+        try:
+            literal_items[k_expr.value] = expr_checker.accept(v_expr)
+        except Exception:
+            # Any exception inferring a value's type — bail out conservatively.
+            return False
+
+    # Required keys all present.
+    if not td.required_keys.issubset(literal_keys):
+        return False
+    # No unknown extras.
+    if literal_keys - set(td.items.keys()):
+        return False
+    # Value types compatible.
+    for key, value_type in literal_items.items():
+        declared = td.items.get(key)
+        if declared is None:
+            return False
+        if not _is_subtype(value_type, declared):
+            return False
+    return True
+
+
+def _narrow_response_dict_literal_in_union(ctx: FunctionContext) -> Type:
+    """Narrow `Response(<dict literal>, status=...)` to a matching TypedDict
+    arm of the enclosing function's union return type.
+
+    mypy already does this narrowing when the return type is a *single*
+    `Response[TypedDict]`. When the return type is a union of `Response[T]`
+    arms, mypy gives up bidirectional inference and infers the body as the
+    broad `dict[K, V]` of the literal — which doesn't match any specific
+    TypedDict arm because `Response[T]` is invariant. This hook restores the
+    expected narrowing by inspecting union arms one at a time.
+
+    Properties:
+      - Fires only on dict-literal bodies; non-literal bodies are unaffected.
+      - Fires only when the enclosing return is a union of `Response[...]` arms
+        with at least one TypedDict-parameterized member.
+      - Narrows only when exactly one arm structurally accepts the literal.
+        Zero or multiple matches → returns the default and mypy errors normally.
+      - Composes with `_check_response_body_not_any`: that hook fires when the
+        body is `Any`, this hook fires when the body is a dict literal. They
+        run sequentially via the dispatcher.
+    """
+    if not ctx.args or not ctx.args[0]:
+        return ctx.default_return_type
+    body_expr = ctx.args[0][0]
+    if not isinstance(body_expr, DictExpr):
+        return ctx.default_return_type
+    # Same disambiguation as `_check_response_body_not_any`: if the call uses
+    # the body-less overload (`Response(status=...)`), arg 0 may actually be
+    # `status` — not the body.
+    arg_name = ctx.arg_names[0][0] if ctx.arg_names and ctx.arg_names[0] else None
+    if arg_name not in (None, "data"):
+        return ctx.default_return_type
+
+    chk = ctx.api.expr_checker.chk  # type: ignore[attr-defined]
+    if not getattr(chk, "return_types", None):
+        return ctx.default_return_type
+
+    arms = _unwrap_response_instances_from_return(chk.return_types[-1])
+    typeddict_arms: list[tuple[Instance, TypedDictType]] = []
+    for inst in arms:
+        if inst.type.fullname != _RESPONSE_FULLNAME:
+            continue
+        if not inst.args:
+            continue
+        T_arg = get_proper_type(inst.args[0])
+        if isinstance(T_arg, TypedDictType):
+            typeddict_arms.append((inst, T_arg))
+
+    if not typeddict_arms:
+        # Not a union-of-Response[TypedDict] context. Let the default flow.
+        return ctx.default_return_type
+
+    expr_checker = ctx.api.expr_checker  # type: ignore[attr-defined]
+    matching: list[Instance] = []
+    for inst, td in typeddict_arms:
+        if _dict_literal_matches_typeddict(body_expr, td, expr_checker):
+            matching.append(inst)
+
+    if len(matching) != 1:
+        # Zero matches (real drift) or ambiguous (multiple arms accept). Either
+        # way, fall back to default and let mypy emit its standard error.
+        return ctx.default_return_type
+
+    return matching[0]
+
+
+def _dispatch_response_hook(ctx: FunctionContext) -> Type:
+    """Dispatcher for `Response(...)` construction. Tries narrowing first; if
+    that doesn't apply, falls through to the body-Any check.
+    """
+    narrowed = _narrow_response_dict_literal_in_union(ctx)
+    if narrowed is not ctx.default_return_type:
+        return narrowed
+    return _check_response_body_not_any(ctx)
+
+
 class SentryMypyPlugin(Plugin):
     def get_function_hook(self, fullname: str) -> Callable[[FunctionContext], Type] | None:
-        if fullname == "rest_framework.response.Response":
-            return _check_response_body_not_any
+        if fullname == _RESPONSE_FULLNAME:
+            return _dispatch_response_hook
         return None
 
     def get_function_signature_hook(

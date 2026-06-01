@@ -517,3 +517,148 @@ async def view() -> Response[Shape]:
 """
     ret, out = call_mypy(src)
     assert ret == 0, out
+
+
+def test_response_union_dict_literal_narrows_to_detailresponse() -> None:
+    """The plugin narrows `Response({"detail": "..."}, status=4xx)` to the
+    DetailResponse arm of a `Response[T] | Response[DetailResponse]` union.
+    Without the plugin, mypy infers the body as `dict[str, str]` and the
+    union arm `Response[DetailResponse]` rejects it (TypedDict ≠ dict)."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def typed() -> FooResponse:
+    return {"x": 1}
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"detail": "Not found"}, status=404)
+
+def view_success() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response(typed())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_wrong_shape_still_errors() -> None:
+    """A dict literal that matches NO arm's TypedDict must still error.
+    The plugin only narrows when exactly one arm accepts."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"wrong": "shape"}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    # mypy reports the broad-dict-literal vs union mismatch
+    assert "Incompatible return value type" in out
+
+
+def test_response_union_value_type_mismatch_errors() -> None:
+    """A dict literal whose values don't match the TypedDict's declared value
+    types must NOT narrow. `{"detail": 42}` is `dict[str, int]`, not a valid
+    `DetailResponse` (which is `{"detail": str}`)."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"detail": 42}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+
+
+def test_response_union_extra_key_rejects() -> None:
+    """A dict literal with extra keys beyond the TypedDict's fields does NOT
+    satisfy the TypedDict — the plugin must NOT narrow it."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"detail": "x", "extra": "key"}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+
+
+def test_response_union_single_arm_unaffected() -> None:
+    """Single-armed `Response[T]` is mypy's native bidirectional inference
+    path. The plugin's narrowing should not interfere — mypy already accepts
+    matching dict literals here."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[DetailResponse]:
+    return Response({"detail": "x"}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_no_typeddict_arms_unaffected() -> None:
+    """If the union has no TypedDict-parameterized `Response[...]` arms,
+    the plugin must not interfere — mypy handles non-TypedDict cases natively."""
+    src = """\
+from rest_framework.response import Response
+
+def view() -> Response[int] | Response[str]:
+    return Response(42)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_non_dict_body_unaffected() -> None:
+    """The narrowing only fires on dict literal bodies. Variable/function-call
+    bodies use mypy's standard flow (which works fine for the success arm)."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def typed() -> FooResponse:
+    return {"x": 1}
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response(typed())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out

@@ -28,6 +28,7 @@ from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
+from sentry.apidocs.response_types import DetailResponse
 
 
 def prepare_feature_filters(features_raw: Sequence[str]) -> set[str]:
@@ -85,7 +86,7 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
         request: Request,
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
-    ) -> Response:
+    ) -> Response[list[OrganizationIntegrationResponse]] | Response[DetailResponse]:
         """
         Lists all the available Integrations for an Organization.
         """

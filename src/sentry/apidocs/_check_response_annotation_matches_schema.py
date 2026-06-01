@@ -173,6 +173,13 @@ def _extract_response_annotation_Ts(returns: ast.expr | None) -> list[ast.expr] 
             # If any arm is `Response` (bare, unparameterized) or some other type,
             # we can't meaningfully compare — treat this as unmigrated.
             return None
+        # `Response[DetailResponse]` is the canonical error-arm shape
+        # (`sentry.apidocs.response_types.DetailResponse`). The decorator has no
+        # comparable entry for it — error statuses are declared via opaque
+        # `RESPONSE_*` constants which this linter already skips. Drop the
+        # arm here so the set comparison only weighs success-side `T`s.
+        if _name_of(T) == "DetailResponse":
+            continue
         extracted.append(T)
     return extracted or None
 

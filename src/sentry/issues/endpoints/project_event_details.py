@@ -30,6 +30,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.apidocs.response_types import DetailResponse
 
 
 def wrap_event_response(
@@ -136,7 +137,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         },
         examples=EventExamples.GROUP_EVENT_DETAILS,
     )
-    def get(self, request: Request, project: Project, event_id: str) -> Response:
+    def get(self, request: Request, project: Project, event_id: str) -> Response[GroupEventDetailsResponse] | Response[DetailResponse]:
         """
         Return details on an individual event.
         """

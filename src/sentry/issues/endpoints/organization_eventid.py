@@ -24,6 +24,7 @@ from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.services import eventstore
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
+from sentry.apidocs.response_types import DetailResponse
 
 
 class EventIdLookupResponse(TypedDict):
@@ -62,7 +63,7 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.EVENT_EXAMPLES,
     )
-    def get(self, request: Request, organization: Organization, event_id: str) -> Response:
+    def get(self, request: Request, organization: Organization, event_id: str) -> Response[EventIdLookupResponse] | Response[DetailResponse]:
         """
         This resolves an event ID to the project slug and internal issue ID and internal event ID.
         """

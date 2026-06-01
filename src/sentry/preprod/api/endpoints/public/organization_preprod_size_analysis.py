@@ -34,6 +34,7 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.utils import json
+from sentry.apidocs.response_types import DetailResponse
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         artifact_id: str,
-    ) -> Response:
+    ) -> Response[SizeAnalysisResponseDict] | Response[DetailResponse]:
         """
         Retrieve size analysis results for a given artifact.
 

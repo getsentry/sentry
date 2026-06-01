@@ -20,6 +20,7 @@ from sentry.preprod.api.models.public.installable_builds import (
 from sentry.preprod.models import PreprodArtifact
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.apidocs.response_types import DetailResponse
 
 
 @extend_schema(tags=["Mobile Builds"])
@@ -62,7 +63,7 @@ class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoi
         request: Request,
         organization: Organization,
         artifact_id: str,
-    ) -> Response:
+    ) -> Response[InstallInfoResponseDict] | Response[DetailResponse]:
         """
         Retrieve install info for a given artifact.
 
