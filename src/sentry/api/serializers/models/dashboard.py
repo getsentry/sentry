@@ -115,7 +115,7 @@ class DashboardPermissionsResponse(TypedDict):
 
 
 @register(DashboardWidget)
-class DashboardWidgetSerializer(Serializer):
+class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         result = {}
         data_sources = serialize(
@@ -362,7 +362,7 @@ class DashboardWidgetSerializer(Serializer):
 
 
 @register(DashboardWidgetQueryOnDemand)
-class DashboardWidgetQueryOnDemandSerializer(Serializer):
+class DashboardWidgetQueryOnDemandSerializer(Serializer[OnDemandResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> OnDemandResponse:
         return {
             "enabled": obj.extraction_enabled(),
@@ -372,7 +372,7 @@ class DashboardWidgetQueryOnDemandSerializer(Serializer):
 
 
 @register(DashboardWidgetQuery)
-class DashboardWidgetQuerySerializer(Serializer):
+class DashboardWidgetQuerySerializer(Serializer[DashboardWidgetQueryResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         result = {}
 
@@ -425,7 +425,7 @@ class DashboardWidgetQuerySerializer(Serializer):
 
 
 @register(DashboardPermissions)
-class DashboardPermissionsSerializer(Serializer):
+class DashboardPermissionsSerializer(Serializer[DashboardPermissionsResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardPermissionsResponse:
         return {
             "isEditableByEveryone": obj.is_editable_by_everyone,
@@ -691,7 +691,7 @@ class DashboardRevisionResponse(TypedDict):
 
 
 @register(DashboardRevision)
-class DashboardRevisionSerializer(Serializer):
+class DashboardRevisionSerializer(Serializer[DashboardRevisionResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         user_ids = [r.created_by_id for r in item_list if r.created_by_id is not None]
         users_by_id = {

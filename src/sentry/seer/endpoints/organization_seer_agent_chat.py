@@ -116,8 +116,8 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
 @cell_silo_endpoint
 class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True

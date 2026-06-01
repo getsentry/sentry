@@ -3,11 +3,13 @@ from __future__ import annotations
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -15,7 +17,16 @@ from sentry.api.helpers.environments import get_environment
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
+from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.api.utils import get_auth_api_token_type
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.release_examples import ReleaseExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
@@ -27,10 +38,12 @@ from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context
 
 
+@extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleasesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.UNKNOWN,
     }
     permission_classes = (ProjectReleasePermission,)
@@ -38,19 +51,28 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
+    @extend_schema(
+        operation_id="List a Project's Releases",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            GlobalParams.ENVIRONMENT,
+            ReleaseParams.QUERY,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListProjectReleasesResponse", list[ReleaseSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ReleaseExamples.LIST_PROJECT_RELEASES,
+    )
     def get(self, request: Request, project) -> Response:
         """
-        List a Project's Releases
-        `````````````````````````
-
         Retrieve a list of releases for a given project.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          release belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project to list the
-                                     releases of.
-        :qparam string query: this parameter can be used to create a
-                              "starts with" filter for the version.
         """
         query = request.GET.get("query")
         try:

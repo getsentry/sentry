@@ -9,10 +9,13 @@ from rest_framework.request import Request
 
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
-from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
+from sentry.api.helpers.group_index import (
+    get_group_list,
+    update_groups,
+    validate_search_filter_permissions,
+)
 from sentry.api.helpers.group_index.delete import schedule_tasks_to_delete_groups
 from sentry.api.helpers.group_index.update import (
-    get_group_list,
     get_semver_releases,
     greatest_semver_release,
     handle_assigned_to,

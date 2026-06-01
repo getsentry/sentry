@@ -145,19 +145,6 @@ def _make_rpc_requests(
             else "EndpointTimeSeries"
         )
         endpoint_names.append(endpoint_name)
-        logger_extra = {
-            "rpc_query": json.loads(MessageToJson(request)),
-            "referrer": request.meta.referrer,
-            "organization_id": request.meta.organization_id,
-            "trace_item_type": request.meta.trace_item_type,
-            "debug": debug is not False,
-        }
-        if isinstance(debug, str):
-            logger_extra["debug_msg"] = debug
-        logger.info(
-            f"Running a {endpoint_name} RPC query",  # noqa: LOG011
-            extra=logger_extra,
-        )
 
     referrers = [req.meta.referrer for req in requests]
     assert len(referrers) == len(requests) == len(endpoint_names), (
@@ -172,6 +159,7 @@ def _make_rpc_requests(
         _make_rpc_request,
         thread_isolation_scope=sentry_sdk.get_isolation_scope(),
         thread_current_scope=sentry_sdk.get_current_scope(),
+        debug=debug,
     )
     with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__, max_workers=10
@@ -241,12 +229,16 @@ def _make_rpc_requests(
     return MultiRpcResponse(table_results, timeseries_results)
 
 
-def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttributeNamesResponse:
+def attribute_names_rpc(
+    req: TraceItemAttributeNamesRequest, debug: str | bool = False
+) -> TraceItemAttributeNamesResponse:
     """
     This endpoint allows you to request attribute names for traces matching some filters.
     You can also specify a substring to refine the names returned.
     """
-    resp = _make_rpc_request("EndpointTraceItemAttributeNames", "v1", req.meta.referrer, req)
+    resp = _make_rpc_request(
+        "EndpointTraceItemAttributeNames", "v1", req.meta.referrer, req, debug=debug
+    )
     response = TraceItemAttributeNamesResponse()
     response.ParseFromString(resp.data)
     return response
@@ -285,13 +277,15 @@ def trace_item_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsResponse:
     return response
 
 
-def trace_item_details_rpc(req: TraceItemDetailsRequest) -> TraceItemDetailsResponse:
+def trace_item_details_rpc(
+    req: TraceItemDetailsRequest, debug: str | bool = False
+) -> TraceItemDetailsResponse:
     """
     An RPC which requests all of the details about a specific trace item.
     For example, you might say "give me all of the attributes for the log with id 1234" or
     "give me all of the attributes for the span with id 12345 and trace_id 34567"
     """
-    resp = _make_rpc_request("EndpointTraceItemDetails", "v1", req.meta.referrer, req)
+    resp = _make_rpc_request("EndpointTraceItemDetails", "v1", req.meta.referrer, req, debug=debug)
     response = TraceItemDetailsResponse()
     response.ParseFromString(resp.data)
     return response
@@ -368,7 +362,26 @@ def _make_rpc_request(
     req: SnubaRPCRequest | CreateSubscriptionRequest,
     thread_isolation_scope: sentry_sdk.Scope | None = None,
     thread_current_scope: sentry_sdk.Scope | None = None,
+    debug: str | bool = False,
 ) -> BaseHTTPResponse:
+    try:
+        logger_extra: dict[str, object] = {
+            "rpc_query": json.loads(MessageToJson(req)),  # type: ignore[arg-type]
+            "referrer": referrer,
+            "debug": debug is not False,
+        }
+        if isinstance(req, ProtobufMessage) and hasattr(req, "meta"):
+            logger_extra["organization_id"] = req.meta.organization_id
+            logger_extra["trace_item_type"] = req.meta.trace_item_type
+        if isinstance(debug, str):
+            logger_extra["debug_msg"] = debug
+        logger.info(
+            f"Running a {endpoint_name} RPC query",  # noqa: LOG011
+            extra=logger_extra,
+        )
+    except Exception:
+        logger.exception("Failed to log RPC query")
+
     thread_isolation_scope = (
         sentry_sdk.get_isolation_scope()
         if thread_isolation_scope is None

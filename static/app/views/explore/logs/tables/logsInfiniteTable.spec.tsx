@@ -193,6 +193,20 @@ describe('LogsInfiniteTable', () => {
       method: 'GET',
       body: {},
     });
+
+    for (const log of mockLogsData) {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${log[OurLogKnownFieldKey.ID]}/`,
+        method: 'GET',
+        body: {
+          itemId: log[OurLogKnownFieldKey.ID],
+          links: null,
+          meta: {},
+          timestamp: log[OurLogKnownFieldKey.TIMESTAMP],
+          attributes: [],
+        },
+      });
+    }
   });
 
   function Wrapper({children}: {children: React.ReactNode}) {
