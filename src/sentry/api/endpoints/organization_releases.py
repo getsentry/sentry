@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import analytics, features, release_health
+from sentry import analytics, release_health
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
@@ -408,17 +408,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            order_by_build_code = features.has(
-                "organizations:semver-ordering-with-build-code", organization
-            )
+            queryset = queryset.annotate_build_code_column()
 
-            queryset = queryset.annotate_prerelease_column()
-            if order_by_build_code:
-                queryset = queryset.annotate_build_code_column()
-
-            semver_cols = (
-                Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
-            )
+            semver_cols = Release.SEMVER_COLS_WITH_BUILD_CODE
             order_by = [F(col).desc(nulls_last=True) for col in semver_cols]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
             # when we filter by status, so when we fix that we should also consider the best way to
@@ -591,16 +583,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            order_by_build_code = features.has(
-                "organizations:semver-ordering-with-build-code", organization
-            )
-            queryset = queryset.annotate_prerelease_column()
-            if order_by_build_code:
-                queryset = queryset.annotate_build_code_column()
+            queryset = queryset.annotate_build_code_column()
 
-            semver_cols = (
-                Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
-            )
+            semver_cols = Release.SEMVER_COLS_WITH_BUILD_CODE
             order_by = [F(col).desc(nulls_last=True) for col in semver_cols]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
             # when we filter by status, so when we fix that we should also consider the best way to

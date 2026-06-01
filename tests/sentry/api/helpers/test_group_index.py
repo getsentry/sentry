@@ -1309,8 +1309,7 @@ class GetSemverReleasesTest(TestCase):
         self.create_release(version="test@some_thing", project=self.project)
         self.create_release(version="random_junk", project=self.project)
 
-        with self.feature("organizations:semver-ordering-with-build-code"):
-            releases = list(get_semver_releases(self.project))
+        releases = list(get_semver_releases(self.project))
 
         expected_order = [
             release_8,  # test@10.0+x22
@@ -1348,11 +1347,10 @@ class GetSemverReleasesTest(TestCase):
         )
         self.create_release(version="test@1.0+99", project=self.project)
 
-        with self.feature("organizations:semver-ordering-with-build-code"):
-            greatest = greatest_semver_release(self.project)
-            assert greatest is not None
-            assert greatest.id == release_with_highest_build.id
-            assert greatest.version == "test@1.0+100"
+        greatest = greatest_semver_release(self.project)
+        assert greatest is not None
+        assert greatest.id == release_with_highest_build.id
+        assert greatest.version == "test@1.0+100"
 
 
 class TestHandleReleases(TestCase):
