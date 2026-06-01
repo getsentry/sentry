@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -11,8 +11,6 @@ from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.code_review.webhooks.merge_request import (
-    GITLAB_EMOJI_EYES,
-    GITLAB_EMOJI_TADA,
     WEBHOOK_SEEN_KEY_PREFIX,
     handle_merge_request_event,
 )
@@ -780,19 +778,23 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         assert self.mock_seer.call_count == 2
 
 
-class MergeRequestAwardEmojiTest(GitLabTestCase):
-    """Tests for the award-emoji behaviour added to the GitLab merge-request handler.
-
-    The handler should add :eyes: to the MR description for every non-close action
-    that passes all filter checks (mirrors the GitHub pull_request reaction path).
-    It must also attempt to delete any stale :tada: awards left from a previous run.
-    """
-
-    CODE_REVIEW_FEATURES = {
-        "organizations:gen-ai-features",
-        "organizations:code-review-beta",
-        "organizations:seer-code-review-gitlab",
+def _make_scm_reaction(reaction_id: int, content: str, author_id: int) -> dict:
+    """Build a minimal ReactionResult-shaped dict for test fixtures."""
+    return {
+        "id": reaction_id,
+        "content": content,
+        "author": {"id": author_id, "username": "sentry-bot"},
     }
+
+
+class MergeRequestReactionTest(GitLabTestCase):
+    """Tests for the reaction-emoji behaviour added to the GitLab merge-request handler.
+
+    The handler should add :eyes: (reaction "eyes") to the MR description for every
+    non-close action that passes all filter checks, and remove stale :tada: (reaction
+    "hooray") awards left from a previous run.  Mirrors the GitHub pull_request path.
+    Reactions are called via the SCM library's provider-agnostic actions module.
+    """
 
     @pytest.fixture(autouse=True)
     def mock_seer_request(self) -> Generator[None]:
@@ -801,25 +803,28 @@ class MergeRequestAwardEmojiTest(GitLabTestCase):
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_gitlab_client(self) -> Generator[None]:
-        with (
-            patch("sentry.integrations.gitlab.client.GitLabApiClient.get_user") as mock_get_user,
-            patch(
-                "sentry.integrations.gitlab.client.GitLabApiClient.get_merge_request_awards"
-            ) as mock_get_awards,
-            patch(
-                "sentry.integrations.gitlab.client.GitLabApiClient.create_merge_request_award"
-            ) as mock_create_award,
-            patch(
-                "sentry.integrations.gitlab.client.GitLabApiClient.delete_merge_request_award"
-            ) as mock_delete_award,
+    def mock_scm(self) -> Generator[None]:
+        """Patch scm_factory.new to return a mock SCM and expose the action spies."""
+        mock_scm_instance = MagicMock()
+        # get_authenticated_actor → ActionResult[Author]
+        mock_scm_instance.get_authenticated_actor.return_value = {
+            "data": {"id": 42, "username": "sentry-bot"},
+            "type": "gitlab",
+            "raw": {},
+            "meta": {},
+        }
+        # get_pull_request_reactions → PaginatedActionResult[list[ReactionResult]]
+        mock_scm_instance.get_pull_request_reactions.return_value = {
+            "data": [],
+            "type": "gitlab",
+            "raw": {},
+            "meta": {"page_info": {}},
+        }
+        with patch(
+            "sentry.seer.code_review.webhooks.merge_request.scm_factory.new",
+            return_value=mock_scm_instance,
         ):
-            mock_get_user.return_value = {"id": 42, "username": "sentry-bot"}
-            mock_get_awards.return_value = []
-            self.mock_get_user = mock_get_user
-            self.mock_get_awards = mock_get_awards
-            self.mock_create_award = mock_create_award
-            self.mock_delete_award = mock_delete_award
+            self.mock_scm = mock_scm_instance
             yield
 
     def _setup_code_review(self, triggers: list[CodeReviewTrigger] | None = None) -> None:
@@ -864,43 +869,16 @@ class MergeRequestAwardEmojiTest(GitLabTestCase):
             "organizations:seer-code-review-gitlab",
         }
     )
-    def test_eyes_award_added_for_open_action(self) -> None:
-        """An :eyes: award must be created on the MR when action=open."""
-        self._setup_code_review()
-        event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
-
-        with self.tasks():
-            self._call_handler(event)
-
-        self.mock_create_award.assert_called_once_with(
-            "15",
-            str(event["object_attributes"]["iid"]),
-            GITLAB_EMOJI_EYES,
-        )
-
-    @with_feature(
-        {
-            "organizations:gen-ai-features",
-            "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
-        }
-    )
-    def test_stale_tada_award_deleted_before_eyes_added(self) -> None:
-        """A stale :tada: award by our bot must be deleted before :eyes: is added."""
+    def test_eyes_reaction_added_for_open_action(self) -> None:
+        """:eyes: reaction must be added to the MR when action=open."""
         self._setup_code_review()
         event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
         mr_iid = str(event["object_attributes"]["iid"])
 
-        # Seed an existing :tada: award by our bot (user id 42).
-        self.mock_get_awards.return_value = [
-            {"id": 7, "name": GITLAB_EMOJI_TADA, "user": {"id": 42}},
-        ]
-
         with self.tasks():
             self._call_handler(event)
 
-        self.mock_delete_award.assert_called_once_with("15", mr_iid, "7")
-        self.mock_create_award.assert_called_once_with("15", mr_iid, GITLAB_EMOJI_EYES)
+        self.mock_scm.create_pull_request_reaction.assert_called_once_with(mr_iid, "eyes")
 
     @with_feature(
         {
@@ -909,21 +887,51 @@ class MergeRequestAwardEmojiTest(GitLabTestCase):
             "organizations:seer-code-review-gitlab",
         }
     )
-    def test_other_users_tada_award_not_deleted(self) -> None:
-        """Awards by other users must not be touched."""
+    def test_stale_hooray_reaction_deleted_before_eyes_added(self) -> None:
+        """A stale :tada: ("hooray") reaction by our bot must be deleted before :eyes: is added."""
+        self._setup_code_review()
+        event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        mr_iid = str(event["object_attributes"]["iid"])
+
+        # Seed an existing "hooray" reaction by our bot (author id 42).
+        self.mock_scm.get_pull_request_reactions.return_value = {
+            "data": [_make_scm_reaction(7, "hooray", 42)],
+            "type": "gitlab",
+            "raw": {},
+            "meta": {"page_info": {}},
+        }
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_scm.delete_pull_request_reaction.assert_called_once_with(mr_iid, "7")
+        self.mock_scm.create_pull_request_reaction.assert_called_once_with(mr_iid, "eyes")
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-code-review-gitlab",
+        }
+    )
+    def test_other_users_hooray_reaction_not_deleted(self) -> None:
+        """Reactions from other users must not be touched."""
         self._setup_code_review()
         event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
 
-        # A :tada: award from a different user (id 99).
-        self.mock_get_awards.return_value = [
-            {"id": 8, "name": GITLAB_EMOJI_TADA, "user": {"id": 99}},
-        ]
+        # A "hooray" reaction from a different user (id 99).
+        self.mock_scm.get_pull_request_reactions.return_value = {
+            "data": [_make_scm_reaction(8, "hooray", 99)],
+            "type": "gitlab",
+            "raw": {},
+            "meta": {"page_info": {}},
+        }
 
         with self.tasks():
             self._call_handler(event)
 
-        self.mock_delete_award.assert_not_called()
-        self.mock_create_award.assert_called_once()
+        self.mock_scm.delete_pull_request_reaction.assert_not_called()
+        self.mock_scm.create_pull_request_reaction.assert_called_once()
 
     @with_feature(
         {
@@ -932,8 +940,8 @@ class MergeRequestAwardEmojiTest(GitLabTestCase):
             "organizations:seer-code-review-gitlab",
         }
     )
-    def test_no_eyes_award_for_close_action(self) -> None:
-        """Close actions must not trigger any award emoji changes."""
+    def test_no_reaction_for_close_action(self) -> None:
+        """Close actions must not trigger any reaction changes."""
         self._setup_code_review()
         event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
         event["object_attributes"]["action"] = "close"
@@ -941,8 +949,8 @@ class MergeRequestAwardEmojiTest(GitLabTestCase):
         with self.tasks():
             self._call_handler(event)
 
-        self.mock_create_award.assert_not_called()
-        self.mock_delete_award.assert_not_called()
+        self.mock_scm.create_pull_request_reaction.assert_not_called()
+        self.mock_scm.delete_pull_request_reaction.assert_not_called()
 
     @with_feature(
         {
@@ -951,8 +959,8 @@ class MergeRequestAwardEmojiTest(GitLabTestCase):
             "organizations:seer-code-review-gitlab",
         }
     )
-    def test_no_eyes_award_for_merge_action(self) -> None:
-        """Merge actions must not trigger any award emoji changes."""
+    def test_no_reaction_for_merge_action(self) -> None:
+        """Merge actions must not trigger any reaction changes."""
         self._setup_code_review()
         event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
         event["object_attributes"]["action"] = "merge"
@@ -960,8 +968,8 @@ class MergeRequestAwardEmojiTest(GitLabTestCase):
         with self.tasks():
             self._call_handler(event)
 
-        self.mock_create_award.assert_not_called()
-        self.mock_delete_award.assert_not_called()
+        self.mock_scm.create_pull_request_reaction.assert_not_called()
+        self.mock_scm.delete_pull_request_reaction.assert_not_called()
 
     @with_feature(
         {
@@ -970,17 +978,17 @@ class MergeRequestAwardEmojiTest(GitLabTestCase):
             "organizations:seer-code-review-gitlab",
         }
     )
-    def test_award_failure_does_not_block_seer_task(self) -> None:
-        """A failing award-emoji API call must not prevent the Seer task from being scheduled."""
+    def test_reaction_failure_does_not_block_seer_task(self) -> None:
+        """A failing reaction API call must not prevent the Seer task from being scheduled."""
         self._setup_code_review()
         event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
 
-        self.mock_create_award.side_effect = Exception("gitlab api down")
+        self.mock_scm.create_pull_request_reaction.side_effect = Exception("scm api down")
 
         with self.tasks():
             self._call_handler(event)
 
-        # Seer task must still be called even though the emoji failed.
+        # Seer task must still be scheduled even though the reaction failed.
         self.mock_seer.assert_called_once()
 
     @with_feature(
@@ -990,18 +998,15 @@ class MergeRequestAwardEmojiTest(GitLabTestCase):
             "organizations:seer-code-review-gitlab",
         }
     )
-    def test_eyes_award_added_for_update_with_new_commit(self) -> None:
-        """An :eyes: award must also be added for update+commit (ON_NEW_COMMIT trigger)."""
+    def test_eyes_reaction_added_for_update_with_new_commit(self) -> None:
+        """:eyes: must also be added for update+commit (ON_NEW_COMMIT trigger)."""
         self._setup_code_review()
         event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
         event["object_attributes"]["action"] = "update"
         event["object_attributes"]["oldrev"] = "0" * 40
+        mr_iid = str(event["object_attributes"]["iid"])
 
         with self.tasks():
             self._call_handler(event)
 
-        self.mock_create_award.assert_called_once_with(
-            "15",
-            str(event["object_attributes"]["iid"]),
-            GITLAB_EMOJI_EYES,
-        )
+        self.mock_scm.create_pull_request_reaction.assert_called_once_with(mr_iid, "eyes")
