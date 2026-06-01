@@ -8,9 +8,7 @@ import orjson
 from django.core.files.base import ContentFile
 from rest_framework import status
 
-from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
-    MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
-)
+from sentry.api.endpoints.source_map_debug import MIN_JS_SDK_VERSION_FOR_DEBUG_IDS
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleIndex,
@@ -73,7 +71,7 @@ def create_event(
     return event
 
 
-class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
+class SourceMapDebugEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-event-source-map-debug-blue-thunder-edition"
 
     def setUp(self) -> None:
