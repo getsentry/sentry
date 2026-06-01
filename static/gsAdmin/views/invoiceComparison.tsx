@@ -19,6 +19,8 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getRegions} from 'sentry/utils/regions';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
 
@@ -42,12 +44,16 @@ type Summary = {
   platform_total_cents: number;
   queried_at: string;
   row_count: number;
+  rows_page: number;
+  rows_page_size: number;
+  rows_total_pages: number;
   start: string;
-  truncated: boolean;
   unmatched_invoice_count: number;
   unmatched_invoice_pct: number;
   unmatched_org_count: number;
-  unmatched_truncated: boolean;
+  unmatched_page: number;
+  unmatched_page_size: number;
+  unmatched_total_pages: number;
 };
 
 type UnmatchedSide = 'legacy_only' | 'platform_only';
@@ -115,19 +121,33 @@ function localInputToUtcIso(value: string): string {
   return new Date(value).toISOString();
 }
 
+function parsePageParam(value: unknown): number {
+  const n = Number(Array.isArray(value) ? value[0] : value);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
 export function InvoiceComparison() {
   const regions = getRegions();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [region, setRegion] = useState(regions[0] ?? null);
   const [startInput, setStartInput] = useState(hoursAgoLocal(24));
   const [endInput, setEndInput] = useState(nowLocal());
   const [submitted, setSubmitted] = useState<{end: string; start: string} | null>(null);
+
+  // Page state lives in the URL so refreshing / sharing keeps you on the
+  // same page. Independent paginators for the two tables.
+  const rowsPage = parsePageParam(location.query.rows_page);
+  const unmatchedPage = parsePageParam(location.query.unmatched_page);
 
   const enabled = Boolean(submitted && region);
   const {data, isPending, isError, error} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
       path: enabled && region ? {region: region.name} : skipToken,
       host: region?.url,
-      query: submitted ?? undefined,
+      query: submitted
+        ? {...submitted, rows_page: rowsPage, unmatched_page: unmatchedPage}
+        : undefined,
       staleTime: 0,
     }),
   });
@@ -137,10 +157,23 @@ export function InvoiceComparison() {
   // tests for the contract.
   const rows = data?.rows ?? [];
 
+  const setPage = (key: 'rows_page' | 'unmatched_page', page: number) => {
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, [key]: String(page)},
+    });
+  };
+
   const onSubmit = () => {
     if (!startInput || !endInput) {
       return;
     }
+    // Re-running the comparison resets both paginators — the new window's
+    // result set is unrelated to the previous one's page numbers.
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, rows_page: '1', unmatched_page: '1'},
+    });
     setSubmitted({
       start: localInputToUtcIso(startInput),
       end: localInputToUtcIso(endInput),
@@ -279,11 +312,6 @@ export function InvoiceComparison() {
                   </Text>
                   <Text size="lg" bold>
                     {data.summary.row_count}
-                    {data.summary.truncated && (
-                      <TruncatedNote size="sm" variant="muted">
-                        (showing top {data.rows.length})
-                      </TruncatedNote>
-                    )}
                   </Text>
                 </Flex>
                 <Flex direction="column">
@@ -307,6 +335,13 @@ export function InvoiceComparison() {
               Rows (sorted by |delta|, biggest first) — queried {data.summary.queried_at}
             </PanelHeader>
             <PanelBody>
+              <Paginator
+                page={data.summary.rows_page}
+                totalPages={data.summary.rows_total_pages}
+                total={data.summary.row_count}
+                pageSize={data.summary.rows_page_size}
+                onChange={p => setPage('rows_page', p)}
+              />
               <Table>
                 <thead>
                   <tr>
@@ -362,16 +397,15 @@ export function InvoiceComparison() {
           </Panel>
 
           <Panel>
-            <PanelHeader>
-              Unmatched orgs (one side only, sorted by |amount|)
-              {data.summary.unmatched_truncated && (
-                <TruncatedNote size="sm" variant="muted">
-                  showing top {data.unmatched.length} of{' '}
-                  {data.summary.unmatched_org_count} orgs
-                </TruncatedNote>
-              )}
-            </PanelHeader>
+            <PanelHeader>Unmatched orgs (one side only, sorted by |amount|)</PanelHeader>
             <PanelBody>
+              <Paginator
+                page={data.summary.unmatched_page}
+                totalPages={data.summary.unmatched_total_pages}
+                total={data.summary.unmatched_org_count}
+                pageSize={data.summary.unmatched_page_size}
+                onChange={p => setPage('unmatched_page', p)}
+              />
               <Table>
                 <thead>
                   <tr>
@@ -416,6 +450,62 @@ export function InvoiceComparison() {
     </Fragment>
   );
 }
+
+function Paginator({
+  page,
+  totalPages,
+  total,
+  pageSize,
+  onChange,
+}: {
+  onChange: (page: number) => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}) {
+  // Empty result set: nothing to page through. Render the row count anyway
+  // so the table doesn't look like it's missing its header.
+  if (totalPages <= 1) {
+    return (
+      <PaginatorRow>
+        <Text size="sm" variant="muted">
+          {total === 0 ? 'No rows' : `${total} row${total === 1 ? '' : 's'}`}
+        </Text>
+      </PaginatorRow>
+    );
+  }
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+  return (
+    <PaginatorRow>
+      <Text size="sm" variant="muted">
+        {start.toLocaleString()}–{end.toLocaleString()} of {total.toLocaleString()} · page{' '}
+        {page} of {totalPages}
+      </Text>
+      <Flex gap="xs">
+        <Button size="xs" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+          Prev
+        </Button>
+        <Button
+          size="xs"
+          disabled={page >= totalPages}
+          onClick={() => onChange(page + 1)}
+        >
+          Next
+        </Button>
+      </Flex>
+    </PaginatorRow>
+  );
+}
+
+const PaginatorRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;
 
 const FieldLabel = styled('label')`
   font-size: ${p => p.theme.font.size.sm};
