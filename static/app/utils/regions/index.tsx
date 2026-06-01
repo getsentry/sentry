@@ -5,28 +5,29 @@ import type {Region} from 'sentry/types/system';
 
 const RegionDisplayName: Record<string, string> = {
   US: t('United States of America (US)'),
+  US2: t('United States of America (US2)'),
   DE: t('European Union (EU)'),
 };
 
-enum RegionFlagIndicator {
-  US = '🇺🇸',
-  DE = '🇪🇺',
-}
+const RegionFlagIndicator: Record<string, string> = {
+  US: '🇺🇸',
+  US2: '🇺🇸',
+  DE: '🇪🇺',
+};
 
 interface RegionData {
   displayName: string;
   name: string;
   url: string;
-  flag?: RegionFlagIndicator;
+  flag?: string;
 }
 
 function getRegionDisplayName(region: Region): string {
   return RegionDisplayName[region.name.toUpperCase()] ?? region.name;
 }
 
-function getRegionFlagIndicator(region: Region): RegionFlagIndicator | undefined {
+function getRegionFlagIndicator(region: Region): string | undefined {
   const regionName = region.name.toUpperCase();
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return RegionFlagIndicator[regionName];
 }
 
@@ -83,15 +84,6 @@ export function getRegionNameChoices(): Array<[string, string]> {
       `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
     ];
   });
-}
-
-export function getRegionUrl(name: string): string | null {
-  const regions = getRegions();
-  const found = regions.find(item => item.name === name);
-  if (found) {
-    return found.url;
-  }
-  return null;
 }
 
 export function shouldDisplayRegions(): boolean {

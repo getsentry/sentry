@@ -163,7 +163,6 @@ def group_categories_from_search_filters(search_filters: Sequence[SearchFilter])
         group_categories = set(get_search_strategies().keys())
         # Hide certain categories from the default issue stream
         group_categories.discard(GroupCategory.FEEDBACK.value)
-        group_categories.discard(GroupCategory.INSTRUMENTATION.value)
         group_categories.discard(GroupCategory.CONFIGURATION.value)
 
     return group_categories
@@ -563,8 +562,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         ):
             try:
                 return EAPOccurrencesComparator.check_and_choose_with_timings(
-                    control_thunk=_run_snuba_query,
-                    experimental_thunk=_run_eap_query,
+                    control_data_func=_run_snuba_query,
+                    experimental_data_func=_run_eap_query,
                     callsite=callsite,
                     null_result_determiner=lambda r: len(r[0]) == 0,
                     reasonable_match_comparator=_reasonable_search_result_match,

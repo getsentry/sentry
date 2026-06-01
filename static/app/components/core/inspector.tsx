@@ -727,12 +727,16 @@ function isTraceElement(el: unknown): el is TraceElement {
 }
 
 function getComponentName(el: unknown): string {
-  if (!isTraceElement(el)) return 'unknown';
+  if (!isTraceElement(el)) {
+    return 'unknown';
+  }
   return el.dataset.sentryComponent || el.dataset.sentryElement || 'unknown';
 }
 
 function getSourcePath(el: unknown): string {
-  if (!isTraceElement(el)) return 'unknown path';
+  if (!isTraceElement(el)) {
+    return 'unknown path';
+  }
   return el.dataset.sentrySourcePath?.split(/static\//)[1] || 'unknown path';
 }
 
@@ -748,7 +752,9 @@ function getComponentStorybookFile(
   stories: Record<string, string>
 ): string | null {
   const sourcePath = getSourcePath(el);
-  if (!sourcePath) return null;
+  if (!sourcePath) {
+    return null;
+  }
 
   const mdxSourcePath = sourcePath.replace(/\.tsx$/, '.mdx');
 
@@ -765,7 +771,9 @@ function getComponentStorybookFile(
 }
 
 function getSourcePathFromMouseEvent(event: MouseEvent): TraceElement[] | null {
-  if (!event.target || !isTraceElement(event.target)) return null;
+  if (!event.target || !isTraceElement(event.target)) {
+    return null;
+  }
 
   const target = event.target;
 
@@ -773,7 +781,9 @@ function getSourcePathFromMouseEvent(event: MouseEvent): TraceElement[] | null {
     ? target
     : target.closest('[data-sentry-source-path]');
 
-  if (!head) return null;
+  if (!head) {
+    return null;
+  }
 
   const trace: TraceElement[] = [head as TraceElement];
 
@@ -783,7 +793,9 @@ function getSourcePathFromMouseEvent(event: MouseEvent): TraceElement[] | null {
     const next = head.parentElement?.closest(
       '[data-sentry-source-path]'
     ) as TraceElement | null;
-    if (!next || next === head) break;
+    if (!next || next === head) {
+      break;
+    }
     trace.push(next);
     head = next;
   }
@@ -792,12 +804,16 @@ function getSourcePathFromMouseEvent(event: MouseEvent): TraceElement[] | null {
 }
 
 function isCoreComponent(el: unknown): boolean {
-  if (!isTraceElement(el)) return false;
+  if (!isTraceElement(el)) {
+    return false;
+  }
   return el.dataset.sentrySourcePath?.includes('app/components/core') ?? false;
 }
 
 function isViewComponent(el: unknown): boolean {
-  if (!isTraceElement(el)) return false;
+  if (!isTraceElement(el)) {
+    return false;
+  }
   return el.dataset.sentrySourcePath?.includes('app/views') ?? false;
 }
 

@@ -47,12 +47,13 @@ class OrganizationWorkflowGroupHistoryEndpoint(OrganizationWorkflowEndpoint):
     def get(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
         per_page = self.get_per_page(request)
         cursor = self.get_cursor_from_request(request)
+        sort = request.GET.getlist("sort")
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams:
             raise ParseError(detail="Invalid start and end dates")
 
-        results = fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page)
+        results = fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page, sort)
 
         response = Response(
             serialize(results.results, request.user, WorkflowGroupHistorySerializer())

@@ -30,8 +30,8 @@ import {AttributesTree} from 'sentry/views/explore/components/traceItemAttribute
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {SpanFields} from 'sentry/views/insights/types';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   findSpanAttributeValue,
@@ -189,10 +189,15 @@ export function Attributes({
   // a JSON-encoded array. NOTE: This happens a lot because EAP doesn't support
   // array values, so SDKs often store array values as JSON-encoded strings.
   sortedAndFilteredAttributes.forEach(attribute => {
-    if (Object.hasOwn(customRenderers, attribute.name)) return;
-    if (attribute.type !== 'str') return;
-    if (!looksLikeAJSONArray(attribute.value) && !looksLikeAJSONObject(attribute.value))
+    if (Object.hasOwn(customRenderers, attribute.name)) {
       return;
+    }
+    if (attribute.type !== 'str') {
+      return;
+    }
+    if (!looksLikeAJSONArray(attribute.value) && !looksLikeAJSONObject(attribute.value)) {
+      return;
+    }
 
     customRenderers[attribute.name] = jsonRenderer;
   });

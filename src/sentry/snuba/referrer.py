@@ -640,6 +640,12 @@ class Referrer(StrEnum):
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
     )
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME = "dynamic_sampling.per_org.get_eap_org_volume"
+    DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES = (
+        "dynamic_sampling.per_org.get_eap_project_volumes"
+    )
+    DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES = (
+        "dynamic_sampling.per_org.get_eap_transaction_volumes"
+    )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
         "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
     )
@@ -683,9 +689,6 @@ class Referrer(StrEnum):
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
-
-    # TODO(telex-team): temporary referrer, remove once low value spans job is no longer needed
-    LOW_VALUE_SPANS_JOB = "autopilot.low_value_spans_job"
 
     LOW_VALUE_TELEMETRY_DETECTOR = "configuration.low_value_telemetry_detector"
 

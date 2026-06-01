@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -116,8 +117,9 @@ class WorkflowGroupsPaginatedTest(TestCase):
         expected_results: list[WorkflowGroupHistory],
         cursor: Cursor | None = None,
         per_page: int = 25,
+        sort: Sequence[str] = (),
     ) -> CursorResult[WorkflowGroupHistory]:
-        result = fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page)
+        result = fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page, sort)
         assert result.results == expected_results, (result.results, expected_results)
         return result
 

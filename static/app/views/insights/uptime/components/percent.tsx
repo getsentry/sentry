@@ -1,7 +1,7 @@
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import type {TextProps} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -51,14 +51,13 @@ export function UptimePercent({summary, note, size}: UptimePercentProps) {
   );
 
   return (
-    <Tooltip skipWrapper title={tooltip}>
-      <Text
-        tabular
-        size={size}
-        variant={percent > 99 ? 'success' : percent > 95 ? 'warning' : 'danger'}
-      >
-        {`${percent}%`}
-      </Text>
-    </Tooltip>
+    <InfoText
+      tabular
+      size={size}
+      variant={percent > 99 ? 'success' : percent > 95 ? 'warning' : 'danger'}
+      title={tooltip}
+    >
+      {`${percent}%`}
+    </InfoText>
   );
 }

@@ -19,6 +19,7 @@ export interface TimelineItemProps {
   'data-index'?: number;
   icon?: React.ReactNode;
   isActive?: boolean;
+  marker?: React.ReactNode;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
@@ -33,6 +34,7 @@ function Item({
   title,
   children,
   icon,
+  marker,
   colorConfig,
   timestamp,
   isActive = false,
@@ -42,9 +44,11 @@ function Item({
 }: TimelineItemProps) {
   const theme = useTheme();
   const config = colorConfig ?? makeDefaultColorConfig(theme);
+  const hasMarker = marker !== undefined;
 
   return (
-    <Row ref={ref} {...props}>
+    <Row ref={ref} hasMarker={hasMarker} {...props}>
+      {hasMarker && <MarkerWrapper>{marker}</MarkerWrapper>}
       {icon ? (
         <IconWrapper
           style={{
@@ -64,7 +68,7 @@ function Item({
       </Flex>
       {timestamp ?? <div />}
       <Container justifySelf="center" width="0" height="100%" column="span 1" />
-      <Content>{children}</Content>
+      <Content hasMarker={hasMarker}>{children}</Content>
     </Row>
   );
 }
@@ -77,12 +81,14 @@ function makeDefaultColorConfig(theme: Theme) {
   };
 }
 
-const Row = styled('div')<{showLastLine?: boolean}>`
+const Row = styled('div')<{hasMarker: boolean; showLastLine?: boolean}>`
   position: relative;
   color: ${p => p.theme.tokens.content.secondary};
   display: grid;
   align-items: start;
-  grid-template: auto auto / 22px 1fr auto;
+  grid-template-rows: auto auto;
+  grid-template-columns: ${p =>
+    p.hasMarker ? '22px 22px minmax(50px, 1fr) auto' : '22px minmax(50px, 1fr) auto'};
   grid-column-gap: ${p => p.theme.space.md};
   margin: ${p => p.theme.space.md} 0;
   &:first-child {
@@ -96,12 +102,19 @@ const Row = styled('div')<{showLastLine?: boolean}>`
   }
 `;
 
+const MarkerWrapper = styled('div')`
+  grid-column: span 1;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  min-height: 22px;
+`;
+
 const IconWrapper = styled('div')`
   grid-column: span 1;
   border-radius: 100%;
   border: 1px solid;
   background: ${p => p.theme.tokens.background.primary};
-  z-index: 10;
   svg {
     display: block;
     margin: ${p => p.theme.space.xs};
@@ -115,9 +128,9 @@ const Title = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const Content = styled('div')`
+const Content = styled('div')<{hasMarker: boolean}>`
   text-align: left;
-  grid-column: span 2;
+  grid-column: ${p => (p.hasMarker ? '3 / -1' : 'span 2')};
   color: ${p => p.theme.tokens.content.secondary};
   margin: ${p => p.theme.space['2xs']} 0 0;
   font-size: ${p => p.theme.font.size.sm};

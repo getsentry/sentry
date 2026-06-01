@@ -27,7 +27,7 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Integration} from 'sentry/types/integrations';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
@@ -67,7 +67,7 @@ type SharedProps = ModalRenderProps & {
 };
 
 type ContentProps = SharedProps & {
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
   selectedOrgSlug: string | undefined;
   setSelectedOrgSlug: (slug: string) => void;
   projectSlugs?: string[];
@@ -125,7 +125,7 @@ function ContextPickerContent({
         selectedOrgSlug && needProject
           ? {organizationIdOrSlug: selectedOrgSlug}
           : skipToken,
-      query: {collapse: ['latestDeploys', 'unusedFeatures']},
+      query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
       staleTime: Infinity,
     })
   );
@@ -464,7 +464,7 @@ function TeamSelector({
 function ConfigUrlContainer(
   props: SharedProps & {
     configQueryKey: ApiQueryKey;
-    organizations: Organization[];
+    organizations: OrganizationSummary[];
     selectedOrgSlug: string | undefined;
     setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
   }
@@ -514,7 +514,7 @@ function ConfigPickerContent({
   Body,
 }: SharedProps & {
   integrationConfigs: Integration[];
-  organizations: Organization[];
+  organizations: OrganizationSummary[];
   selectedOrgSlug: string | undefined;
   setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
 }) {

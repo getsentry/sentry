@@ -115,14 +115,16 @@ def get_topic_definition(topic: Topic, kafka_slice_id: int | None = None) -> Top
             "real_topic_name": defn["topic"],
         }
 
+    real_topic_name = settings.KAFKA_TOPIC_OVERRIDES.get(topic.value, topic.value)
     return {
-        "cluster": settings.KAFKA_TOPIC_TO_CLUSTER[topic.value],
-        "real_topic_name": settings.KAFKA_TOPIC_OVERRIDES.get(topic.value, topic.value),
+        "cluster": settings.KAFKA_TOPIC_TO_CLUSTER[real_topic_name],
+        "real_topic_name": real_topic_name,
     }
 
 
 def get_topic_definition_from_name(topic_name: str) -> TopicDefinition:
+    real_topic_name = settings.KAFKA_TOPIC_OVERRIDES.get(topic_name, topic_name)
     return {
-        "cluster": settings.KAFKA_TOPIC_TO_CLUSTER.get(topic_name, "default"),
-        "real_topic_name": settings.KAFKA_TOPIC_OVERRIDES.get(topic_name, topic_name),
+        "cluster": settings.KAFKA_TOPIC_TO_CLUSTER.get(real_topic_name, "default"),
+        "real_topic_name": real_topic_name,
     }

@@ -23,18 +23,17 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
+import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 
 function useSeerState(group: Group, project: Project) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
-  const isExplorer = organization.features.includes('autofix-on-explorer');
   const issueTypeConfig = getConfigForIssueType(group, project);
   const issueTypeSupportsSeer = issueTypeConfig.autofix || issueTypeConfig.issueSummary;
 
   const autofix = useExplorerAutofix(group.id, {
-    enabled: aiConfig.areAiFeaturesAllowed && isExplorer,
+    enabled: aiConfig.areAiFeaturesAllowed,
   });
 
   const sections = useMemo(
@@ -56,7 +55,6 @@ function useSeerState(group: Group, project: Project) {
   return {
     organization,
     aiConfig,
-    isExplorer,
     issueTypeSupportsSeer,
     autofix,
     completedRootCause,
@@ -80,7 +78,6 @@ export function SeerCommandPaletteActions({
   const {
     organization,
     aiConfig,
-    isExplorer,
     issueTypeSupportsSeer,
     autofix,
     completedRootCause,
@@ -96,7 +93,7 @@ export function SeerCommandPaletteActions({
   );
   const codingAgentIntegrations = codingAgentResponse?.integrations;
 
-  if (!aiConfig.areAiFeaturesAllowed || !isExplorer || !issueTypeSupportsSeer || !event) {
+  if (!aiConfig.areAiFeaturesAllowed || !issueTypeSupportsSeer || !event) {
     return null;
   }
 

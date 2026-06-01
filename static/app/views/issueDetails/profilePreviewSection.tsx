@@ -28,8 +28,8 @@ import {
   ProfilesProvider,
   useProfiles,
 } from 'sentry/views/explore/profiling/profilesProvider';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 export function ProfilePreviewSection({
   event,

@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.release import Author, get_users_for_authors
+from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
+from sentry.api.serializers.release_details_types import Author
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository

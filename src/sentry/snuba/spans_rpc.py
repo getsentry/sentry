@@ -111,17 +111,18 @@ class Spans(rpc_dataset_common.RPCBase):
             "sdk.name",
             "measurements.time_to_initial_display",
             "measurements.time_to_full_display",
+            "measurements.lcp",
+            "measurements.score.ratio.lcp",
+            "measurements.fcp",
+            "measurements.score.ratio.fcp",
+            "measurements.inp",
+            "measurements.score.ratio.inp",
+            "measurements.cls",
+            "measurements.score.ratio.cls",
+            "measurements.ttfb",
+            "measurements.score.ratio.ttfb",
             *additional_attributes,
         ]
-        for key in {
-            "lcp",
-            "fcp",
-            "inp",
-            "cls",
-            "ttfb",
-        }:
-            trace_attributes.append(f"measurements.{key}")
-            trace_attributes.append(f"measurements.score.ratio.{key}")
         resolver = cls.get_resolver(params=params, config=SearchResolverConfig())
         columns, _ = resolver.resolve_attributes(trace_attributes)
         meta = resolver.resolve_meta(referrer=referrer)

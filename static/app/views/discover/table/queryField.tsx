@@ -1,5 +1,6 @@
 import {Component, createRef, type ReactNode} from 'react';
 import {withTheme, type CSSObject, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -743,7 +744,9 @@ const Container = styled('div')<{
   ${p =>
     p.tripleLayout
       ? 'grid-template-columns: 1fr 2fr;'
-      : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
+      : css`
+          grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};
+        `}
   gap: ${p => p.theme.space.md};
   align-items: center;
 
