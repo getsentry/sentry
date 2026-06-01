@@ -423,27 +423,6 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
 
 @cell_silo_endpoint
-class OrganizationProjectsExperimentalCompatEndpoint(OrganizationProjectsEndpoint):
-    """
-    Backward-compat alias for POST /organizations/{org}/experimental/projects/.
-
-    Routes to the exact same handler as OrganizationProjectsEndpoint. Marked
-    EXPERIMENTAL so it is excluded from the OpenAPI spec (avoiding operationId
-    collisions with the canonical /projects/ URL).
-
-    TODO: remove once the frontend PR (ref/onboarding-project-creation-url) lands.
-    """
-
-    publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-    }
-    # Restrict to POST only — prevents the inherited get() from being reachable
-    # (GET should 405 here, matching the original experimental endpoint's behaviour)
-    # and stops the schema builder from discovering an undeclared method.
-    http_method_names = ["post", "options"]
-
-
-@cell_silo_endpoint
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

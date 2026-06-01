@@ -24,7 +24,7 @@ import {
 
 export type DiffMode = 'split' | 'wipe' | 'onion';
 
-export const TRANSPARENT_COLOR = 'transparent';
+const TRANSPARENT_COLOR = 'transparent';
 
 interface DiffImageDisplayProps {
   diffImageBaseUrl: string;

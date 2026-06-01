@@ -169,6 +169,7 @@ class GroupAssigneeTestCase(TestCase):
                     user_service.get_user(self.user.id),
                     assign=True,
                     assignment_source=None,
+                    lifecycle=mock.ANY,
                 )
 
                 assert GroupAssignee.objects.filter(
@@ -286,7 +287,11 @@ class GroupAssigneeTestCase(TestCase):
             with self.tasks():
                 GroupAssignee.objects.deassign(self.group, self.user)
                 mock_sync_assignee_outbound.assert_called_with(
-                    external_issue, None, assign=False, assignment_source=None
+                    external_issue,
+                    None,
+                    assign=False,
+                    assignment_source=None,
+                    lifecycle=mock.ANY,
                 )
 
                 assert not GroupAssignee.objects.filter(

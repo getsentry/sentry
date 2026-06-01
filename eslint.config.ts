@@ -460,6 +460,7 @@ export default typescript.config([
       '@sentry/no-static-translations': 'error',
       '@sentry/no-raw-css-in-styled': 'error',
       '@sentry/no-styled-shortcut': 'error',
+      '@sentry/no-useless-css-interpolation-semicolon': 'error',
       '@sentry/no-unnecessary-use-callback': 'error',
     },
   },

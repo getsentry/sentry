@@ -14,6 +14,7 @@ import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
@@ -22,7 +23,9 @@ interface PullRequestsCardProps {
   section: AutofixSection;
 }
 
-export function PullRequestsCard({section}: PullRequestsCardProps) {
+export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
+  const runId = autofix.runState?.run_id;
+  const {createPR} = autofix;
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
@@ -32,6 +35,10 @@ export function PullRequestsCard({section}: PullRequestsCardProps) {
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
   );
+
+  if (!runId) {
+    return null;
+  }
 
   return (
     <ArtifactCard
@@ -83,9 +90,16 @@ export function PullRequestsCard({section}: PullRequestsCardProps) {
         }
 
         return (
-          <Button key={pullRequest.repo_name} variant="primary" disabled>
-            {t('Failed to create PR in %s', pullRequest.repo_name)}
-          </Button>
+          <Flex key={pullRequest.repo_name} gap="xs" align="center">
+            <Button
+              variant="primary"
+              icon={<IconRefresh size="xs" />}
+              onClick={() => createPR(runId, pullRequest.repo_name)}
+              tooltipProps={{title: pullRequest.pr_creation_error}}
+            >
+              {t('Retry PR in %s', pullRequest.repo_name)}
+            </Button>
+          </Flex>
         );
       })}
     </ArtifactCard>
