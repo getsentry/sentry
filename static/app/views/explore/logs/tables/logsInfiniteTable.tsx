@@ -48,7 +48,7 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayTotalPayloadBytes';
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
-import {LogsPinningProvider} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -445,10 +445,12 @@ export function LogsInfiniteTable({
     };
   }, []);
 
+  const logsPinning = useLogsPinning();
+
   const renderRow = useCallback(
     (dataRow: LogTableRowItem) => {
-      const pinnedId = dataRow[OurLogKnownFieldKey.ID];
-      const pinnedExpandKey = `pinned-${pinnedId}`;
+      const rowId = dataRow[OurLogKnownFieldKey.ID];
+      const pinnedExpandKey = `pinned-${rowId}`;
       return (
         <LogRowContent
           dataRow={dataRow}
@@ -463,6 +465,8 @@ export function LogsInfiniteTable({
           onExpandHeight={handleExpandHeight}
           logStart={logStart}
           logEnd={logEnd}
+          isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+          togglePinnedRow={logsPinning?.togglePinnedRow}
         />
       );
     },
@@ -474,6 +478,7 @@ export function LogsInfiniteTable({
       highlightTerms,
       logEnd,
       logStart,
+      logsPinning,
       meta,
     ]
   );
@@ -505,7 +510,7 @@ export function LogsInfiniteTable({
   }
 
   return (
-    <LogsPinningProvider>
+    <Fragment>
       <LogTable
         ref={tableRef}
         style={initialTableStyles}
@@ -525,7 +530,9 @@ export function LogsInfiniteTable({
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
-        {!isPending && <PinnedLogs allRows={data} renderRow={renderRow} />}
+        {!isPending && logsPinning && (
+          <PinnedLogs allRows={data} logsPinning={logsPinning} renderRow={renderRow} />
+        )}
         <LogTableBody
           showHeader={!embedded}
           ref={tableBodyRef}
@@ -593,6 +600,8 @@ export function LogsInfiniteTable({
                   onExpandHeight={handleExpandHeight}
                   showCellActions={showCellActions}
                   showExploreSimilarSpansLink={showExploreSimilarSpansLink}
+                  isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                  togglePinnedRow={logsPinning?.togglePinnedRow}
                 />
               </Fragment>
             );
@@ -632,7 +641,7 @@ export function LogsInfiniteTable({
           <JumpButtons jump="down" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBottomContainer>
-    </LogsPinningProvider>
+    </Fragment>
   );
 }
 
