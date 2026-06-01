@@ -4122,3 +4122,57 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
 
         scores = {gid: score for gid, score in results}
         assert scores[profile_group.id] > scores[error_group.id]
+
+    def test_recommended_message_penalty(self) -> None:
+        base_datetime = before_now(hours=1)
+
+        error_event = self.store_event(
+            data={
+                "fingerprint": ["exception-group"],
+                "event_id": "a" * 32,
+                "timestamp": base_datetime.isoformat(),
+                "message": "real error",
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "something broke",
+                            "stacktrace": {"frames": [{"module": "app.main"}]},
+                        }
+                    ]
+                },
+                "tags": {"sentry:user": "user1@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        exception_group = error_event.group
+
+        message_event = self.store_event(
+            data={
+                "fingerprint": ["message-group"],
+                "event_id": "b" * 32,
+                "timestamp": base_datetime.isoformat(),
+                "message": "disk space low",
+                "level": "error",
+                "tags": {"sentry:user": "user2@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        message_group = message_event.group
+
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[exception_group.id, message_group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+
+        scores = {gid: score for gid, score in results}
+        assert scores[exception_group.id] > scores[message_group.id]

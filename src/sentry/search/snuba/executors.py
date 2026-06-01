@@ -813,16 +813,27 @@ def _recommended_aggregation(
     else:
         type_boost = "0.0"
 
+    # Message penalty: downrank issues from capture_message (no exception/stacktrace)
+    # Only applies to Events dataset — issue-platform occurrences don't have exception_stacks
+    if type_column is None:
+        message_penalty_weight = options.get("snuba.search.recommended.message-penalty-weight")
+        has_exception_ratio = "divide(countIf(notEmpty(exception_stacks.type)), plus(count(), 1))"
+        message_penalty = f"multiply({message_penalty_weight}, minus(1.0, {has_exception_ratio}))"
+    else:
+        message_penalty = "0.0"
+
+    weighted_score = (
+        f"plus(plus(plus(plus(plus("
+        f"multiply({recency_weight}, {recency}), "
+        f"multiply({spike_weight}, {spike})), "
+        f"multiply({severity_weight}, {severity})), "
+        f"multiply({user_impact_weight}, {user_impact})), "
+        f"multiply({event_volume_weight}, {event_volume})), "
+        f"{type_boost})"
+    )
+
     return [
-        (
-            f"plus(plus(plus(plus(plus("
-            f"multiply({recency_weight}, {recency}), "
-            f"multiply({spike_weight}, {spike})), "
-            f"multiply({severity_weight}, {severity})), "
-            f"multiply({user_impact_weight}, {user_impact})), "
-            f"multiply({event_volume_weight}, {event_volume})), "
-            f"{type_boost})"
-        ),
+        f"minus({weighted_score}, {message_penalty})",
         "",
     ]
 
