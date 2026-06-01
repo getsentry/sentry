@@ -712,7 +712,6 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/$repoId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/settings/'
-  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-coverage/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-source-context/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/statistical-detector/'
