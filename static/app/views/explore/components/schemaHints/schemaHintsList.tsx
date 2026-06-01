@@ -94,11 +94,7 @@ const seeFullListTag: Tag = {
   kind: undefined,
 };
 
-function getTagsFromKeys(
-  keys: string[],
-  tags: TagCollection,
-  createMissing = false
-): Tag[] {
+function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
   return keys
     .map(key => {
       if (key === USER_IDENTIFIER_KEY) {
@@ -107,9 +103,6 @@ function getTagsFromKeys(
           tags[SpanFields.USER_USERNAME] ||
           tags[SpanFields.USER_ID]
         );
-      }
-      if (createMissing) {
-        return tags[key] ?? {key, name: key, kind: FieldKind.TAG};
       }
       return tags[key];
     })
@@ -220,11 +213,7 @@ export function SchemaHintsList({
     const schemaHintsListOrder = getSchemaHintsListOrder(source);
     const filterKeySections = getFilterKeySections(source);
 
-    const schemaHintsPresetTags = getTagsFromKeys(
-      schemaHintsListOrder,
-      filterTags,
-      source === SchemaHintsSources.CONVERSATIONS
-    );
+    const schemaHintsPresetTags = getTagsFromKeys(schemaHintsListOrder, filterTags);
 
     const sectionKeys = filterKeySections
       .flatMap(section => section.children)
