@@ -66,6 +66,7 @@ export function ScmCreateProject() {
       setState(s => ({
         ...s,
         selectedRepository: repository,
+        repoStepCompleted: repository ? true : s.repoStepCompleted,
       }));
     },
     [setState]
@@ -76,7 +77,7 @@ export function ScmCreateProject() {
   const handleClearDerivedState = useCallback(() => {}, []);
 
   const showContinueWithoutRepo = !selectedRepository && !repoStepCompleted;
-  const showAllSteps = repoStepCompleted || selectedRepository;
+  const showAllSteps = repoStepCompleted;
 
   return (
     <SentryDocumentTitle title={t('Create a new project')}>
