@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
@@ -121,9 +121,39 @@ function localInputToUtcIso(value: string): string {
   return new Date(value).toISOString();
 }
 
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 250] as const;
+const DEFAULT_PAGE_SIZE = 50;
+
+function firstQueryValue(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return typeof value === 'string' ? value : undefined;
+}
+
 function parsePageParam(value: unknown): number {
-  const n = Number(Array.isArray(value) ? value[0] : value);
+  const n = Number(firstQueryValue(value));
   return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
+function parsePageSizeParam(value: unknown): number {
+  const n = Number(firstQueryValue(value));
+  return (PAGE_SIZE_OPTIONS as readonly number[]).includes(n) ? n : DEFAULT_PAGE_SIZE;
+}
+
+// A UTC ISO string from a `datetime-local` input that's already in UTC.
+// Used to convert the URL-persisted absolute time back into a value the
+// input control will accept (which is local-tz, no offset).
+function utcIsoToDatetimeLocalValue(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '';
+  }
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
 }
 
 export function InvoiceComparison() {
@@ -131,26 +161,64 @@ export function InvoiceComparison() {
   const location = useLocation();
   const navigate = useNavigate();
   const [region, setRegion] = useState(regions[0] ?? null);
-  const [startInput, setStartInput] = useState(hoursAgoLocal(24));
-  const [endInput, setEndInput] = useState(nowLocal());
-  const [submitted, setSubmitted] = useState<{end: string; start: string} | null>(null);
 
-  // Page state lives in the URL so refreshing / sharing keeps you on the
-  // same page. Independent paginators for the two tables.
+  // URL is the source of truth for everything that affects the query and
+  // the displayed paginator state, so refresh / share-link reproduces the
+  // exact view. Local state only tracks what the user is typing in the
+  // date inputs before they click Run.
+  const queryStart = firstQueryValue(location.query.start);
+  const queryEnd = firstQueryValue(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
   const unmatchedPage = parsePageParam(location.query.unmatched_page);
+  const pageSize = parsePageSizeParam(location.query.page_size);
 
-  const enabled = Boolean(submitted && region);
+  const [startInput, setStartInput] = useState(() =>
+    queryStart ? utcIsoToDatetimeLocalValue(queryStart) : hoursAgoLocal(24)
+  );
+  const [endInput, setEndInput] = useState(() =>
+    queryEnd ? utcIsoToDatetimeLocalValue(queryEnd) : nowLocal()
+  );
+
+  const enabled = Boolean(queryStart && queryEnd && region);
   const {data, isPending, isError, error} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
       path: enabled && region ? {region: region.name} : skipToken,
       host: region?.url,
-      query: submitted
-        ? {...submitted, rows_page: rowsPage, unmatched_page: unmatchedPage}
+      query: enabled
+        ? {
+            start: queryStart,
+            end: queryEnd,
+            rows_page: rowsPage,
+            unmatched_page: unmatchedPage,
+            rows_page_size: pageSize,
+            unmatched_page_size: pageSize,
+          }
         : undefined,
       staleTime: 0,
     }),
   });
+
+  // If the backend clamped our requested page (e.g. user landed on
+  // ?rows_page=99 against a 2-page result), rewrite the URL to the
+  // clamped value so refresh + share-links converge on the real page.
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+    const fixes: Record<string, string> = {};
+    if (data.summary.rows_page !== rowsPage) {
+      fixes.rows_page = String(data.summary.rows_page);
+    }
+    if (data.summary.unmatched_page !== unmatchedPage) {
+      fixes.unmatched_page = String(data.summary.unmatched_page);
+    }
+    if (Object.keys(fixes).length > 0) {
+      navigate(
+        {pathname: location.pathname, query: {...location.query, ...fixes}},
+        {replace: true}
+      );
+    }
+  }, [data, rowsPage, unmatchedPage, navigate, location.pathname, location.query]);
 
   // The endpoint returns rows pre-sorted by |delta_pct| desc; this component
   // does not re-sort. See AdminInvoiceComparisonEndpoint and its test_sort_*
@@ -164,19 +232,38 @@ export function InvoiceComparison() {
     });
   };
 
+  const setPageSize = (size: number) => {
+    // Changing page size with a non-1 page is almost never what the user
+    // wants — the offset they were viewing maps to a different position in
+    // the resized list. Reset both paginators.
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        page_size: String(size),
+        rows_page: '1',
+        unmatched_page: '1',
+      },
+    });
+  };
+
   const onSubmit = () => {
     if (!startInput || !endInput) {
       return;
     }
-    // Re-running the comparison resets both paginators — the new window's
-    // result set is unrelated to the previous one's page numbers.
+    // Re-running the comparison persists the chosen window to the URL and
+    // resets both paginators — the new window's result set is unrelated
+    // to the previous one's page numbers.
     navigate({
       pathname: location.pathname,
-      query: {...location.query, rows_page: '1', unmatched_page: '1'},
-    });
-    setSubmitted({
-      start: localInputToUtcIso(startInput),
-      end: localInputToUtcIso(endInput),
+      query: {
+        ...location.query,
+        start: localInputToUtcIso(startInput),
+        end: localInputToUtcIso(endInput),
+        rows_page: '1',
+        unmatched_page: '1',
+        page_size: String(pageSize),
+      },
     });
   };
 
@@ -229,6 +316,20 @@ export function InvoiceComparison() {
                 onChange={e => setEndInput(e.target.value)}
               />
             </Flex>
+            <Flex direction="column" gap="xs">
+              <FieldLabel>Results per page</FieldLabel>
+              <CompactSelect
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} prefix="Per page" />
+                )}
+                value={String(pageSize)}
+                options={PAGE_SIZE_OPTIONS.map(n => ({
+                  label: String(n),
+                  value: String(n),
+                }))}
+                onChange={opt => setPageSize(Number(opt.value))}
+              />
+            </Flex>
             <Button variant="primary" onClick={onSubmit} disabled={!region}>
               Run comparison
             </Button>
@@ -236,7 +337,7 @@ export function InvoiceComparison() {
         </PanelBody>
       </Panel>
 
-      {submitted && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
+      {enabled && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
 
       {isError && (
         <Alert.Container>
