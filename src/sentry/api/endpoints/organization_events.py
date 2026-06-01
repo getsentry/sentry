@@ -240,10 +240,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         max_string_length: int | None = None
         truncate_str = request.GET.get("truncate")
         if truncate_str is not None:
-            if dataset != OurLogs:
-                return Response(
-                    {"detail": "truncate is only supported for the logs dataset"}, status=400
-                )
             try:
                 max_string_length = int(truncate_str)
                 if max_string_length < 64:

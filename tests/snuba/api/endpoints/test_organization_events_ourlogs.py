@@ -419,18 +419,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 400
         assert response.data["detail"] == "truncate must be a positive integer >= 64"
 
-    def test_truncate_param_wrong_dataset(self) -> None:
-        response = self.do_request(
-            {
-                "field": ["id"],
-                "project": self.project.id,
-                "dataset": "spans",
-                "truncate": 64,
-            }
-        )
-        assert response.status_code == 400
-        assert response.data["detail"] == "truncate is only supported for the logs dataset"
-
     def test_homepage_query(self) -> None:
         """This query matches the one made on the logs homepage so that we can be sure everything is working at least
         for the initial load"""
