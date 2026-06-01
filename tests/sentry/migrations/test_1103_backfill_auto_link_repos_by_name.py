@@ -7,8 +7,8 @@ class BackfillAutoLinkReposByNameTest(TestMigrations):
     migrate_from = "1102_activity_project_type_index"
     migrate_to = "1103_backfill_auto_link_repos_by_name"
 
-    def setup_before_migration(self, apps: object) -> None:
-        Option = apps.get_model("sentry", "Option")  # type: ignore[union-attr]
+    def setup_before_migration(self, apps):
+        Option = apps.get_model("sentry", "Option")
 
         # Set dry-run to False so the migration actually creates rows
         Option.objects.create(key="repository.auto-link-by-name-dry-run", value=False)
