@@ -368,18 +368,17 @@ class GitHubWebhook(SCMWebhook, ABC):
 
             external_name = f"@{gh_username.lstrip('@')}"
 
-            with transaction.atomic(router.db_for_write(ExternalActor)):
-                _, created = ExternalActor.objects.get_or_create(
-                    organization_id=organization.id,
-                    provider=provider,
-                    external_name=external_name,
-                    user_id=user.id,
-                    defaults={
-                        "integration_id": integration.id,
-                        "external_id": str(gh_user_id) if gh_user_id else None,
-                        "source": ExternalActorSource.COMMIT_AUTHOR.value,
-                    },
-                )
+            _, created = ExternalActor.objects.get_or_create(
+                organization_id=organization.id,
+                provider=provider,
+                external_name=external_name,
+                user_id=user.id,
+                defaults={
+                    "integration_id": integration.id,
+                    "external_id": str(gh_user_id) if gh_user_id else None,
+                    "source": ExternalActorSource.COMMIT_AUTHOR.value,
+                },
+            )
         except IntegrityError:
             return
         except Exception as e:
