@@ -254,9 +254,9 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
         self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
 
-        # "root_cause" is not in the valid set without the root-cause-stopping-point flag.
-        project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
-        project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        # "foo_bar" is not in the valid set.
+        project.update_option("sentry:seer_automated_run_stopping_point", "foo_bar")
+        project.update_option("sentry:seer_automation_handoff_point", "foo_bar")
         project.update_option("sentry:seer_automation_handoff_target", "claude_code_agent")
         project.update_option("sentry:seer_automation_handoff_integration_id", 99)
         project.update_option("sentry:seer_automation_handoff_auto_create_pr", False)
@@ -270,12 +270,11 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
 
     def test_root_cause_stopping_point_preserved_when_valid(self) -> None:
-        """Project with root_cause stopping point is preserved when root-cause-stopping-point flag is enabled."""
+        """Project with root_cause stopping point is preserved."""
         project = self.create_project(organization=self.organization)
         project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
 
-        with self.feature("organizations:root-cause-stopping-point"):
-            configure_seer_for_existing_org(organization_id=self.organization.id)
+        configure_seer_for_existing_org(organization_id=self.organization.id)
 
         assert project.get_option("sentry:seer_automated_run_stopping_point") == "root_cause"
 
