@@ -119,7 +119,7 @@ describe('SnapshotsToolbar', () => {
     it.snapshot.breakpoints(
       ['xs', 'sm', 'md'],
       'all controls',
-      () => (
+      width => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{width: '100%'}}>
             <SnapshotsToolbarWithControls
@@ -132,6 +132,8 @@ describe('SnapshotsToolbar', () => {
                 onModeChange: noop,
                 overlayColor: '#f55459',
                 onOverlayColorChange: noop,
+                // Mirror production's `showSplit={breakpoints.sm}`.
+                showSplit: width >= parseInt(themes[themeName].breakpoints.sm, 10),
               }}
               solo={{isActive: false, onToggle: noop}}
             />

@@ -137,11 +137,12 @@ snapshotTest.each = function snapshotEach<T>(table: T[]) {
 snapshotTest.breakpoints = function snapshotBreakpoints(
   breakpoints: BreakpointName[],
   name: string,
-  renderFn: () => ReactElement,
+  renderFn: (width: number) => ReactElement,
   metadata: SnapshotTestMetadata = {}
 ): void {
   for (const bp of breakpoints) {
-    snapshotTest(name, renderFn, {...metadata, viewport: bp});
+    const width = BREAKPOINT_WIDTHS[bp];
+    snapshotTest(name, () => renderFn(width), {...metadata, viewport: bp});
   }
 };
 
@@ -158,7 +159,7 @@ declare global {
         breakpoints: (
           breakpoints: BreakpointName[],
           name: string,
-          renderFn: () => ReactElement,
+          renderFn: (width: number) => ReactElement,
           metadata?: SnapshotTestMetadata
         ) => void;
         each: <T>(
