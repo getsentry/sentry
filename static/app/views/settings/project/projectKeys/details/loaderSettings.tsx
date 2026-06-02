@@ -180,7 +180,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={supportsPerformance ? field.state.value : false}
                   onChange={field.handleChange}
                   disabled={
                     hasAccess
@@ -238,7 +238,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={supportsPerformance ? field.state.value : false}
                   onChange={field.handleChange}
                   disabled={
                     hasAccess
@@ -288,7 +288,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={supportsLogs ? field.state.value : false}
                   onChange={field.handleChange}
                   disabled={
                     hasAccess
@@ -345,7 +345,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={supportsPerformance ? field.state.value : false}
                   onChange={field.handleChange}
                   disabled={
                     hasAccess
