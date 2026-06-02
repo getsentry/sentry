@@ -27,32 +27,22 @@ logger = logging.getLogger(__name__)
 
 
 def deliver_night_shift_result(
+    organization_id: int,
     run_uuid: str,
     status: FeatureRunStatus,
     result: dict[str, Any] | None,
     error: str | None,
-    organization_id: int,
 ) -> None:
     """Process a night_shift result from Seer."""
     try:
         run = SeerNightShiftRun.objects.select_related("organization", "seer_run").get(
-            seer_run__uuid=run_uuid
+            organization_id=organization_id,
+            seer_run__uuid=run_uuid,
         )
     except SeerNightShiftRun.DoesNotExist:
         logger.warning(
             "night_shift.delivery.missing_run",
-            extra={"run_uuid": run_uuid},
-        )
-        return
-
-    if run.organization_id != organization_id:
-        logger.warning(
-            "night_shift.delivery.org_mismatch",
-            extra={
-                "run_uuid": run_uuid,
-                "expected_org_id": run.organization_id,
-                "actual_org_id": organization_id,
-            },
+            extra={"organization_id": organization_id, "run_uuid": run_uuid},
         )
         return
 

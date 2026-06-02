@@ -959,10 +959,10 @@ def bulk_get_project_preferences(
 
 def deliver_feature_result(
     *,
+    organization_id: int,
     feature_id: str,
     run_uuid: str,
     status: FeatureRunStatus,
-    organization_id: int,
     result: dict[str, Any] | None = None,
     error: str | None = None,
 ) -> None:
@@ -975,7 +975,7 @@ def deliver_feature_result(
         )
         return
 
-    handler(run_uuid, status, result, error, organization_id)
+    handler(organization_id, run_uuid, status, result, error)
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
