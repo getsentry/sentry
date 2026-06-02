@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Mapping
 from typing import Any
 
 from django.core.exceptions import PermissionDenied
@@ -63,14 +62,14 @@ class GitHubIdentityProvider(OAuth2Provider):
             "data": self.get_oauth_data(data),
         }
 
-    def post_link_identity(self, identity: Mapping[str, Any], user_id: int) -> None:
+    def post_link_identity(self, identity: dict[str, Any], user_id: int) -> None:
         # A linked GitHub identity is an authoritative user<->GitHub mapping, so mirror
         # it into ExternalActor for the user's GitHub-integrated orgs. Best-effort.
         #
         # This is github.com only by design: GitHub Enterprise has no social-login flow
-        # (GitHubEnterpriseIdentityProvider.build_identity raises), so enterprise Identity
-        # rows are created at integration-install time, not here, and remain the backfill's
-        # responsibility.
+        # (GitHubEnterpriseIdentityProvider.build_identity raises). The only enterprise
+        # identity that ever exists is the installer's (linked at integration-install
+        # time), which isn't worth mapping, so we skip enterprise here entirely.
         github_id = identity.get("id")
         ensure_external_actors_for_github_identity(
             user_id=user_id,

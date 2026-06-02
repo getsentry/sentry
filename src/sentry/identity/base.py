@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from sentry.identity.services.identity.model import RpcIdentity
@@ -59,7 +58,7 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
         """
         return new_data
 
-    def post_link_identity(self, identity: Mapping[str, Any], user_id: int) -> None:
+    def post_link_identity(self, identity: dict[str, Any], user_id: int) -> None:
         """
         Hook invoked after an identity is linked via the social-auth pipeline.
 
