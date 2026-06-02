@@ -5,7 +5,7 @@ import ipaddress
 import logging
 from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Final
+from typing import Any, Final, TypeIs, overload
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -13,10 +13,12 @@ from django.core.signing import BadSignature
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
+from rest_framework.request import Request
 
 from sentry import options
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
+from sentry.types.request import _HttpRequestWithUser, _RequestWithUser
 from sentry.users.models.user import User
 from sentry.utils.auth import has_completed_sso
 
@@ -47,7 +49,15 @@ _UnsetType = enum.Enum("_UnsetType", "UNSET")
 _Unset: Final = _UnsetType.UNSET
 
 
-def is_active_staff(request: HttpRequest) -> bool:
+@overload
+def is_active_staff(request: Request) -> TypeIs[_RequestWithUser]: ...
+
+
+@overload
+def is_active_staff(request: HttpRequest) -> TypeIs[_HttpRequestWithUser]: ...
+
+
+def is_active_staff(request: HttpRequest | Request) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     staff = getattr(request, "staff", None) or Staff(request)
