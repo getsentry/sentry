@@ -28,6 +28,7 @@ from sentry.runner import configure
 
 configure()
 
+from sentry.models.project import Project  # noqa: E402
 from sentry.models.projectkey import ProjectKey  # noqa: E402
 
 # Defaults to the edge relay's address from devservices/config.yml (cell-routing
@@ -35,11 +36,11 @@ from sentry.models.projectkey import ProjectKey  # noqa: E402
 target = os.environ.get("TARGET", "127.0.0.1:7901")
 # The internal project (id 1) is bootstrapped for every dev install.
 project_id = os.environ.get("PROJECT_ID", "1")
-
-key = ProjectKey.objects.filter(project_id=project_id).first()
+project = Project.objects.filter(id=project_id).first()
+key = ProjectKey.get_default(project) if project else None
 if key is None:
     raise SystemExit(
-        f"no project key found for project {project_id} in dev db "
+        f"no active store key found for project {project_id} in dev db "
         "(is the devserver bootstrapped? try PROJECT_ID=<id>)"
     )
 
