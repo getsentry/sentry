@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 
 import psycopg2.errors
-from django.db import DataError
+from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry.db import models
@@ -130,10 +130,8 @@ class Buffer(Service):
             # HACK(dcramer): this is gross, but we don't have a good hook to compute this property today
             # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
             if model is Group:
-                # XXX: create_or_update doesn't fire `post_save` signals, and so this update never
-                # ends up in the cache. This causes issues when handling issue alerts, and likely
-                # elsewhere. Use `update` here since we're already special casing, and we know that
-                # the group will already exist.
+                # Group.update() fires post_save signals which keep the cache coherent.
+                # Use it here since we know the group will already exist.
                 try:
                     group = Group.objects.get(**filters)
                 except Group.DoesNotExist:
@@ -187,7 +185,17 @@ class Buffer(Service):
                                 raise
                 created = False
             elif model:
-                _, created = model.objects.create_or_update(values=update_kwargs, **filters)
+                affected = model.objects.filter(**filters).update(**update_kwargs)
+                if not affected:
+                    create_kwargs = {**filters, **{col: v for col, v in columns.items()}}
+                    if extra:
+                        create_kwargs.update(extra)
+                    try:
+                        with transaction.atomic(using=router.db_for_write(model)):
+                            model.objects.create(**create_kwargs)
+                        created = True
+                    except IntegrityError:
+                        model.objects.filter(**filters).update(**update_kwargs)
 
         buffer_incr_complete.send_robust(
             model=model,
