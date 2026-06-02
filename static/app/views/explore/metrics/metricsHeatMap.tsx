@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,6 +38,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
   const metric = useTraceMetric();
   const metricQueries = useMultiMetricsQueryParams();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const {data: heatMapSeries, isPending, error} = heatmapResult;
 
@@ -64,7 +66,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
   );
 
   const getUpdatedMetricsQueryUrl = useCallback(
-    (query: string, filteredSelection: PageFilters) => {
+    (query: string) => {
       const alteredMetricQueries: BaseMetricQuery[] = metricQueries.map(metricQuery => {
         if (
           metricQuery.metric.name === metric.name &&
@@ -81,11 +83,11 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
       });
       return getMetricsUrl({
         organization,
-        selection: filteredSelection,
+        selection,
         metricQueries: alteredMetricQueries,
       });
     },
-    [metric, metricQueries, organization]
+    [metric.name, metric.type, metricQueries, organization, selection]
   );
 
   return (

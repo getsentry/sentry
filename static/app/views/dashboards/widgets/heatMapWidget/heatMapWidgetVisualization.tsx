@@ -48,7 +48,7 @@ interface HeatMapWidgetVisualizationProps {
   /**
    * Callback that returns an updated query string.
    */
-  makeLocalQueryUpdateUrl?: (query: string, filteredSelection: PageFilters) => string;
+  makeLocalQueryUpdateUrl?: (query: string) => string;
   /**
    * Experimental! Specify the Z-axis scale type. Logarithmic scales can be much more useful for values with a high range.
    */
@@ -247,12 +247,10 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               if (makeExploreUrl) {
                 tracesLink = makeExploreUrl(metricsQuery ?? '', filteredSelection);
               }
-              if (makeLocalQueryUpdateUrl) {
-                localQueryUpdateUrl = makeLocalQueryUpdateUrl(
-                  metricsQuery ?? '',
-                  filteredSelection
-                );
-              }
+            }
+
+            if (makeLocalQueryUpdateUrl) {
+              localQueryUpdateUrl = makeLocalQueryUpdateUrl(metricsQuery ?? '');
             }
 
             return (
@@ -272,7 +270,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                     </span>
                   </div>
                 )}
-                {makeLocalQueryUpdateUrl && defined(metricsQuery) && (
+                {defined(localQueryUpdateUrl) && (
                   <div>
                     <span className="tooltip-label tooltip-label-centered">
                       <a
