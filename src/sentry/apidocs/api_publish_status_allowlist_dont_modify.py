@@ -23,9 +23,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "GET"
     },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/completion/": {"GET"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/repositories/": {
-        "GET"
-    },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/stats/": {
         "GET"
     },
@@ -40,10 +37,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/stats/": {"GET"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/tags/": {"GET"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/tags/{key}/": {"DELETE", "GET"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/tags/{key}/values/": {"GET"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/transfer/": {"POST"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/users/": {"GET"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/repo-path-parsing/": {"POST"},
     "/api/0/users/{user_id}/organizations/": {"GET"},
     "/api/0/sentry-apps/{sentry_app_id_or_slug}/features/": {"GET"},
