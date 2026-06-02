@@ -37,6 +37,8 @@ import {
 import {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
+import {TraceTimeCompression} from './traceRenderers/traceTimeCompression';
+import type {TraceTimeCompressionGap} from './traceRenderers/traceTimeCompression';
 import {
   useVirtualizedList,
   type VirtualizedRow,
@@ -166,6 +168,24 @@ export function Trace({
   const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
+  const timeCompressionOptions = {
+    enabled: traceState.preferences.compressed_timeline && trace.type === 'trace',
+    traceSpace: [trace.root.space[0], trace.root.space[1]] as [
+      start: number,
+      duration: number,
+    ],
+    nodes: trace.list,
+    indicators: trace.indicators,
+  };
+
+  const timeCompression = TraceTimeCompression.FromVisibleItems({
+    ...timeCompressionOptions,
+    physicalWidth: manager.view.trace_physical_space.width,
+  });
+
+  manager.timeCompressionOptions = timeCompressionOptions;
+  manager.setTimeCompression(timeCompression);
+
   const traceStatePreferencesRef = useRef<
     Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
   >(traceState.preferences);
@@ -179,16 +199,19 @@ export function Trace({
       manager.draw();
     };
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] = () => {
+      manager.recomputeTimeCompression();
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw();
     };
     const onTraceSpaceChange: TraceEvents['initialize trace space'] = () => {
+      manager.recomputeTimeCompression();
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw();
     };
     const onDividerResize: TraceEvents['divider resize'] = view => {
+      manager.recomputeTimeCompression();
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw(view);
@@ -464,6 +487,14 @@ export function Trace({
             </div>
           );
         })}
+        {timeCompression.gaps.map((gap, i) => (
+          <CollapsedGapMarker
+            key={`${gap.start}-${gap.end}`}
+            gap={gap}
+            index={i}
+            manager={manager}
+          />
+        ))}
         {traceNode && traceStartTimestamp ? (
           <VerticalTimestampIndicators
             viewmanager={manager}
@@ -632,6 +663,40 @@ function RenderTraceRow(props: {
   };
 
   return node.renderWaterfallRow(rowProps);
+}
+
+function CollapsedGapMarker({
+  gap,
+  index,
+  manager,
+}: {
+  gap: TraceTimeCompressionGap;
+  index: number;
+  manager: VirtualizedViewManager;
+}) {
+  const registerCollapsedGapMarkerRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      manager.registerCollapsedGapMarkerRef(ref, index, gap);
+    },
+    [gap, index, manager]
+  );
+
+  const onDoubleClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    manager.onZoomIntoSpace([gap.start, gap.duration]);
+  };
+
+  return (
+    <Tooltip title={`Skipped ${formatTraceDuration(gap.duration)} inactive period`}>
+      <div
+        ref={registerCollapsedGapMarkerRef}
+        className="TraceCollapsedGapMarker"
+        onDoubleClick={onDoubleClick}
+      >
+        <div className="TraceCollapsedGapMarkerBreak" />
+      </div>
+    </Tooltip>
+  );
 }
 
 function VerticalTimestampIndicators({
@@ -852,6 +917,35 @@ const TraceStylingWrapper = styled('div')`
     background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
+  }
+
+  .TraceCollapsedGapMarker {
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 28px;
+    pointer-events: auto;
+    cursor: zoom-in;
+    z-index: 2;
+  }
+
+  .TraceCollapsedGapMarkerBreak {
+    position: absolute;
+    top: 8px;
+    left: 0;
+    width: 28px;
+    height: calc(100% - 8px);
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: linear-gradient(
+        135deg,
+        transparent 0 35%,
+        ${p => p.theme.tokens.border.primary} 35% 45%,
+        transparent 45% 55%,
+        ${p => p.theme.tokens.border.primary} 55% 65%,
+        transparent 65% 100%
+      )
+      top center / 12px 18px no-repeat;
   }
 
   .TraceIndicatorLabelContainer {

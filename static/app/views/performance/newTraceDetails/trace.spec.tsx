@@ -70,6 +70,7 @@ function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {
     drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
     missing_instrumentation: DEFAULT_TRACE_VIEW_PREFERENCES.missing_instrumentation,
     autogroup: DEFAULT_TRACE_VIEW_PREFERENCES.autogroup,
+    compressed_timeline: DEFAULT_TRACE_VIEW_PREFERENCES.compressed_timeline,
     ...preferences,
   };
   localStorage.setItem('trace-waterfall-preferences', JSON.stringify(storedPreferences));

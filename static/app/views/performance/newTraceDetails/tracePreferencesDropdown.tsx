@@ -24,8 +24,10 @@ import {TraceShortcutsModal} from 'sentry/views/performance/newTraceDetails/trac
 
 interface TracePreferencesDropdownProps {
   autogroup: boolean;
+  compressedTimeline: boolean;
   missingInstrumentation: boolean;
   onAutogroupChange: () => void;
+  onCompressedTimelineChange: () => void;
   onMissingInstrumentationChange: () => void;
   rootEventResults: TraceRootEventQueryResults;
 }
@@ -55,6 +57,11 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         }
       ),
     },
+    {
+      label: t('Compressed Timeline'),
+      value: 'compressed-timeline',
+      details: t('Collapses long inactive gaps in the waterfall timeline.'),
+    },
   ];
 
   const values = useMemo(() => {
@@ -65,11 +72,15 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     if (props.missingInstrumentation) {
       value.push('no-instrumentation');
     }
+    if (props.compressedTimeline) {
+      value.push('compressed-timeline');
+    }
     return value;
-  }, [props.autogroup, props.missingInstrumentation]);
+  }, [props.autogroup, props.compressedTimeline, props.missingInstrumentation]);
 
   const onAutogroupChange = props.onAutogroupChange;
   const onMissingInstrumentationChange = props.onMissingInstrumentationChange;
+  const onCompressedTimelineChange = props.onCompressedTimelineChange;
 
   const onChange = useCallback(
     (newValues: Array<SelectOption<string>>) => {
@@ -83,6 +94,9 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         if (newOption === 'no-instrumentation') {
           onMissingInstrumentationChange();
         }
+        if (newOption === 'compressed-timeline') {
+          onCompressedTimelineChange();
+        }
       }
 
       if (values.length > newValuesArray.length) {
@@ -93,9 +107,17 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         if (removedOption === 'no-instrumentation') {
           onMissingInstrumentationChange();
         }
+        if (removedOption === 'compressed-timeline') {
+          onCompressedTimelineChange();
+        }
       }
     },
-    [values, onAutogroupChange, onMissingInstrumentationChange]
+    [
+      values,
+      onAutogroupChange,
+      onCompressedTimelineChange,
+      onMissingInstrumentationChange,
+    ]
   );
 
   return (
