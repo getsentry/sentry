@@ -831,13 +831,13 @@ def _recommended_aggregation(
     if not terms:
         # No weighted factors: emit a constant-0 aggregate (a bare "0.0" isn't a
         # valid Snuba aggregation expression).
-        score = "multiply(0, count())"
+        score_expr = "multiply(0, count())"
     else:
-        score = terms[0]
+        score_expr = terms[0]
         for term in terms[1:]:
-            score = f"plus({score}, {term})"
+            score_expr = f"plus({score_expr}, {term})"
 
-    return [score, ""]
+    return [score_expr, ""]
 
 
 def recommended_aggregation(
