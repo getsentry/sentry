@@ -720,6 +720,32 @@ class DatabaseBackedOrganizationService(OrganizationService):
             flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
         ).count()
 
+    def upsert_external_actor(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        user_id: int,
+        provider: int,
+        external_name: str,
+        external_id: str | None = None,
+        source: int | None = None,
+    ) -> bool:
+        from sentry.integrations.models.external_actor import ExternalActor
+
+        _, created = ExternalActor.objects.get_or_create(
+            organization_id=organization_id,
+            provider=provider,
+            external_name=external_name,
+            user_id=user_id,
+            defaults={
+                "integration_id": integration_id,
+                "external_id": external_id,
+                "source": source,
+            },
+        )
+        return created
+
     def delete_organization(
         self, *, organization_id: int, user: RpcUser
     ) -> RpcOrganizationDeleteResponse:

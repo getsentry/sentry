@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from sentry.identity.services.identity.model import RpcIdentity
@@ -57,6 +58,16 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
         Return the new state which should be used for an identity.
         """
         return new_data
+
+    def post_link_identity(self, identity: Mapping[str, Any], user_id: int) -> None:
+        """
+        Hook invoked after an identity is linked via the social-auth pipeline.
+
+        ``identity`` is the mapping returned by ``build_identity`` and ``user_id`` is
+        the Sentry user the identity was linked to. No-op by default; providers may
+        override to perform side effects (e.g. backfilling derived mappings). Callers
+        invoke this best-effort, so implementations must not assume they can raise.
+        """
 
     def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:
         """

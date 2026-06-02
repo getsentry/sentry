@@ -1,8 +1,14 @@
+import logging
+from collections.abc import Mapping
+from typing import Any
+
 from django.core.exceptions import PermissionDenied
 
 from sentry import http, options
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.types import IntegrationProviderSlug
+
+logger = logging.getLogger(__name__)
 
 
 def get_user_info(access_token):
@@ -56,3 +62,92 @@ class GitHubIdentityProvider(OAuth2Provider):
             "scopes": [],  # GitHub apps do not have user scopes
             "data": self.get_oauth_data(data),
         }
+
+    def post_link_identity(self, identity: Mapping[str, Any], user_id: int) -> None:
+        # A linked GitHub identity is an authoritative user<->GitHub mapping, so mirror
+        # it into ExternalActor for the user's GitHub-integrated orgs. Best-effort.
+        #
+        # This is github.com only by design: GitHub Enterprise has no social-login flow
+        # (GitHubEnterpriseIdentityProvider.build_identity raises), so enterprise Identity
+        # rows are created at integration-install time, not here, and remain the backfill's
+        # responsibility.
+        github_id = identity.get("id")
+        ensure_external_actors_for_github_identity(
+            user_id=user_id,
+            github_login=identity.get("login"),
+            github_id=str(github_id) if github_id is not None else None,
+        )
+
+
+def ensure_external_actors_for_github_identity(
+    *,
+    user_id: int,
+    github_login: str | None,
+    github_id: str | None,
+) -> None:
+    """
+    Reactively create GitHub ``ExternalActor`` mappings for a user who just linked their
+    github.com identity to Sentry (the social-auth login flow).
+
+    A linked GitHub identity is an authoritative user<->GitHub mapping, so we mirror it
+    into ``ExternalActor`` for every organization the user belongs to that has an active
+    GitHub integration. Discovery happens entirely in the control silo
+    (``OrganizationMemberMapping``/``OrganizationIntegration``/``Integration`` are all
+    control models); only the row write crosses into the org's cell, via a single
+    cell-resolved RPC per org.
+
+    This is best-effort: it must never raise into the linking flow, and the periodic
+    backfill remains the safety net for anything missed here.
+    """
+    from sentry.constants import ObjectStatus
+    from sentry.integrations.models.organization_integration import OrganizationIntegration
+    from sentry.integrations.types import ExternalActorSource, ExternalProviders
+    from sentry.models.organizationmembermapping import OrganizationMemberMapping
+    from sentry.organizations.services.organization import organization_service
+
+    if not github_login:
+        return
+
+    try:
+        org_ids = list(
+            OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
+                "organization_id", flat=True
+            )
+        )
+        if not org_ids:
+            return
+
+        org_integrations = OrganizationIntegration.objects.filter(
+            organization_id__in=org_ids,
+            status=ObjectStatus.ACTIVE,
+            integration__provider=IntegrationProviderSlug.GITHUB.value,
+            integration__status=ObjectStatus.ACTIVE,
+        ).values_list("organization_id", "integration_id")
+    except Exception:
+        logger.exception(
+            "github.identity.external_actor.discovery_failed",
+            extra={"user_id": user_id},
+        )
+        return
+
+    external_name = f"@{github_login.lstrip('@')}"
+    for organization_id, integration_id in org_integrations:
+        try:
+            organization_service.upsert_external_actor(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                user_id=user_id,
+                provider=ExternalProviders.GITHUB.value,
+                external_name=external_name,
+                external_id=github_id,
+                source=ExternalActorSource.IDENTITY.value,
+            )
+        except Exception:
+            logger.exception(
+                "github.identity.external_actor.create_failed",
+                extra={
+                    "user_id": user_id,
+                    "organization_id": organization_id,
+                    "integration_id": integration_id,
+                },
+            )
