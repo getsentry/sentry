@@ -4149,3 +4149,78 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
 
         scores = {gid: score for gid, score in results}
         assert scores[profile_group.id] > scores[error_group.id]
+
+    def _recommended_scores(self, group_ids: list[int]) -> dict[int, float]:
+        results = self.backend._get_query_executor().snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=group_ids,
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        return {gid: score for gid, score in results}
+
+    def test_recommended_zero_weight_factor_excluded(self) -> None:
+        # A zeroed factor is dropped from the aggregation, so only the remaining
+        # weighted factors count. Severity (which favors the fatal group) is zeroed,
+        # so the higher-volume info group must still win on event volume alone.
+        ts = before_now(hours=1).isoformat()
+        for i in range(5):
+            self.store_event(
+                data={
+                    "fingerprint": ["high-vol"],
+                    "event_id": f"{'a' * 31}{i}",
+                    "message": "high-vol",
+                    "level": "info",
+                    "timestamp": ts,
+                },
+                project_id=self.project.id,
+            )
+        self.store_event(
+            data={
+                "fingerprint": ["low-vol"],
+                "event_id": "b" * 32,
+                "message": "low-vol",
+                "level": "fatal",
+                "timestamp": ts,
+            },
+            project_id=self.project.id,
+        )
+        high = Group.objects.get(project=self.project, message="high-vol")
+        low = Group.objects.get(project=self.project, message="low-vol")
+
+        weights = {
+            f"snuba.search.recommended.{k}-weight": 0.0
+            for k in ("recency", "spike", "severity", "user-impact")
+        }
+        weights["snuba.search.recommended.event-volume-weight"] = 0.2
+        weights["snuba.search.recommended.group-type-boost"] = {}
+        with self.options(weights):
+            scores = self._recommended_scores([high.id, low.id])
+
+        assert scores[high.id] > scores[low.id]
+
+    def test_recommended_all_weights_zero(self) -> None:
+        # No weighted factors and no boost: the query must still succeed, scoring 0.
+        event = self.store_event(
+            data={
+                "fingerprint": ["zero"],
+                "event_id": "a" * 32,
+                "level": "error",
+                "timestamp": before_now(hours=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        weights = {
+            f"snuba.search.recommended.{k}-weight": 0.0
+            for k in ("recency", "spike", "severity", "user-impact", "event-volume")
+        }
+        weights["snuba.search.recommended.group-type-boost"] = {}
+        with self.options(weights):
+            scores = self._recommended_scores([event.group.id])
+
+        assert scores[event.group.id] == 0

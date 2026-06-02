@@ -804,27 +804,40 @@ def _recommended_aggregation(
 
     # Group type boost: additive signal per issue type
     group_type_boosts = options.get("snuba.search.recommended.group-type-boost")
+
+    # Only emit terms for factors with a non-zero weight. A zero weight would
+    # multiply the factor out to 0 anyway, so there's no point making ClickHouse
+    # compute it (some factors, e.g. user impact's uniq(tags[sentry:user]), are
+    # expensive to evaluate).
+    terms = [
+        f"multiply({weight}, {factor})"
+        for weight, factor in (
+            (recency_weight, recency),
+            (spike_weight, spike),
+            (severity_weight, severity),
+            (user_impact_weight, user_impact),
+            (event_volume_weight, event_volume),
+        )
+        if weight
+    ]
+
     if group_type_boosts:
         type_expr = f"any({type_column})" if type_column else "1"
         conditions = []
         for type_id, boost in group_type_boosts.items():
             conditions.append(f"equals({type_expr}, {type_id}), {boost}")
-        type_boost = f"multiIf({', '.join(conditions)}, 0.0)"
-    else:
-        type_boost = "0.0"
+        terms.append(f"multiIf({', '.join(conditions)}, 0.0)")
 
-    return [
-        (
-            f"plus(plus(plus(plus(plus("
-            f"multiply({recency_weight}, {recency}), "
-            f"multiply({spike_weight}, {spike})), "
-            f"multiply({severity_weight}, {severity})), "
-            f"multiply({user_impact_weight}, {user_impact})), "
-            f"multiply({event_volume_weight}, {event_volume})), "
-            f"{type_boost})"
-        ),
-        "",
-    ]
+    if not terms:
+        # No weighted factors: emit a constant-0 aggregate (a bare "0.0" isn't a
+        # valid Snuba aggregation expression).
+        score = "multiply(0, count())"
+    else:
+        score = terms[0]
+        for term in terms[1:]:
+            score = f"plus({score}, {term})"
+
+    return [score, ""]
 
 
 def recommended_aggregation(
