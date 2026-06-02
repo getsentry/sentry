@@ -38,29 +38,22 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
 
   const loaderLink = data.dsn.cdn;
 
-  function buildPayload(changes: {
-    browserSdkVersion?: string;
-    hasDebug?: boolean;
-    hasFeedback?: boolean;
-    hasLogsAndMetrics?: boolean;
-    hasPerformance?: boolean;
-    hasReplay?: boolean;
-  }) {
-    const browserSdkVersion = changes.browserSdkVersion ?? data.browserSdkVersion;
-
+  // Changing the SDK version can make some options unsupported, so we send the
+  // full set of loader options (forcing the unsupported ones to false) alongside
+  // the new version. Individual option toggles only send their own field and
+  // rely on the backend merging them into the stored options.
+  function buildVersionPayload(browserSdkVersion: string) {
     if (sdkVersionSupportsPerformanceAndReplay(browserSdkVersion)) {
       return {
         browserSdkVersion,
         dynamicSdkLoaderOptions: {
-          hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+          hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
           hasLogsAndMetrics: sdkVersionSupportsLogsAndMetrics(browserSdkVersion)
-            ? (changes.hasLogsAndMetrics ??
-              data.dynamicSdkLoaderOptions.hasLogsAndMetrics)
+            ? data.dynamicSdkLoaderOptions.hasLogsAndMetrics
             : false,
-          hasFeedback: changes.hasFeedback ?? data.dynamicSdkLoaderOptions.hasFeedback,
-          hasPerformance:
-            changes.hasPerformance ?? data.dynamicSdkLoaderOptions.hasPerformance,
-          hasReplay: changes.hasReplay ?? data.dynamicSdkLoaderOptions.hasReplay,
+          hasFeedback: data.dynamicSdkLoaderOptions.hasFeedback,
+          hasPerformance: data.dynamicSdkLoaderOptions.hasPerformance,
+          hasReplay: data.dynamicSdkLoaderOptions.hasReplay,
         },
       };
     }
@@ -68,7 +61,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
     return {
       browserSdkVersion,
       dynamicSdkLoaderOptions: {
-        hasDebug: changes.hasDebug ?? data.dynamicSdkLoaderOptions.hasDebug,
+        hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
         hasLogsAndMetrics: false,
         hasFeedback: false,
         hasPerformance: false,
@@ -115,7 +108,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 fetchMutation<ProjectKey>({
                   url: endpoint,
                   method: 'PUT',
-                  data: buildPayload(submitData),
+                  data: buildVersionPayload(submitData.browserSdkVersion),
                 }),
               onSuccess: updateData,
             }}
@@ -155,7 +148,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 fetchMutation<ProjectKey>({
                   url: endpoint,
                   method: 'PUT',
-                  data: buildPayload(submitData),
+                  data: {dynamicSdkLoaderOptions: submitData},
                 }),
               onSuccess: updateData,
             }}
@@ -205,7 +198,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 fetchMutation<ProjectKey>({
                   url: endpoint,
                   method: 'PUT',
-                  data: buildPayload(submitData),
+                  data: {dynamicSdkLoaderOptions: submitData},
                 }),
               onSuccess: updateData,
             }}
@@ -263,7 +256,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 fetchMutation<ProjectKey>({
                   url: endpoint,
                   method: 'PUT',
-                  data: buildPayload(submitData),
+                  data: {dynamicSdkLoaderOptions: submitData},
                 }),
               onSuccess: updateData,
             }}
@@ -313,7 +306,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 fetchMutation<ProjectKey>({
                   url: endpoint,
                   method: 'PUT',
-                  data: buildPayload(submitData),
+                  data: {dynamicSdkLoaderOptions: submitData},
                 }),
               onSuccess: updateData,
             }}
@@ -368,7 +361,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 fetchMutation<ProjectKey>({
                   url: endpoint,
                   method: 'PUT',
-                  data: buildPayload(submitData),
+                  data: {dynamicSdkLoaderOptions: submitData},
                 }),
               onSuccess: updateData,
             }}

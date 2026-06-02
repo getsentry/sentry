@@ -137,12 +137,7 @@ describe('Loader Script Settings', () => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            dynamicSdkLoaderOptions: {
-              ...dynamicSdkLoaderOptions,
-              hasPerformance: true,
-            },
-          }),
+          data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
         })
       );
     });
@@ -389,12 +384,7 @@ describe('Loader Script Settings', () => {
       expect(mockRequest.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            dynamicSdkLoaderOptions: {
-              ...dynamicSdkLoaderOptions,
-              hasDebug: true,
-            },
-          }),
+          data: {dynamicSdkLoaderOptions: {hasDebug: true}},
         })
       );
     });
@@ -433,15 +423,64 @@ describe('Loader Script Settings', () => {
       expect(mockRequest.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
-          data: expect.objectContaining({
-            dynamicSdkLoaderOptions: {
-              ...dynamicSdkLoaderOptions,
-              hasReplay: false,
-            },
-          }),
+          data: {dynamicSdkLoaderOptions: {hasReplay: false}},
         })
       );
     });
+  });
+
+  it('only sends the changed field so concurrent toggles do not clobber each other', async () => {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    const mockRequest = renderMockRequests(
+      organization.slug,
+      params.projectSlug,
+      params.keyId
+    );
+
+    render(
+      <LoaderSettings
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions,
+        }}
+        updateData={jest.fn()}
+      />
+    );
+
+    const url = `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`;
+
+    // Toggle two different options back-to-back, before the parent re-renders
+    // with fresh data. Each request must carry ONLY its own changed field —
+    // otherwise the slower-resolving request would overwrite the other's
+    // change with a stale value (the backend merges partial options).
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Enable Performance Monitoring'})
+    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Enable SDK debugging'}));
+
+    await waitFor(() => {
+      expect(mockRequest.projectKeys).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
+        })
+      );
+    });
+
+    expect(mockRequest.projectKeys).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {dynamicSdkLoaderOptions: {hasDebug: true}},
+      })
+    );
   });
 
   it('disables logs and metrics for SDK versions below 10.x', () => {
