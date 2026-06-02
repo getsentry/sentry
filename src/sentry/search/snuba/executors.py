@@ -805,10 +805,9 @@ def _recommended_aggregation(
     # Group type boost: additive signal per issue type
     group_type_boosts = options.get("snuba.search.recommended.group-type-boost")
 
-    # Only emit terms for factors with a non-zero weight. A zero weight would
-    # multiply the factor out to 0 anyway, so there's no point making ClickHouse
-    # compute it (some factors, e.g. user impact's uniq(tags[sentry:user]), are
-    # expensive to evaluate).
+    # Skip zero-weighted factors: their term is always 0, so computing them in
+    # ClickHouse is wasted work -- especially expensive aggregates like user
+    # impact's uniq(tags[sentry:user]).
     terms = [
         f"multiply({weight}, {factor})"
         for weight, factor in (
@@ -829,8 +828,8 @@ def _recommended_aggregation(
         terms.append(f"multiIf({', '.join(conditions)}, 0.0)")
 
     if not terms:
-        # No weighted factors: emit a constant-0 aggregate (a bare "0.0" isn't a
-        # valid Snuba aggregation expression).
+        # Snuba rejects a bare "0.0" as an aggregation, so wrap the constant in an
+        # aggregate function to get a 0 score for every group.
         score_expr = "multiply(0, count())"
     else:
         score_expr = terms[0]

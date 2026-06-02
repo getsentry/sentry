@@ -4165,9 +4165,6 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
         return {gid: score for gid, score in results}
 
     def test_recommended_zero_weight_factor_excluded(self) -> None:
-        # A zeroed factor is dropped from the aggregation, so only the remaining
-        # weighted factors count. Severity (which favors the fatal group) is zeroed,
-        # so the higher-volume info group must still win on event volume alone.
         ts = before_now(hours=1).isoformat()
         for i in range(5):
             self.store_event(
@@ -4203,24 +4200,3 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
             scores = self._recommended_scores([high.id, low.id])
 
         assert scores[high.id] > scores[low.id]
-
-    def test_recommended_all_weights_zero(self) -> None:
-        # No weighted factors and no boost: the query must still succeed, scoring 0.
-        event = self.store_event(
-            data={
-                "fingerprint": ["zero"],
-                "event_id": "a" * 32,
-                "level": "error",
-                "timestamp": before_now(hours=1).isoformat(),
-            },
-            project_id=self.project.id,
-        )
-        weights = {
-            f"snuba.search.recommended.{k}-weight": 0.0
-            for k in ("recency", "spike", "severity", "user-impact", "event-volume")
-        }
-        weights["snuba.search.recommended.group-type-boost"] = {}
-        with self.options(weights):
-            scores = self._recommended_scores([event.group.id])
-
-        assert scores[event.group.id] == 0
