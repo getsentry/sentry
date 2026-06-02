@@ -43,6 +43,7 @@ import {
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
   useSetQueryParamsAggregateCursor,
+  useSetQueryParamsAggregateSortBys,
   useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
 
@@ -65,6 +66,7 @@ export function LogsAggregateTable({
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
   const setAggregateCursor = useSetQueryParamsAggregateCursor();
+  const setAggregateSortBys = useSetQueryParamsAggregateSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const aggregateCursor = useQueryParamsAggregateCursor();
   const topEventsLimit = useQueryParamsTopEventsLimit();
@@ -121,6 +123,19 @@ export function LogsAggregateTable({
               aggregateSortBys?.[0]?.field === column.key
                 ? aggregateSortBys?.[0]?.kind
                 : undefined;
+            const nextSort = (() => {
+              switch (direction) {
+                case 'asc':
+                  return {
+                    field: visualizes[0]?.yAxis ?? allFields[0]!,
+                    kind: 'desc' as const,
+                  };
+                case 'desc':
+                  return {field: column.key, kind: 'asc' as const};
+                default:
+                  return {field: column.key, kind: 'desc' as const};
+              }
+            })();
 
             return (
               <SortLink
@@ -129,22 +144,13 @@ export function LogsAggregateTable({
                 canSort
                 direction={direction}
                 generateSortLink={() => {
-                  const nextSort = (() => {
-                    switch (direction) {
-                      case 'asc':
-                        return {
-                          field: visualizes[0]?.yAxis ?? allFields[0]!,
-                          kind: 'desc' as const,
-                        };
-                      case 'desc':
-                        return {field: column.key, kind: 'asc' as const};
-                      default:
-                        return {field: column.key, kind: 'desc' as const};
-                    }
-                  })();
                   return getTargetWithReadableQueryParams(location, {
                     aggregateSortBys: [nextSort],
                   });
+                }}
+                onClick={event => {
+                  event.preventDefault();
+                  setAggregateSortBys([nextSort]);
                 }}
                 title={title}
               />

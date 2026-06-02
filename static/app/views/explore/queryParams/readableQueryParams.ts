@@ -19,6 +19,7 @@ export interface ReadableQueryParamsOptions {
   readonly sortBys: Sort[];
   readonly crossEvents?: CrossEvent[];
   readonly id?: string;
+  readonly table?: string;
   readonly title?: string;
 }
 
@@ -42,6 +43,7 @@ export class ReadableQueryParams {
   readonly title?: string;
 
   readonly crossEvents?: CrossEvent[];
+  readonly table?: string;
 
   constructor(options: ReadableQueryParamsOptions) {
     this.extrapolate = options.extrapolate;
@@ -64,6 +66,7 @@ export class ReadableQueryParams {
     this.title = options.title;
 
     this.crossEvents = options.crossEvents;
+    this.table = options.table;
   }
 
   replace(options: Partial<ReadableQueryParamsOptions>) {
@@ -80,6 +83,7 @@ export class ReadableQueryParams {
       id: options.id ?? this.id,
       title: options.title ?? this.title,
       crossEvents: options.crossEvents ?? this.crossEvents,
+      table: options.table ?? this.table,
     });
   }
 }

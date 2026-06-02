@@ -9,6 +9,8 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 
 type Props = {
   chartIndex: number;
@@ -19,6 +21,8 @@ export function FloatingTrigger({chartIndex, params}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const {setChartSelection} = useChartSelection();
+  const [, setTab] = useTab();
   const {selectionState, setSelectionState, clearSelection} = params;
 
   const handleZoomIn = useCallback(() => {
@@ -70,24 +74,19 @@ export function FloatingTrigger({chartIndex, params}: Props) {
       isActionMenuVisible: false,
     });
 
-    // Combine chartSelection and tab change into a single navigate() call.
-    // Using setChartSelection (nuqs) + setTab (navigate) separately causes a
-    // race: setTab's navigate() builds its target from location.query which
-    // doesn't yet include the queued nuqs update, clobbering chartSelection.
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        mode: 'samples',
-        table: 'attribute_breakdowns',
-        chartSelection: JSON.stringify({
-          chartIndex,
-          range: selectionState.selection.range,
-          panelId: selectionState.selection.panelId,
-        }),
-      },
+    setChartSelection({
+      chartIndex,
+      selection: selectionState.selection,
     });
-  }, [selectionState, setSelectionState, chartIndex, navigate, location, organization]);
+    setTab(Tab.ATTRIBUTE_BREAKDOWNS);
+  }, [
+    selectionState,
+    setSelectionState,
+    chartIndex,
+    setChartSelection,
+    setTab,
+    organization,
+  ]);
 
   return (
     <List>

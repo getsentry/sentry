@@ -14,4 +14,5 @@ export interface WritableQueryParams {
   mode?: Mode | null;
   query?: string | null;
   sortBys?: Sort[] | null;
+  table?: string | null;
 }

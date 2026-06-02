@@ -5,7 +5,10 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/spans/spansQueryParams';
+import {
+  getReadableQueryParamsFromLocation,
+  getTargetWithReadableQueryParams,
+} from 'sentry/views/explore/spans/spansQueryParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function locationFixture(query: Location['query']): Location {
@@ -381,5 +384,43 @@ describe('getReadableQueryParamsFromLocation', () => {
         })
       )
     );
+  });
+});
+
+describe('getTargetWithReadableQueryParams', () => {
+  it('serializes writable query params through nuqs and keeps unrelated params', () => {
+    const location = LocationFixture({
+      pathname: '/organizations/org-slug/explore/traces/',
+      query: {
+        project: '1',
+        groupBy: 'span.op',
+        visualize: JSON.stringify({yAxes: ['count(span.duration)']}),
+      },
+    });
+
+    const target = getTargetWithReadableQueryParams(location, {
+      aggregateFields: [{groupBy: 'transaction'}, {yAxes: ['avg(span.duration)']}],
+      aggregateSortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
+      extrapolate: false,
+      fields: ['timestamp', '', 'span.op'],
+      query: 'span.op:db',
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+    });
+
+    expect(target.pathname).toBe('/organizations/org-slug/explore/traces/');
+    expect(target.query).toMatchObject({
+      aggregateField: [
+        JSON.stringify({groupBy: 'transaction'}),
+        JSON.stringify({yAxes: ['avg(span.duration)']}),
+      ],
+      aggregateSort: ['-avg(span.duration)'],
+      extrapolate: '0',
+      field: ['timestamp', 'span.op'],
+      project: '1',
+      query: 'span.op:db',
+      sort: ['-timestamp'],
+    });
+    expect(target.query.groupBy).toBeUndefined();
+    expect(target.query.visualize).toBeUndefined();
   });
 });

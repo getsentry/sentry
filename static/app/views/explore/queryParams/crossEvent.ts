@@ -19,14 +19,18 @@ export function getCrossEventsFromLocation(
   location: Location,
   key: string
 ): CrossEvent[] | undefined {
-  let json: any;
-
   if (!defined(location.query?.[key]) || Array.isArray(location.query?.[key])) {
     return undefined;
   }
 
+  return parseCrossEvents(location.query?.[key]);
+}
+
+export function parseCrossEvents(value: string): CrossEvent[] | undefined {
+  let json: any;
+
   try {
-    json = JSON.parse(location.query?.[key]);
+    json = JSON.parse(value);
   } catch {
     return undefined;
   }

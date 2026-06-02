@@ -41,15 +41,18 @@ export function deriveUpdatedManagedFields(
   const fieldsToAdd = new Set<string>();
   const fieldsToDelete = new Set<string>();
   const updatedManagedFields = new Set(managedFields);
+  const {removedFields} = findChangedFields(readableQueryParams, writableQueryParams);
 
   allFields.forEach(field => {
     const readableCount = readableRefs.get(field) || 0;
     const writableCount = writableRefs.get(field) || 0;
 
     if (
-      writableCount > readableCount &&
+      (writableCount > readableCount ||
+        (defined(writableQueryParams.mode) && writableCount > 0)) &&
       !updatedManagedFields.has(field) &&
-      !fields.includes(field)
+      !fields.includes(field) &&
+      !removedFields.has(field)
     ) {
       // found a field that
       // 1. isn't in the list of fields
@@ -70,8 +73,6 @@ export function deriveUpdatedManagedFields(
       fieldsToDelete.add(field);
     }
   });
-
-  const {removedFields} = findChangedFields(readableQueryParams, writableQueryParams);
 
   // when a field is intentionally removed, it should no longer be managed
   removedFields.forEach(field => {

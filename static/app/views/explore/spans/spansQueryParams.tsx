@@ -1,26 +1,50 @@
 import type {Location} from 'history';
+import {parseAsString, type inferParserType} from 'nuqs';
 
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
-import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
-import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
-import {getCrossEventsFromLocation} from 'sentry/views/explore/queryParams/crossEvent';
-import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
-import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
-import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
+  type AggregateField,
+  getAggregateFieldsFromLocation,
+  normalizeAggregateFields,
+  withRequiredAggregateFields,
+} from 'sentry/views/explore/queryParams/aggregateField';
+import {
+  getAggregateSortBysFromLocation,
+  getValidAggregateSortBys,
+} from 'sentry/views/explore/queryParams/aggregateSortBy';
+import {getCrossEventsFromLocation} from 'sentry/views/explore/queryParams/crossEvent';
+import {
+  defaultCursor,
+  getCursorFromLocation,
+} from 'sentry/views/explore/queryParams/cursor';
+import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
+import {
+  defaultGroupBys,
   getGroupBysFromLocation,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
-import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
+import {defaultMode, getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
+import {
+  parseAsAggregateFields,
+  parseAsCrossEvents,
+  parseAsExtrapolate,
+  parseAsFields,
+  parseAsGroupBys,
+  parseAsMode,
+  parseAsSortBys,
+  parseAsVisualizes,
+  serializeQueryParamsToLocation,
+} from 'sentry/views/explore/queryParams/nuqsParsers';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
-import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
+import {
+  getSortBysFromLocation,
+  getValidSortBys,
+} from 'sentry/views/explore/queryParams/sortBy';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {
   getVisualizesFromLocation,
@@ -33,10 +57,10 @@ import {SpanFields} from 'sentry/views/insights/types';
 const SPANS_MODE_KEY = 'mode';
 const SPANS_QUERY_KEY = 'query';
 const SPANS_CURSOR_KEY = 'cursor';
-const SPANS_FIELD_KEY = 'field';
+export const SPANS_FIELD_KEY = 'field';
 const SPANS_SORT_KEY = 'sort';
 const SPANS_AGGREGATE_FIELD_KEY = 'aggregateField';
-export const SPANS_AGGREGATE_CURSOR = 'aggregateCursor';
+const SPANS_AGGREGATE_CURSOR = 'aggregateCursor';
 const SPANS_GROUP_BY_KEY = 'groupBy';
 const SPANS_VISUALIZATION_KEY = 'visualize';
 const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
@@ -44,15 +68,33 @@ const SPANS_EXTRAPOLATE_KEY = 'extrapolate';
 const SPANS_ID_KEY = ID_KEY;
 const SPANS_TITLE_KEY = TITLE_KEY;
 const SPANS_CROSS_EVENTS_KEY = 'crossEvents';
+const SPANS_TABLE_KEY = 'table';
+
+export const spansQueryParamsParsers = {
+  [SPANS_MODE_KEY]: parseAsMode,
+  [SPANS_QUERY_KEY]: parseAsString,
+  [SPANS_CURSOR_KEY]: parseAsString,
+  [SPANS_FIELD_KEY]: parseAsFields,
+  [SPANS_SORT_KEY]: parseAsSortBys,
+  [SPANS_AGGREGATE_FIELD_KEY]: parseAsAggregateFields,
+  [SPANS_AGGREGATE_CURSOR]: parseAsString,
+  [SPANS_GROUP_BY_KEY]: parseAsGroupBys,
+  [SPANS_VISUALIZATION_KEY]: parseAsVisualizes,
+  [SPANS_AGGREGATE_SORT_KEY]: parseAsSortBys,
+  [SPANS_EXTRAPOLATE_KEY]: parseAsExtrapolate,
+  [SPANS_ID_KEY]: parseAsString,
+  [SPANS_TITLE_KEY]: parseAsString,
+  [SPANS_CROSS_EVENTS_KEY]: parseAsCrossEvents,
+  [SPANS_TABLE_KEY]: parseAsString,
+};
+
+type SpansQueryParams = inferParserType<typeof spansQueryParamsParsers>;
 
 export function useSpansDataset(): DiscoverDatasets {
   return DiscoverDatasets.SPANS;
 }
 
-export function isDefaultFields(location: Location): boolean {
-  return getFieldsFromLocation(location, SPANS_FIELD_KEY) ? false : true;
-}
-
+/** @public used by spansQueryParams.spec.tsx to cover legacy location parsing */
 export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
@@ -99,67 +141,108 @@ export function getReadableQueryParamsFromLocation(
   });
 }
 
+export function getReadableQueryParamsFromParsed(
+  queryParams: SpansQueryParams
+): ReadableQueryParams {
+  const extrapolate = queryParams[SPANS_EXTRAPOLATE_KEY] ?? true;
+  const mode = queryParams[SPANS_MODE_KEY] ?? defaultMode();
+  const query = queryParams[SPANS_QUERY_KEY] ?? '';
+
+  const cursor = queryParams[SPANS_CURSOR_KEY] ?? defaultCursor();
+  const fields = queryParams[SPANS_FIELD_KEY] ?? defaultFields();
+  const sortBys =
+    getValidSortBys(queryParams[SPANS_SORT_KEY], fields) ?? defaultSortBys(fields);
+
+  const aggregateCursor = queryParams[SPANS_AGGREGATE_CURSOR] ?? defaultCursor();
+  const aggregateFields = getSpansAggregateFieldsFromParsed(queryParams);
+  const aggregateSortBys =
+    getValidAggregateSortBys(queryParams[SPANS_AGGREGATE_SORT_KEY], aggregateFields) ??
+    defaultAggregateSortBys(aggregateFields);
+
+  return new ReadableQueryParams({
+    extrapolate,
+    mode,
+    query,
+
+    cursor,
+    fields,
+    sortBys,
+
+    aggregateCursor,
+    aggregateFields,
+    aggregateSortBys,
+
+    id: queryParams[SPANS_ID_KEY] ?? undefined,
+    title: queryParams[SPANS_TITLE_KEY] ?? undefined,
+
+    crossEvents: queryParams[SPANS_CROSS_EVENTS_KEY] ?? undefined,
+    table: queryParams[SPANS_TABLE_KEY] ?? undefined,
+  });
+}
+
 export function getTargetWithReadableQueryParams(
   location: Location,
   writableQueryParams: WritableQueryParams
 ): Location {
-  const target: Location = {...location, query: {...location.query}};
+  return serializeQueryParamsToLocation(
+    location,
+    spansQueryParamsParsers,
+    getSpansQueryParamsUpdate(writableQueryParams)
+  );
+}
 
-  updateNullableLocation(
-    target,
-    SPANS_EXTRAPOLATE_KEY,
-    defined(writableQueryParams.extrapolate)
-      ? writableQueryParams.extrapolate
+export function getSpansQueryParamsUpdate(writableQueryParams: WritableQueryParams) {
+  const update: Partial<Record<keyof typeof spansQueryParamsParsers, any>> = {};
+
+  if (defined(writableQueryParams.extrapolate)) {
+    update[SPANS_EXTRAPOLATE_KEY] = writableQueryParams.extrapolate ? null : false;
+  }
+  if (defined(writableQueryParams.query) || writableQueryParams.query === null) {
+    update[SPANS_QUERY_KEY] = writableQueryParams.query;
+  }
+  if (defined(writableQueryParams.mode) || writableQueryParams.mode === null) {
+    update[SPANS_MODE_KEY] = writableQueryParams.mode;
+  }
+  if (defined(writableQueryParams.cursor) || writableQueryParams.cursor === null) {
+    update[SPANS_CURSOR_KEY] = writableQueryParams.cursor;
+  }
+  if (Object.hasOwn(writableQueryParams, 'aggregateCursor')) {
+    update[SPANS_AGGREGATE_CURSOR] = writableQueryParams.aggregateCursor ?? null;
+  }
+  if (defined(writableQueryParams.fields) || writableQueryParams.fields === null) {
+    update[SPANS_FIELD_KEY] =
+      writableQueryParams.fields === null
         ? null
-        : '0'
-      : writableQueryParams.extrapolate
-  );
-  updateNullableLocation(target, SPANS_QUERY_KEY, writableQueryParams.query);
-  updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
-
-  updateNullableLocation(
-    target,
-    SPANS_FIELD_KEY,
-    writableQueryParams.fields === null
-      ? null
-      : writableQueryParams.fields?.filter(Boolean)
-  );
-  updateNullableLocation(
-    target,
-    SPANS_SORT_KEY,
-    writableQueryParams.sortBys === null
-      ? null
-      : writableQueryParams.sortBys?.map(
-          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
-        )
-  );
-
-  updateNullableLocation(
-    target,
-    SPANS_AGGREGATE_FIELD_KEY,
-    writableQueryParams.aggregateFields?.map(aggregateField =>
-      JSON.stringify(aggregateField)
-    )
-  );
-  updateNullableLocation(
-    target,
-    SPANS_AGGREGATE_SORT_KEY,
+        : writableQueryParams.fields.filter(Boolean);
+  }
+  if (defined(writableQueryParams.sortBys) || writableQueryParams.sortBys === null) {
+    update[SPANS_SORT_KEY] = writableQueryParams.sortBys;
+  }
+  if (
+    defined(writableQueryParams.aggregateFields) ||
+    writableQueryParams.aggregateFields === null
+  ) {
+    update[SPANS_AGGREGATE_FIELD_KEY] = writableQueryParams.aggregateFields;
+    update[SPANS_GROUP_BY_KEY] = null;
+    update[SPANS_VISUALIZATION_KEY] = null;
+  }
+  if (
+    defined(writableQueryParams.aggregateSortBys) ||
     writableQueryParams.aggregateSortBys === null
-      ? null
-      : writableQueryParams.aggregateSortBys?.map(
-          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
-        )
-  );
+  ) {
+    update[SPANS_AGGREGATE_SORT_KEY] = writableQueryParams.aggregateSortBys;
+  }
+  if (
+    defined(writableQueryParams.crossEvents) ||
+    writableQueryParams.crossEvents === null
+  ) {
+    update[SPANS_CROSS_EVENTS_KEY] = writableQueryParams.crossEvents;
+  }
+  if (defined(writableQueryParams.table) || writableQueryParams.table === null) {
+    update[SPANS_TABLE_KEY] = writableQueryParams.table;
+  }
 
-  updateNullableLocation(
-    target,
-    SPANS_CROSS_EVENTS_KEY,
-    writableQueryParams?.crossEvents === null
-      ? null
-      : JSON.stringify(writableQueryParams.crossEvents)
-  );
-
-  return target;
+  return update;
 }
 
 function defaultFields(): string[] {
@@ -195,10 +278,6 @@ function defaultSortBys(fields: string[]): Sort[] {
   return [];
 }
 
-function defaultGroupBys(): [GroupBy] {
-  return [{groupBy: ''}];
-}
-
 export function defaultVisualizes(): [Visualize] {
   return [new VisualizeFunction(DEFAULT_VISUALIZATION)];
 }
@@ -210,34 +289,31 @@ function getSpansAggregateFieldsFromLocation(location: Location): AggregateField
   );
 
   if (aggregateFields?.length) {
-    let hasGroupBy = false;
-    let hasVisualize = false;
-    for (const aggregateField of aggregateFields) {
-      if (isGroupBy(aggregateField)) {
-        hasGroupBy = true;
-      } else if (isVisualize(aggregateField)) {
-        hasVisualize = true;
-      }
-    }
-
-    // We have at least 1 group by or 1 visualize, insert some
-    // defaults to make sure we have at least 1 of both
-
-    if (!hasGroupBy) {
-      aggregateFields.push(...defaultGroupBys());
-    }
-
-    if (!hasVisualize) {
-      aggregateFields.push(...defaultVisualizes());
-    }
-
-    return aggregateFields;
+    return withRequiredAggregateFields(aggregateFields, defaultVisualizes);
   }
 
   return [
     ...(getGroupBysFromLocation(location, SPANS_GROUP_BY_KEY) ?? defaultGroupBys()),
     ...(getVisualizesFromLocation(location, SPANS_VISUALIZATION_KEY) ??
       defaultVisualizes()),
+  ];
+}
+
+function getSpansAggregateFieldsFromParsed(
+  queryParams: SpansQueryParams
+): AggregateField[] {
+  const aggregateFields = queryParams[SPANS_AGGREGATE_FIELD_KEY];
+
+  if (aggregateFields?.length) {
+    return withRequiredAggregateFields(
+      normalizeAggregateFields(aggregateFields),
+      defaultVisualizes
+    );
+  }
+
+  return [
+    ...(queryParams[SPANS_GROUP_BY_KEY] ?? defaultGroupBys()),
+    ...(queryParams[SPANS_VISUALIZATION_KEY] ?? defaultVisualizes()),
   ];
 }
 

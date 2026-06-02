@@ -38,3 +38,17 @@ export function validateAggregateSort(
     throw new Error('Unknown aggregate field');
   });
 }
+
+export function getValidAggregateSortBys(
+  sortBys: Sort[] | null,
+  aggregateFields: AggregateField[]
+): Sort[] | null {
+  if (
+    sortBys?.length &&
+    sortBys.every(sort => validateAggregateSort(sort, aggregateFields))
+  ) {
+    return sortBys;
+  }
+
+  return null;
+}

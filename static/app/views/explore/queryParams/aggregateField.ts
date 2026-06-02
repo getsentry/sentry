@@ -2,9 +2,13 @@ import type {Location} from 'history';
 
 import {decodeList} from 'sentry/utils/queryString';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {defaultGroupBys, isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
-import {parseVisualize, Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualize,
+  parseVisualize,
+  Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 
 export type WritableAggregateField = GroupBy | BaseVisualize;
 
@@ -37,7 +41,7 @@ export function getAggregateFieldsFromLocation(
   return aggregateFields;
 }
 
-function parseAggregateField(value: any): AggregateField[] {
+export function parseAggregateField(value: any): AggregateField[] {
   if (isGroupBy(value)) {
     return [value];
   }
@@ -48,4 +52,41 @@ function parseAggregateField(value: any): AggregateField[] {
   }
 
   return [];
+}
+
+export function normalizeAggregateFields(
+  aggregateFields: readonly any[]
+): AggregateField[] {
+  return aggregateFields.flatMap(aggregateField => {
+    if (isGroupBy(aggregateField) || isVisualize(aggregateField)) {
+      return [aggregateField];
+    }
+
+    return parseAggregateField(aggregateField);
+  });
+}
+
+export function withRequiredAggregateFields(
+  aggregateFields: AggregateField[],
+  getDefaultVisualizes: () => readonly Visualize[]
+): AggregateField[] {
+  let hasGroupBy = false;
+  let hasVisualize = false;
+  for (const aggregateField of aggregateFields) {
+    if (isGroupBy(aggregateField)) {
+      hasGroupBy = true;
+    } else if (isVisualize(aggregateField)) {
+      hasVisualize = true;
+    }
+  }
+
+  if (!hasGroupBy) {
+    aggregateFields.push(...defaultGroupBys());
+  }
+
+  if (!hasVisualize) {
+    aggregateFields.push(...getDefaultVisualizes());
+  }
+
+  return aggregateFields;
 }
