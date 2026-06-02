@@ -78,8 +78,8 @@ def _create_request_session(retry_count: int) -> Session:
         max_retries=Retry(
             total=retry_count,
             backoff_factor=0.1,
-            status_forcelist=[503],
-            allowed_methods=["GET", "POST"],
+            status_forcelist=[502, 503, 504],
+            allowed_methods=["GET", "POST", "PUT", "DELETE"],
         )
     )
     http = Session()
@@ -276,6 +276,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
 
         raise
 
+    # This block can be removed after migration too pool with retry
     if resp.status_code >= 502:
         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
         if circuit_breaker is not None:
