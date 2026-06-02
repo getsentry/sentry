@@ -205,11 +205,6 @@ export class VirtualizedViewManager {
     this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
   }
 
-  setTimeCompressionOptions(options: this['timeCompressionOptions']) {
-    this.timeCompressionOptions = options;
-    this.recomputeTimeCompression();
-  }
-
   setTimeCompression(compression: TraceTimeCompression) {
     this.time_compression = compression;
   }
