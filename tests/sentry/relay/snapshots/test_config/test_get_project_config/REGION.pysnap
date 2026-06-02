@@ -161,7 +161,7 @@ config:
       - '*healthcheck*'
       - '*health-check*'
       - '*heartbeat*'
-      - '*/health{/,}'
+      - '*/health{/*,}'
       - '*/healthy{/,}'
       - '*/healthz{/,}'
       - '*/health_check{/,}'

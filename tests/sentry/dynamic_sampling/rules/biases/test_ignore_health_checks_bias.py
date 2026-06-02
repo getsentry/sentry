@@ -47,6 +47,8 @@ def expand_glob_for_fnmatch(pattern: str) -> list[str]:
     pattern = pattern.replace(r"\[", "[[]").replace(r"\]", "[]]")
 
     # Expand {/,} brace syntax
+    if "{/*,}" in pattern:
+        return [pattern.replace("{/*,}", "/*"), pattern.replace("{/*,}", "")]
     if "{/,}" in pattern:
         return [pattern.replace("{/,}", "/"), pattern.replace("{/,}", "")]
     return [pattern]
@@ -89,12 +91,12 @@ def matches_health_check_globs(transaction_name: str) -> bool:
         ("POST /heartbeat", "*heartbeat*"),
         ("heartbeat", "*heartbeat*"),
         ("service-heartbeat-check", "*heartbeat*"),
-        # Pattern: */health{/,}
-        ("/api/health", "*/health{/,}"),
-        ("/api/health/", "*/health{/,}"),
-        ("GET /health", "*/health{/,}"),
-        ("GET /health/", "*/health{/,}"),
-        ("/v1/health", "*/health{/,}"),
+        # Pattern: */health{/*,}
+        ("/api/health", "*/health{/*,}"),
+        ("/api/health/foo", "*/health{/*,}"),
+        ("GET /health", "*/health{/*,}"),
+        ("GET /health/", "*/health{/*,}"),
+        ("/v1/health", "*/health{/*,}"),
         # Pattern: */healthy{/,}
         ("/api/healthy", "*/healthy{/,}"),
         ("/api/healthy/", "*/healthy{/,}"),
