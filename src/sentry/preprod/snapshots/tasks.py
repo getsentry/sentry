@@ -5,6 +5,8 @@ import logging
 import queue
 import threading
 import time
+from collections import Counter
+from collections.abc import Callable
 from concurrent.futures import as_completed
 from difflib import SequenceMatcher
 from typing import NamedTuple
@@ -40,6 +42,26 @@ logger = logging.getLogger(__name__)
 
 MAX_DIFF_PIXELS = 40_000_000
 MAX_PIXELS_PER_BATCH = 40_000_000
+
+# Concurrent batch fetches/uploads make transient objectstore 429/503s likelier. Retry once
+# (more would just amplify rate limiting); other errors (e.g. 404) fail fast.
+_RETRYABLE_OBJECTSTORE_STATUSES = frozenset({429, 503})
+_OBJECTSTORE_MAX_ATTEMPTS = 2
+_OBJECTSTORE_RETRY_DELAY_S = 0.5
+
+
+def _retry_objectstore[T](operation: Callable[[], T]) -> T:
+    for attempt in range(1, _OBJECTSTORE_MAX_ATTEMPTS + 1):
+        try:
+            return operation()
+        except RequestError as e:
+            if (
+                e.status not in _RETRYABLE_OBJECTSTORE_STATUSES
+                or attempt == _OBJECTSTORE_MAX_ATTEMPTS
+            ):
+                raise
+            time.sleep(_OBJECTSTORE_RETRY_DELAY_S)
+    raise AssertionError("unreachable")
 
 
 class _DiffCandidate(NamedTuple):
@@ -186,7 +208,9 @@ def _fetch_batch_images(
 
     def fetch(image_hash: str) -> None:
         try:
-            data = session.get(f"{key_prefix}/{image_hash}").payload.read()
+            data = _retry_objectstore(
+                lambda: session.get(f"{key_prefix}/{image_hash}").payload.read()
+            )
             with lock:
                 cache[image_hash] = data
         except Exception:
@@ -221,10 +245,8 @@ def _create_pixel_batches(
 
 
 def _tally_statuses(results: dict[str, dict[str, object]]) -> tuple[int, int, int]:
-    changed = sum(1 for r in results.values() if r["status"] == "changed")
-    unchanged = sum(1 for r in results.values() if r["status"] == "unchanged")
-    errored = sum(1 for r in results.values() if r["status"] == "errored")
-    return changed, unchanged, errored
+    counts = Counter(r["status"] for r in results.values())
+    return counts["changed"], counts["unchanged"], counts["errored"]
 
 
 def _process_batch(
@@ -308,7 +330,13 @@ def _process_batch(
             diff_mask_key = (
                 f"{image_key_prefix}/{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
             )
-            session.put(diff_result.diff_mask_png, key=diff_mask_key, content_type="image/png")
+            _retry_objectstore(
+                lambda: session.put(
+                    diff_result.diff_mask_png,
+                    key=diff_mask_key,
+                    content_type="image/png",
+                )
+            )
 
             diff_pct = (
                 diff_result.changed_pixels / diff_result.total_pixels
@@ -645,10 +673,14 @@ def compare_snapshots(
 
         try:
             head_manifest = SnapshotManifest(
-                **orjson.loads(session.get(head_manifest_key).payload.read())
+                **orjson.loads(
+                    _retry_objectstore(lambda: session.get(head_manifest_key).payload.read())
+                )
             )
             base_manifest = SnapshotManifest(
-                **orjson.loads(session.get(base_manifest_key).payload.read())
+                **orjson.loads(
+                    _retry_objectstore(lambda: session.get(base_manifest_key).payload.read())
+                )
             )
         except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
             logger.exception(
@@ -868,10 +900,12 @@ def compare_snapshots(
         comparison_key = (
             f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/comparison.json"
         )
-        session.put(
-            orjson.dumps(comparison_manifest.dict()),
-            key=comparison_key,
-            content_type="application/json",
+        _retry_objectstore(
+            lambda: session.put(
+                orjson.dumps(comparison_manifest.dict()),
+                key=comparison_key,
+                content_type="application/json",
+            )
         )
 
         comparison.state = PreprodSnapshotComparison.State.SUCCESS

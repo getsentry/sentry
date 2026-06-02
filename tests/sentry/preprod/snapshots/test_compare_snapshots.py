@@ -3,13 +3,52 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
+from objectstore_client.client import RequestError
 
 from sentry.preprod.models import PreprodArtifact, PreprodSnapshotComparison
 from sentry.preprod.snapshots.image_diff.types import DiffResult
-from sentry.preprod.snapshots.tasks import compare_snapshots
+from sentry.preprod.snapshots.tasks import _retry_objectstore, compare_snapshots
 from sentry.testutils.cases import TestCase
 
 TASKS = "sentry.preprod.snapshots.tasks"
+
+
+class RetryObjectstoreTest(TestCase):
+    def test_retries_once_then_succeeds_on_429(self) -> None:
+        calls = []
+
+        def op() -> str:
+            calls.append(1)
+            if len(calls) < 2:
+                raise RequestError("rate limited", status=429, response="")
+            return "ok"
+
+        with patch("sentry.preprod.snapshots.tasks.time.sleep"):
+            assert _retry_objectstore(op) == "ok"
+        assert len(calls) == 2
+
+    def test_gives_up_after_one_retry(self) -> None:
+        calls = []
+
+        def op() -> str:
+            calls.append(1)
+            raise RequestError("rate limited", status=429, response="")
+
+        with patch("sentry.preprod.snapshots.tasks.time.sleep"), pytest.raises(RequestError):
+            _retry_objectstore(op)
+        assert len(calls) == 2
+
+    def test_does_not_retry_non_transient_status(self) -> None:
+        calls = []
+
+        def op() -> str:
+            calls.append(1)
+            raise RequestError("not found", status=404, response="")
+
+        with pytest.raises(RequestError):
+            _retry_objectstore(op)
+        assert len(calls) == 1
 
 
 def _manifest_bytes(images: dict[str, str]) -> bytes:
@@ -224,3 +263,27 @@ class CompareSnapshotsTest(TestCase):
         assert images["a.png"]["status"] == "changed"
         assert images["b.png"]["status"] == "errored"
         assert images["b.png"]["reason"] == "image_processing_failed"
+
+    def test_compare_snapshots_retries_rate_limited_manifest(self) -> None:
+        session = self._make_session(
+            head_images={"a.png": "h1"},
+            base_images={"a.png": "h0"},
+        )
+        underlying_get = session.get.side_effect
+        state = {"throttled": False}
+
+        def flaky_get(key: str) -> MagicMock:
+            if key == self.head_key and not state["throttled"]:
+                state["throttled"] = True
+                raise RequestError("rate limited", status=429, response="")
+            return underlying_get(key)
+
+        session.get.side_effect = flaky_get
+        with patch("sentry.preprod.snapshots.tasks.time.sleep"):
+            self._run(session, diff_results=[_diff_result(50)])
+
+        assert state["throttled"]  # the 429 was hit and retried, not fatal
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics=self.head_metrics, base_snapshot_metrics=self.base_metrics
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
