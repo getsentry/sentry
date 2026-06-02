@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -23,6 +23,7 @@ from sentry.analytics.events.autofix_events import (
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.artifact_schemas import (
@@ -32,6 +33,7 @@ from sentry.seer.autofix.artifact_schemas import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.prompts import (
     code_changes_prompt,
+    low_value_span_solution_prompt,
     root_cause_prompt,
     solution_prompt,
 )
@@ -135,6 +137,47 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
 }
 
 
+def is_low_value_span_configuration_issue(group: Group) -> bool:
+    return group.issue_type.slug == LowValueSpanConfigurationType.slug
+
+
+def get_initial_autofix_step(
+    step: AutofixStep,
+    group: Group,
+    run_id: int | None,
+    stopping_point: AutofixStoppingPoint | None = None,
+) -> AutofixStep:
+    if (
+        run_id is None
+        and stopping_point is None
+        and step == AutofixStep.ROOT_CAUSE
+        and is_low_value_span_configuration_issue(group)
+    ):
+        return AutofixStep.SOLUTION
+    return step
+
+
+def get_low_value_span_evidence(group: Group) -> dict[str, Any]:
+    try:
+        event = group.get_latest_event()
+        occurrence = getattr(event, "occurrence", None)
+        evidence_data = getattr(occurrence, "evidence_data", None)
+        if not isinstance(evidence_data, Mapping):
+            return {}
+
+        return {
+            "op": evidence_data.get("op"),
+            "description": evidence_data.get("description"),
+            "span_origin": evidence_data.get("span_origin"),
+        }
+    except Exception:
+        logger.exception(
+            "autofix.low_value_span_evidence.get_failed",
+            extra={"group_id": group.id, "project_id": group.project_id},
+        )
+        return {}
+
+
 def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None = None) -> str:
     """
     Build the prompt for a step using issue details.
@@ -147,12 +190,21 @@ def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None 
         Formatted prompt string
     """
     config = STEP_CONFIGS[step]
-    prompt = config.prompt_fn(
-        short_id=group.qualified_short_id or str(group.id),
-        title=group.title or "Unknown error",
-        culprit=group.culprit or "unknown",
-        artifact_key=step.value,
-    )
+    if step == AutofixStep.SOLUTION and is_low_value_span_configuration_issue(group):
+        prompt = low_value_span_solution_prompt(
+            short_id=group.qualified_short_id or str(group.id),
+            title=group.title or "Unknown error",
+            culprit=group.culprit or "unknown",
+            artifact_key=step.value,
+            span_evidence=get_low_value_span_evidence(group),
+        )
+    else:
+        prompt = config.prompt_fn(
+            short_id=group.qualified_short_id or str(group.id),
+            title=group.title or "Unknown error",
+            culprit=group.culprit or "unknown",
+            artifact_key=step.value,
+        )
 
     parts = [prompt]
 
@@ -255,6 +307,7 @@ def trigger_autofix_agent(
         if not has_budget:
             raise NoSeerQuotaException()
 
+    step = get_initial_autofix_step(step, group, run_id, stopping_point)
     config = STEP_CONFIGS[step]
 
     client = get_autofix_agent_client(

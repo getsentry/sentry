@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.constants import DataCategory
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client_models import (
     Artifact,
     MemoryBlock,
@@ -17,12 +18,13 @@ from sentry.seer.autofix.autofix_agent import (
     NoSeerQuotaException,
     build_step_prompt,
     generate_autofix_handoff_prompt,
+    get_initial_autofix_step,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
 from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
-from sentry.seer.autofix.utils import AutofixRequest, AutofixState
+from sentry.seer.autofix.utils import AutofixRequest, AutofixState, AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError, SeerRepoDefinition
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
@@ -243,6 +245,46 @@ class TestBuildStepPrompt(TestCase):
             assert not prompt.startswith(" "), f"{step} prompt starts with whitespace"
             assert not prompt.startswith("\t"), f"{step} prompt starts with tab"
 
+    def test_low_value_span_initial_root_cause_starts_at_solution(self) -> None:
+        low_value_span_group = self.create_group(
+            project=self.project,
+            type=LowValueSpanConfigurationType.type_id,
+        )
+
+        step = get_initial_autofix_step(AutofixStep.ROOT_CAUSE, low_value_span_group, run_id=None)
+
+        assert step == AutofixStep.SOLUTION
+
+    def test_low_value_span_continued_root_cause_does_not_change_step(self) -> None:
+        low_value_span_group = self.create_group(
+            project=self.project,
+            type=LowValueSpanConfigurationType.type_id,
+        )
+
+        step = get_initial_autofix_step(AutofixStep.ROOT_CAUSE, low_value_span_group, run_id=123)
+
+        assert step == AutofixStep.ROOT_CAUSE
+
+    def test_low_value_span_stopping_point_does_not_change_step(self) -> None:
+        low_value_span_group = self.create_group(
+            project=self.project,
+            type=LowValueSpanConfigurationType.type_id,
+        )
+
+        step = get_initial_autofix_step(
+            AutofixStep.ROOT_CAUSE,
+            low_value_span_group,
+            run_id=None,
+            stopping_point=AutofixStoppingPoint.OPEN_PR,
+        )
+
+        assert step == AutofixStep.ROOT_CAUSE
+
+    def test_error_issue_initial_root_cause_does_not_change_step(self) -> None:
+        step = get_initial_autofix_step(AutofixStep.ROOT_CAUSE, self.group, run_id=None)
+
+        assert step == AutofixStep.ROOT_CAUSE
+
 
 class TestTriggerAutofixAgent(TestCase):
     def setUp(self) -> None:
@@ -361,6 +403,57 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client.start_run.assert_called_once()
         call_kwargs = mock_client.start_run.call_args.kwargs
         assert call_kwargs["metadata"] == {"group_id": self.group.id, "referrer": "unknown"}
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_trigger_low_value_span_root_cause_starts_solution_run(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        low_value_span_group = self.create_group(
+            project=self.project,
+            type=LowValueSpanConfigurationType.type_id,
+        )
+        event = Mock(
+            occurrence=Mock(
+                evidence_data={
+                    "op": "resource.script",
+                    "description": "GET /static/app.js",
+                    "span_origin": "automatic",
+                }
+            )
+        )
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        with (
+            patch.object(low_value_span_group, "get_latest_event", return_value=event),
+            patch(
+                "sentry.seer.autofix.autofix_agent.low_value_span_solution_prompt",
+                return_value="low value span solution prompt",
+            ) as mock_low_value_span_solution_prompt,
+        ):
+            trigger_autofix_agent(
+                group=low_value_span_group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+            )
+
+        start_run_kwargs = mock_client.start_run.call_args.kwargs
+        assert start_run_kwargs["artifact_key"] == AutofixStep.SOLUTION.value
+        assert start_run_kwargs["prompt_metadata"]["step"] == AutofixStep.SOLUTION.value
+        assert start_run_kwargs["prompt"] == "low value span solution prompt"
+        assert mock_low_value_span_solution_prompt.call_args.kwargs["span_evidence"] == {
+            "op": "resource.script",
+            "description": "GET /static/app.js",
+            "span_origin": "automatic",
+        }
+        assert (
+            mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
+        )
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
