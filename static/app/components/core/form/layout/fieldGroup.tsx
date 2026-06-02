@@ -12,7 +12,6 @@ export function FieldGroup({
 }: {
   children: React.ReactNode;
   hasButtons?: boolean;
-  hideBorder?: boolean;
   title?: React.ReactNode;
 }) {
   return (
