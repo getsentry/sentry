@@ -98,6 +98,8 @@ class IntegrationSerializer(Serializer):
 
 class IntegrationConfigSerializerResponse(IntegrationSerializerResponse, total=False):
     configOrganization: Sequence[Any]
+    # `issueConfig` is canonical; `createIssueConfig` is a deprecated alias.
+    issueConfig: list[dict[str, Any]]
     createIssueConfig: list[dict[str, Any]]
 
 
@@ -135,13 +137,15 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
         # Query param "action" only attached in TicketRuleForm modal.
         if self.params.get("action") == "create":
+            # This method comes from IssueBasicIntegration within the integration's installation class
+            create_config = install.get_create_issue_config(  # type: ignore[attr-defined]
+                None, user, params=self.params
+            )
             return {
                 **base,
                 "configOrganization": config_organization,
-                # This method comes from IssueBasicIntegration within the integration's installation class
-                "createIssueConfig": install.get_create_issue_config(  # type: ignore[attr-defined]
-                    None, user, params=self.params
-                ),
+                "issueConfig": create_config,
+                "createIssueConfig": create_config,
             }
 
         return {**base, "configOrganization": config_organization}
