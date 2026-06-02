@@ -20,6 +20,12 @@ type Orientation = 'horizontal' | 'vertical';
 
 type SplitPanelContextValue = {
   isHeld: boolean;
+  /**
+   * Whether the sized pane is the first child (before the divider). Drives the
+   * directional resize cursor: the grow/shrink direction flips depending on
+   * which side of the divider the sized pane sits on.
+   */
+  isSizedFirst: boolean;
   max: number;
   min: number;
   onDoubleClick: React.MouseEventHandler<HTMLElement>;
@@ -116,15 +122,55 @@ function useIsSizedPanel() {
   return useContext(IsSizedPanelContext);
 }
 
+// At a limit the divider can only travel one way; point the cursor that way.
+// The grow/shrink direction flips when the sized pane sits after the divider.
+function getDividerCursor(
+  orientation: Orientation,
+  atMin: boolean,
+  atMax: boolean,
+  isSizedFirst: boolean
+): React.CSSProperties['cursor'] {
+  if (orientation === 'horizontal') {
+    if (atMin) {
+      return isSizedFirst ? 'e-resize' : 'w-resize';
+    }
+    if (atMax) {
+      return isSizedFirst ? 'w-resize' : 'e-resize';
+    }
+    return 'ew-resize';
+  }
+  if (atMin) {
+    return isSizedFirst ? 's-resize' : 'n-resize';
+  }
+  if (atMax) {
+    return isSizedFirst ? 'n-resize' : 's-resize';
+  }
+  return 'ns-resize';
+}
+
 function Divider() {
-  const {isHeld, max, min, onDoubleClick, onKeyDown, onMouseDown, orientation, size} =
-    useSplitPanelContext('SplitPanel.Divider');
+  const {
+    isHeld,
+    isSizedFirst,
+    max,
+    min,
+    onDoubleClick,
+    onKeyDown,
+    onMouseDown,
+    orientation,
+    size,
+  } = useSplitPanelContext('SplitPanel.Divider');
+
+  const atMin = size <= min;
+  const atMax = Number.isFinite(max) && size >= max;
+  const cursor = getDividerCursor(orientation, atMin, atMax, isSizedFirst);
 
   return (
     <Container position="relative" flexShrink={0}>
       {({className}) => (
         <DividerLine
           className={className}
+          $cursor={cursor}
           aria-orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
           aria-valuemax={Number.isFinite(max) ? max : undefined}
           aria-valuemin={min}
@@ -173,6 +219,7 @@ function flattenChildren(children: React.ReactNode): React.ReactNode[] {
 // Find the sized pane's sizing props AND wrap each Panel child with
 // IsSizedPanelContext so it knows whether to render sized or fill.
 function buildSplitPanelTree(children: React.ReactNode): {
+  isSizedFirst: boolean;
   panelCount: number;
   sizedCount: number;
   sizedProps: SplitPanelPanelProps | null;
@@ -196,14 +243,18 @@ function buildSplitPanelTree(children: React.ReactNode): {
   const canSize = panelCount >= 2;
 
   let sized: SplitPanelPanelProps | null = null;
+  let sizedPanelIndex = -1;
+  let panelIndex = 0;
   const wrappedChildren = Children.map(flatChildren, child => {
     if (!isPanelElement(child)) {
       return child;
     }
+    const thisPanelIndex = panelIndex++;
     const isThisPanelSized =
       canSize && sized === null && child.props.defaultSize !== undefined;
     if (isThisPanelSized) {
       sized = child.props;
+      sizedPanelIndex = thisPanelIndex;
     }
     return (
       <IsSizedPanelContext.Provider value={isThisPanelSized}>
@@ -211,7 +262,13 @@ function buildSplitPanelTree(children: React.ReactNode): {
       </IsSizedPanelContext.Provider>
     );
   });
-  return {sizedProps: sized, wrappedChildren, panelCount, sizedCount};
+  return {
+    sizedProps: sized,
+    wrappedChildren,
+    panelCount,
+    sizedCount,
+    isSizedFirst: sizedPanelIndex === 0,
+  };
 }
 
 function Root({
@@ -225,7 +282,7 @@ function Root({
   const dims = useDimensions({elementRef: containerRef});
   const availableSize = orientation === 'horizontal' ? dims.width : dims.height;
 
-  const {sizedProps, wrappedChildren, panelCount, sizedCount} =
+  const {sizedProps, wrappedChildren, panelCount, sizedCount, isSizedFirst} =
     buildSplitPanelTree(children);
 
   if (process.env.NODE_ENV !== 'production') {
@@ -363,6 +420,7 @@ function Root({
   const contextValue = useMemo<SplitPanelContextValue>(
     () => ({
       isHeld,
+      isSizedFirst,
       max,
       min,
       onDoubleClick: handleDoubleClick,
@@ -378,6 +436,7 @@ function Root({
       handleKeyDown,
       handleMouseDown,
       isHeld,
+      isSizedFirst,
       max,
       min,
       orientation,
@@ -434,8 +493,9 @@ const RootElement = styled('div')`
   }
 `;
 
-const DividerLine = styled('div')`
+const DividerLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
   user-select: none;
+  cursor: ${p => p.$cursor};
 
   /* Invisible wider hit area for dragging */
   &::before {
@@ -462,7 +522,6 @@ const DividerLine = styled('div')`
   &[data-orientation='horizontal'] {
     width: 0;
     height: 100%;
-    cursor: ew-resize;
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
     &::before {
@@ -479,7 +538,6 @@ const DividerLine = styled('div')`
   &[data-orientation='vertical'] {
     width: 100%;
     height: 0;
-    cursor: ns-resize;
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
     &::before {
