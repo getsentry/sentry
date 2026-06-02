@@ -115,6 +115,22 @@ class SeerActivityHandlerTest(TestCase):
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
+    def test_uses_group_detector(self, mock_process_workflow_activity: MagicMock) -> None:
+        detector = self.create_detector(name="linked_detector", project=self.project)
+        self.create_detector_group(detector=detector, group=self.group)
+
+        seer_activity_handler(self.group, self.activity)
+
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=detector.id,
+        )
+
+    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
     def test_falls_back_to_issue_stream_detector(
         self, mock_process_workflow_activity: MagicMock
     ) -> None:
