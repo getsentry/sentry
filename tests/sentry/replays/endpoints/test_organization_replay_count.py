@@ -680,3 +680,53 @@ class OrganizationReplayCountEndpointTest(
         # is not returned.
         assert response.status_code == 200, response.content
         assert response.data == {event_a.group.id: 1}
+
+    def test_cross_project_access_denied(self) -> None:
+        # Disable allow_joinleave so team membership strictly gates project access.
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        team_a = self.create_team(organization=self.organization)
+        team_b = self.create_team(organization=self.organization)
+
+        self.project.add_team(team_a)
+        project_b = self.create_project(organization=self.organization, teams=[team_b])
+        project_b.update(flags=F("flags").bitor(Project.flags.has_replays))
+
+        # User who only belongs to team_a (project A only).
+        restricted_user = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=restricted_user,
+            role="member",
+            teams=[team_a],
+        )
+
+        # A replay stored in project_a (accessible to restricted_user).
+        replay_id = uuid.uuid4().hex
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay_id,
+            )
+        )
+
+        event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay_id}},
+                "fingerprint": ["group-b"],
+            },
+            project_id=project_b.id,
+        )
+
+        self.login_as(user=restricted_user)
+        query = {"query": f"issue.id:[{event_b.group.id}]"}
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        # The restricted user must not receive data for project_b's group.
+        assert response.status_code == 200, response.content
+        assert response.data == {}

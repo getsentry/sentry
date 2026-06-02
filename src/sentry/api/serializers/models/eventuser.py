@@ -19,7 +19,7 @@ class EventUserSerializerResponse(TypedDict):
 
 
 @register(EventUser)
-class EventUserSerializer(Serializer):
+class EventUserSerializer(Serializer[EventUserSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> EventUserSerializerResponse:
         return {
             "id": str(obj.id) if obj.id is not None else obj.id,

@@ -62,7 +62,7 @@ export const ScoreBar = styled(BaseScoreBar)`
         `
       : css`
           min-width: 80px;
-        `};
+        `}
 `;
 
 type BarProps = {
