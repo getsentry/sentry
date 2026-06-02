@@ -700,17 +700,15 @@ function CollapsedGapMarker({
     [gap, index, manager]
   );
 
-  const startLabel = formatTraceDuration(gap.start - manager.view.to_origin);
-  const endLabel = formatTraceDuration(gap.end - manager.view.to_origin);
+  const durationLabel = formatTraceDuration(gap.duration);
 
   return (
-    <Tooltip title={`Skipped ${formatTraceDuration(gap.duration)} inactive period`}>
-      <div ref={registerCollapsedGapMarkerRef} className="TraceCollapsedGapMarker">
-        <div className="TraceCollapsedGapMarkerLabel Left">{startLabel}</div>
-        <div className="TraceCollapsedGapMarkerBreak" />
-        <div className="TraceCollapsedGapMarkerLabel Right">{endLabel}</div>
-      </div>
-    </Tooltip>
+    <div ref={registerCollapsedGapMarkerRef} className="TraceCollapsedGapMarker">
+      <div className="TraceCollapsedGapMarkerBreak" />
+      <Tooltip title={`Skipped ${durationLabel} inactive period`}>
+        <div className="TraceCollapsedGapMarkerPill">{durationLabel}</div>
+      </Tooltip>
+    </div>
   );
 }
 
@@ -939,7 +937,6 @@ const TraceStylingWrapper = styled('div')`
     position: absolute;
     top: 0;
     height: 100%;
-    width: 28px;
     pointer-events: auto;
     z-index: 2;
   }
@@ -947,8 +944,8 @@ const TraceStylingWrapper = styled('div')`
   .TraceCollapsedGapMarkerBreak {
     position: absolute;
     top: 19px;
-    left: 3px;
-    width: 22px;
+    left: -2px;
+    right: -2px;
     height: calc(100% - 19px);
     box-sizing: border-box;
     color: ${p => p.theme.tokens.content.secondary};
@@ -962,25 +959,19 @@ const TraceStylingWrapper = styled('div')`
     border-right: 1px solid color-mix(in srgb, currentColor 52%, transparent);
   }
 
-  .TraceCollapsedGapMarkerLabel {
-    position: absolute;
-    top: 24px;
+  .TraceCollapsedGapMarkerPill {
+    position: relative;
+    top: 20px;
     font-size: 10px;
     font-weight: ${p => p.theme.font.weight.sans.regular};
     color: ${p => p.theme.tokens.content.secondary};
-    background-color: transparent;
+    background-color: ${p => p.theme.tokens.background.primary};
     line-height: 1;
     white-space: nowrap;
-
-    &.Left {
-      right: 100%;
-      padding-right: 1px;
-    }
-
-    &.Right {
-      left: 100%;
-      padding-left: 1px;
-    }
+    padding: 2px 6px;
+    border-radius: 100px;
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    cursor: default;
   }
 
   .TraceIndicatorLabelContainer {

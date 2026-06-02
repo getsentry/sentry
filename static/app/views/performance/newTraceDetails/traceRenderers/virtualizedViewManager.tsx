@@ -1962,8 +1962,9 @@ export class VirtualizedViewManager {
     }
 
     const placement = this.transformXFromTimestamp(marker.gap.start);
+    const halfWidth = marker.ref.offsetWidth / 2;
     marker.ref.style.opacity = '1';
-    marker.ref.style.transform = `translateX(${placement}px)`;
+    marker.ref.style.transform = `translateX(${placement + COLLAPSED_GAP_WIDTH_PX / 2 - halfWidth}px)`;
   }
 
   // Special case for when the timeline is empty - we want to show the first and last
