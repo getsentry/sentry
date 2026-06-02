@@ -1395,9 +1395,25 @@ export class VirtualizedViewManager {
       }
       return;
     }
-    const compressedView = this.getCompressedView();
+
+    if (this.time_compression.enabled) {
+      const compressedView = this.getCompressedView();
+      const targetInterval =
+        (110 * window.devicePixelRatio * compressedView.width) /
+        Math.max(this.view.trace_physical_space.width, 1);
+
+      computeCompressedTimelineIntervals(
+        compressedView,
+        targetInterval,
+        this.time_compression,
+        this.view.to_origin,
+        this.intervals
+      );
+      return;
+    }
+
     const time_at_100 =
-      (110 * window.devicePixelRatio * compressedView.width) /
+      (110 * window.devicePixelRatio * this.view.trace_view.width) /
       Math.max(this.view.trace_physical_space.width, 1);
 
     computeTimelineIntervals(this.view, time_at_100, this.intervals);
@@ -2227,6 +2243,42 @@ function computeTimelineIntervals(
   }
   while (x <= view.trace_view.right) {
     results[++idx] = x;
+    x += interval;
+  }
+
+  while (idx < results.length - 1 && results[idx + 1] !== undefined) {
+    results[++idx] = undefined;
+  }
+}
+
+/**
+ * Computes timeline intervals in compressed space so ticks are visually
+ * evenly spaced, then converts each tick back to a real-time offset.
+ */
+function computeCompressedTimelineIntervals(
+  compressedView: {left: number; right: number; width: number},
+  targetInterval: number,
+  compression: TraceTimeCompression,
+  toOrigin: number,
+  results: Array<number | undefined>
+): void {
+  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
+  let interval = minInterval;
+
+  if (targetInterval / interval > 5) {
+    interval *= 5;
+  } else if (targetInterval / interval > 2) {
+    interval *= 2;
+  }
+
+  let x = Math.ceil(compressedView.left / interval) * interval;
+  let idx = -1;
+  if (x > compressedView.left) {
+    x -= interval;
+  }
+  while (x <= compressedView.right) {
+    const realTimestamp = compression.toRealTimestamp(x);
+    results[++idx] = realTimestamp - toOrigin;
     x += interval;
   }
 
