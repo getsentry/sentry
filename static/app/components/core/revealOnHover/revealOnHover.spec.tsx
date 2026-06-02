@@ -9,7 +9,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -23,7 +23,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -37,7 +37,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action visible>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -51,7 +51,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover data-test-id="hover-root" gap="md" justify="between">
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -66,9 +66,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy" onClick={onClick}>
-            Copy
-          </Button>
+          <Button onClick={onClick}>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -82,7 +80,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
         <RevealOnHover.Action>
           <Button aria-label="Delete">Delete</Button>
@@ -101,7 +99,7 @@ describe('RevealOnHover', () => {
       <RevealOnHover>
         <span>Label</span>
         <RevealOnHover.Action>
-          <Button aria-label="Copy">Copy</Button>
+          <Button>Copy</Button>
         </RevealOnHover.Action>
       </RevealOnHover>
     );
@@ -117,7 +115,7 @@ describe('RevealOnHover', () => {
           <div data-test-id="custom-root" className={className}>
             <span>Grid content</span>
             <RevealOnHover.Action>
-              <Button aria-label="Copy">Copy</Button>
+              <Button>Copy</Button>
             </RevealOnHover.Action>
           </div>
         )}
@@ -139,9 +137,7 @@ describe('RevealOnHover', () => {
           <div className={className}>
             <span>Content</span>
             <RevealOnHover.Action>
-              <Button aria-label="Copy" onClick={onClick}>
-                Copy
-              </Button>
+              <Button onClick={onClick}>Copy</Button>
             </RevealOnHover.Action>
           </div>
         )}
