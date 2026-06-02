@@ -30,22 +30,25 @@ class IssueTypeForm(forms.Form):
     include = forms.ChoiceField(
         choices=list(INCLUDE_CHOICES.items()), required=False, initial="true"
     )
-    value = forms.ChoiceField(choices=list(get_type_choices().items()))
+    value = forms.ChoiceField(choices=get_type_choices)
 
 
 class IssueTypeFilter(EventFilter):
     id = "sentry.rules.filters.issue_type.IssueTypeFilter"
-    form_fields = {
-        "include": {
-            "type": "choice",
-            "choices": list(INCLUDE_CHOICES.items()),
-            "initial": "true",
-        },
-        "value": {"type": "choice", "choices": list(get_type_choices().items())},
-    }
     rule_type = "filter/event"
     label = "The issue's type is {include} {value}"
     prompt = "The issue's type is ..."
+
+    @property
+    def form_fields(self) -> dict:
+        return {
+            "include": {
+                "type": "choice",
+                "choices": list(INCLUDE_CHOICES.items()),
+                "initial": "true",
+            },
+            "value": {"type": "choice", "choices": list(get_type_choices().items())},
+        }
 
     def _passes(self, group: Group) -> bool:
         try:
