@@ -242,8 +242,10 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
 
-    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
-    valid_stopping_points = get_valid_automated_run_stopping_points(organization)
+    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(
+        organization, is_seat_based=True
+    )
+    valid_stopping_points = get_valid_automated_run_stopping_points(is_seat_based=True)
 
     preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
 
