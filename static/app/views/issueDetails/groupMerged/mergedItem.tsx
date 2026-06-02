@@ -100,20 +100,26 @@ export function MergedItem({
               {latestEvent.title}
             </Text>
             {latestEventTimestamp && (
-              <Text as="span" size="sm" variant="muted">
-                <Link to={issueLink}>{t('Latest event')}</Link>{' '}
-                <TimeSince
-                  date={latestEventTimestamp}
-                  unitStyle="short"
-                  variant="muted"
-                />
+              <Flex as="span" align="center" gap="sm">
+                <Text as="span" size="sm" variant="muted">
+                  <Link to={issueLink}>{t('Latest event')}</Link>
+                </Text>
+                <Text as="span" size="sm" variant="muted">
+                  <TimeSince
+                    date={latestEventTimestamp}
+                    unitStyle="short"
+                    variant="muted"
+                  />
+                </Text>
                 {fingerprint.mergedBySeer && (
-                  <MergedBySentryLabel>
-                    <span aria-hidden="true">·</span>
-                    {t('Merged by Sentry')}
-                  </MergedBySentryLabel>
+                  <Text as="span" size="sm" variant="muted">
+                    <MergedBySentryLabel>
+                      <span aria-hidden="true">·</span>
+                      {t('Merged by Sentry')}
+                    </MergedBySentryLabel>
+                  </Text>
                 )}
-              </Text>
+              </Flex>
             )}
           </Flex>
         </Flex>
@@ -200,5 +206,4 @@ const MergedBySentryLabel = styled('span')`
   display: inline-flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  margin-left: ${p => p.theme.space.xs};
 `;

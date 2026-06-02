@@ -25,7 +25,7 @@ export interface FingerprintWithLatestEvent extends Fingerprint {
   latestEvent: Event;
 }
 
-const MERGED_HASH_LIMIT = 50;
+const MERGED_HASH_LIMIT = 20;
 
 interface FingerprintState {
   busy?: boolean;
@@ -229,7 +229,7 @@ export function useGroupMergedHashes({
         query: {
           ...location.query,
           full: '0',
-          limit: MERGED_HASH_LIMIT,
+          per_page: MERGED_HASH_LIMIT,
           query: location.query.query ?? '',
         },
         staleTime: 30_000,
