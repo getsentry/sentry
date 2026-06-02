@@ -58,7 +58,7 @@ class TagKey(TagType):
         values_seen: int | None = None,
         status: int = TagKeyStatus.ACTIVE,
         count: int | None = None,
-        top_values=None,
+        top_values: tuple[TagValue, ...] | None = None,
     ):
         self.key = key
         self.values_seen = values_seen

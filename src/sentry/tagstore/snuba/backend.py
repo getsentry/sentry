@@ -240,7 +240,7 @@ class _KeyCallable[T, U](Protocol):
 
 class _ValueCallable[U](Protocol):
     def __call__(
-        self, *, key: str, value: object, times_seen: int, first_seen: datetime, last_seen: datetime
+        self, *, key: str, value: str, times_seen: int, first_seen: datetime, last_seen: datetime
     ) -> U: ...
 
 
