@@ -4190,13 +4190,15 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
         high = Group.objects.get(project=self.project, message="high-vol")
         low = Group.objects.get(project=self.project, message="low-vol")
 
-        weights = {
-            f"snuba.search.recommended.{k}-weight": 0.0
-            for k in ("recency", "spike", "severity", "user-impact")
+        options = {
+            "snuba.search.recommended.recency-weight": 0.0,
+            "snuba.search.recommended.spike-weight": 0.0,
+            "snuba.search.recommended.severity-weight": 0.0,
+            "snuba.search.recommended.user-impact-weight": 0.0,
+            "snuba.search.recommended.event-volume-weight": 0.2,
+            "snuba.search.recommended.group-type-boost": {},
         }
-        weights["snuba.search.recommended.event-volume-weight"] = 0.2
-        weights["snuba.search.recommended.group-type-boost"] = {}
-        with self.options(weights):
+        with self.options(options):
             scores = self._recommended_scores([high.id, low.id])
 
         assert scores[high.id] > scores[low.id]
