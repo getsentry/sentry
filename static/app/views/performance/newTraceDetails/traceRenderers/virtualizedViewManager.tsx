@@ -1901,6 +1901,11 @@ export class VirtualizedViewManager {
 
     const placement = this.transformXFromTimestamp(timestamp);
 
+    if (this.timelineIndicatorOverlapsCollapsedGapMarker(ref, placement)) {
+      ref.style.opacity = '0';
+      return;
+    }
+
     ref.style.opacity = '1';
     ref.style.transform = `translateX(${placement}px)`;
     const label = ref.children[0] as HTMLElement | undefined;
@@ -1909,6 +1914,39 @@ export class VirtualizedViewManager {
     if (label && label?.textContent !== duration) {
       label.textContent = duration;
     }
+  }
+
+  timelineIndicatorOverlapsCollapsedGapMarker(
+    ref: HTMLElement,
+    indicatorPlacement: number
+  ): boolean {
+    if (!this.time_compression.enabled) {
+      return false;
+    }
+
+    const label = ref.children[0] as HTMLElement | undefined;
+    if (!label) {
+      return false;
+    }
+    const indicatorLeft = indicatorPlacement;
+    const indicatorRight = indicatorPlacement + label.offsetWidth;
+
+    for (const marker of this.collapsed_gap_markers) {
+      if (!marker || marker.ref.style.opacity === '0') {
+        continue;
+      }
+
+      const markerWidth = marker.ref.offsetWidth;
+      const gapPlacement = this.transformXFromTimestamp(marker.gap.start);
+      const markerLeft = gapPlacement + COLLAPSED_GAP_WIDTH_PX / 2 - markerWidth / 2;
+      const markerRight = markerLeft + markerWidth;
+
+      if (indicatorLeft < markerRight && indicatorRight > markerLeft) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   isTimestampInsideCollapsedGap(timestamp: number): boolean {
