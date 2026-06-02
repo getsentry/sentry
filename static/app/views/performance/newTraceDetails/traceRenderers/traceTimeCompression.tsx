@@ -1,7 +1,8 @@
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
-const COLLAPSE_THRESHOLD_RATIO = 0.1;
+const COLLAPSE_THRESHOLD_RATIO = 0.04;
+const COLLAPSE_THRESHOLD_MIN_MS = 1000;
 export const COLLAPSED_GAP_WIDTH_PX = 28;
 const DURATION_LABEL_BUFFER_PX = 60;
 const MARKER_PADDING_RATIO = 0.01;
@@ -246,7 +247,10 @@ function collectCollapsibleGaps(
   traceDuration: number
 ): Interval[] {
   const traceEnd = traceStart + traceDuration;
-  const threshold = traceDuration * COLLAPSE_THRESHOLD_RATIO;
+  const threshold = Math.max(
+    traceDuration * COLLAPSE_THRESHOLD_RATIO,
+    COLLAPSE_THRESHOLD_MIN_MS
+  );
   const gaps: Interval[] = [];
   let previousEnd = traceStart;
 
