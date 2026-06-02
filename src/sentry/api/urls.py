@@ -796,6 +796,10 @@ from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesE
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
+from .endpoints.project_custom_inbound_filters import (
+    CustomInboundFilterDetailsEndpoint,
+    CustomInboundFiltersEndpoint,
+)
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_legacy_webhooks import ProjectLegacyWebhooksEndpoint
@@ -2819,6 +2823,16 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/filters/(?P<filter_id>[^/]+)/$",
         ProjectFilterDetailsEndpoint.as_view(),
         name="sentry-api-0-project-filters-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/custom-inbound-filters/$",
+        CustomInboundFiltersEndpoint.as_view(),
+        name="sentry-api-0-project-custom-inbound-filters",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/custom-inbound-filters/(?P<filter_id>[^/]+)/$",
+        CustomInboundFilterDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-custom-inbound-filter-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/hooks/$",

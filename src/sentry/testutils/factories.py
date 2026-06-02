@@ -86,6 +86,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -686,6 +687,24 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_project_key(project):
         return project.key_set.get_or_create()[0]
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_project_custom_inbound_filter(
+        project: Project,
+        name: str = "Custom inbound filter",
+        active: bool = True,
+        conditions: list[dict[str, object]] | None = None,
+    ) -> CustomInboundFilter:
+        if conditions is None:
+            conditions = [{"type": "release", "value": ["1.*"]}]
+
+        return CustomInboundFilter.objects.create(
+            project=project,
+            name=name,
+            active=active,
+            conditions=conditions,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

@@ -224,6 +224,50 @@ class ProjectDisableAuditLogEvent(AuditLogEvent):
         return render_project_action(audit_log_entry, "disable")
 
 
+def _custom_inbound_filter_display(audit_log_entry: AuditLogEntry) -> str:
+    filter_name = audit_log_entry.data.get("filter_name", "unknown")
+    project_slug = audit_log_entry.data.get("project_slug", "unknown")
+    return f'custom inbound filter "{filter_name}" for project {project_slug}'
+
+
+class CustomInboundFilterAddAuditLogEvent(AuditLogEvent):
+    def __init__(self) -> None:
+        super().__init__(
+            event_id=218,
+            name="CUSTOM_INBOUND_FILTER_ADD",
+            api_name="custom-inbound-filter.create",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        return f"added {_custom_inbound_filter_display(audit_log_entry)}"
+
+
+class CustomInboundFilterEditAuditLogEvent(AuditLogEvent):
+    def __init__(self) -> None:
+        super().__init__(
+            event_id=219,
+            name="CUSTOM_INBOUND_FILTER_EDIT",
+            api_name="custom-inbound-filter.edit",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        changes = audit_log_entry.data.get("changes", {})
+        changed_fields = ", ".join(sorted(changes)) if changes else "unknown fields"
+        return f"edited {_custom_inbound_filter_display(audit_log_entry)}: {changed_fields}"
+
+
+class CustomInboundFilterRemoveAuditLogEvent(AuditLogEvent):
+    def __init__(self) -> None:
+        super().__init__(
+            event_id=220,
+            name="CUSTOM_INBOUND_FILTER_REMOVE",
+            api_name="custom-inbound-filter.remove",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        return f"removed {_custom_inbound_filter_display(audit_log_entry)}"
+
+
 class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
     def __init__(self) -> None:
         super().__init__(
