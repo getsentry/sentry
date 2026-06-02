@@ -224,7 +224,7 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
 }
 
 export function getTypedTagKey(key: string, type: string | undefined): string {
-  if (getFieldDefinition(key)) {
+  if (getFieldDefinition(key, 'span')) {
     return key;
   }
   if (type === 'int' || type === 'float') {
