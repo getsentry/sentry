@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
@@ -209,6 +209,10 @@ export function InvoiceComparison() {
         : undefined,
       staleTime: 0,
     }),
+    // Keep the previously-rendered page visible while paginating or
+    // changing page size, so the tables and summary don't unmount and
+    // collapse the layout to a spinner between requests.
+    placeholderData: keepPreviousData,
   });
 
   // If the URL has an unsupported `page_size` (e.g. `?page_size=200`),
