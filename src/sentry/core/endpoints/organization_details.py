@@ -400,7 +400,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_defaultAutomatedRunStoppingPoint(self, value: str) -> str:
-        if value not in get_valid_automated_run_stopping_points():
+        organization = self.context["organization"]
+        if value not in get_valid_automated_run_stopping_points(organization):
             raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 

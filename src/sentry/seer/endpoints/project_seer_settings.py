@@ -366,7 +366,7 @@ class ProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
     )
 
     def validate_stopping_point(self, value: str) -> str:
-        if value not in get_valid_automated_run_stopping_points():
+        if value not in get_valid_automated_run_stopping_points(self.context["organization"]):
             raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
