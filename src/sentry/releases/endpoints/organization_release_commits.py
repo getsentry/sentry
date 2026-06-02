@@ -22,7 +22,7 @@ from sentry.models.releasecommit import ReleaseCommit
 class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     @extend_schema(

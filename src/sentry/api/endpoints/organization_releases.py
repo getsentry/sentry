@@ -305,8 +305,8 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     rate_limits = RateLimitConfig(
@@ -924,7 +924,7 @@ class OrganizationReleaseTimeseriesData(TypedDict):
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     @extend_schema(

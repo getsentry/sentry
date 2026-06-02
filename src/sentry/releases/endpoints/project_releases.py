@@ -46,7 +46,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(

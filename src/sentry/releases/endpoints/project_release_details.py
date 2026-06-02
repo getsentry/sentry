@@ -38,9 +38,9 @@ from sentry.utils.sdk import bind_organization_context
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "DELETE": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 

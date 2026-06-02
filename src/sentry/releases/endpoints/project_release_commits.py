@@ -24,7 +24,7 @@ from sentry.models.repository import Repository
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
