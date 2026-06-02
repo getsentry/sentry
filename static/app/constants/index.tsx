@@ -256,8 +256,6 @@ export const SEER_AGENTS_PROJECT_ID = 6178942;
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
-export const MENU_CLOSE_DELAY = 200;
-
 export const SLOW_TOOLTIP_DELAY = 1000;
 
 export const MAX_PICKABLE_DAYS = 90;
