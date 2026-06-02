@@ -12,10 +12,9 @@ FeatureRunStatus = Literal["completed", "error"]
 class FeatureDeliveryFn(Protocol):
     def __call__(
         self,
-        ref: int | str,
+        run_uuid: str,
         status: FeatureRunStatus,
         result: dict[str, Any] | None,
-        seer_run_id: int,
         error: str | None,
         organization_id: int,
     ) -> None: ...

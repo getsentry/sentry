@@ -27,22 +27,21 @@ logger = logging.getLogger(__name__)
 
 
 def deliver_night_shift_result(
-    ref: int | str,
+    run_uuid: str,
     status: FeatureRunStatus,
     result: dict[str, Any] | None,
-    seer_run_id: int,
     error: str | None,
     organization_id: int,
 ) -> None:
     """Process a night_shift result from Seer."""
     try:
         run = SeerNightShiftRun.objects.select_related("organization", "seer_run").get(
-            seer_run__uuid=ref
+            seer_run__uuid=run_uuid
         )
     except SeerNightShiftRun.DoesNotExist:
         logger.warning(
             "night_shift.delivery.missing_run",
-            extra={"ref": ref, "seer_run_id": seer_run_id},
+            extra={"run_uuid": run_uuid},
         )
         return
 
@@ -50,25 +49,19 @@ def deliver_night_shift_result(
         logger.warning(
             "night_shift.delivery.org_mismatch",
             extra={
-                "ref": ref,
+                "run_uuid": run_uuid,
                 "expected_org_id": run.organization_id,
                 "actual_org_id": organization_id,
             },
         )
         return
 
-    extras_update: dict[str, object] = {
-        **(run.extras or {}),
-        "agent_run_id": seer_run_id,
-    }
     if error:
-        extras_update["error_message"] = error
-    run.update(extras=extras_update)
+        run.update(extras={**(run.extras or {}), "error_message": error})
 
     log_extra: dict[str, object] = {
         "organization_id": run.organization_id,
         "run_id": run.id,
-        "agent_run_id": seer_run_id,
     }
 
     if status == "error" or result is None:

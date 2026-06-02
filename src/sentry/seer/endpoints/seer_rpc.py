@@ -960,9 +960,8 @@ def bulk_get_project_preferences(
 def deliver_feature_result(
     *,
     feature_id: str,
-    ref: int | str,
+    run_uuid: str,
     status: FeatureRunStatus,
-    seer_run_id: int,
     organization_id: int,
     result: dict[str, Any] | None = None,
     error: str | None = None,
@@ -972,11 +971,11 @@ def deliver_feature_result(
     if handler is None:
         logger.warning(
             "seer.feature_delivery.unknown_feature_id",
-            extra={"feature_id": feature_id, "ref": ref, "seer_run_id": seer_run_id},
+            extra={"feature_id": feature_id, "run_uuid": run_uuid},
         )
         return
 
-    handler(ref, status, result, seer_run_id, error, organization_id)
+    handler(run_uuid, status, result, error, organization_id)
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
