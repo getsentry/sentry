@@ -169,21 +169,6 @@ export class TraceTimeCompression {
 
     return this.start + compressedOffset + restoredBefore;
   }
-
-  compressedDurationForRange(start: number, duration: number): number {
-    const compressedStart = this.toCompressedOffset(start);
-    const compressedEnd = this.toCompressedOffset(start + duration);
-    return Math.max(compressedEnd - compressedStart, 0);
-  }
-
-  getGapsForView(start: number, duration: number): TraceTimeCompressionGap[] {
-    if (!this.enabled) {
-      return [];
-    }
-
-    const end = start + duration;
-    return this.gaps.filter(gap => gap.end >= start && gap.start <= end);
-  }
 }
 
 function collectVisibleIntervals(options: TraceTimeCompressionOptions): Interval[] {
