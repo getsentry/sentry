@@ -75,9 +75,6 @@ jobs:
           echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
           echo "merge_base_strategy=${STRATEGY}" >> "$GITHUB_OUTPUT"
 
-      - name: Calculate Test Matrix
-        id: calc-test-matrix
-        run: |
           RUNNERS=8
           if [ "$STRATEGY" == "changedSince" ]; then
             RUNNERS=1
@@ -85,7 +82,7 @@ jobs:
           # Create a JSON array for indices [1, 2, ... RUNNERS]
           JSON_ARRAY=$(seq 1 $RUNNERS | jq -R . | jq -s .)
           # Output the full matrix object
-          echo "jest_test_matrix=$(jq -n --argjson indices "$JSON_ARRAY" '{index: $indices, total: [$RUNNERS]}')" >> $GITHUB_OUTPUT
+          echo "jest_test_matrix=$(jq -n --argjson indices "$JSON_ARRAY" --argjson total "$RUNNERS" '{index: $indices, total: $total}')" >> $GITHUB_OUTPUT
 
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
