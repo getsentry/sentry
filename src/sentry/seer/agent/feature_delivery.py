@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from sentry.seer.night_shift.delivery import FeatureRunStatus, deliver_night_shift_result
+from sentry.seer.agent.types import FeatureRunStatus
+from sentry.seer.night_shift.delivery import deliver_night_shift_result
 
 
 class FeatureDeliveryFn(Protocol):

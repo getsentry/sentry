@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any, Literal
+from typing import Any
 
 import sentry_sdk
 
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import referrer_map
@@ -21,8 +22,6 @@ from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer.night_shift.models import TriageResponse, TriageVerdict
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
-
-FeatureRunStatus = Literal["completed", "error"]
 
 logger = logging.getLogger(__name__)
 
