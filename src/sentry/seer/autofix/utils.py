@@ -99,6 +99,8 @@ def get_valid_automated_run_stopping_points(
         AutofixStoppingPoint.OPEN_PR,
         AutofixStoppingPoint.ROOT_CAUSE,
     }
+    if not is_seer_seat_based_tier_enabled(organization):
+        valid.add(AutofixStoppingPoint.SOLUTION)
     return valid
 
 
