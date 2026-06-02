@@ -932,8 +932,8 @@ const TraceStylingWrapper = styled('div')`
   .TraceCollapsedGapMarker {
     opacity: 0;
     position: absolute;
-    top: 38px;
-    height: calc(100% - 38px);
+    top: 0;
+    height: 100%;
     width: 28px;
     pointer-events: auto;
     z-index: 2;
