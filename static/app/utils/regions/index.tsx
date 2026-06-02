@@ -18,6 +18,7 @@ const RegionFlagIndicator: Record<string, string> = {
 
 interface RegionData {
   displayName: string;
+  label: string;
   name: string;
   url: string;
   flag?: string;
@@ -27,9 +28,9 @@ function getRegionDisplayName(region: Region): string {
   return RegionDisplayName[region.name.toUpperCase()] ?? region.name;
 }
 
-function getRegionFlagIndicator(region: Region): string | undefined {
+function getRegionFlagIndicator(region: Region): string {
   const regionName = region.name.toUpperCase();
-  return RegionFlagIndicator[regionName];
+  return RegionFlagIndicator[regionName] ?? '';
 }
 
 export function getRegionDataFromOrganization(
@@ -38,7 +39,6 @@ export function getRegionDataFromOrganization(
   const {regionUrl} = organization.links;
 
   const regions = getRegions();
-
   const region = regions.find(value => {
     return value.url === regionUrl;
   });
@@ -46,10 +46,13 @@ export function getRegionDataFromOrganization(
   if (!region) {
     return undefined;
   }
+  const flag = getRegionFlagIndicator(region);
+  const displayName = getRegionDisplayName(region);
 
   return {
-    flag: getRegionFlagIndicator(region),
-    displayName: getRegionDisplayName(region),
+    flag,
+    displayName,
+    label: `${flag} ${displayName}`,
     name: region.name,
     url: region.url,
   };
@@ -84,7 +87,7 @@ export function getRegionUrlOptions(
       const {url} = region;
       return {
         value: url,
-        label: `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
+        label: `${getRegionFlagIndicator(region)} ${getRegionDisplayName(region)}`,
       };
     });
 }
@@ -103,7 +106,7 @@ export function getRegionNameOptions(): Array<SelectValue<string>> {
     .map(region => {
       return {
         value: region.name,
-        label: `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
+        label: `${getRegionFlagIndicator(region)} ${getRegionDisplayName(region)}`,
       };
     });
 }

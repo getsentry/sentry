@@ -17,6 +17,8 @@ from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
+from sentry.apidocs.response_types import DetailResponse
+
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
 
@@ -303,7 +305,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
         },
         examples=DebugFileExamples.LIST_PROJECT_DEBUG_FILES,
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[DebugFileSerializerResponse]] | Response[DetailResponse]:
         """
         Retrieve a list of debug information files for a given project.
         """

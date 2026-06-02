@@ -1658,6 +1658,10 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE = (
 )
 SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS: dict[str, str] = {}
 
+# Glob patterns for the custom-error inbound filter (Relay generic filters).
+# Each entry is (exception_type, message); either may be None.
+SENTRY_INBOUND_FILTER_CUSTOM_VALUES: list[tuple[str | None, str | None]] = []
+
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_ENABLED = False
@@ -2225,7 +2229,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.5.1"
+SELF_HOSTED_STABLE_VERSION = "26.5.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2631,6 +2635,12 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 
 # Mapping of default Kafka topic name to custom names
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
+
+
+# Per-topic Kafka consumer client config, keyed by Topic enum value (region-stable,
+# unlike cluster names). Merged onto the consumer config after the cluster config and
+# before any explicit override_params, so explicit params still win.
+KAFKA_TOPIC_CONSUMER_CONFIG: dict[str, dict[str, Any]] = {}
 
 
 # Mapping of default Kafka topic name to cluster name
