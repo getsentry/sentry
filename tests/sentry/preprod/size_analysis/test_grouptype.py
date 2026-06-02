@@ -7,9 +7,11 @@ import pytest
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.size_analysis.grouptype import (
+from sentry.preprod.size_analysis.detectorconfig import (
     PreprodSizeAnalysisDetectorHandler,
     PreprodSizeAnalysisDetectorValidator,
+)
+from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisGroupType,
     SizeAnalysisDataPacket,
     SizeAnalysisValue,
@@ -517,7 +519,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
 
-        with mock.patch("sentry.preprod.size_analysis.grouptype.logger") as mock_logger:
+        with mock.patch("sentry.preprod.size_analysis.detectorconfig.logger") as mock_logger:
             result = handler.evaluate(self._make_data_packet())
 
         assert result == {}

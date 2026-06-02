@@ -3,7 +3,10 @@ from unittest import mock
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
-from sentry.workflow_engine.types import WorkflowEvaluation, WorkflowEvaluationData
+from sentry.workflow_engine.types import (
+    WorkflowEvaluation,
+    WorkflowEvaluationData,
+)
 
 
 class TestWorkflowEvaluationLogTo(TestCase):

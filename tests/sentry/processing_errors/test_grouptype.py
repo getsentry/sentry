@@ -1,11 +1,11 @@
 from typing import Any
 
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.processing_errors.detectorconfig import SourcemapDetectorHandler
 from sentry.processing_errors.grouptype import (
     ProcessingErrorCheckStatus,
     ProcessingErrorPacketValue,
     SourcemapConfigurationType,
-    SourcemapDetectorHandler,
 )
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.data_condition import Condition
@@ -95,7 +95,7 @@ class TestSourcemapDetectorHandler(TestCase):
         assert result is not None
         assert result.priority == DetectorPriorityLevel.HIGH
         assert isinstance(result.result, IssueOccurrence)
-        assert result.result.issue_title == "Source maps are misconfigured"
+        assert result.result.issue_title == "Broken source maps detected"
         assert result.result.evidence_data["error_types"] == ["js_invalid_source", "js_no_source"]
         assert result.result.evidence_data["sample_event_id"] == "test-event-123"
         assert result.event_data is not None

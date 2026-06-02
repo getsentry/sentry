@@ -67,7 +67,9 @@ class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
     @classmethod
     def render_label(cls, condition_data: dict[str, Any]) -> str:
         value = condition_data["value"]
-        title = TYPE_CHOICES.get(value)
-        issue_type_name = title if title else ""
+        # Resolve dynamically; TYPE_CHOICES may be stale if module was imported
+        # before all group types were registered.
+        gt = grouptype.registry.get_by_slug(value)
+        issue_type_name = gt.description if gt else ""
         include_label = INCLUDE_CHOICES.get(condition_data.get("include", "true"), "equal to")
         return cls.label_template.format(include=include_label, value=issue_type_name)

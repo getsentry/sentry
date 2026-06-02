@@ -82,8 +82,10 @@ class IssueTypeFilter(EventFilter):
 
     def render_label(self) -> str:
         value = self.data["value"]
-        title = TYPE_CHOICES.get(value)
-        issue_type_name = title if title else ""
+        # Resolve dynamically; TYPE_CHOICES may be stale if module was imported
+        # before all group types were registered.
+        gt = grouptype.registry.get_by_slug(value)
+        issue_type_name = gt.description if gt else ""
         include_label = INCLUDE_CHOICES.get(self.data.get("include", "true"), "equal to")
         return self.label.format(include=include_label, value=issue_type_name)
 

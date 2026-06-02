@@ -21,7 +21,7 @@ from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models import DataCondition
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.types import DetectorSettings, DetectorType
 
 from .json_config import JSONConfigBase
 
@@ -101,8 +101,8 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         on_delete=models.SET_NULL,
     )
 
-    # maps to registry (sentry.issues.grouptype.registry) entries for GroupType.slug in sentry.issues.grouptype.GroupType
-    type = models.CharField(max_length=200)
+    # A DetectorType value (which equals the corresponding GroupType.slug).
+    type = models.CharField(max_length=200, choices=[(dt.value, dt.name) for dt in DetectorType])
 
     # The user that created the detector
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
@@ -128,15 +128,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     @classmethod
     def get_error_detector_for_project(cls, project_id: int) -> Detector:
-        from sentry.grouping.grouptype import ErrorGroupType
-
-        return cls.get_default_detector_for_project(project_id, ErrorGroupType.slug)
+        return cls.get_default_detector_for_project(project_id, DetectorType.ERROR)
 
     @classmethod
     def get_issue_stream_detector_for_project(cls, project_id: int) -> Detector:
-        from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-
-        return cls.get_default_detector_for_project(project_id, IssueStreamGroupType.slug)
+        return cls.get_default_detector_for_project(project_id, DetectorType.ISSUE_STREAM)
 
     @property
     def group_type(self) -> builtins.type[GroupType]:
@@ -164,7 +160,9 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     @property
     def settings(self) -> DetectorSettings:
-        settings = self.group_type.detector_settings
+        from sentry.workflow_engine.registry import get_detector_settings
+
+        settings = get_detector_settings(self.group_type)
 
         if settings is None:
             raise ValueError("Registered grouptype has no detector settings")
@@ -224,10 +222,13 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if not group_type:
             raise ValueError(f"No group type found with type {self.type}")
 
-        if not group_type.detector_settings:
+        from sentry.workflow_engine.registry import get_detector_settings
+
+        detector_settings = get_detector_settings(group_type)
+        if not detector_settings:
             return
 
         if not isinstance(self.config, dict):
             raise ValidationError("Detector config must be a dictionary")
 
-        self.validate_config(group_type.detector_settings.config_schema)
+        self.validate_config(detector_settings.config_schema)
