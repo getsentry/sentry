@@ -84,7 +84,7 @@ jobs:
           fi
 
           INDEX_ARRAY=$(seq 0 $(( RUNNERS - 1 )) | jq -s .)
-          echo "jest_test_matrix=$(jq -nc --argjson index "$INDEX_ARRAY" --argjson total "$RUNNERS" '{index: $index, total: $total}')" >> $GITHUB_OUTPUT
+          echo "jest_test_matrix=$(jq -nc --argjson index "$INDEX_ARRAY" --argjson total "$RUNNERS" '{index: $index, total: [$total]}')" >> $GITHUB_OUTPUT
 
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
