@@ -45,8 +45,8 @@ class PromptsActivityPermission(OrganizationPermission):
 @cell_silo_endpoint
 class PromptsActivityEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (PromptsActivityPermission,)
 

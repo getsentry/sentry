@@ -1,8 +1,11 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/settings';
 import {
   WIDGET_COLUMN_LABELS,
@@ -141,7 +144,7 @@ const CLIENT_TRANSACTIONS_TABLE_FIELDS = [
   `performance_score(${SpanFields.TOTAL_SCORE})`,
 ];
 
-const CLIENT_TRANSACTIONS_TABLE: Widget = {
+const CLIENT_TRANSACTIONS_TABLE: PrebuiltWidget = {
   id: 'client-transactions-table',
   title: t('Client Transactions'),
   displayType: DisplayType.TABLE,
@@ -193,7 +196,7 @@ const SERVER_TRANSACTIONS_TABLE_FIELDS = [
   `sum(${SpanFields.SPAN_DURATION})`,
 ];
 
-const SERVER_TRANSACTIONS_TABLE: Widget = {
+const SERVER_TRANSACTIONS_TABLE: PrebuiltWidget = {
   id: 'server-transactions-table',
   title: t('Server Transactions'),
   displayType: DisplayType.TABLE,
@@ -234,7 +237,7 @@ const SERVER_TRANSACTIONS_TABLE: Widget = {
   },
 };
 
-const SERVER_TREE_WIDGET: Widget = {
+const SERVER_TREE_WIDGET: PrebuiltWidget = {
   ...SERVER_TREE_WIDGET_TEMPLATE,
   layout: {
     x: 0,

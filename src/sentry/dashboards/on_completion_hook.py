@@ -4,6 +4,7 @@ import logging
 from types import SimpleNamespace
 from typing import Any
 
+import sentry_sdk
 from pydantic import ValidationError
 
 from sentry.api.serializers.rest_framework import DashboardSerializer
@@ -87,6 +88,8 @@ class DashboardOnCompletionHook(AgentOnCompletionHook):
         if state.status != "completed":
             return
 
+        retry_count = cls._count_retries(state)
+
         try:
             artifact = state.get_artifact("dashboard", GeneratedDashboard)
         except ValidationError as validation_error:
@@ -98,14 +101,34 @@ class DashboardOnCompletionHook(AgentOnCompletionHook):
                 },
             )
 
-            if cls._within_retry_budget(state, organization, run_id):
+            if retry_count < MAX_VALIDATION_RETRIES:
                 cls._request_fix(organization, run_id, str(validation_error))
+            else:
+                logger.info(
+                    "dashboards.on_completion_hook.max_retries_reached",
+                    extra={
+                        "organization_id": organization.id,
+                        "run_id": run_id,
+                        "retry_count": retry_count,
+                    },
+                )
+                cls._emit_generation_attempts_metric(
+                    status="fail",
+                    result="max_retries",
+                    retry_count=retry_count,
+                    last_layer="pydantic",
+                )
             return
 
         if artifact is None:
             logger.warning(
                 "dashboards.on_completion_hook.no_artifact",
                 extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            cls._emit_generation_attempts_metric(
+                status="fail",
+                result="no_artifact",
+                retry_count=retry_count,
             )
             return
 
@@ -120,17 +143,37 @@ class DashboardOnCompletionHook(AgentOnCompletionHook):
                 },
             )
 
-            if cls._within_retry_budget(state, organization, run_id):
+            if retry_count < MAX_VALIDATION_RETRIES:
                 cls._request_fix(organization, run_id, str(serializer_errors))
+            else:
+                logger.info(
+                    "dashboards.on_completion_hook.max_retries_reached",
+                    extra={
+                        "organization_id": organization.id,
+                        "run_id": run_id,
+                        "retry_count": retry_count,
+                    },
+                )
+                cls._emit_generation_attempts_metric(
+                    status="fail",
+                    result="max_retries",
+                    retry_count=retry_count,
+                    last_layer="serializer",
+                )
             return
 
         logger.info(
             "dashboards.on_completion_hook.validation_passed",
             extra={"run_id": run_id, "organization_id": organization.id},
         )
+        cls._emit_generation_attempts_metric(
+            status="pass",
+            result="pass",
+            retry_count=retry_count,
+        )
 
-    @classmethod
-    def _within_retry_budget(cls, state: Any, organization: Organization, run_id: int) -> bool:
+    @staticmethod
+    def _count_retries(state: Any) -> int:
         """
         Count consecutive fix requests in the current failure chain by
         scanning blocks in reverse. A non-fix user message (i.e. the user
@@ -147,18 +190,23 @@ class DashboardOnCompletionHook(AgentOnCompletionHook):
                 retry_count += 1
             elif block.message.role == "user":
                 break
+        return retry_count
 
-        if retry_count >= MAX_VALIDATION_RETRIES:
-            logger.info(
-                "dashboards.on_completion_hook.max_retries_reached",
-                extra={
-                    "organization_id": organization.id,
-                    "run_id": run_id,
-                    "retry_count": retry_count,
-                },
-            )
-            return False
-        return True
+    @staticmethod
+    def _emit_generation_attempts_metric(
+        status: str,
+        result: str,
+        retry_count: int,
+        last_layer: str | None = None,
+    ) -> None:
+        attributes = {"status": status, "result": result}
+        if last_layer is not None:
+            attributes["last_layer"] = last_layer
+        sentry_sdk.metrics.distribution(
+            "dashboards.on_completion_hook.generation_attempts",
+            retry_count + 1,
+            attributes=attributes,
+        )
 
     @classmethod
     def _request_fix(cls, organization: Organization, run_id: int, error: str) -> None:

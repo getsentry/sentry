@@ -132,6 +132,7 @@ export function ScmConnect({
                 )}
               </Text>
               <ScmRepoSelector
+                analyticsFlow="onboarding"
                 integration={effectiveIntegration}
                 selectedRepository={selectedRepository}
                 onRepositoryChange={onRepositoryChange}

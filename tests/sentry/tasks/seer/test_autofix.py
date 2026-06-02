@@ -10,7 +10,6 @@ from sentry.seer.models import (
     SummarizeIssueResponse,
     SummarizeIssueScores,
 )
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.autofix import (
     check_autofix_status,
     configure_seer_for_existing_org,
@@ -255,8 +254,8 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
         self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
 
-        # "root_cause" is not in the valid set without the root-cause-stopping-point flag.
-        project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
+        # "solution" is not in the valid set for seat-based orgs.
+        project.update_option("sentry:seer_automated_run_stopping_point", "solution")
         project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         project.update_option("sentry:seer_automation_handoff_target", "claude_code_agent")
         project.update_option("sentry:seer_automation_handoff_integration_id", 99)
@@ -269,16 +268,6 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Existing handoff preserved.
         assert project.get_option("sentry:seer_automation_handoff_target") == "claude_code_agent"
         assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
-
-    def test_root_cause_stopping_point_preserved_when_valid(self) -> None:
-        """Project with root_cause stopping point is preserved when root-cause-stopping-point flag is enabled."""
-        project = self.create_project(organization=self.organization)
-        project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
-
-        with self.feature("organizations:root-cause-stopping-point"):
-            configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        assert project.get_option("sentry:seer_automated_run_stopping_point") == "root_cause"
 
     def test_sets_seat_based_tier_cache_to_true(self) -> None:
         """Test that the seat-based tier cache is set to True after configuring org."""
@@ -293,22 +282,3 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         # Cache should be set to True to prevent race conditions
         assert cache.get(cache_key) is True
-
-    def test_preserves_existing_repositories(self) -> None:
-        """Test that existing repositories are preserved when preferences are set."""
-        project = self.create_project(organization=self.organization)
-        repo = self.create_repo(
-            project=project,
-            provider="integrations:github",
-            external_id="ext123",
-            name="existing-org/existing-repo",
-        )
-        self.create_seer_project_repository(project=project, repository=repo)
-        # Force the update path by using an invalid stopping point.
-        project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
-
-        configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        seer_repos = list(SeerProjectRepository.objects.filter(project_repository__project=project))
-        assert len(seer_repos) == 1
-        assert seer_repos[0].project_repository.repository_id == repo.id

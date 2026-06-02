@@ -66,7 +66,9 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[ActionHandlerSerializerResponse]]:
         """
         Returns a list of available actions for a given org
         """
@@ -160,7 +162,10 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                         )
                     )
 
-            # add all other action types (EMAIL, PLUGIN, etc.)
+            elif action_type == Action.Type.PLUGIN:
+                continue
+
+            # add all other action types (EMAIL, etc.)
             else:
                 actions.append(
                     serialize(
@@ -171,11 +176,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
         actions.sort(
             key=lambda x: (
                 x["handlerGroup"],
-                (
-                    0
-                    if x["type"] in [Action.Type.EMAIL, Action.Type.PLUGIN, Action.Type.WEBHOOK]
-                    else 1
-                ),
+                (0 if x["type"] in [Action.Type.EMAIL, Action.Type.WEBHOOK] else 1),
                 x["type"],
                 (x["sentryApp"].get("name", "") if x.get("sentryApp") else ""),
             )

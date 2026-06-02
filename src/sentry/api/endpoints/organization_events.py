@@ -229,13 +229,30 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
+            if (
+                referrer is not None
+                and is_valid_referrer(referrer)
+                and referrer.startswith("seer.")
+            ):
+                sentry_sdk.set_tag("query.from_seer", True)
+            else:
+                referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
         elif not is_valid_referrer(referrer):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
+
+        max_string_length: int | None = None
+        truncate_str = request.GET.get("truncate")
+        if truncate_str is not None:
+            try:
+                max_string_length = int(truncate_str)
+                if max_string_length < 64:
+                    raise ValueError
+            except ValueError:
+                return Response({"detail": "truncate must be a positive integer >= 64"}, status=400)
 
         def _data_fn(
             dataset_query: DatasetQuery,
@@ -600,6 +617,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         sampling_mode=snuba_params.sampling_mode,
                         page_token=page_token,
                         additional_queries=additional_queries,
+                        max_string_length=max_string_length,
                     )
 
                 return EAPPageTokenPaginator(data_fn=flex_time_data_fn), EAPPageTokenCursor
@@ -620,6 +638,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         config=config,
                         sampling_mode=snuba_params.sampling_mode,
                         additional_queries=additional_queries,
+                        max_string_length=max_string_length,
                     )
 
                 if save_discover_dataset_decision and discover_saved_query_id:

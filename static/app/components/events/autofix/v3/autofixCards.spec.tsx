@@ -74,6 +74,16 @@ const mockAutofix: ReturnType<typeof useExplorerAutofix> = {
   dismissCodingAgentError: jest.fn(),
 };
 
+const mockAutofixWithRunState: ReturnType<typeof useExplorerAutofix> = {
+  ...mockAutofix,
+  runState: {
+    run_id: 123,
+    blocks: [],
+    status: 'completed' as const,
+    updated_at: '2026-01-01T00:00:00Z',
+  },
+};
+
 function makeRootCauseArtifact(data: RootCauseArtifact | null) {
   return {
     key: 'root-cause',
@@ -531,7 +541,7 @@ describe('ArtifactCard', () => {
     it('renders PR link buttons with correct text and href', () => {
       render(
         <PullRequestsCard
-          autofix={mockAutofix}
+          autofix={mockAutofixWithRunState}
           section={makeSection('pull_request', 'completed', [[makePR()]])}
         />
       );
@@ -546,7 +556,7 @@ describe('ArtifactCard', () => {
     it('renders multiple PR buttons', () => {
       render(
         <PullRequestsCard
-          autofix={mockAutofix}
+          autofix={mockAutofixWithRunState}
           section={makeSection('pull_request', 'completed', [
             [
               makePR({
@@ -575,7 +585,7 @@ describe('ArtifactCard', () => {
     it('skips PRs with missing pr_url or pr_number', () => {
       render(
         <PullRequestsCard
-          autofix={mockAutofix}
+          autofix={mockAutofixWithRunState}
           section={makeSection('pull_request', 'completed', [
             [
               makePR({repo_name: 'org/repo-a', pr_url: null}),
@@ -599,7 +609,7 @@ describe('ArtifactCard', () => {
     it('copies markdown when copy button is clicked', async () => {
       render(
         <PullRequestsCard
-          autofix={mockAutofix}
+          autofix={mockAutofixWithRunState}
           section={makeSection('pull_request', 'completed', [[makePR()]])}
         />
       );
