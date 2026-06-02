@@ -87,7 +87,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
         )
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -100,7 +100,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
         )
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()
 
     def test_does_not_issue_if_url_is_not_an_http_span(self) -> None:
         spans = [

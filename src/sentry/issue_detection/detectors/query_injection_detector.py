@@ -121,9 +121,6 @@ class QueryInjectionDetector(PerformanceDetector):
             ],
         )
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
-
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
 

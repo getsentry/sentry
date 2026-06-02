@@ -73,9 +73,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
-    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
-
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
 

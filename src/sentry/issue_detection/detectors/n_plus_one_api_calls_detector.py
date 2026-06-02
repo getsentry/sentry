@@ -74,10 +74,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self._maybe_store_problem()
             self.spans = [span]
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     @classmethod

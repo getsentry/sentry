@@ -110,7 +110,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                     ],
                 )
 
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
 
@@ -201,9 +201,6 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
-
 
 class DBMainThreadDetector(BaseIOMainThreadDetector):
     """
@@ -244,6 +241,3 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
             return False
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
-
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True

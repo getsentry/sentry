@@ -7,7 +7,6 @@ from typing import Any
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
@@ -141,8 +140,5 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         hashed_url_paths = fingerprint_http_spans([span])
         return f"1-{PerformanceLargeHTTPPayloadGroupType.type_id}-{hashed_url_paths}"
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]

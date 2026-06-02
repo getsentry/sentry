@@ -6,7 +6,6 @@ from datetime import timedelta
 
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 from ..base import DetectorType, PerformanceDetector
@@ -101,9 +100,6 @@ class SlowDBQueryDetector(PerformanceDetector):
                     )
                 ],
             )
-
-    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
 
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]

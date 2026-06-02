@@ -20,7 +20,6 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.utils import metrics
 
 
@@ -407,10 +406,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
             parent_map={},
         )
 
-    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     def visit_span(self, span: Span) -> None:

@@ -128,19 +128,10 @@ class PerformanceDetector(ABC):
         except options.UnknownOption:
             return False
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+    def is_creation_allowed(self) -> bool:
         """
         After running the detector, this method determines whether the found problems should be
-        passed to the issue platform for a given organization.
-
-        See `_detect_performance_problems` in `performance_detection.py` for more context.
-        """
-        return False
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
-        """
-        After running the detector, this method determines whether the found problems should be
-        passed to the issue platform for a given project.
+        passed to the issue platform.
 
         See `_detect_performance_problems` in `performance_detection.py` for more context.
         """

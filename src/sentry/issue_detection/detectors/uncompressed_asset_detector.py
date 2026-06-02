@@ -144,10 +144,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         resource_span = fingerprint_resource_span(span)
         return f"1-{PerformanceUncompressedAssetsGroupType.type_id}-{resource_span}"
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     @classmethod
