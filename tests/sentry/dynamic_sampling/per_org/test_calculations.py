@@ -201,6 +201,33 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert sample_rates == [0.5]
         assert set(result.keys()) == {project_a.id}
 
+    def test_run_transaction_balancing_skips_projects_without_project_volume(self) -> None:
+        org = self.create_organization()
+        project_a = self.create_project(organization=org)
+        project_b = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.min_implicit_factor = 0.0
+        config.get_project_sample_rates.return_value = {project_a.id: 0.5, project_b.id: 0.5}
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
+            side_effect=lambda model_input: ([], model_input.sample_rate),
+        ) as model_run:
+            # project_b has transactions but no matching ProjectVolume — it must be
+            # skipped instead of raising a KeyError that aborts the whole org's run.
+            result = run_transaction_balancing(
+                config,
+                [_project_volume(project_a.id)],
+                [
+                    _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
+                    _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
+                ],
+            )
+
+        assert model_run.call_count == 1
+        assert set(result.keys()) == {project_a.id}
+
     def test_get_cached_rebalanced_transaction_sample_rates(self) -> None:
         org = self.create_organization()
         project_hit = self.create_project(organization=org)

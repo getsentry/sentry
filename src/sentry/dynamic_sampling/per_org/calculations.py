@@ -130,7 +130,13 @@ def run_transaction_balancing(
     }
     for project_data in transaction_volumes:
         project_id = project_data.project_id
-        project_volume = project_volume_by_id[project_data.project_id]
+        project_volume = project_volume_by_id.get(project_id)
+        if project_volume is None:
+            sentry_sdk.capture_message(
+                "Project volume not found when trying to adjust the sample rates of "
+                "its transactions"
+            )
+            continue
         sample_rate = sample_rates.get(project_id)
         if sample_rate is None:
             sentry_sdk.capture_message(
