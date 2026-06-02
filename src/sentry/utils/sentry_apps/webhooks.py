@@ -27,7 +27,6 @@ from sentry.notifications.platform.types import (
 )
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
-    RpcUserOrganizationContext,
 )
 from sentry.organizations.services.organization.service import organization_service
 from sentry.sentry_apps.metrics import (
@@ -41,7 +40,7 @@ from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.taskworker.timeout import timeout_alarm
-from sentry.utils import redis
+from sentry.utils import metrics, redis
 from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -96,11 +95,7 @@ def ignore_unpublished_app_errors(
 
 def _create_circuit_breaker(
     sentry_app: SentryApp | RpcSentryApp,
-    organization_context: RpcUserOrganizationContext | None,
 ) -> CircuitBreaker | None:
-    if organization_context is None:
-        return None
-
     # We don't want to make a circuit breaker in CONTROL silo as it's only used for installation webhooks which are v. low volume
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         return None
@@ -179,10 +174,16 @@ def _notify_webhook_disabled(
 
 def _circuit_breaker_allows_request(
     circuit_breaker: CircuitBreaker | None,
+    sentry_app: SentryApp | RpcSentryApp,
     lifecycle: EventLifecycle,
 ) -> bool:
     if circuit_breaker is None or circuit_breaker.should_allow_request():
         return True
+
+    metrics.incr(
+        "sentry_app.webhook.circuit_breaker.would_block",
+        tags={"slug": sentry_app.slug},
+    )
 
     lifecycle.record_halt(
         halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.CIRCUIT_BROKEN}"
@@ -259,8 +260,8 @@ def send_and_save_webhook_request(
                 include_teams=False,
             )
             owner_org = owner_context.organization if owner_context is not None else None
-            circuit_breaker = _create_circuit_breaker(sentry_app, owner_context)
-            if not _circuit_breaker_allows_request(circuit_breaker, lifecycle):
+            circuit_breaker = _create_circuit_breaker(sentry_app)
+            if not _circuit_breaker_allows_request(circuit_breaker, sentry_app, lifecycle):
                 return Response()
 
             with circuit_breaker_tracking(circuit_breaker):
