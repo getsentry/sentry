@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Sequence
-from typing import cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -19,7 +17,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.api.event_search import QueryToken
 from sentry.issues.issue_search import convert_query_values, convert_status_value
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import (
@@ -43,7 +40,7 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
     def parse_query(self, query: str | None) -> ParsedTerms:
         parsed_terms = super().parse_query(query)
         parsed_terms = convert_query_values(
-            cast("Sequence[QueryToken]", parsed_terms),
+            parsed_terms,
             self.params.projects,
             self.params.user,
             list(filter(None, self.params.environments)),
