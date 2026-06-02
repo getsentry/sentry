@@ -524,10 +524,8 @@ export class VirtualizedViewManager {
       return;
     }
 
-    if (ref) {
-      this.collapsed_gap_markers[index] = {ref, gap};
-      this.drawCollapsedGapMarker(this.collapsed_gap_markers[index]);
-    }
+    this.collapsed_gap_markers[index] = {ref, gap};
+    this.drawCollapsedGapMarker(this.collapsed_gap_markers[index]);
   }
 
   registerVerticalIndicator(key: string, indicator: VerticalIndicator) {
