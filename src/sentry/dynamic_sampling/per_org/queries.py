@@ -184,7 +184,7 @@ def get_eap_project_volumes(
 
 def get_eap_transaction_volumes(
     config: OrganizationVolumeConfig,
-    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    time_interval: timedelta = timedelta(hours=1),
     order_by_volume: Literal["asc", "desc"] = "asc",
     max_transactions: int = 100,
 ) -> list[ProjectTransactions]:

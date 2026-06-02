@@ -493,10 +493,10 @@ def _write_preferences_to_sentry_db(
 
         if project_repos_to_create:
             for project, repository_id, spr in project_repos_to_create:
-                spr.project_repository, _ = ProjectRepository.objects.get_or_create(
-                    project=project,
+                spr.project_repository, _ = ProjectRepository.objects.get_or_create_with_source(
+                    project_id=project.id,
                     repository_id=repository_id,
-                    defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+                    source=ProjectRepositorySource.SEER_PREFERENCE,
                 )
 
             created_project_repos = SeerProjectRepository.objects.bulk_create(
@@ -838,10 +838,10 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
     result_ids = []
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
         for data in repos_data:
-            project_repo, _ = ProjectRepository.objects.get_or_create(
-                project=project,
+            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+                project_id=project.id,
                 repository_id=data["repository_id"],
-                defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+                source=ProjectRepositorySource.SEER_PREFERENCE,
             )
             seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
                 project_repository=project_repo,
@@ -867,10 +867,10 @@ def replace_all_seer_project_repos(
         ).delete()
 
         for data in repos_data:
-            project_repo, _ = ProjectRepository.objects.get_or_create(
-                project=project,
+            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+                project_id=project.id,
                 repository_id=data["repository_id"],
-                defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+                source=ProjectRepositorySource.SEER_PREFERENCE,
             )
             seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
                 project_repository=project_repo,

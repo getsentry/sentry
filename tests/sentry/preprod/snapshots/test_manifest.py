@@ -1,54 +1,12 @@
 import jsonschema
-import pydantic
-import pytest
 
-from sentry.preprod.snapshots.manifest import (
-    ImageMetadata,
-    InvalidImageNamePattern,
-    SnapshotManifest,
-    make_image_name_matcher,
-)
+from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
 
 
 def _meta(**kwargs: object) -> dict:
     defaults: dict = {"content_hash": "abc123", "width": 100, "height": 200}
     defaults.update(kwargs)
     return defaults
-
-
-class TestSnapshotManifestHeadImageNameMatcher:
-    def test_no_declared_set_returns_none(self) -> None:
-        manifest = SnapshotManifest(images={})
-        assert manifest.head_image_name_matcher() is None
-
-    def test_literal_names_matcher(self) -> None:
-        manifest = SnapshotManifest(images={}, all_image_file_names=["a.png", "b.png"])
-        matches_head_image = manifest.head_image_name_matcher()
-        assert matches_head_image is not None
-        assert matches_head_image("a.png")
-        assert not matches_head_image("c.png")
-
-    def test_regex_matcher_uses_full_match(self) -> None:
-        manifest = SnapshotManifest(images={}, all_image_file_names_as_regex=[r"login\.png"])
-        matches_head_image = manifest.head_image_name_matcher()
-        assert matches_head_image is not None
-        assert matches_head_image("login.png")
-        assert not matches_head_image("screens/login.png")
-
-    def test_both_fields_set_is_rejected(self) -> None:
-        with pytest.raises(pydantic.ValidationError):
-            SnapshotManifest(
-                images={},
-                all_image_file_names=["a.png"],
-                all_image_file_names_as_regex=[r"a\.png"],
-            )
-
-    def test_make_image_name_matcher_rejects_unsupported_construct(self) -> None:
-        with pytest.raises(InvalidImageNamePattern) as exc:
-            make_image_name_matcher([r"a(?=b)"])
-        assert exc.value.pattern == r"a(?=b)"
-        with pytest.raises(InvalidImageNamePattern):
-            make_image_name_matcher([r"(a)\1"])
 
 
 class TestImageMetadataTagsCoercion:

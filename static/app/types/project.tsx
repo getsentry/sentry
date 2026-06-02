@@ -100,6 +100,8 @@ export interface ProjectSummaryWithOptions extends ProjectSummary {
  */
 export interface DetailedProject extends ProjectSummary {
   allowedDomains: string[];
+  dataScrubber: boolean;
+  dataScrubberDefaults: boolean;
   digestsMaxDelay: number;
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
