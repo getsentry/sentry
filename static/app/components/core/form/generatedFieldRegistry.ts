@@ -265,23 +265,12 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-issue-grouping',
     route: '/settings/:orgId/projects/:projectId/issue-grouping/',
     label: t('Fingerprint Rules'),
-    hintText: '',
   },
   'project-issue-grouping.groupingEnhancements': {
     name: 'groupingEnhancements',
     formId: 'project-issue-grouping',
     route: '/settings/:orgId/projects/:projectId/issue-grouping/',
     label: t('Stack Trace Rules'),
-    hintText: '',
-  },
-  'project-issue-grouping.derivedGroupingEnhancements': {
-    name: 'derivedGroupingEnhancements',
-    formId: 'project-issue-grouping',
-    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
-    label: t('Derived Grouping Enhancements'),
-    hintText: t(
-      'These rules are automatically derived for some languages for organizations that have the GitHub integration. These rules are not editable but they can be negated by adding you own rules in the Stack Trace Rules section.'
-    ),
   },
   'project-replays.sentry:replay_rage_click_issues': {
     name: 'sentry:replay_rage_click_issues',

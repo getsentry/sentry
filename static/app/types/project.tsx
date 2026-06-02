@@ -100,10 +100,13 @@ export interface ProjectSummaryWithOptions extends ProjectSummary {
  */
 export interface DetailedProject extends ProjectSummary {
   allowedDomains: string[];
+  derivedGroupingEnhancements: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
+  fingerprintingRules: string;
   groupingConfig: string;
+  groupingEnhancements: string;
   isInternal: boolean;
   organization: Pick<Organization, 'id' | 'slug'>;
   plugins: Plugin[];
@@ -122,9 +125,6 @@ export interface DetailedProject extends ProjectSummary {
   builtinSymbolSources?: string[];
   debugFilesRole?: string | null;
   defaultEnvironment?: string;
-  derivedGroupingEnhancements?: string;
-  fingerprintingRules?: string;
-  groupingEnhancements?: string;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
     context: Record<string, string[]>;

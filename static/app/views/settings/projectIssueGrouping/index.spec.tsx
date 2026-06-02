@@ -1,94 +1,58 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
 import ProjectIssueGrouping from 'sentry/views/settings/projectIssueGrouping';
 
-jest.mock('sentry/utils/isActiveSuperuser', () => ({
-  isActiveSuperuser: jest.fn(),
-}));
-
 describe('projectIssueGrouping', () => {
-  const {organization, projects} = initializeOrg();
-  const project = projects[0]!;
-
-  it('renders successfully', async () => {
-    render(<ProjectIssueGrouping />, {
-      organization,
-      outletContext: {project},
-    });
-
-    expect(await screen.findByText(/Derived Grouping Enhancements/)).toBeInTheDocument();
+  const {organization} = initializeOrg({organization: {access: ['project:write']}});
+  const project = DetailedProjectFixture({
+    derivedGroupingEnhancements: 'stack.function:derived +app',
   });
 
-  it('shows derived grouping enhancements only for superusers', async () => {
-    // First render with a non-superuser
-    const {rerender} = render(<ProjectIssueGrouping />, {
-      organization,
-      outletContext: {project},
-    });
+  it('renders all sections with the derived rules read-only', async () => {
+    render(<ProjectIssueGrouping />, {organization, outletContext: {project}});
 
-    // Verify the section is visible for non-superuser
-    expect(await screen.findByText(/Derived Grouping Enhancements/)).toBeInTheDocument();
-    expect(screen.getByText(/Derived Grouping Enhancements/)).toBeInTheDocument();
     expect(
-      screen.getByRole('textbox', {name: /Derived Grouping Enhancements/})
-    ).toBeDisabled();
-
-    // Re-render for superuser
-    jest.mocked(isActiveSuperuser).mockReturnValue(true);
-    rerender(<ProjectIssueGrouping />);
-
-    // Verify the section is visible for superuser
-    expect(screen.getByText(/Derived Grouping Enhancements/)).toBeInTheDocument();
+      await screen.findByRole('textbox', {name: 'Fingerprint Rules'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Stack Trace Rules'})).toBeInTheDocument();
     expect(
       screen.getByRole('textbox', {name: /Derived Grouping Enhancements/})
     ).toBeDisabled();
   });
 
-  it('saves fingerprint rules via the Save button', async () => {
-    const endpoint = `/projects/${organization.slug}/${project.slug}/`;
-    const updateMock = MockApiClient.addMockResponse({
-      url: endpoint,
+  it('keeps Save/Cancel visible and gates the alert on edits', async () => {
+    const updateRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
       body: {...project, fingerprintingRules: 'error.type:Foo -> bar'},
-      match: [MockApiClient.matchData({fingerprintingRules: 'error.type:Foo -> bar'})],
     });
 
     render(<ProjectIssueGrouping />, {organization, outletContext: {project}});
 
-    const input = await screen.findByRole('textbox', {name: 'Fingerprint Rules'});
-    await userEvent.type(input, 'error.type:Foo -> bar');
-    await userEvent.click(
-      within(input.closest('form')!).getByRole('button', {name: 'Save'})
-    );
-
-    await waitFor(() => expect(updateMock).toHaveBeenCalled());
-  });
-
-  it('surfaces API validation errors inline', async () => {
-    const endpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      method: 'PUT',
-      statusCode: 400,
-      body: {fingerprintingRules: ['Invalid fingerprint rule']},
+    const fingerprintField = await screen.findByRole('textbox', {
+      name: 'Fingerprint Rules',
     });
 
-    render(<ProjectIssueGrouping />, {organization, outletContext: {project}});
+    // Actions are always visible; the alert only appears once dirty.
+    const saveButtons = screen.getAllByRole('button', {name: 'Save'});
+    expect(saveButtons).toHaveLength(2);
+    expect(screen.queryByText(/Changing fingerprint rules/)).not.toBeInTheDocument();
 
-    const input = await screen.findByRole('textbox', {name: 'Fingerprint Rules'});
-    await userEvent.type(input, 'this is not a valid rule');
-    await userEvent.click(
-      within(input.closest('form')!).getByRole('button', {name: 'Save'})
-    );
+    await userEvent.type(fingerprintField, 'error.type:Foo -> bar');
+    expect(await screen.findByText(/Changing fingerprint rules/)).toBeInTheDocument();
 
-    expect(await screen.findByText('Invalid fingerprint rule')).toBeInTheDocument();
+    await userEvent.click(saveButtons[0]!);
+
+    await waitFor(() => {
+      expect(updateRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/`,
+        expect.objectContaining({
+          data: {fingerprintingRules: 'error.type:Foo -> bar'},
+        })
+      );
+    });
   });
 });

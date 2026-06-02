@@ -1,6 +1,4 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {mutationOptions, useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -8,39 +6,23 @@ import {
   defaultFormOptions,
   FieldGroup,
   FormSearch,
-  setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types/organization';
-import type {DetailedProject, Project} from 'sentry/types/project';
-import {fetchMutation} from 'sentry/utils/queryClient';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+import type {DetailedProject} from 'sentry/types/project';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
-
-function getProjectMutationOptions(organization: Organization, project: Project) {
-  const endpoint = `/projects/${organization.slug}/${project.slug}/`;
-
-  return mutationOptions({
-    mutationFn: (data: Partial<DetailedProject>) =>
-      fetchMutation<Project>({method: 'PUT', url: endpoint, data}),
-    onSuccess: (data: Project) => {
-      // This will update our project context
-      ProjectsStore.onUpdateSuccess(data);
-    },
-  });
-}
 
 function FingerprintRulesForm({
   project,
@@ -49,92 +31,78 @@ function FingerprintRulesForm({
   hasAccess: boolean;
   project: DetailedProject;
 }) {
-  const organization = useOrganization();
-  const projectMutation = useMutation(getProjectMutationOptions(organization, project));
-  const saveMessage = t(
-    'Changing fingerprint rules will apply to future events only (can take up to a minute).'
-  );
+  const updateProject = useUpdateProject(project);
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    formId: 'project-issue-grouping-fingerprinting-rules',
     defaultValues: {fingerprintingRules: project.fingerprintingRules ?? ''},
     validators: {onDynamic: z.object({fingerprintingRules: z.string()})},
     onSubmit: ({value, formApi}) =>
-      projectMutation
-        .mutateAsync({fingerprintingRules: value.fingerprintingRules})
+      updateProject
+        .mutateAsync(value)
         .then(() => {
           formApi.reset(value);
-          addSuccessMessage(saveMessage);
+          addSuccessMessage(t('Fingerprint rules updated.'));
         })
-        .catch((error: unknown) => {
-          // Surface API validation errors (e.g. invalid rule syntax) inline.
-          if (error instanceof RequestError && setFieldErrors(formApi, error)) {
-            return;
-          }
-          addErrorMessage(t('Unable to save changes.'));
-        }),
+        .catch(() => addErrorMessage(t('Unable to save changes.'))),
   });
 
   return (
     <form.AppForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/issue-grouping/">
-        <FieldGroup>
+        <FieldGroup title={t('Fingerprint Rules')}>
           <form.AppField name="fingerprintingRules">
             {field => (
-              <field.Layout.Stack
-                label={t('Fingerprint Rules')}
-                hintText={
-                  <Fragment>
-                    <RuleDescription>
-                      {tct(
-                        `This can be used to modify the fingerprint rules on the server with custom rules.
-        Rules follow the pattern [pattern]. To learn more about fingerprint rules, [docs:read the docs].`,
-                        {
-                          pattern: <code>matcher:glob -&gt; fingerprint, values</code>,
-                          docs: (
-                            <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/fingerprint-rules/" />
-                          ),
-                        }
-                      )}
-                    </RuleDescription>
-                    <RuleExample>
-                      {`# force all errors of the same type to have the same fingerprint
+              <field.Layout.Stack label={t('Fingerprint Rules')}>
+                <Stack gap="md">
+                  <RuleDescription>
+                    {tct(
+                      `This can be used to modify the fingerprint rules on the server with custom rules. Rules follow the pattern [pattern]. To learn more about fingerprint rules, [docs:read the docs].`,
+                      {
+                        pattern: <code>matcher:glob -&gt; fingerprint, values</code>,
+                        docs: (
+                          <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/fingerprint-rules/" />
+                        ),
+                      }
+                    )}
+                  </RuleDescription>
+                  <RuleExample>
+                    {`# force all errors of the same type to have the same fingerprint
 error.type:DatabaseUnavailable -> system-down
 # force all memory allocation errors to be grouped together
 stack.function:malloc -> memory-allocation-error`}
-                    </RuleExample>
-                  </Fragment>
-                }
-              >
-                <field.TextArea
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={t(
-                    'error.type:MyException -> fingerprint-value\nstack.function:some_panic_function -> fingerprint-value'
-                  )}
-                  disabled={!hasAccess}
-                  monospace
-                  autosize
-                  rows={1}
-                  maxRows={20}
-                />
+                  </RuleExample>
+                  <field.TextArea
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={!hasAccess}
+                    monospace
+                    autosize
+                    rows={2}
+                    maxRows={20}
+                    placeholder={t(
+                      'error.type:MyException -> fingerprint-value\nstack.function:some_panic_function -> fingerprint-value'
+                    )}
+                  />
+                </Stack>
               </field.Layout.Stack>
             )}
           </form.AppField>
 
           {hasAccess && (
-            <Flex gap="md" align="center">
+            <Flex gap="sm" align="center">
               <form.Subscribe selector={state => state.isDirty}>
                 {isDirty =>
                   isDirty ? (
-                    <Flex flex="1" minWidth={0}>
-                      <Alert variant="info">{saveMessage}</Alert>
-                    </Flex>
+                    <Alert variant="info">
+                      {t(
+                        'Changing fingerprint rules will apply to future events only (can take up to a minute).'
+                      )}
+                    </Alert>
                   ) : null
                 }
               </form.Subscribe>
-              <Flex gap="sm" justify="end" flexShrink={0}>
+              <Flex gap="sm" justify="end" flexGrow={1}>
                 <form.ResetButton>{t('Cancel')}</form.ResetButton>
                 <form.SubmitButton>{t('Save')}</form.SubmitButton>
               </Flex>
@@ -153,92 +121,78 @@ function StackTraceRulesForm({
   hasAccess: boolean;
   project: DetailedProject;
 }) {
-  const organization = useOrganization();
-  const projectMutation = useMutation(getProjectMutationOptions(organization, project));
-  const saveMessage = t(
-    'Changing stack trace rules will apply to future events only (can take up to a minute).'
-  );
+  const updateProject = useUpdateProject(project);
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    formId: 'project-issue-grouping-stack-trace-rules',
     defaultValues: {groupingEnhancements: project.groupingEnhancements ?? ''},
     validators: {onDynamic: z.object({groupingEnhancements: z.string()})},
     onSubmit: ({value, formApi}) =>
-      projectMutation
-        .mutateAsync({groupingEnhancements: value.groupingEnhancements})
+      updateProject
+        .mutateAsync(value)
         .then(() => {
           formApi.reset(value);
-          addSuccessMessage(saveMessage);
+          addSuccessMessage(t('Stack trace rules updated.'));
         })
-        .catch((error: unknown) => {
-          // Surface API validation errors (e.g. invalid rule syntax) inline.
-          if (error instanceof RequestError && setFieldErrors(formApi, error)) {
-            return;
-          }
-          addErrorMessage(t('Unable to save changes.'));
-        }),
+        .catch(() => addErrorMessage(t('Unable to save changes.'))),
   });
 
   return (
     <form.AppForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/issue-grouping/">
-        <FieldGroup>
+        <FieldGroup title={t('Stack Trace Rules')}>
           <form.AppField name="groupingEnhancements">
             {field => (
-              <field.Layout.Stack
-                label={t('Stack Trace Rules')}
-                hintText={
-                  <Fragment>
-                    <RuleDescription>
-                      {tct(
-                        `This can be used to enhance the grouping algorithm with custom rules.
-        Rules follow the pattern [pattern]. To learn more about stack trace rules, [docs:read the docs].`,
-                        {
-                          pattern: <code>matcher:glob [v^]?[+-]flag</code>,
-                          docs: (
-                            <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/stack-trace-rules/" />
-                          ),
-                        }
-                      )}
-                    </RuleDescription>
-                    <RuleExample>
-                      {`# remove all frames above a certain function from grouping
+              <field.Layout.Stack label={t('Stack Trace Rules')}>
+                <Stack gap="md">
+                  <RuleDescription>
+                    {tct(
+                      `This can be used to enhance the grouping algorithm with custom rules. Rules follow the pattern [pattern]. To learn more about stack trace rules, [docs:read the docs].`,
+                      {
+                        pattern: <code>matcher:glob [v^]?[+-]flag</code>,
+                        docs: (
+                          <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/stack-trace-rules/" />
+                        ),
+                      }
+                    )}
+                  </RuleDescription>
+                  <RuleExample>
+                    {`# remove all frames above a certain function from grouping
 stack.function:panic_handler ^-group
 # mark all functions following a prefix in-app
 stack.function:mylibrary_* +app`}
-                    </RuleExample>
-                  </Fragment>
-                }
-              >
-                <field.TextArea
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={t(
-                    'stack.function:raise_an_exception ^-group\nstack.function:namespace::* +app'
-                  )}
-                  disabled={!hasAccess}
-                  monospace
-                  autosize
-                  rows={1}
-                  maxRows={20}
-                />
+                  </RuleExample>
+                  <field.TextArea
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={!hasAccess}
+                    monospace
+                    autosize
+                    rows={2}
+                    maxRows={20}
+                    placeholder={t(
+                      'stack.function:raise_an_exception ^-group\nstack.function:namespace::* +app'
+                    )}
+                  />
+                </Stack>
               </field.Layout.Stack>
             )}
           </form.AppField>
 
           {hasAccess && (
-            <Flex gap="md" align="center">
+            <Flex gap="sm" align="center">
               <form.Subscribe selector={state => state.isDirty}>
                 {isDirty =>
                   isDirty ? (
-                    <Flex flex="1" minWidth={0}>
-                      <Alert variant="info">{saveMessage}</Alert>
-                    </Flex>
+                    <Alert variant="info">
+                      {t(
+                        'Changing stack trace rules will apply to future events only (can take up to a minute).'
+                      )}
+                    </Alert>
                   ) : null
                 }
               </form.Subscribe>
-              <Flex gap="sm" justify="end" flexShrink={0}>
+              <Flex gap="sm" justify="end" flexGrow={1}>
                 <form.ResetButton>{t('Cancel')}</form.ResetButton>
                 <form.SubmitButton>{t('Save')}</form.SubmitButton>
               </Flex>
@@ -251,43 +205,26 @@ stack.function:mylibrary_* +app`}
 }
 
 function DerivedGroupingEnhancements({project}: {project: DetailedProject}) {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    formId: 'project-issue-grouping-derived-enhancements',
-    defaultValues: {
-      derivedGroupingEnhancements: project.derivedGroupingEnhancements ?? '',
-    },
-    validators: {onDynamic: z.object({derivedGroupingEnhancements: z.string()})},
-    onSubmit: () => {},
-  });
-
   return (
-    <form.AppForm form={form}>
-      <FormSearch route="/settings/:orgId/projects/:projectId/issue-grouping/">
-        <FieldGroup>
-          <form.AppField name="derivedGroupingEnhancements">
-            {field => (
-              <field.Layout.Stack
-                label={t('Derived Grouping Enhancements')}
-                hintText={t(
-                  'These rules are automatically derived for some languages for organizations that have the GitHub integration. These rules are not editable but they can be negated by adding you own rules in the Stack Trace Rules section.'
-                )}
-              >
-                <field.TextArea
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled
-                  monospace
-                  autosize
-                  rows={1}
-                  maxRows={20}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-        </FieldGroup>
-      </FormSearch>
-    </form.AppForm>
+    <FieldGroup title={t('Derived Grouping Enhancements')}>
+      <Stack gap="md">
+        <RuleDescription>
+          {t(
+            'These rules are automatically derived for some languages for organizations that have the GitHub integration. These rules are not editable but they can be negated by adding you own rules in the Stack Trace Rules section.'
+          )}
+        </RuleDescription>
+        <TextArea
+          aria-label={t('Derived Grouping Enhancements')}
+          value={project.derivedGroupingEnhancements ?? ''}
+          disabled
+          monospace
+          autosize
+          rows={2}
+          maxRows={20}
+          readOnly
+        />
+      </Stack>
+    </FieldGroup>
   );
 }
 
@@ -321,10 +258,10 @@ export default function ProjectIssueGrouping() {
 }
 
 const RuleDescription = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-  margin-top: -${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const RuleExample = styled('pre')`
-  margin-bottom: ${p => p.theme.space.md};
+  margin: 0;
 `;
