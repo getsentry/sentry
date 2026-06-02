@@ -292,6 +292,7 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
+    GroupPullRequestsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -941,6 +942,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/similar-issues-embeddings/$",
             GroupSimilarIssuesEmbeddingsEndpoint.as_view(),
             name=f"{name_prefix}-group-similar-issues-embeddings",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^/]+)/pull-requests/$",
+            GroupPullRequestsEndpoint.as_view(),
+            name=f"{name_prefix}-group-pull-requests",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/external-issues/$",
