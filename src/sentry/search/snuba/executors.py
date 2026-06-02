@@ -820,6 +820,13 @@ def _recommended_aggregation(
         if weight
     ]
 
+    if not terms:
+        # The score must be an aggregate expression. Every factor term above is an
+        # aggregate, but if all are dropped the only remaining term may be the boost
+        # below, which can be a bare constant. Seed a constant-0 aggregate so the
+        # expression Snuba receives always contains one.
+        terms.append("multiply(0, count())")
+
     if group_type_boosts:
         type_expr = f"any({type_column})" if type_column else "1"
         conditions = []
@@ -827,14 +834,9 @@ def _recommended_aggregation(
             conditions.append(f"equals({type_expr}, {type_id}), {boost}")
         terms.append(f"multiIf({', '.join(conditions)}, 0.0)")
 
-    if not terms:
-        # Snuba rejects a bare "0.0" as an aggregation, so wrap the constant in an
-        # aggregate function to get a 0 score for every group.
-        score_expr = "multiply(0, count())"
-    else:
-        score_expr = terms[0]
-        for term in terms[1:]:
-            score_expr = f"plus({score_expr}, {term})"
+    score_expr = terms[0]
+    for term in terms[1:]:
+        score_expr = f"plus({score_expr}, {term})"
 
     return [score_expr, ""]
 
