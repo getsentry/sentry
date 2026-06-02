@@ -390,7 +390,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "sentry.api.endpoints.organization_releases",
-    "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",
     "sentry.snuba.metrics.query_builder",
