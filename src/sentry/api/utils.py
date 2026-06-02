@@ -372,11 +372,9 @@ def handle_query_errors() -> Generator[None]:
         message = str(error)
         # Special case the project message since it has so many variants so tagging is messy otherwise
         if message.endswith("do not exist or are not actively selected."):
-            sentry_sdk.set_tag(
-                "query.error_reason", "Project in query does not exist or not selected"
-            )
-        else:
-            sentry_sdk.set_tag("query.error_reason", message)
+            message = "Project in query does not exist or not selected"
+        sentry_sdk.set_tag("query.error_reason", message)
+        logger.info(message)
         raise ParseError(detail=message)
     except ArithmeticError as error:
         message = str(error)
