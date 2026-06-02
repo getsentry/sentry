@@ -126,7 +126,7 @@ class SourceMapDebugResponse(TypedDict):
 
 @cell_silo_endpoint
 @extend_schema(tags=["Events"])
-class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
+class SourceMapDebugEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
