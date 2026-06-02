@@ -633,11 +633,11 @@ export class VirtualizedViewManager {
         event.preventDefault();
       }
 
-      const physical_delta_pct = distance / this.view.trace_physical_space.width;
+      const physicalDeltaPct = distance / this.view.trace_physical_space.width;
       const compressedView = this.getCompressedView();
-      const compressed_delta = physical_delta_pct * compressedView.width;
-      const nextCompressedLeft = compressedView.left + compressed_delta;
-      const nextCompressedRight = compressedView.right + compressed_delta;
+      const compressedDelta = physicalDeltaPct * compressedView.width;
+      const nextCompressedLeft = compressedView.left + compressedDelta;
+      const nextCompressedRight = compressedView.right + compressedDelta;
       const nextRealLeft = this.time_compression.toRealTimestamp(nextCompressedLeft);
       const nextRealRight = this.time_compression.toRealTimestamp(nextCompressedRight);
 

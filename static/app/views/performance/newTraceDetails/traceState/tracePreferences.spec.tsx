@@ -10,7 +10,7 @@ describe('tracePreferences', () => {
   });
 
   it('defaults compressed timeline on', () => {
-    expect(DEFAULT_TRACE_VIEW_PREFERENCES.compressed_timeline).toBe(true);
+    expect(DEFAULT_TRACE_VIEW_PREFERENCES.compressedTimeline).toBe(true);
   });
 
   it('backfills compressed timeline for stored preferences', () => {
@@ -26,8 +26,26 @@ describe('tracePreferences', () => {
     expect(
       getInitialTracePreferences('trace-waterfall-preferences', {
         ...DEFAULT_TRACE_VIEW_PREFERENCES,
-      }).compressed_timeline
+      }).compressedTimeline
     ).toBe(true);
+  });
+
+  it('loads legacy snake case compressed timeline preferences', () => {
+    localStorage.setItem(
+      'trace-waterfall-preferences',
+      JSON.stringify({
+        drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
+        missing_instrumentation: false,
+        autogroup: {parent: true, sibling: true},
+        compressed_timeline: false,
+      })
+    );
+
+    expect(
+      getInitialTracePreferences('trace-waterfall-preferences', {
+        ...DEFAULT_TRACE_VIEW_PREFERENCES,
+      }).compressedTimeline
+    ).toBe(false);
   });
 
   it('updates compressed timeline preference', () => {
@@ -35,7 +53,7 @@ describe('tracePreferences', () => {
       tracePreferencesReducer(DEFAULT_TRACE_VIEW_PREFERENCES, {
         type: 'set compressed timeline',
         payload: false,
-      }).compressed_timeline
+      }).compressedTimeline
     ).toBe(false);
   });
 });
