@@ -41,7 +41,7 @@ export function SearchButton() {
       }}
     >
       <Flex align="center" gap="sm">
-        <Container>{t('Search')}</Container>
+        <Container display={{xs: 'none', md: 'inline-block'}}>{t('Search')}</Container>
         <Container display={{xs: 'none', md: 'inline-block'}}>
           <Hotkey value="mod+k" variant="debossed" />
         </Container>
