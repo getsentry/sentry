@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 interface FormFieldDefinition {
   formId: string;
   name: string;
-  /** Route pattern for settings search navigation */
+  /** Route pattern for SettingsSearch navigation */
   route: string;
   hintText?: string;
   label?: string;
