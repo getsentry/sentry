@@ -68,6 +68,17 @@ class AutofixStoppingPoint(StrEnum):
     OPEN_PR = "open_pr"
 
 
+SEAT_BASED_STOPPING_POINTS: set[AutofixStoppingPoint] = {
+    AutofixStoppingPoint.CODE_CHANGES,
+    AutofixStoppingPoint.OPEN_PR,
+    AutofixStoppingPoint.ROOT_CAUSE,
+}
+
+USAGE_BASED_STOPPING_POINTS: set[AutofixStoppingPoint] = SEAT_BASED_STOPPING_POINTS | {
+    AutofixStoppingPoint.SOLUTION,
+}
+
+
 def extract_api_error_message(response: Any) -> str | None:
     # Anthropic returns {"error": {"type": "...", "message": "..."}}; others
     # (OpenAI, GitHub, Stripe) use one of "error.message" or top-level "message".
@@ -91,28 +102,12 @@ def extract_api_error_message(response: Any) -> str | None:
 
 
 def get_valid_automated_run_stopping_points(
-    organization: Organization | None = None,
-    *,
-    is_seat_based: bool | None = None,
+    organization: Organization,
 ) -> set[AutofixStoppingPoint]:
-    """Return the set of stopping points valid for an org's billing tier.
-
-    Pass is_seat_based to skip the feature-flag lookup when the caller
-    already knows the org's tier (e.g. during seat-based migration).
-    """
-    if is_seat_based is None:
-        if organization is None:
-            raise ValueError("Either organization or is_seat_based must be provided.")
-        is_seat_based = is_seer_seat_based_tier_enabled(organization)
-
-    valid = {
-        AutofixStoppingPoint.CODE_CHANGES,
-        AutofixStoppingPoint.OPEN_PR,
-        AutofixStoppingPoint.ROOT_CAUSE,
-    }
-    if not is_seat_based:
-        valid.add(AutofixStoppingPoint.SOLUTION)
-    return valid
+    """Return the set of stopping points valid for an org's billing tier."""
+    if is_seer_seat_based_tier_enabled(organization):
+        return SEAT_BASED_STOPPING_POINTS
+    return USAGE_BASED_STOPPING_POINTS
 
 
 class AutofixRequest(BaseModel):
@@ -379,21 +374,13 @@ def default_seer_project_preference(project: Project) -> SeerProjectPreference:
 
 def get_org_default_seer_automation_handoff(
     organization: Organization,
-    *,
-    is_seat_based: bool | None = None,
 ) -> tuple[str, SeerAutomationHandoffConfiguration | None]:
-    """Get the default stopping point and automation handoff for an organization.
-
-    Pass is_seat_based to skip the feature-flag lookup when the caller
-    already knows the org's tier (e.g. during seat-based migration).
-    """
+    """Get the default stopping point and automation handoff for a seat-based organization."""
     stopping_point = organization.get_option(
         "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
     )
     # Guard against stored stopping points that are no longer valid.
-    if stopping_point not in get_valid_automated_run_stopping_points(
-        organization, is_seat_based=is_seat_based
-    ):
+    if stopping_point not in SEAT_BASED_STOPPING_POINTS:
         stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 
     auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)

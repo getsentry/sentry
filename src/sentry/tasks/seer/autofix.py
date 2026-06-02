@@ -20,6 +20,7 @@ from sentry.seer.autofix.constants import (
     SeerAutomationSource,
 )
 from sentry.seer.autofix.utils import (
+    SEAT_BASED_STOPPING_POINTS,
     AutofixStoppingPoint,
     AutomationCodingAgent,
     SeerProjectSettingsUpdate,
@@ -27,7 +28,6 @@ from sentry.seer.autofix.utils import (
     get_autofix_state,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
-    get_valid_automated_run_stopping_points,
     update_seer_project_settings,
 )
 from sentry.tasks.base import instrumented_task
@@ -242,11 +242,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
             )
 
-    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(
-        organization, is_seat_based=True
-    )
-    valid_stopping_points = get_valid_automated_run_stopping_points(is_seat_based=True)
-
+    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
     preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
 
     # Determine which projects need updates
@@ -262,12 +258,12 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
             # Skip projects that a) already have an acceptable stopping point configured
             # AND b) already have a handoff configured or no org default handoff.
-            if existing_stopping_point in valid_stopping_points and (
+            if existing_stopping_point in SEAT_BASED_STOPPING_POINTS and (
                 existing_handoff or default_handoff is None
             ):
                 continue
 
-            if existing_stopping_point in valid_stopping_points:
+            if existing_stopping_point in SEAT_BASED_STOPPING_POINTS:
                 stopping_point = existing_stopping_point
             if existing_handoff:
                 handoff = existing_handoff
