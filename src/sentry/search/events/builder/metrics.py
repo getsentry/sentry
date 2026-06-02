@@ -167,6 +167,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         return super().are_columns_resolved()
 
     def _is_on_demand_extraction_disabled(self, query_hash: str) -> bool:
+        assert self.organization_id is not None
         spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
         on_demand_entries = DashboardWidgetQueryOnDemand.objects.filter(
             spec_hashes__contains=[query_hash],
@@ -188,6 +189,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         if not field:
             return None
 
+        assert self.organization_id is not None
         groupby_columns = self._get_group_bys()
 
         if not should_use_on_demand_metrics_for_querying(
@@ -202,7 +204,9 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         try:
             environment = None
             if self.params.environments:
-                environment = self.params.environments[0].name
+                first_env = self.params.environments[0]
+                if first_env is not None:
+                    environment = first_env.name
 
             if not self.builder_config.on_demand_metrics_type:
                 raise InvalidSearchQuery(
@@ -212,7 +216,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             metric_spec = fetch_on_demand_metric_spec(
                 self.organization_id,
                 field=field,
-                query=self.query,
+                query=self.query or "",
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
@@ -360,10 +364,11 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         """This property is used to determine if a query is using at least one of the fields in the spans namespace."""
         if self._is_spans_metrics_query_cache is not None:
             return self._is_spans_metrics_query_cache
-        if self.query is not None:
-            tags = parse_query(
-                self.params.projects, self.query, self.params.user, self.params.environments
-            )["tags"]
+        if self.query is not None and self.params.user is not None:
+            environments = [e for e in self.params.environments if e is not None]
+            tags = parse_query(self.params.projects, self.query, self.params.user, environments)[
+                "tags"
+            ]
             for tag in tags:
                 if tag in constants.SPANS_METRICS_TAGS:
                     self._is_spans_metrics_query_cache = True
@@ -405,7 +410,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         selected_columns: list[str] | None = None,
         groupby_columns: list[str] | None = None,
         equations: list[str] | None = None,
-        orderby: list[str] | None = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         # Resolutions that we always must perform, irrespectively of on demand.
         with sentry_sdk.start_span(op="QueryBuilder", name="resolve_time_conditions"):
@@ -439,7 +444,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             # On demand still needs to call resolve since resolving columns has a side_effect
             # of adding their alias to the function_alias_map, which is required to convert snuba
             # aliases back to their original functions.
-            for column in selected_columns:
+            for column in selected_columns or []:
                 try:
                     self.resolve_select([column], [])
                 except (IncompatibleMetricsQuery, InvalidSearchQuery):
@@ -625,12 +630,15 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     def resolve_snql_function(
         self,
-        snql_function: fields.MetricsFunction,
+        snql_function: fields.SnQLFunction,
         arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> SelectType | None:
-        prefix = self._get_metric_prefix(snql_function, arguments.get("column"))
+        assert isinstance(snql_function, fields.MetricsFunction)
+        column_arg = arguments.get("column")
+        assert column_arg is None or isinstance(column_arg, str)
+        prefix = self._get_metric_prefix(snql_function, column_arg)
         # If the metric_id is 0 that means this is a function that won't return but we don't want to error the query
         nullable = arguments.get("metric_id") == 0
         if nullable:
@@ -675,6 +683,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     def resolve_metric_index(self, value: str) -> int | None:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
+        assert self.organization_id is not None
         if value not in self._indexer_cache:
             result = indexer.resolve(
                 self.use_case_id,
@@ -1511,6 +1520,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     def resolve_granularity(self) -> Granularity:
         """Find the largest granularity that is smaller than the interval"""
+        if self.start is None or self.end is None:
+            raise ValueError("skip_time_conditions must be False when calling this method")
+
         for available_granularity in constants.METRICS_GRANULARITIES:
             if available_granularity <= self.interval:
                 max_granularity = available_granularity
@@ -1780,9 +1792,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
             return {}
 
         return {
-            col: self._get_on_demand_metric_spec(col)
+            col: spec
             for col in self.timeseries_columns
-            if self._get_on_demand_metric_spec(col)
+            if (spec := self._get_on_demand_metric_spec(col)) is not None
         }
 
     def resolve_top_event_conditions(
@@ -1804,7 +1816,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
                 value = event.get(field)
                 # Ensure the project id fields stay as numbers, clickhouse 20 can't handle it, but 21 can
-                if field in {"project_id", "project.id"}:
+                if field in {"project_id", "project.id"} and value is not None:
                     value = int(value)
                 if field == constants.PROJECT_ALIAS:
                     # These will be strings so lets turn them back to ints
