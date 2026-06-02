@@ -12,7 +12,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
@@ -28,7 +27,7 @@ export function LaunchpadAdminPage() {
   const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState('');
   const [downloadArtifactId, setDownloadArtifactId] = useState('');
   const [fetchedArtifactInfo, setFetchedArtifactInfo] = useState<any>(null);
-  const regions = ConfigStore.get('regions');
+  const regions = getRegions();
   const [region, setRegion] = useState(regions[0] ?? null);
 
   const {mutate: rerunAnalysis} = useMutation({
