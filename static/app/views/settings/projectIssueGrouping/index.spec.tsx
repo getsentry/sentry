@@ -1,7 +1,13 @@
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectIssueGrouping from 'sentry/views/settings/projectIssueGrouping';
 
@@ -35,16 +41,23 @@ describe('projectIssueGrouping', () => {
     const fingerprintField = await screen.findByRole('textbox', {
       name: 'Fingerprint Rules',
     });
+    const fingerprintForm = fingerprintField.closest('form');
+    if (!fingerprintForm) {
+      throw new Error('Could not find the fingerprint rules form');
+    }
+    const fingerprint = within(fingerprintForm);
 
-    // Actions are always visible; the alert only appears once dirty.
-    const saveButtons = screen.getAllByRole('button', {name: 'Save'});
-    expect(saveButtons).toHaveLength(2);
-    expect(screen.queryByText(/Changing fingerprint rules/)).not.toBeInTheDocument();
+    // Save/Cancel are always visible; the alert only appears once dirty.
+    expect(fingerprint.getByRole('button', {name: 'Save'})).toBeInTheDocument();
+    expect(fingerprint.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    expect(fingerprint.queryByText(/Changing fingerprint rules/)).not.toBeInTheDocument();
 
     await userEvent.type(fingerprintField, 'error.type:Foo -> bar');
-    expect(await screen.findByText(/Changing fingerprint rules/)).toBeInTheDocument();
+    expect(
+      await fingerprint.findByText(/Changing fingerprint rules/)
+    ).toBeInTheDocument();
 
-    await userEvent.click(saveButtons[0]!);
+    await userEvent.click(fingerprint.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(updateRequest).toHaveBeenCalledWith(

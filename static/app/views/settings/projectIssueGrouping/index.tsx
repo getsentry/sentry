@@ -90,11 +90,11 @@ stack.function:malloc -> memory-allocation-error`}
           </form.AppField>
 
           {hasAccess && (
-            <Flex gap="sm" align="center">
+            <Stack gap="lg">
               <form.Subscribe selector={state => state.isDirty}>
                 {isDirty =>
                   isDirty ? (
-                    <Alert variant="info">
+                    <Alert variant="info" showIcon={false}>
                       {t(
                         'Changing fingerprint rules will apply to future events only (can take up to a minute).'
                       )}
@@ -102,11 +102,11 @@ stack.function:malloc -> memory-allocation-error`}
                   ) : null
                 }
               </form.Subscribe>
-              <Flex gap="sm" justify="end" flexGrow={1}>
+              <Flex gap="sm" justify="end">
                 <form.ResetButton>{t('Cancel')}</form.ResetButton>
                 <form.SubmitButton>{t('Save')}</form.SubmitButton>
               </Flex>
-            </Flex>
+            </Stack>
           )}
         </FieldGroup>
       </FormSearch>
@@ -180,11 +180,11 @@ stack.function:mylibrary_* +app`}
           </form.AppField>
 
           {hasAccess && (
-            <Flex gap="sm" align="center">
+            <Stack gap="lg">
               <form.Subscribe selector={state => state.isDirty}>
                 {isDirty =>
                   isDirty ? (
-                    <Alert variant="info">
+                    <Alert variant="info" showIcon={false}>
                       {t(
                         'Changing stack trace rules will apply to future events only (can take up to a minute).'
                       )}
@@ -192,11 +192,11 @@ stack.function:mylibrary_* +app`}
                   ) : null
                 }
               </form.Subscribe>
-              <Flex gap="sm" justify="end" flexGrow={1}>
+              <Flex gap="sm" justify="end">
                 <form.ResetButton>{t('Cancel')}</form.ResetButton>
                 <form.SubmitButton>{t('Save')}</form.SubmitButton>
               </Flex>
-            </Flex>
+            </Stack>
           )}
         </FieldGroup>
       </FormSearch>
