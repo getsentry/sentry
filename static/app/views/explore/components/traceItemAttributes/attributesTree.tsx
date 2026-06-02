@@ -25,6 +25,7 @@ interface Attribute {
   attribute_key: string;
   attribute_value: string | number | null;
   original_attribute_key: string;
+  type: TraceItemResponseAttribute['type'];
 }
 
 type AttributesTree = Record<string, AttributesTreeContent>;
@@ -147,6 +148,7 @@ function addToAttributeTree(
     attribute_key: branch,
     attribute_value: attribute.attribute_value,
     original_attribute_key: attribute.original_attribute_key,
+    type: attribute.type,
   };
   tree[trunk].subtree = addToAttributeTree(
     tree[trunk].subtree,
@@ -466,6 +468,7 @@ function getAttribute(
     original_attribute_key: getAdjustedAttributeKey
       ? getAdjustedAttributeKey(attribute)
       : attribute.name,
+    type: attribute.type,
   };
 }
 

@@ -61,6 +61,7 @@ describe('useMetricAttributesTreeActions', () => {
         attribute_key: 'release',
         attribute_value: '1.0.0',
         original_attribute_key: 'release',
+        type: 'str' as const,
       },
       subtree: {},
       value: '1.0.0',

@@ -24,6 +24,7 @@ describe('AttributesTreeValue', () => {
         attribute_key: 'test.key',
         attribute_value: 'test-value',
         original_attribute_key: 'test.key',
+        type: 'str' as const,
       },
     },
     rendererExtra: {
