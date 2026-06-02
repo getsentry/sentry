@@ -43,4 +43,5 @@ describe('LowValueSpanIssueDetails', () => {
     expect(screen.queryByText('Diagnosis')).not.toBeInTheDocument();
     expect(screen.queryByText('Impact')).not.toBeInTheDocument();
   });
+
 });
