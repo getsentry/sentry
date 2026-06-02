@@ -964,25 +964,22 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceCollapsedGapMarkerLabel {
     position: absolute;
-    top: 2px;
+    top: 22px;
     font-size: 10px;
-    font-weight: ${p => p.theme.font.weight.sans.medium};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
     color: ${p => p.theme.tokens.content.warning};
-    background-color: ${p => p.theme.tokens.background.primary};
-    border-radius: 100px;
-    border: 1px solid ${p => p.theme.tokens.border.warning};
+    background-color: transparent;
     line-height: 1;
     white-space: nowrap;
-    padding: 1px 4px;
 
     &.Left {
       right: 100%;
-      margin-right: -4px;
+      padding-right: 2px;
     }
 
     &.Right {
       left: 100%;
-      margin-left: -4px;
+      padding-left: 2px;
     }
   }
 
