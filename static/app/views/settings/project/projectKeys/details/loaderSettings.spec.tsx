@@ -49,16 +49,14 @@ describe('Loader Script Settings', () => {
 
     const {organization, project} = initializeOrg();
 
-    const data = {
-      ...ProjectKeysFixture()[0],
-      dynamicSdkLoaderOptions,
-    } as ProjectKey;
-
     const updateData = jest.fn();
 
     render(
       <KeySettings
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions,
+        }}
         updateData={updateData}
         onRemove={jest.fn()}
         organization={organization}
@@ -107,11 +105,6 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
-      dynamicSdkLoaderOptions,
-    } as ProjectKey;
-
     const mockRequests = renderMockRequests(
       organization.slug,
       params.projectSlug,
@@ -125,7 +118,10 @@ describe('Loader Script Settings', () => {
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions,
+        }}
         updateData={updateData}
       />
     );
@@ -173,11 +169,6 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
-      dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
-    } as ProjectKey;
-
     const mockRequests = renderMockRequests(
       organization.slug,
       params.projectSlug,
@@ -190,7 +181,10 @@ describe('Loader Script Settings', () => {
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
+        }}
       />
     );
 
@@ -223,24 +217,23 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
-      dynamicSdkLoaderOptions: {
-        hasDebug: true,
-        hasFeedback: false,
-        hasPerformance: false,
-        hasReplay: false,
-      },
-      browserSdkVersion: '6.x',
-    } as ProjectKey;
-
     render(
       <LoaderSettings
         updateData={jest.fn()}
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions: {
+            hasDebug: true,
+            hasFeedback: false,
+            hasPerformance: false,
+            hasReplay: false,
+            hasLogsAndMetrics: false,
+          },
+          browserSdkVersion: '6.x',
+        }}
       />
     );
 
@@ -276,10 +269,10 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
+    const data: ProjectKey = {
+      ...ProjectKeysFixture()[0],
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
-    } as ProjectKey;
+    };
 
     const {rerender} = render(
       <LoaderSettings
@@ -325,10 +318,10 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
+    const data: ProjectKey = {
+      ...ProjectKeysFixture()[0],
       dynamicSdkLoaderOptions,
-    } as ProjectKey;
+    };
 
     const responseBody = {
       ...data,
@@ -371,11 +364,6 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
-      dynamicSdkLoaderOptions,
-    } as ProjectKey;
-
     const mockRequest = renderMockRequests(
       organization.slug,
       params.projectSlug,
@@ -387,7 +375,10 @@ describe('Loader Script Settings', () => {
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions,
+        }}
         updateData={jest.fn()}
       />
     );
@@ -416,11 +407,6 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
-      dynamicSdkLoaderOptions,
-    } as ProjectKey;
-
     const mockRequest = renderMockRequests(
       organization.slug,
       params.projectSlug,
@@ -432,7 +418,10 @@ describe('Loader Script Settings', () => {
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions,
+        }}
         updateData={jest.fn()}
       />
     );
@@ -462,19 +451,17 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
-      dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
-      browserSdkVersion: '7.x',
-    } as ProjectKey;
-
     render(
       <LoaderSettings
         updateData={jest.fn()}
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
+          browserSdkVersion: '7.x',
+        }}
       />
     );
 
@@ -496,22 +483,20 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
-      dynamicSdkLoaderOptions: {
-        ...fullDynamicSdkLoaderOptions,
-        hasLogsAndMetrics: true,
-      },
-      browserSdkVersion: '10.x',
-    } as ProjectKey;
-
     render(
       <LoaderSettings
         updateData={jest.fn()}
         orgSlug={organization.slug}
         keyId={params.keyId}
         project={project}
-        data={data}
+        data={{
+          ...ProjectKeysFixture()[0],
+          dynamicSdkLoaderOptions: {
+            ...fullDynamicSdkLoaderOptions,
+            hasLogsAndMetrics: true,
+          },
+          browserSdkVersion: '10.x',
+        }}
       />
     );
 
@@ -529,10 +514,10 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
+    const data: ProjectKey = {
+      ...ProjectKeysFixture()[0],
       dynamicSdkLoaderOptions,
-    } as ProjectKey;
+    };
 
     render(
       <LoaderSettings
@@ -556,10 +541,10 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const data = {
-      ...ProjectKeysFixture()[0]!,
+    const data: ProjectKey = {
+      ...ProjectKeysFixture()[0],
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
-    } as ProjectKey;
+    };
 
     const {rerender} = render(
       <LoaderSettings

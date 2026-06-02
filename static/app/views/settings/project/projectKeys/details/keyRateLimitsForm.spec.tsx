@@ -10,7 +10,7 @@ import {KeyRateLimitsForm} from 'sentry/views/settings/project/projectKeys/detai
 describe('KeyRateLimitsForm', () => {
   const org = OrganizationFixture();
   const project = ProjectFixture({features: ['rate-limits']});
-  const baseKey = ProjectKeysFixture()[0]!;
+  const baseKey = ProjectKeysFixture()[0];
 
   function renderForm(data: ProjectKey = baseKey) {
     const updateData = jest.fn();

@@ -156,7 +156,7 @@ describe('ProjectKeyDetails', () => {
     project = ProjectFixture({features: ['rate-limits']});
     projectKeys = [
       {
-        ...ProjectKeysFixture()[0]!,
+        ...ProjectKeysFixture()[0],
         rateLimit: {count: 5, window: 60},
       },
     ];

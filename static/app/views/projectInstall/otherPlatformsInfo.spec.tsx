@@ -61,7 +61,7 @@ describe('OtherPlatformsInfo', () => {
     ).toBeInTheDocument();
 
     expect(screen.getByText(/dsn:/)).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(projectKeys[0]!.dsn.public))).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(projectKeys[0].dsn.public))).toBeInTheDocument();
   });
 
   it('renders warning when no DSN is available', async () => {
