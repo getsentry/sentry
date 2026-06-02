@@ -137,17 +137,30 @@ Use the `visible` prop on `<RevealOnHover.Action>` to override the reveal behavi
 </Storybook.Demo>
 
 ```jsx
-<RevealOnHover>
-  <Text>Pinned item</Text>
-  <RevealOnHover.Action visible>
-    <Button
-      size="zero"
-      variant="transparent"
-      aria-label="Copy"
-      icon={<IconCopy size="xs" />}
-    />
-  </RevealOnHover.Action>
-</RevealOnHover>
+<Flex direction="column" gap="sm" width="300px">
+  <RevealOnHover>
+    <Text>Pinned item</Text>
+    <RevealOnHover.Action visible>
+      <Button
+        size="zero"
+        variant="transparent"
+        aria-label="Copy"
+        icon={<IconCopy size="xs" />}
+      />
+    </RevealOnHover.Action>
+  </RevealOnHover>
+  <RevealOnHover>
+    <Text>Normal item</Text>
+    <RevealOnHover.Action>
+      <Button
+        size="zero"
+        variant="transparent"
+        aria-label="Copy"
+        icon={<IconCopy size="xs" />}
+      />
+    </RevealOnHover.Action>
+  </RevealOnHover>
+</Flex>
 ```
 
 ## Layout Props
