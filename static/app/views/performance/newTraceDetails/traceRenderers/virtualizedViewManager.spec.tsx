@@ -1,7 +1,7 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
-import type {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
+import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
@@ -995,6 +995,48 @@ describe('VirtualizedViewManger', () => {
 
       expect(inside).toBe(0);
       expect(textTransform).toBe(manager.transformXFromTimestamp(100.1) + 3);
+    });
+
+    it('moves duration text away from collapsed gap markers', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.time_compression = TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [0, 1000],
+        physicalWidth: 1000,
+        nodes: [
+          {type: 'span', space: [0, 100]},
+          {type: 'span', space: [500, 100]},
+        ] as any,
+        indicators: [],
+      });
+      manager.recomputeSpanToPXMatrix();
+
+      const measuredWidth = 50;
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(measuredWidth);
+
+      const node = {errors: new Set(), occurrences: new Set()} as any;
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        [0, 100],
+        '32.34ms'
+      );
+
+      expect(manager.spanTextOverlapsCollapsedGap(textTransform, measuredWidth)).toBe(
+        false
+      );
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(manager.transformXFromTimestamp(100) + 3);
     });
   });
 });

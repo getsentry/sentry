@@ -2,7 +2,8 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 const COLLAPSE_THRESHOLD_RATIO = 0.1;
-const COLLAPSED_GAP_WIDTH_PX = 28;
+export const COLLAPSED_GAP_WIDTH_PX = 28;
+const DURATION_LABEL_BUFFER_PX = 60;
 const MARKER_PADDING_RATIO = 0.01;
 const MARKER_PADDING_MAX_MS = 500;
 
@@ -192,6 +193,10 @@ function collectVisibleIntervals(options: TraceTimeCompressionOptions): Interval
     traceDuration * MARKER_PADDING_RATIO,
     MARKER_PADDING_MAX_MS
   );
+  const durationLabelBuffer =
+    options.physicalWidth > 0
+      ? (traceDuration / options.physicalWidth) * DURATION_LABEL_BUFFER_PX
+      : 0;
   const intervals: Interval[] = [];
 
   for (const node of options.nodes) {
@@ -203,7 +208,10 @@ function collectVisibleIntervals(options: TraceTimeCompressionOptions): Interval
     const end = clampTimestamp(node.space[0] + node.space[1], traceStart, traceEnd);
 
     if (end > start) {
-      intervals.push([start, end]);
+      intervals.push([
+        clampTimestamp(start - durationLabelBuffer, traceStart, traceEnd),
+        clampTimestamp(end + durationLabelBuffer, traceStart, traceEnd),
+      ]);
     } else {
       intervals.push([
         clampTimestamp(start - markerPadding, traceStart, traceEnd),

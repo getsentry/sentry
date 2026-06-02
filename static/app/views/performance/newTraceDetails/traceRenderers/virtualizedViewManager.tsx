@@ -19,7 +19,10 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
 import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
-import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
+import {
+  COLLAPSED_GAP_WIDTH_PX,
+  TraceTimeCompression,
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import type {TraceTimeCompressionGap} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 
@@ -58,6 +61,7 @@ type VerticalIndicator = {
   ref: HTMLElement | null;
   timestamp: number | undefined;
 };
+type SpanTextPlacement = [inside: number, textTransform: number];
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their
@@ -1376,7 +1380,7 @@ export class VirtualizedViewManager {
     node: BaseNode,
     span_space: [number, number],
     text: string
-  ): [number, number] {
+  ): SpanTextPlacement {
     const TEXT_PADDING = 3;
 
     const text_anchor_left =
@@ -1419,6 +1423,15 @@ export class VirtualizedViewManager {
       this.transformXFromTimestamp(this.view.to_origin + this.view.trace_view.left) +
       TEXT_PADDING;
 
+    const choosePlacement = (placements: SpanTextPlacement[]): SpanTextPlacement => {
+      return (
+        placements.find(
+          ([, text_transform]) =>
+            !this.spanTextOverlapsCollapsedGap(text_transform, text_width_ceil)
+        ) ?? placements[0]!
+      );
+    };
+
     const view_left = this.view.trace_view.x;
     const view_right = view_left + this.view.trace_view.width;
 
@@ -1430,17 +1443,29 @@ export class VirtualizedViewManager {
 
     // Span is completely outside of the view on the left side
     if (span_right < this.view.trace_view.x) {
-      return text_anchor_left ? [1, right_inside] : [0, right_outside];
+      return text_anchor_left
+        ? choosePlacement([[1, right_inside]])
+        : choosePlacement([[0, right_outside]]);
     }
 
     // Span is completely outside of the view on the right side
     if (span_left > this.view.trace_view.right) {
-      return text_anchor_left ? [0, left_outside] : [1, left_inside];
+      return text_anchor_left
+        ? choosePlacement([[0, left_outside]])
+        : choosePlacement([[1, left_inside]]);
     }
 
     // Span "spans" the entire view
     if (span_left <= this.view.trace_view.x && span_right >= this.view.trace_view.right) {
-      return text_anchor_left ? [1, window_left] : [1, window_right];
+      return text_anchor_left
+        ? choosePlacement([
+            [1, window_left],
+            [1, window_right],
+          ])
+        : choosePlacement([
+            [1, window_right],
+            [1, window_left],
+          ]);
     }
 
     const config_space_per_px = this.getConfigSpacePerPx();
@@ -1449,7 +1474,12 @@ export class VirtualizedViewManager {
     if (text_anchor_left) {
       // While we have space on the left, place the text there
       if (space_left > 0) {
-        return [0, left_outside];
+        const placements: SpanTextPlacement[] = [[0, left_outside]];
+        if (full_span_px_width > text_width_ceil) {
+          placements.push([1, left_inside]);
+        }
+        placements.push([0, right_outside]);
+        return choosePlacement(placements);
       }
 
       const distance = span_right - this.view.trace_view.left;
@@ -1458,12 +1488,18 @@ export class VirtualizedViewManager {
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
       if (visible_width - TEXT_PADDING >= text_width_ceil) {
-        return [1, window_left];
+        return choosePlacement([
+          [1, window_left],
+          [1, right_inside],
+        ]);
       }
 
       // If the text doesnt fit inside the visible portion of the span,
       // anchor it to the inside right place in the span.
-      return [1, right_inside];
+      return choosePlacement([
+        [1, right_inside],
+        [0, left_outside],
+      ]);
     }
 
     // While we have space on the right, place the text there
@@ -1482,11 +1518,22 @@ export class VirtualizedViewManager {
         space_right / config_space_per_px < text_width_ceil
       ) {
         if (full_span_px_width > text_width_ceil) {
-          return [1, right_inside];
+          return choosePlacement([
+            [1, right_inside],
+            [0, left_outside],
+          ]);
         }
-        return [0, left_outside];
+        return choosePlacement([
+          [0, left_outside],
+          [0, right_outside],
+        ]);
       }
-      return [0, right_outside];
+      const placements: SpanTextPlacement[] = [[0, right_outside]];
+      if (full_span_px_width > text_width_ceil) {
+        placements.push([1, right_inside]);
+      }
+      placements.push([0, left_outside]);
+      return choosePlacement(placements);
     }
 
     // If text fits inside the span
@@ -1498,15 +1545,45 @@ export class VirtualizedViewManager {
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
       if (visible_width - TEXT_PADDING >= text_width_ceil) {
-        return [1, window_right];
+        return choosePlacement([
+          [1, window_right],
+          [1, left_inside],
+        ]);
       }
 
       // If the text doesnt fit inside the visible portion of the span,
       // anchor it to the inside left of the span
-      return [1, left_inside];
+      return choosePlacement([
+        [1, left_inside],
+        [0, right_outside],
+      ]);
     }
 
-    return [0, right_outside];
+    return choosePlacement([
+      [0, right_outside],
+      [0, left_outside],
+    ]);
+  }
+
+  spanTextOverlapsCollapsedGap(textTransform: number, textWidth: number): boolean {
+    if (!this.time_compression.enabled) {
+      return false;
+    }
+
+    const textLeft = textTransform;
+    const textRight = textLeft + textWidth;
+    const viewStart = this.view.to_origin + this.view.trace_view.x;
+    const viewEnd = viewStart + this.view.trace_view.width;
+
+    return this.time_compression.gaps.some(gap => {
+      if (gap.end < viewStart || gap.start > viewEnd) {
+        return false;
+      }
+
+      const gapLeft = this.transformXFromTimestamp(gap.start);
+      const gapRight = gapLeft + COLLAPSED_GAP_WIDTH_PX;
+      return textLeft < gapRight && textRight > gapLeft;
+    });
   }
 
   last_indicator_width = 0;
