@@ -121,7 +121,7 @@ function localInputToUtcIso(value: string): string {
   return new Date(value).toISOString();
 }
 
-const PAGE_SIZE_OPTIONS = [25, 50, 100, 250] as const;
+const PAGE_SIZE_OPTIONS: readonly number[] = [25, 50, 100, 250];
 const DEFAULT_PAGE_SIZE = 50;
 
 function firstQueryValue(value: unknown): string | undefined {
@@ -138,7 +138,7 @@ function parsePageParam(value: unknown): number {
 
 function parsePageSizeParam(value: unknown): number {
   const n = Number(firstQueryValue(value));
-  return (PAGE_SIZE_OPTIONS as readonly number[]).includes(n) ? n : DEFAULT_PAGE_SIZE;
+  return PAGE_SIZE_OPTIONS.includes(n) ? n : DEFAULT_PAGE_SIZE;
 }
 
 // A UTC ISO string from a `datetime-local` input that's already in UTC.
@@ -569,17 +569,17 @@ function Paginator({
   // so the table doesn't look like it's missing its header.
   if (totalPages <= 1) {
     return (
-      <PaginatorRow>
+      <Flex justify="between" align="center" padding="md lg" borderBottom="primary">
         <Text size="sm" variant="muted">
           {total === 0 ? 'No rows' : `${total} row${total === 1 ? '' : 's'}`}
         </Text>
-      </PaginatorRow>
+      </Flex>
     );
   }
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
   return (
-    <PaginatorRow>
+    <Flex justify="between" align="center" padding="md lg" borderBottom="primary">
       <Text size="sm" variant="muted">
         {start.toLocaleString()}–{end.toLocaleString()} of {total.toLocaleString()} · page{' '}
         {page} of {totalPages}
@@ -596,17 +596,9 @@ function Paginator({
           Next
         </Button>
       </Flex>
-    </PaginatorRow>
+    </Flex>
   );
 }
-
-const PaginatorRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
 
 const FieldLabel = styled('label')`
   font-size: ${p => p.theme.font.size.sm};
