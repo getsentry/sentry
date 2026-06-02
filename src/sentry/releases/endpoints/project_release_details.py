@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
@@ -60,6 +61,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ReleaseExamples.RETRIEVE_RELEASE,
     )
     def get(self, request: Request, project, version) -> Response:
         """

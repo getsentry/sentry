@@ -122,6 +122,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
         },
+        examples=ReleaseExamples.CREATE_RELEASE,
     )
     def post(self, request: Request, project) -> Response:
         """

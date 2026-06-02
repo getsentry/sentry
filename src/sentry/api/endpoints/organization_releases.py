@@ -49,6 +49,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
@@ -359,6 +360,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ReleaseExamples.LIST_ORGANIZATION_RELEASES,
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
@@ -740,6 +742,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
         },
+        examples=ReleaseExamples.CREATE_RELEASE,
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
@@ -944,6 +947,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ReleaseExamples.LIST_RELEASE_TIMESERIES,
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """

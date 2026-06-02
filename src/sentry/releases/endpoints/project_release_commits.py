@@ -10,6 +10,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializerResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -43,6 +44,7 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ReleaseExamples.LIST_RELEASE_COMMITS,
     )
     def get(self, request: Request, project, version) -> Response:
         """
