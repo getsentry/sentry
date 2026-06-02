@@ -3,9 +3,7 @@ import type {
   SourceMapDebugResponseFrame,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 
-type ReleaseProcess = NonNullable<
-  SourceMapDebugResponseFrame['release_process']
->;
+type ReleaseProcess = NonNullable<SourceMapDebugResponseFrame['release_process']>;
 
 export function SourceMapDebugReleaseProcessFixture(
   params: Partial<ReleaseProcess> = {}

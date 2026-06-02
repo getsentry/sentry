@@ -14,9 +14,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-function getDiagnosisMessage(
-  data: SourceMapDebugResponse | undefined
-): ReactNode | null {
+function getDiagnosisMessage(data: SourceMapDebugResponse | undefined): ReactNode | null {
   if (!data) {
     return (
       <Text>{t('Unable to load source map diagnostic information for this event.')}</Text>
