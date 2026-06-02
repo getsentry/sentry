@@ -41,6 +41,22 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
         with open(os.path.join(auth_dir, "model.pyi"), "w") as f:
             f.write("class AuthenticatedToken: ...")
 
+        # stub for rest_framework.response.Response — make it Generic[T] with a
+        # body-less overload, mirroring fixtures/stubs-for-mypy/rest_framework/
+        # response.pyi. The Response-body-Any plugin hook needs this shape to
+        # see resolved T values.
+        rf_dir = _fill_init_pyi(tmpdir, "rest_framework")
+        with open(os.path.join(rf_dir, "response.pyi"), "w") as f:
+            f.write(
+                "from typing import Any, Generic, TypeVar, overload\n"
+                "T = TypeVar('T', default=Any)\n"
+                "class Response(Generic[T]):\n"
+                "    @overload\n"
+                "    def __init__(self, *, status: int | None = ...) -> None: ...\n"
+                "    @overload\n"
+                "    def __init__(self, data: T, status: int | None = ...) -> None: ...\n"
+            )
+
         ret = subprocess.run(
             (
                 *(sys.executable, "-m", "mypy"),
@@ -310,3 +326,393 @@ Found 1 error in 1 file (checked 1 source file)
     ret, out = call_mypy(src)
     assert ret
     assert out == expected
+
+
+def test_response_any_body_unparameterized_silent() -> None:
+    """Bare `Response(any_value)` is the existing pattern across the codebase.
+    The plugin must NOT fire on it — only parameterized usage."""
+    src = """\
+from typing import Any
+from rest_framework.response import Response
+
+def untyped() -> Any: ...
+
+def view() -> Response:
+    return Response(untyped())
+"""
+    ret, _ = call_mypy(src)
+    assert ret == 0
+
+
+def test_response_any_body_parameterized_errors() -> None:
+    """`Response[Specific](untyped_call())` is the case the plugin closes —
+    a parameterized return whose body is `Any` from an untyped serializer."""
+    src = """\
+from typing import Any, TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def untyped() -> Any: ...
+
+def view() -> Response[Shape]:
+    return Response(untyped())
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "body is `Any`" in out
+
+
+def test_response_typed_body_parameterized_silent() -> None:
+    """Parameterized Response with a properly-typed body passes silently."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def typed() -> Shape:
+    return {"a": 1}
+
+def view() -> Response[Shape]:
+    return Response(typed())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_cast_escape_valve() -> None:
+    """`cast(T, untyped_call())` is the sanctioned escape valve for untyped
+    serializers — it should suppress the plugin error."""
+    src = """\
+from typing import Any, TypedDict, cast
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def untyped() -> Any: ...
+
+def view() -> Response[Shape]:
+    return Response(cast(Shape, untyped()))
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_body_less_parameterized_silent() -> None:
+    """Error early-returns like `Response(status=404)` must keep working even
+    when the enclosing function returns `Response[Specific]`."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def view(x: int) -> Response[Shape]:
+    if x < 0:
+        return Response(status=404)
+    return Response({"a": x})
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_extra_key_drift_caught_by_core_mypy() -> None:
+    """Core mypy (no plugin needed) catches dict-literal drift via TypedDict
+    inference. Verify the plugin doesn't shadow this check."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def view() -> Response[Shape]:
+    return Response({"a": 1, "extra": 2})
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert 'Extra key "extra"' in out
+
+
+def test_response_body_less_with_any_status_kwarg() -> None:
+    """Regression: a body-less `Response(status=untyped())` call must NOT
+    spuriously fire the body-Any plugin error. The first positional slot
+    contains the status value, not a body."""
+    src = """\
+from typing import Any, TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def get_status_code() -> Any:
+    return 404
+
+def view() -> Response[Shape]:
+    return Response(status=get_status_code())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_data_kwarg_with_any_value() -> None:
+    """If `Response(data=untyped())` is used (kwarg form for the body), the
+    plugin should still fire — `data` is the body name."""
+    src = """\
+from typing import Any, TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def untyped() -> Any: ...
+
+def view() -> Response[Shape]:
+    return Response(data=untyped())
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "body is `Any`" in out
+
+
+def test_response_any_body_async_view() -> None:
+    """Async views return `Coroutine[..., Response[T]]`. The plugin must unwrap
+    the Coroutine wrapper and still validate the inner Response body type."""
+    src = """\
+from typing import Any, TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def untyped() -> Any: ...
+
+async def view() -> Response[Shape]:
+    return Response(untyped())
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "body is `Any`" in out
+
+
+def test_response_typed_body_async_view_silent() -> None:
+    """Async view with a properly-typed body passes silently."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class Shape(TypedDict):
+    a: int
+
+def typed() -> Shape:
+    return {"a": 1}
+
+async def view() -> Response[Shape]:
+    return Response(typed())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_dict_literal_narrows_to_typeddict_arm() -> None:
+    """When the return is `Response[A] | Response[B]` (a union of TypedDicts),
+    a dict-literal body that matches exactly one arm must narrow. mypy doesn't
+    do this natively in union contexts — the plugin restores it."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def typed() -> FooResponse:
+    return {"x": 1}
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"detail": "Not found"}, status=404)
+
+def view_success() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response(typed())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_dict_literal_wrong_shape_errors() -> None:
+    """Plugin only narrows when exactly one arm accepts. A dict literal that
+    matches no arm must still surface as a mypy error."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"wrong": "shape"}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "Incompatible return value type" in out
+
+
+def test_response_union_value_type_mismatch_errors() -> None:
+    """`{"detail": 42}` is dict[str, int], not a valid `DetailResponse`
+    (whose declared `detail: str`). Plugin must NOT narrow."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"detail": 42}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+
+
+def test_response_union_extra_key_rejects() -> None:
+    """A dict literal with extra keys beyond the TypedDict's fields does NOT
+    satisfy the TypedDict — plugin must NOT narrow it."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"detail": "x", "extra": "key"}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+
+
+def test_response_union_single_arm_unaffected() -> None:
+    """Single-armed `Response[T]` is mypy's native bidirectional path. Plugin
+    narrowing must not interfere."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[DetailResponse]:
+    return Response({"detail": "x"}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_no_typeddict_arms_unaffected() -> None:
+    """If no union arm has a TypedDict T, plugin must not interfere."""
+    src = """\
+from rest_framework.response import Response
+
+def view() -> Response[int] | Response[str]:
+    return Response(42)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_non_literal_body_unaffected() -> None:
+    """Narrowing only fires on literal bodies. Variable/function-call bodies
+    use mypy's standard flow — success arm matches via standard inference."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def typed() -> FooResponse:
+    return {"x": 1}
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response(typed())
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_empty_list_narrows_to_list_arm() -> None:
+    """`Response([])` should match any `Response[list[T]]` arm — empty list
+    inhabits any element type. mypy infers `list[Never]` for `[]`, which
+    doesn't match invariant `list[T]` without plugin help."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[list[FooResponse]] | Response[DetailResponse]:
+    return Response([], status=200)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_empty_dict_narrows_to_dict_arm() -> None:
+    """`Response({})` should match `Response[dict[K, V]]` arms — empty dict
+    inhabits any dict. mypy infers `dict[Never, Never]` for `{}`."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[dict[int, int]] | Response[DetailResponse]:
+    return Response({}, status=200)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_name_agnostic_local_typeddict() -> None:
+    """The plugin must narrow against ANY TypedDict arm — including locally-
+    declared ones in the same file. It is NOT hardcoded to recognize specific
+    names like `DetailResponse`."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class StatsPeriodErrorResponse(TypedDict):
+    error: dict[str, str]
+
+def view() -> Response[FooResponse] | Response[StatsPeriodErrorResponse]:
+    return Response({"error": {"period": "invalid"}}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out

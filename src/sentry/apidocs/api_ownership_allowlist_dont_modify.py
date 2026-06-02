@@ -36,7 +36,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/filters/",
     "/api/0/organizations/{organization_id_or_slug}/join-request/",
     "/api/0/organizations/{organization_id_or_slug}/teams/",
-    "/api/0/prompts-activity/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/repo-path-parsing/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/transfer/",
     "/api/0/organizations/{organization_id_or_slug}/users/",

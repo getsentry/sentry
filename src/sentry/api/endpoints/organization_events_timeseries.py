@@ -158,7 +158,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         },
         examples=DiscoverAndPerformanceExamples.QUERY_TIMESERIES,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[StatsResponse]:
         """
         Retrieves explore data for a given organization as a timeseries.
 

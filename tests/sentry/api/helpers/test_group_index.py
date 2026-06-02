@@ -9,10 +9,13 @@ from rest_framework.request import Request
 
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
-from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
+from sentry.api.helpers.group_index import (
+    get_group_list,
+    update_groups,
+    validate_search_filter_permissions,
+)
 from sentry.api.helpers.group_index.delete import schedule_tasks_to_delete_groups
 from sentry.api.helpers.group_index.update import (
-    get_group_list,
     get_semver_releases,
     greatest_semver_release,
     handle_assigned_to,
@@ -1246,48 +1249,6 @@ class DeleteGroupsTest(TestCase):
 
 
 class GetSemverReleasesTest(TestCase):
-    def test_greatest_semver_releases(self) -> None:
-        """Test get_semver_releases orders releases by semver."""
-        release_1 = self.create_release(version="test@2.2", project=self.project)
-        release_2 = self.create_release(version="test@10.0+1000", project=self.project)
-        release_3 = self.create_release(version="test@2.2-alpha", project=self.project)
-        release_4 = self.create_release(version="test@2.2.3", project=self.project)
-        release_5 = self.create_release(version="test@2.20.3", project=self.project)
-        release_6 = self.create_release(version="test@2.20.3.3", project=self.project)
-        release_7 = self.create_release(version="test@10.0+998", project=self.project)
-        release_8 = self.create_release(version="test@10.0+x22", project=self.project)
-        release_9 = self.create_release(version="test@10.0+a23", project=self.project)
-        release_10 = self.create_release(version="test@10.0", project=self.project)
-        release_11 = self.create_release(version="test@10.0-abc", project=self.project)
-        release_12 = self.create_release(version="test@10.0+999", project=self.project)
-        # Non-semver releases that will be filtered out by filter_to_semver()
-        self.create_release(version="test@some_thing", project=self.project)
-        self.create_release(version="random_junk", project=self.project)
-
-        releases = list(get_semver_releases(self.project))
-
-        # Without build code ordering, 10.0 releases (same semver, different build codes)
-        # are not in deterministic order. Just verify they're grouped at the top.
-        all_10_releases = {
-            release_2,
-            release_7,
-            release_8,
-            release_9,
-            release_10,
-            release_11,
-            release_12,
-        }
-
-        assert len(releases) == 12
-        assert set(releases[:7]) == all_10_releases
-        assert releases[7:] == [
-            release_6,
-            release_5,
-            release_4,
-            release_1,
-            release_3,
-        ]
-
     def test_greatest_semver_releases_with_build_code(self) -> None:
         """Test get_semver_releases orders releases by semver and build code."""
         release_1 = self.create_release(version="test@2.2", project=self.project)
@@ -1306,8 +1267,7 @@ class GetSemverReleasesTest(TestCase):
         self.create_release(version="test@some_thing", project=self.project)
         self.create_release(version="random_junk", project=self.project)
 
-        with self.feature("organizations:semver-ordering-with-build-code"):
-            releases = list(get_semver_releases(self.project))
+        releases = list(get_semver_releases(self.project))
 
         expected_order = [
             release_8,  # test@10.0+x22
@@ -1345,11 +1305,10 @@ class GetSemverReleasesTest(TestCase):
         )
         self.create_release(version="test@1.0+99", project=self.project)
 
-        with self.feature("organizations:semver-ordering-with-build-code"):
-            greatest = greatest_semver_release(self.project)
-            assert greatest is not None
-            assert greatest.id == release_with_highest_build.id
-            assert greatest.version == "test@1.0+100"
+        greatest = greatest_semver_release(self.project)
+        assert greatest is not None
+        assert greatest.id == release_with_highest_build.id
+        assert greatest.version == "test@1.0+100"
 
 
 class TestHandleReleases(TestCase):

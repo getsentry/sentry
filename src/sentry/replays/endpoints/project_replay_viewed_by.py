@@ -51,7 +51,9 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
         },
         examples=ReplayExamples.GET_REPLAY_VIEWED_BY,
     )
-    def get(self, request: Request, project: Project, replay_id: str) -> Response:
+    def get(
+        self, request: Request, project: Project, replay_id: str
+    ) -> Response[ReplayViewedByResponse]:
         """Return a list of users who have viewed a replay."""
         self.check_replay_access(request, project)
 

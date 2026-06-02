@@ -875,7 +875,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.scheduled",
     "sentry.deletions.tasks.seer",
     "sentry.demo_mode.tasks",
-    "sentry.dynamic_sampling.per_org.tasks.scheduler",
+    "sentry.dynamic_sampling.per_org.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
@@ -886,8 +886,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.incidents.tasks",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
-    "sentry.integrations.github.tasks.codecov_account_link",
-    "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.github.tasks.sync_repos",
@@ -947,7 +945,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
-    "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
@@ -1124,10 +1121,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "transaction-name-clusterer": {
         "task": "performance:sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         "schedule": crontab("17", "*", "*", "*", "*"),
-    },
-    "auto-enable-codecov": {
-        "task": "integrations:sentry.tasks.auto_enable_codecov.enable_for_org",
-        "schedule": crontab("30", "0", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
@@ -1664,6 +1657,10 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE = (
     "sentry.relay.projectconfig_debounce_cache.base.ProjectConfigDebounceCache"
 )
 SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS: dict[str, str] = {}
+
+# Glob patterns for the custom-error inbound filter (Relay generic filters).
+# Each entry is (exception_type, message); either may be None.
+SENTRY_INBOUND_FILTER_CUSTOM_VALUES: list[tuple[str | None, str | None]] = []
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
@@ -2232,7 +2229,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.5.1"
+SELF_HOSTED_STABLE_VERSION = "26.5.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2638,6 +2635,12 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 
 # Mapping of default Kafka topic name to custom names
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
+
+
+# Per-topic Kafka consumer client config, keyed by Topic enum value (region-stable,
+# unlike cluster names). Merged onto the consumer config after the cluster config and
+# before any explicit override_params, so explicit params still win.
+KAFKA_TOPIC_CONSUMER_CONFIG: dict[str, dict[str, Any]] = {}
 
 
 # Mapping of default Kafka topic name to cluster name

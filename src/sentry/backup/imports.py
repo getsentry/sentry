@@ -129,7 +129,6 @@ def _import(
     # Import here to prevent circular module resolutions.
     from sentry.models.organization import Organization
     from sentry.models.organizationmember import OrganizationMember
-    from sentry.users.models.email import Email
     from sentry.users.models.user import User
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
@@ -144,7 +143,6 @@ def _import(
         flags = flags._replace(import_uuid=uuid4().hex)
 
     deps = dependencies()
-    user_model_name = get_model_name(User)
     org_auth_token_model_name = get_model_name(OrgAuthToken)
     org_member_model_name = get_model_name(OrganizationMember)
     org_model_name = get_model_name(Organization)
@@ -181,10 +179,6 @@ def _import(
     if filter_by is not None:
         filters.append(filter_by)
 
-        # `sentry.Email` models don't have any explicit dependencies on `sentry.User`, so we need to
-        # find and record them manually.
-        user_to_email = dict()
-
         if filter_by.model == Organization:
             # To properly filter organizations, we need to grab their users first. There is no
             # elegant way to do this: we'll just have to read the import JSON until we get to the
@@ -203,12 +197,7 @@ def _import(
             for obj in serializers.deserialize("json", content):
                 o = obj.object
                 model_name = get_model_name(o)
-                if model_name == user_model_name:
-                    username = getattr(o, "username", None)
-                    email = getattr(o, "email", None)
-                    if username is not None and email is not None:
-                        user_to_email[username] = email
-                elif model_name == org_model_name:
+                if model_name == org_model_name:
                     pk = getattr(o, "pk", None)
                     slug = getattr(o, "slug", None)
                     if pk is not None and slug in filter_by.values:
@@ -224,29 +213,9 @@ def _import(
                     # org member we're going to see. We can ignore the rest of the models.
                     break
         elif filter_by.model == User:
-            seen_first_user_model = False
-            for obj in serializers.deserialize("json", content):
-                o = obj.object
-                model_name = get_model_name(o)
-                if model_name == user_model_name:
-                    seen_first_user_model = False
-                    username = getattr(o, "username", None)
-                    email = getattr(o, "email", None)
-                    if username is not None and email is not None:
-                        user_to_email[username] = email
-                elif seen_first_user_model:
-                    break
+            pass
         else:
             raise TypeError("Filter arguments must only apply to `Organization` or `User` models")
-
-        user_filter = next(f for f in filters if f.model == User)
-        email_filter = Filter[str](
-            model=Email,
-            field="email",
-            values={v for k, v in user_to_email.items() if k in user_filter.values},
-        )
-
-        filters.append(email_filter)
 
     # Reorder models according to dependencies to ensure correct import order.
     # This is necessary for backward compatibility with exports created before

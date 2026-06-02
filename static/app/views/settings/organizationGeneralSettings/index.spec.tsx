@@ -17,11 +17,8 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
-
-jest.mock('sentry/utils/analytics');
 
 describe('OrganizationGeneralSettings', () => {
   const ENDPOINT = '/organizations/org-slug/';
@@ -68,36 +65,6 @@ describe('OrganizationGeneralSettings', () => {
         })
       );
     });
-  });
-
-  it('can enable "codecov access"', async () => {
-    const organizationWithCodecovFeature = OrganizationFixture({
-      features: ['codecov-integration'],
-      codecovAccess: false,
-    });
-    OrganizationStore.onUpdate(organizationWithCodecovFeature, {replace: true});
-    render(<OrganizationGeneralSettings />, {
-      organization: organizationWithCodecovFeature,
-    });
-    const mock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'PUT',
-    });
-
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Code Coverage Insights/i})
-    );
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {codecovAccess: true},
-        })
-      );
-    });
-
-    expect(trackAnalytics).toHaveBeenCalled();
   });
 
   it('changes org slug and redirects to new slug', async () => {
