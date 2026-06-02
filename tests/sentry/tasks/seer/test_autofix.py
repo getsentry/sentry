@@ -254,7 +254,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
         self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
 
-        # "foo_bar" is not in the valid set.
+        # "solution" is not in the valid set for seat-based orgs.
         project.update_option("sentry:seer_automated_run_stopping_point", "solution")
         project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         project.update_option("sentry:seer_automation_handoff_target", "claude_code_agent")

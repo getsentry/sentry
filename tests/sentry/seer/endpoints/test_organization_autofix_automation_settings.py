@@ -273,7 +273,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_post_accepts_root_cause_stopping_point_with_flag(self) -> None:
+    def test_post_accepts_root_cause_stopping_point(self) -> None:
         project = self.create_project(organization=self.organization)
 
         response = self.client.post(
