@@ -886,8 +886,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.incidents.tasks",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
-    "sentry.integrations.github.tasks.codecov_account_link",
-    "sentry.integrations.github.tasks.codecov_account_unlink",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.github.tasks.sync_repos",
@@ -947,7 +945,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
-    "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
@@ -1124,10 +1121,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "transaction-name-clusterer": {
         "task": "performance:sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         "schedule": crontab("17", "*", "*", "*", "*"),
-    },
-    "auto-enable-codecov": {
-        "task": "integrations:sentry.tasks.auto_enable_codecov.enable_for_org",
-        "schedule": crontab("30", "0", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",

@@ -2427,7 +2427,7 @@ requires-dist = [
     { name = "sentry-protos", specifier = ">=0.21.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
-    { name = "sentry-scm", specifier = "==0.20.0" },
+    { name = "sentry-scm", specifier = "==0.22.0" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.59.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
@@ -2439,7 +2439,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=12.14.1" },
-    { name = "taskbroker-client", specifier = ">=0.17.1" },
+    { name = "taskbroker-client", specifier = ">=0.18.0" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2645,14 +2645,14 @@ wheels = [
 
 [[package]]
 name = "sentry-scm"
-version = "0.20.0"
+version = "0.22.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "msgspec", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-0.20.0-py3-none-any.whl", hash = "sha256:9e26a9bbf62730974e3748a27462fe814ac6cfe9fe8286be9b881475be7aa72d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-0.22.0-py3-none-any.whl", hash = "sha256:e6eb96e85a7f0d1b3cfd9a348843aba2b8f1668869a9e63365c5fa1a26da44f8" },
 ]
 
 [[package]]
@@ -2833,7 +2833,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.17.1"
+version = "0.18.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2851,7 +2851,7 @@ dependencies = [
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.17.1-py3-none-any.whl", hash = "sha256:101f138a8e152e7d8dc5818e4366d07075caf05b813221aeb3474edda051e6bd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.18.0-py3-none-any.whl", hash = "sha256:358b016119f5f37c736951e3acdf830748e23a854d2dc82f82d90259db35a6a3" },
 ]
 
 [[package]]

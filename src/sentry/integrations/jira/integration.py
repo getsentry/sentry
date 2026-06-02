@@ -1324,19 +1324,14 @@ class JiraIntegrationProvider(IntegrationProvider):
         # yet, we can't make API calls for more details like the server name or
         # Icon.
         #
-        # build_integration is reached three ways:
+        # build_integration is reached two ways:
         #  - the API pipeline binds the decoded Marketplace params to top-level
         #    state (`external_id` + `metadata`),
-        #  - the legacy configure view nests the same params under the provider
-        #    key (`state["jira"]`),
         #  - the `installed` webhook passes the raw Atlassian payload
         #    (`clientKey`, `oauthClientId`, ...).
         if "external_id" in state and "metadata" in state:
             external_id = state["external_id"]
             metadata = state["metadata"]
-        elif state.get(IntegrationProviderSlug.JIRA.value):
-            metadata = state[IntegrationProviderSlug.JIRA.value]["metadata"]
-            external_id = state[IntegrationProviderSlug.JIRA.value]["external_id"]
         else:
             external_id = state["clientKey"]
             metadata = {
