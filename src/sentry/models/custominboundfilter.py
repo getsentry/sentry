@@ -7,7 +7,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_m
 
 
 @cell_silo_model
-class ProjectCustomInboundFilter(DefaultFieldsModel):
+class CustomInboundFilter(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey(
@@ -19,9 +19,9 @@ class ProjectCustomInboundFilter(DefaultFieldsModel):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_projectcustominboundfilter"
+        db_table = "sentry_custominboundfilter"
         indexes = [
-            models.Index(fields=["project", "id"], name="sentry_pcif_project_id_idx"),
+            models.Index(fields=["project", "id"], name="sentry_cif_project_id_idx"),
         ]
 
     __repr__ = sane_repr("project_id", "name")

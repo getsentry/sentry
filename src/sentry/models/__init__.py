@@ -84,7 +84,7 @@ from .orgauthtoken import *  # NOQA
 from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA
-from .projectcustominboundfilter import *  # NOQA
+from .custominboundfilter import *  # NOQA
 from .projectkey import *  # NOQA
 from .projectkeymapping import *  # NOQA
 from .projectownership import *  # NOQA

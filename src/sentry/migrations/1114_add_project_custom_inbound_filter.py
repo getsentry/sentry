@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.CreateModel(
-            name="ProjectCustomInboundFilter",
+            name="CustomInboundFilter",
             fields=[
                 (
                     "id",
@@ -52,7 +52,7 @@ class Migration(CheckedMigration):
                 ),
             ],
             options={
-                "db_table": "sentry_projectcustominboundfilter",
+                "db_table": "sentry_custominboundfilter",
                 "indexes": [
                     models.Index(fields=["project", "id"], name="sentry_pcif_project_id_idx")
                 ],
