@@ -90,6 +90,7 @@ const sentryAppFormSchema = z
     name: z.string(),
     author: z.string(),
     webhookUrl: z.string(),
+    webhookHeaders: z.string(),
     redirectUrl: z.string(),
     verifyInstall: z.boolean(),
     isAlertable: z.boolean(),
@@ -201,6 +202,7 @@ type SaveSentryAppPayload = {
   author?: string | null;
   overview?: string;
   redirectUrl?: string;
+  webhookHeaders?: string[];
   webhookUrl?: string;
 };
 
@@ -518,6 +520,7 @@ function SentryApplicationForm({
     schema: getSchemaFieldValue(app?.schema),
     overview: app?.overview ?? '',
     allowedOrigins: convertMultilineFieldValue(app?.allowedOrigins ?? []),
+    webhookHeaders: convertMultilineFieldValue(app?.webhookHeaders ?? []),
     organization: organization.slug,
     isInternal,
     scopes: app ? [...app.scopes] : [],
@@ -557,6 +560,7 @@ function SentryApplicationForm({
         scopes: value.scopes,
         events: value.events,
         allowedOrigins: extractMultilineFields(value.allowedOrigins),
+        webhookHeaders: extractMultilineFields(value.webhookHeaders),
         schema: value.schema.trim() === '' ? {} : JSON.parse(value.schema),
         // The author parser doesn't allow_blank, so send null for empty
         // (covers internal apps with no author).
@@ -688,6 +692,24 @@ function SentryApplicationForm({
                 value={field.state.value}
                 onChange={field.handleChange}
                 placeholder={t('e.g. https://example.com/sentry/webhook/')}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+
+        <form.AppField name="webhookHeaders">
+          {field => (
+            <field.Layout.Row
+              label={t('Webhook Headers')}
+              hintText={t(
+                'Custom headers to include with every webhook request. Enter one header per line in the format: Header-Name: value'
+              )}
+            >
+              <field.TextArea
+                autosize
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={'anthropic-version: 2023-06-01\nauthorization: Bearer token123'}
               />
             </field.Layout.Row>
           )}
