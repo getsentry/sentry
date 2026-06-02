@@ -47,8 +47,10 @@ MISSING_FEATURE_MESSAGE = "Your organization does not have access to this featur
 
 
 class IntegrationIssueConfigResponse(IntegrationSerializerResponse, total=False):
-    # Exactly one of these is present on a given response, selected by the `action`
-    # query param: `linkIssueConfig` for `link`, `createIssueConfig` for `create`.
+    # `issueConfig` holds the form fields for the requested `action` (link or create).
+    # `linkIssueConfig`/`createIssueConfig` are deprecated action-specific aliases kept
+    # for backwards compatibility while the frontend migrates to `issueConfig`.
+    issueConfig: list[dict[str, Any]]
     linkIssueConfig: list[dict[str, Any]]
     createIssueConfig: list[dict[str, Any]]
 
@@ -66,9 +68,11 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         **kwargs: Any,
     ) -> IntegrationIssueConfigResponse:
         base = super().serialize(obj, attrs, user)
+        # `issueConfig` is canonical; the action-specific alias is deprecated and
+        # dropped once the frontend reads `issueConfig`.
         if self.action == "link":
-            return {**base, "linkIssueConfig": self.config}
-        return {**base, "createIssueConfig": self.config}
+            return {**base, "issueConfig": self.config, "linkIssueConfig": self.config}
+        return {**base, "issueConfig": self.config, "createIssueConfig": self.config}
 
 
 @cell_silo_endpoint

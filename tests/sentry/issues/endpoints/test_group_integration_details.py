@@ -79,6 +79,15 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider = integration.get_provider()
             assert provider.metadata is not None
 
+            link_config = [
+                {"default": "", "type": "string", "name": "externalIssue", "label": "Issue"},
+                {
+                    "choices": [("1", "Project 1"), ("2", "Project 2")],
+                    "label": "Project",
+                    "name": "project",
+                    "type": "select",
+                },
+            ]
             assert response.data == {
                 "id": str(integration.id),
                 "name": integration.name,
@@ -96,15 +105,9 @@ class GroupIntegrationDetailsTest(APITestCase):
                     "features": sorted(f.value for f in provider.features),
                     "aspects": provider.metadata.aspects,
                 },
-                "linkIssueConfig": [
-                    {"default": "", "type": "string", "name": "externalIssue", "label": "Issue"},
-                    {
-                        "choices": [("1", "Project 1"), ("2", "Project 2")],
-                        "label": "Project",
-                        "name": "project",
-                        "type": "select",
-                    },
-                ],
+                # `issueConfig` is canonical; `linkIssueConfig` is the deprecated alias.
+                "issueConfig": link_config,
+                "linkIssueConfig": link_config,
             }
 
     def test_simple_get_create(self) -> None:
@@ -122,6 +125,40 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider = integration.get_provider()
             assert provider.metadata is not None
 
+            create_config = [
+                {
+                    "default": "message",
+                    "type": "string",
+                    "name": "title",
+                    "label": "Title",
+                    "required": True,
+                },
+                {
+                    "default": (
+                        "Sentry Issue: [%s](%s)\n\n```\n"
+                        "Stacktrace (most recent call first):\n\n  "
+                        'File "sentry/models/foo.py", line 29, in build_msg\n    '
+                        "string_max_length=self.string_max_length)\n\nmessage\n```"
+                    )
+                    % (
+                        group.qualified_short_id,
+                        absolute_uri(
+                            group.get_absolute_url(params={"referrer": "example_integration"})
+                        ),
+                    ),
+                    "type": "textarea",
+                    "name": "description",
+                    "label": "Description",
+                    "autosize": True,
+                    "maxRows": 10,
+                },
+                {
+                    "choices": [("1", "Project 1"), ("2", "Project 2")],
+                    "type": "select",
+                    "name": "project",
+                    "label": "Project",
+                },
+            ]
             assert response.data == {
                 "id": str(integration.id),
                 "name": integration.name,
@@ -139,40 +176,9 @@ class GroupIntegrationDetailsTest(APITestCase):
                     "features": sorted(f.value for f in provider.features),
                     "aspects": provider.metadata.aspects,
                 },
-                "createIssueConfig": [
-                    {
-                        "default": "message",
-                        "type": "string",
-                        "name": "title",
-                        "label": "Title",
-                        "required": True,
-                    },
-                    {
-                        "default": (
-                            "Sentry Issue: [%s](%s)\n\n```\n"
-                            "Stacktrace (most recent call first):\n\n  "
-                            'File "sentry/models/foo.py", line 29, in build_msg\n    '
-                            "string_max_length=self.string_max_length)\n\nmessage\n```"
-                        )
-                        % (
-                            group.qualified_short_id,
-                            absolute_uri(
-                                group.get_absolute_url(params={"referrer": "example_integration"})
-                            ),
-                        ),
-                        "type": "textarea",
-                        "name": "description",
-                        "label": "Description",
-                        "autosize": True,
-                        "maxRows": 10,
-                    },
-                    {
-                        "choices": [("1", "Project 1"), ("2", "Project 2")],
-                        "type": "select",
-                        "name": "project",
-                        "label": "Project",
-                    },
-                ],
+                # `issueConfig` is canonical; `createIssueConfig` is the deprecated alias.
+                "issueConfig": create_config,
+                "createIssueConfig": create_config,
             }
 
     def test_get_create_with_error(self) -> None:
