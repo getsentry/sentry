@@ -29,6 +29,7 @@ jobs:
       typecheckable_rules_changed: ${{ steps.changes.outputs.typecheckable_rules_changed }}
       mdx_typecheckable: ${{ steps.changes.outputs.mdx_typecheckable }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
+      frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
       merge_base: ${{ steps.merge_base.outputs.merge_base }}
       merge_base_strategy: ${{ steps.merge_base.outputs.merge_base_strategy }}
     steps:
@@ -126,9 +127,15 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/eslint-stylish.json"
 
-      - name: eslint
+      - name: eslint (all)
+        if: github.event_name != 'pull_request'
         id: eslint
         run: pnpm run lint:js
+
+      - name: eslint (changed)
+        if: github.event_name == 'pull_request'
+        id: eslint-changed
+        run: pnpm run lint:js ${{ needs.files-changed.outputs.frontend_all_files }}
 
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
