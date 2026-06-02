@@ -1426,8 +1426,8 @@ export class VirtualizedViewManager {
       (timestamp, iconWidthPx) =>
         this.computeTraceIconPlacement(timestamp, iconWidthPx, span_space)
     );
-    const text_left = Math.min(span_space[0], timestamps[0]!);
-    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]!);
+    const text_left = Math.min(span_space[0], timestamps[0]);
+    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]);
 
     // precompute all anchor points aot, so we make the control flow more readable.
     /// |---| text
@@ -2110,7 +2110,7 @@ function getIconTimestamps(
   span_space: [number, number],
   measureText: (text: string) => number,
   getTraceIconPlacement: (timestamp: number, iconWidthPx: number) => TraceIconPlacement
-) {
+): [number, number] {
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
 

@@ -220,20 +220,20 @@ function mergeIntervals(intervals: Interval[]): Interval[] {
     .filter(([start, end]) => end >= start)
     .sort((a, b) => a[0] - b[0]);
 
-  if (sorted.length === 0) {
+  const [first, ...rest] = sorted;
+  if (!first) {
     return [];
   }
 
-  const merged: Interval[] = [sorted[0]!];
+  let last = first;
+  const merged: Interval[] = [last];
 
-  for (let i = 1; i < sorted.length; i++) {
-    const current = sorted[i]!;
-    const last = merged[merged.length - 1]!;
-
+  for (const current of rest) {
     if (current[0] <= last[1]) {
       last[1] = Math.max(last[1], current[1]);
     } else {
       merged.push(current);
+      last = current;
     }
   }
 

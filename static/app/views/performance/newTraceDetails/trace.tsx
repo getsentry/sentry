@@ -171,22 +171,22 @@ export function Trace({
   const traceStart = trace.root.space[0];
   const traceDuration = trace.root.space[1];
 
-  const timeCompressionOptions = useMemo(
-    () => ({
+  const timeCompressionOptions = useMemo(() => {
+    const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
+    return {
       enabled: traceState.preferences.compressedTimeline && trace.type === 'trace',
-      traceSpace: [traceStart, traceDuration] as [start: number, duration: number],
+      traceSpace,
       nodes: trace.list,
       indicators: trace.indicators,
-    }),
-    [
-      trace.indicators,
-      trace.list,
-      traceDuration,
-      traceStart,
-      trace.type,
-      traceState.preferences.compressedTimeline,
-    ]
-  );
+    };
+  }, [
+    trace.indicators,
+    trace.list,
+    traceDuration,
+    traceStart,
+    trace.type,
+    traceState.preferences.compressedTimeline,
+  ]);
 
   const timeCompression = useMemo(
     () =>
