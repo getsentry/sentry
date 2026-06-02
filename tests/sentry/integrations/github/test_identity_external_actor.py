@@ -50,11 +50,11 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         assert actor.integration_id == integration.id
         assert actor.source == ExternalActorSource.IDENTITY.value
 
-    def test_normalizes_login_with_leading_at(self):
+    def test_null_github_id_yields_null_external_id(self):
         self._github_integration()
 
         ensure_external_actors_for_github_identity(
-            user_id=self.user.id, github_login="@octocat", github_id=None
+            user_id=self.user.id, github_login="octocat", github_id=None
         )
 
         actor = self._external_actors(user_id=self.user.id).get()

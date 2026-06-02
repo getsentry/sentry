@@ -131,7 +131,7 @@ def ensure_external_actors_for_github_identity(
         )
         return
 
-    external_name = f"@{github_login.lstrip('@')}"
+    external_name = f"@{github_login}"
     for organization_id, integration_id in org_integrations:
         try:
             organization_service.upsert_external_actor(
