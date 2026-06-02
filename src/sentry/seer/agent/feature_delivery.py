@@ -2,16 +2,24 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 
 from sentry.seer.night_shift.delivery import deliver_night_shift_result
 
 FeatureRunStatus = Literal["completed", "error"]
 
-FeatureDeliveryFn = Callable[
-    [int | str, FeatureRunStatus, dict[str, Any] | None, int, str | None, int], None
-]
+
+class FeatureDeliveryFn(Protocol):
+    def __call__(
+        self,
+        ref: int | str,
+        status: FeatureRunStatus,
+        result: dict[str, Any] | None,
+        seer_run_id: int,
+        error: str | None,
+        organization_id: int,
+    ) -> None: ...
+
 
 DELIVERY_HANDLERS: dict[str, FeatureDeliveryFn] = {
     "night_shift": deliver_night_shift_result,
