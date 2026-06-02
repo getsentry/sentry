@@ -35,7 +35,7 @@ jobs:
       frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
       merge_base: ${{ steps.merge_base.outputs.merge_base }}
       merge_base_strategy: ${{ steps.merge_base.outputs.merge_base_strategy }}
-      jest_test_matrix: ${{ steps.calc-test-matrix.outputs.jest_test_matrix }}
+      jest_test_matrix: ${{ steps.merge_base.outputs.jest_test_matrix }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
