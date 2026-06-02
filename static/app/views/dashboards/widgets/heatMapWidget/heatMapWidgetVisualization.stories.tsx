@@ -102,6 +102,86 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
       </Fragment>
     );
   });
+
+  story('Tooltip Options', () => {
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="HeatMapWidgetVisualization" /> supports two optional
+          tooltip action props. Click a cell to open the tooltip and see the links.
+        </p>
+        <p>
+          With no extra props, the tooltip shows the Y-axis bucket range and the Z-axis
+          count for the clicked cell.
+        </p>
+        <p>
+          Pass <code>makeExploreUrl</code> to add a <em>View connected spans</em> link in
+          the tooltip. The callback receives the Y-axis filter query (e.g.{' '}
+          <code>value:&gt;=200 value:&lt;250</code>) and a <code>PageFilters</code> object
+          whose datetime is narrowed to the clicked X-axis bucket. Use these to build a
+          cross-event query link into Explore.
+        </p>
+        <p>
+          <CodeBlock language="jsx">
+            {`<HeatMapWidgetVisualization
+  plottables={[new HeatMap(heatMapData)]}
+  makeExploreUrl={(query, filteredSelection) =>
+    getExploreUrl({
+      organization,
+      selection: filteredSelection,
+      crossEvents: [{
+            type: 'metrics',
+            metric,
+            query,
+      }]
+    })
+  }
+/>`}
+          </CodeBlock>
+        </p>
+
+        <p>
+          Pass <code>makeLocalQueryUpdateUrl</code> to add an <em>Add to filter</em> link
+          in the tooltip. The callback receives the same Y-axis and X-axis filter query
+          and should return a URL that applies that filter to the current view. Navigation
+          is handled client-side via React Router.
+        </p>
+        <p>
+          <CodeBlock language="jsx">
+            {`<HeatMapWidgetVisualization
+  plottables={[new HeatMap(heatMapData)]}
+  makeLocalQueryUpdateUrl={(query, filteredSelection) =>
+    getMetricsUrl({
+      organization,
+      selection: filteredSelection,
+      metricQueries: [{
+          metric,
+          queryParams: {...queryParams, query: newQuery},
+      }],
+    })
+  }
+/>`}
+          </CodeBlock>
+        </p>
+
+        <p>
+          Both props can be used together. The tooltip shows <em>View related traces</em>{' '}
+          and <em>Add to filter</em> as separate actions.
+        </p>
+        <LargeWidget>
+          <HeatMapWidgetVisualization
+            plottables={[new HeatMap(sampleLatencyHeatMap)]}
+            makeExploreUrl={(query, filteredSelection) =>
+              `/explore/traces/?query=${encodeURIComponent(query)}&start=${filteredSelection.datetime.start}&end=${filteredSelection.datetime.end}`
+            }
+            makeLocalQueryUpdateUrl={query =>
+              `/explore/metrics/?query=${encodeURIComponent(query)}`
+            }
+          />
+        </LargeWidget>
+      </Fragment>
+    );
+  });
 });
 
 const LargeWidget = styled('div')`

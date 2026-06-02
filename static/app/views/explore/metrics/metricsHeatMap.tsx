@@ -1,13 +1,16 @@
-import {useMemo} from 'react';
+import {useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetWrapper} from 'sentry/views/explore/metrics/metricGraph/styles';
+import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricLabel,
   useMetricName,
@@ -15,8 +18,10 @@ import {
   useMetricVisualizes,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
+import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
-import {prettifyAggregation, type GetExploreUrlArgs} from 'sentry/views/explore/utils';
+import {getMetricsUrl} from 'sentry/views/explore/metrics/utils';
+import {getExploreUrl, prettifyAggregation} from 'sentry/views/explore/utils';
 
 interface MetricsHeatMapProps {
   actions: React.ReactNode;
@@ -30,6 +35,8 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
   const metricLabel = useMetricLabel();
   const metricName = useMetricName();
   const metric = useTraceMetric();
+  const metricQueries = useMultiMetricsQueryParams();
+  const organization = useOrganization();
 
   const {data: heatMapSeries, isPending, error} = heatmapResult;
 
@@ -39,17 +46,47 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
       ? metricName
       : (title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate);
 
-  const tooltipExploreUrlArgs: Omit<GetExploreUrlArgs, 'organization'> = useMemo(() => {
-    return {
-      crossEvents: [
-        {
-          type: 'metrics',
-          query: '',
-          metric,
-        },
-      ],
-    };
-  }, [metric]);
+  const getFilteredExploreUrl = useCallback(
+    (query: string, filteredSelection: PageFilters) => {
+      return getExploreUrl({
+        organization,
+        selection: filteredSelection,
+        crossEvents: [
+          {
+            type: 'metrics',
+            metric,
+            query,
+          },
+        ],
+      });
+    },
+    [metric, organization]
+  );
+
+  const getUpdatedMetricsQueryUrl = useCallback(
+    (query: string, filteredSelection: PageFilters) => {
+      const alteredMetricQueries: BaseMetricQuery[] = metricQueries.map(metricQuery => {
+        if (
+          metricQuery.metric.name === metric.name &&
+          metricQuery.metric.type === metric.type
+        ) {
+          return {
+            ...metricQuery,
+            queryParams: metricQuery.queryParams.replace({
+              query: `${metricQuery.queryParams.query} ${query}`,
+            }),
+          };
+        }
+        return metricQuery;
+      });
+      return getMetricsUrl({
+        organization,
+        selection: filteredSelection,
+        metricQueries: alteredMetricQueries,
+      });
+    },
+    [metric, metricQueries, organization]
+  );
 
   return (
     <WidgetWrapper>
@@ -67,7 +104,8 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
             <HeatMapWidgetVisualization
               plottables={[new HeatMap(heatMapSeries)]}
               scale="log"
-              tooltipExploreUrlArgs={tooltipExploreUrlArgs}
+              makeExploreUrl={getFilteredExploreUrl}
+              makeLocalQueryUpdateUrl={getUpdatedMetricsQueryUrl}
             />
           )
         }
