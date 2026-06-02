@@ -49,6 +49,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
+from sentry.workflow_engine.processors.project_transfer import clone_workflow_to_organization
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,6 @@ if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
     from sentry.models.organization import Organization
     from sentry.users.models.user import User
-    from sentry.workflow_engine.models import Workflow
 
 # NOTE:
 # - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
@@ -228,78 +228,6 @@ class ProjectManager(BaseManager["Project"]):
             project_list.append(project)
 
         return sorted(project_list, key=lambda x: x.name.lower())
-
-
-def _clone_workflow_to_organization(
-    workflow: Workflow,
-    organization: Organization,
-    environment_id: int | None,
-) -> Workflow:
-    """Deep-copy a workflow and its condition graph into ``organization``.
-
-    Used by ``Project.transfer_to`` when a workflow is shared with detectors in other
-    projects: the transferring project gets its own copy in the new org while the original
-    is left intact for the projects that remain. The owner team/user is dropped because it
-    won't belong to the new org, and fire history / detector state are not copied.
-    """
-    from sentry.workflow_engine.models import (
-        Action,
-        DataCondition,
-        DataConditionGroup,
-        DataConditionGroupAction,
-        Workflow,
-        WorkflowDataConditionGroup,
-    )
-
-    def clone_condition_group(
-        condition_group: DataConditionGroup,
-    ) -> DataConditionGroup:
-        new_group = DataConditionGroup.objects.create(
-            organization_id=organization.id,
-            logic_type=condition_group.logic_type,
-        )
-        for condition in DataCondition.objects.filter(condition_group=condition_group):
-            DataCondition.objects.create(
-                condition_group=new_group,
-                type=condition.type,
-                comparison=condition.comparison,
-                condition_result=condition.condition_result,
-            )
-        # Actions are not organization-scoped; clone them so the copy is fully isolated
-        # from the original workflow that stays behind in the old org.
-        for group_action in DataConditionGroupAction.objects.filter(
-            condition_group=condition_group
-        ).select_related("action"):
-            action = group_action.action
-            new_action = Action.objects.create(
-                type=action.type,
-                data=action.data,
-                integration_id=action.integration_id,
-                status=action.status,
-                config=action.config,
-            )
-            DataConditionGroupAction.objects.create(condition_group=new_group, action=new_action)
-        return new_group
-
-    when_condition_group = workflow.when_condition_group
-    clone = Workflow.objects.create(
-        organization_id=organization.id,
-        name=workflow.name,
-        enabled=workflow.enabled,
-        config=workflow.config,
-        when_condition_group=(
-            clone_condition_group(when_condition_group)
-            if when_condition_group is not None
-            else None
-        ),
-        environment_id=environment_id,
-    )
-    for workflow_dcg in WorkflowDataConditionGroup.objects.filter(workflow=workflow):
-        WorkflowDataConditionGroup.objects.create(
-            workflow=clone,
-            condition_group=clone_condition_group(workflow_dcg.condition_group),
-        )
-    return clone
 
 
 @snowflake_id_model
@@ -808,7 +736,7 @@ class Project(Model):
                         AlertRule.objects.fetch_for_project(self).values_list("id", flat=True)
                     )
                     for workflow in Workflow.objects.filter(id__in=shared_workflow_ids):
-                        clone = _clone_workflow_to_organization(
+                        clone = clone_workflow_to_organization(
                             workflow,
                             organization,
                             resolve_environment_id(workflow.environment_id),
