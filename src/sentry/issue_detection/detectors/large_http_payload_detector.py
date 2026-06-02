@@ -6,7 +6,6 @@ from typing import Any
 
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
 
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
@@ -31,10 +30,9 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.consecutive_http_spans: list[Span] = []
         self.filtered_paths = [

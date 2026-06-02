@@ -6,7 +6,6 @@ from typing import Any
 
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
 
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
@@ -29,10 +28,9 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
         self.fcp = None

@@ -15,7 +15,6 @@ from sentry.issues.grouptype import (
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 from ..base import DetectorType, PerformanceDetector
@@ -42,10 +41,9 @@ class BaseIOMainThreadDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.mapper: ProguardMapper | None = None
         self.parent_to_blocked_span: dict[str, list[Span]] = defaultdict(list)
@@ -216,10 +214,9 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.mapper = None
         self.parent_to_blocked_span = defaultdict(list)

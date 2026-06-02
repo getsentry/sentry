@@ -18,7 +18,6 @@ from sentry.issue_detection.detectors.utils import (
 )
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.safe import get_path
@@ -35,10 +34,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.consecutive_http_spans: list[Span] = []
         self.lcp = None

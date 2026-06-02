@@ -18,7 +18,6 @@ from sentry.issue_detection.detectors.utils import (
 )
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.event_frames import get_sdk_name
 
@@ -62,10 +61,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.consecutive_db_spans: list[Span] = []
         self.independent_db_spans: list[Span] = []

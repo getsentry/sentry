@@ -19,7 +19,6 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
 from sentry.utils import metrics
 
 
@@ -395,10 +394,9 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.state: MNPlusOneState = SearchingForMNPlusOne(
             settings=self.settings,
