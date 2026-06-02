@@ -484,7 +484,7 @@ def _get_wfe_detectors_by_type(project_id: int) -> dict[str, Detector]:
     return {
         d.type: d
         for d in Detector.objects.filter(
-            project=project_id, type__in=PERFORMANCE_WFE_DETECTOR_TYPES
+            project_id=project_id, type__in=PERFORMANCE_WFE_DETECTOR_TYPES
         )
     }
 
