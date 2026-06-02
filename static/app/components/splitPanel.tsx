@@ -381,10 +381,10 @@ function Root({
 
   const handleDoubleClick = useCallback(() => {
     const startSize = Math.min(containerSize, max);
-    const target = Math.min(resetSize, max);
+    const target = Math.max(min, Math.min(resetSize, max));
     setSize(target, true);
     handleResizeEnd(startSize, target);
-  }, [containerSize, max, resetSize, setSize, handleResizeEnd]);
+  }, [containerSize, max, min, resetSize, setSize, handleResizeEnd]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
