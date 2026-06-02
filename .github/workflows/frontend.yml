@@ -75,12 +75,12 @@ jobs:
           echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
           echo "merge_base_strategy=${STRATEGY}" >> "$GITHUB_OUTPUT"
 
-          RUNNERS=7
+          RUNNERS=8
           if [ "$STRATEGY" == "changedSince" ]; then
-            RUNNERS=0
+            RUNNERS=1
           fi
-          # Create a JSON array for indices [0, 1, ... RUNNERS]
-          JSON_ARRAY=$(seq 0 $RUNNERS | jq -R . | jq -s .)
+          # Create a JSON array for indices [0, 1, ... RUNNERS-1]
+          JSON_ARRAY=$(seq 0 $(( RUNNERS - 1 )) | jq -R . | jq -s .)
           # Output the full matrix object
           echo "jest_test_matrix=$(jq -n --argjson indices "$JSON_ARRAY" --argjson total "$RUNNERS" '{index: $indices, total: $total}')" >> $GITHUB_OUTPUT
 
