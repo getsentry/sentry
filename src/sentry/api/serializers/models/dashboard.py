@@ -7,7 +7,6 @@ from urllib.parse import urlencode
 
 from django.db.models import prefetch_related_objects
 
-from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
@@ -318,16 +317,9 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
 
         explore_urls = None
-        if (
-            obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
-            or (
-                obj.widget_type == DashboardWidgetTypes.DISCOVER
-                and obj.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
-            )
-        ) and features.has(
-            "organizations:transaction-widget-deprecation-explore-view",
-            organization=obj.dashboard.organization,
-            actor=user,
+        if obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE or (
+            obj.widget_type == DashboardWidgetTypes.DISCOVER
+            and obj.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
         ):
             try:
                 explore_urls = self.get_explore_urls(obj, attrs)
