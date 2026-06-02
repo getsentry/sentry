@@ -1,10 +1,11 @@
 """
 Aggregator definitions.
 
-Each aggregator processes one IssueActionLogEntry at a time, reading from
+Each aggregator processes one GroupActionLogEntry at a time, reading from
 declared dep fields and writing to declared output fields.
 """
 
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.derived.fields import (
     AUTOFIX_PRS,
     CLOSING_PRS,
@@ -21,14 +22,13 @@ from sentry.issues.derived.fields import (
     WorkingOnEntry,
 )
 from sentry.issues.derived.lib import Aggregator, AggregatorResult, StateView, aggregator, emit
-from sentry.issues.derived.types import IssueActionType
-from sentry.models.issueactionlogentry import IssueActionLogEntry
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 
 RECENT_EXPIRY_SECONDS = 30 * 24 * 60 * 60  # 1 month
 
 
-@aggregator(outputs=(LAST_SEEN, VIEW_COUNT), scope=(IssueActionType.VIEW,))
-def track_views(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
+@aggregator(outputs=(LAST_SEEN, VIEW_COUNT), scope=(GroupActionType.VIEW,))
+def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     ts = entry.date_added.timestamp()
     current = state[LAST_SEEN]
     if current is None or ts > current:
@@ -39,36 +39,36 @@ def track_views(state: StateView, entry: IssueActionLogEntry) -> AggregatorResul
 @aggregator(
     outputs=(STATUS, CLOSING_PRS),
     scope=(
-        IssueActionType.SET_RESOLVED,
-        IssueActionType.SET_UNRESOLVED,
-        IssueActionType.RESOLVED_IN_PULL_REQUEST,
+        GroupActionType.SET_RESOLVED,
+        GroupActionType.SET_UNRESOLVED,
+        GroupActionType.RESOLVED_IN_PULL_REQUEST,
     ),
 )
-def track_status(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
+def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current = state[STATUS]
-    resolves = (IssueActionType.SET_RESOLVED.value, IssueActionType.RESOLVED_IN_PULL_REQUEST.value)
+    resolves = (GroupActionType.SET_RESOLVED.value, GroupActionType.RESOLVED_IN_PULL_REQUEST.value)
     if entry.type in resolves and current == IssueStatus.OPEN:
         closing_prs = state[CLOSING_PRS]
         pr_id = entry.data.get("pr_id")
-        if entry.type == IssueActionType.RESOLVED_IN_PULL_REQUEST.value and pr_id:
+        if entry.type == GroupActionType.RESOLVED_IN_PULL_REQUEST.value and pr_id:
             closing_prs = closing_prs | {pr_id}
         return emit(STATUS.value(IssueStatus.CLOSED), CLOSING_PRS.value(closing_prs))
-    if entry.type == IssueActionType.SET_UNRESOLVED.value and current == IssueStatus.CLOSED:
+    if entry.type == GroupActionType.SET_UNRESOLVED.value and current == IssueStatus.CLOSED:
         return emit(STATUS.value(IssueStatus.OPEN), CLOSING_PRS.value(frozenset()))
     return None
 
 
 @aggregator(
     outputs=(LAST_OPENED,),
-    scope=(IssueActionType.SET_UNRESOLVED,),
+    scope=(GroupActionType.SET_UNRESOLVED,),
 )
-def track_last_opened(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
+def track_last_opened(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     return emit(LAST_OPENED.value(entry.date_added.timestamp()))
 
 
-@aggregator(outputs=(RECENT_VIEWERS,), scope=(IssueActionType.VIEW,))
-def track_recent_viewers(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
-    if entry.user_id is None:
+@aggregator(outputs=(RECENT_VIEWERS,), scope=(GroupActionType.VIEW,))
+def track_recent_viewers(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    if entry.actor_type != GroupActorType.USER:
         return None
 
     ts = entry.date_added.timestamp()
@@ -76,14 +76,14 @@ def track_recent_viewers(state: StateView, entry: IssueActionLogEntry) -> Aggreg
     current = state[RECENT_VIEWERS]
 
     updated = {uid: t for uid, t in current.items() if t >= cutoff}
-    updated[str(entry.user_id)] = ts
+    updated[str(entry.actor_id)] = ts
 
     return emit(RECENT_VIEWERS.value(updated))
 
 
-@aggregator(outputs=(RECENT_FETCHED,), scope=(IssueActionType.FETCH,))
-def track_recent_fetched(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
-    if entry.user_id is None:
+@aggregator(outputs=(RECENT_FETCHED,), scope=(GroupActionType.FETCH,))
+def track_recent_fetched(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    if entry.actor_type != GroupActorType.USER:
         return None
 
     ts = entry.date_added.timestamp()
@@ -91,7 +91,7 @@ def track_recent_fetched(state: StateView, entry: IssueActionLogEntry) -> Aggreg
     current = state[RECENT_FETCHED]
 
     updated = {uid: info for uid, info in current.items() if info.ts >= cutoff}
-    updated[str(entry.user_id)] = FetchInfo(ts=ts, tool=entry.data.get("tool"))
+    updated[str(entry.actor_id)] = FetchInfo(ts=ts, tool=entry.data.get("tool"))
 
     return emit(RECENT_FETCHED.value(updated))
 
@@ -100,7 +100,7 @@ def track_recent_fetched(state: StateView, entry: IssueActionLogEntry) -> Aggreg
     deps=(STATUS, LAST_OPENED, RECENT_VIEWERS, RECENT_FETCHED),
     outputs=(WORKING_ON,),
 )
-def compute_working_on(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
+def compute_working_on(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current = state[WORKING_ON]
 
     if state[STATUS] != IssueStatus.OPEN:
@@ -140,9 +140,9 @@ def compute_working_on(state: StateView, entry: IssueActionLogEntry) -> Aggregat
 
 @aggregator(
     outputs=(AUTOFIX_PRS,),
-    scope=(IssueActionType.AUTOFIX_PR_CREATED,),
+    scope=(GroupActionType.AUTOFIX_PR_CREATED,),
 )
-def track_autofix_prs(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
+def track_autofix_prs(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     pr_id = entry.data.get("pr_id")
     if not pr_id:
         return None
@@ -156,7 +156,7 @@ def track_autofix_prs(state: StateView, entry: IssueActionLogEntry) -> Aggregato
     deps=(CLOSING_PRS, AUTOFIX_PRS),
     outputs=(WAS_AUTOFIXED,),
 )
-def compute_was_autofixed(state: StateView, entry: IssueActionLogEntry) -> AggregatorResult:
+def compute_was_autofixed(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     if state[WAS_AUTOFIXED]:
         return None  # already true, stays true
     autofix_prs = state[AUTOFIX_PRS]

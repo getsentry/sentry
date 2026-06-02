@@ -1,22 +1,18 @@
 from __future__ import annotations
 
-from sentry.issues.derived.types import IssueAction, IssueActionType  # noqa: F401 — re-exported
-from sentry.models.issueactionlogentry import IssueActionLogEntry
+from sentry.issues.action_log.recording import record_group_action
+from sentry.issues.action_log.types import GroupAction, GroupActionActor
 
 
 def record(
     *,
     group_id: int,
     project_id: int,
-    action: IssueAction,
-    user_id: int | None = None,
+    action: GroupAction,
+    actor: GroupActionActor,
 ) -> bool:
     """
-    Record an action to the issue action log and process derived data inline.
-
-    The action's pydantic fields are the sole source of the data payload.
-    All data must be expressed as fields on the IssueAction subclass so it is
-    validated at construction time.
+    Record an action to the group action log and process derived data inline.
 
     Processes a small batch of pending entries synchronously. If there's
     a backlog beyond what fits in one inline batch, schedules a background
@@ -24,15 +20,12 @@ def record(
 
     Returns True if derived data is fully caught up after this call,
     False if a background task was needed.
-
-    Actor is identified by user_id (nullable for system-initiated actions).
     """
-    IssueActionLogEntry.objects.create(
+    record_group_action(
         group_id=group_id,
         project_id=project_id,
-        type=action.get_type().value,
-        user_id=user_id,
-        data=action.dict(),
+        action=action,
+        actor=actor,
     )
 
     from sentry.issues.derived.processing import process_group_log_batch

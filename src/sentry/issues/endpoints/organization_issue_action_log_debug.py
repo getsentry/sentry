@@ -1,5 +1,5 @@
 """
-Debug-only endpoint for posting IssueActionLogEntry events.
+Debug-only endpoint for posting GroupActionLogEntry events.
 
 NOT a production API. In production, events are recorded by internal code paths
 (e.g., post-process hooks, integration callbacks) that call record() directly.
@@ -23,12 +23,12 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.issues.derived.recording import record
-from sentry.issues.derived.types import (
+from sentry.issues.action_log.types import (
     AutofixPrCreatedAction,
     CommentAction,
     FetchAction,
-    IssueAction,
+    GroupAction,
+    GroupActionActor,
     ResolvedInPullRequestAction,
     SetAssignedAction,
     SetResolvedAction,
@@ -36,10 +36,11 @@ from sentry.issues.derived.types import (
     SetUnresolvedAction,
     ViewAction,
 )
+from sentry.issues.derived.recording import record
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 
-ACTION_CLASSES: dict[str, type[IssueAction]] = {
+ACTION_CLASSES: dict[str, type[GroupAction]] = {
     "view": ViewAction,
     "comment": CommentAction,
     "fetch": FetchAction,
@@ -77,7 +78,7 @@ class OrganizationIssueActionLogDebugEndpoint(OrganizationEndpoint):
         events = serializer.validated_data["events"]
 
         # Validate all events before recording any.
-        parsed: list[tuple[Group, IssueAction, int | None]] = []
+        parsed: list[tuple[Group, GroupAction, GroupActionActor]] = []
         errors: list[dict[str, Any]] = []
 
         # Fetch groups and validate they belong to this org.
@@ -108,12 +109,16 @@ class OrganizationIssueActionLogDebugEndpoint(OrganizationEndpoint):
                 errors.append({"index": i, "detail": str(e)})
                 continue
 
-            parsed.append((group, action, event["user_id"]))
+            user_id = event["user_id"]
+            actor = (
+                GroupActionActor.user(user_id) if user_id is not None else GroupActionActor.SYSTEM
+            )
+            parsed.append((group, action, actor))
 
         if errors:
             return Response({"detail": errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        for group, action, user_id in parsed:
-            record(group_id=group.id, project_id=group.project_id, action=action, user_id=user_id)
+        for group, action, actor in parsed:
+            record(group_id=group.id, project_id=group.project_id, action=action, actor=actor)
 
         return Response({"recorded": len(parsed)}, status=status.HTTP_201_CREATED)
