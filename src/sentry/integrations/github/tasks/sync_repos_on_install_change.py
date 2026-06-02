@@ -132,6 +132,11 @@ def _sync_repos_for_org(
             )
             changed = bool(created_repos or reactivated_repos)
 
+            if created_repos:
+                repository_service.auto_link_repos_by_name(
+                    organization_id=rpc_org.id, repo_ids=[r.id for r in created_repos]
+                )
+
             for created_repo in created_repos:
                 log_repo_change(
                     event_name="REPO_ADDED",

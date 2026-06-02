@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.source_map_debug_examples import SourceMapDebugExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.debug_files.release_files import maybe_renew_releasefiles
@@ -126,9 +127,9 @@ class SourceMapDebugResponse(TypedDict):
 
 @cell_silo_endpoint
 @extend_schema(tags=["Events"])
-class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
+class SourceMapDebugEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     owner = ApiOwner.WEB_FRONTEND_SDKS
@@ -147,6 +148,7 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=SourceMapDebugExamples.GET_SOURCE_MAP_DEBUG,
     )
     def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
