@@ -9,7 +9,6 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {MergedList} from './mergedList';
@@ -39,12 +38,10 @@ interface GroupMergedContentProps {
 }
 
 export function GroupMergedView({project, groupId}: Props) {
-  const location = useLocation();
   const organization = useOrganization();
   const {dataUpdatedAt, error, fingerprints, loading, pageLinks, refetch} =
     useGroupMergedHashes({
       groupId,
-      location,
       organization,
     });
 
@@ -100,7 +97,7 @@ function GroupMergedContent({
   };
 
   const isError = error && !loading;
-  const isLoadedSuccessfully = !isError && !loading;
+  const isLoadedSuccessfully = !error && !loading;
 
   return (
     <Stack gap="xl">

@@ -11,7 +11,11 @@ import type {Project} from 'sentry/types/project';
 
 import {MergedItem} from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
-import {type FingerprintWithLatestEvent, type GroupMergedState} from './useGroupMerged';
+import {
+  type FingerprintWithLatestEvent,
+  type GroupMergedState,
+  useMergedCursor,
+} from './useGroupMerged';
 
 type Props = {
   enableFingerprintCompare: boolean;
@@ -40,6 +44,7 @@ export function MergedList({
   toggleSelected,
   unmergeDisabled,
 }: Props) {
+  const [, setCursor] = useMergedCursor();
   const hasResults = fingerprints.length > 0;
   const canSelect = fingerprints.length > 1;
 
@@ -80,7 +85,7 @@ export function MergedList({
           ))}
         </PanelBody>
       </MergedPanel>
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={cursor => setCursor(cursor ?? null)} />
     </div>
   );
 }

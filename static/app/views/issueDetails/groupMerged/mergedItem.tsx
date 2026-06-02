@@ -58,11 +58,6 @@ export function MergedItem({
   const checkboxDisabled = busy || checkboxDisabledReason !== undefined;
   const latestEventTimestamp = latestEvent.dateCreated ?? latestEvent.dateReceived;
 
-  const issueLink = {
-    pathname: `/organizations/${organization.slug}/issues/${latestEvent.groupID!}/events/${latestEvent.id}/`,
-    query: {project: latestEvent.projectID, referrer: 'merged-item'},
-  };
-
   return (
     <MergedGroup busy={busy}>
       <Grid
@@ -102,7 +97,14 @@ export function MergedItem({
             {latestEventTimestamp && (
               <Flex as="span" align="center" gap="sm">
                 <Text as="span" size="sm" variant="muted">
-                  <Link to={issueLink}>{t('Latest event')}</Link>
+                  <Link
+                    to={{
+                      pathname: `/organizations/${organization.slug}/issues/${latestEvent.groupID!}/events/${latestEvent.id}/`,
+                      query: {project: latestEvent.projectID, referrer: 'merged-item'},
+                    }}
+                  >
+                    {t('Latest event')}
+                  </Link>
                 </Text>
                 <Text as="span" size="sm" variant="muted">
                   <TimeSince
@@ -113,10 +115,10 @@ export function MergedItem({
                 </Text>
                 {fingerprint.mergedBySeer && (
                   <Text as="span" size="sm" variant="muted">
-                    <MergedBySentryLabel>
+                    <Flex as="span" align="center" gap="xs">
                       <span aria-hidden="true">·</span>
                       {t('Merged by Sentry')}
-                    </MergedBySentryLabel>
+                    </Flex>
                   </Text>
                 )}
               </Flex>
@@ -200,10 +202,4 @@ const FingerprintConnector = styled('span')`
 
 const FingerprintText = styled('div')`
   overflow-wrap: anywhere;
-`;
-
-const MergedBySentryLabel = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
 `;

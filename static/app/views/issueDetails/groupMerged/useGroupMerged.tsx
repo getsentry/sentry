@@ -1,6 +1,6 @@
 import {useMemo, useReducer} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
-import type {Location} from 'history';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {
   addErrorMessage,
@@ -26,6 +26,17 @@ export interface FingerprintWithLatestEvent extends Fingerprint {
 }
 
 const MERGED_HASH_LIMIT = 20;
+
+// The merged hashes list lives in a drawer over the issue details page, so it
+// can't use the generic `cursor` param without clobbering the page's own
+// pagination. Scope it to this drawer instead.
+export const MERGED_CURSOR_QUERY_KEY = 'mergedCursor';
+
+// Reading returns the current cursor (or null); setting null removes the param,
+// which is how we clean it up when the drawer closes.
+export function useMergedCursor() {
+  return useQueryState(MERGED_CURSOR_QUERY_KEY, parseAsString);
+}
 
 interface FingerprintState {
   busy?: boolean;
@@ -208,13 +219,12 @@ function getErrorMessage(error: RequestError, fallback?: string) {
 
 export function useGroupMergedHashes({
   groupId,
-  location,
   organization,
 }: {
   groupId: Group['id'];
-  location: Location;
   organization: Organization;
 }) {
+  const [cursor] = useMergedCursor();
   const {
     data,
     dataUpdatedAt,
@@ -227,10 +237,9 @@ export function useGroupMergedHashes({
       {
         path: {organizationIdOrSlug: organization.slug, issueId: groupId},
         query: {
-          ...location.query,
+          cursor: cursor ?? undefined,
           full: '0',
           per_page: MERGED_HASH_LIMIT,
-          query: location.query.query ?? '',
         },
         staleTime: 30_000,
       }
