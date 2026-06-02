@@ -16,7 +16,7 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-# Issue Action Log — experimental module for tracking who did what to an issue and how.
+# Group Action Log — experimental module for tracking who did what to an issue and how.
 # Storage backend not yet wired up; actions are emitted as structured logs and metrics only.
 #
 # Most mutation sites should use publish_action_from_context(), which reads attribution
@@ -64,7 +64,9 @@ class ActionSource(StrEnum):
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
-    UNKNOWN = "unknown"
+    UNKNOWN = (
+        "unknown"  # fallback when ActionContext is missing; indicates a gap in instrumentation
+    )
 
 
 def _get_mcp_application_id() -> int | None:
