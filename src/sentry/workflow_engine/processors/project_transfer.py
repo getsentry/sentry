@@ -80,6 +80,10 @@ def clone_workflow_to_organization(
         "name": workflow.name,
         "enabled": workflow.enabled,
         "config": workflow.config,
+        # The owner team/user belongs to the old org, so it won't be valid in the
+        # destination org; drop it rather than carry a dangling reference.
+        "owner_user_id": None,
+        "owner_team_id": None,
         "when_condition_group": clone_condition_group(when_condition_group)
         if when_condition_group is not None
         else None,

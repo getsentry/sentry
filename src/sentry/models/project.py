@@ -662,7 +662,12 @@ class Project(Model):
             with transaction.atomic(router.db_for_write(Workflow)):
                 # DataSources are 1:1 with their source (e.g. QuerySubscription, Monitor) and are
                 # detector-scoped, so they always transfer.
-                DataSource.objects.filter(detectors__id__in=detector_ids).distinct().update(
+                data_source_ids = list(
+                    DataSource.objects.filter(detectors__id__in=detector_ids)
+                    .distinct()
+                    .values_list("id", flat=True)
+                )
+                DataSource.objects.filter(id__in=data_source_ids).update(
                     organization_id=organization.id
                 )
 
@@ -711,9 +716,16 @@ class Project(Model):
 
                 # DataConditionGroups attached to the moved workflows (the "if" filters, linked via
                 # WorkflowDataConditionGroup) move with them.
-                DataConditionGroup.objects.filter(
-                    workflowdataconditiongroup__workflow_id__in=exclusive_workflow_ids
-                ).distinct().update(organization_id=organization.id)
+                exclusive_condition_group_ids = list(
+                    DataConditionGroup.objects.filter(
+                        workflowdataconditiongroup__workflow_id__in=exclusive_workflow_ids
+                    )
+                    .distinct()
+                    .values_list("id", flat=True)
+                )
+                DataConditionGroup.objects.filter(id__in=exclusive_condition_group_ids).update(
+                    organization_id=organization.id
+                )
 
                 # when_condition_groups of the moved workflows are never shared, so move them too.
                 when_condition_group_ids = (

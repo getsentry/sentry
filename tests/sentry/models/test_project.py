@@ -538,7 +538,10 @@ class TestProjectTransfer(TestCase):
         detector_b = self.create_detector(project=project_b)
 
         # Shared across both projects' detectors, so it must be cloned (not moved) on transfer.
-        shared_workflow = self.create_workflow(organization=self.from_org, name="Shared Workflow")
+        # The owner belongs to the old org, so the clone must drop it.
+        shared_workflow = self.create_workflow(
+            organization=self.from_org, name="Shared Workflow", owner_team_id=self.team.id
+        )
         self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
         self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
 
@@ -580,8 +583,10 @@ class TestProjectTransfer(TestCase):
             detector=detector_a, workflow=exclusive_workflow
         ).exists()
 
-        # The original shared workflow stays behind for project_b, no longer linked to detector_a.
+        # The original shared workflow stays behind for project_b, no longer linked to detector_a,
+        # and keeps its owner.
         assert shared_workflow.organization_id == self.from_org.id
+        assert shared_workflow.owner_team_id == self.team.id
         assert shared_dcg.organization_id == self.from_org.id
         assert DetectorWorkflow.objects.filter(
             detector=detector_b, workflow=shared_workflow
@@ -594,6 +599,10 @@ class TestProjectTransfer(TestCase):
         clone = Workflow.objects.get(organization=self.to_org, name="Shared Workflow")
         assert clone.id != shared_workflow.id
         assert DetectorWorkflow.objects.filter(detector=detector_a, workflow=clone).exists()
+
+        # The owner is dropped on the clone since it belongs to the old org.
+        assert clone.owner_team_id is None
+        assert clone.owner_user_id is None
 
         # The clone has its own condition group in the new org; the original is untouched.
         clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
