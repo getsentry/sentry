@@ -249,8 +249,11 @@ function Root({
   // Cap the sized pane at the container size so it can never overflow the
   // parent. Until we've measured, fall back to the explicit max (or
   // Infinity) so the hook can accept the initial size without clamping it
-  // to zero.
-  const max = availableSize > 0 ? Math.min(explicitMax, availableSize) : explicitMax;
+  // to zero. Never let `max` drop below `min`: a narrow container can push
+  // the cap under `minSize`, which would clamp the pane below its declared
+  // minimum.
+  const max =
+    availableSize > 0 ? Math.max(min, Math.min(explicitMax, availableSize)) : explicitMax;
   // `defaultSize` is the canonical default and the double-click reset target;
   // a controlled `size` only seeds the initial value and is synced below.
   const resetSize = sizedProps?.defaultSize ?? 0;

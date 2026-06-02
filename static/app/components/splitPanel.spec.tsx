@@ -233,6 +233,33 @@ describe('SplitPanel', () => {
       });
     });
 
+    it('never clamps max below min when the container is narrower than minSize', () => {
+      // Drive a container narrower than `minSize` so the container-size cap
+      // would otherwise push `max` below `min`.
+      const clientWidth = jest
+        .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+        .mockReturnValue(50);
+
+      render(
+        <SplitPanel.Root orientation="horizontal">
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>left</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>right</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+
+      const separator = screen.getByRole('separator');
+      expect(separator).toHaveAttribute('aria-valuemin', '100');
+      // `max` is floored at `min` rather than the 50px container width.
+      expect(separator).toHaveAttribute('aria-valuemax', '100');
+
+      clientWidth.mockRestore();
+    });
+
     it('fires onResizeEnd on keyboard resize so the size can be persisted', async () => {
       const onResizeEnd = jest.fn();
       render(
