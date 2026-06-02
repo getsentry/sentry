@@ -1403,7 +1403,10 @@ export class VirtualizedViewManager {
     const TEXT_PADDING = 3;
 
     const text_anchor_left =
-      span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.5;
+      this.time_compression.toCompressedOffset(span_space[0]) >
+      this.time_compression.toCompressedOffset(
+        this.view.to_origin + this.view.trace_space.width * 0.5
+      );
     const text_width = this.text_measurer.measure(text);
     const text_width_ceil = Math.ceil(text_width);
 
