@@ -15,7 +15,7 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
-  NODE_OPTIONS: '--max-old-space-size=5120'
+  NODE_OPTIONS: "--max-old-space-size=5120"
 
 jobs:
   files-changed:
@@ -28,14 +28,10 @@ jobs:
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
       typecheckable_rules_changed: ${{ steps.changes.outputs.typecheckable_rules_changed }}
       mdx_typecheckable: ${{ steps.changes.outputs.mdx_typecheckable }}
-      lintable_modified: ${{ steps.changes.outputs.lintable_modified }}
-      lintable_modified_files: ${{ steps.changes.outputs.lintable_modified_files }}
       lintable_rules_changed: ${{ steps.changes.outputs.lintable_rules_changed }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
-      frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
-      merge_base: ${{ steps.merge_base.outputs.merge_base }}
-      merge_base_strategy: ${{ steps.merge_base.outputs.merge_base_strategy }}
-      jest_test_matrix: ${{ steps.jest_matrix_config.outputs.jest_test_matrix }}
+      jest_test_files: ${{ steps.jest_test_config.outputs.jest_test_files }}
+      jest_test_matrix: ${{ steps.jest_test_config.outputs.jest_test_matrix }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -53,8 +49,8 @@ jobs:
       # Merge base of those two is what Jest --changedSince needs.
       # If merge base can't be computed or non-frontend files changed, output is empty
       # and the Jest job will run the full test suite instead.
-      - name: Get merge base for changedSince
-        id: merge_base
+      - name: Jest Test Config
+        id: jest_test_config
         if: github.event_name == 'pull_request'
         run: |
           MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
@@ -72,16 +68,18 @@ jobs:
             echo "Could not compute merge base — running full Jest suite"
             STRATEGY="no_merge_base"
           fi
-          echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
-          echo "merge_base_strategy=${STRATEGY}" >> "$GITHUB_OUTPUT"
 
-      - name: Jest Matrix Config
-        id: jest_matrix_config
-        run: |
-          RUNNERS=8
-          if [ "${{ steps.merge_base.outputs.merge_base_strategy }}" == "changedSince" ]; then
-            RUNNERS=1
+          if [ "$STRATEGY" == "changedSince" ]; then
+            JEST_TESTS="$(jest --listTests --json --findRelatedTests ${{ steps.changes.outputs.frontend_all_files }} | jq -r '.')"Expand comment
+          else
+            JEST_TESTS="$(jest --listTests --json)"
           fi
+          echo "jest_test_files=${JEST_TESTS}" >> "$GITHUB_OUTPUT"
+
+          # Divide jest_test_files_length by RUNNER_CHUNK_SIZE (rounded up)
+          RUNNER_CHUNK_SIZE=250
+          JEST_TESTS_LENGTH=${#JEST_TESTS[@]}
+          RUNNERS=$(( ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) > 0 ? ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) : 1 ))
 
           INDEX_ARRAY=$(seq 0 $(( RUNNERS - 1 )) | jq -s .)
           echo "jest_test_matrix=$(jq -nc --argjson index "$INDEX_ARRAY" --argjson total "$RUNNERS" '{index: $index, total: [$total]}')" >> $GITHUB_OUTPUT
@@ -144,15 +142,8 @@ jobs:
 
       - name: eslint
         id: eslint
-        env:
-          LINTABLE_RULES_CHANGED: ${{ needs.files-changed.outputs.lintable_rules_changed }}
-          LINTABLE_MODIFIED_FILES: ${{ needs.files-changed.outputs.lintable_modified_files }}
         run: |
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$LINTABLE_RULES_CHANGED" == "false" ]]; then
-            pnpm run lint:js $LINTABLE_MODIFIED_FILES
-          else
-            pnpm run lint:js
-          fi
+          pnpm run lint:js
 
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
@@ -233,19 +224,18 @@ jobs:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
 
+          JEST_TESTS: ${{ needs.files-changed.outputs.jest_test_files }}
+
           # Disable testing-library from printing out any of of the DOM to
           # stdout. No one actually looks through this in CI, they're just
           # going to run it locally.
           #
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
+
           # When the "Frontend: Rerun Flaky Tests" label is on the PR,
           # tests wrapped with it.isKnownFlake() run 50x to validate fixes.
           RERUN_KNOWN_FLAKY_TESTS: "${{ contains(github.event.pull_request.labels.*.name, 'Frontend: Rerun Flaky Tests') }}"
-          # When set, Jest uses --changedSince to run only tests affected by this PR.
-          # Empty on master or when non-frontend files changed (falls back to full suite).
-          MERGE_BASE: ${{ needs.files-changed.outputs.merge_base }}
-          MERGE_BASE_STRATEGY: ${{ needs.files-changed.outputs.merge_base_strategy }}
         run: pnpm run test-ci --forceExit
 
   form-field-registry:
