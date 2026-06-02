@@ -213,7 +213,7 @@ class SQLInjectionDetector(PerformanceDetector):
             ],
         )
 
-    def is_creation_allowed_for_project(self, project: Project | None) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     def _is_span_eligible(self, span: Span) -> bool:

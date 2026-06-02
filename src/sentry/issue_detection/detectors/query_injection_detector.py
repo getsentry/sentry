@@ -10,7 +10,6 @@ from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.utils import json
 
 MAX_EVIDENCE_VALUE_LENGTH = 10_000
@@ -121,7 +120,7 @@ class QueryInjectionDetector(PerformanceDetector):
             ],
         )
 
-    def is_creation_allowed_for_project(self, project: Project | None) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     def _is_span_eligible(self, span: Span) -> bool:
