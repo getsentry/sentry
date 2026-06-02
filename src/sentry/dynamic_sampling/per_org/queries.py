@@ -10,7 +10,6 @@ from typing import Any, Literal, Protocol
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.dynamic_sampling.rules.utils import ProjectId
-from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import ProjectTransactions
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
@@ -47,11 +46,14 @@ class ProjectVolume:
     total: int
     keep: int
     drop: int
-    # Number of distinct transaction names seen in the project over the window.
-    # Counts the *whole* project, including names that fall outside the
-    # max_transactions limit of get_eap_transaction_volumes — required for the
-    # transaction rebalancing model to size the implicit (long-tail) bucket.
     num_distinct_transactions: int = 0
+
+
+@dataclass(order=True)
+class ProjectTransactionCounts:
+    project_id: int
+    org_id: int
+    transaction_counts: list[tuple[str, float]]
 
 
 @dataclass
@@ -198,8 +200,7 @@ def get_eap_transaction_volumes(
     time_interval: timedelta = timedelta(hours=1),
     order_by_volume: Literal["asc", "desc"] = "asc",
     max_transactions: int = 100,
-    project_volumes: list[ProjectVolume] | None = None,
-) -> list[ProjectTransactions]:
+) -> list[ProjectTransactionCounts]:
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
     volumes_by_project: defaultdict[int, ProjectTransactionVolumesAccumulator] = defaultdict(
@@ -255,25 +256,11 @@ def get_eap_transaction_volumes(
         accumulator.total_num_transactions += total
         accumulator.num_classes += 1
 
-    # When project_volumes is supplied, prefer its full-project totals over the
-    # sum-of-listed accumulated above. The transaction-balancing model needs
-    # the full implicit-pool volume and class count to size the long-tail budget.
-    project_totals_by_id = {pv.project_id: pv for pv in (project_volumes or [])}
     return [
-        {
-            "org_id": config.organization.id,
-            "project_id": project_id,
-            "transaction_counts": accumulator.transaction_counts,
-            "total_num_transactions": (
-                project_totals_by_id[project_id].total
-                if project_id in project_totals_by_id
-                else accumulator.total_num_transactions
-            ),
-            "total_num_classes": (
-                project_totals_by_id[project_id].num_distinct_transactions
-                if project_id in project_totals_by_id
-                else accumulator.num_classes
-            ),
-        }
+        ProjectTransactionCounts(
+            project_id=project_id,
+            org_id=config.organization.id,
+            transaction_counts=accumulator.transaction_counts,
+        )
         for project_id, accumulator in sorted(volumes_by_project.items())
     ]

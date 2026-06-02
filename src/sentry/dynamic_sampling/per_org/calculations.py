@@ -22,9 +22,8 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingModel,
 )
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
-from sentry.dynamic_sampling.per_org.queries import ProjectVolume
+from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import ProjectTransactions
 from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
@@ -119,14 +118,19 @@ def compare_rebalanced_projects_with_cache(
 
 def run_transaction_balancing(
     config: BaseDynamicSamplingConfiguration,
-    transaction_volumes: list[ProjectTransactions],
+    project_volumes: list[ProjectVolume],
+    transaction_volumes: list[ProjectTransactionCounts],
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity")
     min_implicit_factor = config.min_implicit_factor
     sample_rates = config.get_project_sample_rates()
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
+    project_volume_by_id = {
+        project_volume.project_id: project_volume for project_volume in project_volumes
+    }
     for project_data in transaction_volumes:
-        project_id = project_data["project_id"]
+        project_id = project_data.project_id
+        project_volume = project_volume_by_id[project_data.project_id]
         sample_rate = sample_rates.get(project_id)
         if sample_rate is None:
             sentry_sdk.capture_message(
@@ -138,11 +142,11 @@ def run_transaction_balancing(
             TransactionsRebalancingInput(
                 classes=[
                     RebalancedItem(id=transaction_name, count=count)
-                    for transaction_name, count in project_data["transaction_counts"]
+                    for transaction_name, count in project_data.transaction_counts
                 ],
                 sample_rate=sample_rate,
-                total_num_classes=project_data.get("total_num_classes"),
-                total=project_data.get("total_num_transactions"),
+                total_num_classes=project_volume.num_distinct_transactions,
+                total=project_volume.total,
                 intensity=intensity,
             )
         )
@@ -150,7 +154,7 @@ def run_transaction_balancing(
             named_rates=named_rates,
             implicit_rate=implicit_rate,
             base_sample_rate=sample_rate,
-            total=project_data.get("total_num_transactions"),
+            total=project_volume.total,
             min_implicit_factor=min_implicit_factor,
             intensity=intensity,
         )
