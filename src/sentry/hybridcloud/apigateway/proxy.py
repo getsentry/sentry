@@ -4,11 +4,12 @@ Utilities related to proxying a request to a cell
 
 from __future__ import annotations
 
+import functools
 import logging
 from collections.abc import Callable, Generator
 from http.cookiejar import Cookie
 from threading import local
-from typing import Any
+from typing import Any, ParamSpec, TypeVar
 from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
@@ -19,10 +20,11 @@ from requests import Response as ExternalResponse
 from requests import Session
 from requests import request as external_request
 from requests.cookies import RequestsCookieJar
-from requests.exceptions import ConnectionError, Timeout
+from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
+from sentry.hybridcloud.apigateway.exception import Retryable
 from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
@@ -42,6 +44,28 @@ from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.http import BodyWithLength
 
 logger = logging.getLogger(__name__)
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def retry(times: int = 3) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
+        @functools.wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            max_attempts = times if options.get("apigateway.proxy.retry.enabled") else 0
+            for attempt in range(max_attempts + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Retryable as exc:
+                    if attempt == max_attempts:
+                        raise exc.original
+            raise AssertionError("unreachable")
+
+        return wrapper
+
+    return decorator
+
 
 # Endpoints that handle uploaded files have higher timeouts configured
 # and we need to honor those timeouts when proxying.
@@ -148,6 +172,7 @@ def proxy_error_embed_request(
     return proxy_cell_request(request, cell, url_name)
 
 
+@retry()
 def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
 
@@ -234,18 +259,20 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
             circuit_breaker.record_error()
 
         # remote silo timeout. Use DRF timeout instead
-        raise RequestTimeout()
-    except ConnectionError:
+        raise Retryable(RequestTimeout())
+    except ConnectionError as e:
         metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
         if circuit_breaker is not None:
             circuit_breaker.record_error()
 
-        raise
+        raise Retryable(e)
 
     if resp.status_code >= 502:
         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
         if circuit_breaker is not None:
             circuit_breaker.record_error()
+
+        raise Retryable(HTTPError(response=resp))
 
     new_headers = clean_outbound_headers(resp.headers)
     resp.headers.clear()
