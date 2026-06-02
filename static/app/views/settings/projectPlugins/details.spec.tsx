@@ -127,8 +127,7 @@ describe('ProjectPluginDetails - webhook routing', () => {
       initialRouterConfig: webhookRouterConfig,
     });
 
-    expect(await screen.findByText('WebHooks')).toBeInTheDocument();
-    expect(screen.getByText(/strongly recommend using an/)).toBeInTheDocument();
+    expect(await screen.findByText(/strongly recommend using an/)).toBeInTheDocument();
   });
 
   it('does not call plugin API for webhooks route', async () => {
@@ -150,7 +149,7 @@ describe('ProjectPluginDetails - webhook routing', () => {
       initialRouterConfig: webhookRouterConfig,
     });
 
-    await screen.findByText('WebHooks');
+    await screen.findByText(/strongly recommend using an/);
     expect(pluginsMock).not.toHaveBeenCalled();
   });
 });

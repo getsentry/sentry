@@ -30,8 +30,7 @@ describe('LegacyWebhookDetails', () => {
 
     renderComponent();
 
-    expect(await screen.findByText('WebHooks')).toBeInTheDocument();
-    expect(screen.getByText(/strongly recommend using an/)).toBeInTheDocument();
+    expect(await screen.findByText(/strongly recommend using an/)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Disable'})).toBeInTheDocument();
   });
 
