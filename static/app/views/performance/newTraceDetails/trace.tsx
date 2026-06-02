@@ -947,8 +947,8 @@ const TraceStylingWrapper = styled('div')`
   .TraceCollapsedGapMarkerBreak {
     position: absolute;
     top: 19px;
-    left: 4px;
-    width: 20px;
+    left: 3px;
+    width: 22px;
     height: calc(100% - 19px);
     box-sizing: border-box;
     color: ${p => p.theme.tokens.content.secondary};
@@ -974,12 +974,12 @@ const TraceStylingWrapper = styled('div')`
 
     &.Left {
       right: 100%;
-      padding-right: 2px;
+      padding-right: 1px;
     }
 
     &.Right {
       left: 100%;
-      padding-left: 2px;
+      padding-left: 1px;
     }
   }
 
