@@ -398,6 +398,7 @@ family:native stack.abs_path:lib/ui/hooks.dart -app
 family:native stack.abs_path:lib/ui/platform_dispatcher.dart -app
 family:native stack.abs_path:package:flutter/** -app
 family:native stack.abs_path:dart:** -app
+family:native stack.abs_path:dart:*/** -app
 family:native stack.abs_path:third_party/dart/sdk/** -app
 family:native package:**/Frameworks/FlutterMacOS.framework/** -app
 family:native package:**/Frameworks/Flutter.framework/** -app
