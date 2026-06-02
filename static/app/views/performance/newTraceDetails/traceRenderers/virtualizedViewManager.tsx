@@ -1380,11 +1380,10 @@ export class VirtualizedViewManager {
       }
       return;
     }
+    const compressedView = this.getCompressedView();
     const time_at_100 =
-      this.getConfigSpaceCursor({
-        x: 110 * window.devicePixelRatio,
-        y: 0,
-      })[0] - this.view.trace_view.x;
+      (110 * window.devicePixelRatio * compressedView.width) /
+      Math.max(this.view.trace_physical_space.width, 1);
 
     computeTimelineIntervals(this.view, time_at_100, this.intervals);
   }
