@@ -17,6 +17,9 @@ Usage (with the dev env active):
     TARGET=127.0.0.1:7900 bin/send-cell-test-event.py   # override: e.g. straight to relay-cell
 """
 
+# CLI helper: printing to the terminal is the whole point.
+# ruff: noqa: T201
+
 from __future__ import annotations
 
 import os
