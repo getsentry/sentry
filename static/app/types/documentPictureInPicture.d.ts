@@ -23,33 +23,9 @@ interface DocumentPictureInPictureOptions {
   width?: number;
 }
 
-interface DocumentPictureInPictureEventMap {
-  enter: DocumentPictureInPictureEvent;
-}
-
 interface DocumentPictureInPicture extends EventTarget {
   readonly window: Window | null;
   requestWindow(options?: DocumentPictureInPictureOptions): Promise<Window>;
-  addEventListener<K extends keyof DocumentPictureInPictureEventMap>(
-    type: K,
-    listener: (
-      this: DocumentPictureInPicture,
-      ev: DocumentPictureInPictureEventMap[K]
-    ) => any,
-    options?: boolean | AddEventListenerOptions
-  ): void;
-  removeEventListener<K extends keyof DocumentPictureInPictureEventMap>(
-    type: K,
-    listener: (
-      this: DocumentPictureInPicture,
-      ev: DocumentPictureInPictureEventMap[K]
-    ) => any,
-    options?: boolean | EventListenerOptions
-  ): void;
-}
-
-interface DocumentPictureInPictureEvent extends Event {
-  readonly window: Window;
 }
 
 interface Window {
