@@ -74,6 +74,7 @@ import {useMetricDetectorLimit} from 'getsentry/overrides/useMetricDetectorLimit
 import {useProductBillingAccess} from 'getsentry/overrides/useProductBillingAccess';
 import {useReplayForCriticalFlow} from 'getsentry/overrides/useReplayForCriticalFlow';
 import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
+import {useScmTrialBanner} from 'getsentry/overrides/useScmTrialBanner';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {trackMetric} from 'getsentry/utils/trackMetric';
 
@@ -275,6 +276,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'react-hook:use-product-billing-access': useProductBillingAccess,
   'react-hook:use-replay-for-critical-flow': useReplayForCriticalFlow,
   'react-hook:use-scm-feature-meta': useScmFeatureMeta,
+  'react-hook:use-scm-trial-banner': useScmTrialBanner,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
   ),

@@ -21,6 +21,7 @@ import type {
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSection';
 import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
+import type {UseScmTrialBannerResult} from 'sentry/views/onboarding/components/useScmTrialBanner';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
@@ -345,6 +346,7 @@ type ReactHookOverrides = {
     options: UseReplayForCriticalFlowOptions
   ) => void;
   'react-hook:use-scm-feature-meta': () => UseScmFeatureMetaResult;
+  'react-hook:use-scm-trial-banner': () => UseScmTrialBannerResult;
 };
 
 /**

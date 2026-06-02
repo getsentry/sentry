@@ -17,7 +17,7 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
 import {IconBroadcast, IconBusiness, IconGeneric} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -42,6 +42,7 @@ import {ScmSearchControl} from './scmSearchControl';
 import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
 import {useScmFeatureMeta} from './useScmFeatureMeta';
 import {useScmPlatformDetection} from './useScmPlatformDetection';
+import {useScmTrialBanner} from './useScmTrialBanner';
 
 const STEP_VIEWED_EVENT = {
   onboarding: 'onboarding.scm_platform_features_step_viewed',
@@ -95,8 +96,14 @@ export function ScmPlatformFeaturesCore({
   const {openModal} = useModal();
   const organization = useOrganization();
   // Fetch feature meta at step entry so billing-config is in flight (or cached)
-  // before the user reaches the feature cards below.
+  // before the user reaches the feature cards below. Volumes reflect the
+  // viewer's actual plan (free-plan baseline for new/trialing/free orgs, the
+  // org's own limits once they're on a paid plan).
   const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
+  // Whether to surface the "unlimited volume" trial banner, and the real days
+  // left. Always present for new-org onboarding (fresh trial); only present in
+  // project creation when the existing org is mid-trial.
+  const {showTrialBanner, trialDaysLeft} = useScmTrialBanner();
 
   const [showManualPicker, setShowManualPicker] = useState(false);
   // Guards the auto-detect analytics event below so it fires once per repo.
@@ -498,27 +505,33 @@ export function ScmPlatformFeaturesCore({
       {featureMode !== 'none' && (
         <MotionStack layout="position" width="100%">
           <Stack gap="2xl" paddingTop="xs">
-            <Flex
-              padding="lg"
-              background="secondary"
-              border="secondary"
-              radius="md"
-              gap="lg"
-            >
-              <IconBusiness size="lg" variant="accent" />
-              <Text size="md" density="comfortable">
-                {tct(
-                  'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
-                  {
-                    bold: (
-                      <Text as="span" bold variant="accent">
-                        {null}
-                      </Text>
-                    ),
-                  }
-                )}
-              </Text>
-            </Flex>
+            {showTrialBanner && (
+              <Flex
+                padding="lg"
+                background="secondary"
+                border="secondary"
+                radius="md"
+                gap="lg"
+              >
+                <IconBusiness size="lg" variant="accent" />
+                <Text size="md" density="comfortable">
+                  {tct(
+                    'You’ve got [bold] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
+                    {
+                      bold: (
+                        <Text as="span" bold variant="accent">
+                          {tn(
+                            'unlimited volume for %s day',
+                            'unlimited volume for %s days',
+                            trialDaysLeft
+                          )}
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Text>
+              </Flex>
+            )}
             {featureMode === 'toggleable' ? (
               <ScmFeatureSelectionCards
                 availableFeatures={availableFeatures}

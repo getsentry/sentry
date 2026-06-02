@@ -1,16 +1,19 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
 describe('useScmFeatureMeta', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    SubscriptionStore.init();
   });
 
   it('returns dynamic volumes from billing-config response', async () => {
@@ -61,5 +64,32 @@ describe('useScmFeatureMeta', () => {
     expect(result.current.meta[ProductSolution.PERFORMANCE_MONITORING].volume).toBe(
       '5M spans / mo'
     );
+  });
+
+  it("uses the org's own plan volumes for a paid org", () => {
+    const organization = OrganizationFixture();
+    const billingConfigRequest = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      query: {tier: 'am3'},
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+    SubscriptionStore.set(
+      organization.slug,
+      SubscriptionFixture({organization, plan: 'am3_business', isFree: false})
+    );
+
+    const {result} = renderHookWithProviders(useScmFeatureMeta, {organization});
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.meta[ProductSolution.ERROR_MONITORING].volume).toBe(
+      '50,000 errors / mo'
+    );
+    // Paid orgs drop the free-plan "upgrade" framing.
+    expect(result.current.meta[ProductSolution.ERROR_MONITORING].volumeTooltip).toBe(
+      'Included with your current plan.'
+    );
+    // Paid orgs read volumes off their subscription, so the free-plan
+    // billing-config fetch is skipped entirely.
+    expect(billingConfigRequest).not.toHaveBeenCalled();
   });
 });

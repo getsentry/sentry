@@ -1,4 +1,4 @@
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t} from 'sentry/locale';
@@ -12,8 +12,9 @@ import {
 } from 'sentry/views/onboarding/components/useScmFeatureMeta';
 
 import {DEFAULT_TIER} from 'getsentry/constants';
-import type {BillingConfig, Plan} from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
+import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
+import {formatReservedWithUnits, isUnlimitedReserved} from 'getsentry/utils/billing';
 
 type DynamicCategoryFormat = {
   category: DataCategory;
@@ -91,34 +92,10 @@ function getFreeVolume(plan: Plan, category: DataCategory): number | undefined {
 }
 
 /**
- * gsApp implementation of `useScmFeatureMeta`. Sources free-plan volume strings
- * from the default-tier billing-config response so the SCM onboarding cards stay
- * aligned with the actual free-plan limits. Reports isLoading while the request
- * is in flight, and falls back to the OSS static copy on error.
+ * Free-plan volumes sourced from the default-tier billing-config, with the
+ * "upgrade to Team or Business" framing. Used for new/trialing/free orgs.
  */
-export function useScmFeatureMeta(): UseScmFeatureMetaResult {
-  const organization = useOrganization();
-  const {data: billingConfig, isLoading} = useQuery({
-    ...apiOptions.as<BillingConfig>()(
-      '/customers/$organizationIdOrSlug/billing-config/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {tier: DEFAULT_TIER},
-        staleTime: Infinity,
-      }
-    ),
-    retry: false,
-  });
-
-  if (!billingConfig) {
-    return {meta: FALLBACK_FEATURE_META, isLoading};
-  }
-
-  const freePlan = findFreePlan(billingConfig.planList, billingConfig.freePlan);
-  if (!freePlan) {
-    return {meta: FALLBACK_FEATURE_META, isLoading: false};
-  }
-
+function buildFreePlanMeta(freePlan: Plan): Record<ProductSolution, FeatureMeta> {
   const meta: Record<ProductSolution, FeatureMeta> = {...FALLBACK_FEATURE_META};
   for (const [productKey, format] of Object.entries(DYNAMIC_FORMATS)) {
     if (!format) {
@@ -136,6 +113,87 @@ export function useScmFeatureMeta(): UseScmFeatureMetaResult {
       volumeTooltip: format.formatTooltip(quantity),
     };
   }
+  return meta;
+}
 
-  return {meta, isLoading: false};
+/**
+ * Volumes sourced from the org's own reserved quotas, dropping the upgrade CTA.
+ * Used for paid orgs, where the free-plan limits and "upgrade" copy are wrong.
+ */
+function buildCurrentPlanMeta(
+  subscription: Subscription
+): Record<ProductSolution, FeatureMeta> {
+  const meta: Record<ProductSolution, FeatureMeta> = {...FALLBACK_FEATURE_META};
+  for (const [productKey, format] of Object.entries(DYNAMIC_FORMATS)) {
+    if (!format) {
+      continue;
+    }
+    const product = productKey as ProductSolution;
+    const reserved = subscription.categories[format.category]?.reserved;
+
+    let volume: string;
+    if (isUnlimitedReserved(reserved)) {
+      volume = t('Unlimited');
+    } else if (typeof reserved !== 'number' || reserved <= 0) {
+      // Reserved-budget / pay-as-you-go / unmetered on this plan: there is no
+      // fixed monthly volume to advertise.
+      volume = t('Usage-based');
+    } else {
+      volume = format.formatVolume(format.formatQuantity(reserved));
+    }
+
+    meta[product] = {
+      ...FALLBACK_FEATURE_META[product],
+      volume,
+      volumeTooltip: t('Included with your current plan.'),
+    };
+  }
+  return meta;
+}
+
+/**
+ * gsApp implementation of `useScmFeatureMeta`. Keeps the SCM onboarding feature
+ * cards aligned with the volumes the viewer actually gets.
+ *
+ * Paid, non-trial orgs see their own plan's reserved volumes. New, trialing, and
+ * free orgs — and any org whose subscription hasn't loaded yet — fall through to
+ * the default-tier free-plan billing-config, which is the baseline a trial
+ * converts into and the correct copy for the free plan. Reports isLoading while
+ * the billing-config request is in flight, and falls back to the OSS static copy
+ * on error.
+ */
+export function useScmFeatureMeta(): UseScmFeatureMetaResult {
+  const organization = useOrganization();
+  const subscription = useSubscription();
+
+  const isPaid = !!subscription && !subscription.isFree && !subscription.isTrial;
+
+  const {data: billingConfig, isLoading} = useQuery({
+    ...apiOptions.as<BillingConfig>()(
+      '/customers/$organizationIdOrSlug/billing-config/',
+      {
+        // Paid orgs read volumes off their subscription, so skip the free-plan
+        // billing-config fetch entirely.
+        path: isPaid ? skipToken : {organizationIdOrSlug: organization.slug},
+        query: {tier: DEFAULT_TIER},
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+  });
+
+  if (isPaid && subscription) {
+    return {meta: buildCurrentPlanMeta(subscription), isLoading: false};
+  }
+
+  if (!billingConfig) {
+    return {meta: FALLBACK_FEATURE_META, isLoading};
+  }
+
+  const freePlan = findFreePlan(billingConfig.planList, billingConfig.freePlan);
+  if (!freePlan) {
+    return {meta: FALLBACK_FEATURE_META, isLoading: false};
+  }
+
+  return {meta: buildFreePlanMeta(freePlan), isLoading: false};
 }
