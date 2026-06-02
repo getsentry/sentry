@@ -300,11 +300,19 @@ _healthcheck_filter = _FilterSpec(
 )
 
 
-def _error_message_condition(values: Sequence[tuple[str | None, str | None]]) -> RuleCondition:
+def _error_message_condition(
+    values: Sequence[tuple[str | None, str | None]],
+    match_logentry: bool = False,
+) -> RuleCondition:
     """
     Condition that expresses error message matching for an inbound filter.
+
+    When ``match_logentry`` is set, type-less patterns (``(None, message)``) also match
+    the event's ``logentry.formatted`` message, so events captured via ``capture_message``
+    (which carry no exception interface) are covered in addition to exceptions.
     """
     conditions = []
+    message_conditions: list[RuleCondition] = []
 
     for ty, value in values:
         ty_and_value: list[RuleCondition] = []
@@ -324,7 +332,14 @@ def _error_message_condition(values: Sequence[tuple[str | None, str | None]]) ->
                 }
             )
 
-    return cast(
+        # A logentry message has no exception type, so only type-less patterns can match
+        # it. Glob the formatted message string directly.
+        if match_logentry and ty is None and value is not None:
+            message_conditions.append(
+                {"op": "glob", "name": "event.logentry.formatted", "value": [value]}
+            )
+
+    exception_condition = cast(
         RuleCondition,
         {
             "op": "any",
@@ -333,6 +348,17 @@ def _error_message_condition(values: Sequence[tuple[str | None, str | None]]) ->
                 "op": "or",
                 "inner": conditions,
             },
+        },
+    )
+
+    if not message_conditions:
+        return exception_condition
+
+    return cast(
+        RuleCondition,
+        {
+            "op": "or",
+            "inner": [exception_condition, *message_conditions],
         },
     )
 
@@ -365,7 +391,7 @@ def _custom_error_filter() -> RuleCondition | None:
     # values are configured. Return None so it is omitted from the Relay config entirely.
     if not values:
         return None
-    return _error_message_condition(values)
+    return _error_message_condition(values, match_logentry=True)
 
 
 def _hydration_error_filter() -> RuleCondition:
