@@ -19,7 +19,7 @@ from sentry_sdk import set_tag
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -37,6 +37,7 @@ from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
+from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
@@ -165,9 +166,6 @@ def schedule_organizations(
 def _cache_project_metrics(
     ctx: OrganizationReportContext, organization_id: int, timestamp: float
 ) -> None:
-    from sentry import features
-    from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
-
     if not features.has("organizations:weekly-report-metrics-api", ctx.organization):
         return
 
