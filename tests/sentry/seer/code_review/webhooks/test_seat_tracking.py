@@ -139,3 +139,26 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
 
         self._call(event=event)
         assert mock_track.call_count == 2
+
+    @with_feature("organizations:seer-code-review-gitlab")
+    @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
+    def test_missing_organization_does_not_poison_dedup(self, mock_track: Any) -> None:
+        # If the Organization can't be resolved, no Redis key is set, so a
+        # subsequent delivery for a valid org with the same key shape still
+        # has a chance to seed the contributor.
+        event = _make_event()
+        iid = event["object_attributes"]["iid"]
+        seen_key = f"{SEAT_SEEN_KEY_PREFIX}{self.organization.id}:{self.repo.id}:{iid}"
+
+        with patch(
+            "sentry.seer.code_review.webhooks.seat_tracking.Organization.objects.get_from_cache",
+            side_effect=Organization.DoesNotExist,
+        ):
+            self._call(event=event)
+
+        mock_track.assert_not_called()
+        assert redis_clusters.get("default").get(seen_key) is None
+
+        # Now the lookup succeeds — the same delivery should proceed.
+        self._call(event=event)
+        mock_track.assert_called_once()

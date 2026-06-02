@@ -106,14 +106,17 @@ def track_gitlab_contributor_seat_processor(
         )
         return
 
-    seen_key = f"{SEAT_SEEN_KEY_PREFIX}{organization.id}:{repo.id}:{iid}"
-    if _is_duplicate_delivery(seen_key):
-        logger.info("gitlab.webhook.seat_tracking.duplicate_delivery_skipped")
-        return
-
+    # Resolve the Organization before marking the delivery as seen so a missing
+    # org does not poison the dedup window and block GitLab redeliveries from
+    # seeding the contributor later.
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:
+        return
+
+    seen_key = f"{SEAT_SEEN_KEY_PREFIX}{organization.id}:{repo.id}:{iid}"
+    if _is_duplicate_delivery(seen_key):
+        logger.info("gitlab.webhook.seat_tracking.duplicate_delivery_skipped")
         return
 
     track_contributor_seat(
