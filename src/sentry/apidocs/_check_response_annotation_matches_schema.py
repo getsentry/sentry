@@ -67,9 +67,11 @@ class Mismatch:
     def __str__(self) -> str:
         decl = ", ".join(sorted(self.decl)) or "<none>"
         annot = ", ".join(sorted(self.annot)) or "<none>"
+        missing = ", ".join(sorted(self.decl - self.annot))
         return (
             f"{self.path}:{self.line} {self.cls}.{self.method}: "
-            f"decorator declares {{{decl}}}, annotation declares {{{annot}}}"
+            f"decorator declares {{{decl}}} but annotation declares {{{annot}}} "
+            f"(missing from annotation: {{{missing}}})"
         )
 
 
@@ -211,7 +213,15 @@ def check_file(path: Path) -> list[Mismatch]:
 
         decl_set = frozenset(_name_of(t) for t in decl_Ts)
         annot_set = frozenset(_name_of(t) for t in annot_Ts)
-        if decl_set != annot_set:
+        # Subset semantics, not strict equality: every typed T declared by
+        # `inline_sentry_response_serializer` in the decorator MUST appear in
+        # the annotation (drift caught), but the annotation MAY declare extra
+        # arms not in the decorator (e.g. local error TypedDicts not exposed
+        # in OpenAPI via opaque `RESPONSE_*` constants). This preserves
+        # API-as-today: endpoints that keep `RESPONSE_BAD_REQUEST`-style
+        # opaque error declarations can still enrich their internal
+        # annotations without changing the OpenAPI document.
+        if not decl_set.issubset(annot_set):
             mismatches.append(
                 Mismatch(
                     path=path,
@@ -244,9 +254,11 @@ def main(argv: list[str]) -> int:
         sys.stdout.write(f"{m}\n")
     if all_mismatches:
         sys.stderr.write(
-            f"\n{len(all_mismatches)} mismatch(es) — the set of `T`s declared by "
+            f"\n{len(all_mismatches)} mismatch(es) — every `T` declared by "
             "`inline_sentry_response_serializer(...)` in `@extend_schema` must "
-            "equal the set of `T`s in the `Response[T]` (or union) annotation.\n",
+            "appear in the `Response[T]` (or union) annotation. The annotation "
+            "MAY declare additional arms (e.g. local error TypedDicts) that the "
+            "decorator does not expose.\n",
         )
         return 1
     return 0
