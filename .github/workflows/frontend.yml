@@ -132,9 +132,12 @@ jobs:
 
       - name: eslint
         id: eslint
+        env:
+          LINTABLE_RULES_CHANGED: ${{ needs.files-changed.outputs.lintable_rules_changed }}
+          LINTABLE_MODIFIED_FILES: ${{ needs.files-changed.outputs.lintable_modified_files }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" == "pull_request" && "${{ needs.files-changed.outputs.lintable_rules_changed }}" == "false" ]; then
-            pnpm run lint:js ${{ needs.files-changed.outputs.lintable_modified_files }}
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$LINTABLE_RULES_CHANGED" == "false" ]]; then
+            pnpm run lint:js $LINTABLE_MODIFIED_FILES
           else
             pnpm run lint:js
           fi
