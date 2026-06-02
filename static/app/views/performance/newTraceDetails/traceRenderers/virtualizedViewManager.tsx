@@ -1458,6 +1458,12 @@ export class VirtualizedViewManager {
     const span_left = span_space[0] - this.view.to_origin;
     const span_right = span_left + span_space[1];
 
+    const compressedSpanStart = this.time_compression.toCompressedOffset(span_space[0]);
+    const compressedSpanEnd = this.time_compression.toCompressedOffset(
+      span_space[0] + span_space[1]
+    );
+    const compressedSpanDuration = compressedSpanEnd - compressedSpanStart;
+
     const space_right = view_right - span_right;
     const space_left = span_left - view_left;
 
@@ -1488,8 +1494,7 @@ export class VirtualizedViewManager {
           ]);
     }
 
-    const config_space_per_px = this.getConfigSpacePerPx();
-    const full_span_px_width = span_space[1] / config_space_per_px;
+    const full_span_px_width = compressedSpanDuration / this.span_to_px[0];
 
     if (text_anchor_left) {
       // While we have space on the left, place the text there
@@ -1502,8 +1507,11 @@ export class VirtualizedViewManager {
         return choosePlacement(placements);
       }
 
-      const distance = span_right - this.view.trace_view.left;
-      const visible_width = distance / config_space_per_px - TEXT_PADDING;
+      const compressedViewLeft = this.time_compression.toCompressedOffset(
+        this.view.to_origin + this.view.trace_view.left
+      );
+      const compressedDistance = compressedSpanEnd - compressedViewLeft;
+      const visible_width = compressedDistance / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
@@ -1535,7 +1543,10 @@ export class VirtualizedViewManager {
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
         span_right > this.view.trace_space.right * 0.9 &&
-        space_right / config_space_per_px < text_width_ceil
+        (this.time_compression.toCompressedOffset(this.view.to_origin + view_right) -
+          compressedSpanEnd) /
+          this.span_to_px[0] <
+          text_width_ceil
       ) {
         if (full_span_px_width > text_width_ceil) {
           return choosePlacement([
@@ -1558,9 +1569,11 @@ export class VirtualizedViewManager {
 
     // If text fits inside the span
     if (full_span_px_width > text_width_ceil) {
-      const distance = span_right - this.view.trace_view.right;
+      const compressedViewRight = this.time_compression.toCompressedOffset(
+        this.view.to_origin + this.view.trace_view.right
+      );
       const visible_width =
-        (span_space[1] - distance) / config_space_per_px - TEXT_PADDING;
+        (compressedViewRight - compressedSpanStart) / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
