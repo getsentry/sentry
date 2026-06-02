@@ -132,9 +132,14 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
                 return well_known_key.get_default(project)
         return default
 
-    def unset_value(self, project: Project, key: str) -> None:
-        self.filter(project=project, key=key).delete()
-        self.reload_cache(project.id, "projectoption.unset_value", key)
+    def unset_value(self, project: int | Project, key: str) -> None:
+        if isinstance(project, models.Model):
+            project_id = project.id
+        else:
+            project_id = project
+
+        self.filter(project_id=project_id, key=key).delete()
+        self.reload_cache(project_id, "projectoption.unset_value", key)
 
     def set_value(self, project: int | Project, key: str, value: Any) -> bool:
         """
@@ -249,3 +254,20 @@ class ProjectOption(Model):
             self.save()
 
         return (self.pk, ImportKind.Inserted)
+
+
+def get_option(
+    project: int | Project,
+    key: str,
+    default: Any | None = None,
+    validate: Callable[[object], bool] | None = None,
+) -> Any:
+    return ProjectOption.objects.get_value(project, key, default, validate)
+
+
+def set_option(project: int | Project, key: str, value: Any) -> bool:
+    return ProjectOption.objects.set_value(project, key, value)
+
+
+def unset_option(project: int | Project, key: str) -> None:
+    return ProjectOption.objects.unset_value(project, key)

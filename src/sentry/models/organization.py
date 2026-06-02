@@ -542,13 +542,19 @@ class Organization(ReplicatedCellModel):
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
-        return self.option_manager.get_value(self, key, default, validate)
+        from sentry.models.options.organization_option import get_option
+
+        return get_option(self.id, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:
-        return self.option_manager.set_value(self, key, value)
+        from sentry.models.options.organization_option import set_option
+
+        return set_option(self.id, key, value)
 
     def delete_option(self, key: str) -> None:
-        self.option_manager.unset_value(self, key)
+        from sentry.models.options.organization_option import unset_option
+
+        return unset_option(self.id, key)
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
