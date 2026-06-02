@@ -256,7 +256,9 @@ class TestProjectTransfer(TestCase):
         assert existing_monitor.project_id == monitor_to.project_id
 
     def test_transfer_to_organization_slug_collision(self) -> None:
-        # conflicting project slug
+        # give the project being transferred a slug that collides with an
+        # existing project in the target org
+        self.project.update(slug="matt")
         self.create_project(slug="matt", organization=self.to_org)
 
         assert Project.objects.filter(organization=self.to_org).count() == 1
