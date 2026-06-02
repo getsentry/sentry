@@ -804,7 +804,7 @@ class SnubaTagStorage(TagStorage):
         key,
         tenant_ids=None,
         **kwargs,
-    ):
+    ) -> GroupTagKey | TagKey:
         return self.__get_tag_key_and_top_values(
             group.project_id,
             group,

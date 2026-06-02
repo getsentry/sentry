@@ -142,7 +142,7 @@ class TagKeySerializerResponse(TagKeySerializerResponseOptional):
 
 @register(GroupTagKey)
 @register(TagKey)
-class TagKeySerializer(Serializer):
+class TagKeySerializer(Serializer[TagKeySerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> TagKeySerializerResponse:
         from sentry import tagstore
 
@@ -175,7 +175,7 @@ class TagValueSerializerResponse(TagValueSerializerResponseOptional):
 
 @register(GroupTagValue)
 @register(TagValue)
-class TagValueSerializer(Serializer):
+class TagValueSerializer(Serializer[TagValueSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> TagValueSerializerResponse:
         from sentry import tagstore
 
