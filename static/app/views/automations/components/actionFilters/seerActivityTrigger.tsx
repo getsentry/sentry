@@ -2,7 +2,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -26,11 +26,12 @@ export function SeerActivityTriggerDetails({condition}: {condition: DataConditio
   const labels = stages
     .map(s => SEER_ACTIVITY_STAGE_CHOICES.find(c => c.value === s)?.label)
     .filter(Boolean);
+  const details =
+    labels.length === 1
+      ? tct("Seer reaches the '[stage]' stage", {stage: labels[0] ?? ''})
+      : tct('Seer reaches any of these stages: [stages]', {stages: labels.join(', ')});
 
-  if (labels.length === 1) {
-    return <span>{t("Seer reaches the '%s' stage", labels[0])}</span>;
-  }
-  return <span>{t('Seer reaches any of these stages: %s', labels.join(', '))}</span>;
+  return <span>{details}</span>;
 }
 
 export function SeerActivityTriggerNode() {
