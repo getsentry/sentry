@@ -150,13 +150,11 @@ export function useSetLogsAutoRefresh() {
         queryClient.removeQueries({queryKey});
       }
 
-      if (autoRefresh !== 'enabled') {
-        queryClient.removeQueries({queryKey});
-      }
       const newPausedAt = autoRefresh === 'paused' ? Date.now() : undefined;
       const target: Location = {...location, query: {...location.query}};
       if (autoRefresh === 'paused') {
         setPausedAt(newPausedAt);
+        queryClient.removeQueries({queryKey});
       } else if (autoRefresh !== 'enabled') {
         // Any error state, or disabled state, should reset the pause state.
         setPausedAt(undefined);
