@@ -25,17 +25,16 @@ logger = logging.getLogger(__name__)
 # If you're adding a new caller to an instrumented function (e.g. GroupAssignee.objects.assign),
 # wrap it with action_context_scope() so the action gets proper source attribution.
 
-MCP_CLIENT_NAME_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_NAME"
 MCP_USER_AGENT_PREFIX = "sentry-mcp/"
+MCP_CLIENT_FAMILY_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_FAMILY"
 SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
 
-KNOWN_MCP_CLIENTS: dict[str, str] = {
-    "claude code": "claude-code",
-    "claude-code": "claude-code",
-    "cursor": "cursor",
-    "copilot": "copilot",
-    "windsurf": "windsurf",
-}
+# Standardized client families the MCP buckets its callers into and forwards via
+# X-Sentry-MCP-Client-Family (source of truth: client-family.ts in getsentry/sentry-mcp).
+KNOWN_MCP_CLIENT_FAMILIES = frozenset(
+    {"claude-code", "cursor", "copilot", "opencode", "claude-desktop", "codex"}
+)
+MCP_CATCHALL_CLIENT_FAMILIES = frozenset({"other", "unknown"})
 
 
 class ActionSource(StrEnum):
@@ -73,10 +72,15 @@ def resolve_action_source(request: Request) -> str:
     user_agent = request.META.get("HTTP_USER_AGENT", "")
 
     if user_agent.startswith(MCP_USER_AGENT_PREFIX):
-        client_name = request.META.get(MCP_CLIENT_NAME_HEADER, "")
-        slug = KNOWN_MCP_CLIENTS.get(client_name.strip().lower())
-        if slug:
-            return f"{ActionSource.MCP}:{slug}"
+        family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
+        if family in KNOWN_MCP_CLIENT_FAMILIES:
+            return f"{ActionSource.MCP}:{family}"
+        if family and family not in MCP_CATCHALL_CLIENT_FAMILIES:
+            # Values outside this set are logged so we know to add new ones
+            logger.warning(
+                "issue.action_log.unrecognized_mcp_client_family",
+                extra={"client_family": family},
+            )
         return ActionSource.MCP
 
     seer_referrer = request.META.get(SEER_REFERRER_HEADER, "")

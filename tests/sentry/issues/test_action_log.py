@@ -40,32 +40,44 @@ MCP_USER_AGENT = "sentry-mcp/0.18.0 (https://mcp.sentry.dev)"
 
 
 class TestResolveActionSource(TestCase):
-    def test_mcp_known_client(self) -> None:
+    def test_mcp_known_family(self) -> None:
         request = _make_request(
             meta={
                 "HTTP_USER_AGENT": MCP_USER_AGENT,
-                "HTTP_X_SENTRY_MCP_CLIENT_NAME": "Claude Code",
+                "HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "claude-code",
             },
         )
         assert resolve_action_source(request) == "mcp:claude-code"
 
-    def test_mcp_unknown_client(self) -> None:
+    def test_mcp_unrecognized_family_logs_and_falls_back(self) -> None:
         request = _make_request(
             meta={
                 "HTTP_USER_AGENT": MCP_USER_AGENT,
-                "HTTP_X_SENTRY_MCP_CLIENT_NAME": "some-new-editor",
+                "HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "some-new-editor",
             },
         )
-        assert resolve_action_source(request) == "mcp"
+        with self.assertLogs("sentry.issues.action_log", level="WARNING") as logs:
+            assert resolve_action_source(request) == "mcp"
+        assert any(r.__dict__.get("client_family") == "some-new-editor" for r in logs.records)
 
-    def test_mcp_without_client_name(self) -> None:
+    def test_mcp_catchall_family_is_not_logged(self) -> None:
+        request = _make_request(
+            meta={
+                "HTTP_USER_AGENT": MCP_USER_AGENT,
+                "HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "unknown",
+            },
+        )
+        with self.assertNoLogs("sentry.issues.action_log", level="WARNING"):
+            assert resolve_action_source(request) == "mcp"
+
+    def test_mcp_without_family(self) -> None:
         request = _make_request(meta={"HTTP_USER_AGENT": MCP_USER_AGENT})
         assert resolve_action_source(request) == "mcp"
 
-    def test_mcp_client_name_without_user_agent_is_not_mcp(self) -> None:
-        # The MCP source is gated on the User-Agent, not the client-name header, so the
+    def test_mcp_family_without_user_agent_is_not_mcp(self) -> None:
+        # The MCP source is gated on the User-Agent, not the client-family header, so the
         # header alone does not flip the source to mcp.
-        request = _make_request(meta={"HTTP_X_SENTRY_MCP_CLIENT_NAME": "Claude Code"})
+        request = _make_request(meta={"HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "claude-code"})
         assert resolve_action_source(request) == "api"
 
     def test_seer_referrer(self) -> None:
