@@ -1,7 +1,5 @@
 import bisect
 
-from sentry.models.options.project_option import get_option
-
 
 class WellKnownProjectOption:
     def __init__(self, key, default=None, epoch_defaults=None):
@@ -11,6 +9,8 @@ class WellKnownProjectOption:
         self._epoch_default_list = sorted(epoch_defaults or ())
 
     def get_default(self, project=None, epoch=None):
+        from sentry.models.options.project_option import get_option
+
         if self.epoch_defaults:
             if epoch is None:
                 if project is None:
