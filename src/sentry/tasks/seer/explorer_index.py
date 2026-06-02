@@ -18,7 +18,7 @@ from sentry.seer.signed_seer_api import (
     make_agent_index_request,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.statistical_detectors import compute_delay
+from sentry.tasks.utils import compute_delay
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.query import RangeQuerySetWrapper
 

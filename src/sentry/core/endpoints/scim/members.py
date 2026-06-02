@@ -486,7 +486,9 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         },
         examples=SCIMExamples.LIST_ORG_MEMBERS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[SCIMListMembersResponse]:
         """
         Returns a paginated list of members bound to a organization with a SCIM Users GET Request.
         """

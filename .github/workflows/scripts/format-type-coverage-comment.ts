@@ -111,12 +111,7 @@ function formatComment(
   const totalNew = newAny + newNonNull + newTypeAssert;
 
   if (totalNew === 0) {
-    return [
-      COMMENT_MARKER,
-      '## 📊 Type Coverage Diff',
-      '',
-      `✅ No new type safety issues introduced. Coverage: **${currentSummary.coverage.toFixed(2)}%**`,
-    ].join('\n');
+    return '';
   }
 
   const lines: string[] = [COMMENT_MARKER];
