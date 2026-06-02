@@ -41,7 +41,7 @@ from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.taskworker.timeout import timeout_alarm
-from sentry.utils import metrics, redis
+from sentry.utils import redis
 from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -98,10 +98,7 @@ def _create_circuit_breaker(
     sentry_app: SentryApp | RpcSentryApp,
     organization_context: RpcUserOrganizationContext | None,
 ) -> CircuitBreaker | None:
-    if organization_context is None or not features.has(
-        "organizations:sentry-app-webhook-circuit-breaker",
-        organization_context.organization,
-    ):
+    if organization_context is None:
         return None
 
     # We don't want to make a circuit breaker in CONTROL silo as it's only used for installation webhooks which are v. low volume
@@ -156,17 +153,6 @@ def _notify_webhook_disabled(
     if not set_dedup_key(sentry_app, circuit_breaker):
         return
 
-    live_run = features.has(
-        "organizations:sentry-app-webhook-circuit-breaker-live-run",
-        owner_org,
-    )
-    if not live_run:
-        logger.info(
-            "sentry_app.webhook.circuit_breaker.would_email",
-            extra={"slug": sentry_app.slug},
-        )
-        return
-
     data = SentryAppWebhookDisabled(
         sentry_app_slug=sentry_app.slug,
         sentry_app_name=sentry_app.name,
@@ -193,27 +179,9 @@ def _notify_webhook_disabled(
 
 def _circuit_breaker_allows_request(
     circuit_breaker: CircuitBreaker | None,
-    sentry_app: SentryApp | RpcSentryApp,
-    org_id: int,
     lifecycle: EventLifecycle,
-    owner_org: RpcOrganization | None,
 ) -> bool:
     if circuit_breaker is None or circuit_breaker.should_allow_request():
-        return True
-
-    live_run = owner_org is not None and features.has(
-        "organizations:sentry-app-webhook-circuit-breaker-live-run",
-        owner_org,
-    )
-    metrics.incr(
-        "sentry_app.webhook.circuit_breaker.would_block",
-        tags={"slug": sentry_app.slug, "live_run": live_run},
-    )
-    logger.warning(
-        "sentry_app.webhook.circuit_breaker.would_block",
-        extra={"slug": sentry_app.slug, "org_id": org_id, "live_run": live_run},
-    )
-    if not live_run:
         return True
 
     lifecycle.record_halt(
@@ -304,9 +272,7 @@ def send_and_save_webhook_request(
             )
             owner_org = owner_context.organization if owner_context is not None else None
             circuit_breaker = _create_circuit_breaker(sentry_app, owner_context)
-            if not _circuit_breaker_allows_request(
-                circuit_breaker, sentry_app, org_id, lifecycle, owner_org
-            ):
+            if not _circuit_breaker_allows_request(circuit_breaker, lifecycle):
                 return Response()
 
             with circuit_breaker_tracking(circuit_breaker):
