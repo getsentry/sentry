@@ -434,6 +434,9 @@ const RootElement = styled('div')`
   }
 `;
 
+// Styling mirrors the secondary navigation ResizeHandle: a static seam with an
+// accent bar that lights up on hover/drag. Kept local for now; could be made
+// reusable in a follow-up.
 const DividerLine = styled('div')`
   user-select: none;
 
@@ -442,6 +445,21 @@ const DividerLine = styled('div')`
     content: '';
     position: absolute;
     z-index: 1;
+  }
+
+  /* Accent bar that lights up on hover/drag */
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    opacity: 0.8;
+    background: transparent;
+    transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
+  }
+
+  &:hover::after,
+  &[data-is-held='true']::after {
+    background: ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 
   &[data-orientation='horizontal'] {
@@ -455,9 +473,9 @@ const DividerLine = styled('div')`
       width: 11px;
     }
 
-    &:hover,
-    &[data-is-held='true'] {
-      border-left-color: ${p => p.theme.tokens.border.accent.moderate};
+    &::after {
+      inset: 0 auto 0 -2px;
+      width: 4px;
     }
   }
 
@@ -472,9 +490,9 @@ const DividerLine = styled('div')`
       height: 11px;
     }
 
-    &:hover,
-    &[data-is-held='true'] {
-      border-top-color: ${p => p.theme.tokens.border.accent.moderate};
+    &::after {
+      inset: -2px 0 auto 0;
+      height: 4px;
     }
   }
 
