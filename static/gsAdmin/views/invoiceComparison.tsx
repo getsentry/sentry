@@ -193,7 +193,7 @@ export function InvoiceComparison() {
   }, [queryStart, queryEnd]);
 
   const enabled = Boolean(queryStart && queryEnd && region);
-  const {data, isPending, isError, error} = useQuery({
+  const {data, isPending, isError, error, isPlaceholderData} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
       path: enabled && region ? {region: region.name} : skipToken,
       host: region?.url,
@@ -236,8 +236,13 @@ export function InvoiceComparison() {
   // If the backend clamped our requested page (e.g. user landed on
   // ?rows_page=99 against a 2-page result), rewrite the URL to the
   // clamped value so refresh + share-links converge on the real page.
+  //
+  // Skip while `data` is the placeholder from the previous page — its
+  // summary describes the prior request, not the one we just kicked
+  // off, so honoring it would rewrite the URL back to where we just
+  // were and break Prev/Next.
   useEffect(() => {
-    if (!data) {
+    if (!data || isPlaceholderData) {
       return;
     }
     const fixes: Record<string, string> = {};
@@ -253,7 +258,15 @@ export function InvoiceComparison() {
         {replace: true}
       );
     }
-  }, [data, rowsPage, unmatchedPage, navigate, location.pathname, location.query]);
+  }, [
+    data,
+    isPlaceholderData,
+    rowsPage,
+    unmatchedPage,
+    navigate,
+    location.pathname,
+    location.query,
+  ]);
 
   // The endpoint returns rows pre-sorted by |delta_pct| desc; this component
   // does not re-sort. See AdminInvoiceComparisonEndpoint and its test_sort_*
