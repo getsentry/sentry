@@ -23,6 +23,8 @@ export function SeerActivityTriggerDetails({condition}: {condition: DataConditio
   const stages: string[] = Array.isArray(condition.comparison)
     ? condition.comparison
     : [];
+  // The stages should all appear in SEER_ACTIVITY_STAGE_CHOICES, but for type safety we call
+  // call .filter(Boolean) to get rid of invalid stages when we render.
   const labels = stages
     .map(s => SEER_ACTIVITY_STAGE_CHOICES.find(c => c.value === s)?.label)
     .filter(Boolean);

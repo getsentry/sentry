@@ -13,12 +13,14 @@ import {DataConditionNodeContext} from 'sentry/views/automations/components/data
 
 describe('SeerActivityTriggerDetails', () => {
   it('renders single-stage text', () => {
-    const condition = DataConditionFixture({
-      type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-      comparison: ['pr_created'],
-    });
-
-    render(<SeerActivityTriggerDetails condition={condition} />);
+    render(
+      <SeerActivityTriggerDetails
+        condition={DataConditionFixture({
+          type: DataConditionType.SEER_ACTIVITY_TRIGGER,
+          comparison: ['pr_created'],
+        })}
+      />
+    );
 
     expect(
       screen.getByText("Seer reaches the 'Pull request created' stage")
@@ -26,12 +28,14 @@ describe('SeerActivityTriggerDetails', () => {
   });
 
   it('renders multi-stage text', () => {
-    const condition = DataConditionFixture({
-      type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-      comparison: ['rca_started', 'coding_completed'],
-    });
-
-    render(<SeerActivityTriggerDetails condition={condition} />);
+    render(
+      <SeerActivityTriggerDetails
+        condition={DataConditionFixture({
+          type: DataConditionType.SEER_ACTIVITY_TRIGGER,
+          comparison: ['rca_started', 'coding_completed'],
+        })}
+      />
+    );
 
     expect(
       screen.getByText(
@@ -41,23 +45,14 @@ describe('SeerActivityTriggerDetails', () => {
   });
 
   it('handles empty comparison gracefully', () => {
-    const condition = DataConditionFixture({
-      type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-      comparison: [],
-    });
-
-    render(<SeerActivityTriggerDetails condition={condition} />);
-
-    expect(screen.getByText('Seer reaches any of these stages:')).toBeInTheDocument();
-  });
-
-  it('handles non-array comparison gracefully', () => {
-    const condition = DataConditionFixture({
-      type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-      comparison: 'not-an-array',
-    });
-
-    render(<SeerActivityTriggerDetails condition={condition} />);
+    render(
+      <SeerActivityTriggerDetails
+        condition={DataConditionFixture({
+          type: DataConditionType.SEER_ACTIVITY_TRIGGER,
+          comparison: [],
+        })}
+      />
+    );
 
     expect(screen.getByText('Seer reaches any of these stages:')).toBeInTheDocument();
   });
@@ -133,34 +128,34 @@ describe('SeerActivityTriggerNode', () => {
 });
 
 describe('validateSeerActivityTriggerCondition', () => {
-  it('returns error when comparison is empty array', () => {
-    const condition = DataConditionFixture({
-      type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-      comparison: [],
-    });
+  it('returns error when comparison is invalid', () => {
+    expect(
+      validateSeerActivityTriggerCondition({
+        condition: DataConditionFixture({
+          type: DataConditionType.SEER_ACTIVITY_TRIGGER,
+          comparison: [],
+        }),
+      })
+    ).toBe('You must select at least one Seer stage.');
 
-    expect(validateSeerActivityTriggerCondition({condition})).toBe(
-      'You must select at least one Seer stage.'
-    );
-  });
-
-  it('returns error when comparison is not an array', () => {
-    const condition = DataConditionFixture({
-      type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-      comparison: undefined,
-    });
-
-    expect(validateSeerActivityTriggerCondition({condition})).toBe(
-      'You must select at least one Seer stage.'
-    );
+    expect(
+      validateSeerActivityTriggerCondition({
+        condition: DataConditionFixture({
+          type: DataConditionType.SEER_ACTIVITY_TRIGGER,
+          comparison: undefined,
+        }),
+      })
+    ).toBe('You must select at least one Seer stage.');
   });
 
   it('returns undefined for valid comparison', () => {
-    const condition = DataConditionFixture({
-      type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-      comparison: ['rca_started'],
-    });
-
-    expect(validateSeerActivityTriggerCondition({condition})).toBeUndefined();
+    expect(
+      validateSeerActivityTriggerCondition({
+        condition: DataConditionFixture({
+          type: DataConditionType.SEER_ACTIVITY_TRIGGER,
+          comparison: ['rca_started'],
+        }),
+      })
+    ).toBeUndefined();
   });
 });
