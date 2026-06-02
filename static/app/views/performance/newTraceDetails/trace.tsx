@@ -967,7 +967,7 @@ const TraceStylingWrapper = styled('div')`
     top: 22px;
     font-size: 10px;
     font-weight: ${p => p.theme.font.weight.sans.regular};
-    color: ${p => p.theme.tokens.content.warning};
+    color: ${p => p.theme.tokens.content.secondary};
     background-color: transparent;
     line-height: 1;
     white-space: nowrap;
