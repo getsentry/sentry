@@ -4,8 +4,16 @@ from typing import Any
 from django.core.exceptions import PermissionDenied
 
 from sentry import http, options
+from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import (
+    ExternalActorSource,
+    ExternalProviders,
+    IntegrationProviderSlug,
+)
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.organizations.services.organization import organization_service
 
 logger = logging.getLogger(__name__)
 
@@ -98,12 +106,6 @@ def ensure_external_actors_for_github_identity(
     This is best-effort: it must never raise into the linking flow, and the periodic
     backfill remains the safety net for anything missed here.
     """
-    from sentry.constants import ObjectStatus
-    from sentry.integrations.models.organization_integration import OrganizationIntegration
-    from sentry.integrations.types import ExternalActorSource, ExternalProviders
-    from sentry.models.organizationmembermapping import OrganizationMemberMapping
-    from sentry.organizations.services.organization import organization_service
-
     if not github_login:
         return
 
