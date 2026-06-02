@@ -53,6 +53,8 @@ export function DetailedProjectFixture(
     plugins: [],
     processingIssues: 0,
     allowedDomains: ['*'],
+    dataScrubber: false,
+    dataScrubberDefaults: false,
     derivedGroupingEnhancements: '',
     digestsMaxDelay: 0,
     digestsMinDelay: 0,

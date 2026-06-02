@@ -14,7 +14,7 @@ import {StacktraceBanners} from './stacktraceBanners';
 
 describe('StacktraceBanners', () => {
   const org = OrganizationFixture({
-    features: ['codecov-integration'],
+    features: ['dashboards-basic'],
   });
   const project = ProjectFixture();
 

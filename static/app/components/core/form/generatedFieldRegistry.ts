@@ -260,6 +260,54 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
     ),
   },
+  'project-security-and-privacy.storeCrashReports': {
+    name: 'storeCrashReports',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Store Minidumps As Attachments'),
+    hintText: '',
+  },
+  'project-security-and-privacy.dataScrubber': {
+    name: 'dataScrubber',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Data Scrubber'),
+    hintText: t('Enable server-side data scrubbing'),
+  },
+  'project-security-and-privacy.dataScrubberDefaults': {
+    name: 'dataScrubberDefaults',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Use Default Scrubbers'),
+    hintText: t(
+      'Apply default scrubbers to prevent things like passwords and credit cards from being stored'
+    ),
+  },
+  'project-security-and-privacy.scrubIPAddresses': {
+    name: 'scrubIPAddresses',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Prevent Storing of IP Addresses'),
+    hintText: t('Preventing IP addresses from being stored for new events'),
+  },
+  'project-security-and-privacy.sensitiveFields': {
+    name: 'sensitiveFields',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Additional Sensitive Fields'),
+    hintText: t(
+      'Additional field names to match against when scrubbing data. Separate multiple entries with a newline'
+    ),
+  },
+  'project-security-and-privacy.safeFields': {
+    name: 'safeFields',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Safe Fields'),
+    hintText: t(
+      'Field names which data scrubbers should ignore. Separate multiple entries with a newline'
+    ),
+  },
   'project-issue-grouping.fingerprintingRules': {
     name: 'fingerprintingRules',
     formId: 'project-issue-grouping',

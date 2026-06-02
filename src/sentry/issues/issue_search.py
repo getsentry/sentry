@@ -41,6 +41,7 @@ from sentry.search.utils import (
     parse_user_value,
 )
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.types.activity import ActivityType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -262,6 +263,29 @@ def convert_seer_actionability_value(
     return results
 
 
+ISSUE_AGENT_TO_ACTIVITY_TYPES: dict[str, list[int]] = {
+    "has_root_cause": [ActivityType.SEER_RCA_COMPLETED.value],
+    "has_plan": [ActivityType.SEER_SOLUTION_COMPLETED.value],
+    "has_code_changes": [ActivityType.SEER_CODING_COMPLETED.value],
+    "pr_created": [ActivityType.SEER_PR_CREATED.value],
+}
+
+
+def convert_issue_agent_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Sequence[Environment] | None,
+) -> list[int]:
+    results: list[int] = []
+    for status in value:
+        activity_types = ISSUE_AGENT_TO_ACTIVITY_TYPES.get(status)
+        if not activity_types:
+            raise InvalidSearchQuery(f"Invalid issue.agent value of '{status}'")
+        results.extend(activity_types)
+    return results
+
+
 def convert_detector_value(
     value: Iterable[str],
     projects: Sequence[Project],
@@ -287,6 +311,7 @@ value_converters: Mapping[str, ValueConverter] = {
     "device.class": convert_device_class_value,
     "substatus": convert_substatus_value,
     "issue.seer_actionability": convert_seer_actionability_value,
+    "issue.agent": convert_issue_agent_value,
     "detector": convert_detector_value,  # TODO - delete this once the UI has been updated
     "monitor": convert_detector_value,
 }

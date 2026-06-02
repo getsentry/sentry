@@ -227,6 +227,7 @@ class DiscordOAuthApiStep:
 class DiscordIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.DISCORD.value
     name = "Discord"
+    can_add_externally = True
     metadata = metadata
     integration_cls = DiscordIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
