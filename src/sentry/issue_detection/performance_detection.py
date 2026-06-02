@@ -750,7 +750,7 @@ def _detect_performance_problems(
 
     with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
-            detector_class(detection_settings[detector_class.settings_key], data, organization)
+            detector_class(detection_settings[detector_class.settings_key], data)
             for detector_class in DETECTOR_CLASSES
             if detector_class.is_detection_allowed_for_system()
         ]
@@ -776,12 +776,7 @@ def _detect_performance_problems(
     problems: list[PerformanceProblem] = []
     with sentry_sdk.start_span(op="performance_detection", name="is_creation_allowed"):
         for detector in detectors:
-            if all(
-                [
-                    detector.is_creation_allowed_for_organization(organization),
-                    detector.is_creation_allowed_for_project(project),
-                ]
-            ):
+            if detector.is_creation_allowed():
                 problems.extend(detector.stored_problems.values())
             else:
                 continue
@@ -964,12 +959,7 @@ def report_metrics_for_detectors(
 
         op_tags = {
             "is_standalone_spans": standalone,
-            "is_creation_allowed": all(
-                [
-                    detector.is_creation_allowed_for_organization(organization),
-                    detector.is_creation_allowed_for_project(project),
-                ]
-            ),
+            "is_creation_allowed": detector.is_creation_allowed(),
         }
         for problem in detected_problems.values():
             op = problem.op
