@@ -13,7 +13,10 @@ interface LowValueSpanIssueDetailsProps {
   project: Project;
 }
 
-export function LowValueSpanIssueDetails({event, project}: LowValueSpanIssueDetailsProps) {
+export function LowValueSpanIssueDetails({
+  event,
+  project,
+}: LowValueSpanIssueDetailsProps) {
   const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);
 
   return (
