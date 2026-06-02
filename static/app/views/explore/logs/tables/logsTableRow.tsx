@@ -28,6 +28,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
@@ -817,7 +818,16 @@ function LogRowDetailsActions({
         timestamp: String(Math.trunc(getLogRowTimestampMillis(tableDataRow) / 1000)),
       });
 
-      logDebugEndpoint = `/api/0/projects/${organization.slug}/${projectSlug}/trace-items/${logId}/?${query}`;
+      logDebugEndpoint = `/api/0${getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            itemId: logId,
+          },
+        }
+      )}?${query}`;
     }
   }
 
