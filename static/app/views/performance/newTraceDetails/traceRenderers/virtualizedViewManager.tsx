@@ -1274,7 +1274,11 @@ export class VirtualizedViewManager {
       entire_space[0] + entire_space[1]
     );
     const compressedTimestamp = this.time_compression.toCompressedOffset(timestamp);
-    return (compressedTimestamp - compressedStart) / (compressedEnd - compressedStart);
+    const compressedRange = compressedEnd - compressedStart;
+    if (compressedRange === 0) {
+      return 0;
+    }
+    return (compressedTimestamp - compressedStart) / compressedRange;
   }
 
   computeRelativeWidth(space: [number, number], entire_space: [number, number]) {
@@ -1286,9 +1290,11 @@ export class VirtualizedViewManager {
     const compressedEntireEnd = this.time_compression.toCompressedOffset(
       entire_space[0] + entire_space[1]
     );
-    return (
-      (compressedEnd - compressedStart) / (compressedEntireEnd - compressedEntireStart)
-    );
+    const compressedEntireRange = compressedEntireEnd - compressedEntireStart;
+    if (compressedEntireRange === 0) {
+      return 0;
+    }
+    return (compressedEnd - compressedStart) / compressedEntireRange;
   }
 
   computeTraceIconPlacement(
