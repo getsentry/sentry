@@ -14,6 +14,7 @@ import {
   useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {getTypedTagKey} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
   const setLogsSearch = useSetQueryParamsSearch();
@@ -31,10 +32,11 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
         return;
       }
       const newSearch = search.copy();
-      newSearch.addFilterValue(
-        `${negated ? '!' : ''}${originalAttribute.original_attribute_key}`,
-        String(content.value)
+      const key = getTypedTagKey(
+        originalAttribute.original_attribute_key,
+        originalAttribute.type
       );
+      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(content.value));
       setLogsSearch(newSearch);
     },
     [setLogsSearch, search]
@@ -46,11 +48,15 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
       if (!originalAttribute) {
         return;
       }
+      const typedKey = getTypedTagKey(
+        originalAttribute.original_attribute_key,
+        originalAttribute.type
+      );
       const newFields = [...fields];
       if (newFields[newFields.length - 1] === OurLogKnownFieldKey.TIMESTAMP) {
-        newFields.splice(-1, 0, originalAttribute.original_attribute_key);
+        newFields.splice(-1, 0, typedKey);
       } else {
-        newFields.push(originalAttribute.original_attribute_key);
+        newFields.push(typedKey);
       }
       setLogFields(newFields);
     },
@@ -62,7 +68,10 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
       if (!content.originalAttribute) {
         return;
       }
-      const key = content.originalAttribute.original_attribute_key;
+      const key = getTypedTagKey(
+        content.originalAttribute.original_attribute_key,
+        content.originalAttribute.type
+      );
       // Drop empty placeholder group bys, dedupe, then append the new key.
       const newGroupBys = groupBys.filter(Boolean);
       if (!newGroupBys.includes(key)) {
@@ -80,6 +89,11 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
       return [];
     }
 
+    const typedKey = getTypedTagKey(
+      content.originalAttribute.original_attribute_key,
+      content.originalAttribute.type
+    );
+
     const items: MenuItemProps[] = [
       {
         key: 'search-for-value',
@@ -95,14 +109,14 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
         key: 'add-column',
         label: t('Add this as table column'),
         hidden: embedded,
-        disabled: fields.includes(content.originalAttribute.original_attribute_key),
+        disabled: fields.includes(typedKey),
         onAction: () => addColumn(content),
       },
       {
         key: 'add-group-by',
         label: t('Group by attribute'),
         hidden: embedded,
-        disabled: groupBys.includes(content.originalAttribute.original_attribute_key),
+        disabled: groupBys.includes(typedKey),
         onAction: () => addGroupBy(content),
       },
     ];

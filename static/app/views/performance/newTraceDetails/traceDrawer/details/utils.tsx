@@ -223,6 +223,16 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
   return dropdownOptions;
 }
 
+export function getTypedTagKey(key: string, type: string | undefined): string {
+  if (type === 'int' || type === 'float') {
+    return `tags[${key},number]`;
+  }
+  if (type === 'bool') {
+    return `tags[${key},boolean]`;
+  }
+  return key;
+}
+
 export function getTraceAttributesTreeActions(
   params: Pick<KeyValueActionParams, 'location' | 'organization' | 'projectIds'>
 ): (content: AttributesTreeContent) => MenuItemProps[] {
@@ -234,7 +244,7 @@ export function getTraceAttributesTreeActions(
     }
 
     return getTraceKeyValueActions({
-      rowKey,
+      rowKey: getTypedTagKey(rowKey, content.originalAttribute?.type),
       rowValue: content.value,
       kind: TraceDrawerActionValueKind.ATTRIBUTE,
       projectIds: params.projectIds,
