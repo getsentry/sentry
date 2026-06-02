@@ -11,16 +11,14 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.types.condition_activity import ConditionActivity
 
 
-def get_type_choices() -> OrderedDict[str, str]:
+def get_type_choices() -> list[tuple[str, str]]:
     """Generate choices from all registered group types."""
-    type_choices = OrderedDict()
-    for group_type_cls in grouptype.registry.all():
-        if not group_type_cls.released:
-            continue
-        # Use slug as key, description for display
-        display_name = getattr(group_type_cls, "description", None) or group_type_cls.slug
-        type_choices[group_type_cls.slug] = display_name
-    return type_choices
+    return [
+        # Use slug as value, description for display
+        (group_type_cls.slug, getattr(group_type_cls, "description", group_type_cls.slug))
+        for group_type_cls in grouptype.registry.all()
+        if group_type_cls.released
+    ]
 
 
 INCLUDE_CHOICES = OrderedDict([("true", "equal to"), ("false", "not equal to")])
@@ -47,7 +45,7 @@ class IssueTypeFilter(EventFilter):
                 "choices": list(INCLUDE_CHOICES.items()),
                 "initial": "true",
             },
-            "value": {"type": "choice", "choices": list(get_type_choices().items())},
+            "value": {"type": "choice", "choices": get_type_choices()},
         }
 
     def _passes(self, group: Group) -> bool:
