@@ -11,7 +11,7 @@ import sentry_sdk
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
+from sentry.seer.agent.feature_delivery import FeatureRunStatus
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import referrer_map
@@ -24,8 +24,6 @@ from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 
 logger = logging.getLogger(__name__)
-
-_FEATURE_ID = "night_shift"
 
 
 def deliver_night_shift_result(
@@ -236,6 +234,3 @@ def _trigger_autofix_for_fixable(
     SeerNightShiftRunResult.objects.bulk_create(results)
     sentry_sdk.metrics.incr("night_shift.autofix_triggered", amount=len(results))
     return results
-
-
-DELIVERY_HANDLERS[_FEATURE_ID] = deliver_night_shift_result
