@@ -8,7 +8,6 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
-    RECALIBRATION_FACTOR_DISCREPANCY_LOG_LOCATION,
     calculate_recalibration_factor,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
@@ -135,42 +134,17 @@ class ProjectBalancingCalculationsTest(TestCase):
 
         assert get_cached_rebalanced_project_sample_rates(org.id) == {project.id: 0.25}
 
-    def test_calculate_recalibration_factor_logs_discrepancy(self) -> None:
-        org = self.create_organization()
-        config = Mock()
-        config.organization = org
-        config.needs_recalibration = True
-        config.sample_rate = 0.5
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+    def test_calculate_recalibration_factor(self) -> None:
+        org_volume = OrganizationDataVolume(org_id=1, total=100, indexed=25)
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.calculations.legacy_recalibration_cache.get_adjusted_factor",
-                return_value=1.1,
-            ) as get_legacy_factor,
-            patch(
-                "sentry.dynamic_sampling.per_org.calculations.per_org_recalibration_cache.get_adjusted_factor",
-                return_value=1.4,
-            ) as get_per_org_factor,
-            patch(
-                "sentry.dynamic_sampling.per_org.calculations.legacy_recalibration_cache.compute_adjusted_factor",
-                return_value=0.7,
-            ) as compute_adjusted_factor,
-            patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info,
-        ):
-            adjusted_factor = calculate_recalibration_factor(config, org_volume)
+        with patch(
+            "sentry.dynamic_sampling.per_org.calculations.legacy_recalibration_cache.compute_adjusted_factor",
+            return_value=0.7,
+        ) as compute_adjusted_factor:
+            adjusted_factor = calculate_recalibration_factor(org_volume, 1.4, 0.5)
 
         assert adjusted_factor == 0.7
-        get_legacy_factor.assert_called_once_with(org.id)
-        get_per_org_factor.assert_called_once_with(org.id)
         compute_adjusted_factor.assert_called_once_with(1.4, 0.25, 0.5)
-        logger_info.assert_called_once_with(
-            RECALIBRATION_FACTOR_DISCREPANCY_LOG_LOCATION,
-            extra={
-                "org_id": org.id,
-                "discrepancy": pytest.approx(0.3),
-            },
-        )
 
 
 def _project_transactions(

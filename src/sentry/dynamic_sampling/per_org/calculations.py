@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import orjson
 import sentry_sdk
@@ -17,15 +17,10 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
-from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.queries import ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import ProjectTransactions
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume, sample_rate_to_float
-from sentry.dynamic_sampling.tasks.helpers import (
-    recalibrate_orgs as legacy_recalibration_cache,
-)
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -33,46 +28,36 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     generate_boost_low_volume_transactions_cache_key,
 )
 
-RECALIBRATION_FACTOR_DISCREPANCY_LOG_LOCATION = (
-    "dynamic_sampling.per_org.recalibration_factor_discrepancy"
-)
+if TYPE_CHECKING:
+    from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 logger = logging.getLogger(__name__)
 
 
-class DynamicSamplingInvalidOrgVolumes(Exception):
-    pass
-
-
 def calculate_recalibration_factor(
-    config: BaseDynamicSamplingConfiguration,
-    org_volume: OrganizationDataVolume | None,
+    data_volume: OrganizationDataVolume | None,
+    previous_factor: float,
+    target_sample_rate: float | None,
 ) -> float | None:
-    if not config.needs_recalibration or config.sample_rate is None:
+    if (
+        target_sample_rate is None
+        or target_sample_rate == 0.0
+        or data_volume is None
+        or not data_volume.is_valid_for_recalibration()
+        or previous_factor == 0.0
+        or data_volume.indexed is None
+        or data_volume.indexed == 0
+    ):
         return None
 
-    if org_volume is None or not org_volume.is_valid_for_recalibration():
-        return None
-    if org_volume.indexed is None or org_volume.total == 0:
-        raise DynamicSamplingInvalidOrgVolumes
-
-    effective_sample_rate = org_volume.indexed / org_volume.total
-    old_pipeline_factor = legacy_recalibration_cache.get_adjusted_factor(config.organization.id)
-    new_pipeline_factor = per_org_recalibration_cache.get_adjusted_factor(config.organization.id)
-    adjusted_factor = legacy_recalibration_cache.compute_adjusted_factor(
-        new_pipeline_factor,
-        effective_sample_rate,
-        config.sample_rate,
-    )
-    logger.info(
-        RECALIBRATION_FACTOR_DISCREPANCY_LOG_LOCATION,
-        extra={
-            "org_id": config.organization.id,
-            "discrepancy": new_pipeline_factor - old_pipeline_factor,
-        },
-    )
-    return adjusted_factor
+    # This formula aims at scaling the factor proportionally to the ratio of the sample rate we are targeting compared
+    # to the effective sample rate of that org. An imbalance in the ratio can be introduced by many factors, including
+    # biases that oversample or down sample irrespectively of the incoming volume.
+    effective_sample_rate = data_volume.indexed / data_volume.total
+    new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
+    return new_factor
 
 
 def run_project_balancing(

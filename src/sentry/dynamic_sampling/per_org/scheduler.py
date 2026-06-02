@@ -9,7 +9,6 @@ from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
 from sentry.dynamic_sampling.per_org.calculations import (
-    calculate_recalibration_factor,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
     get_cached_rebalanced_project_sample_rates,
@@ -17,14 +16,15 @@ from sentry.dynamic_sampling.per_org.calculations import (
     run_project_balancing,
     run_transaction_balancing,
 )
-from sentry.dynamic_sampling.per_org.configuration import get_configuration
+from sentry.dynamic_sampling.per_org.configuration import (
+    get_configuration,
+    per_org_recalibration_cache,
+)
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import (
-    OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL,
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
-    get_outcomes_organization_volume,
 )
 from sentry.dynamic_sampling.per_org.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
@@ -143,10 +143,8 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         config, rebalanced_transactions, cached_transaction_sample_rates
     )
 
-    if config.needs_recalibration:
-        org_volume_5_minutes = get_outcomes_organization_volume(
-            config.organization.id, time_interval=OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL
+    if config.organization_recalibration_factor is not None:
+        per_org_recalibration_cache.set_guarded_adjusted_factor(
+            config.organization.id, config.organization_recalibration_factor
         )
-        calculate_recalibration_factor(config, org_volume_5_minutes)
-
     return None
