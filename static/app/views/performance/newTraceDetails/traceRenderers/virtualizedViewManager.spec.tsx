@@ -1,6 +1,7 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
+import type {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
@@ -317,6 +318,40 @@ describe('VirtualizedViewManger', () => {
 
       expect(placement.edge).toBe('end');
       expect(placement.anchorTimestamp).toBe(200);
+    });
+  });
+
+  describe('isTimestampInsideCollapsedGap', () => {
+    it('only treats timestamps inside collapsed gaps as hidden timeline intervals', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.setTimeCompression({
+        enabled: true,
+        gaps: [
+          {
+            start: 100,
+            end: 900,
+            duration: 800,
+            retainedDuration: 28,
+            compressedStart: 100,
+            compressedEnd: 128,
+          },
+        ],
+      } as TraceTimeCompression);
+
+      expect(manager.isTimestampInsideCollapsedGap(99)).toBe(false);
+      expect(manager.isTimestampInsideCollapsedGap(100)).toBe(false);
+      expect(manager.isTimestampInsideCollapsedGap(500)).toBe(true);
+      expect(manager.isTimestampInsideCollapsedGap(900)).toBe(false);
+      expect(manager.isTimestampInsideCollapsedGap(901)).toBe(false);
     });
   });
 

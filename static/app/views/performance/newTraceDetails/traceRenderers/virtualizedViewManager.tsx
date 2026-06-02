@@ -1771,7 +1771,14 @@ export class VirtualizedViewManager {
       return;
     }
 
-    const placement = this.transformXFromTimestamp(this.view.to_origin + interval);
+    const timestamp = this.view.to_origin + interval;
+
+    if (this.isTimestampInsideCollapsedGap(timestamp)) {
+      ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.transformXFromTimestamp(timestamp);
 
     ref.style.opacity = '1';
     ref.style.transform = `translateX(${placement}px)`;
@@ -1781,6 +1788,16 @@ export class VirtualizedViewManager {
     if (label && label?.textContent !== duration) {
       label.textContent = duration;
     }
+  }
+
+  isTimestampInsideCollapsedGap(timestamp: number): boolean {
+    if (!this.time_compression.enabled) {
+      return false;
+    }
+
+    return this.time_compression.gaps.some(
+      gap => timestamp > gap.start && timestamp < gap.end
+    );
   }
 
   drawTimelineIntervals() {
