@@ -154,9 +154,7 @@ export function CreateAlertButton({
   const navigate = useNavigate();
   const location = useLocation();
   const {projects} = useProjects();
-  const shouldDirectToMonitors =
-    organization.features.includes('workflow-engine-ui') &&
-    !organization.features.includes('workflow-engine-redirect-opt-out');
+  const shouldDirectToMonitors = organization.features.includes('workflow-engine-ui');
   const defaultButtonLabel = shouldDirectToMonitors
     ? t('Create Monitor')
     : t('Create Alert');

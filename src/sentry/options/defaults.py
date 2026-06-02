@@ -3743,3 +3743,19 @@ register(
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enables cell resolver in APIGateway, should be removed after rollout
+register(
+    "apigateway.cell_resolver.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.
+register(
+    "repository.auto-link-by-name-dry-run",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)

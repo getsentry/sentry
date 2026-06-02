@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any, TypedDict
 
 from django.core.signing import BadSignature, SignatureExpired
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.fields import CharField
@@ -189,8 +188,8 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
     integration_cls = MsTeamsIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return [MsTeamsPipelineView()]
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [MsTeamsApiStep()]
@@ -199,17 +198,11 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         return MsTeamsInitialDataSerializer
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        # Legacy installs (server-rendered configure view) bind everything under
-        # `state["msteams"]`; the API pipeline binds each field top-level. Read
-        # the nested blob if present, else fall back to top-level state.
-        # TODO: drop the `state[self.key]` fallback once the legacy configure
-        # view is removed.
-        data = state.get(self.key) or state
-        external_id = data["external_id"]
-        external_name = data["external_name"]
-        service_url = data["service_url"]
-        user_id = data["user_id"]
-        conversation_id = data["conversation_id"]
+        external_id = state["external_id"]
+        external_name = state["external_name"]
+        service_url = state["service_url"]
+        user_id = state["user_id"]
+        conversation_id = state["conversation_id"]
 
         # TODO: add try/except for request errors
         token_data = get_token_data()
@@ -221,8 +214,8 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
                 "access_token": token_data["access_token"],
                 "expires_at": token_data["expires_at"],
                 "service_url": service_url,
-                "installation_type": data["installation_type"],
-                "tenant_id": data["tenant_id"],
+                "installation_type": state["installation_type"],
+                "tenant_id": state["tenant_id"],
             },
             "user_identity": {
                 "type": IntegrationProviderSlug.MSTEAMS.value,
@@ -248,8 +241,3 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         )
         conversation_id = extra["conversation_id"]
         client.send_card(conversation_id, card)
-
-
-class MsTeamsPipelineView:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        return pipeline.next_step()
