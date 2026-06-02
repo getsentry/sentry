@@ -354,8 +354,8 @@ export function ProjectKeyCredentials({
 
   return (
     <Fragment>
-      <FieldList>
-        <dsnForm.AppForm form={dsnForm}>
+      <dsnForm.AppForm form={dsnForm}>
+        <FieldList>
           <dsnForm.AppField name="dsn">
             {field => (
               <field.Layout.Stack
@@ -411,8 +411,8 @@ export function ProjectKeyCredentials({
               )}
             </dsnForm.AppField>
           )}
-        </dsnForm.AppForm>
-      </FieldList>
+        </FieldList>
+      </dsnForm.AppForm>
 
       {availableTabs.length > 0 && (
         <Fragment>
