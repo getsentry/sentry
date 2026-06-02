@@ -60,6 +60,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
+from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
 from sentry.seer.agent.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -956,6 +957,28 @@ def bulk_get_project_preferences(
     return {str(project_id): pref.dict() for project_id, pref in preferences.items()}
 
 
+def deliver_feature_result(
+    *,
+    feature_id: str,
+    ref: int | str,
+    status: FeatureRunStatus,
+    seer_run_id: int,
+    organization_id: int,
+    result: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> None:
+    """Dispatch a feature result from Seer to the registered handler."""
+    handler = DELIVERY_HANDLERS.get(feature_id)
+    if handler is None:
+        logger.warning(
+            "feature_delivery.unknown_feature_id",
+            extra={"feature_id": feature_id, "ref": ref, "seer_run_id": seer_run_id},
+        )
+        return
+
+    handler(ref, status, result, seer_run_id, error, organization_id)
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
@@ -1013,6 +1036,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
     "call_on_completion_hook": call_on_completion_hook,
+    "deliver_feature_result": deliver_feature_result,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     "get_baseline_tag_distribution": get_baseline_tag_distribution,
