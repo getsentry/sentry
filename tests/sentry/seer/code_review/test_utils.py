@@ -459,28 +459,6 @@ class TestTransformWebhookToCodegenRequest:
         assert result is not None
         assert result["data"]["experiment_enabled"] is True
 
-    def test_pr_review_includes_experiment_enabled_when_feature_enabled(
-        self,
-        setup_entities: tuple[User, Organization, Project, Repository],
-    ) -> None:
-        _, organization, _, repo = setup_entities
-
-        event_payload = {
-            "pull_request": {"number": 42},
-            "sender": {"login": "test-user"},
-        }
-        result = transform_webhook_to_codegen_request(
-            GithubWebhookType.PULL_REQUEST,
-            "opened",
-            event_payload,
-            organization,
-            repo,
-            "abc123sha",
-        )
-
-        assert result is not None
-        assert result["data"]["experiment_enabled"] is True
-
     def test_pr_review_includes_experiment_enabled_always_true(
         self,
         setup_entities: tuple[User, Organization, Project, Repository],
