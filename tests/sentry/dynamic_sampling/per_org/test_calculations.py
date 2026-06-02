@@ -41,20 +41,27 @@ class ProjectBalancingCalculationsTest(TestCase):
         org = self.create_organization()
         project_with_volume = self.create_project(organization=org)
         project_without_volume = self.create_project(organization=org)
+        other_project = self.create_project()
         config = Mock()
         config.organization = org
         config.projects = [project_with_volume, project_without_volume]
         config.get_sample_rate.return_value = 0.5
         rebalanced_projects = [
             RebalancedItem(id=project_with_volume.id, count=100, new_sample_rate=0.25),
-            RebalancedItem(id=project_without_volume.id, count=0, new_sample_rate=1.0),
         ]
 
         with patch(
             "sentry.dynamic_sampling.per_org.calculations.ProjectsRebalancingModel.run",
             return_value=rebalanced_projects,
         ) as model_run:
-            result = run_project_balancing(config, [_project_volume(project_with_volume.id)])
+            result = run_project_balancing(
+                config,
+                [
+                    _project_volume(project_with_volume.id),
+                    _project_volume(project_without_volume.id, total=0, keep=0),
+                    _project_volume(other_project.id),
+                ],
+            )
 
         model_run.assert_called_once()
         model_input = model_run.call_args.args[-1]
@@ -62,7 +69,6 @@ class ProjectBalancingCalculationsTest(TestCase):
         assert model_input.sample_rate == 0.5
         assert model_input.classes == [
             RebalancedItem(id=project_with_volume.id, count=100),
-            RebalancedItem(id=project_without_volume.id, count=0),
         ]
         assert result == rebalanced_projects
 

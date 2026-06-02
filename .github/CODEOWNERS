@@ -577,7 +577,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
 /src/sentry/build/                                                   @getsentry/team-web-sdk-backend
-/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-javascript-sdks
+/src/sentry/api/endpoints/source_map_debug.py                        @getsentry/team-javascript-sdks
 /src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-javascript-sdks
 /src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-javascript-sdks
 ## End of SDK
