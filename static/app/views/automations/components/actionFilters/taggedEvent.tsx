@@ -114,11 +114,11 @@ function KeyField() {
         }
       }}
       onBlur={() => {
-        if (typedValueRef.current) {
+        if (typedValueRef.current && !condition.comparison.key) {
           onUpdate({comparison: {...condition.comparison, key: typedValueRef.current}});
           removeError(condition.id);
-          typedValueRef.current = '';
         }
+        typedValueRef.current = '';
       }}
       onChange={(e: SelectValue<MatchType>) => {
         typedValueRef.current = '';
