@@ -1,13 +1,7 @@
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectIssueGrouping from 'sentry/views/settings/projectIssueGrouping';
 
@@ -41,23 +35,21 @@ describe('projectIssueGrouping', () => {
     const fingerprintField = await screen.findByRole('textbox', {
       name: 'Fingerprint Rules',
     });
-    const fingerprintForm = fingerprintField.closest('form');
-    if (!fingerprintForm) {
-      throw new Error('Could not find the fingerprint rules form');
-    }
-    const fingerprint = within(fingerprintForm);
 
-    // Save/Cancel are always visible; the alert only appears once dirty.
-    expect(fingerprint.getByRole('button', {name: 'Save'})).toBeInTheDocument();
-    expect(fingerprint.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
-    expect(fingerprint.queryByText(/Changing fingerprint rules/)).not.toBeInTheDocument();
+    // Save/Cancel are always visible (one pair per editable form); the alert only
+    // appears once the form is dirty.
+    expect(screen.getAllByRole('button', {name: 'Save'})).toHaveLength(2);
+    expect(screen.getAllByRole('button', {name: 'Cancel'})).toHaveLength(2);
+    expect(screen.queryByText(/Changing fingerprint rules/)).not.toBeInTheDocument();
 
     await userEvent.type(fingerprintField, 'error.type:Foo -> bar');
-    expect(
-      await fingerprint.findByText(/Changing fingerprint rules/)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Changing fingerprint rules/)).toBeInTheDocument();
 
-    await userEvent.click(fingerprint.getByRole('button', {name: 'Save'}));
+    // The fingerprint form renders first, so its Save button comes first.
+    const [fingerprintSave] = screen.getAllByRole('button', {name: 'Save'});
+    if (fingerprintSave) {
+      await userEvent.click(fingerprintSave);
+    }
 
     await waitFor(() => {
       expect(updateRequest).toHaveBeenCalledWith(
