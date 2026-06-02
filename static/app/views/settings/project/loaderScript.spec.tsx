@@ -232,12 +232,7 @@ describe('LoaderScript', () => {
     expect(mockPut).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
       expect.objectContaining({
-        data: expect.objectContaining({
-          dynamicSdkLoaderOptions: {
-            ...projectKey.dynamicSdkLoaderOptions,
-            hasPerformance: true,
-          },
-        }),
+        data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
       })
     );
   });
@@ -369,12 +364,7 @@ describe('LoaderScript', () => {
     expect(mockPut).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/keys/${projectKey!.id}/`,
       expect.objectContaining({
-        data: expect.objectContaining({
-          dynamicSdkLoaderOptions: {
-            ...projectKey!.dynamicSdkLoaderOptions,
-            hasPerformance: true,
-          },
-        }),
+        data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
       })
     );
   });
