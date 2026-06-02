@@ -22,7 +22,7 @@ class EnvironmentSerializer(Serializer[EnvironmentSerializerResponse]):
 
 
 @register(EnvironmentProject)
-class EnvironmentProjectSerializer(Serializer):
+class EnvironmentProjectSerializer(Serializer[EnvironmentProjectSerializerResponse]):
     def serialize(
         self, obj: EnvironmentProject, attrs, user, **kwargs
     ) -> EnvironmentProjectSerializerResponse:

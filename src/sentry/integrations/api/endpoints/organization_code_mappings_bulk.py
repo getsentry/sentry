@@ -260,10 +260,10 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         has_errors = False
         last_saved_config = None
 
-        project_repo, _ = ProjectRepository.objects.get_or_create(
-            project=project,
-            repository=repo,
-            defaults={"source": ProjectRepositorySource.MANUAL},
+        project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+            project_id=project.id,
+            repository_id=repo.id,
+            source=ProjectRepositorySource.MANUAL,
         )
 
         defaults = {
