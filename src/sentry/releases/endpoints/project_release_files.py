@@ -7,17 +7,21 @@ from django.db import IntegrityError, router
 from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.utils.functional import cached_property
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import BaseEndpointMixin, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
-from sentry.apidocs.parameters import CursorQueryParam
+from sentry.api.serializers.models.release_file import ReleaseFileSerializerResponse
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
@@ -231,10 +235,13 @@ def pseudo_releasefile(url, info, dist):
     )
 
 
+@extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        # Multipart upload — documented separately.
         "POST": ApiPublishStatus.UNKNOWN,
     }
     permission_classes = (ProjectReleasePermission,)
@@ -244,23 +251,40 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
 
     @extend_schema(
         operation_id="List a Project Release's Files",
-        parameters=[CursorQueryParam],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            ReleaseParams.VERSION,
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description="If set, only files with these partial names will be returned.",
+            ),
+            OpenApiParameter(
+                name="checksum",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description="If set, only files with these exact checksums will be returned.",
+            ),
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListReleaseFiles", list[ReleaseFileSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
     )
     def get(self, request: Request, project, version) -> Response:
         """
-        List a Project Release's Files
-        ``````````````````````````````
-
         Retrieve a list of files for a given release.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          release belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project to list the
-                                     release files of.
-        :pparam string version: the version identifier of the release.
-        :qparam string query: If set, only files with these partial names will be returned.
-        :qparam string checksum: If set, only files with these exact checksums will be returned.
-        :auth: required
         """
         try:
             release = Release.objects.get(

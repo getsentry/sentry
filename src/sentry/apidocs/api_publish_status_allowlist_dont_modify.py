@@ -5,24 +5,10 @@ DO NOT ADD ANY NEW APIS
 """
 
 API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
-    "/api/0/organizations/{organization_id_or_slug}/releases/{version}/assemble/": {"POST"},
-    "/api/0/organizations/{organization_id_or_slug}/releases/{version}/files/": {"GET", "POST"},
-    "/api/0/organizations/{organization_id_or_slug}/releases/{version}/files/{file_id}/": {
-        "DELETE",
-        "GET",
-        "PUT",
-    },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/completion/": {"GET"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/stats/": {
-        "GET"
-    },
+    # Multipart file-upload POSTs — pending a dedicated approach to documenting
+    # multipart/form-data request bodies. The GET on each path is documented + PRIVATE.
+    "/api/0/organizations/{organization_id_or_slug}/releases/{version}/files/": {"POST"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/files/": {
-        "GET",
-        "POST",
-    },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/files/{file_id}/": {
-        "DELETE",
-        "GET",
-        "PUT",
+        "POST"
     },
 }
