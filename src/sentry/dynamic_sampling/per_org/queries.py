@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterator, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any, Literal, Protocol
@@ -54,13 +54,6 @@ class ProjectTransactionCounts:
     project_id: int
     org_id: int
     transaction_counts: list[tuple[str, float]]
-
-
-@dataclass
-class ProjectTransactionVolumesAccumulator:
-    transaction_counts: list[tuple[str, float]] = field(default_factory=list)
-    total_num_transactions: float = 0
-    num_classes: int = 0
 
 
 def _get_aggregate_int(row: Mapping[str, Any], column: str) -> int:
@@ -203,9 +196,7 @@ def get_eap_transaction_volumes(
 ) -> list[ProjectTransactionCounts]:
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
-    volumes_by_project: defaultdict[int, ProjectTransactionVolumesAccumulator] = defaultdict(
-        ProjectTransactionVolumesAccumulator
-    )
+    transaction_counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
 
     count_order = (
         DynamicSamplingQueryFields.COUNT
@@ -250,17 +241,14 @@ def get_eap_transaction_volumes(
             continue
 
         project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)
-        accumulator = volumes_by_project[project_id]
-
-        accumulator.transaction_counts.append((str(transaction), total))
-        accumulator.total_num_transactions += total
-        accumulator.num_classes += 1
+        transaction_counts = transaction_counts_by_project[project_id]
+        transaction_counts.append((str(transaction), total))
 
     return [
         ProjectTransactionCounts(
             project_id=project_id,
             org_id=config.organization.id,
-            transaction_counts=accumulator.transaction_counts,
+            transaction_counts=transaction_counts,
         )
-        for project_id, accumulator in sorted(volumes_by_project.items())
+        for project_id, transaction_counts in sorted(transaction_counts_by_project.items())
     ]
