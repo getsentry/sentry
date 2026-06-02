@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -94,29 +95,36 @@ export function MergedItem({
             <Text size="md" data-issue-title-primary>
               {latestEvent.title}
             </Text>
-            {latestEventTimestamp && (
+            {(latestEventTimestamp || fingerprint.mergedBySeer) && (
               <Flex as="span" align="center" gap="sm">
-                <Text as="span" size="sm" variant="muted">
-                  <Link
-                    to={{
-                      pathname: `/organizations/${organization.slug}/issues/${latestEvent.groupID!}/events/${latestEvent.id}/`,
-                      query: {project: latestEvent.projectID, referrer: 'merged-item'},
-                    }}
-                  >
-                    {t('Latest event')}
-                  </Link>
-                </Text>
-                <Text as="span" size="sm" variant="muted">
-                  <TimeSince
-                    date={latestEventTimestamp}
-                    unitStyle="short"
-                    variant="muted"
-                  />
-                </Text>
+                {latestEventTimestamp && (
+                  <Fragment>
+                    <Text as="span" size="sm" variant="muted">
+                      <Link
+                        to={{
+                          pathname: `/organizations/${organization.slug}/issues/${latestEvent.groupID!}/events/${latestEvent.id}/`,
+                          query: {
+                            project: latestEvent.projectID,
+                            referrer: 'merged-item',
+                          },
+                        }}
+                      >
+                        {t('Latest event')}
+                      </Link>
+                    </Text>
+                    <Text as="span" size="sm" variant="muted">
+                      <TimeSince
+                        date={latestEventTimestamp}
+                        unitStyle="short"
+                        variant="muted"
+                      />
+                    </Text>
+                  </Fragment>
+                )}
                 {fingerprint.mergedBySeer && (
                   <Text as="span" size="sm" variant="muted">
                     <Flex as="span" align="center" gap="xs">
-                      <span aria-hidden="true">·</span>
+                      {latestEventTimestamp && <span aria-hidden="true">&middot;</span>}
                       {t('Merged by Sentry')}
                     </Flex>
                   </Text>
