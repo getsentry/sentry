@@ -319,6 +319,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
         project.update_option("sentry:target_sample_rate", 0.2)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        project_volumes = [_project_volume(project.id)]
 
         with (
             self.feature("organizations:dynamic-sampling-custom"),
@@ -331,7 +332,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
             ) as get_volume,
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
+                return_value=project_volumes,
             ) as get_project_volumes,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
+            ) as project_balancing,
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
                 return_value=[
@@ -354,8 +359,12 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert result is None
         get_blended_sample_rate.assert_not_called()
         _assert_called_once_with_config(get_volume, org.id)
-        get_project_volumes.assert_not_called()
+        # Project volumes are fetched even in project mode (transaction balancing
+        # needs full per-project totals) but project balancing itself is skipped.
+        _assert_called_once_with_config(get_project_volumes, org.id)
+        project_balancing.assert_not_called()
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        assert get_transaction_volumes.call_args.kwargs == {"project_volumes": project_volumes}
         transaction_balancing.assert_called_once_with(
             transaction_config, get_transaction_volumes.return_value
         )

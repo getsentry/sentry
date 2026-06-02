@@ -38,6 +38,7 @@ class DynamicSamplingQueryFields(StrEnum):
     DSC_TRANSACTION = "sentry.dsc.transaction"
     COUNT = "count()"
     COUNT_SAMPLE = "count_sample()"
+    COUNT_UNIQUE_TRANSACTIONS = "count_unique(sentry.dsc.transaction)"
 
 
 @dataclass(order=True)
@@ -46,6 +47,11 @@ class ProjectVolume:
     total: int
     keep: int
     drop: int
+    # Number of distinct transaction names seen in the project over the window.
+    # Counts the *whole* project, including names that fall outside the
+    # max_transactions limit of get_eap_transaction_volumes — required for the
+    # transaction rebalancing model to size the implicit (long-tail) bucket.
+    num_distinct_transactions: int = 0
 
 
 @dataclass
@@ -154,6 +160,7 @@ def get_eap_project_volumes(
                 DynamicSamplingQueryFields.DSC_PROJECT_ID,
                 DynamicSamplingQueryFields.COUNT,
                 DynamicSamplingQueryFields.COUNT_SAMPLE,
+                DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS,
             ],
             "orderby": [DynamicSamplingQueryFields.DSC_PROJECT_ID],
             "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value,
@@ -166,6 +173,9 @@ def get_eap_project_volumes(
     ):
         total = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT)
         keep = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
+        num_distinct_transactions = _get_aggregate_int(
+            row, DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS
+        )
         dsc_project_id = row.get(DynamicSamplingQueryFields.DSC_PROJECT_ID)
         if dsc_project_id is None:
             continue
@@ -176,6 +186,7 @@ def get_eap_project_volumes(
                 total=total,
                 keep=keep,
                 drop=max(total - keep, 0),
+                num_distinct_transactions=num_distinct_transactions,
             )
         )
 
@@ -187,6 +198,7 @@ def get_eap_transaction_volumes(
     time_interval: timedelta = timedelta(hours=1),
     order_by_volume: Literal["asc", "desc"] = "asc",
     max_transactions: int = 100,
+    project_volumes: list[ProjectVolume] | None = None,
 ) -> list[ProjectTransactions]:
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
@@ -237,19 +249,31 @@ def get_eap_transaction_volumes(
             continue
 
         project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)
-        project_volumes = volumes_by_project[project_id]
+        accumulator = volumes_by_project[project_id]
 
-        project_volumes.transaction_counts.append((str(transaction), total))
-        project_volumes.total_num_transactions += total
-        project_volumes.num_classes += 1
+        accumulator.transaction_counts.append((str(transaction), total))
+        accumulator.total_num_transactions += total
+        accumulator.num_classes += 1
 
+    # When project_volumes is supplied, prefer its full-project totals over the
+    # sum-of-listed accumulated above. The transaction-balancing model needs
+    # the full implicit-pool volume and class count to size the long-tail budget.
+    project_totals_by_id = {pv.project_id: pv for pv in (project_volumes or [])}
     return [
         {
             "org_id": config.organization.id,
             "project_id": project_id,
-            "transaction_counts": project_volumes.transaction_counts,
-            "total_num_transactions": project_volumes.total_num_transactions,
-            "total_num_classes": project_volumes.num_classes,
+            "transaction_counts": accumulator.transaction_counts,
+            "total_num_transactions": (
+                project_totals_by_id[project_id].total
+                if project_id in project_totals_by_id
+                else accumulator.total_num_transactions
+            ),
+            "total_num_classes": (
+                project_totals_by_id[project_id].num_distinct_transactions
+                if project_id in project_totals_by_id
+                else accumulator.num_classes
+            ),
         }
-        for project_id, project_volumes in sorted(volumes_by_project.items())
+        for project_id, accumulator in sorted(volumes_by_project.items())
     ]

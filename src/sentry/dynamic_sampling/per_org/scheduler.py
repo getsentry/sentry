@@ -120,16 +120,21 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if org_volume_5m is None:
         return DynamicSamplingStatus.NO_ORG_VOLUME
 
+    # Always fetch project volumes — transaction balancing needs the full
+    # per-project totals (volume + distinct transaction count) to size the
+    # implicit/long-tail bucket, even in project-mode where project rebalancing
+    # itself is skipped.
+    project_volumes = get_eap_project_volumes(config)
+    if not project_volumes:
+        return DynamicSamplingStatus.NO_PROJECT_VOLUMES
+
     if config.should_balance_projects:
-        project_volumes = get_eap_project_volumes(config)
-        if not project_volumes:
-            return DynamicSamplingStatus.NO_PROJECT_VOLUMES
         rebalanced_projects = run_project_balancing(config, project_volumes)
         config.set_rebalanced_project_sample_rates(rebalanced_projects)
         cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
         compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
 
-    transaction_volumes = get_eap_transaction_volumes(config)
+    transaction_volumes = get_eap_transaction_volumes(config, project_volumes=project_volumes)
     if not transaction_volumes:
         return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
 

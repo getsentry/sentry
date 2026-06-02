@@ -177,11 +177,13 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
                     "sentry.dsc.project_id": project.id,
                     "count()": 2,
                     "count_sample()": 2,
+                    "count_unique(sentry.dsc.transaction)": 7,
                 },
                 {
                     "sentry.dsc.project_id": other_project.id,
                     "count()": 1,
                     "count_sample()": 1,
+                    "count_unique(sentry.dsc.transaction)": 1,
                 },
             ],
         ) as run_table_query:
@@ -190,8 +192,12 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             )
 
         assert sorted(project_volumes) == [
-            ProjectVolume(project_id=project.id, total=2, keep=2, drop=0),
-            ProjectVolume(project_id=other_project.id, total=1, keep=1, drop=0),
+            ProjectVolume(
+                project_id=project.id, total=2, keep=2, drop=0, num_distinct_transactions=7
+            ),
+            ProjectVolume(
+                project_id=other_project.id, total=1, keep=1, drop=0, num_distinct_transactions=1
+            ),
         ]
         run_table_query.assert_called_once()
         query = run_table_query.call_args.args[0]
@@ -204,6 +210,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             DynamicSamplingQueryFields.DSC_PROJECT_ID,
             DynamicSamplingQueryFields.COUNT,
             DynamicSamplingQueryFields.COUNT_SAMPLE,
+            DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS,
         ]
         assert query["orderby"] == [DynamicSamplingQueryFields.DSC_PROJECT_ID]
         assert query["referrer"] == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value
@@ -438,6 +445,66 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         volumes = get_eap_transaction_volumes(self.get_config(organization))
 
         assert volumes == []
+
+    def test_get_eap_transaction_volumes_uses_project_volumes_totals(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        # Two stored transactions account for 2 events, but the project's true
+        # totals — passed in as project_volumes — claim 100 events across 50
+        # distinct transactions. The function should prefer those totals.
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "data": {
+                            "dsc.transaction": "checkout",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp,
+                ),
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "data": {
+                            "dsc.transaction": "product",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp,
+                ),
+            ]
+        )
+
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization),
+            project_volumes=[
+                ProjectVolume(
+                    project_id=project.id,
+                    total=100,
+                    keep=50,
+                    drop=50,
+                    num_distinct_transactions=50,
+                )
+            ],
+        )
+
+        assert volumes == [
+            {
+                "org_id": organization.id,
+                "project_id": project.id,
+                "transaction_counts": [("checkout", 1), ("product", 1)],
+                "total_num_transactions": 100,
+                "total_num_classes": 50,
+            }
+        ]
 
     def test_get_eap_transaction_volumes_attributes_to_originating_project(self) -> None:
         organization = self.create_organization()
