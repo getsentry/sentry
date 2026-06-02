@@ -20,7 +20,7 @@ class EventAttachmentSerializerResponse(TypedDict):
 
 
 @register(EventAttachment)
-class EventAttachmentSerializer(Serializer):
+class EventAttachmentSerializer(Serializer[EventAttachmentSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> EventAttachmentSerializerResponse:
         content_type = obj.content_type
         size = obj.size or 0
