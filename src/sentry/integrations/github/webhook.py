@@ -76,6 +76,7 @@ from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
+from .tasks.link_commit_author_external_actor import link_commit_author_external_actor
 from .types import IssueEvenntWebhookActionType
 
 logger = logging.getLogger("sentry.webhooks")
@@ -734,30 +735,17 @@ class PushEventWebhook(GitHubWebhook):
         )
         repo.save()
 
-        # Hand the GitHub authors seen in this push off to an async task to look
-        # up their public profile email and (maybe) create ExternalActor
-        # mappings. The task is gated by CommitAuthor.public_email_queried_at, so
-        # re-seeing a recent author is cheap; we don't need them to be brand-new.
-        commit_author_ids = sorted(
-            author.id
-            for author in authors.values()
-            if author is not None
-            and author.external_id
-            and (
-                author.external_id.startswith("github:")
-                or author.external_id.startswith("github_enterprise:")
-            )
-        )
-        if commit_author_ids:
-            from .tasks.link_commit_author_external_actor import (
-                link_commit_author_external_actor,
-            )
-
+        # Hand the authors seen in this push off to an async task to look up
+        # their public profile email and (maybe) create ExternalActor mappings.
+        # The task filters for GitHub authors and is gated by
+        # CommitAuthor.public_email_queried_at, so re-seeing a recent author is
+        # cheap; we don't need them to be brand-new.
+        if authors:
             link_commit_author_external_actor.apply_async(
                 kwargs={
                     "organization_id": organization.id,
                     "integration_id": integration.id,
-                    "commit_author_ids": commit_author_ids,
+                    "commit_author_ids": sorted(author.id for author in authors.values()),
                 }
             )
 
