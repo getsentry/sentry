@@ -81,6 +81,17 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
     }
   }
 
+  if (typeof content.value === 'number') {
+    return (
+      <AttributeStructuredData
+        data={content.value}
+        maxDefaultDepth={0}
+        withAnnotatedText={false}
+        className="compact"
+      />
+    );
+  }
+
   const parsedJson = tryParseJson(content.value);
   if (typeof parsedJson === 'object' && parsedJson !== null) {
     return (

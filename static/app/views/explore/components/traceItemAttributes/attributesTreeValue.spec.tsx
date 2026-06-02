@@ -282,4 +282,57 @@ describe('AttributesTreeValue', () => {
     const link = screen.getByText('https://example.com/api/{id}').closest('a');
     expect(link).toBeInTheDocument();
   });
+
+  it('renders integer attribute values with number styling', () => {
+    const intContent = {
+      ...defaultProps.content,
+      value: 42,
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={intContent} />);
+
+    expect(screen.getByTestId('value-number')).toBeInTheDocument();
+    expect(screen.getByTestId('value-number')).toHaveTextContent('42');
+  });
+
+  it('renders float attribute values with number styling', () => {
+    const floatContent = {
+      ...defaultProps.content,
+      value: 1.5,
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={floatContent} />);
+
+    expect(screen.getByTestId('value-number')).toBeInTheDocument();
+    expect(screen.getByTestId('value-number')).toHaveTextContent('1.5');
+  });
+
+  it('renders float value of 1 (whole-number float) with number styling', () => {
+    const floatAsIntContent = {
+      ...defaultProps.content,
+      value: 1,
+    };
+
+    render(<AttributesTreeValue {...defaultProps} content={floatAsIntContent} />);
+
+    expect(screen.getByTestId('value-number')).toBeInTheDocument();
+    expect(screen.getByTestId('value-number')).toHaveTextContent('1');
+  });
+
+  it('treats integer and float values the same way', () => {
+    const intContent = {
+      ...defaultProps.content,
+      value: 100,
+    };
+    const floatContent = {
+      ...defaultProps.content,
+      value: 100.0,
+    };
+
+    const {rerender} = render(<AttributesTreeValue {...defaultProps} content={intContent} />);
+    expect(screen.getByTestId('value-number')).toBeInTheDocument();
+
+    rerender(<AttributesTreeValue {...defaultProps} content={floatContent} />);
+    expect(screen.getByTestId('value-number')).toBeInTheDocument();
+  });
 });
