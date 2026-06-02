@@ -569,20 +569,41 @@ export class VirtualizedViewManager {
 
       const scale = 1 - event.deltaY * 0.01 * -1;
       const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
-      const configSpaceCursor = this.getConfigSpaceCursor({x, y: 0});
+      let newView: [number, number, number, number];
 
-      const center = vec2.fromValues(configSpaceCursor[0], 0);
-      const centerScaleMatrix = mat3.create();
+      if (this.time_compression.enabled) {
+        const compressedView = this.getCompressedView();
+        const leftPercentage = x / this.view.trace_physical_space.width;
+        const compressedCursor =
+          compressedView.left + leftPercentage * compressedView.width;
+        const nextCompressedLeft =
+          compressedCursor + (compressedView.left - compressedCursor) * scale;
+        const nextCompressedRight =
+          compressedCursor + (compressedView.right - compressedCursor) * scale;
+        const nextRealLeft = this.time_compression.toRealTimestamp(nextCompressedLeft);
+        const nextRealRight = this.time_compression.toRealTimestamp(nextCompressedRight);
 
-      mat3.fromTranslation(centerScaleMatrix, center);
-      mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
-      mat3.translate(
-        centerScaleMatrix,
-        centerScaleMatrix,
-        vec2.fromValues(-center[0], 0)
-      );
+        newView = [
+          nextRealLeft - this.view.to_origin,
+          this.view.trace_view.y,
+          nextRealRight - nextRealLeft,
+          this.view.trace_view.height,
+        ];
+      } else {
+        const configSpaceCursor = this.getConfigSpaceCursor({x, y: 0});
+        const center = vec2.fromValues(configSpaceCursor[0], 0);
+        const centerScaleMatrix = mat3.create();
 
-      const newView = this.view.trace_view.transform(centerScaleMatrix);
+        mat3.fromTranslation(centerScaleMatrix, center);
+        mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
+        mat3.translate(
+          centerScaleMatrix,
+          centerScaleMatrix,
+          vec2.fromValues(-center[0], 0)
+        );
+
+        newView = this.view.trace_view.transform(centerScaleMatrix);
+      }
 
       // When users zoom in, the matrix will compute a width value that is lower than the min,
       // which results in the value of x being incorrectly set and the view moving to the right.

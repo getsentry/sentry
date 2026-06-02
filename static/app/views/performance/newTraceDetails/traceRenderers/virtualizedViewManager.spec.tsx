@@ -357,6 +357,61 @@ describe('VirtualizedViewManger', () => {
 
   describe('horizontal scrolling', () => {
     describe('onWheel (timeline/span durations)', () => {
+      it('keeps the cursor anchored when zooming a compressed timeline', () => {
+        const scheduler = new TraceScheduler();
+        const manager = new VirtualizedViewManager(
+          {
+            list: {width: 0.5},
+            span_list: {width: 0.5},
+          },
+          scheduler,
+          new TraceView(),
+          ThemeFixture()
+        );
+
+        manager.view.setTraceSpace([0, 0, 1000, 1]);
+        manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+        manager.time_compression = TraceTimeCompression.FromVisibleItems({
+          enabled: true,
+          traceSpace: [0, 1000],
+          physicalWidth: 1000,
+          nodes: [
+            {type: 'transaction', space: [0, 100]},
+            {type: 'span', space: [500, 100]},
+          ] as any,
+          indicators: [],
+        });
+
+        const cursorX = 165;
+        const cursorTimestamp =
+          manager.getConfigSpaceCursor({x: cursorX, y: 0})[0] + manager.view.to_origin;
+        const wheelEvent = new WheelEvent('wheel', {
+          ctrlKey: true,
+          deltaY: -10,
+          bubbles: true,
+          cancelable: true,
+        });
+        Object.defineProperty(wheelEvent, 'offsetX', {value: cursorX});
+
+        let dispatchedView: {width?: number; x?: number} | null = null;
+        scheduler.on('set trace view', (view: {width?: number; x?: number}) => {
+          dispatchedView = view;
+        });
+
+        manager.onWheel(wheelEvent);
+        expect(dispatchedView).not.toBeNull();
+
+        manager.view.setTraceView(dispatchedView!);
+        const compressedView = manager.getCompressedView();
+        const remappedCursorX =
+          ((manager.time_compression.toCompressedOffset(cursorTimestamp) -
+            compressedView.left) /
+            compressedView.width) *
+          manager.view.trace_physical_space.width;
+
+        expect(remappedCursorX).toBeCloseTo(cursorX);
+      });
+
       it('scrolls horizontally with shift + vertical wheel', () => {
         const scheduler = new TraceScheduler();
         const manager = new VirtualizedViewManager(
