@@ -2,6 +2,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
@@ -116,7 +117,9 @@ class SeerActivityHandlerTest(TestCase):
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
     def test_uses_group_detector(self, mock_process_workflow_activity: MagicMock) -> None:
-        detector = self.create_detector(name="linked_detector", project=self.project)
+        detector = self.create_detector(
+            name="linked_detector", type=MetricIssue.slug, project=self.project
+        )
         self.create_detector_group(detector=detector, group=self.group)
 
         seer_activity_handler(self.group, self.activity)
