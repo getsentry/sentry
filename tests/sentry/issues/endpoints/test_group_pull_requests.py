@@ -7,7 +7,9 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
+from sentry.models.pullrequest import PullRequest
 from sentry.testutils.cases import APITestCase
 from sentry.types.activity import ActivityType
 
@@ -38,8 +40,8 @@ class GroupPullRequestsEndpointTest(APITestCase):
         linked_delta: timedelta = timedelta(days=1),
         relationship: int = GroupLink.Relationship.resolves,
         linked_type: int = GroupLink.LinkedType.pull_request,
-        group=None,
-    ):
+        group: Group | None = None,
+    ) -> tuple[PullRequest, GroupLink]:
         group = group or self.group
         pull_request = self.create_pull_request(
             repository_id=self.repo.id,
