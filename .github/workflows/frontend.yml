@@ -83,9 +83,8 @@ jobs:
             RUNNERS=1
           fi
 
-          JSON_ARRAY=$(seq 0 $(( RUNNERS - 1 )) | jq -R . | jq -s .)
-          # Output the full matrix object
-          echo "jest_test_matrix=$(jq -nc --argjson indices "$JSON_ARRAY" --argjson total "$RUNNERS" '{instance: {index: $indices, total: $total}}')" >> $GITHUB_OUTPUT
+          INDEX_ARRAY=$(seq 0 $(( RUNNERS - 1 )) | jq -s .)
+          echo "jest_test_matrix=$(jq -nc --argjson index "$INDEX_ARRAY" --argjson total "$RUNNERS" '{index: $index, total: $total}')" >> $GITHUB_OUTPUT
 
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
@@ -208,7 +207,7 @@ jobs:
           path: |
             .cache/jest
             ~/.cache/swc
-          key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.instance.index }}
+          key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.index }}
           restore-keys: |
             jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-
             jest-cache-${{ runner.os }}-
@@ -228,8 +227,8 @@ jobs:
 
       - name: jest
         env:
-          CI_NODE_TOTAL: ${{ matrix.instance.total }}
-          CI_NODE_INDEX: ${{ matrix.instance.index }}
+          CI_NODE_TOTAL: ${{ matrix.total }}
+          CI_NODE_INDEX: ${{ matrix.index }}
 
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
