@@ -1,6 +1,7 @@
 from collections.abc import Callable, Sequence
 from typing import cast
 
+from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.options.project_option import ProjectOption
@@ -358,6 +359,11 @@ def _chunk_load_error_filter() -> RuleCondition:
     return _error_message_condition(values)
 
 
+def _custom_error_filter() -> RuleCondition:
+    values = settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES
+    return _error_message_condition(values)
+
+
 def _hydration_error_filter() -> RuleCondition:
     """
     Filters out hydration errors.
@@ -385,6 +391,7 @@ def _hydration_error_filter() -> RuleCondition:
 ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition]]] = [
     ("chunk-load-error", _chunk_load_error_filter),
     ("react-hydration-errors", _hydration_error_filter),
+    ("custom-error", _custom_error_filter),
 ]
 
 
