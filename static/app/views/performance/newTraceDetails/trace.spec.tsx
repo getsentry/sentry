@@ -24,6 +24,7 @@ import {
   makeTraceError,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import type {StoredTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
@@ -1230,6 +1231,32 @@ describe('trace view', () => {
         await waitFor(async () => {
           expect(await screen.findAllByText('No Instrumentation')).toHaveLength(2);
         });
+      });
+
+      it('redraws the trace when compressed timeline changes', async () => {
+        mockTracePreferences({compressed_timeline: true});
+        mockQueryString('?node=span-span0&node=txn-1');
+
+        const drawSpy = jest.spyOn(VirtualizedViewManager.prototype, 'draw');
+
+        try {
+          await completeTestSetup();
+
+          const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
+          await userEvent.click(preferencesDropdownTrigger);
+
+          expect(await screen.findByText('Compressed Timeline')).toBeInTheDocument();
+
+          drawSpy.mockClear();
+          const compressedTimelineOption = await screen.findByText('Compressed Timeline');
+          await userEvent.click(compressedTimelineOption);
+
+          await waitFor(() => {
+            expect(drawSpy).toHaveBeenCalled();
+          });
+        } finally {
+          drawSpy.mockRestore();
+        }
       });
     });
   });

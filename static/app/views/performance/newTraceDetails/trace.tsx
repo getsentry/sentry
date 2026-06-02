@@ -168,23 +168,42 @@ export function Trace({
   const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
-  const timeCompressionOptions = {
-    enabled: traceState.preferences.compressed_timeline && trace.type === 'trace',
-    traceSpace: [trace.root.space[0], trace.root.space[1]] as [
-      start: number,
-      duration: number,
-    ],
-    nodes: trace.list,
-    indicators: trace.indicators,
-  };
+  const traceStart = trace.root.space[0];
+  const traceDuration = trace.root.space[1];
 
-  const timeCompression = TraceTimeCompression.FromVisibleItems({
-    ...timeCompressionOptions,
-    physicalWidth: manager.view.trace_physical_space.width,
-  });
+  const timeCompressionOptions = useMemo(
+    () => ({
+      enabled: traceState.preferences.compressed_timeline && trace.type === 'trace',
+      traceSpace: [traceStart, traceDuration] as [start: number, duration: number],
+      nodes: trace.list,
+      indicators: trace.indicators,
+    }),
+    [
+      trace.indicators,
+      trace.list,
+      traceDuration,
+      traceStart,
+      trace.type,
+      traceState.preferences.compressed_timeline,
+    ]
+  );
 
-  manager.timeCompressionOptions = timeCompressionOptions;
-  manager.setTimeCompression(timeCompression);
+  const timeCompression = useMemo(
+    () =>
+      TraceTimeCompression.FromVisibleItems({
+        ...timeCompressionOptions,
+        physicalWidth: manager.view.trace_physical_space.width,
+      }),
+    [manager.view.trace_physical_space.width, timeCompressionOptions]
+  );
+
+  useLayoutEffect(() => {
+    manager.timeCompressionOptions = timeCompressionOptions;
+    manager.setTimeCompression(timeCompression);
+    manager.recomputeTimelineIntervals();
+    manager.recomputeSpanToPXMatrix();
+    manager.draw();
+  }, [manager, timeCompression, timeCompressionOptions]);
 
   const traceStatePreferencesRef = useRef<
     Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
