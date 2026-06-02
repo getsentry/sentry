@@ -132,6 +132,8 @@ export class VirtualizedViewManager {
   private readonly span_matrix: [number, number, number, number, number, number] = [
     1, 0, 0, 1, 0, 0,
   ];
+  private _compressedViewCache: {left: number; right: number; width: number} | null =
+    null;
 
   timers: {
     onFovChange: {id: number} | null;
@@ -1021,6 +1023,10 @@ export class VirtualizedViewManager {
   }
 
   getCompressedView(): {left: number; right: number; width: number} {
+    if (this._compressedViewCache) {
+      return this._compressedViewCache;
+    }
+
     const start = this.view.to_origin + this.view.trace_view.x;
     const end = start + this.view.trace_view.width;
     const left = this.time_compression.toCompressedOffset(start);
@@ -1632,6 +1638,7 @@ export class VirtualizedViewManager {
 
   last_indicator_width = 0;
   draw(options: {list?: number; span_list?: number} = {}) {
+    this._compressedViewCache = this.getCompressedView();
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPXMatrix();
 
@@ -1785,6 +1792,7 @@ export class VirtualizedViewManager {
     }
 
     this.drawTimelineIntervals();
+    this._compressedViewCache = null;
   }
 
   // DRAW METHODS
