@@ -700,18 +700,9 @@ function CollapsedGapMarker({
     [gap, index, manager]
   );
 
-  const onDoubleClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    manager.onZoomIntoSpace([gap.start, gap.duration]);
-  };
-
   return (
     <Tooltip title={`Skipped ${formatTraceDuration(gap.duration)} inactive period`}>
-      <div
-        ref={registerCollapsedGapMarkerRef}
-        className="TraceCollapsedGapMarker"
-        onDoubleClick={onDoubleClick}
-      >
+      <div ref={registerCollapsedGapMarkerRef} className="TraceCollapsedGapMarker">
         <div className="TraceCollapsedGapMarkerBreak" />
       </div>
     </Tooltip>
@@ -944,8 +935,7 @@ const TraceStylingWrapper = styled('div')`
     top: 38px;
     height: calc(100% - 38px);
     width: 28px;
-    pointer-events: auto;
-    cursor: zoom-in;
+    pointer-events: none;
     z-index: 2;
   }
 
