@@ -162,6 +162,32 @@ def schedule_organizations(
             raise
 
 
+def _cache_project_metrics(
+    ctx: OrganizationReportContext, organization_id: int, timestamp: float
+) -> None:
+    from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
+
+    project_metrics: dict[int, dict[str, int]] = {}
+    for project_id, project_ctx in ctx.projects_context_map.items():
+        if not project_ctx.check_if_project_is_empty():
+            project_metrics[project_id] = {
+                "e": project_ctx.accepted_error_count,
+                "t": project_ctx.accepted_transaction_count,
+            }
+
+    if not project_metrics:
+        return
+
+    with sentry_sdk.start_span(op="weekly_reports.cache_project_metrics"):
+        try:
+            cache_project_metrics(organization_id, timestamp, project_metrics)
+        except Exception:
+            logger.exception(
+                "weekly_reports.cache_project_metrics.failed",
+                extra={"organization_id": organization_id, "timestamp": timestamp},
+            )
+
+
 # This task is launched per-organization.
 @instrumented_task(
     name="sentry.tasks.summaries.weekly_reports.prepare_organization_report",
@@ -216,6 +242,9 @@ def prepare_organization_report(
         if not report_is_available:
             lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
             return
+
+    # Cache per-project metrics for the API endpoint
+    _cache_project_metrics(ctx, organization_id, timestamp)
 
     # Finally, deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
