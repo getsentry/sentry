@@ -179,6 +179,19 @@ export function InvoiceComparison() {
     queryEnd ? utcIsoToDatetimeLocalValue(queryEnd) : nowLocal()
   );
 
+  // Keep the date inputs in sync with the URL on back/forward and in-app
+  // navigation that changes start/end (e.g. opening a shared link). When the
+  // URL has no window yet we leave the inputs alone so the user's in-progress
+  // typing isn't clobbered.
+  useEffect(() => {
+    if (queryStart) {
+      setStartInput(utcIsoToDatetimeLocalValue(queryStart));
+    }
+    if (queryEnd) {
+      setEndInput(utcIsoToDatetimeLocalValue(queryEnd));
+    }
+  }, [queryStart, queryEnd]);
+
   const enabled = Boolean(queryStart && queryEnd && region);
   const {data, isPending, isError, error} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
