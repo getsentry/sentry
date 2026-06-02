@@ -1,5 +1,7 @@
 import bisect
 
+from sentry.models.options.project_option import get_option
+
 
 class WellKnownProjectOption:
     def __init__(self, key, default=None, epoch_defaults=None):
@@ -14,7 +16,7 @@ class WellKnownProjectOption:
                 if project is None:
                     epoch = 1
                 else:
-                    epoch = project.get_option("sentry:option-epoch") or 1
+                    epoch = get_option(project, "sentry:option-epoch") or 1
             # Find where in the ordered epoch list the project's epoch would go
             idx = bisect.bisect(self._epoch_default_list, epoch)
             if idx > 0:
