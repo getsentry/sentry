@@ -119,38 +119,21 @@ class UserEmailsEndpoint(UserEndpoint):
         result = validator.validated_data
         email = result["email"].lower().strip()
 
-        use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
         try:
-            if use_signed_urls:
-                add_email_signed(email, user)
-                logger.info(
-                    "user.email.add",
-                    extra={
-                        "user_id": user.id,
-                        "ip_address": request.META["REMOTE_ADDR"],
-                        "used_signed_url": True,
-                        "email": email,
-                    },
-                )
-                return self.respond(
-                    {"detail": _("A verification email has been sent. Please check your inbox.")},
-                    status=201,
-                )
-            else:
-                new_useremail = add_email(email, user)
-                logger.info(
-                    "user.email.add",
-                    extra={
-                        "user_id": user.id,
-                        "ip_address": request.META["REMOTE_ADDR"],
-                        "used_signed_url": False,
-                        "email": email,
-                    },
-                )
-                return self.respond(
-                    serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
-                    status=201,
-                )
+            add_email_signed(email, user)
+            logger.info(
+                "user.email.add",
+                extra={
+                    "user_id": user.id,
+                    "ip_address": request.META["REMOTE_ADDR"],
+                    "used_signed_url": True,
+                    "email": email,
+                },
+            )
+            return self.respond(
+                {"detail": _("A verification email has been sent. Please check your inbox.")},
+                status=201,
+            )
         except DuplicateEmailError:
             return self.respond(
                 {"detail": _("That email address is already associated with your account.")},

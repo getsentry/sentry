@@ -406,13 +406,6 @@ def confirm_signed_email(
 ) -> HttpResponseRedirect | HttpResponse:
     EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
 
-    use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
-    if not use_signed_urls:
-        msg = ERR_CONFIRMING_EMAIL
-        level = messages.ERROR
-        messages.add_message(request, level, msg)
-        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
-
     msg = _("Thanks for confirming your email")
     level = messages.SUCCESS
 
