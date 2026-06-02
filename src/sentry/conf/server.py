@@ -2635,7 +2635,7 @@ KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
 # Per-topic Kafka consumer client config, keyed by Topic enum value (region-stable,
 # unlike cluster names). Merged onto the consumer config after the cluster config and
-# before any explicit override_params, so explicit params still win. Consumers only.
+# before any explicit override_params, so explicit params still win.
 KAFKA_TOPIC_CONSUMER_CONFIG: dict[str, dict[str, Any]] = {}
 
 
