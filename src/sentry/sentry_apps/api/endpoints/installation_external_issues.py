@@ -1,4 +1,4 @@
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,6 +13,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
@@ -25,14 +26,6 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializerResponse,
 )
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
-
-_INSTALLATION_UUID_PARAM = OpenApiParameter(
-    name="uuid",
-    location="path",
-    required=True,
-    type=str,
-    description="The UUID of the Sentry App installation.",
-)
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -55,7 +48,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
 
     @extend_schema(
         operation_id="Create an External Issue",
-        parameters=[_INSTALLATION_UUID_PARAM],
+        parameters=[SentryAppParams.INSTALLATION_UUID],
         request=PlatformExternalIssueSerializer,
         responses={
             200: inline_sentry_response_serializer(

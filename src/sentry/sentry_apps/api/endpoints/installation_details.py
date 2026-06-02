@@ -1,6 +1,6 @@
 import sentry_sdk
 from django.db import router, transaction
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from requests import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,6 +18,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import SentryAppInstallationStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
@@ -35,14 +36,6 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError
 
-_INSTALLATION_UUID_PARAM = OpenApiParameter(
-    name="uuid",
-    location="path",
-    required=True,
-    type=str,
-    description="The UUID of the Sentry App installation.",
-)
-
 
 @extend_schema(tags=["Integration"])
 @control_silo_endpoint
@@ -57,7 +50,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Sentry App Installation",
-        parameters=[_INSTALLATION_UUID_PARAM],
+        parameters=[SentryAppParams.INSTALLATION_UUID],
         responses={
             200: inline_sentry_response_serializer(
                 "SentryAppInstallation", SentryAppInstallationResult
@@ -81,7 +74,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
 
     @extend_schema(
         operation_id="Uninstall a Sentry App",
-        parameters=[_INSTALLATION_UUID_PARAM],
+        parameters=[SentryAppParams.INSTALLATION_UUID],
         responses={
             204: RESPONSE_NO_CONTENT,
             401: RESPONSE_UNAUTHORIZED,
@@ -135,7 +128,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
 
     @extend_schema(
         operation_id="Update a Sentry App Installation",
-        parameters=[_INSTALLATION_UUID_PARAM],
+        parameters=[SentryAppParams.INSTALLATION_UUID],
         request=SentryAppInstallationParser,
         responses={
             200: inline_sentry_response_serializer(

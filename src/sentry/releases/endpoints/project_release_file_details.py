@@ -37,14 +37,6 @@ from sentry.releases.endpoints.project_release_files import pseudo_releasefile
 #: Cannot update release artifacts in release archives
 INVALID_UPDATE_MESSAGE = "Can only update release files with integer IDs"
 
-_FILE_ID_PARAM = OpenApiParameter(
-    name="file_id",
-    location="path",
-    required=True,
-    type=str,
-    description="The ID of the release file.",
-)
-
 
 class ReleaseFileSerializer(serializers.Serializer):
     name = serializers.CharField(
@@ -242,7 +234,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             ReleaseParams.VERSION,
-            _FILE_ID_PARAM,
+            ReleaseParams.FILE_ID,
             OpenApiParameter(
                 name="download",
                 location="query",
@@ -285,7 +277,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             ReleaseParams.VERSION,
-            _FILE_ID_PARAM,
+            ReleaseParams.FILE_ID,
         ],
         request=ReleaseFileSerializer,
         responses={
@@ -318,7 +310,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             ReleaseParams.VERSION,
-            _FILE_ID_PARAM,
+            ReleaseParams.FILE_ID,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,

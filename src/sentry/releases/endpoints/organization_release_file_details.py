@@ -24,14 +24,6 @@ from sentry.releases.endpoints.project_release_file_details import (
     ReleaseFileSerializer,
 )
 
-_FILE_ID_PARAM = OpenApiParameter(
-    name="file_id",
-    location="path",
-    required=True,
-    type=str,
-    description="The ID of the release file.",
-)
-
 
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
@@ -50,7 +42,7 @@ class OrganizationReleaseFileDetailsEndpoint(
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
-            _FILE_ID_PARAM,
+            ReleaseParams.FILE_ID,
             OpenApiParameter(
                 name="download",
                 location="query",
@@ -90,7 +82,7 @@ class OrganizationReleaseFileDetailsEndpoint(
 
     @extend_schema(
         operation_id="Update an Organization Release's File",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, _FILE_ID_PARAM],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, ReleaseParams.FILE_ID],
         request=ReleaseFileSerializer,
         responses={
             200: inline_sentry_response_serializer(
@@ -121,7 +113,7 @@ class OrganizationReleaseFileDetailsEndpoint(
 
     @extend_schema(
         operation_id="Delete an Organization Release's File",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, _FILE_ID_PARAM],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, ReleaseParams.FILE_ID],
         responses={
             204: RESPONSE_NO_CONTENT,
             401: RESPONSE_UNAUTHORIZED,

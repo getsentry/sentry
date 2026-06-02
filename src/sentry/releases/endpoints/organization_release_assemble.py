@@ -43,7 +43,7 @@ class OrganizationReleaseAssembleSerializer(serializers.Serializer):
     )
 
 
-class _ReleaseAssembleResponse(TypedDict):
+class ReleaseAssembleResponse(TypedDict):
     state: str
     detail: NotRequired[str | None]
     missingChunks: list[str]
@@ -63,7 +63,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         request=OrganizationReleaseAssembleSerializer,
         responses={
             200: inline_sentry_response_serializer(
-                "ReleaseAssembleResponse", _ReleaseAssembleResponse
+                "ReleaseAssembleResponse", ReleaseAssembleResponse
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,

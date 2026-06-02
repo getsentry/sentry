@@ -11,19 +11,13 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.parameters import SentryAppParams
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppError
 
-_INSTALLATION_UUID_PARAM = OpenApiParameter(
-    name="uuid",
-    location="path",
-    required=True,
-    type=str,
-    description="The UUID of the Sentry App installation.",
-)
 _EXTERNAL_ISSUE_ID_PARAM = OpenApiParameter(
     name="external_issue_id",
     location="path",
@@ -43,7 +37,7 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
 
     @extend_schema(
         operation_id="Delete an External Issue",
-        parameters=[_INSTALLATION_UUID_PARAM, _EXTERNAL_ISSUE_ID_PARAM],
+        parameters=[SentryAppParams.INSTALLATION_UUID, _EXTERNAL_ISSUE_ID_PARAM],
         responses={
             204: RESPONSE_NO_CONTENT,
             401: RESPONSE_UNAUTHORIZED,

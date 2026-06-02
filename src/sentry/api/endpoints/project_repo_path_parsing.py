@@ -34,6 +34,8 @@ from sentry.models.repository import Repository
 
 
 class RepoPathParsingResponse(TypedDict):
+    # NOTE: API convention is to return identifiers as strings, but this endpoint has
+    # always returned these as integers. Typed to match the existing behavior.
     integrationId: int
     repositoryId: int
     provider: str
