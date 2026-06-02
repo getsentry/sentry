@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta
+from typing import Any, cast
 
 import sentry_sdk
 from django.db import IntegrityError
@@ -53,7 +54,8 @@ from sentry.models.release import (
 )
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.releases.util import SemverFilter
+from sentry.models.releases.util import ReleaseQuerySet, SemverFilter
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.releases.use_cases.release import serialize as release_serializer
 from sentry.search.events.constants import (
@@ -146,14 +148,15 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_ALIAS:
             queryset = queryset.filter_by_semver(
-                organization.id, parse_semver(search_filter.value.raw_value, search_filter.operator)
+                organization.id,
+                parse_semver(str(search_filter.value.raw_value), search_filter.operator),
             )
 
         if search_filter.key.name == SEMVER_PACKAGE_ALIAS:
             negated = search_filter.operator == "!="
             queryset = queryset.filter_by_semver(
                 organization.id,
-                SemverFilter("exact", [], search_filter.value.raw_value, negated),
+                SemverFilter("exact", [], str(search_filter.value.raw_value), negated),
             )
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
@@ -321,7 +324,16 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         ]
     )
 
-    def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
+    def get_projects(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization,
+        *,
+        force_global_perms: bool = False,
+        include_all_accessible: bool = False,
+        project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
+    ) -> list[Project]:
         return super().get_projects(
             request,
             organization,
@@ -359,8 +371,10 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
 
-        paginator_cls = OffsetPaginator
-        paginator_kwargs = {}
+        paginator_cls: type[OffsetPaginator] | type[ReleasesMergingOffsetPaginator] = (
+            OffsetPaginator
+        )
+        paginator_kwargs: dict[str, Any] = {}
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -427,9 +441,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             paginator_kwargs["order_by"] = order_by
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
-            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
-            queryset = queryset.order_by(order_by)
-            paginator_kwargs["order_by"] = order_by
+            adoption_order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(adoption_order_by)
+            paginator_kwargs["order_by"] = adoption_order_by
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
@@ -461,9 +475,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 ]
 
                 results = list(
-                    Release.objects.filter(
-                        organization_id=organization.id,
-                        version__in=valid_versions,
+                    cast(
+                        ReleaseQuerySet,
+                        Release.objects.filter(
+                            organization_id=organization.id,
+                            version__in=valid_versions,
+                        ),
                     ).order_by_recent()[qs_offset : qs_offset + limit]
                 )
                 return results
@@ -539,8 +556,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         if health_stat not in ("sessions", "users"):
             raise ParseError(detail="invalid healthStat")
 
-        paginator_cls = OffsetPaginator
-        paginator_kwargs = {}
+        paginator_cls: type[OffsetPaginator] | type[MergingOffsetPaginator] = OffsetPaginator
+        paginator_kwargs: dict[str, Any] = {}
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -609,9 +626,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             paginator_kwargs["order_by"] = order_by
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
-            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
-            queryset = queryset.order_by(order_by)
-            paginator_kwargs["order_by"] = order_by
+            adoption_order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(adoption_order_by)
+            paginator_kwargs["order_by"] = adoption_order_by
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
@@ -643,9 +660,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 ]
 
                 results = list(
-                    Release.objects.filter(
-                        organization_id=organization.id,
-                        version__in=valid_versions,
+                    cast(
+                        ReleaseQuerySet,
+                        Release.objects.filter(
+                            organization_id=organization.id,
+                            version__in=valid_versions,
+                        ),
                     ).order_by_recent()[qs_offset : qs_offset + limit]
                 )
                 return results
@@ -985,7 +1005,7 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         self.queryset_load_func = queryset_load_func
         self.project_ids = project_ids
 
-    def get_result(self, limit=100, cursor=None):
+    def get_result(self, limit=100, cursor=None):  # type: ignore[override]
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
