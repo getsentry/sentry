@@ -700,10 +700,15 @@ function CollapsedGapMarker({
     [gap, index, manager]
   );
 
+  const startLabel = formatTraceDuration(gap.start - manager.view.to_origin);
+  const endLabel = formatTraceDuration(gap.end - manager.view.to_origin);
+
   return (
     <Tooltip title={`Skipped ${formatTraceDuration(gap.duration)} inactive period`}>
       <div ref={registerCollapsedGapMarkerRef} className="TraceCollapsedGapMarker">
+        <div className="TraceCollapsedGapMarkerLabel Left">{startLabel}</div>
         <div className="TraceCollapsedGapMarkerBreak" />
+        <div className="TraceCollapsedGapMarkerLabel Right">{endLabel}</div>
       </div>
     </Tooltip>
   );
@@ -955,6 +960,30 @@ const TraceStylingWrapper = styled('div')`
     );
     border-left: 1px solid color-mix(in srgb, currentColor 52%, transparent);
     border-right: 1px solid color-mix(in srgb, currentColor 52%, transparent);
+  }
+
+  .TraceCollapsedGapMarkerLabel {
+    position: absolute;
+    top: 2px;
+    font-size: 10px;
+    font-weight: ${p => p.theme.font.weight.sans.medium};
+    color: ${p => p.theme.tokens.content.warning};
+    background-color: ${p => p.theme.tokens.background.primary};
+    border-radius: 100px;
+    border: 1px solid ${p => p.theme.tokens.border.warning};
+    line-height: 1;
+    white-space: nowrap;
+    padding: 1px 4px;
+
+    &.Left {
+      right: 100%;
+      margin-right: -4px;
+    }
+
+    &.Right {
+      left: 100%;
+      margin-left: -4px;
+    }
   }
 
   .TraceIndicatorLabelContainer {
