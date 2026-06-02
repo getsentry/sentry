@@ -75,11 +75,13 @@ jobs:
           echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
           echo "merge_base_strategy=${STRATEGY}" >> "$GITHUB_OUTPUT"
 
+      - name: Jest Matrix Config
+        run: |
           RUNNERS=8
-          if [ "$STRATEGY" == "changedSince" ]; then
+          if [ "${{ steps.merge_base.outputs.merge_base_strategy }}" == "changedSince" ]; then
             RUNNERS=1
           fi
-          # Create a JSON array for indices [0, 1, ... RUNNERS-1]
+
           JSON_ARRAY=$(seq 0 $(( RUNNERS - 1 )) | jq -R . | jq -s .)
           # Output the full matrix object
           echo "jest_test_matrix=$(jq -nc --argjson indices "$JSON_ARRAY" --argjson total "$RUNNERS" '{index: $indices, total: $total}')" >> $GITHUB_OUTPUT
