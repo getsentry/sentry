@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+from typing import Any, cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -31,15 +32,20 @@ value_converters = {"status": convert_status_value}
 
 
 class ErrorsQueryBuilderMixin:
+    params: Any
+    dataset: Any
+    sample_rate: float | None
+    config: Any
+
     def __init__(self, *args, **kwargs):
         self.match = None
         self.entities = set()
         super().__init__(*args, **kwargs)
 
     def parse_query(self, query: str | None) -> ParsedTerms:
-        parsed_terms = super().parse_query(query)
+        parsed_terms = cast(ParsedTerms, cast(Any, super()).parse_query(query))
         parsed_terms = convert_query_values(
-            parsed_terms,
+            cast(Any, parsed_terms),
             self.params.projects,
             self.params.user,
             list(filter(None, self.params.environments)),
@@ -59,7 +65,7 @@ class ErrorsQueryBuilderMixin:
             raise Exception("Unexpected number of entities")
 
     def resolve_params(self):
-        conditions = super().resolve_params()
+        conditions = cast(list[Condition], cast(Any, super()).resolve_params())
         if len(self.entities) == 2:
             conditions.append(
                 Condition(
@@ -78,11 +84,13 @@ class ErrorsQueryBuilderMixin:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        super().resolve_query(query, selected_columns, groupby_columns, equations, orderby)
+        cast(Any, super()).resolve_query(
+            query, selected_columns, groupby_columns, equations, orderby
+        )
         self.resolve_match()
 
     def aliased_column(self, name: str) -> SelectType:
-        aliased_col: SelectType = super().aliased_column(name)
+        aliased_col = cast(SelectType, cast(Any, super()).aliased_column(name))
         if isinstance(aliased_col, AliasedExpression):
             return dataclasses.replace(
                 aliased_col, exp=self._apply_column_entity(aliased_col.exp.name)
@@ -103,7 +111,7 @@ class ErrorsQueryBuilderMixin:
 
         :param name: The unresolved sentry name.
         """
-        resolved_column = self.resolve_column_name(name)
+        resolved_column = cast(str, cast(Any, self).resolve_column_name(name))
         return self._apply_column_entity(resolved_column)
 
     def _apply_column_entity(self, resolved_column: str) -> Column:
