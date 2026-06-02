@@ -15,7 +15,7 @@ class _Base(BaseModel):
 class TriageVerdict(_Base):
     group_id: int
     action: TriageAction
-    reason: str
+    reason: str = ""
 
 
 class TriageResponse(_Base):
