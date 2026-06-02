@@ -27,8 +27,7 @@ from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
-# How long before we'll re-query an author's public GitHub profile email. The
-# spec calls for "say, 30 days"; bump if rate limits become a concern.
+# How long before we'll re-query an author's public GitHub profile email.
 PUBLIC_EMAIL_QUERY_TTL = timedelta(days=30)
 
 NOREPLY_SUFFIX = "@users.noreply.github.com"
@@ -127,29 +126,34 @@ def link_commit_author_external_actor(
                 raise
             # Stamp on other errors (e.g. 404) so we don't keep hammering a
             # profile that won't resolve.
-            _mark_queried(author.id)
+            author.update(public_email_queried_at=timezone.now())
             continue
         finally:
             remaining = interval - (time.monotonic() - t0)
             if remaining > 0:
                 time.sleep(remaining)
 
-        _mark_queried(author.id)
+        author.update(public_email_queried_at=timezone.now())
 
         email = (profile.get("email") or "").strip().lower()
         if not email or email.endswith(NOREPLY_SUFFIX):
             continue
 
-        user_ids = _resolve_email_to_user_ids(email, organization_id)
+        users = user_service.get_many_by_email(
+            emails=[email],
+            is_verified=True,
+            is_active=True,
+            organization_id=organization_id,
+        )
         # A high-signal mapping is one verified email -> one Sentry user. If the
         # email is shared by multiple org users we can't safely pick one, so we
         # skip rather than create ambiguous mappings.
-        if len(user_ids) != 1:
+        if len(users) != 1:
             continue
 
-        user_id = user_ids[0]
+        user_id = users[0].id
         gh_id = str(profile["id"]) if profile.get("id") else None
-        external_name = f"@{username.lstrip('@')}"
+        external_name = f"@{username}"
         try:
             _, created = ExternalActor.objects.get_or_create(
                 organization_id=organization_id,
@@ -172,30 +176,3 @@ def link_commit_author_external_actor(
                 },
             )
             continue
-
-        if created:
-            logger.info(
-                "github.link_commit_author.created",
-                extra={
-                    "organization_id": organization_id,
-                    "commit_author_id": author.id,
-                    "user_id": user_id,
-                },
-            )
-
-
-def _mark_queried(commit_author_id: int) -> None:
-    CommitAuthor.objects.filter(id=commit_author_id).update(public_email_queried_at=timezone.now())
-
-
-def _resolve_email_to_user_ids(email: str, organization_id: int) -> list[int]:
-    user_ids: list[int] = []
-    for u in user_service.get_many_by_email(
-        emails=[email],
-        is_verified=True,
-        is_active=True,
-        organization_id=organization_id,
-    ):
-        if any(ue.email.lower() == email and ue.is_verified for ue in u.useremails):
-            user_ids.append(u.id)
-    return user_ids
