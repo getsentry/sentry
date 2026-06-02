@@ -119,7 +119,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-context-engine'],
+        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -163,7 +163,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => route,
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-context-engine'],
+        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -199,7 +199,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/monitors/mobile-builds/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-context-engine'],
+        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,

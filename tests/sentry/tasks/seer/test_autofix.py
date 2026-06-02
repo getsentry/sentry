@@ -10,7 +10,6 @@ from sentry.seer.models import (
     SummarizeIssueResponse,
     SummarizeIssueScores,
 )
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.autofix import (
     check_autofix_status,
     configure_seer_for_existing_org,
@@ -293,22 +292,3 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         # Cache should be set to True to prevent race conditions
         assert cache.get(cache_key) is True
-
-    def test_preserves_existing_repositories(self) -> None:
-        """Test that existing repositories are preserved when preferences are set."""
-        project = self.create_project(organization=self.organization)
-        repo = self.create_repo(
-            project=project,
-            provider="integrations:github",
-            external_id="ext123",
-            name="existing-org/existing-repo",
-        )
-        self.create_seer_project_repository(project=project, repository=repo)
-        # Force the update path by using an invalid stopping point.
-        project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
-
-        configure_seer_for_existing_org(organization_id=self.organization.id)
-
-        seer_repos = list(SeerProjectRepository.objects.filter(project_repository__project=project))
-        assert len(seer_repos) == 1
-        assert seer_repos[0].project_repository.repository_id == repo.id

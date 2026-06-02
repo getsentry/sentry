@@ -183,40 +183,6 @@ describe('OrganizationSettingsForm', () => {
     ).toBeInTheDocument();
   });
 
-  it('can enable codecov', async () => {
-    putMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-      method: 'PUT',
-      body: {...organization, codecovAccess: true},
-    });
-
-    render(
-      <OrganizationSettingsForm
-        initialData={OrganizationFixture({codecovAccess: false})}
-        onSave={onSave}
-      />,
-      {
-        organization: {
-          ...organization,
-          features: ['codecov-integration'],
-        },
-      }
-    );
-
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Code Coverage Insights/})
-    );
-
-    expect(putMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/',
-      expect.objectContaining({
-        data: {
-          codecovAccess: true,
-        },
-      })
-    );
-  });
-
   it('can enable "Show Generative AI Features"', async () => {
     // initialData.hideAiFeatures = false (default) → switch starts OFF
     render(

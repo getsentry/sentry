@@ -447,7 +447,6 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
 
         volumes = get_eap_transaction_volumes(
             self.get_config(organization),
-            time_interval=timedelta(hours=1),
             order_by_volume="desc",
         )
 
@@ -471,9 +470,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
     def test_get_eap_transaction_volumes_without_projects(self) -> None:
         organization = self.create_organization()
 
-        volumes = get_eap_transaction_volumes(
-            self.get_config(organization), time_interval=timedelta(hours=1)
-        )
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
 
         assert volumes == []
 
@@ -502,9 +499,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        volumes = get_eap_transaction_volumes(
-            self.get_config(organization), time_interval=timedelta(hours=1)
-        )
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
 
         assert volumes == [
             {
@@ -553,7 +548,6 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
 
         volumes = get_eap_transaction_volumes(
             self.get_config(organization),
-            time_interval=timedelta(hours=1),
             order_by_volume="desc",
             max_transactions=2,
         )

@@ -3402,6 +3402,61 @@ describe('Customer Details', () => {
         );
       });
     });
+
+    it('suspends an organization for security/abuse', async () => {
+      setUpMocks(organization, {isSuspended: false});
+
+      const apiMock = MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/`,
+        method: 'PUT',
+        body: organization,
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      await userEvent.click(
+        screen.getAllByRole('button', {
+          name: 'Customers Actions',
+        })[0]!
+      );
+
+      renderGlobalModal();
+
+      await userEvent.click(screen.getByText('Suspend Account'));
+
+      expect(
+        screen.getByText('This account has been suspended for security or abuse reasons')
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('radio', {
+          name: 'Security/Abuse',
+        })
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Suspend Account'}));
+
+      await waitFor(() => {
+        expect(apiMock).toHaveBeenCalledWith(
+          `/customers/${organization.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {
+              suspended: true,
+              suspensionReason: 'security_abuse',
+            },
+          })
+        );
+      });
+    });
   });
 
   describe('AddGiftBudgetAction', () => {

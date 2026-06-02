@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
 from datetime import timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
+from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
@@ -23,7 +23,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 TargetSampleRate = float | None
-ProjectTargetSampleRates = Mapping[ProjectId, TargetSampleRate]
+ProjectSampleRates = dict[ProjectId, TargetSampleRate]
 
 
 def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
@@ -56,6 +56,7 @@ class BaseDynamicSamplingConfiguration(ABC):
     def __init__(self, organization: Organization) -> None:
         self.organization = organization
         self.sliding_window_sample_rate: TargetSampleRate = None
+        self.project_sample_rates: ProjectSampleRates = {}
 
     @property
     @abstractmethod
@@ -65,6 +66,16 @@ class BaseDynamicSamplingConfiguration(ABC):
     @abstractmethod
     def get_sample_rate(self) -> TargetSampleRate:
         raise NotImplementedError
+
+    def get_project_sample_rates(self) -> ProjectSampleRates:
+        return self.project_sample_rates
+
+    def set_rebalanced_project_sample_rates(
+        self, rebalanced_projects: list[RebalancedItem]
+    ) -> None:
+        self.project_sample_rates = {
+            int(item.id): item.new_sample_rate for item in rebalanced_projects
+        }
 
     @property
     def is_span_based(self) -> bool:
@@ -94,6 +105,7 @@ class BaseDynamicSamplingConfiguration(ABC):
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     def __init__(self) -> None:
         self.sliding_window_sample_rate: TargetSampleRate = None
+        self.project_sample_rates: ProjectSampleRates = {}
 
     @property
     def is_enabled(self) -> bool:
@@ -180,6 +192,7 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
         self.sample_rate = float(
             self.organization.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
         )
+        self.project_sample_rates = {}
 
     @property
     def is_enabled(self) -> bool:
@@ -198,32 +211,28 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
     - Projects are not rebalanced
     """
 
-    project_target_sample_rates: ProjectTargetSampleRates
     should_balance_projects: bool = False
     needs_recalibration: bool = False
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
         self.projects = self._get_projects()
-        self.project_target_sample_rates = self._get_project_target_sample_rates()
+        self.project_sample_rates = self._get_project_target_sample_rates()
         self.measure = self._get_sampling_measure()
 
     @property
     def is_enabled(self) -> bool:
-        return any(
-            sample_rate is not None for sample_rate in self.project_target_sample_rates.values()
-        )
+        return any(sample_rate is not None for sample_rate in self.project_sample_rates.values())
 
     def get_sample_rate(self) -> TargetSampleRate:
         return None
 
-    def _get_project_target_sample_rates(self) -> ProjectTargetSampleRates:
+    def _get_project_target_sample_rates(self) -> ProjectSampleRates:
         project_sample_rates = ProjectOption.objects.get_value_bulk(
             self.projects, "sentry:target_sample_rate"
         )
 
-        sample_rates: ProjectTargetSampleRates = {
+        return {
             project.id: float(sample_rate) if sample_rate is not None else None
             for project, sample_rate in project_sample_rates.items()
         }
-        return sample_rates

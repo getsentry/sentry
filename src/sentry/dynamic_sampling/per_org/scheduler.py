@@ -11,8 +11,11 @@ from taskbroker_client.retry import Retry
 from sentry.dynamic_sampling.per_org.calculations import (
     calculate_recalibration_factor,
     compare_rebalanced_projects_with_cache,
+    compare_rebalanced_transactions_with_cache,
     get_cached_rebalanced_project_sample_rates,
+    get_cached_rebalanced_transaction_sample_rates,
     run_project_balancing,
+    run_transaction_balancing,
 )
 from sentry.dynamic_sampling.per_org.configuration import get_configuration
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
@@ -124,11 +127,21 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         if not project_volumes:
             return DynamicSamplingStatus.NO_PROJECT_VOLUMES
         rebalanced_projects = run_project_balancing(config, project_volumes)
+        config.set_rebalanced_project_sample_rates(rebalanced_projects)
         cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
         compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
 
-    if not get_eap_transaction_volumes(config):
+    transaction_volumes = get_eap_transaction_volumes(config)
+    if not transaction_volumes:
         return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
+
+    rebalanced_transactions = run_transaction_balancing(config, transaction_volumes)
+    cached_transaction_sample_rates = get_cached_rebalanced_transaction_sample_rates(
+        org_id=config.organization.id, project_ids=rebalanced_transactions.keys()
+    )
+    compare_rebalanced_transactions_with_cache(
+        config, rebalanced_transactions, cached_transaction_sample_rates
+    )
 
     if config.needs_recalibration:
         org_volume_5_minutes = get_outcomes_organization_volume(

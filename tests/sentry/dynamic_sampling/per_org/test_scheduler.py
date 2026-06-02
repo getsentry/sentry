@@ -246,6 +246,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 ],
             ) as get_transaction_volumes,
             patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ) as transaction_balancing,
+            patch(
                 "sentry.dynamic_sampling.per_org.scheduler.calculate_recalibration_factor"
             ) as calculate_recalibration,
         ):
@@ -263,7 +267,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         compare_rebalanced_projects.assert_called_once_with(
             project_config, rebalanced_projects, cached_sample_rates
         )
-        _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_balancing.assert_called_once_with(
+            transaction_config, get_transaction_volumes.return_value
+        )
         calculate_recalibration.assert_called_once_with(project_config, org_volume_5_minutes)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
@@ -318,6 +325,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 ],
             ) as get_transaction_volumes,
             patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ) as transaction_balancing,
+            patch(
                 "sentry.dynamic_sampling.per_org.calculations.legacy_recalibration_cache.get_adjusted_factor",
             ) as get_factor,
             patch(
@@ -338,7 +349,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         compare_rebalanced_projects.assert_called_once_with(
             project_config, rebalanced_projects, cached_sample_rates
         )
-        _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_balancing.assert_called_once_with(
+            transaction_config, get_transaction_volumes.return_value
+        )
         get_factor.assert_not_called()
         get_per_org_factor.assert_not_called()
 
@@ -461,6 +475,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                     }
                 ],
             ) as get_transaction_volumes,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ) as transaction_balancing,
         ):
             result = run_calculations_per_org_task(org.id)
 
@@ -468,7 +486,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         get_blended_sample_rate.assert_not_called()
         _assert_called_once_with_config(get_volume, org.id)
         get_project_volumes.assert_not_called()
-        _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_balancing.assert_called_once_with(
+            transaction_config, get_transaction_volumes.return_value
+        )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
@@ -521,6 +542,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 ],
             ) as get_transaction_volumes,
             patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ) as transaction_balancing,
+            patch(
                 "sentry.dynamic_sampling.per_org.scheduler.calculate_recalibration_factor"
             ) as calculate_recalibration,
         ):
@@ -538,7 +563,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         compare_rebalanced_projects.assert_called_once_with(
             project_config, rebalanced_projects, cached_sample_rates
         )
-        _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_balancing.assert_called_once_with(
+            transaction_config, get_transaction_volumes.return_value
+        )
         calculate_recalibration.assert_called_once_with(project_config, org_volume)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
@@ -616,6 +644,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 ],
             ) as get_transaction_volumes,
             patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ) as transaction_balancing,
+            patch(
                 "sentry.dynamic_sampling.per_org.scheduler.calculate_recalibration_factor"
             ) as calculate_recalibration,
         ):
@@ -633,7 +665,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         compare_rebalanced_projects.assert_called_once_with(
             project_config, rebalanced_projects, cached_sample_rates
         )
-        _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        transaction_balancing.assert_called_once_with(
+            transaction_config, get_transaction_volumes.return_value
+        )
         calculate_recalibration.assert_called_once_with(project_config, org_volume)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
