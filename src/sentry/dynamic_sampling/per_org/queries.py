@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
@@ -22,6 +23,8 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+
+logger = logging.getLogger(__name__)
 
 
 class OrganizationVolumeConfig(Protocol):
@@ -170,9 +173,18 @@ def get_eap_project_volumes(
         if dsc_project_id is None:
             continue
 
+        try:
+            parsed_project_id = int(dsc_project_id)
+        except (ValueError, TypeError):
+            logger.warning(
+                "dynamic_sampling.invalid_dsc_project_id",
+                extra={"dsc_project_id": dsc_project_id},
+            )
+            continue
+
         project_volumes.append(
             ProjectVolume(
-                project_id=ProjectId(int(dsc_project_id)),
+                project_id=ProjectId(parsed_project_id),
                 total=total,
                 keep=keep,
                 drop=max(total - keep, 0),
@@ -236,7 +248,15 @@ def get_eap_transaction_volumes(
         if total <= 0:
             continue
 
-        project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)
+        raw_project_id = row.get(DynamicSamplingQueryFields.DSC_PROJECT_ID)
+        try:
+            project_id = int(raw_project_id) if raw_project_id is not None else 0
+        except (ValueError, TypeError):
+            logger.warning(
+                "dynamic_sampling.invalid_dsc_project_id",
+                extra={"dsc_project_id": raw_project_id},
+            )
+            continue
         project_volumes = volumes_by_project[project_id]
 
         project_volumes.transaction_counts.append((str(transaction), total))
