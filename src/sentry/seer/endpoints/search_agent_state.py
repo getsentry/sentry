@@ -57,7 +57,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
     """
 
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
 

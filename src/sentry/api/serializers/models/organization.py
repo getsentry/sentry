@@ -305,7 +305,7 @@ class ControlSiloOrganizationSerializerResponse(TypedDict):
     name: str
 
 
-class ControlSiloOrganizationSerializer(Serializer):
+class ControlSiloOrganizationSerializer(Serializer[ControlSiloOrganizationSerializerResponse]):
     def serialize(
         self,
         obj: RpcOrganizationSummary,
@@ -340,7 +340,9 @@ class ControlSiloOrganizationMappingSerializerResponse(TypedDict):
     hasAuthProvider: bool
 
 
-class ControlSiloOrganizationMappingSerializer(Serializer):
+class ControlSiloOrganizationMappingSerializer(
+    Serializer[ControlSiloOrganizationMappingSerializerResponse]
+):
     _AVATAR_TYPE_BY_ID: ClassVar[dict[int, str]] = dict(OrganizationAvatar.AVATAR_TYPES)
 
     def get_attrs(
@@ -409,7 +411,7 @@ class ControlSiloOrganizationMappingSerializer(Serializer):
 
 
 @register(Organization)
-class OrganizationSummarySerializer(Serializer):
+class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -596,7 +598,7 @@ class _OnboardingTasksAttrs(TypedDict):
 
 
 @register(OrganizationOnboardingTask)
-class OnboardingTasksSerializer(Serializer):
+class OnboardingTasksSerializer(Serializer[OnboardingTasksSerializerResponse]):
     def get_attrs(
         self,
         item_list: Sequence[OrganizationOnboardingTask],

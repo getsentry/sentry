@@ -66,7 +66,7 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
 
 
 @register(ExploreSavedQuery)
-class ExploreSavedQueryModelSerializer(Serializer):
+class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         result: defaultdict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
