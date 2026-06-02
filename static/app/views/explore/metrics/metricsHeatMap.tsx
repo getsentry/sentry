@@ -75,7 +75,9 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
           return {
             ...metricQuery,
             queryParams: metricQuery.queryParams.replace({
-              query: `${metricQuery.queryParams.query} ${query}`,
+              query: metricQuery.queryParams.query
+                ? `${metricQuery.queryParams.query} ${query}`
+                : query,
             }),
           };
         }
