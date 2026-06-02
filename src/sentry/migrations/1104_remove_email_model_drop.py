@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1102_activity_project_type_index"),
+        ("sentry", "1103_backfill_auto_link_repos_by_name"),
     ]
 
     operations = [
