@@ -30,6 +30,27 @@ def root_cause_prompt(*, short_id: str, title: str, culprit: str, artifact_key: 
     )
 
 
+def low_value_span_root_cause_prompt(
+    *, short_id: str, title: str, culprit: str, artifact_key: str | None
+) -> str:
+    context = (
+        "This is the root cause: this is a low-value span issue, meaning Sentry detected a "
+        "high-volume span with low telemetry value. This is not an exception in the user's "
+        "codebase.\n\n"
+        "Use the latest occurrence evidence to identify the span by op, description, and origin. "
+        "If the span origin is manual, the manually instrumented span code should be removed. "
+        "Otherwise, the automatically created span should be filtered before sending."
+    )
+    prompt = root_cause_prompt(
+        short_id=short_id,
+        title=title,
+        culprit=culprit,
+        artifact_key=artifact_key,
+    )
+
+    return f"{context}\n\n{prompt}"
+
+
 def solution_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str | None) -> str:
     return dedent(
         f"""\

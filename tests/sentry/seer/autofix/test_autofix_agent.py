@@ -5,6 +5,7 @@ import pytest
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.constants import DataCategory
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client_models import (
     Artifact,
     MemoryBlock,
@@ -235,6 +236,20 @@ class TestBuildStepPrompt(TestCase):
         prompt = build_step_prompt(AutofixStep.ROOT_CAUSE, self.group)
 
         assert "unknown" in prompt
+
+    def test_low_value_span_root_cause_prompt_uses_issue_specific_context(self) -> None:
+        group = self.create_group(
+            project=self.project,
+            message="Low-value span detected",
+            type=LowValueSpanConfigurationType.type_id,
+        )
+
+        prompt = build_step_prompt(AutofixStep.ROOT_CAUSE, group)
+
+        assert prompt.startswith("This is the root cause")
+        assert "low-value span issue" in prompt
+        assert "latest occurrence evidence" in prompt
+        assert "root_cause artifact" in prompt
 
     def test_all_prompts_are_dedented(self) -> None:
         for step in AutofixStep:

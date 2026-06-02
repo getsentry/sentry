@@ -23,6 +23,7 @@ from sentry.analytics.events.autofix_events import (
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.artifact_schemas import (
@@ -32,6 +33,7 @@ from sentry.seer.autofix.artifact_schemas import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.prompts import (
     code_changes_prompt,
+    low_value_span_root_cause_prompt,
     root_cause_prompt,
     solution_prompt,
 )
@@ -147,7 +149,11 @@ def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None 
         Formatted prompt string
     """
     config = STEP_CONFIGS[step]
-    prompt = config.prompt_fn(
+    prompt_fn = config.prompt_fn
+    if step == AutofixStep.ROOT_CAUSE and group.type == LowValueSpanConfigurationType.type_id:
+        prompt_fn = low_value_span_root_cause_prompt
+
+    prompt = prompt_fn(
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
