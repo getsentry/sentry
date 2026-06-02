@@ -76,7 +76,7 @@ from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
-from .tasks.link_commit_author_external_actor import link_commit_author_external_actor
+from .tasks.query_commit_author_public_emails import query_commit_author_public_emails
 from .types import IssueEvenntWebhookActionType
 
 logger = logging.getLogger("sentry.webhooks")
@@ -741,7 +741,7 @@ class PushEventWebhook(GitHubWebhook):
         # CommitAuthor.public_email_queried_at, so re-seeing a recent author is
         # cheap; we don't need them to be brand-new.
         if authors:
-            link_commit_author_external_actor.apply_async(
+            query_commit_author_public_emails.apply_async(
                 kwargs={
                     "organization_id": organization.id,
                     "integration_id": integration.id,

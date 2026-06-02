@@ -39,25 +39,24 @@ _PROVIDER_BY_PREFIX = {
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.link_commit_author_external_actor",
+    name="sentry.integrations.github.tasks.query_commit_author_public_emails",
     namespace=integrations_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=3, delay=60, on=(ApiError,)),
     silo_mode=SiloMode.CELL,
 )
-def link_commit_author_external_actor(
+def query_commit_author_public_emails(
     organization_id: int,
     integration_id: int,
     commit_author_ids: Sequence[int],
 ) -> None:
-    """Query newly-ingested commit authors' public GitHub profile emails and,
-    when one resolves to a Sentry user, create the corresponding ExternalActor
-    mapping.
+    """Query commit authors' public GitHub profile emails and, when one resolves
+    to a Sentry user, create the corresponding ExternalActor mapping.
 
-    This is run out-of-band (via ``apply_async``) from the webhook / release
-    ingestion paths because querying the SCM API is slow and consumes GitHub
-    rate limits. Each author is gated on ``CommitAuthor.public_email_queried_at``
-    so we only spend a request when there's a realistic chance of producing a
+    This is run out-of-band (via ``apply_async``) from the commit ingestion
+    webhook because querying the SCM API is slow and consumes GitHub rate
+    limits. Each author is gated on ``CommitAuthor.public_email_queried_at`` so
+    we only spend a request when there's a realistic chance of producing a
     mapping we don't already have.
     """
     if not commit_author_ids:
@@ -79,7 +78,7 @@ def link_commit_author_external_actor(
         client = installation.get_client()
     except Exception:
         logger.warning(
-            "github.link_commit_author.no_client",
+            "github.query_commit_author_public_emails.no_client",
             extra={"organization_id": organization_id, "integration_id": integration_id},
         )
         return
@@ -117,7 +116,7 @@ def link_commit_author_external_actor(
         except ApiError as e:
             if installation.is_rate_limited_error(e):
                 logger.info(
-                    "github.link_commit_author.rate_limited",
+                    "github.query_commit_author_public_emails.rate_limited",
                     extra={"organization_id": organization_id},
                 )
                 # Re-raise so the task retries later. We intentionally don't
@@ -168,7 +167,7 @@ def link_commit_author_external_actor(
             )
         except Exception:
             logger.exception(
-                "github.link_commit_author.write_failed",
+                "github.query_commit_author_public_emails.write_failed",
                 extra={
                     "organization_id": organization_id,
                     "commit_author_id": author.id,
