@@ -4,7 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {formatDateRange} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
@@ -19,7 +19,7 @@ export function QueryTokens({
   visualizations,
 }: QueryTokensProps) {
   const tokens = [];
-  const {getFieldDefinition} = useSearchQueryBuilder();
+  const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const parsedQuery = query ? parseQueryBuilderValue(query, getFieldDefinition) : null;
   if (query && parsedQuery?.length) {
     tokens.push(

@@ -61,6 +61,7 @@ from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
+from .lookup import get_group_list
 from .validators import GroupValidator, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -323,44 +324,6 @@ def validate_request(
         if not serializer.is_valid():
             raise serializers.ValidationError(serializer.errors)
     return serializer
-
-
-def get_group_list(
-    organization_id: int,
-    projects: Sequence[Project],
-    group_ids: Sequence[int | str],
-) -> list[Group]:
-    """
-    Gets group list based on provided filters.
-
-    Args:
-        organization_id: ID of the organization
-        projects: Sequence of projects to filter groups by
-        group_ids: Sequence of specific group IDs to fetch
-
-    Returns: List of Group objects filtered to only valid groups in the org/projects
-    """
-    groups: list[Group] = []
-    # Convert all group IDs to integers and filter out any non-integer values
-    group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
-    if group_ids_int:
-        return list(
-            Group.objects.filter(
-                project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
-            ).select_related("project")
-        )
-    else:
-        project_ids = {p.id for p in projects}
-        for group_id in group_ids:
-            if isinstance(group_id, str):
-                try:
-                    group = Group.objects.by_qualified_short_id(organization_id, group_id)
-                except Group.DoesNotExist:
-                    continue
-                if group.project_id in project_ids:
-                    groups.append(group)
-
-    return groups
 
 
 def handle_resolve_in_release(
@@ -880,22 +843,15 @@ def greatest_semver_release(project: Project) -> Release | None:
 
 
 def get_semver_releases(project: Project) -> QuerySet[Release]:
-    order_by_build_code = features.has(
-        "organizations:semver-ordering-with-build-code", project.organization
-    )
-
-    semver_cols = (
-        Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
-    )
+    semver_cols = Release.SEMVER_COLS_WITH_BUILD_CODE
 
     qs = (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
         .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
+        .annotate_build_code_column()
     )
-    if order_by_build_code:
-        qs = qs.annotate_build_code_column()
     return qs.order_by(*[f"-{col}" for col in semver_cols])
 
 
@@ -1052,7 +1008,7 @@ def handle_is_public(
 
 
 def handle_assigned_to(
-    assigned_actor: Actor,
+    assigned_actor: Actor | None,
     assigned_by: str | None,
     integration: str | None,
     group_list: Sequence[Group],
@@ -1073,7 +1029,7 @@ def handle_assigned_to(
         if integration in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
         else dict()
     )
-    if assigned_actor:
+    if assigned_actor is not None:
         resolved_actor = assigned_actor.resolve()
         for group in group_list:
             assignment = GroupAssignee.objects.assign(

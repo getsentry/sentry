@@ -12,7 +12,7 @@ from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.uuid import UUIDField
 
 
-def default_guid():
+def default_guid() -> str:
     return uuid4().hex
 
 
@@ -57,7 +57,7 @@ class Relocation(DefaultFieldsModelExisting):
             return [(key.value, key.name) for key in cls if key.name != "COMPLETED"]
 
         @classmethod
-        def max_value(cls):
+        def max_value(cls) -> int:
             return max(item.value for item in cls)
 
     class Status(Enum):
@@ -242,14 +242,17 @@ class RelocationFile(DefaultFieldsModelExisting):
             else:
                 raise ValueError("Cannot extract a filename from `RelocationFile.Kind.UNKNOWN`.")
 
-        def to_filename(self, ext: str):
+        def to_filename(self, ext: str) -> str:
             return str(self) + "." + ext
 
     relocation = FlexibleForeignKey("sentry.Relocation")
     file = FlexibleForeignKey("sentry.File")
     kind = models.SmallIntegerField(choices=Kind.get_choices())
 
-    __repr__ = sane_repr("relocation", "file")
+    # The path to the file within the shared storage bucket.
+    bucket_path = models.CharField(null=True)
+
+    __repr__ = sane_repr("relocation", "kind", "bucket_path", "file")
 
     class Meta:
         unique_together = (("relocation", "file"), ("relocation", "kind"))

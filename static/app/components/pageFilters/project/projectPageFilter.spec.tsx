@@ -731,6 +731,47 @@ describe('ProjectPageFilter', () => {
     expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
   });
 
+  it('sorts bookmarked non-member projects above unbookmarked member projects', async () => {
+    const projectsWithMixedMembership = [
+      ProjectFixture({id: '1', slug: 'selected-project', isMember: true}),
+      ProjectFixture({id: '2', slug: 'member-project', isMember: true}),
+      ProjectFixture({
+        id: '3',
+        slug: 'bookmarked-non-member',
+        isMember: false,
+        isBookmarked: true,
+      }),
+      ProjectFixture({id: '4', slug: 'non-member-project', isMember: false}),
+    ];
+
+    ProjectsStore.loadInitialData(projectsWithMixedMembership);
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+
+    render(<ProjectPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
+
+    const projectRows = screen.getAllByRole('row');
+
+    // Skip the 2 special items (All Projects, My Projects)
+    expect(within(projectRows[2]!).getByText('selected-project')).toBeInTheDocument();
+    expect(
+      within(projectRows[3]!).getByText('bookmarked-non-member')
+    ).toBeInTheDocument();
+    expect(within(projectRows[4]!).getByText('member-project')).toBeInTheDocument();
+    expect(within(projectRows[5]!).getByText('non-member-project')).toBeInTheDocument();
+  });
+
   it('maintains stable sort when bookmarking, then applies new sort on menu reopen', async () => {
     const mockApi = MockApiClient.addMockResponse({
       method: 'PUT',

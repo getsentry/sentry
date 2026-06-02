@@ -31,18 +31,20 @@ function ChangeCounts({
   removed,
   changed,
   unchanged,
+  skipped,
   comparisonState,
 }: {
   added: number;
   changed: number;
   comparisonState: SnapshotComparisonState | null | undefined;
   removed: number;
+  skipped: number;
   unchanged: number;
 }) {
   if (comparisonState !== 'success') {
     return <Text variant="muted">{'–'}</Text>;
   }
-  if (added === 0 && removed === 0 && changed === 0) {
+  if (added === 0 && removed === 0 && changed === 0 && skipped === 0) {
     return (
       <Text size="sm" variant="muted">
         {t('No changes')}
@@ -61,6 +63,9 @@ function ChangeCounts({
   }
   if (unchanged > 0) {
     parts.push(t('%s unchanged', unchanged));
+  }
+  if (skipped > 0) {
+    parts.push(t('%s skipped', skipped));
   }
   return (
     <Text size="sm" variant="muted">
@@ -113,6 +118,7 @@ export function PreprodBuildsSnapshotTable({
               removed={info?.images_removed ?? 0}
               changed={info?.images_changed ?? 0}
               unchanged={info?.images_unchanged ?? 0}
+              skipped={info?.images_skipped ?? 0}
               comparisonState={info?.comparison_state}
             />
           </SimpleTable.RowCell>

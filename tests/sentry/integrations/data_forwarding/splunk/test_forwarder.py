@@ -6,6 +6,7 @@ from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class SplunkDataForwarderTest(TestCase):
@@ -129,3 +130,44 @@ class SplunkDataForwarderTest(TestCase):
         assert result["event"]["user_ip_trunc"] == "127.0.0.0"
         assert result["index"] == "main"
         assert result["source"] == "sentry"
+
+    def test_get_task_payload(self) -> None:
+        config = self.data_forwarder_project.get_config()
+        event = self.store_event(
+            data={"server_name": "web01.example.com"},
+            project_id=self.project.id,
+        )
+        self.forwarder.initialize_variables(event, config)
+        assert self.forwarder.get_task_payload(event, config) == {"host": "web01.example.com"}
+
+        event = self.store_event(
+            data={"user": {"ip_address": "127.0.0.1"}},
+            project_id=self.project.id,
+        )
+        self.forwarder.initialize_variables(event, config)
+        assert self.forwarder.get_task_payload(event, config) == {"host": "127.0.0.1"}
+
+        event = self.store_event(
+            data={"message": "no host info"},
+            project_id=self.project.id,
+        )
+        self.forwarder.initialize_variables(event, config)
+        assert self.forwarder.get_task_payload(event, config) == {"host": None}
+
+    @responses.activate
+    @override_options({"data-forwarding.task-rollout-rate": 1.0})
+    def test_forward_event_from_task(self) -> None:
+        responses.add(responses.POST, "https://splunk.example.com:8088/services/collector")
+
+        event = self.store_event(
+            data={"server_name": "web01.example.com"},
+            project_id=self.project.id,
+        )
+        with self.tasks():
+            self.forwarder.post_process(event, self.data_forwarder_project)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        payload = orjson.loads(request.body)
+        assert payload["host"] == "web01.example.com"
+        assert request.headers["Authorization"] == "Splunk 12345678-1234-1234-1234-1234567890AB"

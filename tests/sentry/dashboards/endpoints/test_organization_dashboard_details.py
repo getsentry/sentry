@@ -440,169 +440,165 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["isFavorited"] is True
 
     def test_explore_url_for_transaction_widget(self) -> None:
-        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
-            dashboard_deprecation = Dashboard.objects.create(
-                title="Dashboard With Transaction Widget",
-                created_by_id=self.user.id,
-                organization=self.organization,
-            )
-            widget_deprecation = DashboardWidget.objects.create(
-                dashboard=dashboard_deprecation,
-                title="transaction widget",
-                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
-                interval="1d",
-                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            )
+        dashboard_deprecation = Dashboard.objects.create(
+            title="Dashboard With Transaction Widget",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget_deprecation = DashboardWidget.objects.create(
+            dashboard=dashboard_deprecation,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
 
-            DashboardWidgetQuery.objects.create(
-                widget=widget_deprecation,
-                fields=["count()", "transaction"],
-                columns=["transaction"],
-                aggregates=["count()"],
-                conditions="count():>50",
-                orderby="-count",
-                order=0,
-            )
-            response = self.do_request("get", self.url(dashboard_deprecation.id))
-            assert response.status_code == 200
-            explore_url = response.data["widgets"][0]["exploreUrls"][0]
-            assert "http://testserver/explore/traces/" in explore_url
+        DashboardWidgetQuery.objects.create(
+            widget=widget_deprecation,
+            fields=["count()", "transaction"],
+            columns=["transaction"],
+            aggregates=["count()"],
+            conditions="count():>50",
+            orderby="-count",
+            order=0,
+        )
+        response = self.do_request("get", self.url(dashboard_deprecation.id))
+        assert response.status_code == 200
+        explore_url = response.data["widgets"][0]["exploreUrls"][0]
+        assert "http://testserver/explore/traces/" in explore_url
 
-            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
-            assert params["query"] == ["(count(span.duration):>50) AND is_transaction:1"]
-            assert params["sort"] == ["-count(span.duration)"]
-            assert params["mode"] == ["aggregate"]
-            assert params["aggregateField"] == [
-                '{"groupBy":"transaction"}',
-                '{"yAxes":["count(span.duration)"],"chartType":1}',
-            ]
+        params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+        assert params["query"] == ["(count(span.duration):>50) AND is_transaction:1"]
+        assert params["sort"] == ["-count(span.duration)"]
+        assert params["mode"] == ["aggregate"]
+        assert params["aggregateField"] == [
+            '{"groupBy":"transaction"}',
+            '{"yAxes":["count(span.duration)"],"chartType":1}',
+        ]
 
     def test_explore_url_for_table_widget(self) -> None:
-        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
-            dashboard_deprecation = Dashboard.objects.create(
-                title="Dashboard With Transaction Widget",
-                created_by_id=self.user.id,
-                organization=self.organization,
-            )
-            widget_deprecation = DashboardWidget.objects.create(
-                dashboard=dashboard_deprecation,
-                title="table widget",
-                display_type=DashboardWidgetDisplayTypes.TABLE,
-                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
-                interval="1d",
-                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            )
+        dashboard_deprecation = Dashboard.objects.create(
+            title="Dashboard With Transaction Widget",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget_deprecation = DashboardWidget.objects.create(
+            dashboard=dashboard_deprecation,
+            title="table widget",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
 
-            DashboardWidgetQuery.objects.create(
-                widget=widget_deprecation,
-                fields=["id", "title"],
-                columns=["id", "title"],
-                aggregates=[],
-                order=0,
-            )
+        DashboardWidgetQuery.objects.create(
+            widget=widget_deprecation,
+            fields=["id", "title"],
+            columns=["id", "title"],
+            aggregates=[],
+            order=0,
+        )
 
-            response = self.do_request("get", self.url(dashboard_deprecation.id))
-            assert response.status_code == 200
-            explore_url = response.data["widgets"][0]["exploreUrls"][0]
-            assert "http://testserver/explore/traces/" in explore_url
+        response = self.do_request("get", self.url(dashboard_deprecation.id))
+        assert response.status_code == 200
+        explore_url = response.data["widgets"][0]["exploreUrls"][0]
+        assert "http://testserver/explore/traces/" in explore_url
 
-            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
-            assert params["query"] == ["is_transaction:1"]
-            assert "sort" not in params
-            assert params["mode"] == ["samples"]
-            # need to sort because fields order is not guaranteed
-            assert params["field"].sort() == ["id", "transaction"].sort()
-            assert "aggregateField" not in params
+        params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+        assert params["query"] == ["is_transaction:1"]
+        assert "sort" not in params
+        assert params["mode"] == ["samples"]
+        # need to sort because fields order is not guaranteed
+        assert params["field"].sort() == ["id", "transaction"].sort()
+        assert "aggregateField" not in params
 
     def test_explore_url_for_widget_with_discover_split_param(self) -> None:
-        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
-            dashboard_deprecation = Dashboard.objects.create(
-                title="Dashboard With Transaction Widget",
-                created_by_id=self.user.id,
-                organization=self.organization,
-                filters={
-                    "release": ["1.0.0", "2.0.0"],
-                },
-            )
-            widget_deprecation = DashboardWidget.objects.create(
-                dashboard=dashboard_deprecation,
-                title="transaction widget",
-                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-                widget_type=DashboardWidgetTypes.DISCOVER,
-                discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
-                interval="1d",
-                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            )
+        dashboard_deprecation = Dashboard.objects.create(
+            title="Dashboard With Transaction Widget",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            filters={
+                "release": ["1.0.0", "2.0.0"],
+            },
+        )
+        widget_deprecation = DashboardWidget.objects.create(
+            dashboard=dashboard_deprecation,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
 
-            DashboardWidgetQuery.objects.create(
-                widget=widget_deprecation,
-                fields=["count()", "transaction"],
-                columns=["transaction"],
-                aggregates=["count()"],
-                conditions="count():>50",
-                orderby="-count",
-                order=0,
-            )
+        DashboardWidgetQuery.objects.create(
+            widget=widget_deprecation,
+            fields=["count()", "transaction"],
+            columns=["transaction"],
+            aggregates=["count()"],
+            conditions="count():>50",
+            orderby="-count",
+            order=0,
+        )
 
-            response = self.do_request("get", self.url(dashboard_deprecation.id))
-            assert response.status_code == 200
-            explore_url = response.data["widgets"][0]["exploreUrls"][0]
-            assert "http://testserver/explore/traces/" in explore_url
+        response = self.do_request("get", self.url(dashboard_deprecation.id))
+        assert response.status_code == 200
+        explore_url = response.data["widgets"][0]["exploreUrls"][0]
+        assert "http://testserver/explore/traces/" in explore_url
 
-            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
-            assert params["query"] == [
-                "(count(span.duration):>50) AND is_transaction:1 AND release:1.0.0,2.0.0"
-            ]
-            assert params["sort"] == ["-count(span.duration)"]
-            assert params["mode"] == ["aggregate"]
-            assert params["aggregateField"] == [
-                '{"groupBy":"transaction"}',
-                '{"yAxes":["count(span.duration)"],"chartType":1}',
-            ]
+        params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+        assert params["query"] == [
+            "(count(span.duration):>50) AND is_transaction:1 AND release:1.0.0,2.0.0"
+        ]
+        assert params["sort"] == ["-count(span.duration)"]
+        assert params["mode"] == ["aggregate"]
+        assert params["aggregateField"] == [
+            '{"groupBy":"transaction"}',
+            '{"yAxes":["count(span.duration)"],"chartType":1}',
+        ]
 
     def test_explore_url_for_deformed_widget(self) -> None:
-        with self.feature("organizations:transaction-widget-deprecation-explore-view"):
-            dashboard_deprecation = Dashboard.objects.create(
-                title="Dashboard With Transaction Widget",
-                created_by_id=self.user.id,
-                organization=self.organization,
-            )
-            widget_deprecation = DashboardWidget.objects.create(
-                dashboard=dashboard_deprecation,
-                title="line widget",
-                display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-                widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
-                interval="1d",
-                detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-            )
+        dashboard_deprecation = Dashboard.objects.create(
+            title="Dashboard With Transaction Widget",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget_deprecation = DashboardWidget.objects.create(
+            dashboard=dashboard_deprecation,
+            title="line widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
 
-            DashboardWidgetQuery.objects.create(
-                widget=widget_deprecation,
-                fields=["query.dataset"],
-                columns=["query.dataset"],
-                aggregates=["p95(transaction.duration)"],
-                orderby="-p95(transaction.duration)",
-                conditions="transaction:/api/0/organizations/{organization_id_or_slug}/events/",
-                order=0,
-            )
+        DashboardWidgetQuery.objects.create(
+            widget=widget_deprecation,
+            fields=["query.dataset"],
+            columns=["query.dataset"],
+            aggregates=["p95(transaction.duration)"],
+            orderby="-p95(transaction.duration)",
+            conditions="transaction:/api/0/organizations/{organization_id_or_slug}/events/",
+            order=0,
+        )
 
-            response = self.do_request("get", self.url(dashboard_deprecation.id))
-            assert response.status_code == 200
-            explore_url = response.data["widgets"][0]["exploreUrls"][0]
-            assert "http://testserver/explore/traces/" in explore_url
+        response = self.do_request("get", self.url(dashboard_deprecation.id))
+        assert response.status_code == 200
+        explore_url = response.data["widgets"][0]["exploreUrls"][0]
+        assert "http://testserver/explore/traces/" in explore_url
 
-            params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
-            assert params["query"] == [
-                "(transaction:/api/0/organizations/{organization_id_or_slug}/events/) AND is_transaction:1"
-            ]
-            assert params["sort"] == ["-p95(span.duration)"]
-            assert params["mode"] == ["aggregate"]
-            assert params["field"].sort() == ["query.dataset", "span.duration"].sort()
-            assert params["aggregateField"] == [
-                '{"groupBy":"query.dataset"}',
-                '{"yAxes":["p95(span.duration)"],"chartType":1}',
-            ]
+        params = dict(parse_qs(urlsplit(response.data["widgets"][0]["exploreUrls"][0]).query))
+        assert params["query"] == [
+            "(transaction:/api/0/organizations/{organization_id_or_slug}/events/) AND is_transaction:1"
+        ]
+        assert params["sort"] == ["-p95(span.duration)"]
+        assert params["mode"] == ["aggregate"]
+        assert params["field"].sort() == ["query.dataset", "span.duration"].sort()
+        assert params["aggregateField"] == [
+            '{"groupBy":"query.dataset"}',
+            '{"yAxes":["p95(span.duration)"],"chartType":1}',
+        ]
 
     def test_changed_reason_response(self) -> None:
         response = self.do_request("get", self.url(self.dashboard.id))
@@ -1242,7 +1238,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Widget with long description",
                     "displayType": "line",
-                    "description": "x" * 256,
+                    "description": "x" * 351,
                     "interval": "5m",
                     "queries": [
                         {
@@ -1259,7 +1255,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert response.data["widgets"][1]["description"] == [
-            "Ensure description has no more than 255 characters."
+            "Ensure description has no more than 350 characters."
         ]
 
     def test_add_text_widget_description_exceeds_max_length(self) -> None:
@@ -1276,32 +1272,30 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature("organizations:dashboards-text-widgets"):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 200, response.data
-            assert response.data["widgets"][1]["description"] == "x" * 256
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][1]["description"] == "x" * 256
 
     def test_update_text_widget_description_exceeds_15000_chars(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "First dashboard",
-                "widgets": [
-                    {"id": str(self.widget_1.id)},
-                    {
-                        "id": str(self.widget_2.id),
-                        "title": "Text Widget",
-                        "displayType": "text",
-                        "description": "x" * 15001,
-                    },
-                ],
-            }
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 400, response.data
-            assert "description" in response.data["widgets"][1], response.data
-            assert (
-                response.data["widgets"][1]["description"][0]
-                == "Description must not exceed 15,000 characters"
-            )
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "id": str(self.widget_2.id),
+                    "title": "Text Widget",
+                    "displayType": "text",
+                    "description": "x" * 15001,
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert "description" in response.data["widgets"][1], response.data
+        assert (
+            response.data["widgets"][1]["description"][0]
+            == "Description must not exceed 15,000 characters"
+        )
 
     def test_add_widget_with_limit(self) -> None:
         data = {
@@ -3819,37 +3813,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200
 
     def test_add_text_widget_to_dashboard(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "First dashboard",
-                "widgets": [
-                    {"id": str(self.widget_1.id)},
-                    {"id": str(self.widget_2.id)},
-                    {
-                        "title": "Text Widget",
-                        "displayType": "text",
-                        "description": "This is a text widget description",
-                    },
-                ],
-            }
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 200, response.data
-
-            widgets = response.data["widgets"]
-            assert len(widgets) == 3
-
-            # Last widget should be the text widget
-            text_widget = widgets[2]
-            assert text_widget["title"] == "Text Widget"
-            assert text_widget["displayType"] == "text"
-            assert text_widget["description"] == "This is a text widget description"
-            assert text_widget.get("widgetType") is None
-
-    def test_add_text_widget_without_feature_flag(self) -> None:
         data = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id)},
+                {"id": str(self.widget_2.id)},
                 {
                     "title": "Text Widget",
                     "displayType": "text",
@@ -3858,72 +3826,77 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ],
         }
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
-        assert response.status_code == 400, response.data
-        assert "widgets" in response.data, response.data
-        # Error is on the second widget (index 1), the new text widget; first widget has no errors
-        assert "Text widgets are not enabled" in response.data["widgets"][1]["displayType"][0]
+        assert response.status_code == 200, response.data
+
+        widgets = response.data["widgets"]
+        assert len(widgets) == 3
+
+        # Last widget should be the text widget
+        text_widget = widgets[2]
+        assert text_widget["title"] == "Text Widget"
+        assert text_widget["displayType"] == "text"
+        assert text_widget["description"] == "This is a text widget description"
+        assert text_widget.get("widgetType") is None
 
     def test_update_widget_to_text_widget(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "First dashboard",
-                "widgets": [
-                    {
-                        "id": str(self.widget_1.id),
-                        "title": "Updated to Text Widget",
-                        "displayType": "text",
-                        "description": "Now it's a text widget",
-                    },
-                    {"id": str(self.widget_2.id)},
-                ],
-            }
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 200, response.data
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Updated to Text Widget",
+                    "displayType": "text",
+                    "description": "Now it's a text widget",
+                },
+                {"id": str(self.widget_2.id)},
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
 
-            widgets = response.data["widgets"]
-            assert len(widgets) == 2
+        widgets = response.data["widgets"]
+        assert len(widgets) == 2
 
-            # First widget should now be a text widget
-            text_widget = widgets[0]
-            assert text_widget["title"] == "Updated to Text Widget"
-            assert text_widget["displayType"] == "text"
-            assert text_widget["description"] == "Now it's a text widget"
-            assert text_widget.get("widgetType") is None
-            assert text_widget["queries"] == []
+        # First widget should now be a text widget
+        text_widget = widgets[0]
+        assert text_widget["title"] == "Updated to Text Widget"
+        assert text_widget["displayType"] == "text"
+        assert text_widget["description"] == "Now it's a text widget"
+        assert text_widget.get("widgetType") is None
+        assert text_widget["queries"] == []
 
-            # Verify in database that queries were removed
-            widget = DashboardWidget.objects.get(id=self.widget_1.id)
-            assert widget.display_type == DashboardWidgetDisplayTypes.TEXT
-            assert widget.widget_type is None
-            assert DashboardWidgetQuery.objects.filter(widget=widget).count() == 0
+        # Verify in database that queries were removed
+        widget = DashboardWidget.objects.get(id=self.widget_1.id)
+        assert widget.display_type == DashboardWidgetDisplayTypes.TEXT
+        assert widget.widget_type is None
+        assert DashboardWidgetQuery.objects.filter(widget=widget).count() == 0
 
     def test_text_widget_errors_provided_queries(self) -> None:
-        with self.feature("organizations:dashboards-text-widgets"):
-            data = {
-                "title": "First dashboard",
-                "widgets": [
-                    {"id": str(self.widget_1.id)},
-                    {
-                        "title": "Text Widget with Queries",
-                        "displayType": "text",
-                        "description": "This should ignore queries",
-                        "queries": [
-                            {
-                                "name": "errors",
-                                "conditions": "event.type:error",
-                                "fields": ["count()"],
-                                "columns": [],
-                                "aggregates": ["count()"],
-                            }
-                        ],
-                    },
-                ],
-            }
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
-            assert response.status_code == 400, response.data
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Text Widget with Queries",
+                    "displayType": "text",
+                    "description": "This should ignore queries",
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "conditions": "event.type:error",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
 
-            assert "queries" in response.data["widgets"][1], response.data
-            assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
+        assert "queries" in response.data["widgets"][1], response.data
+        assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
 
     def test_put_creates_dashboard_revision_when_feature_enabled(self) -> None:
         with self.feature("organizations:dashboards-revisions"):

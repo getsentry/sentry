@@ -8,7 +8,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -16,17 +15,8 @@ from sentry.api.fields.actor import OwnerActorField
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.apidocs.constants import (
-    RESPONSE_ACCEPTED,
-    RESPONSE_FORBIDDEN,
-    RESPONSE_NOT_FOUND,
-    RESPONSE_UNAUTHORIZED,
-)
-from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
-from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
 from sentry.constants import ALERTS_API_DEPRECATION_DATE
 from sentry.incidents.endpoints.bases import WorkflowEngineOrganizationAlertRuleEndpoint
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     DetailedWorkflowEngineDetectorSerializer,
     WorkflowEngineDetectorSerializer,
@@ -118,30 +108,11 @@ def update_alert_rule(
             return Response({"uuid": client.uuid}, status=202)
         else:
             updated_rule = validator.save()
-            if features.has(
-                "organizations:workflow-engine-metric-alert-endpoints-put", organization
-            ):
-                try:
-                    detector = Detector.objects.get(
-                        alertruledetector__alert_rule_id=updated_rule.id
-                    )
-                    return Response(
-                        serialize(
-                            detector,
-                            request.user,
-                            WorkflowEngineDetectorSerializer(),
-                        ),
-                        status=status.HTTP_200_OK,
-                    )
-                except Detector.DoesNotExist:
-                    logger.error(
-                        "Alert rule was not dual written. Returning serialized rule instead of detector",
-                        extra={"rule_id": updated_rule.id},
-                    )
-                    return Response(
-                        serialize(updated_rule, request.user), status=status.HTTP_200_OK
-                    )
-            return Response(serialize(updated_rule, request.user), status=status.HTTP_200_OK)
+            detector = Detector.objects.get(alertruledetector__alert_rule_id=updated_rule.id)
+            return Response(
+                serialize(detector, request.user, WorkflowEngineDetectorSerializer()),
+                status=status.HTTP_200_OK,
+            )
 
     return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -313,14 +284,6 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
 
     @extend_schema(
         operation_id="(DEPRECATED) Retrieve a Metric Alert Rule for an Organization",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
-        responses={
-            200: AlertRuleSerializer,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=MetricAlertExamples.GET_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
@@ -349,15 +312,6 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
 
     @extend_schema(
         operation_id="(DEPRECATED) Update a Metric Alert Rule",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
-        request=OrganizationAlertRuleDetailsPutSerializer,
-        responses={
-            200: AlertRuleSerializer,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=MetricAlertExamples.UPDATE_METRIC_ALERT_RULE,
     )
     @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-alert-rule-details")
     @deprecated(
@@ -391,13 +345,6 @@ class OrganizationAlertRuleDetailsEndpoint(WorkflowEngineOrganizationAlertRuleEn
 
     @extend_schema(
         operation_id="(DEPRECATED) Delete a Metric Alert Rule",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
-        responses={
-            202: RESPONSE_ACCEPTED,
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
     )
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-organization-alert-rule-details")
     @deprecated(

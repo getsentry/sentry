@@ -1,14 +1,22 @@
-import {Fragment} from 'react';
+import {Component, Fragment} from 'react';
+import isFunction from 'lodash/isFunction';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
 import {Form} from 'sentry/components/deprecatedforms/form';
+import {GenericField} from 'sentry/components/deprecatedforms/genericField';
 import {FormState} from 'sentry/components/forms/state';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {PluginComponentBase} from 'sentry/plugins/pluginComponentBase';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {Plugin} from 'sentry/types/integrations';
@@ -17,10 +25,16 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 
+const callbackWithArgs = function (context: any, callback: any, ...args: any) {
+  return isFunction(callback) ? callback.bind(context, ...args) : undefined;
+};
+
+type GenericFieldProps = Parameters<typeof GenericField>[0];
+
 type Field = {
   depends?: string[];
   has_autocomplete?: boolean;
-} & Parameters<typeof PluginComponentBase.prototype.renderField>[0]['config'];
+} & Omit<GenericFieldProps, 'formState'>['config'];
 
 type ActionType = 'link' | 'create' | 'unlink';
 type FieldStateValue = (typeof FormState)[keyof typeof FormState];
@@ -45,6 +59,7 @@ type State = {
   createFormData: Record<string, any>;
   dependentFieldState: Record<string, FieldStateValue>;
   linkFormData: Record<string, any>;
+  state: FormState;
   unlinkFormData: Record<string, any>;
   createFieldList?: Field[];
   error?: {
@@ -58,11 +73,26 @@ type State = {
   linkFieldList?: Field[];
   loading?: boolean;
   unlinkFieldList?: Field[];
-} & PluginComponentBase['state'];
+};
 
-export class IssueActions extends PluginComponentBase<Props, State> {
+export class IssueActions extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
+
+    [
+      'onLoadSuccess',
+      'onLoadError',
+      'onSave',
+      'onSaveSuccess',
+      'onSaveError',
+      'onSaveComplete',
+      'renderField',
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    ].map(method => (this[method] = this[method].bind(this)));
+
+    if (this.fetchData) {
+      this.fetchData = this.onLoad.bind(this, this.fetchData.bind(this));
+    }
 
     this.createIssue = this.onSave.bind(this, this.createIssue.bind(this));
     this.linkIssue = this.onSave.bind(this, this.linkIssue.bind(this));
@@ -71,16 +101,34 @@ export class IssueActions extends PluginComponentBase<Props, State> {
     this.errorHandler = this.onLoadError.bind(this, this.errorHandler.bind(this));
 
     this.state = {
-      ...this.state,
-      loading: ['link', 'create'].includes(this.props.actionType),
       state: ['link', 'create'].includes(this.props.actionType)
         ? FormState.LOADING
         : FormState.READY,
+      loading: ['link', 'create'].includes(this.props.actionType),
       createFormData: {},
       linkFormData: {},
+      unlinkFormData: {},
       dependentFieldState: {},
-    };
+    } as Readonly<State>;
   }
+
+  componentDidMount() {
+    const plugin = this.props.plugin;
+    if (!plugin.issue && this.props.actionType !== 'unlink') {
+      this.fetchData();
+    }
+  }
+
+  componentWillUnmount() {
+    this.api.clear();
+    window.clearTimeout(this.successMessageTimeout);
+    window.clearTimeout(this.errorMessageTimeout);
+  }
+
+  successMessageTimeout: number | undefined = undefined;
+  errorMessageTimeout: number | undefined = undefined;
+
+  api = new Client();
 
   getGroup() {
     return this.props.group;
@@ -130,13 +178,6 @@ export class IssueActions extends PluginComponentBase<Props, State> {
     return this.state[key] || [];
   }
 
-  componentDidMount() {
-    const plugin = this.props.plugin;
-    if (!plugin.issue && this.props.actionType !== 'unlink') {
-      this.fetchData();
-    }
-  }
-
   getPluginCreateEndpoint() {
     return `/organizations/${this.getOrganization().slug}/issues/${this.getGroup().id}/plugins/${this.props.plugin.slug}/create/`;
   }
@@ -161,7 +202,6 @@ export class IssueActions extends PluginComponentBase<Props, State> {
     const pluginSlug = this.props.plugin.slug;
     const url = `/organizations/${this.getOrganization().slug}/issues/${groupId}/plugins/${pluginSlug}/options/`;
 
-    // find the fields that this field is dependent on
     const dependentFormValues = Object.fromEntries(
       field.depends.map((fieldKey: any) => [fieldKey, formData[fieldKey]])
     );
@@ -187,11 +227,9 @@ export class IssueActions extends PluginComponentBase<Props, State> {
       return;
     }
 
-    // find the location of the field in our list and replace it
     const indexOfField = fieldList.findIndex(({name}) => name === field.name);
     field = {...field, choices};
 
-    // make a copy of the array to avoid mutation
     fieldList = fieldList.slice();
     fieldList[indexOfField] = field;
 
@@ -210,7 +248,6 @@ export class IssueActions extends PluginComponentBase<Props, State> {
   getInputProps(field: Field) {
     const props: {isLoading?: boolean; readonly?: boolean} = {};
 
-    // special logic for fields that have dependencies
     if (field.depends && field.depends.length > 0) {
       switch (this.state.dependentFieldState[field.name]) {
         case FormState.LOADING:
@@ -251,16 +288,88 @@ export class IssueActions extends PluginComponentBase<Props, State> {
     this.setState(state);
   }
 
-  onLoadSuccess() {
-    super.onLoadSuccess();
+  onLoad(callback: any, ...args: any[]) {
+    this.setState(
+      {
+        state: FormState.LOADING,
+      },
+      callbackWithArgs(this, callback, ...args)
+    );
+  }
 
-    // dependent fields need to be set to disabled upon loading
+  onLoadSuccess() {
+    this.setState({
+      state: FormState.READY,
+    });
+
     const fieldList = this.getFieldList();
     fieldList.forEach(field => {
       if (field.depends && field.depends.length > 0) {
         this.setDependentFieldState(field.name, FormState.DISABLED);
       }
     });
+  }
+
+  onLoadError(callback: any, ...args: any[]) {
+    this.setState(
+      {
+        state: FormState.ERROR,
+      },
+      callbackWithArgs(this, callback, ...args)
+    );
+    addErrorMessage(t('An error occurred.'));
+  }
+
+  onSave(callback: any, ...args: any[]) {
+    if (this.state.state === FormState.SAVING) {
+      return;
+    }
+    callback = callbackWithArgs(this, callback, ...args);
+    this.setState(
+      {
+        state: FormState.SAVING,
+      },
+      () => {
+        addLoadingMessage(t('Saving changes…'));
+        callback?.();
+      }
+    );
+  }
+
+  onSaveSuccess(callback: any, ...args: any[]) {
+    callback = callbackWithArgs(this, callback, ...args);
+    this.setState(
+      {
+        state: FormState.READY,
+      },
+      () => callback?.()
+    );
+
+    window.clearTimeout(this.successMessageTimeout);
+    this.successMessageTimeout = window.setTimeout(() => {
+      addSuccessMessage(t('Success!'));
+    }, 0);
+  }
+
+  onSaveError(callback: any, ...args: any[]) {
+    callback = callbackWithArgs(this, callback, ...args);
+    this.setState(
+      {
+        state: FormState.ERROR,
+      },
+      () => callback?.()
+    );
+
+    window.clearTimeout(this.errorMessageTimeout);
+    this.errorMessageTimeout = window.setTimeout(() => {
+      addErrorMessage(t('Unable to save changes. Please try again.'));
+    }, 0);
+  }
+
+  onSaveComplete(callback: any, ...args: any[]) {
+    clearIndicators();
+    callback = callbackWithArgs(this, callback, ...args);
+    callback?.();
   }
 
   fetchData() {
@@ -358,7 +467,6 @@ export class IssueActions extends PluginComponentBase<Props, State> {
   changeField(action: ActionType, name: string, value: any) {
     const formDataKey = this.getFormDataKey(action);
 
-    // copy so we don't mutate
     const formData = {...this.state[formDataKey]};
     const fieldList = this.getFieldList();
 
@@ -366,25 +474,30 @@ export class IssueActions extends PluginComponentBase<Props, State> {
 
     let callback = () => {};
 
-    // only works with one impacted field
     const impactedField = fieldList.find(({depends}) => {
       if (!depends?.length) {
         return false;
       }
-      // must be dependent on the field we just set
       return depends.includes(name);
     });
 
     if (impactedField) {
-      // if every dependent field is set, then search
       if (impactedField.depends?.some(dependentField => !formData[dependentField])) {
-        // otherwise reset the options
         callback = () => this.resetOptionsOfDependentField(impactedField);
       } else {
         callback = () => this.loadOptionsForDependentField(impactedField);
       }
     }
     this.setState(prevState => ({...prevState, [formDataKey]: formData}), callback);
+  }
+
+  renderField(props: Omit<GenericFieldProps, 'formState'>): React.ReactNode {
+    props = {...props};
+    const newProps = {
+      ...props,
+      formState: this.state.state,
+    };
+    return <GenericField key={newProps.config?.name} {...newProps} />;
   }
 
   renderForm(): React.ReactNode {

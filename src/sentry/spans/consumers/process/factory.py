@@ -19,7 +19,8 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry import killswitches
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.options.rollout import in_random_rollout
-from sentry.spans.buffer import Span, SpansBuffer
+from sentry.spans.buffer import SpansBuffer
+from sentry.spans.buffer_types import Span
 from sentry.spans.consumers.process.flusher import ProduceToPipe, SpanFlusher
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics

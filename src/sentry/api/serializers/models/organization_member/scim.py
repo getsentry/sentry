@@ -8,7 +8,7 @@ from sentry.models.organizationmember import OrganizationMember
 from .response import OrganizationMemberSCIMSerializerResponse
 
 
-class OrganizationMemberSCIMSerializer(Serializer):
+class OrganizationMemberSCIMSerializer(Serializer[OrganizationMemberSCIMSerializerResponse]):
     def __init__(self, expand: Sequence[str] | None = None) -> None:
         self.expand = expand or []
 

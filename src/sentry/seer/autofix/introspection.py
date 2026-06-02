@@ -6,11 +6,12 @@ import pydantic
 
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.artifact_schemas import RootCauseArtifact, SolutionArtifact
 from sentry.seer.autofix.autofix_agent import AutofixStep
-from sentry.utils import metrics
+from sentry.seer.models.seer_api_models import SeerApiError
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -98,33 +99,50 @@ def _format_event_section(event_details: str | None) -> str:
     """)
 
 
+INTROSPECTION_SYSTEM_PROMPT = "You are a quality gate evaluating autofix outputs. Respond with JSON matching the requested schema."
+
+INTROSPECTION_RESPONSE_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "action": {
+            "type": "string",
+            "enum": ["continue", "needs_more_context", "redo", "not_actionable"],
+        },
+        "reason": {"type": "string"},
+    },
+    "required": ["action", "reason"],
+}
+
+
 def _run_introspection(
-    organization: Organization,
     run_id: int,
     step: AutofixStep,
     prompt: str,
-    artifact_key: str,
 ) -> IntrospectionDecision | None:
-    client = SeerAgentClient(
-        organization,
-        user=None,
-        category_key=f"autofix.introspection.{step.value}",
-        category_value=str(run_id),
-        intelligence_level="medium",
-        reasoning_effort="low",
-    )
-    introspection_run_id = client.start_run(
+    body = LlmGenerateRequest(
+        provider="gemini",
+        model="flash-lite",
+        referrer=f"sentry.autofix.introspection.{step.value}",
         prompt=prompt,
-        artifact_key=artifact_key,
-        artifact_schema=IntrospectionDecision,
+        system_prompt=INTROSPECTION_SYSTEM_PROMPT,
+        temperature=0.0,
+        max_tokens=500,
+        response_schema=INTROSPECTION_RESPONSE_SCHEMA,
+        reasoning="low",
     )
     with metrics.timer("autofix.introspection", tags={"step": step.value}):
-        state = client.get_run(
-            introspection_run_id,
-            blocking=True,
-            poll_timeout=30,  # only poll for 30s hopefully this is enough
-        )
-        return state.get_artifact(artifact_key, IntrospectionDecision)
+        response = make_llm_generate_request(body, timeout=30)
+        if response.status >= 400:
+            raise SeerApiError("Seer introspection request failed", response.status)
+        data = response.json()
+        content = data.get("content")
+        if not content:
+            logger.warning(
+                "autofix.introspection.empty_response",
+                extra={"run_id": run_id, "step": step.value},
+            )
+            return None
+        return IntrospectionDecision.parse_obj(json.loads(content))
 
 
 def _root_cause_introspection_prompt(
@@ -145,7 +163,6 @@ def _root_cause_introspection_prompt(
         ## Your Task
 
         Compare the root cause analysis against the issue and event evidence above. Decide whether the analysis is accurate.
-        Write your decision to the `artifact_write_introspection_decision_root_cause` tool.
 
         Choose one action:
 
@@ -192,11 +209,9 @@ def introspect_root_cause(
         )
 
         return _run_introspection(
-            organization,
             run_id,
             AutofixStep.ROOT_CAUSE,
             prompt,
-            "introspection_decision_root_cause",
         )
     except Exception:
         logger.exception(
@@ -234,7 +249,6 @@ def _solution_introspection_prompt(
         ## Your Task
 
         Evaluate whether this solution plan addresses the root cause and is specific enough for a coding agent to implement.
-        Write your decision to the `artifact_write_introspection_decision_solution` tool.
 
         Choose one action:
 
@@ -295,11 +309,9 @@ def introspect_solution(
         )
 
         return _run_introspection(
-            organization,
             run_id,
             AutofixStep.SOLUTION,
             prompt,
-            "introspection_decision_solution",
         )
     except Exception:
         logger.exception(
@@ -339,7 +351,6 @@ def _code_changes_introspection_prompt(
         ## Your Task
 
         Evaluate whether the code changes correctly implement the solution plan and address the root cause.
-        Write your decision to the `artifact_write_introspection_decision_code_changes` tool.
 
         Choose one action:
 
@@ -416,11 +427,9 @@ def introspect_code_changes(
         )
 
         return _run_introspection(
-            organization,
             run_id,
             AutofixStep.CODE_CHANGES,
             prompt,
-            "introspection_decision_code_changes",
         )
     except Exception:
         logger.exception(

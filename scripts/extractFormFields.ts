@@ -11,8 +11,14 @@ import {fileURLToPath} from 'node:url';
 
 import * as ts from 'typescript';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Named THIS_FILE / THIS_DIR rather than the conventional __filename /
+// __dirname so SWC's CJS transform (used by Jest) doesn't emit a
+// `const __dirname = ...` that collides with the wrapper-provided
+// binding and crashes the frontend test run with a SyntaxError.
+// Behavior-equivalent at runtime — the originals only shadowed the
+// wrapper inside this module.
+const THIS_FILE = fileURLToPath(import.meta.url);
+const THIS_DIR = path.dirname(THIS_FILE);
 
 interface ExtractedField {
   formId: string;
@@ -71,14 +77,22 @@ class FormFieldExtractor {
 
     for (const sourceFile of this.program.getSourceFiles()) {
       // Skip node_modules
-      if (sourceFile.fileName.includes('node_modules')) continue;
+      if (sourceFile.fileName.includes('node_modules')) {
+        continue;
+      }
 
       // Only process app files
-      if (!sourceFile.fileName.includes('static/app/')) continue;
+      if (!sourceFile.fileName.includes('static/app/')) {
+        continue;
+      }
 
       // Skip test and story files
-      if (sourceFile.fileName.includes('.spec.')) continue;
-      if (sourceFile.fileName.includes('.stories.')) continue;
+      if (sourceFile.fileName.includes('.spec.')) {
+        continue;
+      }
+      if (sourceFile.fileName.includes('.stories.')) {
+        continue;
+      }
 
       const fileFields = this.extractFromFile(sourceFile);
       fields.push(...fileFields);
@@ -169,7 +183,9 @@ class FormFieldExtractor {
 
     // Extract 'name' attribute
     const nameAttr = this.getJsxAttribute(node, 'name');
-    if (!nameAttr) return null;
+    if (!nameAttr) {
+      return null;
+    }
 
     // Extract metadata from render prop children
     const fieldMetadata = this.extractFieldMetadata(node, sourceFile);
@@ -219,7 +235,9 @@ class FormFieldExtractor {
 
         // Extract label/hintText props from any component
         const label = this.getJsxAttributeExpression(node, 'label', sourceFile);
-        if (label && !metadata.label) metadata.label = label;
+        if (label && !metadata.label) {
+          metadata.label = label;
+        }
 
         if (this.hasJsxAttribute(node, 'hintText') && !metadata.hintText) {
           const hintText = this.getJsxAttributeExpression(node, 'hintText', sourceFile);
@@ -230,7 +248,9 @@ class FormFieldExtractor {
         // Extract label from Meta.Label (text is in children)
         if (tagName?.endsWith('.Label') || tagName === 'Meta.Label') {
           const text = this.getJsxTextContent(node, sourceFile);
-          if (text && !metadata.label) metadata.label = text;
+          if (text && !metadata.label) {
+            metadata.label = text;
+          }
         }
 
         // Extract hintText from Meta.HintText (text is in children)
@@ -269,7 +289,9 @@ class FormFieldExtractor {
       // Direct text: <Meta.Label>Name</Meta.Label>
       if (ts.isJsxText(child)) {
         const text = child.text.trim();
-        if (text) return `"${text}"`;
+        if (text) {
+          return `"${text}"`;
+        }
       }
       // Expression: <Meta.Label>{t('Name')}</Meta.Label> -> t('Name')
       if (ts.isJsxExpression(child) && child.expression) {
@@ -464,14 +486,14 @@ ${registryEntries}
 
 // Main execution
 try {
-  const configPath = path.join(__dirname, '../tsconfig.json');
+  const configPath = path.join(THIS_DIR, '../tsconfig.json');
   const extractor = new FormFieldExtractor(configPath);
 
   console.log('🔍 Extracting form fields from TypeScript files...');
   const fields = extractor.extractAllFields();
 
   const outputPath = path.join(
-    __dirname,
+    THIS_DIR,
     '../static/app/components/core/form/generatedFieldRegistry.ts'
   );
 

@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 @cell_silo_endpoint
 class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
 

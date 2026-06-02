@@ -1,4 +1,5 @@
 import type {ComponentPropsWithoutRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
@@ -6,7 +7,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
+import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/eventTitle';
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
@@ -44,7 +45,7 @@ const EventDrawerContainerRoot = styled('div')<{hasPageFrameFeature: boolean}>`
 
   ${p =>
     p.hasPageFrameFeature &&
-    `
+    css`
       /* Responsive height that matches the TopBar (48px mobile, 53px desktop) */
       --event-drawer-header-height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px;
       --event-navigator-box-shadow: none;

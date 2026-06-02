@@ -35,7 +35,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
@@ -81,7 +80,6 @@ function OrganizationMembersList() {
   const queryClient = useQueryClient();
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
   const navigate = useNavigate();
   const location = useLocation();
   const {data: inviteRequests = [], refetch: refetchInviteRequests} = useApiQuery<
@@ -338,7 +336,7 @@ function OrganizationMembersList() {
 
   return (
     <Fragment>
-      <SettingsPageHeader title="Members" action={hasPageFrame ? undefined : action} />
+      <SettingsPageHeader title="Members" />
       <InviteBanner
         onSendInvite={() => {
           refetchMembers();
@@ -391,7 +389,7 @@ function OrganizationMembersList() {
               />
             )}
           </Container>
-          {hasPageFrame && action}
+          {action}
         </Flex>
       </SearchWrapperWithFilter>
       <Panel data-test-id="org-member-list">

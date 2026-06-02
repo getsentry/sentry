@@ -18,7 +18,10 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {
+  ChartIntervalUnspecifiedStrategy,
+  useChartInterval,
+} from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -120,11 +123,17 @@ export function MetricPanel({
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
-  const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const setVisualizes = useSetMetricVisualizes();
+  // use the biggest interval for the heat map as this produces better patterns
+  const [interval, setInterval, intervalOptions] = useChartInterval({
+    unspecifiedStrategy:
+      visualize.chartType === ChartType.HEATMAP
+        ? ChartIntervalUnspecifiedStrategy.USE_BIGGEST
+        : ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
+  });
 
   const [title, setTitle] = useState<string | undefined>(() => {
     if (isVisualizeEquation(visualize)) {

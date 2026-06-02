@@ -4,7 +4,7 @@ import {Global} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import type {MarkedToken} from 'sentry/utils/marked/marked';
+import type {ExtendedToken} from 'sentry/utils/marked/marked';
 import {MarkedLexer} from 'sentry/utils/marked/marked';
 
 import {Token} from './token';
@@ -42,13 +42,21 @@ export type MarkdownComponents = Partial<{
     WithDefault<{children: ReactNode; align?: 'left' | 'right' | 'center'}>
   >;
   TableRow: ComponentType<WithDefault<{children: ReactNode}>>;
+  Tag: ComponentType<
+    WithDefault<{
+      attrs: Record<string, string>;
+      data: unknown;
+      level: 'block' | 'inline';
+      name: string;
+    }>
+  >;
   TaskList: ComponentType<WithDefault<{children: ReactNode}>>;
   TaskListItem: ComponentType<WithDefault<{checked: boolean; children: ReactNode}>>;
   Text: ComponentType<WithDefault<{children: string}>>;
   UnorderedList: ComponentType<WithDefault<{children: ReactNode}>>;
 }>;
 
-interface MarkdownProps {
+export interface MarkdownProps {
   raw: string;
   components?: MarkdownComponents;
   variant?: 'static' | 'streaming';
@@ -66,7 +74,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
       tokens.map((token, i) => (
         <Token
           key={isStreaming ? `${i}:${token.raw.length}` : i}
-          token={token as MarkedToken}
+          token={token as ExtendedToken}
           components={components}
         />
       )),
@@ -110,7 +118,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
   }, [isStreaming, elements]);
 
   return (
-    <Stack ref={containerRef} gap="lg" flex={1} maxWidth="72ch">
+    <Stack ref={containerRef} gap="lg" flex={1} style={{overflowWrap: 'break-word'}}>
       {isStreaming && <Global styles={streamingAnimationStyles} />}
       {elements}
     </Stack>

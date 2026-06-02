@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -54,15 +55,15 @@ function initializeData({
   const initialData = initializeOrg({
     organization,
     projects: projects ? projects : [project],
-    router: {
-      location: {
-        pathname: '/performance/summary/',
-        query: {
-          transaction: '/performance',
-          project: project.id,
-          transactionCursor: '1:0:0',
-          ...query,
-        },
+  });
+  const router = RouterFixture({
+    location: {
+      pathname: '/performance/summary/',
+      query: {
+        transaction: '/performance',
+        project: project.id,
+        transactionCursor: '1:0:0',
+        ...query,
       },
     },
   });
@@ -70,14 +71,14 @@ function initializeData({
   ProjectsStore.loadInitialData(initialData.projects);
   TeamStore.loadInitialData(teams, false, null);
 
-  return initialData;
+  return {...initialData, router};
 }
 
 const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
   return render(<TransactionSummaryLayout />, {
     organization: data.organization,
     initialRouterConfig: {
-      location: data.routerProps.location,
+      location: data.router.location,
       route: '/performance/',
       children: [
         {

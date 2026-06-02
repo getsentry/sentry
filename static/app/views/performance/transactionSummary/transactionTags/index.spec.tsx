@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -24,18 +25,16 @@ function initializeData({query} = {query: {}}) {
     ...query,
   };
 
-  const initialData = initializeOrg({
-    organization,
-    router: {
-      location: {
-        query: newQuery,
-      },
+  const initialData = initializeOrg({organization});
+  const router = RouterFixture({
+    location: {
+      query: newQuery,
     },
   });
 
   act(() => ProjectsStore.loadInitialData(initialData.projects));
 
-  return initialData;
+  return {...initialData, router};
 }
 
 const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
@@ -44,7 +43,7 @@ const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
     initialRouterConfig: {
       location: {
         pathname: '/performance/summary/tags/',
-        query: data.routerProps.location.query,
+        query: data.router.location.query,
       },
       route: '/performance/summary/',
       children: [

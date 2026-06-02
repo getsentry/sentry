@@ -4,10 +4,15 @@ import {Lexer as MarkedLexer, Marked, marked} from 'marked'; // eslint-disable-l
 import {markedHighlight} from 'marked-highlight';
 import Prism from 'prismjs';
 
+import {extensions} from 'sentry/utils/marked/extensions';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 export {MarkedLexer};
 export type {MarkedToken, Token};
+export type {ExtendedToken} from './extensions';
+
+// globally registered, applies to all instances
+marked.use({extensions: [...extensions]});
 
 const SAFE_LINK_PATTERN = /^(https?:|mailto:)/i;
 const INTERNAL_PATH_PATTERN = /^\/[^/]/;
@@ -40,13 +45,6 @@ class SafeRenderer extends marked.Renderer {
 
     const out = super.link(tokens);
     return sanitizeHtml(out);
-  }
-}
-
-class NoHeadingRenderer extends SafeRenderer {
-  heading(tokens: Tokens.Heading) {
-    // Render headings as bold text instead of h1-h6 elements
-    return super.strong({...tokens, type: 'strong'});
   }
 }
 
@@ -176,17 +174,6 @@ export const asyncSanitizedMarked = (src: string, inline?: boolean): Promise<str
  */
 export const sanitizedMarked = (src: string): string => {
   return noHighlightingMarked.parse(src, {async: false});
-};
-
-/**
- * Renders markdown without any heading tags applied.
- * WARNING: Does not apply any syntax highlighting.
- */
-export const sanitizedMarkedNoHeadings = (src: string): string => {
-  return noHighlightingMarked.parse(src, {
-    async: false,
-    renderer: new NoHeadingRenderer(),
-  });
 };
 
 /**

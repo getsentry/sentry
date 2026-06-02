@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping
 from typing import Any
 from urllib.parse import urlparse
 
-from django import forms
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import BooleanField, CharField, URLField
 
 from sentry import features, http
-from sentry.identity.pipeline import IdentityPipeline
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.identity.oauth2 import OAuth2ApiStep
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -46,8 +46,8 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
-from sentry.pipeline.views.nested import NestedPipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -57,7 +57,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.utils import jwt, metrics
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
 
 from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
@@ -554,141 +553,100 @@ class GitHubEnterpriseIntegration(
             self.org_integration = org_integration
 
 
-class InstallationForm(forms.Form):
-    url = forms.CharField(
-        label="Installation Url",
-        help_text=_(
-            'The "base URL" for your GitHub instance — e.g. https://github.com (for a '
-            "custom GitHub App on github.com), https://acme-corp.ghe.com (GitHub Enterprise "
-            "Cloud), or https://github.example.com (GitHub Enterprise Server)."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
-    )
-    id = forms.CharField(
-        label="GitHub App ID",
-        help_text=_(
-            "The App ID of your Sentry app. This can be found on your apps configuration page."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": "1"}),
-    )
-    name = forms.CharField(
-        label="GitHub App Name",
-        help_text=_(
-            "The GitHub App name of your Sentry app. "
-            "This can be found on the apps configuration "
-            "page."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": "our-sentry-app"}),
-    )
-    public_link = forms.URLField(
-        label="Public Link (GitHub Enterprise Server only)",
-        help_text=_("The publicly available link for your GitHub App in GitHub Enterprise Server"),
-        widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
-        required=False,
-        assume_scheme="https",
-    )
-    verify_ssl = forms.BooleanField(
-        label=_("Verify SSL"),
-        help_text=_(
-            "By default, we verify SSL certificates "
-            "when delivering payloads to your GitHub "
-            "Enterprise instance"
-        ),
-        widget=forms.CheckboxInput(),
-        required=False,
-    )
-    webhook_secret = forms.CharField(
-        label="GitHub App Webhook Secret",
-        help_text=_(
-            "We require a webhook secret to be "
-            "configured. This can be generated as any "
-            "random string value of your choice and "
-            "should match your GitHub app "
-            "configuration."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXX"}),
-    )
-    private_key = forms.CharField(
-        label="GitHub App Private Key",
-        help_text=_("The Private Key generated for your Sentry GitHub App."),
-        widget=forms.Textarea(
-            attrs={
-                "rows": "60",
-                "placeholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
-            }
-        ),
-    )
-    client_id = forms.CharField(
-        label="GitHub App OAuth Client ID", widget=forms.TextInput(attrs={"placeholder": "1"})
-    )
-    client_secret = forms.CharField(
-        label="GitHub App OAuth Client Secret",
-        widget=forms.TextInput(attrs={"placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXX"}),
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["verify_ssl"].initial = True
+class GHEInstallationConfigSerializer(CamelSnakeSerializer):
+    url = URLField(required=True)
+    id = CharField(required=True)
+    name = CharField(required=True)
+    public_link = URLField(required=False, allow_blank=True, default="")
+    verify_ssl = BooleanField(required=False, default=True)
+    webhook_secret = CharField(required=True)
+    private_key = CharField(required=True)
+    client_id = CharField(required=True)
+    client_secret = CharField(required=True)
 
 
-class InstallationConfigView:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if request.method == "POST":
-            form = InstallationForm(request.POST)
-            if form.is_valid():
-                form_data = form.cleaned_data
-                parsed = urlparse(form_data["url"])
-                # Tolerate input without a scheme — `urlparse("github.com").netloc` is empty
-                # and the host lands in `path`. Without this, OAuth URLs become malformed
-                # (`https:///login/...`) and the github.com flag gate below is bypassed.
-                form_data["url"] = (parsed.netloc or parsed.path).strip("/").lower()
+class GHEInstallationConfigApiStep:
+    step_name = "installation_config"
 
-                if form_data["url"] == "github.com" and not features.has(
-                    "organizations:github-enterprise-github-com-source",
-                    pipeline.organization,
-                ):
-                    form.add_error(
-                        "url",
-                        _(
-                            "Installing on github.com is not enabled for your organization. "
-                            "Contact Sentry support to request access."
-                        ),
-                    )
-                    return render_to_response(
-                        template="sentry/integrations/github-enterprise-config.html",
-                        context={"form": form},
-                        request=request,
-                    )
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {
+            "defaults": {
+                "verifySsl": True,
+            },
+        }
 
-                if not form_data["public_link"]:
-                    form_data["public_link"] = None
+    def get_serializer_cls(self) -> type:
+        return GHEInstallationConfigSerializer
 
-                pipeline.bind_state("installation_data", form_data)
+    def handle_post(
+        self,
+        validated_data: dict[str, Any],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        validated_data["url"] = urlparse(validated_data["url"]).netloc.lower()
 
-                pipeline.bind_state(
-                    "oauth_config_information",
-                    {
-                        "access_token_url": "https://{}/login/oauth/access_token".format(
-                            form_data.get("url")
-                        ),
-                        "authorize_url": "https://{}/login/oauth/authorize".format(
-                            form_data.get("url")
-                        ),
-                        "client_id": form_data.get("client_id"),
-                        "client_secret": form_data.get("client_secret"),
-                        "verify_ssl": form_data.get("verify_ssl"),
-                    },
-                )
+        if not validated_data["public_link"]:
+            validated_data["public_link"] = None
 
-                return pipeline.next_step()
-        else:
-            form = InstallationForm()
-
-        return render_to_response(
-            template="sentry/integrations/github-enterprise-config.html",
-            context={"form": form},
-            request=request,
+        pipeline.bind_state("installation_data", validated_data)
+        pipeline.bind_state(
+            "oauth_config_information",
+            {
+                "access_token_url": f"https://{validated_data['url']}/login/oauth/access_token",
+                "authorize_url": f"https://{validated_data['url']}/login/oauth/authorize",
+                "client_id": validated_data["client_id"],
+                "client_secret": validated_data["client_secret"],
+                "verify_ssl": validated_data["verify_ssl"],
+            },
         )
+        return PipelineStepResult.advance()
+
+
+class GHEAppInstallSerializer(CamelSnakeSerializer):
+    installation_id = CharField(required=False, allow_blank=True, default="")
+
+
+def _get_app_install_url(installation_data: Mapping[str, Any]) -> str:
+    if installation_data.get("public_link"):
+        return installation_data["public_link"]
+
+    url = installation_data.get("url")
+    name = installation_data.get("name")
+    # github.com uses /apps/{name}; GHES uses /github-apps/{name}.
+    if url == "github.com":
+        return f"https://{url}/apps/{name}"
+    return f"https://{url}/github-apps/{name}"
+
+
+class GHEAppInstallRedirectApiStep:
+    step_name = "app_install_redirect"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        installation_data = pipeline.fetch_state("installation_data")
+        if installation_data is None:
+            raise AssertionError("pipeline called out of order")
+        return {"appInstallUrl": _get_app_install_url(installation_data)}
+
+    def get_serializer_cls(self) -> type:
+        return GHEAppInstallSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, Any],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        installation_id = validated_data.get("installation_id")
+        if not installation_id:
+            installation_data = pipeline.fetch_state("installation_data")
+            if installation_data is None:
+                raise AssertionError("pipeline called out of order")
+            return PipelineStepResult.stay(
+                data={"appInstallUrl": _get_app_install_url(installation_data)}
+            )
+        pipeline.bind_state("installation_id", installation_id)
+        return PipelineStepResult.advance()
 
 
 class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
@@ -706,43 +664,30 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         ]
     )
 
-    def _make_identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
-        """
-        Make the nested identity provider view. It is important that this view is
-        not constructed until we reach this step and the
-        ``oauth_config_information`` is available in the pipeline state. This
-        method should be late bound into the pipeline vies.
-        """
-        oauth_information = self.pipeline.fetch_state("oauth_config_information")
-        if oauth_information is None:
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
+        return []
+
+    def _make_oauth_api_step(self) -> OAuth2ApiStep:
+        oauth_info = self.pipeline.fetch_state("oauth_config_information")
+        if oauth_info is None:
             raise AssertionError("pipeline called out of order")
-
-        identity_pipeline_config = dict(
-            oauth_scopes=(),
+        return OAuth2ApiStep(
+            authorize_url=oauth_info["authorize_url"],
+            client_id=oauth_info["client_id"],
+            client_secret=oauth_info["client_secret"],
+            access_token_url=oauth_info["access_token_url"],
+            scope="",
             redirect_url=absolute_uri("/extensions/github-enterprise/setup/"),
-            **oauth_information,
+            verify_ssl=oauth_info.get("verify_ssl", True),
+            bind_key="oauth_data",
         )
 
-        return NestedPipelineView(
-            bind_key="identity",
-            provider_key=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-            pipeline_cls=IdentityPipeline,
-            config=identity_pipeline_config,
-        )
-
-    def get_pipeline_views(
-        self,
-    ) -> Sequence[
-        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
-    ]:
-        return (
-            InstallationConfigView(),
-            GitHubEnterpriseInstallationRedirect(),
-            # The identity provider pipeline should be constructed at execution
-            # time, this allows for the oauth configuration parameters to be made
-            # available from the installation config view.
-            lambda: self._make_identity_pipeline_view(),
-        )
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [
+            GHEInstallationConfigApiStep(),
+            GHEAppInstallRedirectApiStep(),
+            lambda: self._make_oauth_api_step(),
+        ]
 
     def post_install(
         self,
@@ -792,7 +737,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         return None
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        identity = state["identity"]["data"]
+        identity = state["oauth_data"]
         installation_data = state["installation_data"]
         user = get_user_info(installation_data["url"], identity["access_token"])
         installation = self._get_ghe_installation_info(
@@ -835,25 +780,3 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             GitHubEnterpriseRepositoryProvider,
             id="integrations:github_enterprise",
         )
-
-
-class GitHubEnterpriseInstallationRedirect:
-    def get_app_url(self, installation_data):
-        if installation_data.get("public_link"):
-            return installation_data["public_link"]
-
-        url = installation_data.get("url")
-        name = installation_data.get("name")
-        # github.com uses /apps/{name}; GHES uses /github-apps/{name}.
-        if url == "github.com":
-            return f"https://{url}/apps/{name}"
-        return f"https://{url}/github-apps/{name}"
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        installation_data = pipeline.fetch_state(key="installation_data")
-
-        if "installation_id" in request.GET:
-            pipeline.bind_state("installation_id", request.GET["installation_id"])
-            return pipeline.next_step()
-
-        return HttpResponseRedirect(self.get_app_url(installation_data))
