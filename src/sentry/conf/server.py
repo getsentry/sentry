@@ -887,6 +887,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
+    "sentry.integrations.github.tasks.link_commit_author_external_actor",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.github.tasks.sync_repos",
     "sentry.integrations.github.tasks.sync_repos_on_install_change",
