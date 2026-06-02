@@ -51,7 +51,7 @@ describe('GroupMergedView', () => {
 
     const title = await screen.findByText('Fingerprints included in this issue');
     expect(title).toBeInTheDocument();
-    expect(screen.getByTestId('pagination')).toHaveTextContent('2 of 2');
+    expect(screen.getByTestId('pagination')).toHaveTextContent('1-2 of 2');
     expect(screen.getByText(/Merged by Sentry/)).toBeInTheDocument();
     expect(screen.queryByText(mergedFingerprints[0]!.id)).not.toBeInTheDocument();
     expect(

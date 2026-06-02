@@ -1,9 +1,9 @@
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -31,6 +31,7 @@ export function MergedItem({
   toggleSelected,
 }: Props) {
   const organization = useOrganization();
+  const theme = useTheme();
   const stateForId = state.fingerprintState.get(fingerprint.id);
   const busy = Boolean(stateForId?.busy);
   const collapsed = stateForId?.collapsed ?? state.unmergeLastCollapsed;
@@ -57,11 +58,20 @@ export function MergedItem({
   const checkboxDisabled = busy || checkboxDisabledReason !== undefined;
   const latestEventTimestamp = latestEvent.dateCreated ?? latestEvent.dateReceived;
 
-  const issueLink = `/organizations/${organization.slug}/issues/${latestEvent.groupID}/events/${latestEvent.id}/?project=${latestEvent.projectID}&referrer=merged-item`;
+  const issueLink = {
+    pathname: `/organizations/${organization.slug}/issues/${latestEvent.groupID!}/events/${latestEvent.id}/`,
+    query: {project: latestEvent.projectID, referrer: 'merged-item'},
+  };
 
   return (
     <MergedGroup busy={busy}>
-      <EventRow>
+      <Grid
+        columns="minmax(0, 1fr) auto"
+        align="center"
+        gap="md"
+        background="primary"
+        padding="md"
+      >
         <Flex align="center" gap="sm" minWidth={0}>
           <Tooltip
             containerDisplayMode="flex"
@@ -117,10 +127,17 @@ export function MergedItem({
           icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />}
           onClick={handleToggleEvents}
         />
-      </EventRow>
+      </Grid>
 
       {!collapsed && (
-        <FingerprintRow>
+        <Grid
+          columns={`calc(${theme.space.xl} + ${theme.space.sm} - 2px) minmax(0, 1fr)`}
+          align="center"
+          gap="sm"
+          background="secondary"
+          borderTop="secondary"
+          padding="md"
+        >
           <FingerprintConnector aria-hidden="true" />
           <Flex align="center" gap="sm" minWidth={0}>
             <FingerprintText>
@@ -129,7 +146,7 @@ export function MergedItem({
               </Text>
             </FingerprintText>
           </Flex>
-        </FingerprintRow>
+        </Grid>
       )}
     </MergedGroup>
   );
@@ -145,27 +162,6 @@ const MergedGroup = styled('div')<{busy: boolean}>`
   & + & {
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const EventRow = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  background-color: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space.md};
-`;
-
-const FingerprintRow = styled('div')`
-  display: grid;
-  grid-template-columns:
-    calc(${p => p.theme.space.xl} + ${p => p.theme.space.sm} - 2px)
-    minmax(0, 1fr);
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  background-color: ${p => p.theme.tokens.background.secondary};
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-  padding: ${p => p.theme.space.md};
 `;
 
 const FingerprintConnector = styled('span')`

@@ -109,16 +109,20 @@ function getMergedHashesPaginationCaption({
   }
 
   const offset = parseCursor(cursor)?.offset ?? 0;
-  const end = offset + pageLength;
+  const start = offset + 1;
+  const total = offset + pageLength;
   const links = parseLinkHeader(pageLinks);
 
+  // The total count is only known on the last page, so the caption is omitted
+  // until there are no further results to page through.
   if (links.next?.results !== false) {
     return;
   }
 
-  return tct('[count] of [total]', {
-    count: end.toLocaleString(),
-    total: end.toLocaleString(),
+  return tct('[start]-[end] of [total]', {
+    start: start.toLocaleString(),
+    end: total.toLocaleString(),
+    total: total.toLocaleString(),
   });
 }
 
