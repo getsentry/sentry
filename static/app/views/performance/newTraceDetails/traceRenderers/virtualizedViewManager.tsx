@@ -632,17 +632,26 @@ export class VirtualizedViewManager {
       }
 
       const physicalDeltaPct = distance / this.view.trace_physical_space.width;
-      const compressedView = this.getCompressedView();
-      const compressedDelta = physicalDeltaPct * compressedView.width;
-      const nextCompressedLeft = compressedView.left + compressedDelta;
-      const nextCompressedRight = compressedView.right + compressedDelta;
-      const nextRealLeft = this.time_compression.toRealTimestamp(nextCompressedLeft);
-      const nextRealRight = this.time_compression.toRealTimestamp(nextCompressedRight);
 
-      this.scheduler.dispatch('set trace view', {
-        x: nextRealLeft - this.view.to_origin,
-        width: nextRealRight - nextRealLeft,
-      });
+      if (this.time_compression.enabled) {
+        const compressedView = this.getCompressedView();
+        const compressedDelta = physicalDeltaPct * compressedView.width;
+        const nextCompressedLeft = compressedView.left + compressedDelta;
+        const nextCompressedRight = compressedView.right + compressedDelta;
+        const nextRealLeft = this.time_compression.toRealTimestamp(nextCompressedLeft);
+        const nextRealRight = this.time_compression.toRealTimestamp(nextCompressedRight);
+
+        this.scheduler.dispatch('set trace view', {
+          x: nextRealLeft - this.view.to_origin,
+          width: nextRealRight - nextRealLeft,
+        });
+      } else {
+        const view_delta = physicalDeltaPct * this.view.trace_view.width;
+
+        this.scheduler.dispatch('set trace view', {
+          x: this.view.trace_view.x + view_delta,
+        });
+      }
     }
   }
 
