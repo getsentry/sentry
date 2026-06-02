@@ -89,6 +89,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -98,9 +100,20 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/eslint-stylish.json"
 
-      - name: eslint
+      - name: eslint (all files)
         id: eslint
+        if: needs.files-changed.outputs.merge_base == ''
         run: pnpm run lint:js
+
+      # When files-changed computed a merge base (frontend-only PRs), lint just the files
+      # transitively impacted by the PR. Otherwise (master, non-frontend changes, or no merge
+      # base) lint everything — the same fallback the Jest job uses.
+      - name: eslint (impacted files)
+        id: eslint-impacted
+        if: needs.files-changed.outputs.merge_base != ''
+        run: pnpm exec run-on-changed --since "$MERGE_BASE" -- eslint --concurrency=3
+        env:
+          MERGE_BASE: ${{ needs.files-changed.outputs.merge_base }}
 
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
