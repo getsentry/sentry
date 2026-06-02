@@ -37,20 +37,25 @@ class DetailResponse(TypedDict):
     detail: str
 
 
-ValidationErrorResponse: TypeAlias = dict[str, list[str]]
-"""DRF's flat validation-error body shape: `{field_name: [error_message, ...]}`.
+ValidationErrorResponse: TypeAlias = dict[str, Any]
+"""DRF's validation-error body shape: `{field_name: <errors>, ...}`.
 
-The runtime value of `serializer.errors` is a `ReturnDict[Any, Any]` that
-mypy can't structurally match against any typed `Response[T]` union arm.
-Use this alias as the validation-error arm:
+DRF emits a few different value shapes here depending on the serializer:
+- Flat field errors: `{"field": ["error msg", ...]}`
+- Nested (e.g. `Serializer` with a nested `Serializer` field):
+  `{"field": {"nested_field": ["error msg", ...]}}`
+- Non-field errors (raised in `validate()`):
+  `{"non_field_errors": ["error msg", ...]}`
+
+The alias is intentionally `dict[str, Any]` — narrower types like
+`dict[str, list[str]]` collapse the nested-dict case and lose the error
+messages at runtime. The runtime value of `serializer.errors` is a
+`ReturnDict[Any, Any]` that mypy can't structurally match against any
+typed `Response[T]` union arm, so use this alias as the union arm:
 
     def post(...) -> Response[FooResponse] | Response[ValidationErrorResponse]:
 
 and produce the body via `as_validation_errors(serializer)` below.
-
-Limitation: this alias is for *flat* serializers (field names → list of
-error strings). Nested serializers whose `.errors` produce
-`{field: {nested_field: [...]}}` shapes need a richer local type.
 """
 
 
@@ -58,10 +63,13 @@ def as_validation_errors(
     serializer: serializers.Serializer[Any],
 ) -> ValidationErrorResponse:
     """Project a DRF `Serializer.errors` ReturnDict into a structurally typed
-    `dict[str, list[str]]` so a `Response[ValidationErrorResponse]` union arm
-    is satisfied without `cast()`. Use immediately after `not serializer.is_valid()`:
+    `dict[str, Any]` so a `Response[ValidationErrorResponse]` union arm is
+    satisfied without `cast()`. The DRF error structure (flat or nested) is
+    preserved verbatim — only the static type is narrowed.
+
+    Use immediately after `not serializer.is_valid()`:
 
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
     """
-    return {k: list(v) for k, v in serializer.errors.items()}
+    return dict(serializer.errors)
