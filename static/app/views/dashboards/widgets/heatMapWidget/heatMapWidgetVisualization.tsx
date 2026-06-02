@@ -247,13 +247,13 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                 },
               };
 
-              if (makeExploreUrl) {
-                tracesLink = makeExploreUrl(metricsQuery ?? '', filteredSelection);
+              if (makeExploreUrl && metricsQuery) {
+                tracesLink = makeExploreUrl(metricsQuery, filteredSelection);
               }
             }
 
-            if (makeLocalQueryUpdateUrl) {
-              localQueryUpdateUrl = makeLocalQueryUpdateUrl(metricsQuery ?? '');
+            if (makeLocalQueryUpdateUrl && metricsQuery) {
+              localQueryUpdateUrl = makeLocalQueryUpdateUrl(metricsQuery);
             }
 
             return (
@@ -267,7 +267,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                 {defined(tracesLink) && (
                   <div>
                     <span className="tooltip-label tooltip-label-centered">
-                      <a id="traces-link" data-traces-link={tracesLink} href={tracesLink}>
+                      <a data-traces-link={tracesLink} href={tracesLink}>
                         {t('View connected spans')}
                       </a>
                     </span>
@@ -277,7 +277,6 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                   <div>
                     <span className="tooltip-label tooltip-label-centered">
                       <a
-                        id="local-query-update-link"
                         data-local-query-update-url={localQueryUpdateUrl}
                         href={localQueryUpdateUrl}
                       >
