@@ -45,7 +45,7 @@ class ErrorsQueryBuilderMixin:
     def parse_query(self, query: str | None) -> ParsedTerms:
         parsed_terms = cast(ParsedTerms, cast(Any, super()).parse_query(query))
         parsed_terms = convert_query_values(
-            parsed_terms,
+            cast(Any, parsed_terms),
             self.params.projects,
             self.params.user,
             list(filter(None, self.params.environments)),
@@ -84,7 +84,9 @@ class ErrorsQueryBuilderMixin:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        cast(Any, super()).resolve_query(query, selected_columns, groupby_columns, equations, orderby)
+        cast(Any, super()).resolve_query(
+            query, selected_columns, groupby_columns, equations, orderby
+        )
         self.resolve_match()
 
     def aliased_column(self, name: str) -> SelectType:
