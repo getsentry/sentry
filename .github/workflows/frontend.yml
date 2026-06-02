@@ -35,6 +35,7 @@ jobs:
       frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
       merge_base: ${{ steps.merge_base.outputs.merge_base }}
       merge_base_strategy: ${{ steps.merge_base.outputs.merge_base_strategy }}
+      jest_test_matrix: ${{ steps.calc-test-matrix.outputs.jest_test_matrix }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -73,6 +74,18 @@ jobs:
           fi
           echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
           echo "merge_base_strategy=${STRATEGY}" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate Test Matrix
+        id: calc-test-matrix
+        run: |
+          RUNNERS=8
+          if [ "$STRATEGY" == "changedSince" ]; then
+            RUNNERS=1
+          fi
+          # Create a JSON array for indices [1, 2, ... RUNNERS]
+          JSON_ARRAY=$(seq 1 $RUNNERS | jq -R . | jq -s .)
+          # Output the full matrix object
+          echo "jest_test_matrix=$(jq -n --argjson indices "$JSON_ARRAY" '{index: $indices, total: [$RUNNERS]}')" >> $GITHUB_OUTPUT
 
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
@@ -179,9 +192,7 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
-
-        instance: [0, 1, 2, 3, 4, 5, 6, 7]
+        instance: ${{ fromJson(needs.files-changed.outputs.jest_test_matrix) }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -198,7 +209,7 @@ jobs:
           path: |
             .cache/jest
             ~/.cache/swc
-          key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.instance }}
+          key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.instance.index }}
           restore-keys: |
             jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-
             jest-cache-${{ runner.os }}-
@@ -218,13 +229,12 @@ jobs:
 
       - name: jest
         env:
+          CI_NODE_TOTAL: ${{ matrix.instance.total }}
+          CI_NODE_INDEX: ${{ matrix.instance.index }}
+
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-          #      Otherwise, if there are other things in the matrix, using strategy.job-total
-          #      wouldn't be correct.
-          CI_NODE_TOTAL: 8
-          CI_NODE_INDEX: ${{ matrix.instance }}
+
           # Disable testing-library from printing out any of of the DOM to
           # stdout. No one actually looks through this in CI, they're just
           # going to run it locally.
