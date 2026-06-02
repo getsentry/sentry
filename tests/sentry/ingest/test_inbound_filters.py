@@ -28,14 +28,12 @@ def exception_matches_filters(
 
 
 def test_custom_error_filter_empty() -> None:
+    # With no custom values configured, the filter is a no-op and must be omitted from
+    # the Relay config entirely rather than emitting an empty condition.
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
         condition = _custom_error_filter()
 
-    assert condition == {
-        "op": "any",
-        "name": "event.exception.values",
-        "inner": {"op": "or", "inner": []},
-    }
+    assert condition is None
     assert not exception_matches_filters("MyError", "Something went wrong in checkout", [])
 
 
@@ -63,12 +61,27 @@ def test_custom_error_filter_builds_one_rule_per_pattern() -> None:
 
 
 @django_db_all
-def test_custom_error_filter_enabled_by_default(default_project: Project) -> None:
-    # The `filters:custom-error` project option defaults to "1", so the filter must be
-    # emitted for every project without any explicit opt-in.
+def test_custom_error_filter_omitted_without_custom_values(default_project: Project) -> None:
+    # The option is enabled by default for all projects, but with no configured custom
+    # values the filter must not appear in the Relay config (no empty no-op condition).
     assert default_project.get_option("filters:custom-error") == "1"
 
-    generic_filters = get_generic_filters(default_project)
+    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
+        generic_filters = get_generic_filters(default_project)
+
+    # Other default filters keep the config non-empty; only custom-error is omitted.
+    assert generic_filters is not None
+    filter_ids = {f["id"] for f in generic_filters["filters"]}
+    assert "custom-error" not in filter_ids
+
+
+@django_db_all
+def test_custom_error_filter_emitted_with_custom_values(default_project: Project) -> None:
+    assert default_project.get_option("filters:custom-error") == "1"
+
+    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
+        generic_filters = get_generic_filters(default_project)
+
     assert generic_filters is not None
     filter_ids = {f["id"] for f in generic_filters["filters"]}
     assert "custom-error" in filter_ids
