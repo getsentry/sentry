@@ -434,9 +434,6 @@ const RootElement = styled('div')`
   }
 `;
 
-// Styling mirrors the secondary navigation ResizeHandle: a static seam with an
-// accent bar that lights up on hover/drag. Kept local for now; could be made
-// reusable in a follow-up.
 const DividerLine = styled('div')`
   user-select: none;
 
