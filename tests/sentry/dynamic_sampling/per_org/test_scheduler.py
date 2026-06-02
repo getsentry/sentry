@@ -6,7 +6,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
-from sentry.dynamic_sampling.per_org.queries import ProjectVolume
+from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.per_org.scheduler import (
     BUCKET_COUNT,
     BUCKET_CURSOR_KEY,
@@ -195,13 +195,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
                 return_value=[
-                    {
-                        "org_id": org.id,
-                        "project_id": project.id,
-                        "transaction_counts": [("checkout", 1.0)],
-                        "total_num_transactions": 1.0,
-                        "total_num_classes": 1,
-                    }
+                    ProjectTransactionCounts(
+                        org_id=org.id,
+                        project_id=project.id,
+                        transaction_counts=[("checkout", 1.0)],
+                    )
                 ],
             ) as get_transaction_volumes,
             patch(
@@ -222,7 +220,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
-            transaction_config, get_transaction_volumes.return_value
+            transaction_config, project_volumes, get_transaction_volumes.return_value
         )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
@@ -340,13 +338,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
                 return_value=[
-                    {
-                        "org_id": org.id,
-                        "project_id": project.id,
-                        "transaction_counts": [("checkout", 1.0)],
-                        "total_num_transactions": 1.0,
-                        "total_num_classes": 1,
-                    }
+                    ProjectTransactionCounts(
+                        org_id=org.id,
+                        project_id=project.id,
+                        transaction_counts=[("checkout", 1.0)],
+                    )
                 ],
             ) as get_transaction_volumes,
             patch(
@@ -364,9 +360,8 @@ class SchedulePerOrgCalculationsTest(TestCase):
         _assert_called_once_with_config(get_project_volumes, org.id)
         project_balancing.assert_not_called()
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
-        assert get_transaction_volumes.call_args.kwargs == {"project_volumes": project_volumes}
         transaction_balancing.assert_called_once_with(
-            transaction_config, get_transaction_volumes.return_value
+            transaction_config, project_volumes, get_transaction_volumes.return_value
         )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
@@ -406,13 +401,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
                 return_value=[
-                    {
-                        "org_id": org.id,
-                        "project_id": project.id,
-                        "transaction_counts": [("checkout", 1.0)],
-                        "total_num_transactions": 1.0,
-                        "total_num_classes": 1,
-                    }
+                    ProjectTransactionCounts(
+                        org_id=org.id,
+                        project_id=project.id,
+                        transaction_counts=[("checkout", 1.0)],
+                    )
                 ],
             ) as get_transaction_volumes,
             patch(
@@ -433,7 +426,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
-            transaction_config, get_transaction_volumes.return_value
+            transaction_config, project_volumes, get_transaction_volumes.return_value
         )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
@@ -497,13 +490,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
                 return_value=[
-                    {
-                        "org_id": org.id,
-                        "project_id": project.id,
-                        "transaction_counts": [("checkout", 1.0)],
-                        "total_num_transactions": 1.0,
-                        "total_num_classes": 1,
-                    }
+                    ProjectTransactionCounts(
+                        org_id=org.id,
+                        project_id=project.id,
+                        transaction_counts=[("checkout", 1.0)],
+                    )
                 ],
             ) as get_transaction_volumes,
             patch(
@@ -524,7 +515,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
-            transaction_config, get_transaction_volumes.return_value
+            transaction_config, project_volumes, get_transaction_volumes.return_value
         )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})

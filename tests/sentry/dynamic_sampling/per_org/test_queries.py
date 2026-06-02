@@ -12,6 +12,7 @@ from sentry.dynamic_sampling.per_org.configuration import (
 from sentry.dynamic_sampling.per_org.queries import (
     DynamicSamplingQueryFields,
     DynamicSamplingQueryFilters,
+    ProjectTransactionCounts,
     ProjectVolume,
     get_eap_organization_volume,
     get_eap_project_volumes,
@@ -423,20 +424,16 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         assert volumes == [
-            {
-                "org_id": organization.id,
-                "project_id": project.id,
-                "transaction_counts": [("checkout", 3), ("product", 1)],
-                "total_num_transactions": 4,
-                "total_num_classes": 2,
-            },
-            {
-                "org_id": organization.id,
-                "project_id": other_project.id,
-                "transaction_counts": [("checkout", 1)],
-                "total_num_transactions": 1,
-                "total_num_classes": 1,
-            },
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[("checkout", 3), ("product", 1)],
+            ),
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=other_project.id,
+                transaction_counts=[("checkout", 1)],
+            ),
         ]
 
     def test_get_eap_transaction_volumes_without_projects(self) -> None:
@@ -445,66 +442,6 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         volumes = get_eap_transaction_volumes(self.get_config(organization))
 
         assert volumes == []
-
-    def test_get_eap_transaction_volumes_uses_project_volumes_totals(self) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        timestamp = before_now(minutes=15)
-
-        # Two stored transactions account for 2 events, but the project's true
-        # totals — passed in as project_volumes — claim 100 events across 50
-        # distinct transactions. The function should prefer those totals.
-        self.store_spans(
-            [
-                self.create_span(
-                    {
-                        "is_segment": True,
-                        "data": {
-                            "dsc.transaction": "checkout",
-                            "dsc.project_id": str(project.id),
-                        },
-                    },
-                    organization=organization,
-                    project=project,
-                    start_ts=timestamp,
-                ),
-                self.create_span(
-                    {
-                        "is_segment": True,
-                        "data": {
-                            "dsc.transaction": "product",
-                            "dsc.project_id": str(project.id),
-                        },
-                    },
-                    organization=organization,
-                    project=project,
-                    start_ts=timestamp,
-                ),
-            ]
-        )
-
-        volumes = get_eap_transaction_volumes(
-            self.get_config(organization),
-            project_volumes=[
-                ProjectVolume(
-                    project_id=project.id,
-                    total=100,
-                    keep=50,
-                    drop=50,
-                    num_distinct_transactions=50,
-                )
-            ],
-        )
-
-        assert volumes == [
-            {
-                "org_id": organization.id,
-                "project_id": project.id,
-                "transaction_counts": [("checkout", 1), ("product", 1)],
-                "total_num_transactions": 100,
-                "total_num_classes": 50,
-            }
-        ]
 
     def test_get_eap_transaction_volumes_attributes_to_originating_project(self) -> None:
         organization = self.create_organization()
@@ -534,13 +471,11 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         volumes = get_eap_transaction_volumes(self.get_config(organization))
 
         assert volumes == [
-            {
-                "org_id": organization.id,
-                "project_id": originating_project.id,
-                "transaction_counts": [("checkout", 1)],
-                "total_num_transactions": 1,
-                "total_num_classes": 1,
-            }
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=originating_project.id,
+                transaction_counts=[("checkout", 1)],
+            )
         ]
 
     def test_get_eap_transaction_volumes_with_max_transactions_caps_total_rows(self) -> None:
@@ -587,18 +522,14 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         # Top 2 rows globally: project/alpha (3) and other_project/beta (2);
         # project/gamma is excluded by the cap.
         assert volumes == [
-            {
-                "org_id": organization.id,
-                "project_id": project.id,
-                "transaction_counts": [("alpha", 3)],
-                "total_num_transactions": 3,
-                "total_num_classes": 1,
-            },
-            {
-                "org_id": organization.id,
-                "project_id": other_project.id,
-                "transaction_counts": [("beta", 2)],
-                "total_num_transactions": 2,
-                "total_num_classes": 1,
-            },
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[("alpha", 3)],
+            ),
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=other_project.id,
+                transaction_counts=[("beta", 2)],
+            ),
         ]

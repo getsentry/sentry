@@ -16,9 +16,8 @@ from sentry.dynamic_sampling.per_org.calculations import (
     run_project_balancing,
     run_transaction_balancing,
 )
-from sentry.dynamic_sampling.per_org.queries import ProjectVolume
+from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import ProjectTransactions
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -137,14 +136,12 @@ def _project_transactions(
     org_id: int,
     project_id: int,
     transaction_counts: list[tuple[str, float]],
-) -> ProjectTransactions:
-    return {
-        "org_id": org_id,
-        "project_id": project_id,
-        "transaction_counts": transaction_counts,
-        "total_num_transactions": sum(count for _, count in transaction_counts),
-        "total_num_classes": len(transaction_counts),
-    }
+) -> ProjectTransactionCounts:
+    return ProjectTransactionCounts(
+        org_id=org_id,
+        project_id=project_id,
+        transaction_counts=transaction_counts,
+    )
 
 
 class TransactionBalancingCalculationsTest(TestCase):
@@ -167,6 +164,7 @@ class TransactionBalancingCalculationsTest(TestCase):
         ) as model_run:
             run_transaction_balancing(
                 config,
+                [_project_volume(project_a.id), _project_volume(project_b.id)],
                 [
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
@@ -192,6 +190,7 @@ class TransactionBalancingCalculationsTest(TestCase):
         ) as model_run:
             result = run_transaction_balancing(
                 config,
+                [_project_volume(project_a.id), _project_volume(project_b.id)],
                 [
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
@@ -304,17 +303,19 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert extras[1]["is_equal"] is False
 
 
-def _branch3_transactions(org_id: int, project_id: int) -> ProjectTransactions:
-    """Construct an input that drives TransactionsRebalancingModel into branch 3
-    (explicit pool too small to absorb its budget share), producing an implicit
-    rate below the base sample rate."""
-    return {
-        "org_id": org_id,
-        "project_id": project_id,
-        "transaction_counts": [("tiny", 5.0)],
-        "total_num_transactions": 1000.0,
-        "total_num_classes": 10,
-    }
+def _branch3_project_volume(project_id: int) -> ProjectVolume:
+    """The full-project totals that drive TransactionsRebalancingModel into
+    branch 3 (explicit pool too small to absorb its budget share), producing an
+    implicit rate below the base sample rate."""
+    return ProjectVolume(
+        project_id=project_id, total=1000, keep=0, drop=0, num_distinct_transactions=10
+    )
+
+
+def _branch3_transactions(org_id: int, project_id: int) -> ProjectTransactionCounts:
+    return ProjectTransactionCounts(
+        org_id=org_id, project_id=project_id, transaction_counts=[("tiny", 5.0)]
+    )
 
 
 class TransactionBalancingImplicitFactorFloorTest(TestCase):
@@ -329,7 +330,11 @@ class TransactionBalancingImplicitFactorFloorTest(TestCase):
         config.min_implicit_factor = 0.0
         config.get_project_sample_rates.return_value = {project.id: 0.1}
 
-        result = run_transaction_balancing(config, [_branch3_transactions(org.id, project.id)])
+        result = run_transaction_balancing(
+            config,
+            [_branch3_project_volume(project.id)],
+            [_branch3_transactions(org.id, project.id)],
+        )
 
         _, implicit_rate = result[project.id]
         # Branch 3: implicit_rate = (100 - 5) / 995 ≈ 0.0955 — below base of 0.10.
@@ -343,7 +348,11 @@ class TransactionBalancingImplicitFactorFloorTest(TestCase):
         config.min_implicit_factor = 1.0
         config.get_project_sample_rates.return_value = {project.id: 0.1}
 
-        result = run_transaction_balancing(config, [_branch3_transactions(org.id, project.id)])
+        result = run_transaction_balancing(
+            config,
+            [_branch3_project_volume(project.id)],
+            [_branch3_transactions(org.id, project.id)],
+        )
 
         named_rates, implicit_rate = result[project.id]
         assert implicit_rate == pytest.approx(0.1)
@@ -365,7 +374,11 @@ class TransactionBalancingImplicitFactorFloorTest(TestCase):
         config.min_implicit_factor = 2.0
         config.get_project_sample_rates.return_value = {project.id: 0.1}
 
-        result = run_transaction_balancing(config, [_branch3_transactions(org.id, project.id)])
+        result = run_transaction_balancing(
+            config,
+            [_branch3_project_volume(project.id)],
+            [_branch3_transactions(org.id, project.id)],
+        )
 
         _, implicit_rate = result[project.id]
         assert implicit_rate == pytest.approx(0.2)
@@ -381,7 +394,11 @@ class TransactionBalancingImplicitFactorFloorTest(TestCase):
         config.min_implicit_factor = 20.0
         config.get_project_sample_rates.return_value = {project.id: 0.1}
 
-        result = run_transaction_balancing(config, [_branch3_transactions(org.id, project.id)])
+        result = run_transaction_balancing(
+            config,
+            [_branch3_project_volume(project.id)],
+            [_branch3_transactions(org.id, project.id)],
+        )
 
         named_rates, implicit_rate = result[project.id]
         assert implicit_rate == pytest.approx(2.0)
@@ -397,15 +414,14 @@ class TransactionBalancingImplicitFactorFloorTest(TestCase):
 
         # Branch 2 scenario: small long tail relative to its share → implicit_rate=1.0,
         # which is already well above any factor floor we'd set.
-        project_data: ProjectTransactions = {
-            "org_id": org.id,
-            "project_id": project.id,
-            "transaction_counts": [("heavy", 1000.0)],
-            "total_num_transactions": 1010.0,
-            "total_num_classes": 11,
-        }
+        project_volume = ProjectVolume(
+            project_id=project.id, total=1010, keep=0, drop=0, num_distinct_transactions=11
+        )
+        project_transactions = ProjectTransactionCounts(
+            org_id=org.id, project_id=project.id, transaction_counts=[("heavy", 1000.0)]
+        )
 
-        result = run_transaction_balancing(config, [project_data])
+        result = run_transaction_balancing(config, [project_volume], [project_transactions])
 
         _, implicit_rate = result[project.id]
         assert implicit_rate == 1.0
