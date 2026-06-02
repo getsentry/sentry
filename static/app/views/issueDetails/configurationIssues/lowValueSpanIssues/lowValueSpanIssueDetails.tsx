@@ -13,14 +13,20 @@ interface LowValueSpanIssueDetailsProps {
   project: Project;
 }
 
-export function LowValueSpanIssueDetails({event}: LowValueSpanIssueDetailsProps) {
+export function LowValueSpanIssueDetails({
+  event,
+  project,
+}: LowValueSpanIssueDetailsProps) {
   const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);
 
   return (
     <div>
       <ProblemSection evidenceData={evidenceData} />
       <SectionDivider orientation="horizontal" />
-      <TroubleshootingSection evidenceData={evidenceData} />
+      <TroubleshootingSection
+        evidenceData={evidenceData}
+        projectPlatform={project.platform}
+      />
     </div>
   );
 }

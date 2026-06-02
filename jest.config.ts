@@ -32,7 +32,6 @@ const swcConfig: SwcOptions = {
 
 const {
   CI,
-  JEST_TEST_BALANCER,
   CI_NODE_TOTAL,
   CI_NODE_INDEX,
   GITHUB_PR_SHA,
@@ -55,12 +54,6 @@ const optionalTags: {
   merge_base: MERGE_BASE || '',
   merge_base_strategy: MERGE_BASE_STRATEGY || 'full',
 };
-
-if (!!JEST_TEST_BALANCER && !CI) {
-  throw new Error(
-    '[Operation only allowed in CI]: Jest test balancer should never be ran manually as you risk skewing the numbers - please trigger the automated github workflow at https://github.com/getsentry/sentry/actions/workflows/jest-balance.yml'
-  );
-}
 
 let JEST_TESTS: string[] | undefined;
 
@@ -342,9 +335,6 @@ const config: Config.InitialOptions = {
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
   globals: {},
 
-  testResultsProcessor: JEST_TEST_BALANCER
-    ? '<rootDir>/tests/js/test-balancer/index.js'
-    : undefined,
   reporters: ['default'],
   /**
    * jest.clearAllMocks() automatically called before each test

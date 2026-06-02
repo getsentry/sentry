@@ -245,14 +245,14 @@ const InputGroup = styled('div')<{removeFieldPadding?: boolean}>`
     css`
       padding: ${p.theme.space.xl};
       padding-left: 0;
-    `};
+    `}
 
   ${FieldWrapper} {
     ${p =>
       p.removeFieldPadding &&
       css`
         padding: 0;
-      `};
+      `}
   }
 `;
 

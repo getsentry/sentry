@@ -1,8 +1,10 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal
 
 import sentry_sdk
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -34,10 +36,18 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_spans_fields import (
     BaseSpanFieldValuesAutocompletionExecutor,
 )
+from sentry.api.endpoints.organization_trace_item_attributes_types import (
+    TraceItemAttributeKey,
+    TraceItemAttributeSource,
+)
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.exceptions import InvalidSearchQuery
@@ -85,17 +95,18 @@ from sentry.utils.cursors import Cursor, CursorResult
 
 POSSIBLE_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
 
+# Subset of SupportedTraceItemType that get_column_definitions handles.
+SUPPORTED_DATASETS = [
+    SupportedTraceItemType.SPANS.value,
+    SupportedTraceItemType.LOGS.value,
+    SupportedTraceItemType.TRACEMETRICS.value,
+    SupportedTraceItemType.PREPROD.value,
+    SupportedTraceItemType.PROCESSING_ERRORS.value,
+]
+
 
 class ProxyResolvedAttribute(ResolvedAttribute):
     pass
-
-
-class TraceItemAttributeKey(TypedDict):
-    key: str
-    name: str
-    secondaryAliases: NotRequired[list[str]]
-    attributeSource: dict[str, str | bool]
-    attributeType: Literal["string", "number", "boolean"]
 
 
 class TraceItemAttributesNamesPaginator:
@@ -131,6 +142,52 @@ class TraceItemAttributesNamesPaginator:
         )
 
 
+DATASET_QUERY_PARAM = OpenApiParameter(
+    name="dataset",
+    location="query",
+    required=False,
+    type=str,
+    enum=SUPPORTED_DATASETS,
+    description="The trace item dataset to list attributes for. One of `itemType` or `dataset` is required.",
+)
+
+ITEM_TYPE_QUERY_PARAM = OpenApiParameter(
+    name="itemType",
+    location="query",
+    required=False,
+    type=str,
+    enum=SUPPORTED_DATASETS,
+    deprecated=True,
+    description="Deprecated alias of `dataset`. Use `dataset` instead.",
+)
+
+ATTRIBUTE_TYPE_QUERY_PARAM = OpenApiParameter(
+    name="attributeType",
+    location="query",
+    required=False,
+    many=True,
+    type=str,
+    enum=POSSIBLE_ATTRIBUTE_TYPES,
+    description="Filter to attributes of one or more types. Defaults to all types.",
+)
+
+SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
+    name="substringMatch",
+    location="query",
+    required=False,
+    type=str,
+    description="Restrict results to attribute names containing this substring (case-sensitive).",
+)
+
+SEARCH_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    type=str,
+    description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing attributes.",
+)
+
+
 class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -157,10 +214,8 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
-    itemType = serializers.ChoiceField(
-        [e.value for e in SupportedTraceItemType], required=False, source="item_type"
-    )
-    dataset = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=False)
+    itemType = serializers.ChoiceField(SUPPORTED_DATASETS, required=False, source="item_type")
+    dataset = serializers.ChoiceField(SUPPORTED_DATASETS, required=False)
     attributeType = serializers.MultipleChoiceField(
         choices=POSSIBLE_ATTRIBUTE_TYPES,
         required=False,
@@ -249,7 +304,7 @@ def as_attribute_key(
         public_key = name
         public_name = name
 
-    serialized_source: dict[str, str | bool] = {
+    serialized_source: TraceItemAttributeSource = {
         "source_type": (
             attribute_source["source_type"].value
             if not is_proxy
@@ -276,9 +331,42 @@ def as_attribute_key(
     return attribute_key
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
+
+    @extend_schema(
+        operation_id="List Trace Item Attributes",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            DATASET_QUERY_PARAM,
+            ITEM_TYPE_QUERY_PARAM,
+            ATTRIBUTE_TYPE_QUERY_PARAM,
+            SUBSTRING_MATCH_QUERY_PARAM,
+            SEARCH_QUERY_PARAM,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListTraceItemAttributesResponse", list[TraceItemAttributeKey]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TraceItemAttributeExamples.LIST_TRACE_ITEM_ATTRIBUTES,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        List the attribute keys available on a given trace item dataset (spans, logs,
+        trace metrics, etc.), with optional substring and structured filtering.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -330,6 +418,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.end = adjusted_end_date
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
+        debug = request.user.is_superuser and request.GET.get("debug", False)
+        debug_infos: list[dict] = []
 
         def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
             futures = []
@@ -350,20 +440,27 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             column_definitions,
                             trace_item_type,
                             include_internal,
+                            debug=debug,
                         )
                     )
             attributes = []
             for future in futures:
-                attributes.extend(future.result())
+                result_attributes, result_debug_info = future.result()
+                attributes.extend(result_attributes)
+                if result_debug_info is not None:
+                    debug_infos.append(result_debug_info)
             return attributes
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             paginator=TraceItemAttributesNamesPaginator(data_fn=data_fn),
             on_results=lambda results: serialize(results, request.user),
             default_per_page=max_attributes,
             max_per_page=max_attributes,
         )
+        if debug:
+            response.data = {"data": response.data, "debug_info": debug_infos}
+        return response
 
     def query_trace_attributes(
         self,
@@ -376,7 +473,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         column_definitions: ColumnDefinitions,
         trace_item_type: SupportedTraceItemType,
         include_internal: bool,
-    ):
+        debug: str | bool = False,
+    ) -> tuple[list[TraceItemAttributeKey], dict | None]:
+        debug_info: dict | None = None
         value_substring_match = translate_escape_sequences(substring_match)
         attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
             attribute_type, AttributeKey.Type.TYPE_STRING
@@ -445,7 +544,13 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 )
 
                 with handle_query_errors():
-                    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+                    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request, debug=debug)
+                    if debug:
+                        debug_info = {
+                            "attribute_type": attribute_type,
+                            "raw_request": MessageToDict(rpc_request),
+                            "raw_response": MessageToDict(rpc_response),
+                        }
             else:
                 rpc_response = TraceItemAttributeNamesResponse()
 
@@ -463,7 +568,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             sentry_sdk.set_context("api_response", {"attributes": attributes})
             span.set_data("attribute_count", len(attributes))
             span.set_data("attribute_type", attribute_type)
-        return attributes
+        return attributes, debug_info
 
     def serialize_trace_attributes(
         self,
