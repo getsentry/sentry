@@ -120,9 +120,7 @@ def _process_verdicts(
         and v.group_id in groups_by_id
     ]
 
-    sentry_sdk.metrics.distribution(
-        "night_shift.candidates_selected", len(triage_response.verdicts)
-    )
+    sentry_sdk.metrics.distribution("night_shift.candidates_selected", len(fixable_verdicts))
 
     results: list[SeerNightShiftRunResult] = []
     if not dry_run:
