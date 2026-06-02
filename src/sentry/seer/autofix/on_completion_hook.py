@@ -502,6 +502,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 run_id,
                 referrer=AutofixReferrer.ON_COMPLETION_HOOK,
                 state=state,
+                ready_for_review=True,
             )
         except Exception:
             logger.exception(
