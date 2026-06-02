@@ -256,7 +256,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         # "foo_bar" is not in the valid set.
         project.update_option("sentry:seer_automated_run_stopping_point", "solution")
-        project.update_option("sentry:seer_automation_handoff_point", "solution")
+        project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         project.update_option("sentry:seer_automation_handoff_target", "claude_code_agent")
         project.update_option("sentry:seer_automation_handoff_integration_id", 99)
         project.update_option("sentry:seer_automation_handoff_auto_create_pr", False)
