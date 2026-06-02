@@ -658,6 +658,17 @@ register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_
 register("slack-staging.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack-staging.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# OAuth client_ids of the official Sentry MCP apps, used by the issue action log to attribute
+# actions to the MCP (vs. arbitrary OAuth apps). client_id is unique/server-assigned, so matching
+# on it is deterministic and not spoofable (unlike name). Empty by default — the trusted set is
+# configured explicitly via options-automator (the public stdio client_id + the hosted remote one).
+register(
+    "mcp.official-client-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register(
     "seer.max_num_autofix_autotriggered_per_hour",
