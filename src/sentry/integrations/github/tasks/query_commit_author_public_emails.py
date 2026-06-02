@@ -123,8 +123,22 @@ def query_commit_author_public_emails(
                 # stamp public_email_queried_at, leaving remaining authors
                 # eligible on the retry.
                 raise
-            # Stamp on other errors (e.g. 404) so we don't keep hammering a
-            # profile that won't resolve.
+            # Only stamp on terminal client errors (e.g. 404) where the profile
+            # genuinely won't resolve. Transient errors (5xx, 401/403 auth
+            # failures, timeouts, connection issues with no status code) mean we
+            # never learned anything about this profile, so skip without
+            # stamping to keep the author eligible for a future attempt rather
+            # than excluding it for PUBLIC_EMAIL_QUERY_TTL.
+            if e.code is None or e.code >= 500 or e.code in (401, 403):
+                logger.info(
+                    "github.query_commit_author_public_emails.transient_error",
+                    extra={
+                        "organization_id": organization_id,
+                        "commit_author_id": author.id,
+                        "code": e.code,
+                    },
+                )
+                continue
             author.update(public_email_queried_at=timezone.now())
             continue
         finally:
