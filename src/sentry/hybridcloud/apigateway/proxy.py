@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, MutableMapping, Sequence
 from http.cookiejar import Cookie
 from threading import local
 from typing import Any, ParamSpec, TypeVar
@@ -49,11 +49,20 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-def retry(times: int = 3) -> Callable[[Callable[P, R]], Callable[P, R]]:
+def retry(
+    times: int = 3,
+    non_retryable_url_names: Sequence[str] = (),
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    non_retryable = frozenset(non_retryable_url_names)
+
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            max_attempts = times if options.get("apigateway.proxy.retry.enabled") else 0
+            url_name = kwargs.get("url_name")
+            if not options.get("apigateway.proxy.retry.enabled") or url_name in non_retryable:
+                max_attempts = 0
+            else:
+                max_attempts = times
             for attempt in range(max_attempts + 1):
                 try:
                     return func(*args, **kwargs)
@@ -172,7 +181,56 @@ def proxy_error_embed_request(
     return proxy_cell_request(request, cell, url_name)
 
 
-@retry()
+@retry(non_retryable_url_names=tuple(ENDPOINT_TIMEOUT_OVERRIDE))
+def _perform_request(
+    *,
+    method: str,
+    target_url: str,
+    headers: MutableMapping[str, str],
+    params: dict[str, Any] | None,
+    data: bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None,
+    timeout: float | None,
+    requester: Callable[..., ExternalResponse],
+    metric_tags: dict[str, str],
+    circuit_breaker: CircuitBreaker | None,
+    url_name: str,
+) -> ExternalResponse:
+    try:
+        with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
+            resp = requester(
+                method,
+                url=target_url,
+                headers=headers,
+                params=params,
+                data=data,
+                stream=True,
+                timeout=timeout,
+                # By default, requests resolves redirects for every verb except HEAD.
+                # Disable that to avoid misrepresenting the original sentry.io request.
+                allow_redirects=False,
+            )
+    except Timeout:
+        metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
+
+        # remote silo timeout. Use DRF timeout instead
+        raise Retryable(RequestTimeout())
+    except ConnectionError as e:
+        metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
+
+        raise Retryable(e)
+
+    if resp.status_code >= 502:
+        metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
+
+    return resp
+
+
 def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
 
@@ -240,39 +298,22 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     )
 
     try:
-        with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
-            resp = requester(
-                request.method,
-                url=target_url,
-                headers=header_dict,
-                params=dict(query_params) if query_params is not None else None,
-                data=data,
-                stream=True,
-                timeout=timeout,
-                # By default, requests resolves redirects for every verb except HEAD.
-                # Disable that to avoid misrepresenting the original sentry.io request.
-                allow_redirects=False,
-            )
-    except Timeout:
-        metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
-        if circuit_breaker is not None:
-            circuit_breaker.record_error()
-
-        # remote silo timeout. Use DRF timeout instead
-        raise Retryable(RequestTimeout())
-    except ConnectionError as e:
-        metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
-        if circuit_breaker is not None:
-            circuit_breaker.record_error()
-
-        raise Retryable(e)
-
-    if resp.status_code >= 502:
-        metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
-        if circuit_breaker is not None:
-            circuit_breaker.record_error()
-
-        raise Retryable(HTTPError(response=resp))
+        resp = _perform_request(
+            method=request.method,
+            target_url=target_url,
+            headers=header_dict,
+            params=dict(query_params) if query_params is not None else None,
+            data=data,
+            timeout=timeout,
+            requester=requester,
+            metric_tags=metric_tags,
+            circuit_breaker=circuit_breaker,
+            url_name=url_name,
+        )
+    except HTTPError as exc:
+        # Retries exhausted on a 5xx response; forward the original response to the client.
+        assert exc.response is not None
+        resp = exc.response
 
     new_headers = clean_outbound_headers(resp.headers)
     resp.headers.clear()
