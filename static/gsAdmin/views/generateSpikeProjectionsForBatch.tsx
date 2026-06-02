@@ -17,6 +17,7 @@ import {PageHeader} from 'admin/components/pageHeader';
 
 export function GenerateSpikeProjectionsForBatch() {
   const [batchId, setBatchId] = useState<number | null>(null);
+  // TODO(cells) Needs to be a list of cells
   const regions = getRegions();
   const [region, setRegion] = useState(regions[0] ?? null);
 

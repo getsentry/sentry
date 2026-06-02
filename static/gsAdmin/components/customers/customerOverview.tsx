@@ -475,6 +475,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     orgUrl = `${organization.links.organizationUrl}/issues/`;
   }
 
+  // TODO(cells) this needs the full list of cells
   const regionMap = getRegions().reduce<Record<string, string>>((acc, region) => {
     acc[region.url] = region.name;
     return acc;

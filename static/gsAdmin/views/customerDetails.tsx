@@ -323,6 +323,7 @@ export function CustomerDetails() {
     }
   };
 
+  // TODO(cells) need to have all cells here.
   const regionMap = getRegions().reduce<Record<string, string>>(
     (acc: any, region: any) => {
       acc[region.url] = region.name;

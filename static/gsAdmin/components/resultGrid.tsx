@@ -253,6 +253,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     const {cursor, query, sortBy, regionUrl} = queryParams;
 
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
+    // TODO(cells) We need cells here
     const regions = getRegions();
 
     this.state = {
@@ -484,6 +485,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       resultTable
     );
 
+    // TODO(cells) We need cells here.
     const regions = getRegions();
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
 
