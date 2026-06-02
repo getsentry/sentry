@@ -298,7 +298,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         self,
         *,
         organization_id: int,
-        repo_ids: list[int],
+        repo_ids: list[int] | None = None,
         project_ids: list[int] | None = None,
     ) -> int:
         try:
