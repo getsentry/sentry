@@ -941,8 +941,8 @@ const TraceStylingWrapper = styled('div')`
   .TraceCollapsedGapMarker {
     opacity: 0;
     position: absolute;
-    top: 0;
-    height: 100%;
+    top: 38px;
+    height: calc(100% - 38px);
     width: 28px;
     pointer-events: auto;
     cursor: zoom-in;
@@ -951,20 +951,20 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceCollapsedGapMarkerBreak {
     position: absolute;
-    top: 8px;
-    left: 0;
-    width: 28px;
-    height: calc(100% - 8px);
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-    background: linear-gradient(
-        135deg,
-        transparent 0 35%,
-        ${p => p.theme.tokens.border.primary} 35% 45%,
-        transparent 45% 55%,
-        ${p => p.theme.tokens.border.primary} 55% 65%,
-        transparent 65% 100%
-      )
-      top center / 12px 18px no-repeat;
+    top: 0;
+    left: 4px;
+    width: 20px;
+    height: 100%;
+    box-sizing: border-box;
+    color: ${p => p.theme.tokens.content.warning};
+    background-color: color-mix(in srgb, currentColor 8%, transparent);
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 8px,
+      color-mix(in srgb, currentColor 24%, transparent) 8px 10px
+    );
+    border-left: 1px solid color-mix(in srgb, currentColor 52%, transparent);
+    border-right: 1px solid color-mix(in srgb, currentColor 52%, transparent);
   }
 
   .TraceIndicatorLabelContainer {
