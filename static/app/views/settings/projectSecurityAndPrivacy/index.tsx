@@ -67,7 +67,7 @@ function getStoreCrashReportsOptions(
   value: number | typeof INHERIT_VALUE;
 }> {
   const values = getStoreCrashReportsValues(SettingScope.PROJECT).filter(
-    (value) => value !== null
+    value => value !== null
   );
   if (currentValue !== null && !values.includes(currentValue)) {
     values.push(currentValue);
