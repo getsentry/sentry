@@ -1,5 +1,6 @@
 import sentry_sdk
 from django.db import router, transaction
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from requests import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,11 +11,20 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import SentryAppInstallationStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.parsers.sentry_app_installation import SentryAppInstallationParser
 from sentry.sentry_apps.api.serializers.sentry_app_installation import (
+    SentryAppInstallationResult,
     SentryAppInstallationSerializer,
 )
 from sentry.sentry_apps.installations import (
@@ -25,18 +35,42 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError
 
+_INSTALLATION_UUID_PARAM = OpenApiParameter(
+    name="uuid",
+    location="path",
+    required=True,
+    type=str,
+    description="The UUID of the Sentry App installation.",
+)
 
+
+@extend_schema(tags=["Integration"])
 @control_silo_endpoint
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     allow_disabled_sentry_app_for_methods = {"DELETE"}
 
+    @extend_schema(
+        operation_id="Retrieve a Sentry App Installation",
+        parameters=[_INSTALLATION_UUID_PARAM],
+        responses={
+            200: inline_sentry_response_serializer(
+                "SentryAppInstallation", SentryAppInstallationResult
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(self, request: Request, installation) -> Response:
+        """
+        Return details about a single custom integration (Sentry App) installation.
+        """
         return Response(
             serialize(
                 objects=SentryAppInstallation.objects.get(id=installation.id),
@@ -45,7 +79,20 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             )
         )
 
+    @extend_schema(
+        operation_id="Uninstall a Sentry App",
+        parameters=[_INSTALLATION_UUID_PARAM],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def delete(self, request: Request, installation) -> Response:
+        """
+        Uninstall a custom integration (Sentry App) from an organization.
+        """
         sentry_app_installation = SentryAppInstallation.objects.get(id=installation.id)
         db = router.db_for_write(SentryAppInstallation)
 
@@ -86,7 +133,25 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             )
         return Response(status=204)
 
+    @extend_schema(
+        operation_id="Update a Sentry App Installation",
+        parameters=[_INSTALLATION_UUID_PARAM],
+        request=SentryAppInstallationParser,
+        responses={
+            200: inline_sentry_response_serializer(
+                "SentryAppInstallation", SentryAppInstallationResult
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def put(self, request: Request, installation) -> Response:
+        """
+        Update a custom integration (Sentry App) installation, for example to mark a
+        pending installation as installed.
+        """
         serializer = SentryAppInstallationParser(installation, data=request.data, partial=True)
 
         if serializer.is_valid():
