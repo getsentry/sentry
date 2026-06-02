@@ -971,7 +971,7 @@ def deliver_feature_result(
     handler = DELIVERY_HANDLERS.get(feature_id)
     if handler is None:
         logger.warning(
-            "feature_delivery.unknown_feature_id",
+            "seer.feature_delivery.unknown_feature_id",
             extra={"feature_id": feature_id, "ref": ref, "seer_run_id": seer_run_id},
         )
         return
