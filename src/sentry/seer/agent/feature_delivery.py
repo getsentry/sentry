@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, Protocol
+from typing import Any, Protocol
 
-from sentry.seer.night_shift.delivery import deliver_night_shift_result
-
-FeatureRunStatus = Literal["completed", "error"]
+from sentry.seer.night_shift.delivery import FeatureRunStatus, deliver_night_shift_result
 
 
 class FeatureDeliveryFn(Protocol):
