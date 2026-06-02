@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import contextlib
 import logging
+import queue
 import threading
+import time
+from concurrent.futures import as_completed
 from difflib import SequenceMatcher
 from typing import NamedTuple
 
@@ -13,6 +17,7 @@ from objectstore_client.client import RequestError
 from pydantic import ValidationError
 from taskbroker_client.retry import Retry
 
+from sentry import options
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION, compare_images_batch
@@ -20,6 +25,7 @@ from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ComparisonSummary,
+    ImageMetadata,
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
@@ -41,6 +47,16 @@ class _DiffCandidate(NamedTuple):
     head_hash: str
     base_hash: str
     pixel_count: int
+
+
+class _BatchResult(NamedTuple):
+    image_results: dict[str, dict[str, object]]
+    changed: int
+    unchanged: int
+    errored: int
+    fetched_bytes: int
+    fetched_count: int
+    duration_s: float
 
 
 class _ImageDiffResult(NamedTuple):
@@ -204,6 +220,164 @@ def _create_pixel_batches(
     return batches
 
 
+def _tally_statuses(results: dict[str, dict[str, object]]) -> tuple[int, int, int]:
+    changed = sum(1 for r in results.values() if r["status"] == "changed")
+    unchanged = sum(1 for r in results.values() if r["status"] == "unchanged")
+    errored = sum(1 for r in results.values() if r["status"] == "errored")
+    return changed, unchanged, errored
+
+
+def _process_batch(
+    batch: list[_DiffCandidate],
+    *,
+    server_pool: queue.Queue[OdiffServer],
+    session: Session,
+    image_key_prefix: str,
+    head_artifact_id: int,
+    base_artifact_id: int,
+    head_images: dict[str, ImageMetadata],
+    diff_threshold: float | None,
+) -> _BatchResult:
+    started = time.monotonic()
+    image_results: dict[str, dict[str, object]] = {}
+    fetched_bytes = fetched_count = 0
+
+    # OdiffServer and the objectstore Session are shared across worker threads:
+    # each server is checked out of the pool so only one thread uses it at a time,
+    # and Session.get/.put are thread-safe (stateless per request over a pooled connection).
+    server = server_pool.get()
+    try:
+        diff_pairs: list[tuple[bytes, bytes]] = []
+        batch_names: list[str] = []
+        batch_hashes: list[tuple[str, str]] = []
+
+        unique_hashes: set[str] = set()
+        for candidate in batch:
+            unique_hashes.add(candidate.head_hash)
+            unique_hashes.add(candidate.base_hash)
+
+        fetch_cache, failed_hashes = _fetch_batch_images(session, image_key_prefix, unique_hashes)
+
+        for candidate in batch:
+            if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
+                logger.warning(
+                    "compare_snapshots: failed to fetch images for %s",
+                    candidate.name,
+                    extra={
+                        "head_artifact_id": head_artifact_id,
+                        "head_hash": candidate.head_hash,
+                        "base_hash": candidate.base_hash,
+                    },
+                )
+                image_results[candidate.name] = {
+                    "status": "errored",
+                    "head_hash": candidate.head_hash,
+                    "base_hash": candidate.base_hash,
+                    "reason": "image_fetch_failed",
+                }
+                continue
+            head_data = fetch_cache[candidate.head_hash]
+            base_data = fetch_cache[candidate.base_hash]
+            fetched_bytes += len(head_data) + len(base_data)
+            fetched_count += 2
+            diff_pairs.append((base_data, head_data))
+            batch_names.append(candidate.name)
+            batch_hashes.append((candidate.head_hash, candidate.base_hash))
+
+        logger.info(
+            "compare_snapshots: running batch of %d pairs (%d unique hashes fetched)",
+            len(diff_pairs),
+            len(fetch_cache),
+            extra={"head_artifact_id": head_artifact_id, "names": batch_names},
+        )
+        diff_results = compare_images_batch(diff_pairs, server=server)
+
+        for name, (head_hash, base_hash), diff_result in zip(
+            batch_names, batch_hashes, diff_results, strict=True
+        ):
+            if diff_result is None:
+                image_results[name] = {
+                    "status": "errored",
+                    "head_hash": head_hash,
+                    "base_hash": base_hash,
+                    "reason": "image_processing_failed",
+                }
+                continue
+
+            stem = _image_name_to_path_stem(name)
+            diff_mask_key = (
+                f"{image_key_prefix}/{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
+            )
+            session.put(diff_result.diff_mask_png, key=diff_mask_key, content_type="image/png")
+
+            diff_pct = (
+                diff_result.changed_pixels / diff_result.total_pixels
+                if diff_result.total_pixels > 0
+                else 0
+            )
+            effective_threshold = next(
+                t for t in (head_images[name].diff_threshold, diff_threshold, 0.0) if t is not None
+            )
+            is_changed = diff_pct > effective_threshold
+
+            diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
+            image_results[name] = {
+                "status": "changed" if is_changed else "unchanged",
+                "head_hash": head_hash,
+                "base_hash": base_hash,
+                "changed_pixels": diff_result.changed_pixels,
+                "total_pixels": diff_result.total_pixels,
+                "diff_mask_key": diff_mask_key,
+                "diff_mask_image_id": diff_mask_image_id,
+                "before_width": diff_result.before_width,
+                "before_height": diff_result.before_height,
+                "after_width": diff_result.after_width,
+                "after_height": diff_result.after_height,
+                "aligned_height": diff_result.aligned_height,
+            }
+    except Exception:
+        # Isolate a batch-level failure: leave already-processed pairs intact and
+        # mark only the unprocessed ones errored, so partial progress survives.
+        logger.exception(
+            "compare_snapshots: batch failed",
+            extra={"head_artifact_id": head_artifact_id, "base_artifact_id": base_artifact_id},
+        )
+        for candidate in batch:
+            if candidate.name not in image_results:
+                image_results[candidate.name] = {
+                    "status": "errored",
+                    "head_hash": candidate.head_hash,
+                    "base_hash": candidate.base_hash,
+                    "reason": "batch_failed",
+                }
+    finally:
+        server_pool.put(server)
+
+    changed, unchanged, errored = _tally_statuses(image_results)
+    duration_s = time.monotonic() - started
+    # Per-batch detail kept at DEBUG to avoid flooding prod with one line per batch;
+    # the INFO "odiff phase complete" summary carries the aggregate.
+    logger.debug(
+        "compare_snapshots: batch done",
+        extra={
+            "head_artifact_id": head_artifact_id,
+            "pairs": len(batch),
+            "duration_s": round(duration_s, 3),
+            "changed": changed,
+            "errored": errored,
+        },
+    )
+    return _BatchResult(
+        image_results=image_results,
+        changed=changed,
+        unchanged=unchanged,
+        errored=errored,
+        fetched_bytes=fetched_bytes,
+        fetched_count=fetched_count,
+        duration_s=duration_s,
+    )
+
+
 class ImageFingerprint(NamedTuple):
     name: str
     status: str
@@ -332,7 +506,7 @@ def _try_auto_approve_snapshot(
     namespace=preprod_tasks,
     retry=Retry(times=3),
     silo_mode=SiloMode.CELL,
-    processing_deadline_duration=300,
+    processing_deadline_duration=600,
 )
 def compare_snapshots(
     project_id: int,
@@ -569,6 +743,8 @@ def compare_snapshots(
                 "eligible_for_diff": len(eligible),
                 "unchanged_count": unchanged_count,
                 "error_count": error_count,
+                # Time spent before odiff (manifest load + categorize + matching).
+                "duration_s": round((timezone.now() - task_start_time).total_seconds(), 3),
             },
         )
 
@@ -577,149 +753,69 @@ def compare_snapshots(
 
         batches = _create_pixel_batches(eligible, MAX_PIXELS_PER_BATCH)
 
+        worker_count = max(
+            1, min(options.get("preprod.snapshots.odiff-worker-count"), len(batches))
+        )
         logger.info(
             "compare_snapshots: starting odiff, %d batches, %d pairs",
             len(batches),
             len(eligible),
-            extra={"head_artifact_id": head_artifact_id},
+            extra={"head_artifact_id": head_artifact_id, "worker_count": worker_count},
         )
 
-        # TODO: spawn N OdiffServer workers and distribute pairs across them
-        # via a thread pool to parallelize the odiff comparison step per batch
-        with OdiffServer() as server:
-            for batch in batches:
-                diff_pairs: list[tuple[bytes, bytes]] = []
-                batch_names: list[str] = []
-                batch_hashes: list[tuple[str, str]] = []
+        odiff_phase_start = time.monotonic()
+        slowest_batch_s = 0.0
 
-                unique_hashes: set[str] = set()
-                for candidate in batch:
-                    unique_hashes.add(candidate.head_hash)
-                    unique_hashes.add(candidate.base_hash)
+        # Guarded so a comparison with nothing to diff doesn't spawn an idle odiff subprocess.
+        if batches:
+            with contextlib.ExitStack() as stack:
+                server_pool: queue.Queue[OdiffServer] = queue.Queue()
+                for _ in range(worker_count):
+                    server_pool.put(stack.enter_context(OdiffServer()))
 
-                # Fetch unique hashes in parallel; session.get() is thread-safe
-                fetch_cache, failed_hashes = _fetch_batch_images(
-                    session, image_key_prefix, unique_hashes
-                )
-
-                for candidate in batch:
-                    if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
-                        logger.warning(
-                            "compare_snapshots: failed to fetch images for %s",
-                            candidate.name,
-                            extra={
-                                "head_artifact_id": head_artifact_id,
-                                "head_hash": candidate.head_hash,
-                                "base_hash": candidate.base_hash,
-                            },
+                with ContextPropagatingThreadPoolExecutor(max_workers=worker_count) as executor:
+                    futures = [
+                        executor.submit(
+                            _process_batch,
+                            batch,
+                            server_pool=server_pool,
+                            session=session,
+                            image_key_prefix=image_key_prefix,
+                            head_artifact_id=head_artifact_id,
+                            base_artifact_id=base_artifact_id,
+                            head_images=head_images,
+                            diff_threshold=diff_threshold,
                         )
-                        error_count += 1
-                        image_results[candidate.name] = {
-                            "status": "errored",
-                            "head_hash": candidate.head_hash,
-                            "base_hash": candidate.base_hash,
-                            "reason": "image_fetch_failed",
-                        }
-                        continue
-                    head_data = fetch_cache[candidate.head_hash]
-                    base_data = fetch_cache[candidate.base_hash]
-                    total_fetched_bytes += len(head_data) + len(base_data)
-                    total_fetched_count += 2
-                    diff_pairs.append((base_data, head_data))
-                    batch_names.append(candidate.name)
-                    batch_hashes.append((candidate.head_hash, candidate.base_hash))
+                        for batch in batches
+                    ]
+                    for future in as_completed(futures):
+                        result = future.result()
+                        image_results.update(result.image_results)
+                        changed_count += result.changed
+                        unchanged_count += result.unchanged
+                        error_count += result.errored
+                        total_fetched_bytes += result.fetched_bytes
+                        total_fetched_count += result.fetched_count
+                        slowest_batch_s = max(slowest_batch_s, result.duration_s)
 
-                logger.info(
-                    "compare_snapshots: running batch of %d pairs (%d unique hashes fetched)",
-                    len(diff_pairs),
-                    len(fetch_cache),
-                    extra={"head_artifact_id": head_artifact_id, "names": batch_names},
-                )
-                diff_results = compare_images_batch(diff_pairs, server=server)
-                logger.info(
-                    "compare_snapshots: batch complete, %d results",
-                    len(diff_results),
-                    extra={"head_artifact_id": head_artifact_id},
-                )
-
-                for name, (head_hash, base_hash), diff_result in zip(
-                    batch_names, batch_hashes, diff_results, strict=True
-                ):
-                    if diff_result is None:
-                        error_count += 1
-                        image_results[name] = {
-                            "status": "errored",
-                            "head_hash": head_hash,
-                            "base_hash": base_hash,
-                            "reason": "image_processing_failed",
-                        }
-                        continue
-
-                    stem = _image_name_to_path_stem(name)
-                    diff_mask_key = (
-                        f"{image_key_prefix}/{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
-                    )
-                    diff_mask_bytes = diff_result.diff_mask_png
-                    logger.info(
-                        "compare_snapshots: uploading mask for %s (%d bytes, changed_px=%d)",
-                        name,
-                        len(diff_mask_bytes),
-                        diff_result.changed_pixels,
-                        extra={
-                            "head_artifact_id": head_artifact_id,
-                            "diff_mask_key": diff_mask_key,
-                        },
-                    )
-                    session.put(diff_mask_bytes, key=diff_mask_key, content_type="image/png")
-
-                    diff_pct = (
-                        diff_result.changed_pixels / diff_result.total_pixels
-                        if diff_result.total_pixels > 0
-                        else 0
-                    )
-                    specific_image_diff_threshold = head_images[name].diff_threshold
-                    effective_threshold = (
-                        specific_image_diff_threshold
-                        if specific_image_diff_threshold is not None
-                        else diff_threshold
-                        if diff_threshold is not None
-                        else 0.0
-                    )
-                    is_changed = diff_pct > effective_threshold
-                    if is_changed:
-                        changed_count += 1
-                    else:
-                        unchanged_count += 1
-
-                    logger.debug(
-                        "compare_snapshots: %s diff_pct=%.6f threshold=%s (per_image=%s global=%s) is_changed=%s pixels=%d/%d",
-                        name,
-                        diff_pct,
-                        effective_threshold,
-                        specific_image_diff_threshold,
-                        diff_threshold,
-                        is_changed,
-                        diff_result.changed_pixels,
-                        diff_result.total_pixels,
-                        extra={"head_artifact_id": head_artifact_id},
-                    )
-
-                    diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
-
-                    image_results[name] = {
-                        "status": "changed" if is_changed else "unchanged",
-                        "head_hash": head_hash,
-                        "base_hash": base_hash,
-                        "changed_pixels": diff_result.changed_pixels,
-                        "total_pixels": diff_result.total_pixels,
-                        "diff_mask_key": diff_mask_key,
-                        "diff_mask_image_id": diff_mask_image_id,
-                        "before_width": diff_result.before_width,
-                        "before_height": diff_result.before_height,
-                        "after_width": diff_result.after_width,
-                        "after_height": diff_result.after_height,
-                        "aligned_height": diff_result.aligned_height,
-                    }
+        odiff_phase_s = time.monotonic() - odiff_phase_start
+        # Throughput reflects only the pairs odiff actually processed (eligible);
+        # hash-identical and oversized images are skipped before the phase starts.
+        odiff_pairs = len(eligible)
+        logger.info(
+            "compare_snapshots: odiff phase complete",
+            extra={
+                "head_artifact_id": head_artifact_id,
+                "base_artifact_id": base_artifact_id,
+                "worker_count": worker_count,
+                "batches": len(batches),
+                "odiff_pairs": odiff_pairs,
+                "duration_s": round(odiff_phase_s, 3),
+                "slowest_batch_s": round(slowest_batch_s, 3),
+                "pairs_per_s": round(odiff_pairs / odiff_phase_s, 2) if odiff_phase_s > 0 else 0,
+                "fetched_mb": round(total_fetched_bytes / 1_000_000, 2),
+            },
+        )
 
         for name in sorted(added):
             image_results[name] = {"status": "added", "head_hash": head_by_name[name]}
