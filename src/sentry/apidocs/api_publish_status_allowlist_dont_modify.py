@@ -78,5 +78,4 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/sentry-app-installations/{uuid}/": {"DELETE", "GET", "PUT"},
     "/api/0/sentry-app-installations/{uuid}/external-issues/": {"POST"},
     "/api/0/sentry-app-installations/{uuid}/external-issues/{external_issue_id}/": {"DELETE"},
-    "/api/0/organizations/{organization_id_or_slug}/prompts-activity/": {"GET", "PUT"},
 }
