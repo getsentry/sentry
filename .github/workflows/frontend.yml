@@ -35,7 +35,7 @@ jobs:
       frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
       merge_base: ${{ steps.merge_base.outputs.merge_base }}
       merge_base_strategy: ${{ steps.merge_base.outputs.merge_base_strategy }}
-      jest_test_matrix: ${{ steps.merge_base.outputs.jest_test_matrix }}
+      jest_test_matrix: ${{ steps.jest_matrix_config.outputs.jest_test_matrix }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -76,6 +76,7 @@ jobs:
           echo "merge_base_strategy=${STRATEGY}" >> "$GITHUB_OUTPUT"
 
       - name: Jest Matrix Config
+        id: jest_matrix_config
         run: |
           RUNNERS=8
           if [ "${{ steps.merge_base.outputs.merge_base_strategy }}" == "changedSince" ]; then
