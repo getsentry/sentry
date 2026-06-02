@@ -4,7 +4,7 @@ from sentry_relay.processing import is_glob_match
 
 from sentry.ingest.inbound_filters import _custom_error_filter
 
-CUSTOM_PATTERNS = [
+CUSTOM_PATTERNS: list[tuple[str | None, str | None]] = [
     ("MyError", "Something went wrong *"),
     (None, "*known flaky test*"),
 ]
@@ -29,7 +29,11 @@ def test_custom_error_filter_empty() -> None:
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
         condition = _custom_error_filter()
 
-    assert condition["inner"]["inner"] == []
+    assert condition == {
+        "op": "any",
+        "name": "event.exception.values",
+        "inner": {"op": "or", "inner": []},
+    }
     assert not exception_matches_filters("MyError", "Something went wrong in checkout", [])
 
 
@@ -37,7 +41,23 @@ def test_custom_error_filter_builds_one_rule_per_pattern() -> None:
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
         condition = _custom_error_filter()
 
-    assert len(condition["inner"]["inner"]) == len(CUSTOM_PATTERNS)
+    assert condition == {
+        "op": "any",
+        "name": "event.exception.values",
+        "inner": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "and",
+                    "inner": [
+                        {"op": "glob", "name": "ty", "value": ["MyError"]},
+                        {"op": "glob", "name": "value", "value": ["Something went wrong *"]},
+                    ],
+                },
+                {"op": "glob", "name": "value", "value": ["*known flaky test*"]},
+            ],
+        },
+    }
 
 
 @pytest.mark.parametrize(
