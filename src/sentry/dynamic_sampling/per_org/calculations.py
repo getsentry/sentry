@@ -188,7 +188,7 @@ def _apply_implicit_factor_floor(
 
     total_explicit = sum(item.count for item in named_rates)
     total_implicit = total - total_explicit
-    if total_explicit == 0 or total_implicit == 0:
+    if total_explicit <= 0 or total_implicit <= 0:
         return named_rates, floor
 
     # Budget the implicit pool would consume at the floor, minus what the model
