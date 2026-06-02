@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -10,6 +9,7 @@ import {
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -55,7 +55,7 @@ function FingerprintRulesForm({
             {field => (
               <field.Layout.Stack label={t('Fingerprint Rules')}>
                 <Stack gap="md">
-                  <RuleDescription>
+                  <Text as="p" variant="muted" size="sm">
                     {tct(
                       `This can be used to modify the fingerprint rules on the server with custom rules. Rules follow the pattern [pattern]. To learn more about fingerprint rules, [docs:read the docs].`,
                       {
@@ -65,13 +65,13 @@ function FingerprintRulesForm({
                         ),
                       }
                     )}
-                  </RuleDescription>
-                  <RuleExample>
+                  </Text>
+                  <Text as="pre" monospace size="sm">
                     {`# force all errors of the same type to have the same fingerprint
 error.type:DatabaseUnavailable -> system-down
 # force all memory allocation errors to be grouped together
 stack.function:malloc -> memory-allocation-error`}
-                  </RuleExample>
+                  </Text>
                   <field.TextArea
                     value={field.state.value}
                     onChange={field.handleChange}
@@ -145,7 +145,7 @@ function StackTraceRulesForm({
             {field => (
               <field.Layout.Stack label={t('Stack Trace Rules')}>
                 <Stack gap="md">
-                  <RuleDescription>
+                  <Text as="p" variant="muted" size="sm">
                     {tct(
                       `This can be used to enhance the grouping algorithm with custom rules. Rules follow the pattern [pattern]. To learn more about stack trace rules, [docs:read the docs].`,
                       {
@@ -155,13 +155,13 @@ function StackTraceRulesForm({
                         ),
                       }
                     )}
-                  </RuleDescription>
-                  <RuleExample>
+                  </Text>
+                  <Text as="pre" monospace size="sm">
                     {`# remove all frames above a certain function from grouping
 stack.function:panic_handler ^-group
 # mark all functions following a prefix in-app
 stack.function:mylibrary_* +app`}
-                  </RuleExample>
+                  </Text>
                   <field.TextArea
                     value={field.state.value}
                     onChange={field.handleChange}
@@ -208,11 +208,11 @@ function DerivedGroupingEnhancements({project}: {project: DetailedProject}) {
   return (
     <FieldGroup title={t('Derived Grouping Enhancements')}>
       <Stack gap="md">
-        <RuleDescription>
+        <Text as="p" variant="muted" size="sm">
           {t(
             'These rules are automatically derived for some languages for organizations that have the GitHub integration. These rules are not editable but they can be negated by adding you own rules in the Stack Trace Rules section.'
           )}
-        </RuleDescription>
+        </Text>
         <TextArea
           aria-label={t('Derived Grouping Enhancements')}
           value={project.derivedGroupingEnhancements ?? ''}
@@ -256,12 +256,3 @@ export default function ProjectIssueGrouping() {
     </SentryDocumentTitle>
   );
 }
-
-const RuleDescription = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const RuleExample = styled('pre')`
-  margin: 0;
-`;
