@@ -1,4 +1,3 @@
-import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -32,65 +31,30 @@ const swcConfig: SwcOptions = {
 
 const {
   CI,
-  CI_NODE_TOTAL,
   CI_NODE_INDEX,
-  GITHUB_PR_SHA,
+  CI_NODE_TOTAL,
   GITHUB_PR_REF,
-  GITHUB_RUN_ID,
+  GITHUB_PR_SHA,
   GITHUB_RUN_ATTEMPT,
-  MERGE_BASE,
-  MERGE_BASE_STRATEGY,
+  GITHUB_RUN_ID,
 } = process.env;
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
+let JEST_TESTS: string[] = [];
+try {
+  JEST_TESTS = JSON.parse(process.env.JEST_TESTS || '[]');
+} catch (err) {
+  console.error('Error parsing JEST_TESTS:', err);
+  throw err;
+}
+
 const optionalTags: {
   balancer?: boolean;
   balancer_strategy?: string;
-  merge_base: string;
-  merge_base_strategy: string;
 } = {
   balancer: false,
-  merge_base: MERGE_BASE || '',
-  merge_base_strategy: MERGE_BASE_STRATEGY || 'full',
 };
-
-let JEST_TESTS: string[] | undefined;
-
-// prevents forkbomb as we don't want jest --listTests --json
-// to reexec itself here
-if (CI && !process.env.JEST_LIST_TESTS_INNER) {
-  try {
-    const listTestArguments = ['exec', 'jest', '--listTests', '--json'];
-
-    if (MERGE_BASE) {
-      console.log('MERGE_BASE detected:', MERGE_BASE);
-      listTestArguments.push('--changedSince', MERGE_BASE, '--passWithNoTests');
-    }
-
-    const stdout = execFileSync('pnpm', listTestArguments, {
-      stdio: 'pipe',
-      encoding: 'utf-8',
-      env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
-    });
-    JEST_TESTS = JSON.parse(stdout);
-  } catch (err: any) {
-    if (err.code) {
-      throw new Error(`err code ${err.code} when spawning process`);
-    } else {
-      const {stdout, stderr} = err;
-      throw new Error(`
-error listing jest tests
-
-stdout:
-${stdout}
-
-stderr:
-${stderr}
-`);
-    }
-  }
-}
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
@@ -214,7 +178,7 @@ function getTestsForGroup(
 }
 
 if (
-  JEST_TESTS &&
+  JEST_TESTS.length &&
   typeof CI_NODE_TOTAL !== 'undefined' &&
   typeof CI_NODE_INDEX !== 'undefined'
 ) {
@@ -306,7 +270,7 @@ const config: Config.InitialOptions = {
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
-  passWithNoTests: !!MERGE_BASE,
+  passWithNoTests: JEST_TESTS.length > 0,
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     'jest-canvas-mock',
