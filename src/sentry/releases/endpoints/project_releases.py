@@ -70,7 +70,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         },
         examples=ReleaseExamples.LIST_PROJECT_RELEASES,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[ReleaseSerializerResponse]]:
         """
         Retrieve a list of releases for a given project.
         """
