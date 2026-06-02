@@ -165,7 +165,11 @@ def schedule_organizations(
 def _cache_project_metrics(
     ctx: OrganizationReportContext, organization_id: int, timestamp: float
 ) -> None:
+    from sentry import features
     from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
+
+    if not features.has("organizations:weekly-report-metrics-api", ctx.organization):
+        return
 
     project_metrics: dict[int, dict[str, int]] = {}
     for project_id, project_ctx in ctx.projects_context_map.items():
