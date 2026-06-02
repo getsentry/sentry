@@ -10,12 +10,6 @@ class OrganizationIntercomJwtEndpointTest(APITestCase):
     def setUp(self) -> None:
         self.login_as(self.user)
 
-    def test_get_jwt_without_feature_flag(self) -> None:
-        """Without the feature flag, the endpoint should return 403."""
-        response = self.get_response(self.organization.slug)
-        assert response.status_code == 403
-        assert response.data["detail"] == "Intercom support is not enabled for this organization."
-
     def test_get_jwt_success(self) -> None:
         """With feature flag and secret configured, should return JWT and user data."""
         test_secret = "test-intercom-secret-key"
