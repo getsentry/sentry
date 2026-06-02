@@ -5,9 +5,9 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
@@ -757,9 +757,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
           </DetailLabel>
           <DetailLabel
             title={
-              <Tooltip title="A partner account is managed by a third-party (such as Heroku).">
+              <InfoText
+                variant="inherit"
+                title="A partner account is managed by a third-party (such as Heroku)."
+              >
                 <abbr>Partner</abbr>
-              </Tooltip>
+              </InfoText>
             }
           >
             {customer.partner ? (
@@ -874,14 +877,20 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                 <th>Standard</th>
                 <th>Default</th>
                 <th>
-                  <Tooltip title="Null means use the Downsample default">
+                  <InfoText
+                    variant="inherit"
+                    title="Null means use the Downsample default"
+                  >
                     Downsampled
-                  </Tooltip>
+                  </InfoText>
                 </th>
                 <th>
-                  <Tooltip title="Zero means use the standard retention.">
+                  <InfoText
+                    variant="inherit"
+                    title="Zero means use the standard retention."
+                  >
                     Downsample Default
-                  </Tooltip>
+                  </InfoText>
                 </th>
               </tr>
             </thead>

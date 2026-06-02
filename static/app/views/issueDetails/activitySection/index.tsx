@@ -31,9 +31,9 @@ import {useUser} from 'sentry/utils/useUser';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -176,7 +176,7 @@ function TimelineItem({
           )}
         </Flex>
       }
-      timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
+      timestamp={<Timestamp date={item.dateCreated} />}
       marker={useTwoColumnLayout ? getActivityMarker(item, colorConfig.icon) : undefined}
       colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
@@ -368,7 +368,9 @@ export function ActivitySection({
     },
   };
 
-  const showSeerActivities = organization.features.includes('seer-activity-timeline');
+  const showSeerActivities = organization.features.includes(
+    'display-seer-actions-as-issue-activities'
+  );
   const visibleActivities = showSeerActivities
     ? group.activity.filter(item => item.type !== GroupActivityType.SEER_PR_CREATED)
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));

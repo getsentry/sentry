@@ -22,7 +22,7 @@ class TestDeleteWorkflow(HybridCloudTestMixin):
         self.organization = Factories.create_organization()
         self.project = Factories.create_project(organization=self.organization)
 
-        self.workflow = Factories.create_workflow()
+        self.workflow = Factories.create_workflow(organization=self.organization)
         self.workflow_trigger = Factories.create_data_condition_group(
             organization=self.organization
         )

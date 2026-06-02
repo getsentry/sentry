@@ -177,6 +177,7 @@ def connect_workflows_to_detectors(
             existing_detector_workflows = list(
                 DetectorWorkflow.objects.filter(
                     workflow_id=workflow_id,
+                    workflow__organization=organization,
                 )
             )
             new_detector_ids = set(detector_ids) - {
@@ -224,6 +225,7 @@ def connect_detectors_to_workflows(
             existing_detector_workflows = list(
                 DetectorWorkflow.objects.filter(
                     detector_id=detector_id,
+                    detector__project__organization=organization,
                 )
             )
             new_workflow_ids = set(workflow_ids) - {

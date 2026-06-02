@@ -4,12 +4,6 @@ from typing import Any, TypedDict
 from sentry.api.serializers.release_details_types import Author, LastDeploy, Project, VersionInfo
 
 
-class SerializedAvatarFields(TypedDict, total=False):
-    avatarType: str
-    avatarUuid: str | None
-    avatarUrl: str | None
-
-
 # Reponse type for OrganizationReleaseDetailsEndpoint
 class ReleaseSerializerResponseOptional(TypedDict, total=False):
     ref: str | None

@@ -23,8 +23,8 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
+import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 
 function useSeerState(group: Group, project: Project) {
   const organization = useOrganization();

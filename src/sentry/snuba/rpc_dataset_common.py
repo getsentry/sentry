@@ -62,7 +62,7 @@ from sentry.search.eap.types import (
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
-from sentry.utils import json, snuba_rpc
+from sentry.utils import json, metrics, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -91,6 +91,7 @@ class TableQuery:
     page_token: PageToken | None = None
     additional_queries: AdditionalQueries | None = None
     extra_conditions: TraceItemFilter | None = None
+    max_string_length: int | None = None
 
 
 @dataclass
@@ -238,10 +239,13 @@ class RPCBase:
 
     @classmethod
     def build_rpc_table_row_context(cls, query: TableQuery) -> dict[str, Any]:
-        return {
+        ctx: dict[str, Any] = {
             "project_ids": list(query.resolver.params.project_ids),
             "organization_id": query.resolver.params.organization_id,
         }
+        if query.max_string_length is not None:
+            ctx["max_string_length"] = query.max_string_length
+        return ctx
 
     @classmethod
     def get_table_rpc_request(cls, query: TableQuery) -> TableRequest:
@@ -431,6 +435,7 @@ class RPCBase:
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
+        max_string_length: int | None = None,
     ) -> EAPResponse:
         raise NotImplementedError()
 
@@ -471,8 +476,9 @@ class RPCBase:
         final_data: SnubaData,
         attribute: Any,
         resolved_column: ResolvedColumn,
-        **_context_kwargs: Any,
+        **context_kwargs: Any,
     ) -> None:
+        max_string_length: int | None = context_kwargs.get("max_string_length")
         for index, result in enumerate(column_value.results):
             result_value: Any
             if result.is_null:
@@ -480,6 +486,17 @@ class RPCBase:
             else:
                 result_value = anyvalue_to_python(result)
             result_value = process_value(result_value)
+
+            # Note: post-query truncation may not be our preferred method long-term.
+            # We may want to set up a function that filters/truncates at the EAP side.
+            if max_string_length is not None and isinstance(result_value, str):
+                if len(result_value) > max_string_length:
+                    result_value = result_value[:max_string_length] + "..."
+                    metrics.incr(
+                        "snuba.rpc.process_column_values.truncated",
+                        tags={"field": attribute},
+                    )
+
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
     @classmethod

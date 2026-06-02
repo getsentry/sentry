@@ -23,6 +23,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
@@ -136,7 +137,9 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         },
         examples=EventExamples.GROUP_EVENT_DETAILS,
     )
-    def get(self, request: Request, project: Project, event_id: str) -> Response:
+    def get(
+        self, request: Request, project: Project, event_id: str
+    ) -> Response[GroupEventDetailsResponse] | Response[DetailResponse]:
         """
         Return details on an individual event.
         """

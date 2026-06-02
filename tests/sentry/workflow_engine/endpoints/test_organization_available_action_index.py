@@ -477,7 +477,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             self.organization.slug,
             status_code=200,
         )
-        assert len(response.data) == 8
+        assert len(response.data) == 7
         assert response.data == [
             # notification actions, sorted alphabetically with email first
             {
@@ -495,13 +495,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                     {"id": str(self.slack_integration.id), "name": self.slack_integration.name}
                 ],
             },
-            # other actions, non sentry app actions first then sentry apps sorted alphabetically by name
-            {
-                "type": Action.Type.PLUGIN,
-                "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": {},
-                "dataSchema": {},
-            },
+            # other actions — PLUGIN is registered but hidden from available actions
             # webhook action should include sentry apps without components
             {
                 "type": Action.Type.WEBHOOK,

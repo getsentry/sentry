@@ -236,6 +236,41 @@ describe('AutoSaveForm', () => {
       expect(await screen.findByText('Failed to save')).toBeInTheDocument();
     });
 
+    it('shows detail message from RequestError', async () => {
+      function TestComponent() {
+        return (
+          <AutoSaveForm
+            name="testField"
+            schema={testSchema}
+            initialValue="initial"
+            mutationOptions={{
+              mutationFn: () => {
+                const error = new RequestError('POST', '/test/', new Error('test'));
+                error.responseJSON = {detail: 'Organization is suspended'};
+                throw error;
+              },
+            }}
+          >
+            {field => (
+              <field.Layout.Row label="Name">
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Meta />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        );
+      }
+
+      render(<TestComponent />);
+
+      const input = screen.getByRole('textbox', {name: 'Name'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'new value');
+      await userEvent.tab();
+
+      expect(await screen.findByText('Organization is suspended')).toBeInTheDocument();
+    });
+
     it('shows generic error when RequestError has no responseJSON', async () => {
       function TestComponent() {
         return (

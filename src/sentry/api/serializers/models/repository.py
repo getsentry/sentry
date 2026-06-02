@@ -26,7 +26,7 @@ class RepositorySerializerResponse(TypedDict, total=False):
 
 
 @register(RepositorySettings)
-class RepositorySettingsSerializer(Serializer):
+class RepositorySettingsSerializer(Serializer[RepositorySettingsSerializerResponse]):
     def serialize(
         self, obj: RepositorySettings, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> RepositorySettingsSerializerResponse:
@@ -37,7 +37,7 @@ class RepositorySettingsSerializer(Serializer):
 
 
 @register(Repository)
-class RepositorySerializer(Serializer):
+class RepositorySerializer(Serializer[RepositorySerializerResponse]):
     def __init__(self, expand: Sequence[str] | None = None) -> None:
         super().__init__()
         self.expand = expand or []
