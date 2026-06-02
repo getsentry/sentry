@@ -14,10 +14,10 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 export type TitleProps = {
-  onClick?: (e: React.MouseEvent<Element>) => void;
-  onKeyDown?: (e: React.KeyboardEvent<Element>) => void;
-  onMouseEnter?: (e: React.MouseEvent<Element>) => void;
-  onMouseLeave?: (e: React.MouseEvent<Element>) => void;
+  onClick?: (e: React.MouseEvent) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  onMouseEnter?: (e: React.MouseEvent) => void;
+  onMouseLeave?: (e: React.MouseEvent) => void;
 };
 
 type Props = {
