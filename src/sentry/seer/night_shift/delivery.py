@@ -38,7 +38,9 @@ def deliver_night_shift_result(
 ) -> None:
     """Process a night_shift result from Seer."""
     try:
-        run = SeerNightShiftRun.objects.select_related("organization").get(id=int(ref))
+        run = SeerNightShiftRun.objects.select_related("organization", "seer_run").get(
+            seer_run__uuid=ref
+        )
     except SeerNightShiftRun.DoesNotExist:
         logger.warning(
             "night_shift.delivery.missing_run",
