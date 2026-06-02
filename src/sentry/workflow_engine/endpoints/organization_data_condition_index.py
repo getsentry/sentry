@@ -3,7 +3,6 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -23,7 +22,7 @@ from sentry.workflow_engine.endpoints.serializers.data_condition_handler_seriali
     DataConditionHandlerResponse,
     DataConditionHandlerSerializer,
 )
-from sentry.workflow_engine.models.data_condition import LEGACY_CONDITIONS, Condition
+from sentry.workflow_engine.models.data_condition import LEGACY_CONDITIONS
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler
 
@@ -67,11 +66,6 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
         data_conditions = []
 
         for condition_type, handler in condition_handler_registry.registrations.items():
-            if condition_type == Condition.SEER_ACTIVITY_TRIGGER and not features.has(
-                "organizations:workflow-engine-evaluate-seer-activities", organization
-            ):
-                continue
-
             if condition_type not in LEGACY_CONDITIONS and handler.group == group:
                 serialized = serialize(
                     handler,
