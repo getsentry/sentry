@@ -2,7 +2,9 @@ import pytest
 from django.test import override_settings
 from sentry_relay.processing import is_glob_match
 
-from sentry.ingest.inbound_filters import _custom_error_filter
+from sentry.ingest.inbound_filters import _custom_error_filter, get_generic_filters
+from sentry.models.project import Project
+from sentry.testutils.pytest.fixtures import django_db_all
 
 CUSTOM_PATTERNS: list[tuple[str | None, str | None]] = [
     ("MyError", "Something went wrong *"),
@@ -58,6 +60,18 @@ def test_custom_error_filter_builds_one_rule_per_pattern() -> None:
             ],
         },
     }
+
+
+@django_db_all
+def test_custom_error_filter_enabled_by_default(default_project: Project) -> None:
+    # The `filters:custom-error` project option defaults to "1", so the filter must be
+    # emitted for every project without any explicit opt-in.
+    assert default_project.get_option("filters:custom-error") == "1"
+
+    generic_filters = get_generic_filters(default_project)
+    assert generic_filters is not None
+    filter_ids = {f["id"] for f in generic_filters["filters"]}
+    assert "custom-error" in filter_ids
 
 
 @pytest.mark.parametrize(
