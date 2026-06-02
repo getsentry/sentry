@@ -729,7 +729,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "sentry:default_automated_run_stopping_point",
             SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
         )
-        if stopping_point not in get_valid_automated_run_stopping_points(obj):
+        if stopping_point not in get_valid_automated_run_stopping_points():
             return SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
         return stopping_point
 

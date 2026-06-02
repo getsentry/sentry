@@ -243,7 +243,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             )
 
     default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
-    valid_stopping_points = get_valid_automated_run_stopping_points(organization)
+    valid_stopping_points = get_valid_automated_run_stopping_points()
 
     preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
 

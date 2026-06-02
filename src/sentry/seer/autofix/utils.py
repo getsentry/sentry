@@ -90,9 +90,7 @@ def extract_api_error_message(response: Any) -> str | None:
     return None
 
 
-def get_valid_automated_run_stopping_points(
-    organization: Organization,
-) -> set[AutofixStoppingPoint]:
+def get_valid_automated_run_stopping_points() -> set[AutofixStoppingPoint]:
     """Return the set of stopping points valid for the given organization."""
     valid = {
         AutofixStoppingPoint.CODE_CHANGES,
@@ -341,8 +339,7 @@ class SeerAutofixSettingsSerializer(serializers.Serializer):
     )
 
     def validate_automatedRunStoppingPoint(self, value: str) -> str:
-        organization = self.context["organization"]
-        if value not in get_valid_automated_run_stopping_points(organization):
+        if value not in get_valid_automated_run_stopping_points():
             raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
@@ -372,7 +369,7 @@ def get_org_default_seer_automation_handoff(
         "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
     )
     # Guard against stored stopping points that are no longer valid.
-    if stopping_point not in get_valid_automated_run_stopping_points(organization):
+    if stopping_point not in get_valid_automated_run_stopping_points():
         stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 
     auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
