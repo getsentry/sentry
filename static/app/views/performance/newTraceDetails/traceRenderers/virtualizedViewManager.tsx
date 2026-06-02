@@ -19,6 +19,8 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
 import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
+import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
+import type {TraceTimeCompressionGap} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 
 import type {TraceScheduler} from './traceScheduler';
@@ -95,6 +97,9 @@ export class VirtualizedViewManager {
   timeline_indicators: Array<HTMLElement | undefined> = [];
   vertical_indicators: Record<string, VerticalIndicator> = {};
   vertical_indicator_labels: Record<string, HTMLElement | undefined> = {};
+  collapsed_gap_markers: Array<
+    {gap: TraceTimeCompressionGap; ref: HTMLElement} | undefined
+  > = [];
   span_bars: Array<
     {color: string; ref: HTMLElement; space: [number, number]} | undefined
   > = [];
@@ -145,6 +150,13 @@ export class VirtualizedViewManager {
   navigate: ReactRouter3Navigate | null = null;
   scheduler: TraceScheduler;
   view: TraceView;
+  time_compression = TraceTimeCompression.Disabled();
+  timeCompressionOptions: {
+    enabled: boolean;
+    indicators: TraceTree['indicators'];
+    nodes: BaseNode[];
+    traceSpace: [start: number, duration: number];
+  } | null = null;
 
   constructor(
     columns: {
@@ -187,6 +199,30 @@ export class VirtualizedViewManager {
     this.onWheelStart = this.onWheelStart.bind(this);
     this.onNewMaxRowWidth = this.onNewMaxRowWidth.bind(this);
     this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
+  }
+
+  setTimeCompressionOptions(options: this['timeCompressionOptions']) {
+    this.timeCompressionOptions = options;
+    this.recomputeTimeCompression();
+  }
+
+  setTimeCompression(compression: TraceTimeCompression) {
+    this.time_compression = compression;
+  }
+
+  recomputeTimeCompression() {
+    if (!this.timeCompressionOptions) {
+      this.time_compression = TraceTimeCompression.Disabled([
+        this.view.to_origin,
+        this.view.trace_space.width,
+      ]);
+      return;
+    }
+
+    this.time_compression = TraceTimeCompression.FromVisibleItems({
+      ...this.timeCompressionOptions,
+      physicalWidth: this.view.trace_physical_space.width,
+    });
   }
 
   dividerStartVec: [number, number] | null = null;
@@ -479,6 +515,22 @@ export class VirtualizedViewManager {
     }
   }
 
+  registerCollapsedGapMarkerRef(
+    ref: HTMLElement | null,
+    index: number,
+    gap: TraceTimeCompressionGap
+  ) {
+    if (!ref) {
+      this.collapsed_gap_markers[index] = undefined;
+      return;
+    }
+
+    if (ref) {
+      this.collapsed_gap_markers[index] = {ref, gap};
+      this.drawCollapsedGapMarker(this.collapsed_gap_markers[index]);
+    }
+  }
+
   registerVerticalIndicator(key: string, indicator: VerticalIndicator) {
     if (indicator.ref) {
       this.vertical_indicators[key] = indicator;
@@ -518,10 +570,7 @@ export class VirtualizedViewManager {
 
       const scale = 1 - event.deltaY * 0.01 * -1;
       const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
-      const configSpaceCursor = this.view.getConfigSpaceCursor({
-        x,
-        y: 0,
-      });
+      const configSpaceCursor = this.getConfigSpaceCursor({x, y: 0});
 
       const center = vec2.fromValues(configSpaceCursor[0], 0);
       const centerScaleMatrix = mat3.create();
@@ -565,10 +614,16 @@ export class VirtualizedViewManager {
       }
 
       const physical_delta_pct = distance / this.view.trace_physical_space.width;
-      const view_delta = physical_delta_pct * this.view.trace_view.width;
+      const compressedView = this.getCompressedView();
+      const compressed_delta = physical_delta_pct * compressedView.width;
+      const nextCompressedLeft = compressedView.left + compressed_delta;
+      const nextCompressedRight = compressedView.right + compressed_delta;
+      const nextRealLeft = this.time_compression.toRealTimestamp(nextCompressedLeft);
+      const nextRealRight = this.time_compression.toRealTimestamp(nextCompressedRight);
 
       this.scheduler.dispatch('set trace view', {
-        x: this.view.trace_view.x + view_delta,
+        x: nextRealLeft - this.view.to_origin,
+        width: nextRealRight - nextRealLeft,
       });
     }
   }
@@ -938,7 +993,42 @@ export class VirtualizedViewManager {
     return transform;
   }
 
+  getCompressedView(): {left: number; right: number; width: number} {
+    const start = this.view.to_origin + this.view.trace_view.x;
+    const end = start + this.view.trace_view.width;
+    const left = this.time_compression.toCompressedOffset(start);
+    const right = this.time_compression.toCompressedOffset(end);
+
+    return {
+      left,
+      right,
+      width: Math.max(right - left, this.view.MAX_ZOOM_PRECISION_MS),
+    };
+  }
+
+  getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
+    if (!this.time_compression.enabled) {
+      return this.view.getConfigSpaceCursor(cursor);
+    }
+
+    const leftPercentage = cursor.x / this.view.trace_physical_space.width;
+    const compressedView = this.getCompressedView();
+    const compressedCursor = compressedView.left + leftPercentage * compressedView.width;
+    return [
+      this.time_compression.toRealTimestamp(compressedCursor) - this.view.to_origin,
+      0,
+    ];
+  }
+
   recomputeSpanToPXMatrix() {
+    if (this.time_compression.enabled) {
+      const compressedView = this.getCompressedView();
+      this.span_to_px = mat3.identity(this.span_to_px);
+      this.span_to_px[0] =
+        compressedView.width / Math.max(this.view.trace_physical_space.width, 1);
+      return;
+    }
+
     const traceViewToSpace = this.view.trace_space.between(this.view.trace_view);
     const tracePhysicalToView = this.view.trace_physical_space.between(
       this.view.trace_space
@@ -963,14 +1053,13 @@ export class VirtualizedViewManager {
     space: [number, number]
   ): [number, number, number, number, number, number] {
     const config_space_per_px = this.getConfigSpacePerPx();
-    const scale = space[1] / this.view.trace_view.width;
-    this.span_matrix[0] = Math.max(
-      scale,
-      config_space_per_px / this.view.trace_view.width
-    );
-    this.span_matrix[4] =
-      (space[0] - this.view.to_origin) / config_space_per_px -
-      this.view.trace_view.x / config_space_per_px;
+    const compressedView = this.getCompressedView();
+    const compressedStart = this.time_compression.toCompressedOffset(space[0]);
+    const compressedEnd = this.time_compression.toCompressedOffset(space[0] + space[1]);
+    const compressedDuration = Math.max(compressedEnd - compressedStart, 0);
+    const scale = compressedDuration / compressedView.width;
+    this.span_matrix[0] = Math.max(scale, this.span_to_px[0] / compressedView.width);
+    this.span_matrix[4] = (compressedStart - compressedView.left) / this.span_to_px[0];
 
     // if span ends less than 1px before the end of the view, we move it back by 1px and prevent it from being clipped
     if (
@@ -986,9 +1075,10 @@ export class VirtualizedViewManager {
   }
 
   transformXFromTimestamp(timestamp: number): number {
-    const config_space_per_px = this.getConfigSpacePerPx();
     return (
-      (timestamp - this.view.to_origin - this.view.trace_view.x) / config_space_per_px
+      (this.time_compression.toCompressedOffset(timestamp) -
+        this.getCompressedView().left) /
+      this.span_to_px[0]
     );
   }
 
@@ -1161,7 +1251,26 @@ export class VirtualizedViewManager {
     timestamp: number,
     entire_space: [number, number]
   ) {
-    return (timestamp - entire_space[0]) / entire_space[1];
+    const compressedStart = this.time_compression.toCompressedOffset(entire_space[0]);
+    const compressedEnd = this.time_compression.toCompressedOffset(
+      entire_space[0] + entire_space[1]
+    );
+    const compressedTimestamp = this.time_compression.toCompressedOffset(timestamp);
+    return (compressedTimestamp - compressedStart) / (compressedEnd - compressedStart);
+  }
+
+  computeRelativeWidth(space: [number, number], entire_space: [number, number]) {
+    const compressedStart = this.time_compression.toCompressedOffset(space[0]);
+    const compressedEnd = this.time_compression.toCompressedOffset(space[0] + space[1]);
+    const compressedEntireStart = this.time_compression.toCompressedOffset(
+      entire_space[0]
+    );
+    const compressedEntireEnd = this.time_compression.toCompressedOffset(
+      entire_space[0] + entire_space[1]
+    );
+    return (
+      (compressedEnd - compressedStart) / (compressedEntireEnd - compressedEntireStart)
+    );
   }
 
   computeTraceIconPlacement(
@@ -1247,13 +1356,11 @@ export class VirtualizedViewManager {
       }
       return;
     }
-    const tracePhysicalToView = this.view.trace_physical_space.between(
-      this.view.trace_view
-    );
     const time_at_100 =
-      tracePhysicalToView[0] * (110 * window.devicePixelRatio) +
-      tracePhysicalToView[6] -
-      this.view.trace_view.x;
+      this.getConfigSpaceCursor({
+        x: 110 * window.devicePixelRatio,
+        y: 0,
+      })[0] - this.view.trace_view.x;
 
     computeTimelineIntervals(this.view, time_at_100, this.intervals);
   }
@@ -1444,6 +1551,7 @@ export class VirtualizedViewManager {
 
     this.drawInvisibleBars();
     this.drawVerticalIndicators();
+    this.drawCollapsedGapMarkers();
 
     let start_indicator = -1;
     let end_indicator = this.indicators.length;
@@ -1690,6 +1798,34 @@ export class VirtualizedViewManager {
     for (let i = 0; i < this.timeline_indicators.length; i++) {
       this.drawTimelineInterval(this.timeline_indicators[i], i);
     }
+  }
+
+  drawCollapsedGapMarkers() {
+    for (const marker of this.collapsed_gap_markers) {
+      this.drawCollapsedGapMarker(marker);
+    }
+  }
+
+  drawCollapsedGapMarker(marker: this['collapsed_gap_markers'][0]) {
+    if (!marker) {
+      return;
+    }
+
+    const viewStart = this.view.to_origin + this.view.trace_view.x;
+    const viewEnd = viewStart + this.view.trace_view.width;
+
+    if (
+      !this.time_compression.enabled ||
+      marker.gap.end < viewStart ||
+      marker.gap.start > viewEnd
+    ) {
+      marker.ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.transformXFromTimestamp(marker.gap.start);
+    marker.ref.style.opacity = '1';
+    marker.ref.style.transform = `translateX(${placement}px)`;
   }
 
   // Special case for when the timeline is empty - we want to show the first and last
