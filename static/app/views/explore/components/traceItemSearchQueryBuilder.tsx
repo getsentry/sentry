@@ -10,7 +10,7 @@ import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {classifyTagKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
 import {useAttributeValidation} from 'sentry/views/explore/hooks/useAttributeValidation';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
@@ -78,7 +78,8 @@ function getTraceItemFieldDefinitionFunction(
   tags: TagCollection
 ) {
   return (key: string) => {
-    return getFieldDefinition(key, typeMap[itemType], tags[key]?.kind);
+    const kind = tags[key]?.kind ?? classifyTagKey(key);
+    return getFieldDefinition(key, typeMap[itemType], kind);
   };
 }
 
