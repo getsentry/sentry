@@ -135,9 +135,9 @@ export function TagDemo() {
             <Surface variant="overlay" elevation="medium" padding="lg">
               <Flex direction="column" gap="lg">
                 <Flex gap="sm" align="center">
-          <Flex flexGrow={1}>
-            <Text>{attrs.type}</Text>
-          </Flex>
+                  <Flex flexGrow={1}>
+                    <Text>{attrs.type}</Text>
+                  </Flex>
                   <Text>severity</Text>
                   <Text variant="danger">{typedData?.severity}</Text>
                 </Flex>
