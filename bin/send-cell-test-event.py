@@ -17,8 +17,10 @@ Usage (with the dev env active):
     TARGET=127.0.0.1:7900 bin/send-cell-test-event.py   # override: e.g. straight to relay-cell
 """
 
-# CLI helper: printing to the terminal is the whole point.
+# CLI helper: printing to the terminal is the whole point. `print` is flagged by
+# both linters under different codes, each needing its own file-level directive.
 # ruff: noqa: T201
+# flake8: noqa: S002
 
 from __future__ import annotations
 
