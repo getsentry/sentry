@@ -946,12 +946,12 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceCollapsedGapMarkerBreak {
     position: absolute;
-    top: 0;
+    top: 19px;
     left: 4px;
     width: 20px;
-    height: 100%;
+    height: calc(100% - 19px);
     box-sizing: border-box;
-    color: ${p => p.theme.tokens.content.warning};
+    color: ${p => p.theme.tokens.content.secondary};
     background-color: color-mix(in srgb, currentColor 8%, transparent);
     background-image: repeating-linear-gradient(
       135deg,
