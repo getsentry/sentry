@@ -23,7 +23,6 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 
 def _make_request(
     *,
-    application_id: int | None = None,
     meta: dict[str, str] | None = None,
     cookies: dict[str, str] | None = None,
     auth: Any = None,
@@ -32,41 +31,41 @@ def _make_request(
     request = MagicMock()
     request.META = meta or {}
     request.COOKIES = cookies or {}
-
-    if auth is not None:
-        request.auth = auth
-    else:
-        token = MagicMock()
-        token.application_id = application_id
-        request.auth = token
-
+    request.auth = auth if auth is not None else MagicMock()
     request.successful_authenticator = successful_authenticator
     return request
 
 
+MCP_USER_AGENT = "sentry-mcp/0.18.0 (https://mcp.sentry.dev)"
+
+
 class TestResolveActionSource(TestCase):
-    @patch("sentry.issues.action_log._get_mcp_application_id", return_value=42)
-    def test_mcp_known_client(self, mock_get_id: MagicMock) -> None:
+    def test_mcp_known_client(self) -> None:
         request = _make_request(
-            application_id=42,
-            meta={"HTTP_X_SENTRY_MCP_CLIENT_NAME": "Claude Code"},
+            meta={
+                "HTTP_USER_AGENT": MCP_USER_AGENT,
+                "HTTP_X_SENTRY_MCP_CLIENT_NAME": "Claude Code",
+            },
         )
         assert resolve_action_source(request) == "mcp:claude-code"
 
-    @patch("sentry.issues.action_log._get_mcp_application_id", return_value=42)
-    def test_mcp_unknown_client(self, mock_get_id: MagicMock) -> None:
+    def test_mcp_unknown_client(self) -> None:
         request = _make_request(
-            application_id=42,
-            meta={"HTTP_X_SENTRY_MCP_CLIENT_NAME": "some-new-editor"},
+            meta={
+                "HTTP_USER_AGENT": MCP_USER_AGENT,
+                "HTTP_X_SENTRY_MCP_CLIENT_NAME": "some-new-editor",
+            },
         )
         assert resolve_action_source(request) == "mcp"
 
-    @patch("sentry.issues.action_log._get_mcp_application_id", return_value=42)
-    def test_mcp_header_ignored_when_wrong_application(self, mock_get_id: MagicMock) -> None:
-        request = _make_request(
-            application_id=999,
-            meta={"HTTP_X_SENTRY_MCP_CLIENT_NAME": "Claude Code"},
-        )
+    def test_mcp_without_client_name(self) -> None:
+        request = _make_request(meta={"HTTP_USER_AGENT": MCP_USER_AGENT})
+        assert resolve_action_source(request) == "mcp"
+
+    def test_mcp_client_name_without_user_agent_is_not_mcp(self) -> None:
+        # The MCP source is gated on the User-Agent, not the client-name header, so the
+        # header alone does not flip the source to mcp.
+        request = _make_request(meta={"HTTP_X_SENTRY_MCP_CLIENT_NAME": "Claude Code"})
         assert resolve_action_source(request) == "api"
 
     def test_seer_referrer(self) -> None:

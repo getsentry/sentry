@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-from django.core.cache import cache
 from rest_framework.request import Request
 
 from sentry.middleware import is_frontend_request
@@ -27,10 +26,8 @@ logger = logging.getLogger(__name__)
 # wrap it with action_context_scope() so the action gets proper source attribution.
 
 MCP_CLIENT_NAME_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_NAME"
+MCP_USER_AGENT_PREFIX = "sentry-mcp/"
 SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
-
-MCP_APP_ID_CACHE_KEY = "action_log.mcp_application_id"
-MCP_APP_ID_CACHE_TTL = 300
 
 KNOWN_MCP_CLIENTS: dict[str, str] = {
     "claude code": "claude-code",
@@ -69,34 +66,15 @@ class ActionSource(StrEnum):
     )
 
 
-def _get_mcp_application_id() -> int | None:
-    cached = cache.get(MCP_APP_ID_CACHE_KEY)
-    if cached is not None:
-        return cached if cached > 0 else None
-
-    from sentry.models.apiapplication import ApiApplication
-
-    try:
-        app = ApiApplication.objects.filter(name__icontains="sentry-mcp").first()
-        app_id = app.id if app else 0
-    except Exception:
-        logger.exception("Failed to look up MCP application ID")
-        return None
-
-    cache.set(MCP_APP_ID_CACHE_KEY, app_id, MCP_APP_ID_CACHE_TTL)
-    return app_id if app_id > 0 else None
-
-
 def resolve_action_source(request: Request) -> str:
     """
     Determine the ActionSource from a request. Priority: MCP > Seer > frontend > CLI > API.
     """
-    application_id = getattr(request.auth, "application_id", None)
-    mcp_app_id = _get_mcp_application_id() if application_id is not None else None
-    if mcp_app_id and application_id == mcp_app_id:
+    user_agent = request.META.get("HTTP_USER_AGENT", "")
+
+    if user_agent.startswith(MCP_USER_AGENT_PREFIX):
         client_name = request.META.get(MCP_CLIENT_NAME_HEADER, "")
-        normalized = client_name.strip().lower()
-        slug = KNOWN_MCP_CLIENTS.get(normalized)
+        slug = KNOWN_MCP_CLIENTS.get(client_name.strip().lower())
         if slug:
             return f"{ActionSource.MCP}:{slug}"
         return ActionSource.MCP
@@ -117,7 +95,6 @@ def resolve_action_source(request: Request) -> str:
     if is_frontend_request(request):
         return ActionSource.WEB
 
-    user_agent = request.META.get("HTTP_USER_AGENT", "")
     if user_agent.startswith("sentry-cli/"):
         return ActionSource.SENTRY_CLI
 
