@@ -935,7 +935,7 @@ const TraceStylingWrapper = styled('div')`
     top: 38px;
     height: calc(100% - 38px);
     width: 28px;
-    pointer-events: none;
+    pointer-events: auto;
     z-index: 2;
   }
 
