@@ -211,6 +211,24 @@ export function InvoiceComparison() {
     }),
   });
 
+  // If the URL has an unsupported `page_size` (e.g. `?page_size=200`),
+  // rewrite it to the resolved value so the address bar matches what the
+  // API and UI actually use — and refresh / share-links reproduce the
+  // intended view. Done eagerly (not gated on `data`) since the validity
+  // check is purely client-side.
+  const rawPageSize = firstQueryValue(location.query.page_size);
+  useEffect(() => {
+    if (rawPageSize !== undefined && rawPageSize !== String(pageSize)) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, page_size: String(pageSize)},
+        },
+        {replace: true}
+      );
+    }
+  }, [rawPageSize, pageSize, navigate, location.pathname, location.query]);
+
   // If the backend clamped our requested page (e.g. user landed on
   // ?rows_page=99 against a 2-page result), rewrite the URL to the
   // clamped value so refresh + share-links converge on the real page.
