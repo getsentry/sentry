@@ -11,7 +11,7 @@ class OrganizationIntercomJwtEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def test_get_jwt_success(self) -> None:
-        """With feature flag and secret configured, should return JWT and user data."""
+        """With secret configured, should return JWT and user data."""
         test_secret = "test-intercom-secret-key"
 
         with self.options({"intercom.sentry-api-secret": test_secret}):
