@@ -350,7 +350,11 @@ function Root({
       }
       onResize?.(newSize);
     },
-    onResizeEnd: ({startSize, endSize}) => handleResizeEnd(startSize, endSize),
+    // Clamp the drag's start size to the visible size, matching the
+    // double-click and keyboard handlers. A container that shrank since the
+    // last resize can leave the stored size above max.
+    onResizeEnd: ({startSize, endSize}) =>
+      handleResizeEnd(Math.min(startSize, max), endSize),
   });
 
   useLayoutEffect(() => {
