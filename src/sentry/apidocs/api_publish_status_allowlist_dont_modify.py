@@ -5,17 +5,12 @@ DO NOT ADD ANY NEW APIS
 """
 
 API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
-    "/api/0/organizations/{organization_id_or_slug}/invite-requests/": {"GET", "POST"},
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/assemble/": {"POST"},
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/files/": {"GET", "POST"},
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/files/{file_id}/": {
         "DELETE",
         "GET",
         "PUT",
-    },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/": {"GET", "POST"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/hooks/{hook_id}/stats/": {
-        "GET"
     },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/completion/": {"GET"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/stats/": {
@@ -30,9 +25,4 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "GET",
         "PUT",
     },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/stats/": {"GET"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/tags/": {"GET"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/transfer/": {"POST"},
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/repo-path-parsing/": {"POST"},
-    "/api/0/users/{user_id}/organizations/": {"GET"},
 }
