@@ -14,6 +14,7 @@ type TracePreferencesAction =
   | {payload: number; type: 'set list width'}
   | {payload: boolean; type: 'minimize drawer'}
   | {payload: boolean; type: 'set missing instrumentation'}
+  | {payload: boolean; type: 'set compressed timeline'}
   | {payload: boolean; type: 'set autogrouping'};
 
 type TraceDrawerPreferences = {
@@ -27,6 +28,7 @@ export type TracePreferencesState = {
     parent: boolean;
     sibling: boolean;
   };
+  compressed_timeline: boolean;
   drawer: TraceDrawerPreferences;
   layout: TraceLayoutPreferences;
   list: {
@@ -37,6 +39,7 @@ export type TracePreferencesState = {
 
 export type StoredTracePreferences = {
   autogroup: TracePreferencesState['autogroup'];
+  compressed_timeline: boolean;
   drawer_layout: TraceLayoutPreferences;
   missing_instrumentation: boolean;
 };
@@ -58,6 +61,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     sibling: true,
   },
   missing_instrumentation: false,
+  compressed_timeline: true,
   layout: 'drawer right',
   list: {
     width: 0.5,
@@ -72,6 +76,7 @@ export function storeTraceViewPreferences(
     drawer_layout: state.layout,
     missing_instrumentation: state.missing_instrumentation,
     autogroup: state.autogroup,
+    compressed_timeline: state.compressed_timeline,
   };
 
   // Make sure we dont fire this during a render phase
@@ -116,6 +121,15 @@ function isValidMissingInstrumentation(
   return true;
 }
 
+function isValidCompressedTimeline(
+  state: StoredTracePreferences
+): state is StoredTracePreferences & {compressed_timeline: undefined} {
+  if (typeof state.compressed_timeline !== 'boolean') {
+    return false;
+  }
+  return true;
+}
+
 function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
   const stored = localStorage.getItem(key);
 
@@ -132,6 +146,9 @@ function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
         if (!isValidMissingInstrumentation(parsed)) {
           parsed.missing_instrumentation =
             DEFAULT_TRACE_VIEW_PREFERENCES.missing_instrumentation;
+        }
+        if (!isValidCompressedTimeline(parsed)) {
+          parsed.compressed_timeline = DEFAULT_TRACE_VIEW_PREFERENCES.compressed_timeline;
         }
         return parsed;
       }
@@ -153,6 +170,7 @@ export function getInitialTracePreferences(
   if (stored) {
     preferences.autogroup = stored.autogroup;
     preferences.missing_instrumentation = stored.missing_instrumentation;
+    preferences.compressed_timeline = stored.compressed_timeline;
     preferences.layout = stored.drawer_layout;
   }
 
@@ -193,6 +211,11 @@ export function tracePreferencesReducer(
       return {
         ...state,
         missing_instrumentation: action.payload,
+      };
+    case 'set compressed timeline':
+      return {
+        ...state,
+        compressed_timeline: action.payload,
       };
     case 'set list width':
       return {
