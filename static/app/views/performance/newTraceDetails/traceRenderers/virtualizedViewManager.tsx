@@ -701,11 +701,28 @@ export class VirtualizedViewManager {
     // to move the duration label insdie the bar and can preserve
     // some context around the star/end time of a span
     if (this.view.trace_physical_space.width > 300) {
-      const mat = this.view.getSpanToPxForSpace([final_x, final_width]);
-      const offsetInConfigSpace = 74 * mat[0];
+      if (this.time_compression.enabled) {
+        const compressedPxRatio = this.span_to_px[0];
+        const paddingCompressedMs = 74 * compressedPxRatio;
+        const realStart = final_x + this.view.to_origin;
+        const realEnd = realStart + final_width;
+        const compressedStart = this.time_compression.toCompressedOffset(realStart);
+        const compressedEnd = this.time_compression.toCompressedOffset(realEnd);
+        const paddedStart = this.time_compression.toRealTimestamp(
+          compressedStart - paddingCompressedMs
+        );
+        const paddedEnd = this.time_compression.toRealTimestamp(
+          compressedEnd + paddingCompressedMs
+        );
+        final_x = paddedStart - this.view.to_origin;
+        final_width = paddedEnd - paddedStart;
+      } else {
+        const mat = this.view.getSpanToPxForSpace([final_x, final_width]);
+        const offsetInConfigSpace = 74 * mat[0];
 
-      final_x -= offsetInConfigSpace;
-      final_width += offsetInConfigSpace * 2;
+        final_x -= offsetInConfigSpace;
+        final_width += offsetInConfigSpace * 2;
+      }
     }
 
     const start_x = this.view.trace_view.x;
