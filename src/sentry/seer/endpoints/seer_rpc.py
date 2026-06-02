@@ -636,59 +636,6 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
     return {"success": True}
 
 
-def register_pr_attribution(
-    *,
-    organization_id: int,
-    repository_id: int,
-    pr_number: str,
-    signal_type: str,
-    run_id: int | None = None,
-    signal_details: dict | None = None,
-) -> dict:
-    """Accept (in Sentry, from Seer/Sentry-MCP) an attribution signal pushed for a PR.
-
-    Seer calls this when it learns a PR is attributable to a Sentry feature
-    (e.g. a delegated coding-agent run) — possibly before Sentry's SCM webhook
-    has fired. This is the cheap push path of the PR-metrics attribution flow.
-
-    This is currently a validate-and-acknowledge stub (CORE-201): it pins the
-    signed-RPC contract so Seer can integrate before the storage exists.
-
-    Args:
-        organization_id: The owning organization.
-        repository_id: Sentry's internal Repository id (also pins the provider).
-        pr_number: The external SCM pull-request number.
-        signal_type: The attribution source (e.g. "seer_delegated:cursor").
-        run_id: The Seer run id that produced the PR, if known.
-        signal_details: Optional extra context to persist on the signal.
-
-    Returns:
-        dict: ``{"success": True}`` once accepted, else ``{"success": False, "error": ...}``.
-    """
-    if not signal_type:
-        return {"success": False, "error": "signal_type must be a non-empty string"}
-
-    # Scope the repository to the organization to prevent cross-org reference.
-    if repository_service.get_repository(organization_id=organization_id, id=repository_id) is None:
-        return {"success": False, "error": "Repository not found"}
-
-    # TODO(CORE-201): persist once CORE-200's models land. Upsert a shell
-    # PullRequest row for the race where Seer learns the PR id before the SCM
-    # `opened` webhook, insert a PullRequestAttribution row, and recompute
-    # PullRequest.attribution. Full handling lands in M2 (CORE-204).
-    logger.info(
-        "seer.pr_metrics.register_pr_attribution",
-        extra={
-            "organization_id": organization_id,
-            "repository_id": repository_id,
-            "pr_number": pr_number,
-            "signal_type": signal_type,
-            "run_id": run_id,
-        },
-    )
-    return {"success": True}
-
-
 def upsert_pr_metrics_summary(
     *,
     organization_id: int,
@@ -1137,7 +1084,6 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "create_issue_occurrence": create_issue_occurrence,
     #
     # PR Merge Live Metrics
-    "register_pr_attribution": register_pr_attribution,
     "upsert_pr_metrics_summary": upsert_pr_metrics_summary,
 }
 

@@ -29,7 +29,6 @@ from sentry.seer.endpoints.seer_rpc import (
     get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
-    register_pr_attribution,
     trigger_coding_agent_launch,
     upsert_pr_metrics_summary,
     validate_repo,
@@ -1777,7 +1776,7 @@ class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
 class TestPrMetricsRpc(APITestCase):
-    """Stub register_pr_attribution / upsert_pr_metrics_summary handlers (CORE-201)."""
+    """Stub upsert_pr_metrics_summary handler (CORE-201)."""
 
     def setUp(self) -> None:
         super().setUp()
@@ -1792,71 +1791,6 @@ class TestPrMetricsRpc(APITestCase):
     def _auth_header(self, path: str, data: dict) -> str:
         body = orjson.dumps(data).decode()
         return f"rpcsignature {generate_request_signature(path, body.encode())}"
-
-    def test_register_pr_attribution_success(self) -> None:
-        result = register_pr_attribution(
-            organization_id=self.organization.id,
-            repository_id=self.repository.id,
-            pr_number="123",
-            signal_type="seer_delegated:cursor",
-            run_id=42,
-        )
-        assert result == {"success": True}
-
-    def test_register_pr_attribution_empty_signal_type(self) -> None:
-        result = register_pr_attribution(
-            organization_id=self.organization.id,
-            repository_id=self.repository.id,
-            pr_number="123",
-            signal_type="",
-        )
-        assert result["success"] is False
-
-    def test_register_pr_attribution_repository_not_found(self) -> None:
-        result = register_pr_attribution(
-            organization_id=self.organization.id,
-            repository_id=self.repository.id + 1000,
-            pr_number="123",
-            signal_type="seer_app",
-        )
-        assert result == {"success": False, "error": "Repository not found"}
-
-    def test_register_pr_attribution_repository_outside_org(self) -> None:
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-        other_repo = self.create_repo(project=other_project, name="getsentry/other")
-        result = register_pr_attribution(
-            organization_id=self.organization.id,
-            repository_id=other_repo.id,
-            pr_number="123",
-            signal_type="seer_app",
-        )
-        assert result == {"success": False, "error": "Repository not found"}
-
-    def test_register_pr_attribution_missing_required_arg_raises(self) -> None:
-        with pytest.raises(TypeError):
-            register_pr_attribution(
-                organization_id=self.organization.id,
-                repository_id=self.repository.id,
-                pr_number="123",
-            )
-
-    def test_register_pr_attribution_registered_on_internal_rpc(self) -> None:
-        path = self._get_path("register_pr_attribution")
-        data: dict[str, Any] = {
-            "args": {
-                "organization_id": self.organization.id,
-                "repository_id": self.repository.id,
-                "pr_number": "123",
-                "signal_type": "seer_app",
-            },
-            "meta": {},
-        }
-        response = self.client.post(
-            path, data=data, HTTP_AUTHORIZATION=self._auth_header(path, data)
-        )
-        assert response.status_code == 200
-        assert response.data == {"success": True}
 
     def test_upsert_pr_metrics_summary_success(self) -> None:
         result = upsert_pr_metrics_summary(
