@@ -39,7 +39,7 @@ class Migration(CheckedMigration):
                 ),
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
-                ("name", models.CharField(max_length=256)),
+                ("name", models.CharField(blank=True, max_length=256, null=True)),
                 ("active", models.BooleanField(db_default=True, default=True)),
                 ("conditions", models.JSONField(default=list)),
                 (
@@ -54,7 +54,7 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_custominboundfilter",
                 "indexes": [
-                    models.Index(fields=["project", "id"], name="sentry_pcif_project_id_idx")
+                    models.Index(fields=["project", "id"], name="sentry_cif_project_id_idx")
                 ],
             },
         ),

@@ -13,7 +13,7 @@ class CustomInboundFilter(DefaultFieldsModel):
     project = FlexibleForeignKey(
         "sentry.Project", on_delete=models.CASCADE, related_name="custom_inbound_filters"
     )
-    name = models.CharField(max_length=256)
+    name = models.CharField(max_length=256, null=True, blank=True)
     active = models.BooleanField(default=True, db_default=True)
     conditions = models.JSONField(default=list)
 
