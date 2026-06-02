@@ -2,6 +2,8 @@ import styled from '@emotion/styled';
 
 import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 
+// this file was changed! yay!
+
 export function ViewButton({children, ...props}: LinkButtonProps) {
   return (
     <TextButton variant="transparent" size="zero" preventScrollReset {...props}>
