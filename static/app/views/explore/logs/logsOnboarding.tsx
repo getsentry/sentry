@@ -65,11 +65,11 @@ type OnboardingProps = {
 const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
   'node-cloudflare-pages': {
     name: 'Cloudflare',
-    url: 'https://docs.sentry.io/product/drains/integration/cloudflare/',
+    url: 'https://docs.sentry.io/product/drains/cloudflare/',
   },
   'node-cloudflare-workers': {
     name: 'Cloudflare',
-    url: 'https://docs.sentry.io/product/drains/integration/cloudflare/',
+    url: 'https://docs.sentry.io/product/drains/cloudflare/',
   },
 };
 
@@ -91,7 +91,7 @@ function LogDrainsLink({project}: {project: Project}) {
                   <ExternalLink href={platformDoc.url}>{platformDoc.name}</ExternalLink>
                 ),
                 otlpLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />
+                  <ExternalLink href="https://docs.sentry.io/concepts/otlp/forwarding/pipelines/collector/" />
                 ),
               }
             )
@@ -100,10 +100,10 @@ function LogDrainsLink({project}: {project: Project}) {
               {
                 link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
                 vercelLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/" />
+                  <ExternalLink href="https://docs.sentry.io/product/drains/vercel/" />
                 ),
                 otlpLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />
+                  <ExternalLink href="https://docs.sentry.io/concepts/otlp/forwarding/pipelines/collector/" />
                 ),
               }
             )}
