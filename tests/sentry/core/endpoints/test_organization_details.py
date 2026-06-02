@@ -677,7 +677,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "onboarding" not in response.data["features"]
 
     def test_invalid_stored_stopping_point_falls_back_to_default(self) -> None:
-        self.organization.update_option("sentry:default_automated_run_stopping_point", "root_cause")
+        self.organization.update_option("sentry:default_automated_run_stopping_point", "foo-bar")
         response = self.get_success_response(self.organization.slug)
         assert (
             response.data["defaultAutomatedRunStoppingPoint"]
