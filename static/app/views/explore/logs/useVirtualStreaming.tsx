@@ -130,7 +130,7 @@ export function useVirtualStreaming({
   // Reset the virtual timestamp when toggling auto-refresh
   useEffect(() => {
     if (!autoRefresh) {
-      // setVirtualTimestamp(undefined);
+      setVirtualTimestamp(undefined);
       return;
     }
 
