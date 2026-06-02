@@ -29,6 +29,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
@@ -807,15 +808,17 @@ function LogRowDetailsActions({
   let logDebugEndpoint: string | undefined;
 
   if (user.isSuperuser && projectSlug && isRegularLogResponseItem(tableDataRow)) {
-    const logId = String(tableDataRow[OurLogKnownFieldKey.ID] ?? '');
-    const traceId = String(tableDataRow[OurLogKnownFieldKey.TRACE_ID] ?? '');
+    const logId = tableDataRow[OurLogKnownFieldKey.ID] ?? '';
+    const traceId = tableDataRow[OurLogKnownFieldKey.TRACE_ID] ?? '';
 
     if (logId && traceId) {
       const query = new URLSearchParams({
         item_type: TraceItemDataset.LOGS,
         trace_id: traceId,
         debug: 'true',
-        timestamp: String(Math.trunc(getLogRowTimestampMillis(tableDataRow) / 1000)),
+        timestamp: String(
+          normalizeTimestampToSeconds(getLogRowTimestampMillis(tableDataRow))
+        ),
       });
 
       logDebugEndpoint = `/api/0${getApiUrl(
