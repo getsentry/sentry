@@ -98,9 +98,7 @@ function isPreferenceState(parsed: any): parsed is StoredTracePreferences {
   );
 }
 
-function isValidAutogrouping(
-  state: StoredTracePreferences
-): state is StoredTracePreferences & {autogrouping: undefined} {
+function isValidAutogrouping(state: StoredTracePreferences): boolean {
   if (state.autogroup === undefined) {
     return false;
   }
@@ -113,18 +111,14 @@ function isValidAutogrouping(
   return true;
 }
 
-function isValidMissingInstrumentation(
-  state: StoredTracePreferences
-): state is StoredTracePreferences & {missing_instrumentation: undefined} {
+function isValidMissingInstrumentation(state: StoredTracePreferences): boolean {
   if (typeof state.missing_instrumentation !== 'boolean') {
     return false;
   }
   return true;
 }
 
-function isValidCompressedTimeline(
-  state: StoredTracePreferences
-): state is StoredTracePreferences & {compressedTimeline: boolean} {
+function isValidCompressedTimeline(state: StoredTracePreferences): boolean {
   if (typeof state.compressedTimeline !== 'boolean') {
     return false;
   }
