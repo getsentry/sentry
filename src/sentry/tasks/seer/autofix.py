@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.utils import timezone
@@ -16,7 +15,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
-    AutofixStatus,
     SeerAutomationSource,
 )
 from sentry.seer.autofix.utils import (
@@ -24,7 +22,6 @@ from sentry.seer.autofix.utils import (
     AutomationCodingAgent,
     SeerProjectSettingsUpdate,
     bulk_read_preferences_from_sentry_db,
-    get_autofix_state,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
     get_valid_automated_run_stopping_points,
@@ -45,25 +42,6 @@ def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
     except Group.DoesNotExist:
         logger.warning("%s.group_not_found", task_name, extra={"group_id": group_id})
         return None
-
-
-@instrumented_task(
-    name="sentry.tasks.autofix.check_autofix_status",
-    namespace=issues_tasks,
-    retry=Retry(times=1),
-)
-def check_autofix_status(run_id: int, organization_id: int) -> None:
-    state = get_autofix_state(run_id=run_id, organization_id=organization_id)
-
-    if (
-        state
-        and state.status == AutofixStatus.PROCESSING
-        and state.updated_at < datetime.now() - timedelta(minutes=5)
-    ):
-        # This should log to sentry
-        logger.error(
-            "Autofix run has been processing for more than 5 minutes", extra={"run_id": run_id}
-        )
 
 
 @instrumented_task(
