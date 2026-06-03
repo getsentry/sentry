@@ -153,7 +153,7 @@ describe('useActiveReplayTab', () => {
     });
   });
 
-  it('should update the tab query parameter shallowly', async () => {
+  it('should update the tab query parameter via the router (non-shallow)', async () => {
     const onUrlUpdate = jest.fn<
       ReturnType<OnUrlUpdateFunction>,
       Parameters<OnUrlUpdateFunction>
@@ -166,10 +166,7 @@ describe('useActiveReplayTab', () => {
       },
       organization: OrganizationFixture({features: []}),
       additionalWrapper: ({children}) => (
-        <SentryNuqsTestingAdapter
-          defaultOptions={{shallow: false}}
-          onUrlUpdate={onUrlUpdate}
-        >
+        <SentryNuqsTestingAdapter onUrlUpdate={onUrlUpdate}>
           {children}
         </SentryNuqsTestingAdapter>
       ),
@@ -184,7 +181,7 @@ describe('useActiveReplayTab', () => {
     expect(onUrlUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         queryString: '?t_main=network',
-        options: expect.objectContaining({shallow: true}),
+        options: expect.objectContaining({shallow: false}),
       })
     );
   });

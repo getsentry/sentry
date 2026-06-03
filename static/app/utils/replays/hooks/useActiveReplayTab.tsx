@@ -60,7 +60,7 @@ export function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boo
     't_main',
     tabKeyParser
       .withDefault(defaultTab)
-      .withOptions({clearOnDefault: false, shallow: true})
+      .withOptions({clearOnDefault: false})
   );
 
   return {
