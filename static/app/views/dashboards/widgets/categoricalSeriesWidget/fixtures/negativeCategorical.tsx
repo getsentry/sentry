@@ -10,7 +10,7 @@ export const sampleNegativeData: CategoricalSeries = {
     {category: 'Chrome', value: 150},
     {category: 'Firefox', value: -45},
     {category: 'Safari', value: -120},
-    {category: 'Edge', value: 85},
+    {category: 'Edge', value: 90},
     {category: 'Opera', value: -30},
   ],
 };
