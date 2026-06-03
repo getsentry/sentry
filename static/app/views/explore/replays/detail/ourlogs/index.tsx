@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -102,14 +102,17 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   );
 
   const [hasAnyLogs, setHasAnyLogs] = useState(!!logItems?.length);
+  const previousReplayId = useRef(replayId);
   useEffect(() => {
+    if (previousReplayId.current !== replayId) {
+      previousReplayId.current = replayId;
+      setHasAnyLogs(!!logItems?.length);
+      return;
+    }
     if (logItems?.length) {
       setHasAnyLogs(true);
     }
-  }, [logItems]);
-  useEffect(() => {
-    setHasAnyLogs(false);
-  }, [replayId]);
+  }, [logItems, replayId]);
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
