@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -13,8 +14,8 @@ import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
@@ -27,6 +28,24 @@ type IssueProps = {
 };
 
 const MAX_DISPLAYED_ISSUES_COUNT = 3;
+
+type UseTraceIssueGroupProps = {
+  issueId: number;
+  organization: Organization;
+};
+
+export function useTraceIssueGroup({issueId, organization}: UseTraceIssueGroupProps) {
+  return useQuery(
+    apiOptions.as<Group>()('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+      path: issueId ? {organizationIdOrSlug: organization.slug, issueId} : skipToken,
+      query: {
+        collapse: 'release',
+        expand: 'inbox',
+      },
+      staleTime: 2 * 60 * 1000,
+    })
+  );
+}
 
 const issueOrderPriority: Record<Level | 'default', number> = {
   fatal: 0,
@@ -55,21 +74,10 @@ function Issue(props: IssueProps) {
     data: fetchedIssue,
     isError,
     error,
-  } = useApiQuery<Group>(
-    [
-      getApiUrl('/issues/$issueId/', {path: {issueId: props.issue.issue_id}}),
-      {
-        query: {
-          collapse: 'release',
-          expand: 'inbox',
-        },
-      },
-    ],
-    {
-      enabled: !!props.issue.issue_id,
-      staleTime: 2 * 60 * 1000,
-    }
-  );
+  } = useTraceIssueGroup({
+    issueId: props.issue.issue_id,
+    organization: props.organization,
+  });
 
   const iconClassName = getTraceIssueSeverityClassName(props.issue);
 
@@ -92,7 +100,9 @@ function Issue(props: IssueProps) {
   ) : isError ? (
     <LoadingError
       message={
-        error.status === 404 ? t('This issue was deleted') : t('Failed to fetch issue')
+        error instanceof RequestError && error.status === 404
+          ? t('This issue was deleted')
+          : t('Failed to fetch issue')
       }
     />
   ) : null;
