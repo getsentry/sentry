@@ -6,7 +6,6 @@ from typing import Any
 
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 from ..base import DetectorType, PerformanceDetector
@@ -37,10 +36,9 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.any_compression = False
 
@@ -144,10 +142,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         resource_span = fingerprint_resource_span(span)
         return f"1-{PerformanceUncompressedAssetsGroupType.type_id}-{resource_span}"
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     @classmethod

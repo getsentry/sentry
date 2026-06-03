@@ -45,11 +45,7 @@ export const automationRoutes: SentryRouteObject = {
 function RedirectToRuleList() {
   const organization = useOrganization();
 
-  const hasRedirectOptOut = organization.features.includes(
-    'workflow-engine-redirect-opt-out'
-  );
-  const shouldRedirect =
-    !hasRedirectOptOut && !organization.features.includes('workflow-engine-ui');
+  const shouldRedirect = !organization.features.includes('workflow-engine-ui');
 
   if (shouldRedirect) {
     return (
@@ -68,11 +64,7 @@ function RedirectToRuleList() {
 function RedirectToNewRule() {
   const organization = useOrganization();
 
-  const hasRedirectOptOut = organization.features.includes(
-    'workflow-engine-redirect-opt-out'
-  );
-  const shouldRedirect =
-    !hasRedirectOptOut && !organization.features.includes('workflow-engine-ui');
+  const shouldRedirect = !organization.features.includes('workflow-engine-ui');
 
   if (shouldRedirect) {
     return (

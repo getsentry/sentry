@@ -273,17 +273,16 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_post_accepts_root_cause_stopping_point_with_flag(self) -> None:
+    def test_post_accepts_root_cause_stopping_point(self) -> None:
         project = self.create_project(organization=self.organization)
 
-        with self.feature("organizations:root-cause-stopping-point"):
-            response = self.client.post(
-                self.url,
-                {
-                    "projectIds": [project.id],
-                    "automatedRunStoppingPoint": "root_cause",
-                },
-            )
+        response = self.client.post(
+            self.url,
+            {
+                "projectIds": [project.id],
+                "automatedRunStoppingPoint": "root_cause",
+            },
+        )
         assert response.status_code == 204
         assert project.get_option("sentry:seer_automated_run_stopping_point") == "root_cause"
 

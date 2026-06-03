@@ -952,6 +952,7 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.type",
         "issue.seer_actionability",
         "issue.seer_last_run",
+        "issue.agent",
     )
 )
 
@@ -1202,7 +1203,7 @@ class SimpleGroupSerializerResponse(TypedDict):
     lastSeen: datetime | None
 
 
-class SimpleGroupSerializer(Serializer):
+class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
     """
     A serializer that only returns the most basic information about a group.
     It should make minimal queries to the database.

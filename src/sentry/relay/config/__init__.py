@@ -60,7 +60,6 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
-    "organizations:relay-new-error-processing",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
@@ -74,7 +73,6 @@ EXPOSABLE_FEATURES = [
     "projects:relay-minidump-attachment-uploads",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
-    "projects:relay-measurements-smart-conversion",
 ]
 
 EXTRACT_METRICS_VERSION = 1
