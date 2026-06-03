@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 
 from django.conf import settings
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import json, redis
 
@@ -15,7 +16,7 @@ def _make_cache_key(org_id: int, project_id: int, timestamp: float) -> str:
     return f"{KEY_PREFIX}:{org_id}:{project_id}:{timestamp}"
 
 
-def _get_redis_client() -> redis.RedisCluster | redis.StrictRedis:
+def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     return redis.redis_clusters.get(settings.SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER)
 
 

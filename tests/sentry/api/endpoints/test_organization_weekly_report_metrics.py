@@ -12,25 +12,25 @@ PREV_SATURDAY_TS = SATURDAY_TS - (86400 * 7)
 class OrganizationWeeklyReportMetricsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-weekly-report-metrics"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.current_ts = SATURDAY_TS
         self.previous_ts = PREV_SATURDAY_TS
 
-    def test_feature_flag_off(self):
+    def test_feature_flag_off(self) -> None:
         response = self.get_response(self.organization.slug)
         assert response.status_code == 404
 
     @freeze_time(SATURDAY)
-    def test_empty_cache(self):
+    def test_empty_cache(self) -> None:
         with self.feature("organizations:weekly-report-metrics-api"):
             response = self.get_success_response(self.organization.slug)
         assert response.data["dataAvailable"] is False
         assert response.data["projects"] == []
 
     @freeze_time(SATURDAY)
-    def test_current_week_only(self):
+    def test_current_week_only(self) -> None:
         cache_project_metrics(
             self.organization.id,
             self.current_ts,
@@ -54,7 +54,7 @@ class OrganizationWeeklyReportMetricsEndpointTest(APITestCase):
         assert project_data["change"] is None
 
     @freeze_time(SATURDAY)
-    def test_both_weeks_with_percentage_change(self):
+    def test_both_weeks_with_percentage_change(self) -> None:
         cache_project_metrics(
             self.organization.id,
             self.current_ts,
@@ -78,7 +78,7 @@ class OrganizationWeeklyReportMetricsEndpointTest(APITestCase):
         }
 
     @freeze_time(SATURDAY)
-    def test_pct_change_previous_zero(self):
+    def test_pct_change_previous_zero(self) -> None:
         cache_project_metrics(
             self.organization.id,
             self.current_ts,
@@ -98,7 +98,7 @@ class OrganizationWeeklyReportMetricsEndpointTest(APITestCase):
         assert change["totalTransactions"] == 0.0
 
     @freeze_time(SATURDAY)
-    def test_multiple_projects(self):
+    def test_multiple_projects(self) -> None:
         p2 = self.create_project(organization=self.organization, teams=[self.team])
 
         cache_project_metrics(
@@ -120,7 +120,7 @@ class OrganizationWeeklyReportMetricsEndpointTest(APITestCase):
         assert p2.slug in slugs
 
     @freeze_time(datetime(2025, 1, 7, 15, 0, tzinfo=timezone.utc))
-    def test_non_saturday_request_finds_cached_saturday_data(self):
+    def test_non_saturday_request_finds_cached_saturday_data(self) -> None:
         """Endpoint looks up the most recent Saturday, not today."""
         cache_project_metrics(
             self.organization.id,
@@ -138,7 +138,7 @@ class OrganizationWeeklyReportMetricsEndpointTest(APITestCase):
         }
 
     @freeze_time(SATURDAY)
-    def test_only_returns_accessible_projects(self):
+    def test_only_returns_accessible_projects(self) -> None:
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
 
