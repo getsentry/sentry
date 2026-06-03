@@ -2459,7 +2459,6 @@ module = [
     "tests.sentry.web.frontend.test_setup_wizard",
     "tests.sentry.web.frontend.test_shared_group_details",
     "tests.sentry.web.frontend.test_twofactor",
-    "tests.sentry.web.frontend.test_vercel_extension_configuration",
     "tests.sentry.web.frontend.test_vsts_extension_configuration",
     "tests.sentry.web.test_api",
     "tests.sentry.web.test_client_config",
