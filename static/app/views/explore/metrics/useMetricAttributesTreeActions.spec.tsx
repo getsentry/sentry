@@ -87,4 +87,30 @@ describe('useMetricAttributesTreeActions', () => {
 
     expect(result.current(content)).toEqual([]);
   });
+
+  it('adds filters for already typed tag attributes without nesting the key', () => {
+    const {result} = renderHookWithProviders(useMetricAttributesTreeActions, {
+      additionalWrapper: Wrapper,
+    });
+
+    const content: AttributesTreeContent = {
+      originalAttribute: {
+        attribute_key: 'fallback.number',
+        attribute_value: 1.23,
+        original_attribute_key: 'tags[fallback.number,number]',
+        type: 'float' as const,
+      },
+      subtree: {},
+      value: 1.23,
+    };
+
+    const actions = result.current(content);
+    actions[0]!.onAction?.();
+
+    expect(mockSetQueryParams).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: 'tags[fallback.number,number]:1.23',
+      })
+    );
+  });
 });

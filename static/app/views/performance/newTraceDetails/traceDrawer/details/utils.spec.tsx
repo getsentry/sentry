@@ -1,4 +1,5 @@
 import {
+  getTypedTagKey,
   getTraceIssueSeverityClassName,
   parseJsonWithFix,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
@@ -113,5 +114,22 @@ describe('getTraceIssueSeverityClassName', () => {
   it('returns occurrence for occurrence issues with info level', () => {
     const issue = makeEAPOccurrence({level: 'info'});
     expect(getTraceIssueSeverityClassName(issue)).toBe('occurrence');
+  });
+});
+
+describe('getTypedTagKey', () => {
+  it('wraps untyped numeric and boolean attributes', () => {
+    expect(getTypedTagKey('custom.number', 'float')).toBe('tags[custom.number,number]');
+    expect(getTypedTagKey('custom.integer', 'int')).toBe('tags[custom.integer,number]');
+    expect(getTypedTagKey('custom.boolean', 'bool')).toBe('tags[custom.boolean,boolean]');
+  });
+
+  it('does not wrap attributes that already use typed tag syntax', () => {
+    expect(getTypedTagKey('tags[fallback.number,number]', 'float')).toBe(
+      'tags[fallback.number,number]'
+    );
+    expect(getTypedTagKey('tags[fallback.boolean,boolean]', 'bool')).toBe(
+      'tags[fallback.boolean,boolean]'
+    );
   });
 });

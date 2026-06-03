@@ -14,6 +14,7 @@ import {
   SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
   SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
+import {extractBaseKey} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -224,7 +225,7 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
 }
 
 export function getTypedTagKey(key: string, type: string | undefined): string {
-  if (getFieldDefinition(key, 'span')) {
+  if (extractBaseKey(key) !== key || getFieldDefinition(key, 'span')) {
     return key;
   }
   if (type === 'int' || type === 'float') {
