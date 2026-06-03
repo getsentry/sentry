@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TypedDict
 
 from sentry.api.serializers import Serializer, register
@@ -15,11 +16,12 @@ class EventUserSerializerResponse(TypedDict):
     ipAddress: str
     avatarUrl: str
     hash: str
-    dateCreated: None
+    # Legacy field, always null; typed nullable so it resolves in the OpenAPI schema.
+    dateCreated: datetime | None
 
 
 @register(EventUser)
-class EventUserSerializer(Serializer):
+class EventUserSerializer(Serializer[EventUserSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> EventUserSerializerResponse:
         return {
             "id": str(obj.id) if obj.id is not None else obj.id,

@@ -804,38 +804,49 @@ def _recommended_aggregation(
 
     # Group type boost: additive signal per issue type
     group_type_boosts = options.get("snuba.search.recommended.group-type-boost")
+
+    # Skip zero-weighted factors: their term is always 0, so computing them in
+    # ClickHouse is wasted work -- especially expensive aggregates like user
+    # impact's uniq(tags[sentry:user]).
+    terms = [
+        f"multiply({weight}, {factor})"
+        for weight, factor in (
+            (recency_weight, recency),
+            (spike_weight, spike),
+            (severity_weight, severity),
+            (user_impact_weight, user_impact),
+            (event_volume_weight, event_volume),
+        )
+        if weight
+    ]
+
+    if not terms:
+        # The score must be an aggregate expression. Every factor term above is an
+        # aggregate, but if all are dropped the only remaining term may be the boost
+        # below, which can be a bare constant. Seed a constant-0 aggregate so the
+        # expression Snuba receives always contains one.
+        terms.append("multiply(0, count())")
+
     if group_type_boosts:
         type_expr = f"any({type_column})" if type_column else "1"
         conditions = []
         for type_id, boost in group_type_boosts.items():
             conditions.append(f"equals({type_expr}, {type_id}), {boost}")
-        type_boost = f"multiIf({', '.join(conditions)}, 0.0)"
-    else:
-        type_boost = "0.0"
+        terms.append(f"multiIf({', '.join(conditions)}, 0.0)")
 
-    # Message penalty: downrank issues from capture_message (no exception/stacktrace)
-    # Only applies to Events dataset — issue-platform occurrences don't have exception_stacks
-    if type_column is None:
-        message_penalty_weight = options.get("snuba.search.recommended.message-penalty-weight")
+    score_expr = terms[0]
+    for term in terms[1:]:
+        score_expr = f"plus({score_expr}, {term})"
+
+    # Message penalty: downrank capture_message issues (no exception/stacktrace).
+    # Only the events dataset has exception_stacks; issue-platform occurrences don't.
+    message_penalty_weight = options.get("snuba.search.recommended.message-penalty-weight")
+    if type_column is None and message_penalty_weight:
         has_exception_ratio = "divide(countIf(notEmpty(exception_stacks.type)), count())"
         message_penalty = f"multiply({message_penalty_weight}, minus(1.0, {has_exception_ratio}))"
-    else:
-        message_penalty = "0.0"
+        score_expr = f"minus({score_expr}, {message_penalty})"
 
-    weighted_score = (
-        f"plus(plus(plus(plus(plus("
-        f"multiply({recency_weight}, {recency}), "
-        f"multiply({spike_weight}, {spike})), "
-        f"multiply({severity_weight}, {severity})), "
-        f"multiply({user_impact_weight}, {user_impact})), "
-        f"multiply({event_volume_weight}, {event_volume})), "
-        f"{type_boost})"
-    )
-
-    return [
-        f"minus({weighted_score}, {message_penalty})",
-        "",
-    ]
+    return [score_expr, ""]
 
 
 def recommended_aggregation(

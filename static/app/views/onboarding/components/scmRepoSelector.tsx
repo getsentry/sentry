@@ -7,12 +7,20 @@ import type {Integration, Repository} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmSearchControl} from './scmSearchControl';
 import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
 import {useScmRepos} from './useScmRepos';
 import {useScmRepoSelection} from './useScmRepoSelection';
 
+const REPO_SELECTED_EVENT = {
+  onboarding: 'onboarding.scm_connect_repo_selected',
+  'project-creation': 'project_creation.scm_connect_repo_selected',
+} as const;
+
 interface ScmRepoSelectorProps {
+  // Which flow this component is rendered in. Drives analytics event names.
+  analyticsFlow: ScmAnalyticsFlow;
   integration: Integration;
   // Fired once per user-driven change (select or clear) so callers can
   // invalidate state derived from the repo (platform, features, created
@@ -25,6 +33,7 @@ interface ScmRepoSelectorProps {
 }
 
 export function ScmRepoSelector({
+  analyticsFlow,
   integration,
   onClearDerivedState,
   onRepositoryChange,
@@ -67,7 +76,7 @@ export function ScmRepoSelector({
     } else {
       const repo = reposByIdentifier.get(option.value);
       if (repo) {
-        trackAnalytics('onboarding.scm_connect_repo_selected', {
+        trackAnalytics(REPO_SELECTED_EVENT[analyticsFlow], {
           organization,
           provider: integration.provider.key,
           repo: repo.name,

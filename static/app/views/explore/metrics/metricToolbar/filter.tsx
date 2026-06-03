@@ -22,6 +22,7 @@ import {
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabSeerComboBox} from 'sentry/views/explore/metrics/metricsTabSeerComboBox';
+import {useMetricFallbackAttributes} from 'sentry/views/explore/metrics/metricToolbar/useMetricFallbackAttributes';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsQuery,
@@ -82,7 +83,9 @@ export function Filter({
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
   const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
 
-  const {data: data} = useQuery({
+  const hasTraceMetricFilter = Boolean(traceMetricFilter);
+
+  const {data, isLoading} = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
       selection,
@@ -91,9 +94,15 @@ export function Filter({
       projectIds,
       environments,
     }),
-    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
+    enabled: skipTraceMetricFilter || hasTraceMetricFilter,
     select: selectTraceItemTagCollection(),
   });
+
+  const {attributes: fallbackAttributes, isLoading: isFallbackLoading} =
+    useMetricFallbackAttributes({
+      enabled: !skipTraceMetricFilter && hasTraceMetricFilter,
+      traceMetric,
+    });
 
   const visibleNumberTags = useMemo(() => {
     const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce<TagCollection>(
@@ -106,15 +115,14 @@ export function Filter({
       {}
     );
 
-    return {
-      ...staticNumberTags,
-      ...Object.fromEntries(
-        Object.entries(data?.numberAttributes ?? {}).filter(
-          ([key]) => !HiddenTraceMetricSearchFields.includes(key)
-        )
-      ),
-    };
-  }, [data?.numberAttributes]);
+    return Object.fromEntries(
+      Object.entries({
+        ...staticNumberTags,
+        ...fallbackAttributes.numberAttributes,
+        ...data?.numberAttributes,
+      }).filter(([key]) => !HiddenTraceMetricSearchFields.includes(key))
+    );
+  }, [data?.numberAttributes, fallbackAttributes.numberAttributes]);
 
   const visibleStringTags = useMemo(() => {
     const staticStringTags = SENTRY_TRACEMETRIC_STRING_TAGS.reduce<TagCollection>(
@@ -127,15 +135,14 @@ export function Filter({
       {}
     );
 
-    return {
-      ...staticStringTags,
-      ...Object.fromEntries(
-        Object.entries(data?.stringAttributes ?? {}).filter(
-          ([key]) => !HiddenTraceMetricSearchFields.includes(key)
-        )
-      ),
-    };
-  }, [data?.stringAttributes]);
+    return Object.fromEntries(
+      Object.entries({
+        ...staticStringTags,
+        ...fallbackAttributes.stringAttributes,
+        ...data?.stringAttributes,
+      }).filter(([key]) => !HiddenTraceMetricSearchFields.includes(key))
+    );
+  }, [data?.stringAttributes, fallbackAttributes.stringAttributes]);
 
   const visibleBooleanTags = useMemo(() => {
     const staticBooleanTags = SENTRY_TRACEMETRIC_BOOLEAN_TAGS.reduce<TagCollection>(
@@ -148,15 +155,16 @@ export function Filter({
       {}
     );
 
-    return {
-      ...staticBooleanTags,
-      ...Object.fromEntries(
-        Object.entries(data?.booleanAttributes ?? {}).filter(
-          ([key]) => !HiddenTraceMetricSearchFields.includes(key)
-        )
-      ),
-    };
-  }, [data?.booleanAttributes]);
+    return Object.fromEntries(
+      Object.entries({
+        ...staticBooleanTags,
+        ...fallbackAttributes.booleanAttributes,
+        ...data?.booleanAttributes,
+      }).filter(([key]) => !HiddenTraceMetricSearchFields.includes(key))
+    );
+  }, [data?.booleanAttributes, fallbackAttributes.booleanAttributes]);
+
+  const isLoadingAttributes = isLoading || isFallbackLoading;
 
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps =
     useMemo(() => {
@@ -176,6 +184,8 @@ export function Filter({
         hiddenAttributeKeys: HiddenTraceMetricSearchFields,
         projects: projectIds,
         environments,
+        disabled:
+          isLoadingAttributes || (!skipTraceMetricFilter && !hasTraceMetricFilter),
 
         // Disable the recent searches when not using a trace metric filter or when the metric name
         // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
@@ -190,6 +200,8 @@ export function Filter({
       traceMetric.name,
       attributeQuery,
       skipTraceMetricFilter,
+      hasTraceMetricFilter,
+      isLoadingAttributes,
       projectIds,
       environments,
     ]);
@@ -204,6 +216,7 @@ export function Filter({
       // This prevents race conditions when navigating between different metrics
       key={traceMetric.name}
       {...searchQueryBuilderProviderProps}
+      disabled={tracesItemSearchQueryBuilderProps.disabled}
       enableAISearch={hasTranslateEndpoint && hasMetricsAISearch}
       aiSearchBadgeType="alpha"
     >

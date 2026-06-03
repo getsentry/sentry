@@ -23,7 +23,7 @@ class IncidentActivitySerializerResponse(TypedDict):
 
 
 @register(IncidentActivity)
-class IncidentActivitySerializer(Serializer):
+class IncidentActivitySerializer(Serializer[IncidentActivitySerializerResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         prefetch_related_objects(item_list, "incident__organization")
         serialized_users = user_service.serialize_many(
