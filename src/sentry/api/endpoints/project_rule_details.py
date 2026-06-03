@@ -102,9 +102,6 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
 @extend_schema(tags=["Alerts"])
 @cell_silo_endpoint
 class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
-    workflow_engine_method_flags = {
-        "DELETE": "organizations:workflow-engine-issue-alert-endpoints-delete",
-    }
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
@@ -337,7 +334,10 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 "organizations:workflow-engine-issue-alert-endpoints-put", project.organization
             ):
                 try:
-                    workflow = AlertRuleWorkflow.objects.get(rule_id=updated_rule.id).workflow
+                    workflow = AlertRuleWorkflow.objects.get(
+                        rule_id=updated_rule.id,
+                        workflow__organization=project.organization,
+                    ).workflow
                     return Response(
                         serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
                     )
@@ -368,7 +368,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
     )
-    def delete(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    def delete(self, request: Request, project: Project, rule: Workflow) -> Response:
         """
         ## Deprecated
          🚧 Use [Delete an Alert](/api/monitors/delete-an-alert) instead.
@@ -381,59 +381,42 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
          - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
          - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-        if isinstance(rule, Workflow):
-            with transaction.atomic(router.db_for_write(Workflow)):
-                rule.update(status=ObjectStatus.PENDING_DELETION)
-                scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=rule.id,
-                event=audit_log.get_event_id("WORKFLOW_REMOVE"),
-                data=rule.get_audit_log_data(),
-                transaction_id=scheduled.id,
+        with transaction.atomic(router.db_for_write(Workflow)):
+            rule.update(status=ObjectStatus.PENDING_DELETION)
+            scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=rule.id,
+            event=audit_log.get_event_id("WORKFLOW_REMOVE"),
+            data=rule.get_audit_log_data(),
+            transaction_id=scheduled.id,
+        )
+        try:
+            ard = AlertRuleWorkflow.objects.get(
+                workflow_id=rule.id,
+                workflow__organization=project.organization,
             )
-            try:
-                ard = AlertRuleWorkflow.objects.get(workflow_id=rule.id)
-                rule = Rule.objects.get(id=ard.rule_id, project=project)
+            legacy_rule = Rule.objects.get(id=ard.rule_id, project=project)
 
-                report_used_legacy_models()
-                with transaction.atomic(router.db_for_write(Rule)):
-                    rule.update(status=ObjectStatus.PENDING_DELETION)
-                    RuleActivity.objects.create(
-                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
-                    )
-                    scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
-                self.create_audit_entry(
-                    request=request,
-                    organization=project.organization,
-                    target_object=rule.id,
-                    event=audit_log.get_event_id("RULE_REMOVE"),
-                    data=rule.get_audit_log_data(),
-                    transaction_id=scheduled.id,
-                )
-            except (AlertRuleWorkflow.DoesNotExist, Rule.DoesNotExist):
-                return Response(status=202)
-
-        else:
             report_used_legacy_models()
             with transaction.atomic(router.db_for_write(Rule)):
-                rule.update(status=ObjectStatus.PENDING_DELETION)
+                legacy_rule.update(status=ObjectStatus.PENDING_DELETION)
                 RuleActivity.objects.create(
-                    rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                    rule=legacy_rule,
+                    user_id=request.user.id,
+                    type=RuleActivityType.DELETED.value,
                 )
-                scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
-                # The Rule's scheduled deletion should take care of the workflow, but
-                # we mark it pending immediately so we don't return it while the deletion is in progress.
-                for workflow in Workflow.objects.filter(alertruleworkflow__rule_id=rule.id):
-                    workflow.update(status=ObjectStatus.PENDING_DELETION)
-
+                scheduled = CellScheduledDeletion.schedule(legacy_rule, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=rule.id,
+                target_object=legacy_rule.id,
                 event=audit_log.get_event_id("RULE_REMOVE"),
-                data=rule.get_audit_log_data(),
+                data=legacy_rule.get_audit_log_data(),
                 transaction_id=scheduled.id,
             )
+        except (AlertRuleWorkflow.DoesNotExist, Rule.DoesNotExist):
+            pass
+
         return Response(status=202)

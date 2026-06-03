@@ -1,6 +1,7 @@
 import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -118,7 +119,11 @@ function ConversationsTableInner() {
           column.name
         )}
         {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'inputOutput' && <CellExpander />}
+        {column.key === 'inputOutput' && (
+          // Force the cell to take as much width as possible in the table
+          // layout, otherwise GridEditable will let the last column grow.
+          <Container width="100vw" />
+        )}
       </Flex>
     );
   }, []);
@@ -265,9 +270,9 @@ const BodyCell = memo(function BodyCell({
     case 'user': {
       if (!dataRow.user) {
         return (
-          <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable>
-            <Text variant="muted">&mdash;</Text>
-          </Tooltip>
+          <InfoText variant="muted" title={<UserNotInstrumentedTooltip />}>
+            &mdash;
+          </InfoText>
         );
       }
       const displayName = getUserDisplayName(dataRow.user);
@@ -360,14 +365,6 @@ const SingleLineMarkdown = styled('div')`
   * {
     display: inline;
   }
-`;
-
-/**
- * Used to force the cell to expand take as much width as possible in the table layout
- * otherwise grid editable will let the last column grow
- */
-const CellExpander = styled('div')`
-  width: 100vw;
 `;
 
 const ConversationIdLink = styled(Link)`

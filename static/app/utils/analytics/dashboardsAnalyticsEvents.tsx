@@ -9,6 +9,7 @@ export enum WidgetBuilderVersion {
 type DashboardsEventParametersWidgetBuilder = {
   'dashboards_views.engagement.load': {
     globalFilterCount: number;
+    isSentryBuilt: boolean;
     issuesRatio: number;
     logRatio: number;
     metricsRatio: number;

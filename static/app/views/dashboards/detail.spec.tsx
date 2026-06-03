@@ -269,7 +269,7 @@ describe('Dashboards > Detail', () => {
         makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/default-overview/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         })
       );
 
@@ -475,7 +475,7 @@ describe('Dashboards > Detail', () => {
         makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         })
       );
 
@@ -530,7 +530,7 @@ describe('Dashboards > Detail', () => {
         makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         })
       );
 
@@ -555,7 +555,7 @@ describe('Dashboards > Detail', () => {
         makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         })
       );
 
@@ -583,7 +583,7 @@ describe('Dashboards > Detail', () => {
           ...makeDashboardRouterConfig({
             pathname: '/organizations/org-slug/dashboard/1/',
             route: DASHBOARD_ROUTE,
-            query: initialData.router.location.query,
+            query: {},
           }),
           organization: initialData.organization,
         }
@@ -634,7 +634,7 @@ describe('Dashboards > Detail', () => {
         makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         })
       );
 
@@ -688,7 +688,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -727,7 +727,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -769,7 +769,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
           route: DASHBOARD_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -853,7 +853,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/widget/0/',
           route: DASHBOARD_WIDGET_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -874,7 +874,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/widget/123/',
           routes: [DASHBOARD_WIDGET_ROUTE, DASHBOARD_ROUTE],
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -902,20 +902,15 @@ describe('Dashboards > Detail', () => {
         method: 'POST',
         body: [],
       });
-      const locationWithFilters = {
-        ...initialData.router.location,
-        query: {
-          ...initialData.router.location.query,
-          statsPeriod: '7d',
-          project: [2],
-          environment: ['alpha', 'beta'],
-        },
-      };
       render(<CreateDashboard />, {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboards/new/',
           route: DASHBOARD_NEW_ROUTE,
-          query: locationWithFilters.query,
+          query: {
+            statsPeriod: '7d',
+            project: ['2'],
+            environment: ['alpha', 'beta'],
+          },
         }),
         organization: initialData.organization,
       });
@@ -946,7 +941,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/widget/1/',
           route: DASHBOARD_WIDGET_ROUTE,
-          query: initialData.router.location.query,
+          query: {},
         }),
         organization: initialData.organization,
       });
@@ -974,7 +969,6 @@ describe('Dashboards > Detail', () => {
           pathname: '/organizations/org-slug/dashboard/1/widget/1/',
           route: DASHBOARD_WIDGET_ROUTE,
           query: {
-            ...initialData.router.location.query,
             release: ['unsaved-release-filter@1.2.0'],
           },
         }),
@@ -1001,7 +995,7 @@ describe('Dashboards > Detail', () => {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/widget/0/',
           route: DASHBOARD_WIDGET_ROUTE,
-          query: {...initialData.router.location.query, rd: 'show', rdRelease: '1.0.0'},
+          query: {rd: 'show', rdRelease: '1.0.0'},
         }),
         organization: initialData.organization,
       });

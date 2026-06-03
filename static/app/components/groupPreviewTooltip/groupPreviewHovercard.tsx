@@ -62,7 +62,7 @@ const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
     p.hide &&
     css`
       display: none;
-    `};
+    `}
 
   .loading {
     margin: 0 auto;

@@ -35,8 +35,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:anomaly-detection-alerts": False,
         # Enable change alerts for an org
         "organizations:change-alerts": True,
-        # The overall flag for codecov integration, gated by plans.
-        "organizations:codecov-integration": False,
         # Enable alerting based on crash free sessions/users
         "organizations:crash-rate-alerts": True,
         # Allow organizations to configure custom external symbol sources.
@@ -144,6 +142,10 @@ def register_permanent_features(manager: FeatureManager) -> None:
 
     # Permanent organization features that are controlled via flagpole
     permanent_flagpole_organization_features: dict[str, FlagpoleFeature] = {
+        # Enables import/export functionality for dashboards
+        "organizations:dashboards-import": FlagpoleFeature(default=False, api_expose=True),
+        # Enable various explore related dev features, may be used by internal branches for testing.
+        "organizations:explore-dev-features": FlagpoleFeature(default=False, api_expose=True),
         # Enable ingestion through trusted relays only
         "organizations:ingest-through-trusted-relays-only": FlagpoleFeature(
             default=False, api_expose=True

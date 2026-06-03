@@ -32,13 +32,14 @@ const swcConfig: SwcOptions = {
 
 const {
   CI,
-  JEST_TEST_BALANCER,
   CI_NODE_TOTAL,
   CI_NODE_INDEX,
   GITHUB_PR_SHA,
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
+  MERGE_BASE,
+  MERGE_BASE_STRATEGY,
 } = process.env;
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
@@ -46,15 +47,13 @@ const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 const optionalTags: {
   balancer?: boolean;
   balancer_strategy?: string;
+  merge_base: string;
+  merge_base_strategy: string;
 } = {
   balancer: false,
+  merge_base: MERGE_BASE || '',
+  merge_base_strategy: MERGE_BASE_STRATEGY || 'full',
 };
-
-if (!!JEST_TEST_BALANCER && !CI) {
-  throw new Error(
-    '[Operation only allowed in CI]: Jest test balancer should never be ran manually as you risk skewing the numbers - please trigger the automated github workflow at https://github.com/getsentry/sentry/actions/workflows/jest-balance.yml'
-  );
-}
 
 let JEST_TESTS: string[] | undefined;
 
@@ -64,13 +63,9 @@ if (CI && !process.env.JEST_LIST_TESTS_INNER) {
   try {
     const listTestArguments = ['exec', 'jest', '--listTests', '--json'];
 
-    if (process.env.MERGE_BASE) {
-      console.log('MERGE_BASE detected:', process.env.MERGE_BASE);
-      listTestArguments.push(
-        '--changedSince',
-        process.env.MERGE_BASE,
-        '--passWithNoTests'
-      );
+    if (MERGE_BASE) {
+      console.log('MERGE_BASE detected:', MERGE_BASE);
+      listTestArguments.push('--changedSince', MERGE_BASE, '--passWithNoTests');
     }
 
     const stdout = execFileSync('pnpm', listTestArguments, {
@@ -311,7 +306,7 @@ const config: Config.InitialOptions = {
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
-  passWithNoTests: !!process.env.MERGE_BASE,
+  passWithNoTests: !!MERGE_BASE,
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     'jest-canvas-mock',
@@ -340,9 +335,6 @@ const config: Config.InitialOptions = {
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
   globals: {},
 
-  testResultsProcessor: JEST_TEST_BALANCER
-    ? '<rootDir>/tests/js/test-balancer/index.js'
-    : undefined,
   reporters: ['default'],
   /**
    * jest.clearAllMocks() automatically called before each test

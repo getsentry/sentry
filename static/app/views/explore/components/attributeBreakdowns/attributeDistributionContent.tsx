@@ -130,7 +130,9 @@ export function AttributeDistribution() {
   const parsedLinks = parseLinkHeader(attributeBreakdownsPageLinks);
 
   const uniqueAttributeDistribution = useMemo(() => {
-    if (!attributeBreakdownsData) return [];
+    if (!attributeBreakdownsData) {
+      return [];
+    }
 
     const seen = new Set<string>();
     const filtered = Object.entries(

@@ -13,7 +13,9 @@ export function calculateAttributePopulationPercentage(
   }>,
   cohortTotal: number
 ): number {
-  if (cohortTotal === 0) return 0;
+  if (cohortTotal === 0) {
+    return 0;
+  }
 
   const populatedCount = values.reduce((acc, curr) => acc + curr.value, 0);
   return (populatedCount / cohortTotal) * 100;
@@ -53,7 +55,9 @@ export function formatChartXAxisLabel(
   const maxChars = Math.floor(pixelsPerLabel / pixelsPerCharacter);
 
   // If value fits, return it as-is
-  if (value.length <= maxChars) return value;
+  if (value.length <= maxChars) {
+    return value;
+  }
 
   // Otherwise, truncate and append '…'
   const truncatedLength = Math.max(1, maxChars - 2); // leaving space for (ellipsis)
@@ -86,7 +90,9 @@ export function tooltipActionsHtmlRenderer(
   attributeName: string,
   theme: Theme
 ): string {
-  if (!value) return '';
+  if (!value) {
+    return '';
+  }
 
   const escapedAttributeName = escape(attributeName);
   const escapedValue = escape(value);

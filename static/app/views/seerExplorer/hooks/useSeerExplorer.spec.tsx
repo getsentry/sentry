@@ -119,7 +119,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-context-engine'],
+        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -155,12 +155,15 @@ describe('useSeerExplorer', () => {
       '/issues/:groupId/attachments/',
       '/issues/:groupId/distributions/',
       '/issues/:groupId/distributions/:tagKey/',
-    ])('sends structured JSON on issue sub-tab route %s', async (route: string) => {
+      '/explore/logs/trace/:traceSlug/',
+      '/explore/replays/',
+      '/explore/replays/:replaySlug/',
+    ])('sends structured JSON on structured-context route %s', async (route: string) => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => route,
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-context-engine'],
+        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -196,7 +199,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/monitors/mobile-builds/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'seer-explorer-context-engine'],
+        features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,

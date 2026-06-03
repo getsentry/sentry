@@ -61,8 +61,6 @@ class AgentChatRequest(TypedDict):
     intelligence_level: NotRequired[str]
     reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
-    enable_coding: NotRequired[bool]
-    enable_code_mode_tools: NotRequired[str]
     project_id: NotRequired[int]
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
@@ -72,7 +70,7 @@ class AgentChatRequest(TypedDict):
     category_key: NotRequired[str]
     category_value: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
-    is_context_engine_enabled: NotRequired[bool]
+    agent_run_options: NotRequired[dict[str, Any]]
     max_iterations: NotRequired[int]
     proxy_headers: NotRequired[dict[str, str] | None]
     ui_tools: NotRequired[str | None]
@@ -207,24 +205,7 @@ def has_seer_agent_access_with_detail(
     if not has_access:
         return False, error
 
-    feature_names = [
-        # Access to seer agent
-        "organizations:seer-explorer",
-        # Access to seer agent powered autofix
-        "organizations:autofix-on-explorer",
-    ]
-
-    batch_features = features.batch_has(
-        feature_names,
-        organization=organization,
-        actor=actor,
-    )
-
-    if batch_features is None:
-        return False, "Feature flag not enabled"
-
-    org_features = batch_features.get(f"organization:{organization.id}", {})
-    if not any(bool(org_features.get(feature_name)) for feature_name in feature_names):
+    if not features.has("organizations:seer-explorer", organization, actor=actor):
         return False, "Feature flag not enabled"
 
     # Check open team membership (the agent requires this for context)

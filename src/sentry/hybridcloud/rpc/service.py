@@ -32,7 +32,6 @@ from requests.adapters import HTTPAdapter, Retry
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
-from sentry.options.rollout import in_random_rollout
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
@@ -400,6 +399,7 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
         "sentry.notifications.services",
         "sentry.organizations.services",
         "sentry.projects.services",
+        "sentry.relocation.services",
         "sentry.sentry_apps.services",
         "sentry.users.services",
     )
@@ -520,9 +520,6 @@ def _get_connection(retry_count: int) -> requests.Session:
     Because retry limits are part of the session definition,
     each unique retry value creates a different connection pool.
     """
-    if not in_random_rollout("hybridcloud.rpc.use_pooling.rate"):
-        return _create_request_session(retry_count)
-
     if not hasattr(_connections, "lookup"):
         _connections.lookup = {}
 

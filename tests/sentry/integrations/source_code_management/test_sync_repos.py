@@ -90,6 +90,30 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert entries.count() == 2
 
     @responses.activate
+    def test_creates_new_repos_with_auto_link(self, _: MagicMock) -> None:
+        from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.create_project(organization=self.organization, slug="sentry")
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with (
+            self.tasks(),
+            self.feature("organizations:auto-link-repos-by-name"),
+            self.options({"repository.auto-link-by-name-dry-run": False}),
+        ):
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.get(organization_id=self.organization.id, external_id="1")
+            assert ProjectRepository.objects.filter(
+                repository=repo,
+                source=ProjectRepositorySource.AUTO_NAME_MATCH,
+                project__slug="sentry",
+            ).exists()
+
+    @responses.activate
     def test_disables_removed_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(

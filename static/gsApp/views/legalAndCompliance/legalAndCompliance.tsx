@@ -28,7 +28,7 @@ export default function LegalAndCompliance() {
   }
 
   return (
-    <SubscriptionPageContainer background="secondary">
+    <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Legal & Compliance')} />
       <SettingsPageHeader title="Legal & Compliance" />
       {regionCount > 1 && regionData && (
@@ -43,7 +43,7 @@ export default function LegalAndCompliance() {
               </Text>
             </Stack>
             <Container flexGrow={1}>
-              <Text>{`${regionData.flag ?? ''} ${regionData.displayName}`}</Text>
+              <Text>{regionData.label}</Text>
             </Container>
           </Flex>
         </FieldGroup>

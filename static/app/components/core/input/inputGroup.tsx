@@ -271,5 +271,9 @@ InputGroup.TrailingItems = TrailingItems;
 
 const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;
-  ${p => p.disabled && `color: ${p.theme.tokens.content.disabled};`};
+  ${p =>
+    p.disabled &&
+    css`
+      color: ${p.theme.tokens.content.disabled};
+    `}
 `;

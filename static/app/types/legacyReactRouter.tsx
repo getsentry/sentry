@@ -1,4 +1,3 @@
-import type {UIMatch} from 'react-router-dom';
 /**
  * These are vendored from react-router v3
  *
@@ -6,10 +5,8 @@ import type {UIMatch} from 'react-router-dom';
  */
 import type {Location, LocationDescriptor} from 'history';
 
-export type RouteComponent = React.ComponentClass<any> | React.FunctionComponent<any>;
-
 interface IndexRouteProps<Props = any> {
-  component?: RouteComponent | undefined;
+  component?: React.ComponentType<any> | undefined;
   props?: Props | undefined;
 }
 
@@ -57,13 +54,5 @@ export interface InjectedRouter<P = Record<string, string | undefined>, Q = any>
   params: P;
   push: LocationFunction;
   replace: LocationFunction;
-  routes: PlainRoute[];
-}
-
-export interface RouteContextInterface<P = Record<string, string | undefined>, Q = any> {
-  location: Location<Q>;
-  matches: UIMatch[];
-  params: P;
-  router: InjectedRouter<P, Q>;
   routes: PlainRoute[];
 }

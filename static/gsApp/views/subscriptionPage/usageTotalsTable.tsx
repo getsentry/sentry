@@ -356,7 +356,7 @@ const OutcomeType = styled(TextOverflow)<{indent?: boolean}>`
     p.indent &&
     css`
       padding-left: 38px;
-    `};
+    `}
 `;
 
 const TextWithQuestionTooltip = styled('div')`

@@ -6,8 +6,16 @@ import {
   initializeTraceMetricsTest,
 } from 'sentry-fixture/tracemetrics';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import * as useMetricTraceDetailModule from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
+import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -23,6 +31,8 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+const TRACE_METRIC_FIXTURE_DATE = new Date('2025-04-03T15:50:10.000Z');
 
 function createWrapper({
   queryParams,
@@ -247,11 +257,11 @@ describe('MetricPanel', () => {
     expect(screen.getAllByText(/ago$/).length).toBeGreaterThan(0);
   });
 
-  it('links embedded metric names to span samples with a metrics cross-event query', async () => {
+  it('adds trace waterfall metric-name actions for connected traces and explore', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     const row = metricFixtures.detailedFixtures[0]!;
 
-    render(<MetricsSamplesTable embedded overrideTableData={[row]} />, {
+    render(<MetricsSamplesTable source="traceWaterfall" overrideTableData={[row]} />, {
       organization,
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
@@ -264,7 +274,7 @@ describe('MetricPanel', () => {
       within(metricNameCell as HTMLElement).getByRole('button', {name: 'Actions'})
     );
 
-    const link = (await screen.findByText('Explore similar spans')).closest('a')!;
+    const link = (await screen.findByText('View connected traces')).closest('a')!;
     for (const label of ['Copy to clipboard', 'Add to filter', 'Exclude from filter']) {
       const menuItem = await screen.findByText(label);
       expect(menuItem.compareDocumentPosition(link)).toBe(
@@ -282,7 +292,7 @@ describe('MetricPanel', () => {
       expect.objectContaining({
         mode: 'samples',
         project: project.id,
-        referrer: 'trace-metrics-samples-table-similar-spans',
+        referrer: 'trace-metrics-samples-table-connected-traces',
         statsPeriod: '24h',
       })
     );
@@ -298,9 +308,37 @@ describe('MetricPanel', () => {
         },
       },
     ]);
+
+    const openInExploreLink = (await screen.findByText('Open in Explore')).closest('a')!;
+    const openInExploreHref = openInExploreLink.getAttribute('href')!;
+    expect(
+      openInExploreHref.startsWith(
+        `/organizations/${organization.slug}/explore/metrics/?`
+      )
+    ).toBe(true);
+
+    const openInExploreQuery = qs.parse(openInExploreHref.split('?')[1]!);
+    expect(openInExploreQuery).toEqual(
+      expect.objectContaining({
+        project: project.id,
+        referrer: 'trace-metrics-samples-table-open-in-explore',
+      })
+    );
+    const aggregate = `sum(value,${row[TraceMetricKnownFieldKey.METRIC_NAME]},${row[TraceMetricKnownFieldKey.METRIC_TYPE]},${row[TraceMetricKnownFieldKey.METRIC_UNIT]})`;
+    expect(JSON.parse(openInExploreQuery.metric as string)).toEqual(
+      expect.objectContaining({
+        metric: {
+          name: row[TraceMetricKnownFieldKey.METRIC_NAME],
+          type: row[TraceMetricKnownFieldKey.METRIC_TYPE],
+          unit: row[TraceMetricKnownFieldKey.METRIC_UNIT],
+        },
+        aggregateFields: [{yAxes: [aggregate]}],
+        aggregateSortBys: [{field: aggregate, kind: 'desc'}],
+      })
+    );
   });
 
-  it('does not add the similar spans action to non-embedded samples', async () => {
+  it('does not add embedded metric-name actions to metrics page samples', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
 
     render(
@@ -312,17 +350,15 @@ describe('MetricPanel', () => {
     await userEvent.click(within(samplesTable).getByRole('button', {name: 'Actions'}));
 
     expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
-    expect(screen.queryByText('Explore similar spans')).not.toBeInTheDocument();
+    expect(screen.queryByText('View connected traces')).not.toBeInTheDocument();
+    expect(screen.queryByText('Open in Explore')).not.toBeInTheDocument();
   });
 
-  it('does not add the similar spans action without a complete metric identity', async () => {
+  it('adds issue details metric-name actions without add filter', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
-    const row = {
-      ...metricFixtures.detailedFixtures[0]!,
-      [TraceMetricKnownFieldKey.METRIC_TYPE]: '',
-    } as TraceMetricEventsResponseItem;
+    const row = metricFixtures.detailedFixtures[0]!;
 
-    render(<MetricsSamplesTable embedded overrideTableData={[row]} />, {
+    render(<MetricsSamplesTable source="issueDetails" overrideTableData={[row]} />, {
       organization,
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
@@ -336,6 +372,245 @@ describe('MetricPanel', () => {
     );
 
     expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
-    expect(screen.queryByText('Explore similar spans')).not.toBeInTheDocument();
+    expect(await screen.findByText('View connected traces')).toBeInTheDocument();
+    expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
+    expect(screen.queryByText('Add to filter')).not.toBeInTheDocument();
+    expect(screen.queryByText('Exclude from filter')).not.toBeInTheDocument();
+  });
+
+  it('does not add embedded metric-name actions without a complete metric identity', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = {
+      ...metricFixtures.detailedFixtures[0]!,
+      [TraceMetricKnownFieldKey.METRIC_TYPE]: '',
+    } as TraceMetricEventsResponseItem;
+
+    render(<MetricsSamplesTable source="traceWaterfall" overrideTableData={[row]} />, {
+      organization,
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
+    });
+
+    const samplesTable = await screen.findByRole('table');
+    const metricNameCell = within(samplesTable)
+      .getByText(row[TraceMetricKnownFieldKey.METRIC_NAME])
+      .closest('[role="cell"]')!;
+    await userEvent.click(
+      within(metricNameCell as HTMLElement).getByRole('button', {name: 'Actions'})
+    );
+
+    expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+    expect(screen.queryByText('View connected traces')).not.toBeInTheDocument();
+    expect(screen.queryByText('Open in Explore')).not.toBeInTheDocument();
+  });
+
+  it('fetches expanded sample details with the row timestamp', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = metricFixtures.detailedFixtures[0]!;
+    const timestamp = new Date(row.timestamp).getTime() / 1000;
+    const metricId = row[TraceMetricKnownFieldKey.ID];
+    const traceDetailsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${metricId}/`,
+      match: [MockApiClient.matchQuery({timestamp})],
+      body: {
+        itemId: metricId,
+        links: null,
+        meta: {},
+        timestamp: row.timestamp,
+        attributes: [],
+      },
+    });
+    const traceMetaMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      match: [MockApiClient.matchData({timestamp})],
+      body: {
+        errors: 1,
+        performance_issues: 0,
+        projects: 1,
+        transactions: 1,
+        transaction_child_count_map: [],
+        span_count: 2,
+        span_count_map: {},
+      },
+    });
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    await waitFor(() => expect(traceDetailsMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
+    expect(
+      await screen.findByText('Errors: 1, Logs: 0, Spans: 2, Metrics: 0')
+    ).toBeInTheDocument();
+  });
+
+  it('shows an error state when expanded sample trace meta fails to load', async () => {
+    const metricFixtures = createTraceMetricFixtures(
+      organization,
+      project,
+      TRACE_METRIC_FIXTURE_DATE
+    );
+    const row = metricFixtures.detailedFixtures[0]!;
+    const timestamp = new Date(row.timestamp).getTime() / 1000;
+    const traceMetaMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      match: [MockApiClient.matchData({timestamp})],
+      statusCode: 500,
+      body: {detail: 'Internal Server Error'},
+    });
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Failed to fetch trace summary')).toBeInTheDocument();
+    expect(screen.getByText('Attributes')).toBeInTheDocument();
+  });
+
+  it('shows an error state when expanded sample details fail to load', () => {
+    const metricFixtures = createTraceMetricFixtures(
+      organization,
+      project,
+      TRACE_METRIC_FIXTURE_DATE
+    );
+    const row = metricFixtures.detailedFixtures[0]!;
+    const traceDetailSpy = jest
+      .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
+      .mockReturnValue({
+        data: undefined,
+        isError: true,
+        isPending: false,
+      } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+
+    traceDetailSpy.mockRestore();
+  });
+
+  it('shows an empty state when expanded sample details have no data', () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = metricFixtures.detailedFixtures[0]!;
+    const traceDetailSpy = jest
+      .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
+      .mockReturnValue({
+        data: undefined,
+        isError: false,
+        isPending: false,
+      } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    expect(screen.getByText('No attributes found for this sample')).toBeInTheDocument();
+
+    traceDetailSpy.mockRestore();
+  });
+
+  it('shows an empty state instead of loading when expanded sample details are disabled', () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = {
+      ...metricFixtures.detailedFixtures[0]!,
+      [TraceMetricKnownFieldKey.ID]: undefined,
+    } as unknown as TraceMetricEventsResponseItem;
+    const traceDetailSpy = jest
+      .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
+      .mockReturnValue({
+        data: undefined,
+        isError: false,
+        isLoading: false,
+        isPending: true,
+      } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    expect(traceDetailSpy).toHaveBeenCalledWith(
+      expect.objectContaining({enabled: false})
+    );
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.getByText('No attributes found for this sample')).toBeInTheDocument();
+
+    traceDetailSpy.mockRestore();
+  });
+
+  it('shows an empty state when expanded sample details have no attributes', () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = metricFixtures.detailedFixtures[0]!;
+    const traceDetailSpy = jest
+      .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
+      .mockReturnValue({
+        data: {
+          attributes: [],
+          meta: {},
+        },
+        isError: false,
+        isPending: false,
+      } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
+
+    render(
+      <table>
+        <tbody>
+          <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
+        </tbody>
+      </table>,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      }
+    );
+
+    expect(screen.getByText('No attributes found for this sample')).toBeInTheDocument();
+
+    traceDetailSpy.mockRestore();
   });
 });

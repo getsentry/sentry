@@ -170,7 +170,6 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             allowPagination
             embedded
             embeddedOptions={embeddedOptions}
-            expanded
             localOnlyItemFilters={{
               filteredItems: logItems,
               filterText,

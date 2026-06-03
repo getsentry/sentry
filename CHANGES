@@ -1,3 +1,1226 @@
+26.5.2
+------
+
+### New Features ✨
+
+#### Admin
+
+- Filter invoice comparison to both-sides orgs + parity metric by @armcknight in [#116420](https://github.com/getsentry/sentry/pull/116420)
+- Add Billing Platform admin page with invoice comparison by @armcknight in [#116269](https://github.com/getsentry/sentry/pull/116269)
+
+#### Api
+
+- Union response annotations with plugin narrowing + relaxed linter by @azulus in [#116659](https://github.com/getsentry/sentry/pull/116659)
+- Add [T] to 33 Serializer subclasses by @azulus in [#116629](https://github.com/getsentry/sentry/pull/116629)
+- Add Serializer[T] generic; pilot on environments by @azulus in [#116538](https://github.com/getsentry/sentry/pull/116538)
+- Opt 43 endpoints into Response[T] typed bodies by @azulus in [#116433](https://github.com/getsentry/sentry/pull/116433)
+- Type @extend_schema responses via Response[T] stub + linter by @azulus in [#116335](https://github.com/getsentry/sentry/pull/116335)
+
+#### Api Docs
+
+- Publish source map debug endpoint by @cvxluo in [#116649](https://github.com/getsentry/sentry/pull/116649)
+- Publish organization profile chunks endpoint by @cvxluo in [#116632](https://github.com/getsentry/sentry/pull/116632)
+- Publish organization trace endpoint by @cvxluo in [#116596](https://github.com/getsentry/sentry/pull/116596)
+- Publish project profiling profile endpoint by @cvxluo in [#116597](https://github.com/getsentry/sentry/pull/116597)
+- Publish organization profiling flamegraph endpoint by @cvxluo in [#116449](https://github.com/getsentry/sentry/pull/116449)
+- Publish group hashes endpoint by @cvxluo in [#116029](https://github.com/getsentry/sentry/pull/116029)
+- Publish event attachment details endpoint by @cvxluo in [#116580](https://github.com/getsentry/sentry/pull/116580)
+- Publish organization trace meta endpoint by @cvxluo in [#116445](https://github.com/getsentry/sentry/pull/116445)
+- Publish event attachments list endpoint by @cvxluo in [#116536](https://github.com/getsentry/sentry/pull/116536)
+- Publish project releases list endpoint by @cvxluo in [#116220](https://github.com/getsentry/sentry/pull/116220)
+- Publish organization trace item attributes endpoint by @cvxluo in [#116398](https://github.com/getsentry/sentry/pull/116398)
+- Publish project debug files list endpoint by @cvxluo in [#116444](https://github.com/getsentry/sentry/pull/116444)
+- Publish group details endpoint by @cvxluo in [#116119](https://github.com/getsentry/sentry/pull/116119)
+
+#### Autofix
+
+- Allow retry creating PR by @Zylphrex in [#116518](https://github.com/getsentry/sentry/pull/116518)
+- Link linear ticket in autofix PR by @Zylphrex in [#116510](https://github.com/getsentry/sentry/pull/116510)
+- Add Seer Agent debug button to Autofix header by @sentry-junior in [#116166](https://github.com/getsentry/sentry/pull/116166)
+
+#### Bitbucket Server
+
+- Route install through API pipeline modal by @evanpurkhiser in [#116314](https://github.com/getsentry/sentry/pull/116314)
+- Add frontend pipeline steps for Bitbucket Server integration setup by @evanpurkhiser in [#116294](https://github.com/getsentry/sentry/pull/116294)
+- Add API-driven pipeline backend for Bitbucket Server integration setup by @evanpurkhiser in [#116295](https://github.com/getsentry/sentry/pull/116295)
+
+#### Cells
+
+- Use control silo organization listing for setup wizard by @lynnagara in [#116423](https://github.com/getsentry/sentry/pull/116423)
+- Implement owner=1 on control silo org listing by @lynnagara in [#116439](https://github.com/getsentry/sentry/pull/116439)
+- Remove cross-org feature gating from quota notifications by @lynnagara in [#115937](https://github.com/getsentry/sentry/pull/115937)
+
+#### Conversations
+
+- Add conversation ID to freeform search suggestions by @obostjancic in [#116568](https://github.com/getsentry/sentry/pull/116568)
+- Update default search hints for AI conversations by @obostjancic in [#116561](https://github.com/getsentry/sentry/pull/116561)
+- Improve freeform search to target conversation fields by @obostjancic in [#116562](https://github.com/getsentry/sentry/pull/116562)
+- Expand JSON with higher auto-collapse limit in messages panel by @obostjancic in [#116368](https://github.com/getsentry/sentry/pull/116368)
+
+#### Dynamic Sampling
+
+- Per-org transaction rebalancing by @constantinius in [#116475](https://github.com/getsentry/sentry/pull/116475)
+- Add project rebalancing to per-org pipeline by @shellmayr in [#116393](https://github.com/getsentry/sentry/pull/116393)
+- Add sliding window calculation to per-org by @shellmayr in [#116083](https://github.com/getsentry/sentry/pull/116083)
+- Add per-org EAP transaction volume query by @constantinius in [#115161](https://github.com/getsentry/sentry/pull/115161)
+
+#### Eslint
+
+- Add css interpolation semi rule by @scttcper in [#116428](https://github.com/getsentry/sentry/pull/116428)
+- Add no-raw-css-in-styled rule by @scttcper in [#115934](https://github.com/getsentry/sentry/pull/115934)
+- Add prefer-info-text lint rule and migrate existing usages by @TkDodo in [#116211](https://github.com/getsentry/sentry/pull/116211)
+
+#### Explore
+
+- Promote schema hints removal from now-done logs to remaining pages by @JoshuaKGoldberg in [#116224](https://github.com/getsentry/sentry/pull/116224)
+- Switch feature flag from ourlogs- to explore-schema-hints-removal by @JoshuaKGoldberg in [#116225](https://github.com/getsentry/sentry/pull/116225)
+- Space out heat maps y-axis labels by @nikkikapadia in [#116341](https://github.com/getsentry/sentry/pull/116341)
+
+#### Issues
+
+- Add issue.agent search filter by @malwilley in [#116584](https://github.com/getsentry/sentry/pull/116584)
+- Add pretty rendering for Android Runtime (ART) event context by @markushi in [#116270](https://github.com/getsentry/sentry/pull/116270)
+- Extend event context formatters for mobile SDKs by @markushi in [#116273](https://github.com/getsentry/sentry/pull/116273)
+- Restore issue details tour, remove guide by @scttcper in [#116355](https://github.com/getsentry/sentry/pull/116355)
+- Refine low-value span configuration UI by @ArthurKnaus in [#116460](https://github.com/getsentry/sentry/pull/116460)
+- Fully enable recording of Seer actions as issue activities (with option) by @shashjar in [#116424](https://github.com/getsentry/sentry/pull/116424)
+- Use shared markdown component for activity notes by @scttcper in [#116300](https://github.com/getsentry/sentry/pull/116300)
+- Consolidate user feedback activity styles by @scttcper in [#116318](https://github.com/getsentry/sentry/pull/116318)
+
+#### Jira
+
+- Wire Marketplace installs through the API pipeline modal by @evanpurkhiser in [#116525](https://github.com/getsentry/sentry/pull/116525)
+- Support installing through the API pipeline modal by @evanpurkhiser in [#116500](https://github.com/getsentry/sentry/pull/116500)
+
+#### Msteams
+
+- Wire Teams Marketplace installs through the API pipeline modal by @evanpurkhiser in [#116488](https://github.com/getsentry/sentry/pull/116488)
+- Support installing through the API pipeline modal by @evanpurkhiser in [#116490](https://github.com/getsentry/sentry/pull/116490)
+
+#### Ourlogs
+
+- Add `truncate` RPC parameter for logs events query by @JoshuaKGoldberg in [#116008](https://github.com/getsentry/sentry/pull/116008)
+- Add tab click tracking for Logs and Traces explore tabs by @JoshuaKGoldberg in [#115748](https://github.com/getsentry/sentry/pull/115748)
+- Use `truncate` parameter in page-level logs requests by @JoshuaKGoldberg in [#116009](https://github.com/getsentry/sentry/pull/116009)
+
+#### Preprod
+
+- Fix snapshot tag filtering and make tags interactive by @mtopo27 in [#116330](https://github.com/getsentry/sentry/pull/116330)
+- Add structured tags to snapshot test metadata by @mtopo27 in [#116307](https://github.com/getsentry/sentry/pull/116307)
+
+#### Repositories
+
+- Backfill auto-link repos by name matching by @wedamija in [#116541](https://github.com/getsentry/sentry/pull/116541)
+- Auto-link repos to projects by name matching by @wedamija in [#116533](https://github.com/getsentry/sentry/pull/116533)
+
+#### Seer
+
+- Gate structured context routes on rollout flag by @Mihir-Mavalankar in [#116605](https://github.com/getsentry/sentry/pull/116605)
+- Add flag to roll out structured page context to all orgs by @Mihir-Mavalankar in [#116600](https://github.com/getsentry/sentry/pull/116600)
+- Remove stale feature flag `organizations:seer-agent-pr-consolidation` by @cvxluo in [#116438](https://github.com/getsentry/sentry/pull/116438)
+- Add structured LLM context for metrics and profiling explorer page by @Mihir-Mavalankar in [#116250](https://github.com/getsentry/sentry/pull/116250)
+
+#### Workflow Engine
+
+- Update delayed processing and add evaluation logs by @saponifi3d in [#115692](https://github.com/getsentry/sentry/pull/115692)
+- Implement Seer Activity handler by @leeandher in [#116410](https://github.com/getsentry/sentry/pull/116410)
+
+#### Other
+
+- (activity) Add (project, type) index on sentry_activity by @malwilley in [#116524](https://github.com/getsentry/sentry/pull/116524)
+- (apidocs) Support union Response[T] annotations in structural linter by @azulus in [#116496](https://github.com/getsentry/sentry/pull/116496)
+- (cmdk) Add search keywords to reduce no-result queries by @JonasBa in [#116431](https://github.com/getsentry/sentry/pull/116431)
+- (dashboards) Track dashboard generation validation attempts by @DominikB2014 in [#116502](https://github.com/getsentry/sentry/pull/116502)
+- (discord) Wire App Directory installs through the API pipeline modal by @evanpurkhiser in [#116429](https://github.com/getsentry/sentry/pull/116429)
+- (eap) Add superuser `debug` param to trace item attributes by @mjq in [#116579](https://github.com/getsentry/sentry/pull/116579)
+- (flagpole) Register onboarding-scm-project-creation-experiment feature flag by @jaydgoss in [#116189](https://github.com/getsentry/sentry/pull/116189)
+- (github-enterprise) Route install through API pipeline modal by @evanpurkhiser in [#116316](https://github.com/getsentry/sentry/pull/116316)
+- (ingest) Allow custom global inbound filter by @oioki in [#116685](https://github.com/getsentry/sentry/pull/116685)
+- (issue-details) Enable Autofix for low-value spans by @ArthurKnaus in [#116468](https://github.com/getsentry/sentry/pull/116468)
+- (loader) Add pride loader by @natemoo-re in [#116348](https://github.com/getsentry/sentry/pull/116348)
+- (markdown) Add tag extension by @natemoo-re in [#116504](https://github.com/getsentry/sentry/pull/116504)
+- (night-shift) Be more conservative about which issues get autofixed by @chromy in [#116476](https://github.com/getsentry/sentry/pull/116476)
+- (onboarding) Add ScmAnalyticsFlow for project-creation reuse by @jaydgoss in [#116434](https://github.com/getsentry/sentry/pull/116434)
+- (replays) Add superuser replay debugger dropdown option by @billyvg in [#116391](https://github.com/getsentry/sentry/pull/116391)
+- (scm) Add github_enterprise support to SCM Platform RPC dispatch by @tnt-sentry in [#116193](https://github.com/getsentry/sentry/pull/116193)
+- (scraps) RevealOnHover compound component by @natemoo-re in [#115953](https://github.com/getsentry/sentry/pull/115953)
+- (seer explorer) Add unread message count to the tab icon by @sehr-m in [#114071](https://github.com/getsentry/sentry/pull/114071)
+- (seer-activity) Set up the new Seer Activity data condition by @leeandher in [#116506](https://github.com/getsentry/sentry/pull/116506)
+- (settings) Support legacy usage-based Seer in project settings endpoint by @srest2021 in [#115962](https://github.com/getsentry/sentry/pull/115962)
+- (skills) Add analytics instrumentation skill by @natemoo-re in [#116437](https://github.com/getsentry/sentry/pull/116437)
+- (snapshots) Add viewport width support to snapshot testing framework by @mtopo27 in [#115887](https://github.com/getsentry/sentry/pull/115887)
+- (trace) Add `debug` param to trace item details endpoint by @mjq in [#116151](https://github.com/getsentry/sentry/pull/116151)
+- (trace-waterfall) Add "EAP JSON" debug button for superusers by @mjq in [#116131](https://github.com/getsentry/sentry/pull/116131)
+- (utils) Add shuffle option to CursoredScheduler by @roggenkemper in [#116297](https://github.com/getsentry/sentry/pull/116297)
+- (waterfall) Add visual indication for SDK-sent v2 spans by @Lms24 in [#116386](https://github.com/getsentry/sentry/pull/116386)
+- (webhooks) Add REST API endpoint for webhook URL management by @Christinarlong in [#115861](https://github.com/getsentry/sentry/pull/115861)
+- Add KAFKA_TOPIC_CONSUMER_CONFIG for per-topic consumer config by @enochtangg in [#116611](https://github.com/getsentry/sentry/pull/116611)
+- Reorder get topic to resolve override before lookup by @enochtangg in [#116337](https://github.com/getsentry/sentry/pull/116337)
+- Remove code coverage feature by @calvin-codecov in [#116240](https://github.com/getsentry/sentry/pull/116240)
+- Install sentry-options by @joshuarli in [#115835](https://github.com/getsentry/sentry/pull/115835)
+
+### Bug Fixes 🐛
+
+#### Aci
+
+- Remove openIssues from Detector serializer response by @ceorourke in [#116414](https://github.com/getsentry/sentry/pull/116414)
+- Scope rule workflow lookups by organization by @kcons in [#116353](https://github.com/getsentry/sentry/pull/116353)
+
+#### Api Logs
+
+- Log snuba throttle_threshold on rate-limited requests by @cvxluo in [#116338](https://github.com/getsentry/sentry/pull/116338)
+- Preserve snuba policy info on throttles by @cvxluo in [#116263](https://github.com/getsentry/sentry/pull/116263)
+
+#### Eap
+
+- Handle None exception data in event forwarding by @roggenkemper in [#116544](https://github.com/getsentry/sentry/pull/116544)
+- Recognize `normalize` deprecations in attribute mapping by @mjq in [#116509](https://github.com/getsentry/sentry/pull/116509)
+
+#### Feedback
+
+- Remove extra padding from LayoutGrid component by @sentry-junior in [#116377](https://github.com/getsentry/sentry/pull/116377)
+- Make UserReport name and email nullable by @TkDodo in [#116362](https://github.com/getsentry/sentry/pull/116362)
+
+#### Integrations
+
+- Hide the integration Settings tab when it is empty by @evanpurkhiser in [#116688](https://github.com/getsentry/sentry/pull/116688)
+- Return the proper error response shape from the integration details POST endpoint by @malwilley in [#116447](https://github.com/getsentry/sentry/pull/116447)
+- Use paginated jira projects endpoint in another place by @hobzcalvin in [#116418](https://github.com/getsentry/sentry/pull/116418)
+- Use paginated jira projects endpoint, behind flag by @hobzcalvin in [#116327](https://github.com/getsentry/sentry/pull/116327)
+
+#### Issues
+
+- Make linked issue metadata clickable by @scttcper in [#116583](https://github.com/getsentry/sentry/pull/116583)
+- Read low-value span evidence as camelCase by @ArthurKnaus in [#116557](https://github.com/getsentry/sentry/pull/116557)
+
+#### Logs
+
+- Go back to prefetch query by @k-fish in [#114893](https://github.com/getsentry/sentry/pull/114893)
+- Pass timestamp to trace item details by @nsdeschenes in [#116374](https://github.com/getsentry/sentry/pull/116374)
+
+#### Metrics
+
+- Pass timestamp to trace item details by @nsdeschenes in [#116315](https://github.com/getsentry/sentry/pull/116315)
+- Skip tag validation when deleting Snuba subscriptions by @wedamija in [#116325](https://github.com/getsentry/sentry/pull/116325)
+
+#### Preprod
+
+- Document latest base project slug filter by @cameroncooke in [#116102](https://github.com/getsentry/sentry/pull/116102)
+- Balance padding on active tag filter chips by @NicoHinderling in [#116417](https://github.com/getsentry/sentry/pull/116417)
+- Enforce project access for artifact endpoints by @cameroncooke in [#116381](https://github.com/getsentry/sentry/pull/116381)
+- Pre-filter latest base snapshot query by project access by @NicoHinderling in [#116319](https://github.com/getsentry/sentry/pull/116319)
+
+#### Replays
+
+- Query canonical replay id in trace tab by @romtsn in [#116432](https://github.com/getsentry/sentry/pull/116432)
+- Scope issue.id group lookup to caller's accessible projects by @JoshuaKGoldberg in [#116188](https://github.com/getsentry/sentry/pull/116188)
+- Stop page reloads on initial tab change by @nsdeschenes in [#116494](https://github.com/getsentry/sentry/pull/116494)
+
+#### Workflows
+
+- Rule deletion shouldn't automatically result in Workflow deletion by @kcons in [#116537](https://github.com/getsentry/sentry/pull/116537)
+- Update Workflows with org-scoped envs when transfered with a project by @kcons in [#116239](https://github.com/getsentry/sentry/pull/116239)
+
+#### Other
+
+- (alerts) Fall through to issue alert handler by @ceorourke in [#116241](https://github.com/getsentry/sentry/pull/116241)
+- (api) Rename duplicated event reprocessable URL by @cvxluo in [#116395](https://github.com/getsentry/sentry/pull/116395)
+- (api-docs) Improve flamegraph endpoint description by @cvxluo in [#116633](https://github.com/getsentry/sentry/pull/116633)
+- (autofix) Set default stopping point based on preferences by @Zylphrex in [#116340](https://github.com/getsentry/sentry/pull/116340)
+- (ci) Revert parallel devservices startup for backend tests by @mchen-sentry in [#116648](https://github.com/getsentry/sentry/pull/116648)
+- (conversations) Use 24h statsPeriod on detail page back link by @obostjancic in [#116361](https://github.com/getsentry/sentry/pull/116361)
+- (dashboards) Move global filter loading spinner to dropdown footer by @DominikB2014 in [#116342](https://github.com/getsentry/sentry/pull/116342)
+- (data-scrubbing) Stop source field suggestion scroll from crashing by @scttcper in [#116653](https://github.com/getsentry/sentry/pull/116653)
+- (discord) Route App Directory install through API pipeline modal by @evanpurkhiser in [#116375](https://github.com/getsentry/sentry/pull/116375)
+- (discover) Link issue event ids directly by @scttcper in [#116507](https://github.com/getsentry/sentry/pull/116507)
+- (dynamic-sampling) Exclude zero-volume projects from project balancing by @shellmayr in [#116572](https://github.com/getsentry/sentry/pull/116572)
+- (events) Don't default the seer referrers by @wmak in [#116704](https://github.com/getsentry/sentry/pull/116704)
+- (eventstream) Guard against None entries in exception values list by @roggenkemper in [#116511](https://github.com/getsentry/sentry/pull/116511)
+- (explore) Y-axis formatting decimal truncation for heatmaps by @nikkikapadia in [#116144](https://github.com/getsentry/sentry/pull/116144)
+- (forms) Surface backend error messages in AutoSaveForm by @malwilley in [#116448](https://github.com/getsentry/sentry/pull/116448)
+- (grouping) Fix hostname regex bugs, take 2 by @lobsterkatie in [#116587](https://github.com/getsentry/sentry/pull/116587)
+- (heatmaps) Very small y-axis values turning into engineering notation and throwing errors by @nikkikapadia in [#116421](https://github.com/getsentry/sentry/pull/116421)
+- (jest) Exclude scripts/ from discovery and module resolution by @armcknight in [#116413](https://github.com/getsentry/sentry/pull/116413)
+- (low-value-spans) Use project platform for snippets by @ArthurKnaus in [#116675](https://github.com/getsentry/sentry/pull/116675)
+- (oauth) Use hashed token lookup and reject tokens for inactive users by @michelletran-sentry in [#116323](https://github.com/getsentry/sentry/pull/116323)
+- (options) Suppress option seen logs in debug mode by @JoshFerge in [#116324](https://github.com/getsentry/sentry/pull/116324)
+- (ourlogs) Stabilize ECharts chart position to prevent getAttribute crash by @JoshuaKGoldberg in [#115753](https://github.com/getsentry/sentry/pull/115753)
+- (pageFilters) Sort bookmarked projects above non-member projects by @JonasBa in [#116196](https://github.com/getsentry/sentry/pull/116196)
+- (project-filter) Increase bottom margin by @cvxluo in [#116328](https://github.com/getsentry/sentry/pull/116328)
+- (releases) Combine duplicate Author type by @cvxluo in [#116358](https://github.com/getsentry/sentry/pull/116358)
+- (scm) Map unknown referrer to shared by @cmanallen in [#116403](https://github.com/getsentry/sentry/pull/116403)
+- (search-query-builder) Add dynamic fetching to has by @nsdeschenes in [#116097](https://github.com/getsentry/sentry/pull/116097)
+- (seer) Fix font color and link position in autofix project settings by @ryan953 in [#116602](https://github.com/getsentry/sentry/pull/116602)
+- (segment-enrichment) Propagate conventional user attributes by @mjq in [#116492](https://github.com/getsentry/sentry/pull/116492)
+- (settings) List all projects in context picker instead of default 1st page by @hobzcalvin in [#116072](https://github.com/getsentry/sentry/pull/116072)
+- (snapshots) Increase snapshot test timeout to 30s by @mtopo27 in [#116378](https://github.com/getsentry/sentry/pull/116378)
+- (spans) Deprecations shouldn't shadow public field names by @mjq in [#116387](https://github.com/getsentry/sentry/pull/116387)
+- (theme) Update config.theme when mutating user theme option by @TkDodo in [#116336](https://github.com/getsentry/sentry/pull/116336)
+- (trace-item-details) Allow timestamp by @wmak in [#116321](https://github.com/getsentry/sentry/pull/116321)
+- (trace-waterfall) Pass timestamp to trace item details by @nsdeschenes in [#116376](https://github.com/getsentry/sentry/pull/116376)
+- (traces) Downgrade Group.DoesNotExist log to info in trace serialization by @wedamija in [#116322](https://github.com/getsentry/sentry/pull/116322)
+- (webhooks) Check webhooks:enabled in new webhook path by @Christinarlong in [#116459](https://github.com/getsentry/sentry/pull/116459)
+- Trigger ad-hoc explorer index runs by @shruthilayaj in [#116530](https://github.com/getsentry/sentry/pull/116530)
+
+### Internal Changes 🔧
+
+#### Aci
+
+- Remove usage of workflow engine redirect flag by @ceorourke in [#116609](https://github.com/getsentry/sentry/pull/116609)
+- Update alerts:write settings toggle label to include reference to monitors by @malwilley in [#116313](https://github.com/getsentry/sentry/pull/116313)
+
+#### Api
+
+- Mark prompts-activity as private by @cvxluo in [#116702](https://github.com/getsentry/sentry/pull/116702)
+- Rename `SourceMapDebugBlueThunderEdition` to `SourceMapDebug` by @cvxluo in [#116619](https://github.com/getsentry/sentry/pull/116619)
+- Remove unused source-map-debug endpoint by @cvxluo in [#116594](https://github.com/getsentry/sentry/pull/116594)
+- Remove experimental/projects backward-compat shim by @betegon in [#116498](https://github.com/getsentry/sentry/pull/116498)
+- Remove unused events-trace-light endpoint by @cvxluo in [#116519](https://github.com/getsentry/sentry/pull/116519)
+- Remove stale entries from api ownership and publish status by @cvxluo in [#116400](https://github.com/getsentry/sentry/pull/116400)
+- Promote org-scoped project creation endpoint to public by @betegon in [#116333](https://github.com/getsentry/sentry/pull/116333)
+
+#### Api Docs
+
+- Add `EventAttachmentSerializerResponse` type and example by @cvxluo in [#116515](https://github.com/getsentry/sentry/pull/116515)
+- Add DebugFileSerializerResponse type and example fixture by @cvxluo in [#116397](https://github.com/getsentry/sentry/pull/116397)
+
+#### Ci
+
+- Skip type coverage comment if there is no change by @shellmayr in [#116672](https://github.com/getsentry/sentry/pull/116672)
+- Skip broken trace item detail tests by @kenzoengineer in [#116497](https://github.com/getsentry/sentry/pull/116497)
+
+#### Codecov
+
+- Remove auto_enable_codecov daily job by @giovanni-guidini in [#116570](https://github.com/getsentry/sentry/pull/116570)
+- Remove GitHub Codecov account-link hooks by @giovanni-guidini in [#116569](https://github.com/getsentry/sentry/pull/116569)
+- Remove stacktrace-coverage endpoint and codecovAccess setting by @giovanni-guidini in [#116565](https://github.com/getsentry/sentry/pull/116565)
+- Remove Prevent API endpoints and routes by @giovanni-guidini in [#116559](https://github.com/getsentry/sentry/pull/116559)
+
+#### Deps
+
+- Bump js-cookie from 3.0.5 to 3.0.7 by @dependabot in [#116057](https://github.com/getsentry/sentry/pull/116057)
+- Update sentry-conventions to 0.10.0 by @mjq in [#116517](https://github.com/getsentry/sentry/pull/116517)
+
+#### Dynamic Sampling
+
+- Document config types and simplify dir structure by @shellmayr in [#116462](https://github.com/getsentry/sentry/pull/116462)
+- Only run sliding window calculations when config is enabled by @shellmayr in [#116371](https://github.com/getsentry/sentry/pull/116371)
+- With multiple org volumes, make sure their duration is clear in scheduler by @shellmayr in [#116367](https://github.com/getsentry/sentry/pull/116367)
+
+#### Explore
+
+- Remove raw search replacement flag checks by @nsdeschenes in [#116590](https://github.com/getsentry/sentry/pull/116590)
+- Port schema hints list to scraps by @priscilawebdev in [#116159](https://github.com/getsentry/sentry/pull/116159)
+
+#### Flags
+
+- Remove organizations:processing-error-analytics by @wedamija in [#116643](https://github.com/getsentry/sentry/pull/116643)
+- Remove organizations:workflow-engine-redirect-opt-out by @wedamija in [#116641](https://github.com/getsentry/sentry/pull/116641)
+- Remove organizations:seer-slack-explorer by @wedamija in [#116639](https://github.com/getsentry/sentry/pull/116639)
+- Remove organizations:search-query-builder-raw-search-replacement by @wedamija in [#116638](https://github.com/getsentry/sentry/pull/116638)
+- Remove organizations:insights-alerts by @wedamija in [#116223](https://github.com/getsentry/sentry/pull/116223)
+
+#### Forms
+
+- Migrate RequestIntegrationModal to TanStack form system by @priscilawebdev in [#115990](https://github.com/getsentry/sentry/pull/115990)
+- Migrate CreateTeamForm to TanStack form system by @priscilawebdev in [#115991](https://github.com/getsentry/sentry/pull/115991)
+
+#### Github Enterprise
+
+- Remove legacy pipeline setup views by @evanpurkhiser in [#116436](https://github.com/getsentry/sentry/pull/116436)
+- Remove fully-GA github.com source flag checks by @tnt-sentry in [#116385](https://github.com/getsentry/sentry/pull/116385)
+
+#### Integrations
+
+- Remove `organizations:integrations-github-project-management` by @cvxluo in [#116551](https://github.com/getsentry/sentry/pull/116551)
+- Drop the external-install React route by @evanpurkhiser in [#116426](https://github.com/getsentry/sentry/pull/116426)
+- Redirect GitHub installs straight to the link page by @evanpurkhiser in [#116412](https://github.com/getsentry/sentry/pull/116412)
+- Clean up integrationOrganizationLink by @evanpurkhiser in [#116415](https://github.com/getsentry/sentry/pull/116415)
+- Extract GitHub installation callout from org link view by @evanpurkhiser in [#116379](https://github.com/getsentry/sentry/pull/116379)
+- Reorganize pipeline components into per-provider folders by @evanpurkhiser in [#116334](https://github.com/getsentry/sentry/pull/116334)
+
+#### Issues
+
+- Add fallback event components codeowner by @scttcper in [#116505](https://github.com/getsentry/sentry/pull/116505)
+- Rename feature flag to be specific to displaying Seer actions as issue details activities by @shashjar in [#116425](https://github.com/getsentry/sentry/pull/116425)
+- Minor cleanup of boolean logic in escalating issue algorithm by @shashjar in [#116453](https://github.com/getsentry/sentry/pull/116453)
+- Remove streamline names from issue details by @scttcper in [#116344](https://github.com/getsentry/sentry/pull/116344)
+
+#### Logs
+
+- Add superuser only log json debug button by @Dav1dde in [#116482](https://github.com/getsentry/sentry/pull/116482)
+- Update trace item timestamp expectations by @nsdeschenes in [#116405](https://github.com/getsentry/sentry/pull/116405)
+
+#### Onboarding
+
+- Update project creation URL to /organizations/{org}/projects/ by @betegon in [#116388](https://github.com/getsentry/sentry/pull/116388)
+- Decouple SCM step components from OnboardingContext by @jaydgoss in [#115639](https://github.com/getsentry/sentry/pull/115639)
+
+#### Repositories
+
+- When making a ProjectRepository link, upgrade the source if we have a stronger signal by @wedamija in [#116543](https://github.com/getsentry/sentry/pull/116543)
+- Mark project repo endpoint as public by @wedamija in [#116343](https://github.com/getsentry/sentry/pull/116343)
+
+#### Seer
+
+- Mark seer endpoints as private instead of experimental by @gricha in [#116591](https://github.com/getsentry/sentry/pull/116591)
+- Remove `organizations:seer-wizard` by @cvxluo in [#116546](https://github.com/getsentry/sentry/pull/116546)
+- Remove `organizations:seer-issue-view` by @cvxluo in [#116528](https://github.com/getsentry/sentry/pull/116528)
+- Call project settings update helper in callsites that don't need to update the full Seer project preference by @srest2021 in [#116356](https://github.com/getsentry/sentry/pull/116356)
+- Add GitLab code-review web hooks by @cmanallen in [#116317](https://github.com/getsentry/sentry/pull/116317)
+- Unify Seer project settings update helper and add tuning and auto_create_pr fields by @srest2021 in [#116352](https://github.com/getsentry/sentry/pull/116352)
+- Use get_group_list helper in supergroups-by-group endpoint by @giovanni-guidini in [#116474](https://github.com/getsentry/sentry/pull/116474)
+- Get stopping point and handoff directly in callsites that don't need the full project preference by @srest2021 in [#116222](https://github.com/getsentry/sentry/pull/116222)
+
+#### Settings
+
+- Migrate project security & privacy form to scraps form by @priscilawebdev in [#116463](https://github.com/getsentry/sentry/pull/116463)
+- Remove service hooks forms and routes by @TkDodo in [#116296](https://github.com/getsentry/sentry/pull/116296)
+
+#### Snapshots
+
+- Snapshot the snapshots toolbar by @mtopo27 in [#116479](https://github.com/getsentry/sentry/pull/116479)
+- Resolve real design-system imports under SSR by @mtopo27 in [#116478](https://github.com/getsentry/sentry/pull/116478)
+- Make the snapshots toolbar presentational and de-duplicate by @mtopo27 in [#116477](https://github.com/getsentry/sentry/pull/116477)
+
+#### Snuba
+
+- Use metrics.timer instead of bespoke timer helper by @mrduncan in [#115279](https://github.com/getsentry/sentry/pull/115279)
+- Use metrics.timer for get_snuba_map timing by @mrduncan in [#116357](https://github.com/getsentry/sentry/pull/116357)
+- Re-enable boolean double-write tests by @phacops in [#116390](https://github.com/getsentry/sentry/pull/116390)
+
+#### Spans
+
+- Improve flush cleanup coverage by @lvthanh03 in [#116694](https://github.com/getsentry/sentry/pull/116694)
+- Move flushed segment cleanup into buffer store by @lvthanh03 in [#116495](https://github.com/getsentry/sentry/pull/116495)
+- Move queue updates into spans buffer store by @lvthanh03 in [#116435](https://github.com/getsentry/sentry/pull/116435)
+- Use full web vitals attribute strings by @mjq in [#116135](https://github.com/getsentry/sentry/pull/116135)
+- Introduce spans buffer store abstraction by @lvthanh03 in [#116382](https://github.com/getsentry/sentry/pull/116382)
+- Read deprecations from `sentry-conventions` by @mjq in [#116399](https://github.com/getsentry/sentry/pull/116399)
+- Add loaded segment data model by @lvthanh03 in [#116346](https://github.com/getsentry/sentry/pull/116346)
+
+#### Typing
+
+- Remove 9 zero-error modules from mypy ignore list by @shashjar in [#116430](https://github.com/getsentry/sentry/pull/116430)
+- Remove `sentry.services.eventstore.models` from mypy ignore list by @shashjar in [#116229](https://github.com/getsentry/sentry/pull/116229)
+
+#### Webhooks
+
+- Hide PLUGIN action type from available actions endpoint by @Christinarlong in [#116458](https://github.com/getsentry/sentry/pull/116458)
+- Remove raise that short circuit url sending by @Christinarlong in [#116534](https://github.com/getsentry/sentry/pull/116534)
+- Add legacy_webhook to the Plugin ActionType by @Christinarlong in [#116454](https://github.com/getsentry/sentry/pull/116454)
+
+#### Other
+
+- (alerts) Disable alert buttons for users without write access by @malwilley in [#116306](https://github.com/getsentry/sentry/pull/116306)
+- (apigateway) Use a threadlocal session for proxy requests by @JoshFerge in [#116054](https://github.com/getsentry/sentry/pull/116054)
+- (assemble) Validate debug ids on assemble endpoint by @Dav1dde in [#116283](https://github.com/getsentry/sentry/pull/116283)
+- (autofix) Remove the organizations:autofix-on-explorer feature flag by @chromy in [#116165](https://github.com/getsentry/sentry/pull/116165)
+- (billing) Bumped sentry-protos version to 0.15.0 by @krithikravi in [#116351](https://github.com/getsentry/sentry/pull/116351)
+- (billing-platform) Bump sentry-protos 0.21.0 by @brendanhsentry in [#116539](https://github.com/getsentry/sentry/pull/116539)
+- (bitbucket-server) Remove legacy pipeline setup views by @evanpurkhiser in [#116489](https://github.com/getsentry/sentry/pull/116489)
+- (cell) Renames proxy region metric tag to cell for clarity by @GabeVillalobos in [#116402](https://github.com/getsentry/sentry/pull/116402)
+- (cells) Adds CellResolver, refactors ApiGateway to use them when special casing proxy requests by @GabeVillalobos in [#116221](https://github.com/getsentry/sentry/pull/116221)
+- (codeowners) Reuse get_projects in associations endpoint by @giovanni-guidini in [#116359](https://github.com/getsentry/sentry/pull/116359)
+- (conversations) Simplify conversation details endpoint by @obostjancic in [#116087](https://github.com/getsentry/sentry/pull/116087)
+- (dashboards) Validate prebuilt widget layouts and lengths by @DominikB2014 in [#116217](https://github.com/getsentry/sentry/pull/116217)
+- (eap) Make trace item attributes alias test less fragile by @mjq in [#116545](https://github.com/getsentry/sentry/pull/116545)
+- (feature-flags) Remove `organizations:insights-ai-and-mcp-dashboard-migration` by @cvxluo in [#116450](https://github.com/getsentry/sentry/pull/116450)
+- (inbound-filters) Add feature flag by @shellmayr in [#116287](https://github.com/getsentry/sentry/pull/116287)
+- (ingest) Minor cleanup in issue occurrence ingestion logic by @shashjar in [#116608](https://github.com/getsentry/sentry/pull/116608)
+- (issue-detection) Update badge for AI Issue Detection by @roggenkemper in [#116311](https://github.com/getsentry/sentry/pull/116311)
+- (issueDetails) Migrate onDiscard to useMutation + fetchMutation by @sentry-junior in [#116157](https://github.com/getsentry/sentry/pull/116157)
+- (jira) Replace legacy configure view with the pipeline redirect by @evanpurkhiser in [#116574](https://github.com/getsentry/sentry/pull/116574)
+- (mcp-adoption-value-discovery) Adding utm source to mcp docs link by @Abdkhan14 in [#116202](https://github.com/getsentry/sentry/pull/116202)
+- (metrics) Metric detail action menu tweaks by @nsdeschenes in [#116292](https://github.com/getsentry/sentry/pull/116292)
+- (msteams) Replace legacy configure view with the pipeline redirect by @evanpurkhiser in [#116520](https://github.com/getsentry/sentry/pull/116520)
+- (night-shift) Use default autofix model for night-shift runs by @chromy in [#116469](https://github.com/getsentry/sentry/pull/116469)
+- (ourlogs) Switch logs pinning from context to a straightforward hook by @JoshuaKGoldberg in [#116176](https://github.com/getsentry/sentry/pull/116176)
+- (rpc) Log from `_make_rpc_request` by @mjq in [#116408](https://github.com/getsentry/sentry/pull/116408)
+- (scm) Remove /rate-limit endpoint from internal rate-limit computation by @cmanallen in [#116471](https://github.com/getsentry/sentry/pull/116471)
+- (search-query-builder) Break up contexts by @nsdeschenes in [#116126](https://github.com/getsentry/sentry/pull/116126)
+- (seer-grouping) Rm backfill url by @kddubey in [#116253](https://github.com/getsentry/sentry/pull/116253)
+- (seer-slack) Remove unused flag by @leeandher in [#116683](https://github.com/getsentry/sentry/pull/116683)
+- (slack) Remove assistant:write OAuth scope from Slack integration by @alexsohn1126 in [#116567](https://github.com/getsentry/sentry/pull/116567)
+- (tempest) Squash migrations by @vgrozdanic in [#116679](https://github.com/getsentry/sentry/pull/116679)
+- (timeSince) Migrate TimeSince to use InfoText internally by @TkDodo in [#116369](https://github.com/getsentry/sentry/pull/116369)
+- (trace-items) Remove `performance-sentry-conventions-fields` by @mjq in [#116392](https://github.com/getsentry/sentry/pull/116392)
+- (trace-waterfall) Drop deprecated aliases from trace meta endpoint by @cvxluo in [#116514](https://github.com/getsentry/sentry/pull/116514)
+- (traces) Remove stale events-trace-light frontend references by @cvxluo in [#116523](https://github.com/getsentry/sentry/pull/116523)
+- (utils) Small `SafeRolloutComparator` refactors by @lobsterkatie in [#116257](https://github.com/getsentry/sentry/pull/116257)
+- (workflow-engine) Build out new registry for activities by @leeandher in [#116200](https://github.com/getsentry/sentry/pull/116200)
+- (workflows) Dramatically more efficient DetectorGroup querying by @kcons in [#116441](https://github.com/getsentry/sentry/pull/116441)
+- Devservices 1.4.0 by @joshuarli in [#116700](https://github.com/getsentry/sentry/pull/116700)
+- Rollout semver-ordering-with-build-code by @ryan953 in [#116622](https://github.com/getsentry/sentry/pull/116622)
+- Remove `relay:measurements-smart-conversion` feature by @loewenheim in [#116615](https://github.com/getsentry/sentry/pull/116615)
+- Replace custom JEST_TEST_BALANCER env var with --testResultsProcessor by @ryan953 in [#116661](https://github.com/getsentry/sentry/pull/116661)
+- Bump taskbroker-client to 0.18.0 by @getsentry-bot in [#116630](https://github.com/getsentry/sentry/pull/116630)
+- Cleanup seer-config-reminder flag by @ryan953 in [#116628](https://github.com/getsentry/sentry/pull/116628)
+- Fix log statement by @joseph-sentry in [#116512](https://github.com/getsentry/sentry/pull/116512)
+- Bump taskbroker-client to 0.17.1 by @getsentry-bot in [#116535](https://github.com/getsentry/sentry/pull/116535)
+- Bump taskbroker-client to 0.17.0 by @getsentry-bot in [#116526](https://github.com/getsentry/sentry/pull/116526)
+- Delete unused options by @joshuarli in [#116409](https://github.com/getsentry/sentry/pull/116409)
+- Type utils.signing.unsign return as Any by @evanpurkhiser in [#116486](https://github.com/getsentry/sentry/pull/116486)
+- Add some logging by @shruthilayaj in [#116481](https://github.com/getsentry/sentry/pull/116481)
+- Remove Email model by @markstory in [#116245](https://github.com/getsentry/sentry/pull/116245)
+- Bump sentry-protos 0.17.0 by @brendanhsentry in [#116456](https://github.com/getsentry/sentry/pull/116456)
+- Bump taskbroker-client to 0.16.0 by @getsentry-bot in [#116411](https://github.com/getsentry/sentry/pull/116411)
+- Bump sentry-protos to 0.16.1 by @getsentry-bot in [#116401](https://github.com/getsentry/sentry/pull/116401)
+- Delete plan migration frontend by @noahsmartin in [#116331](https://github.com/getsentry/sentry/pull/116331)
+- Bump new development version by @sentry-release-bot[bot] in [c9c46150](https://github.com/getsentry/sentry/commit/c9c461506030aae3c8e58b814b746a897237eb46)
+
+### Other
+
+- fix(cells) Hide US2 in customer facing dropdowns by @markstory in [#116529](https://github.com/getsentry/sentry/pull/116529)
+- Remove `organizations:scm-repositories-v2` by @cvxluo in [#116555](https://github.com/getsentry/sentry/pull/116555)
+- Add new org suspension reason by @geoffg-sentry in [#116616](https://github.com/getsentry/sentry/pull/116616)
+- Upgrade sentry-scm to 0.22.0 by @cmanallen in [#116585](https://github.com/getsentry/sentry/pull/116585)
+- typing(release health): Remove `sentry.release_health.metrics_sessions_v2` from mypy ignore list by @shashjar in [#116442](https://github.com/getsentry/sentry/pull/116442)
+- :bug: fix[gitlab]: add assignee sync diagnostics by @iamrajjoshi in [#115356](https://github.com/getsentry/sentry/pull/115356)
+- feat(cells) Allow staff users to create orgs in hidden cells by @markstory in [#116503](https://github.com/getsentry/sentry/pull/116503)
+- fix(cells) Add flag and display name for us2 by @markstory in [#116513](https://github.com/getsentry/sentry/pull/116513)
+- Extract BoundedLRUCache into common utility module by @cmanallen in [#116527](https://github.com/getsentry/sentry/pull/116527)
+- fix(typing) Remove sentry.db.postgres.base from ignore list by @markstory in [#116493](https://github.com/getsentry/sentry/pull/116493)
+- deps(scm): Upgrade sentry-scm to 0.20.0 by @cmanallen in [#116499](https://github.com/getsentry/sentry/pull/116499)
+- tracemetrics(perf): Add client_sample_rate to high-volume metrics by @k-fish in [#116308](https://github.com/getsentry/sentry/pull/116308)
+- chore(typing) Fix typing errors in sentry.ratelimits by @markstory in [#116310](https://github.com/getsentry/sentry/pull/116310)
+- revert changes to jest config from #116269 by @armcknight in [#116416](https://github.com/getsentry/sentry/pull/116416)
+- chore(typing) Fix typing issues in relocations by @markstory in [#116301](https://github.com/getsentry/sentry/pull/116301)
+
+26.5.1
+------
+
+### New Features ✨
+
+#### Apigw
+
+- Expose proxy latency metrics by target by @gi0baro in [#116086](https://github.com/getsentry/sentry/pull/116086)
+- Add non-orgid/slug endpoints to proxied cell requests by @gi0baro in [#115930](https://github.com/getsentry/sentry/pull/115930)
+
+#### Autofix
+
+- Allow non seat based seer to skip setup in [#116208](https://github.com/getsentry/sentry/pull/116208)
+- Switch inspection to single llm call using gemini flas… by @Zylphrex in [#116071](https://github.com/getsentry/sentry/pull/116071)
+- Autofix introspection analytics by @Zylphrex in [#115891](https://github.com/getsentry/sentry/pull/115891)
+- Add UI labels for missing AutofixReferrer values by @chromy in [#115655](https://github.com/getsentry/sentry/pull/115655)
+- Render line numbers in autofix evidence by @Zylphrex in [#115649](https://github.com/getsentry/sentry/pull/115649)
+
+#### Cells
+
+- Remove cross-org feature gating from notification settings by @lynnagara in [#115829](https://github.com/getsentry/sentry/pull/115829)
+- Add cell-routing mode to devservices by @lynnagara in [#115737](https://github.com/getsentry/sentry/pull/115737)
+
+#### Cmdk
+
+- Add Open in Production and Open in Development actions in [#116242](https://github.com/getsentry/sentry/pull/116242)
+- Freeze visible action list during keyboard navigation in [#115851](https://github.com/getsentry/sentry/pull/115851)
+- Add project search action to command palette by @JonasBa in [#115591](https://github.com/getsentry/sentry/pull/115591)
+
+#### Conversations
+
+- Add copy conversation as markdown button in [#116171](https://github.com/getsentry/sentry/pull/116171)
+- Swap badge from alpha to beta by @obostjancic in [#115712](https://github.com/getsentry/sentry/pull/115712)
+- Add Amplitude analytics to conversation pages by @obostjancic in [#115622](https://github.com/getsentry/sentry/pull/115622)
+
+#### Dashboards
+
+- Add span-first support for web vital dashboard in [#115882](https://github.com/getsentry/sentry/pull/115882)
+- Validate display type against dataset config by @DominikB2014 in [#115951](https://github.com/getsentry/sentry/pull/115951)
+- Require metric_unit in AI tracemetrics aggregates by @DominikB2014 in [#116101](https://github.com/getsentry/sentry/pull/116101)
+- Teach AI dashboard generator the tracemetrics aggregate format by @DominikB2014 in [#115480](https://github.com/getsentry/sentry/pull/115480)
+
+#### Explore
+
+- Heatmap tooltip trace links by @nikkikapadia in [#115925](https://github.com/getsentry/sentry/pull/115925)
+- Link to aggregates from dropdown by @nsdeschenes in [#115789](https://github.com/getsentry/sentry/pull/115789)
+- Add Heat Map widget to Explore metrics by @gggritso in [#115608](https://github.com/getsentry/sentry/pull/115608)
+
+#### Github Enterprise
+
+- Add frontend pipeline steps for GHE integration setup in [#114367](https://github.com/getsentry/sentry/pull/114367)
+- Add API-driven pipeline backend for GHE integration setup in [#114366](https://github.com/getsentry/sentry/pull/114366)
+- Allow github.com as a source for the GitHub Enterprise integration by @tnt-sentry in [#115599](https://github.com/getsentry/sentry/pull/115599)
+
+#### Issues
+
+- Bring back `SEER_PR_CREATED` activity creation and hide from timeline in [#116233](https://github.com/getsentry/sentry/pull/116233)
+- Two-column activity icons, colors by @scttcper in [#115958](https://github.com/getsentry/sentry/pull/115958)
+- Unify issue activity streams by @scttcper in [#115848](https://github.com/getsentry/sentry/pull/115848)
+- Add activity feed v2 flag by @scttcper in [#115966](https://github.com/getsentry/sentry/pull/115966)
+- Consolidate activity comment input by @scttcper in [#115824](https://github.com/getsentry/sentry/pull/115824)
+- Replace DebugMeta store with context by @scttcper in [#115842](https://github.com/getsentry/sentry/pull/115842)
+
+#### Low Value Spans
+
+- Add configuration issue UI in [#116271](https://github.com/getsentry/sentry/pull/116271)
+- Add Snuba referrer for detector by @vgrozdanic in [#115980](https://github.com/getsentry/sentry/pull/115980)
+- Add low-value span issue UI by @ArthurKnaus in [#115870](https://github.com/getsentry/sentry/pull/115870)
+- Add low-value span issue type by @ArthurKnaus in [#115868](https://github.com/getsentry/sentry/pull/115868)
+
+#### Onboarding
+
+- Link selected repository to project after creation by @wedamija in [#115761](https://github.com/getsentry/sentry/pull/115761)
+- Update Hono onboarding with `@sentry/hono` by @s1gr1d in [#115476](https://github.com/getsentry/sentry/pull/115476)
+
+#### Ourlogs
+
+- Reduce modal export rows limit to 10k by @JoshuaKGoldberg in [#116180](https://github.com/getsentry/sentry/pull/116180)
+- Show estimated total dataset size in needle-in-haystack searches by @JoshuaKGoldberg in [#115731](https://github.com/getsentry/sentry/pull/115731)
+- Implement pinned logs with sticky header (part 1) by @JoshuaKGoldberg in [#115102](https://github.com/getsentry/sentry/pull/115102)
+- Add 'Group by attribute' to log property context menu by @JoshuaKGoldberg in [#115420](https://github.com/getsentry/sentry/pull/115420)
+
+#### Preprod
+
+- Display snapshot image tags in card headers in [#115723](https://github.com/getsentry/sentry/pull/115723)
+- Display images_skipped in snapshot table by @NicoHinderling in [#116074](https://github.com/getsentry/sentry/pull/116074)
+- Add images_skipped to builds API response by @NicoHinderling in [#116073](https://github.com/getsentry/sentry/pull/116073)
+- Display skipped images in snapshots UI by @NicoHinderling in [#116041](https://github.com/getsentry/sentry/pull/116041)
+- Expose is_selective flag in snapshot details API response by @NicoHinderling in [#115832](https://github.com/getsentry/sentry/pull/115832)
+- Add Snapshot status check rules API by @cameroncooke in [#115621](https://github.com/getsentry/sentry/pull/115621)
+
+#### Search
+
+- Add recommended sort option to issue stream dropdown in [#116197](https://github.com/getsentry/sentry/pull/116197)
+- Surface recommended sort in UI when active via query param in [#116186](https://github.com/getsentry/sentry/pull/116186)
+- Register feature flag for recommended issue sort by @roggenkemper in [#116191](https://github.com/getsentry/sentry/pull/116191)
+
+#### Seer
+
+- Add structured LLM context for replay list and detail pages in [#116045](https://github.com/getsentry/sentry/pull/116045)
+- Always show action buttons in explorer chat blocks by @ChrisandraVaz in [#116049](https://github.com/getsentry/sentry/pull/116049)
+- Add bulk Seer project connected repos endpoint by @srest2021 in [#115942](https://github.com/getsentry/sentry/pull/115942)
+- Add Seer project connected repo endpoint by @srest2021 in [#115199](https://github.com/getsentry/sentry/pull/115199)
+- Add structured LLM context for explore logs trace route by @Mihir-Mavalankar in [#116036](https://github.com/getsentry/sentry/pull/116036)
+- Add CRUD helpers for Seer project repos by @srest2021 in [#115904](https://github.com/getsentry/sentry/pull/115904)
+- Add structured LLM context for issue detail sub-tabs by @Mihir-Mavalankar in [#115936](https://github.com/getsentry/sentry/pull/115936)
+- Add bulk-project Seer settings endpoint by @srest2021 in [#115234](https://github.com/getsentry/sentry/pull/115234)
+- Add helper for bulk updating Seer project settings by @srest2021 in [#115756](https://github.com/getsentry/sentry/pull/115756)
+- Scope /conversations slash command lookup with start/end/project by @chromy in [#115785](https://github.com/getsentry/sentry/pull/115785)
+- Add single-project Seer settings endpoint by @srest2021 in [#115230](https://github.com/getsentry/sentry/pull/115230)
+- Add SeerRun FK to SeerNightShiftRun by @trevor-e in [#115694](https://github.com/getsentry/sentry/pull/115694)
+- Add SeerWorkflowConfig model and link to night shift runs by @trevor-e in [#115615](https://github.com/getsentry/sentry/pull/115615)
+- Mirror last_triggered_at to SeerRun on autofix triggers by @trevor-e in [#115611](https://github.com/getsentry/sentry/pull/115611)
+
+#### Tracemetrics
+
+- Include equations in Add to Dashboard by @narsaynorath in [#116141](https://github.com/getsentry/sentry/pull/116141)
+- Convert equation alias to full equation for queries by @narsaynorath in [#116047](https://github.com/getsentry/sentry/pull/116047)
+- Open in Explore for metrics dashboard widgets by @narsaynorath in [#115805](https://github.com/getsentry/sentry/pull/115805)
+- Lazy load trace details per metric by @nsdeschenes in [#115066](https://github.com/getsentry/sentry/pull/115066)
+
+#### Webhooks
+
+- Add dry run check to sentry app webhook path in [#116265](https://github.com/getsentry/sentry/pull/116265)
+- Add payload validation during dual-write migration in [#116040](https://github.com/getsentry/sentry/pull/116040)
+- Add metrics for legacy webhook migration validation by @Christinarlong in [#116039](https://github.com/getsentry/sentry/pull/116039)
+- Wire new service with feature-flagged routing by @Christinarlong in [#115747](https://github.com/getsentry/sentry/pull/115747)
+- Add standalone legacy webhook service module by @Christinarlong in [#115688](https://github.com/getsentry/sentry/pull/115688)
+- Register legacy webhook migration feature flags by @Christinarlong in [#115669](https://github.com/getsentry/sentry/pull/115669)
+
+#### Other
+
+- (aci) Add sort param to workflow group history endpoint in [#116031](https://github.com/getsentry/sentry/pull/116031)
+- (alerts) Add cleanup task to NotificationMessage in [#116027](https://github.com/getsentry/sentry/pull/116027)
+- (amplitude) Track whether users are viewing sentry-built dashboards by @bcoe in [#116138](https://github.com/getsentry/sentry/pull/116138)
+- (api-docs) Publish project event details endpoint in [#116059](https://github.com/getsentry/sentry/pull/116059)
+- (apigateway) Add separated async `apigw` package by @gi0baro in [#115624](https://github.com/getsentry/sentry/pull/115624)
+- (button) Add `size` prop to `ButtonBar` via `SizeContext` by @natemoo-re in [#115728](https://github.com/getsentry/sentry/pull/115728)
+- (ci) Add merge_base_strategy tag to Jest CI runs by @ryan953 in [#115967](https://github.com/getsentry/sentry/pull/115967)
+- (data-forwarding) Enable retries for data forwarders via task dispatch by @leeandher in [#115511](https://github.com/getsentry/sentry/pull/115511)
+- (dev) Add SENTRY_CELL_ROUTING env var that runs cell-routing mode locally by @lynnagara in [#115852](https://github.com/getsentry/sentry/pull/115852)
+- (dynamic-sampling) Add per-project volume query in [#114286](https://github.com/getsentry/sentry/pull/114286)
+- (examples) Add task that produces by @bmckerry in [#115820](https://github.com/getsentry/sentry/pull/115820)
+- (explorer) Add query parameter to explorer-runs API by @JonasBa in [#115760](https://github.com/getsentry/sentry/pull/115760)
+- (integrations) Disable auth token creation button without perms by @cvxluo in [#115769](https://github.com/getsentry/sentry/pull/115769)
+- (markdown) Expose default components via `Default` prop by @natemoo-re in [#115745](https://github.com/getsentry/sentry/pull/115745)
+- (options) Add timing metric to options.get() by @kenzoengineer in [#115762](https://github.com/getsentry/sentry/pull/115762)
+- (profiling) Add task for taskbroker passthrough mode by @untitaker in [#115065](https://github.com/getsentry/sentry/pull/115065)
+- (repositories) Add project repo-link endpoint by @wedamija in [#115754](https://github.com/getsentry/sentry/pull/115754)
+- (routes) Add redirect from /snapshots/ to explore releases by @NicoHinderling in [#116053](https://github.com/getsentry/sentry/pull/116053)
+- (scm) Add streaming integration-proxy which accepts any 'Accepts' header value by @cmanallen in [#115917](https://github.com/getsentry/sentry/pull/115917)
+- (self-healing) Add support for seer activities in workflow engine by @saponifi3d in [#115933](https://github.com/getsentry/sentry/pull/115933)
+- (settings) Add 'Recent Error Events' column to project environments by @JoshuaKGoldberg in [#115902](https://github.com/getsentry/sentry/pull/115902)
+- (source-map-config-issues) Updating processing errors metric by @Abdkhan14 in [#115822](https://github.com/getsentry/sentry/pull/115822)
+- (spans) Add separate Redis cluster setting for span deduplication by @untitaker in [#116010](https://github.com/getsentry/sentry/pull/116010)
+- (trace-waterfall) Small tweaks to trace-waterfall tab by @nsdeschenes in [#115584](https://github.com/getsentry/sentry/pull/115584)
+- (ui) Add debug FeatureBadge variant by @chromy in [#116000](https://github.com/getsentry/sentry/pull/116000)
+- Flags and rpc for frontend code search tool by @shruthilayaj in [#116098](https://github.com/getsentry/sentry/pull/116098)
+- Add SENTRY_ALLOWED_IPS to allow IP, overwrite SENTRY_DISALLOWED… by @fe80 in [#115773](https://github.com/getsentry/sentry/pull/115773)
+- Add Relay measurements conversion feature by @loewenheim in [#115979](https://github.com/getsentry/sentry/pull/115979)
+- Track read options via seen logline by @joshuarli in [#115610](https://github.com/getsentry/sentry/pull/115610)
+- Add toggle to migrate to billing platform by @noahsmartin in [#115895](https://github.com/getsentry/sentry/pull/115895)
+
+### Bug Fixes 🐛
+
+#### Alerts
+
+- Handle gte/lte condition types in metric alert serializers by @kcons in [#115972](https://github.com/getsentry/sentry/pull/115972)
+- Update migration to not remove FK to group by @ceorourke in [#115932](https://github.com/getsentry/sentry/pull/115932)
+- Surface API error messages in create/update toasts by @malwilley in [#115894](https://github.com/getsentry/sentry/pull/115894)
+- Batch NotificationMessage delete metric alert rows by @ceorourke in [#115726](https://github.com/getsentry/sentry/pull/115726)
+
+#### Api
+
+- Correctly parse `full` parameter in project events endpoint in [#116216](https://github.com/getsentry/sentry/pull/116216)
+- Validate IDs in OrganizationGroupIndexEndpoint.delete by @kcons in [#115770](https://github.com/getsentry/sentry/pull/115770)
+
+#### Conversations
+
+- Restore side-by-side layout for platform option dropdown in [#116272](https://github.com/getsentry/sentry/pull/116272)
+- Improve tool badge rendering and overflow behavior by @obostjancic in [#115880](https://github.com/getsentry/sentry/pull/115880)
+- Improve truncation of non-UUID conversation IDs by @sentry-junior in [#115978](https://github.com/getsentry/sentry/pull/115978)
+
+#### Dashboards
+
+- Raise widget description limit to 350 by @DominikB2014 in [#116185](https://github.com/getsentry/sentry/pull/116185)
+- Propagate global filters in Open in Issues link by @DominikB2014 in [#116105](https://github.com/getsentry/sentry/pull/116105)
+- Stop widget header action clicks from bubbling by @skaasten in [#116096](https://github.com/getsentry/sentry/pull/116096)
+- Anchor Editors dropdown to the right edge of the trigger by @skaasten in [#116104](https://github.com/getsentry/sentry/pull/116104)
+- Reset table fields when switching from details widget by @DominikB2014 in [#115788](https://github.com/getsentry/sentry/pull/115788)
+- Prevent sticky navbar misalignment on scroll by @priscilawebdev in [#115716](https://github.com/getsentry/sentry/pull/115716)
+
+#### Discover
+
+- Add missing check for DiscoverSavedQueryVisitEndpoint in [#116187](https://github.com/getsentry/sentry/pull/116187)
+- Add org id to project filter by @nsdeschenes in [#116174](https://github.com/getsentry/sentry/pull/116174)
+
+#### Dynamic Sampling
+
+- Use the correct field name for dynamic sampling project id in [#116279](https://github.com/getsentry/sentry/pull/116279)
+- Update run_eap_spans_table_query_in_chunks to yield individual rows and adjust tests accordingly by @constantinius in [#115995](https://github.com/getsentry/sentry/pull/115995)
+
+#### Events
+
+- Debug param wasn't being passed down correctly in [#116152](https://github.com/getsentry/sentry/pull/116152)
+- Correctly parse full parameter in group hashes endpoint in [#116219](https://github.com/getsentry/sentry/pull/116219)
+
+#### Explore
+
+- Use unique ids for visuals in [#116204](https://github.com/getsentry/sentry/pull/116204)
+- Cross events date selector allow 7d anytime within 30 days by @nikkikapadia in [#116099](https://github.com/getsentry/sentry/pull/116099)
+- Increase strictness on URLs by @nsdeschenes in [#115881](https://github.com/getsentry/sentry/pull/115881)
+- Pymark fail on test for arrays in detail endpoint by @manessaraj in [#115828](https://github.com/getsentry/sentry/pull/115828)
+
+#### Integrations
+
+- Validate user-provided IDs in webhooks by @kcons in [#115910](https://github.com/getsentry/sentry/pull/115910)
+- Replace useIntegrationTabs with nuqs useQueryState by @ryan953 in [#115738](https://github.com/getsentry/sentry/pull/115738)
+
+#### Issues
+
+- Align collapsed activity row in [#116266](https://github.com/getsentry/sentry/pull/116266)
+- Fix undefined variable in `StreamGroupSerializerSnuba` feature flag check in [#116259](https://github.com/getsentry/sentry/pull/116259)
+- Move user serialization out of loop in ignored issues handler in [#116246](https://github.com/getsentry/sentry/pull/116246)
+- Fix sidebar comment box horizontal overflow in [#116209](https://github.com/getsentry/sentry/pull/116209)
+- Match short id when combined with filters in [#116153](https://github.com/getsentry/sentry/pull/116153)
+- Make GroupSearchViewPermission fail closed for unknown object types by @roggenkemper in [#116183](https://github.com/getsentry/sentry/pull/116183)
+- Provide correct value for `search.sort` SDK tag by @shashjar in [#116065](https://github.com/getsentry/sentry/pull/116065)
+- Use full URL for open link button in breadcrumb messages by @scttcper in [#115911](https://github.com/getsentry/sentry/pull/115911)
+- Enforce project access on event ID lookup endpoint by @oioki in [#115784](https://github.com/getsentry/sentry/pull/115784)
+- Stop double-emitting issue activities for Seer PR created by @shashjar in [#115749](https://github.com/getsentry/sentry/pull/115749)
+- Add int ID validation to a few endpoints by @kcons in [#115690](https://github.com/getsentry/sentry/pull/115690)
+- Search org members for note mentions by @scttcper in [#115614](https://github.com/getsentry/sentry/pull/115614)
+
+#### Metrics
+
+- Resolve flaky metrics tab tests in [#116280](https://github.com/getsentry/sentry/pull/116280)
+- Default to largest interval when using heatmaps visualization by @nikkikapadia in [#116129](https://github.com/getsentry/sentry/pull/116129)
+
+#### Monitors
+
+- Surface schedule config errors on cron form fields by @malwilley in [#116016](https://github.com/getsentry/sentry/pull/116016)
+- Add tooltip for disabled project in edits by @JoshuaKGoldberg in [#115931](https://github.com/getsentry/sentry/pull/115931)
+
+#### Onboarding
+
+- Remove broken aria-label from RadioGroup radio inputs by @scttcper in [#116032](https://github.com/getsentry/sentry/pull/116032)
+- Include shared feedback for Hono onbarding by @s1gr1d in [#115721](https://github.com/getsentry/sentry/pull/115721)
+
+#### Perforce
+
+- Update onboarding frontend for Unicode support by @mujacica in [#116005](https://github.com/getsentry/sentry/pull/116005)
+- Support Unicode Perforce server connections by @mujacica in [#115775](https://github.com/getsentry/sentry/pull/115775)
+
+#### Preprod
+
+- Reduce snapshot download concurrency to prevent stream failures in [#116267](https://github.com/getsentry/sentry/pull/116267)
+- Reapply "Include image key and field path in snapshot validation errors" by @runningcode in [#115987](https://github.com/getsentry/sentry/pull/115987)
+- Remove native lazy loading from LazyImage component by @NicoHinderling in [#115922](https://github.com/getsentry/sentry/pull/115922)
+- Eliminate race condition in snapshot status check posting by @NicoHinderling in [#115650](https://github.com/getsentry/sentry/pull/115650)
+- Skip strict jsonschema for snapshot image metadata by @runningcode in [#115720](https://github.com/getsentry/sentry/pull/115720)
+- Restore extra field passthrough in snapshot image responses by @NicoHinderling in [#115658](https://github.com/getsentry/sentry/pull/115658)
+- Change snapshot image tags from list to dict by @NicoHinderling in [#115643](https://github.com/getsentry/sentry/pull/115643)
+
+#### Replays
+
+- Shrink timeline hover timestamp in [#116268](https://github.com/getsentry/sentry/pull/116268)
+- Remove timeline icon z-index workaround in [#116255](https://github.com/getsentry/sentry/pull/116255)
+- Remove extra padding from BodyGrid in replayLayout by @sentry-junior in [#116156](https://github.com/getsentry/sentry/pull/116156)
+- Disable breadcrumbs autoscroll on user scroll by @JoshuaKGoldberg in [#115914](https://github.com/getsentry/sentry/pull/115914)
+- Correct query invalidation on refresh by @JoshuaKGoldberg in [#115629](https://github.com/getsentry/sentry/pull/115629)
+- Allow org admins to bulk delete replays by @jameskeane in [#115886](https://github.com/getsentry/sentry/pull/115886)
+- Make link copy button accessible and non-variable width by @JoshuaKGoldberg in [#115598](https://github.com/getsentry/sentry/pull/115598)
+
+#### Search
+
+- Prevent Ask AI from doubling pasted query text in [#116050](https://github.com/getsentry/sentry/pull/116050)
+- Hide size limit prompt while filtering by @nsdeschenes in [#115816](https://github.com/getsentry/sentry/pull/115816)
+
+#### Seer
+
+- Sort autofix project table by slug instead of name by @mrduncan in [#115642](https://github.com/getsentry/sentry/pull/115642)
+- Keep repo loading indicator active by @scttcper in [#115854](https://github.com/getsentry/sentry/pull/115854)
+- Pass issue short ID to coding agents by @JoshFerge in [#115838](https://github.com/getsentry/sentry/pull/115838)
+- Make ToolResult.content optional to prevent Pydantic validation error by @sentry in [#115630](https://github.com/getsentry/sentry/pull/115630)
+
+#### Settings
+
+- Fix CI permission checkbox not reflecting state by @scttcper in [#116055](https://github.com/getsentry/sentry/pull/116055)
+- Restore title on accept-invite and accept-transfer pages by @natemoo-re in [#116013](https://github.com/getsentry/sentry/pull/116013)
+- Fix Seer drawer stopping point not changing on mutate from "No Automation" by @srest2021 in [#115847](https://github.com/getsentry/sentry/pull/115847)
+
+#### Snapshots
+
+- Add instrumentation logging to snapshot download stream in [#116079](https://github.com/getsentry/sentry/pull/116079)
+- Add timeout override for snapshot download in emmett gateway by @NicoHinderling in [#116078](https://github.com/getsentry/sentry/pull/116078)
+
+#### Tests
+
+- Don't include trace context in symbolicator snapshots in [#116275](https://github.com/getsentry/sentry/pull/116275)
+- Use findByRole for async options in opJsonPath.spec.tsx by @sentry in [#115645](https://github.com/getsentry/sentry/pull/115645)
+- Correct monitor form crontab test with fireEvent by @sentry in [#115644](https://github.com/getsentry/sentry/pull/115644)
+- Update staleTime and add default mocks for external issue tests by @sentry in [#115646](https://github.com/getsentry/sentry/pull/115646)
+
+#### Tracemetrics
+
+- Use equation alias format for widget builder in [#116213](https://github.com/getsentry/sentry/pull/116213)
+- Expand selector dropdown menu width to 100% by @narsaynorath in [#116026](https://github.com/getsentry/sentry/pull/116026)
+- Drop placeholder unit and always use none by @narsaynorath in [#116007](https://github.com/getsentry/sentry/pull/116007)
+- Pass project and env in request filters for filter by @narsaynorath in [#115920](https://github.com/getsentry/sentry/pull/115920)
+
+#### Ui
+
+- Add inset focus ring to SimpleTable header cells in [#116276](https://github.com/getsentry/sentry/pull/116276)
+- Increase dropdown z-index to appear above sidebar by @jameskeane in [#116139](https://github.com/getsentry/sentry/pull/116139)
+- Add self signed package to support https by @scttcper in [#115941](https://github.com/getsentry/sentry/pull/115941)
+
+#### Workflow Engine
+
+- Sanitize corrupted dynamic_form_fields choice labels by @malwilley in [#115855](https://github.com/getsentry/sentry/pull/115855)
+- Normalize error.handled values to 0/1 by @kcons in [#115740](https://github.com/getsentry/sentry/pull/115740)
+
+#### Other
+
+- (a11y) Add missing alt attributes to context icons and feedback images by @sentry-junior in [#115772](https://github.com/getsentry/sentry/pull/115772)
+- (agents) Use minVersion in SDK update alert for consistency by @obostjancic in [#115714](https://github.com/getsentry/sentry/pull/115714)
+- (api-docs) Correct event/replay/processing-error ID schemas in [#116201](https://github.com/getsentry/sentry/pull/116201)
+- (apigw) Disable asyncpg statement cache (issues with pgbouncer) by @gi0baro in [#115992](https://github.com/getsentry/sentry/pull/115992)
+- (attachments) Infer MIME type from filename when stored as octet-stream by @sentry-junior in [#115977](https://github.com/getsentry/sentry/pull/115977)
+- (auth) Verify primary email on password reset by @michelletran-sentry in [#115651](https://github.com/getsentry/sentry/pull/115651)
+- (autofix) Prevent loading spinner clip in artifact loading card by @priscilawebdev in [#115988](https://github.com/getsentry/sentry/pull/115988)
+- (billing) Added fix to convert snuba sentry enum to the proto enum for usage stats by @krithikravi in [#115856](https://github.com/getsentry/sentry/pull/115856)
+- (code-mapping) Update codeowners GET endpoint and tests in [#116309](https://github.com/getsentry/sentry/pull/116309)
+- (codeblock) Improve nested scroll by @natemoo-re in [#115839](https://github.com/getsentry/sentry/pull/115839)
+- (crons) De-flake "prefills with an existing monitor" test by @priscilawebdev in [#115782](https://github.com/getsentry/sentry/pull/115782)
+- (cross-events) Correct styling based off date selection by @nsdeschenes in [#116124](https://github.com/getsentry/sentry/pull/116124)
+- (cursored-scheduler) Recalculate batch size on tick interval change by @roggenkemper in [#115888](https://github.com/getsentry/sentry/pull/115888)
+- (data_export) Cap export row limit at 10k for all callers by @manessaraj in [#116048](https://github.com/getsentry/sentry/pull/116048)
+- (escalating) Register issue_velocity referrer in Referrer enum by @cvxluo in [#115812](https://github.com/getsentry/sentry/pull/115812)
+- (feedback) Downgrade log level for insufficient feedback count in [#116247](https://github.com/getsentry/sentry/pull/116247)
+- (forms) Preserve choice value types when submitting sentry app forms by @priscilawebdev in [#115869](https://github.com/getsentry/sentry/pull/115869)
+- (grouping) Parameterize error message fingerprint variables by @lobsterkatie in [#115496](https://github.com/getsentry/sentry/pull/115496)
+- (issue search) Fix invalid search query error message for device classes in [#116243](https://github.com/getsentry/sentry/pull/116243)
+- (issue-detection) Add plural KBLayouts_iPhone.dat to FileIO ignore list by @roggenkemper in [#116182](https://github.com/getsentry/sentry/pull/116182)
+- (jira) Bind JWT iss to body clientKey on install webhook by @michelletran-sentry in [#114225](https://github.com/getsentry/sentry/pull/114225)
+- (kafkapublisher) Leaks memory: rdkafka stats grow without poll() in [#116123](https://github.com/getsentry/sentry/pull/116123)
+- (members) Scope invite-request role updates to caller's allowed roles by @oioki in [#115807](https://github.com/getsentry/sentry/pull/115807)
+- (migrations) Get rid of progress bar by @ceorourke in [#115691](https://github.com/getsentry/sentry/pull/115691)
+- (mypy) Fix import location by @kcons in [#115654](https://github.com/getsentry/sentry/pull/115654)
+- (ourlogs) Reset column sort to default on third click by @JoshuaKGoldberg in [#115751](https://github.com/getsentry/sentry/pull/115751)
+- (pageFilters) Clear shift-click anchor on empty selection by @priscilawebdev in [#115472](https://github.com/getsentry/sentry/pull/115472)
+- (profiles) Indicate invalid page URL state as error by @JoshuaKGoldberg in [#115897](https://github.com/getsentry/sentry/pull/115897)
+- (profiling) Render single-sample continuous profile chunks in [#116234](https://github.com/getsentry/sentry/pull/116234)
+- (rate-limit) Tighten rate limits on test notification endpoints by @nora-shap in [#115613](https://github.com/getsentry/sentry/pull/115613)
+- (ratelimits) Handle AnonymousUser missing is_sentry_app attribute in [#116251](https://github.com/getsentry/sentry/pull/116251)
+- (relay) Make trustedRelays optional on Organization type by @TkDodo in [#116014](https://github.com/getsentry/sentry/pull/116014)
+- (releases) Pass Environment objects to get_latest_release by @mrduncan in [#115637](https://github.com/getsentry/sentry/pull/115637)
+- (repositories) Fix deletion ordering for ProjectRepository children by @wedamija in [#115739](https://github.com/getsentry/sentry/pull/115739)
+- (security) Add project-level access check to GroupEventJsonView by @roggenkemper in [#116184](https://github.com/getsentry/sentry/pull/116184)
+- (self-hosted) Avoid install wizard mail TLS/SSL immutable errors by @aldy505 in [#114011](https://github.com/getsentry/sentry/pull/114011)
+- (static) Add missing nonce attribute on app.js preload link by @oioki in [#115984](https://github.com/getsentry/sentry/pull/115984)
+- (supergroups) Move to post process task in [#116195](https://github.com/getsentry/sentry/pull/116195)
+- (tabs) Stop tooltips in overflowMenuItems from crashing the page by @TkDodo in [#115993](https://github.com/getsentry/sentry/pull/115993)
+- (traces) Handle deleted groups in trace endpoint in [#116248](https://github.com/getsentry/sentry/pull/116248)
+- (web) Redirect /scraps to stories by @priscilawebdev in [#115776](https://github.com/getsentry/sentry/pull/115776)
+- (webauthn) Handle missing WebAuthn challenge data in [#116167](https://github.com/getsentry/sentry/pull/116167)
+- (webhooks) Route sentry app actions through send_alert_webhook_v2 in new path in [#115975](https://github.com/getsentry/sentry/pull/115975)
+- (workflow) Use Group cache in get_group_to_groupevent by @kcons in [#115960](https://github.com/getsentry/sentry/pull/115960)
+- (workflows) Filter out workflows from other organizations in [#116075](https://github.com/getsentry/sentry/pull/116075)
+- Add catch-all path to explore route and redirect to index by @adrianviquez in [#116066](https://github.com/getsentry/sentry/pull/116066)
+- Revert "fix(ourlogs): stabilized column widths during scrolling (#115389)" by @getsentry-bot in [84d0139e](https://github.com/getsentry/sentry/commit/84d0139e1cc325da0c0e75380bc7dc3099c5f400)
+
+### Documentation 📚
+
+- (replays) Fix OpenAPI schema/example for replay details response by @JoshFerge in [#115752](https://github.com/getsentry/sentry/pull/115752)
+- (scraps) Render to HTML pattern by @natemoo-re in [#115943](https://github.com/getsentry/sentry/pull/115943)
+- (snapshots) Add public OpenAPI documentation for snapshot endpoints in [#116231](https://github.com/getsentry/sentry/pull/116231)
+
+### Internal Changes 🔧
+
+#### Admin
+
+- Migrate forkCustomer off browserHistory by @evanpurkhiser in [#115915](https://github.com/getsentry/sentry/pull/115915)
+- Drop browserHistory and HOCs from ResultGrid by @evanpurkhiser in [#115908](https://github.com/getsentry/sentry/pull/115908)
+
+#### Alerts
+
+- Clean up usage of AlertRuleSerializerResponse in [#116218](https://github.com/getsentry/sentry/pull/116218)
+- Remove AlertRuleSerializer in [#116052](https://github.com/getsentry/sentry/pull/116052)
+- Remove PUT and POST legacy paths for metric alerts by @ceorourke in [#116017](https://github.com/getsentry/sentry/pull/116017)
+- Fully remove metric alert columns on NotificationMessage by @ceorourke in [#116025](https://github.com/getsentry/sentry/pull/116025)
+- Remove legacy issue alert delete endpoint code by @ceorourke in [#115954](https://github.com/getsentry/sentry/pull/115954)
+- Add index on date_added, soft remove metric alert colu… by @ceorourke in [#115823](https://github.com/getsentry/sentry/pull/115823)
+- Remove legacy issue alert GET endpoint code by @ceorourke in [#115948](https://github.com/getsentry/sentry/pull/115948)
+- Migrate issue rule editor off browserHistory by @evanpurkhiser in [#115924](https://github.com/getsentry/sentry/pull/115924)
+- Remove legacy metric alerts code by @ceorourke in [#115865](https://github.com/getsentry/sentry/pull/115865)
+- Remove incident serializer usages by @ceorourke in [#115845](https://github.com/getsentry/sentry/pull/115845)
+- Remove legacy metric alert handlers by @ceorourke in [#115850](https://github.com/getsentry/sentry/pull/115850)
+- Remove metric alert columns on NotificationMessage by @ceorourke in [#115578](https://github.com/getsentry/sentry/pull/115578)
+- Replace AlertStore with GlobalAlertProvider + useGlobalAlerts by @evanpurkhiser in [#115315](https://github.com/getsentry/sentry/pull/115315)
+- Clean up old metric alert rows in NotificationMessage by @ceorourke in [#115647](https://github.com/getsentry/sentry/pull/115647)
+- Remove unused team alerts endpoints by @ceorourke in [#115339](https://github.com/getsentry/sentry/pull/115339)
+- Remove team alerts triggered modal by @ceorourke in [#115336](https://github.com/getsentry/sentry/pull/115336)
+
+#### Api
+
+- Type nullable fields in the base group serializer by @cvxluo in [#116068](https://github.com/getsentry/sentry/pull/116068)
+- Move `GroupEventDetailsResponse` to event serializer module by @cvxluo in [#116058](https://github.com/getsentry/sentry/pull/116058)
+- Resolve suggested_api from Django route names by @strongs in [#115907](https://github.com/getsentry/sentry/pull/115907)
+- Migrate auth-error navigation off browserHistory by @evanpurkhiser in [#115935](https://github.com/getsentry/sentry/pull/115935)
+- Move to_valid_int_id to a more central location by @kcons in [#115581](https://github.com/getsentry/sentry/pull/115581)
+
+#### Apigw
+
+- Add `abort_with_json` as an util, allow config httpx client limits by @gi0baro in [#116037](https://github.com/getsentry/sentry/pull/116037)
+- Enhance proxy implementation by @gi0baro in [#115892](https://github.com/getsentry/sentry/pull/115892)
+
+#### Autofix
+
+- Remove SCM requirement from autofix in [#116206](https://github.com/getsentry/sentry/pull/116206)
+- Remove legacy autofix path from GroupAutofixEndpoint by @chromy in [#116164](https://github.com/getsentry/sentry/pull/116164)
+- Always use explorer mode in GroupAutofixEndpoint by @chromy in [#116162](https://github.com/getsentry/sentry/pull/116162)
+- Remove old useAutofixData hook by @Zylphrex in [#116103](https://github.com/getsentry/sentry/pull/116103)
+- Remove intelligence level from group ai autofix endpoint by @Zylphrex in [#116145](https://github.com/getsentry/sentry/pull/116145)
+- Add log for autofix introspection reason by @Zylphrex in [#116132](https://github.com/getsentry/sentry/pull/116132)
+- Remove unused autofix v1 UI by @Zylphrex in [#116100](https://github.com/getsentry/sentry/pull/116100)
+- Use new Markdown primitive in v3 cards by @priscilawebdev in [#115879](https://github.com/getsentry/sentry/pull/115879)
+- Check repo connected before starting autofix by @Zylphrex in [#115648](https://github.com/getsentry/sentry/pull/115648)
+
+#### Conversations
+
+- Adopt scraps primitives for 4 wrappers by @priscilawebdev in [#116082](https://github.com/getsentry/sentry/pull/116082)
+- Default to 24h period in sidebar link by @obostjancic in [#115873](https://github.com/getsentry/sentry/pull/115873)
+
+#### Dashboards
+
+- Remove text widget flag defintion in [#116212](https://github.com/getsentry/sentry/pull/116212)
+- Remove text widget flag references frontend in [#116210](https://github.com/getsentry/sentry/pull/116210)
+- Remove text widget flag references backend in [#116207](https://github.com/getsentry/sentry/pull/116207)
+- Migrate utils.tsx off browserHistory by @evanpurkhiser in [#115923](https://github.com/getsentry/sentry/pull/115923)
+- Migrate detail.tsx off browserHistory to useNavigate by @evanpurkhiser in [#115903](https://github.com/getsentry/sentry/pull/115903)
+
+#### Discover
+
+- Migrate fieldRenderers off browserHistory by @evanpurkhiser in [#115938](https://github.com/getsentry/sentry/pull/115938)
+- Migrate transactionsList off browserHistory by @evanpurkhiser in [#115926](https://github.com/getsentry/sentry/pull/115926)
+- Migrate queryList off browserHistory by @evanpurkhiser in [#115913](https://github.com/getsentry/sentry/pull/115913)
+- Migrate savedQuery off browserHistory by @evanpurkhiser in [#115912](https://github.com/getsentry/sentry/pull/115912)
+- Migrate results.tsx off browserHistory by @evanpurkhiser in [#115909](https://github.com/getsentry/sentry/pull/115909)
+
+#### Dynamic Sampling
+
+- In per org pipeline, retrieve the project ids in config retrieval, just once by @shellmayr in [#115983](https://github.com/getsentry/sentry/pull/115983)
+- Use already queried data when computing boosted release platform by @cmanallen in [#115792](https://github.com/getsentry/sentry/pull/115792)
+- Rename dynamic sampling status enum by @shellmayr in [#115360](https://github.com/getsentry/sentry/pull/115360)
+- Cleanup transaction based health check rule by @shellmayr in [#115471](https://github.com/getsentry/sentry/pull/115471)
+- Add status for snuba timeouts by @shellmayr in [#115359](https://github.com/getsentry/sentry/pull/115359)
+
+#### Eslint
+
+- Turn on no-unsafe-member-access for scraps in [#116004](https://github.com/getsentry/sentry/pull/116004)
+- Add curly rule to prettier config section by @sentry-junior in [#116158](https://github.com/getsentry/sentry/pull/116158)
+- Enable no-unsafe-call for scraps by @TkDodo in [#115981](https://github.com/getsentry/sentry/pull/115981)
+- Enable no-unsafe-arguments in scraps by @TkDodo in [#115877](https://github.com/getsentry/sentry/pull/115877)
+- Enable no-unsafe-return for scraps by @TkDodo in [#115722](https://github.com/getsentry/sentry/pull/115722)
+
+#### Flags
+
+- Remove organizations:dashboards-drilldown-flow in [#115670](https://github.com/getsentry/sentry/pull/115670)
+- Remove organizations:scoped-partner-oauth by @wedamija in [#115675](https://github.com/getsentry/sentry/pull/115675)
+- Remove organizations:dashboards-import by @wedamija in [#115671](https://github.com/getsentry/sentry/pull/115671)
+- Remove organizations:revoke-org-auth-on-slug-rename by @wedamija in [#114807](https://github.com/getsentry/sentry/pull/114807)
+- Remove organizations:tracemetrics-alerts gates (backend) by @wedamija in [#115019](https://github.com/getsentry/sentry/pull/115019)
+- Remove organizations:workflow-engine-metric-alert-group-by-creation by @wedamija in [#114805](https://github.com/getsentry/sentry/pull/114805)
+- Remove organizations:ourlogs-stats, replace with `organizations:explore-dev-features` and move it to a permanent flag by @wedamija in [#115673](https://github.com/getsentry/sentry/pull/115673)
+- Remove organizations:tracemetrics-alerts gates (frontend) by @wedamija in [#115018](https://github.com/getsentry/sentry/pull/115018)
+- Remove organizations:performance-mep-reintroduce-histograms by @wedamija in [#115674](https://github.com/getsentry/sentry/pull/115674)
+- Remove organizations:ingest-through-trusted-relays-only by @wedamija in [#115682](https://github.com/getsentry/sentry/pull/115682)
+- Remove organizations:pr-page by @wedamija in [#115686](https://github.com/getsentry/sentry/pull/115686)
+- Remove organizations:performance-remove-metrics-compatibility-fallback by @wedamija in [#115684](https://github.com/getsentry/sentry/pull/115684)
+- Remove organizations:performance-transaction-name-only-search by @wedamija in [#115685](https://github.com/getsentry/sentry/pull/115685)
+- Remove organizations:starfish-mobile-ui-module by @wedamija in [#115687](https://github.com/getsentry/sentry/pull/115687)
+- Move organizations:init-sentry-toolbar to permanent by @wedamija in [#115862](https://github.com/getsentry/sentry/pull/115862)
+- Remove organizations:on-demand-metrics-extraction-experimental by @wedamija in [#115683](https://github.com/getsentry/sentry/pull/115683)
+- Remove organizations:view-hierarchies-options-dev by @wedamija in [#115678](https://github.com/getsentry/sentry/pull/115678)
+- Remove organizations:issues-suspect-tags by @wedamija in [#115680](https://github.com/getsentry/sentry/pull/115680)
+- Remove organizations:performance-spans-fields-stats by @wedamija in [#115679](https://github.com/getsentry/sentry/pull/115679)
+- Remove organizations:update-action-status by @wedamija in [#115676](https://github.com/getsentry/sentry/pull/115676)
+- Remove organizations:sentry-app-webhook-requests by @wedamija in [#114813](https://github.com/getsentry/sentry/pull/114813)
+
+#### Forms
+
+- Migrate projectFiltersSettings to scraps form system by @TkDodo in [#115783](https://github.com/getsentry/sentry/pull/115783)
+- Migrate highlights settings by @priscilawebdev in [#115778](https://github.com/getsentry/sentry/pull/115778)
+- Migrate early features settings by @priscilawebdev in [#115777](https://github.com/getsentry/sentry/pull/115777)
+- Migrate keyRateLimitsForm off legacy Form by @priscilawebdev in [#115265](https://github.com/getsentry/sentry/pull/115265)
+- Migrate addCodeOwnerModal off legacy Form by @priscilawebdev in [#115256](https://github.com/getsentry/sentry/pull/115256)
+
+#### Instrumentation Issues
+
+- Remove issue type config and types by @ArthurKnaus in [#115718](https://github.com/getsentry/sentry/pull/115718)
+- Remove fix section UI by @ArthurKnaus in [#115717](https://github.com/getsentry/sentry/pull/115717)
+- Remove nav entries and route by @ArthurKnaus in [#115715](https://github.com/getsentry/sentry/pull/115715)
+
+#### Issues
+
+- Use standard logging pattern in group details endpoint in [#116262](https://github.com/getsentry/sentry/pull/116262)
+- Remove redundant check on `event_id` in [#116261](https://github.com/getsentry/sentry/pull/116261)
+- Indicate duration when "Since First Seen" is selected in [#115533](https://github.com/getsentry/sentry/pull/115533)
+- Remove grouping store by @scttcper in [#115970](https://github.com/getsentry/sentry/pull/115970)
+- Remove the option gating custom tag resolver logic by @shashjar in [#116024](https://github.com/getsentry/sentry/pull/116024)
+- Add multiple property to select field schema by @amy-chen23 in [#115814](https://github.com/getsentry/sentry/pull/115814)
+- Prevent assigning issues to deactivated users by @amy-chen23 in [#115668](https://github.com/getsentry/sentry/pull/115668)
+- Update frontend types after removing unnecessary issue activity metadata for Seer actions by @shashjar in [#115734](https://github.com/getsentry/sentry/pull/115734)
+- Remove unnecessary structured metadata under issue activities for Seer actions by @shashjar in [#115732](https://github.com/getsentry/sentry/pull/115732)
+- Remove stray `use_flagpole_for_all_features` usage by @lobsterkatie in [#115537](https://github.com/getsentry/sentry/pull/115537)
+
+#### Jest
+
+- Mark flaky jest tests - 2026-05-25 by @cursor in [#116121](https://github.com/getsentry/sentry/pull/116121)
+- Mark flaky jest tests - 2026-05-18 by @cursor in [#115729](https://github.com/getsentry/sentry/pull/115729)
+
+#### Onboarding
+
+- Convert CreateSampleEventButton to functional component by @ryan953 in [#115830](https://github.com/getsentry/sentry/pull/115830)
+- Adopt useModal in onboarding flows by @evanpurkhiser in [#115127](https://github.com/getsentry/sentry/pull/115127)
+
+#### Ourlogs
+
+- Remove `expanded` and window virtualizer from LogsInfiniteTable by @JoshuaKGoldberg in [#115884](https://github.com/getsentry/sentry/pull/115884)
+- Remove ourlogs-table-expando flag backend code by @JoshuaKGoldberg in [#115794](https://github.com/getsentry/sentry/pull/115794)
+- Remove ourlogs-table-expando flag frontend code by @JoshuaKGoldberg in [#115793](https://github.com/getsentry/sentry/pull/115793)
+
+#### Preprod
+
+- Simplify project filtering in latest base snapshot endpoint in [#116237](https://github.com/getsentry/sentry/pull/116237)
+- Optimize snapshot download with connection reuse and progressive streaming by @NicoHinderling in [#116051](https://github.com/getsentry/sentry/pull/116051)
+- Use TimeToIdle instead of TimeToLive for upload expiration by @NicoHinderling in [#116033](https://github.com/getsentry/sentry/pull/116033)
+- Virtualize snapshot sidebar for 40k image builds by @NicoHinderling in [#115836](https://github.com/getsentry/sentry/pull/115836)
+- Replace snapshot status badges with plain text by @mtopo27 in [#115659](https://github.com/getsentry/sentry/pull/115659)
+- Remove deprecated snapshot detail TS types and update debug modal by @mtopo27 in [#115653](https://github.com/getsentry/sentry/pull/115653)
+- Remove deprecated comparison_run_info and approval_info from snapshot detail API by @mtopo27 in [#115652](https://github.com/getsentry/sentry/pull/115652)
+
+#### Replays
+
+- Remove unused data export notifications endpoint in [#116232](https://github.com/getsentry/sentry/pull/116232)
+- Replace useFetchSequentialPages with useInfiniteQuery by @ryan953 in [#116115](https://github.com/getsentry/sentry/pull/116115)
+- Use shared platform icon resolver by @priscilawebdev in [#115705](https://github.com/getsentry/sentry/pull/115705)
+
+#### Repositories
+
+- Simplify ProjectRepoLink serializer and make url better by @wedamija in [#115826](https://github.com/getsentry/sentry/pull/115826)
+- Drop old project/repository columns by @wedamija in [#115741](https://github.com/getsentry/sentry/pull/115741)
+- Remove `project` and `repo` columns from `SeerProjectRepository` and `RepositoryProjectPathConfig` by @wedamija in [#115663](https://github.com/getsentry/sentry/pull/115663)
+- Add unique index on `repository_project` columns by @wedamija in [#115662](https://github.com/getsentry/sentry/pull/115662)
+- Remove feature flag branching for RepositoryProjectPathConfig reads by @wedamija in [#115607](https://github.com/getsentry/sentry/pull/115607)
+- Remove feature flag branching for SeerProjectRepository reads by @wedamija in [#115606](https://github.com/getsentry/sentry/pull/115606)
+
+#### Scm
+
+- Merge integration-proxy endpoints by @cmanallen in [#116028](https://github.com/getsentry/sentry/pull/116028)
+- Add quota policy for GitHub API requests by @cmanallen in [#115657](https://github.com/getsentry/sentry/pull/115657)
+
+#### Seer
+
+- Move agent access check from entrypoint to operator in [#116143](https://github.com/getsentry/sentry/pull/116143)
+- Use `elif` instead of `if` in actionability filter logic for clarity in [#116203](https://github.com/getsentry/sentry/pull/116203)
+- Remove seer-slack-workflows and seer-slack-explorer flags in [#116140](https://github.com/getsentry/sentry/pull/116140)
+- Simplify block component states by @natemoo-re in [#115589](https://github.com/getsentry/sentry/pull/115589)
+- Persist Seer Explorer input draft per run by @aliu39 in [#115919](https://github.com/getsentry/sentry/pull/115919)
+- Replace chat history dropdown with searchable CompactSelect by @JonasBa in [#115843](https://github.com/getsentry/sentry/pull/115843)
+- Rm severity group-seer option by @kddubey in [#115768](https://github.com/getsentry/sentry/pull/115768)
+- Rm severity conditional routing by @kddubey in [#115765](https://github.com/getsentry/sentry/pull/115765)
+- Option to route severity to group-seer by @kddubey in [#115702](https://github.com/getsentry/sentry/pull/115702)
+
+#### Settings
+
+- Update `action` prop and remove `hasPageFrame` by @natemoo-re in [#115815](https://github.com/getsentry/sentry/pull/115815)
+- Update breadcrumbTitle spec for routes prop removal by @ryan953 in [#115866](https://github.com/getsentry/sentry/pull/115866)
+- Move routes from prop to useRoutes() in BreadcrumbTitle by @ryan953 in [#115766](https://github.com/getsentry/sentry/pull/115766)
+- Convert OrganizationAccessRequests to function component with fetchMutation by @ryan953 in [#115813](https://github.com/getsentry/sentry/pull/115813)
+- Replace billing navigation config with a react-hook by @evanpurkhiser in [#115808](https://github.com/getsentry/sentry/pull/115808)
+
+#### Slack
+
+- Remove widget unfurl feature flags by @DominikB2014 in [#116128](https://github.com/getsentry/sentry/pull/116128)
+- Move ephemeral message sending to workspace module by @leeandher in [#115586](https://github.com/getsentry/sentry/pull/115586)
+
+#### Snuba
+
+- Port query subscriptions consumer to taskbroker raw mode in [#116288](https://github.com/getsentry/sentry/pull/116288)
+- Update tests for removal of boolean double-writing in [#111421](https://github.com/getsentry/sentry/pull/111421)
+- Stop dropping deprecated spans dataset in reset_snuba by @phacops in [#115973](https://github.com/getsentry/sentry/pull/115973)
+- Add exception type for snuba timeouts by @shellmayr in [#115362](https://github.com/getsentry/sentry/pull/115362)
+
+#### Spans
+
+- Remove tests for deprecated standalone spans storage in [#116147](https://github.com/getsentry/sentry/pull/116147)
+- Extract flush_segment pipeline helpers by @lvthanh03 in [#116149](https://github.com/getsentry/sentry/pull/116149)
+- Split load_segment_data into helper steps by @lvthanh03 in [#116136](https://github.com/getsentry/sentry/pull/116136)
+- Split process_spans into typed pipeline steps by @lvthanh03 in [#115858](https://github.com/getsentry/sentry/pull/115858)
+- Add back cumulative flusher log and flushed segments log by @lvthanh03 in [#116015](https://github.com/getsentry/sentry/pull/116015)
+- Extract span buffer observability models by @lvthanh03 in [#115849](https://github.com/getsentry/sentry/pull/115849)
+- Remove unused dropped_segments logic and zrem cleanup option by @lvthanh03 in [#115806](https://github.com/getsentry/sentry/pull/115806)
+- Add isolated load segment data coverage by @lvthanh03 in [#115804](https://github.com/getsentry/sentry/pull/115804)
+- Add add-buffer Lua script tests by @lvthanh03 in [#115801](https://github.com/getsentry/sentry/pull/115801)
+
+#### Ts
+
+- Remove RouteComponent by @evanpurkhiser in [#115999](https://github.com/getsentry/sentry/pull/115999)
+- Remove unused RouteContextInterface type by @evanpurkhiser in [#115996](https://github.com/getsentry/sentry/pull/115996)
+
+#### Typing
+
+- Remove `tests.sentry.api.helpers.test_group_index` from mypy ignore list in [#116199](https://github.com/getsentry/sentry/pull/116199)
+- Remove `tests.sentry.issues.test_utils` from mypy ignore list in [#116070](https://github.com/getsentry/sentry/pull/116070)
+
+#### Utils
+
+- Make ParityChecker print out mismatches in a PII safe way in [#116038](https://github.com/getsentry/sentry/pull/116038)
+- Various clarifications in `SafeRolloutComparator` code in [#115946](https://github.com/getsentry/sentry/pull/115946)
+
+#### Workflow Engine
+
+- Remove unused const in [#116230](https://github.com/getsentry/sentry/pull/116230)
+- Edit flag with the correct prefix in [#116198](https://github.com/getsentry/sentry/pull/116198)
+
+#### Other
+
+- (✂️) Remove form leftovers by @TkDodo in [#115724](https://github.com/getsentry/sentry/pull/115724)
+- (aci) Minor cleanup to delayed workflow processing by @saponifi3d in [#115758](https://github.com/getsentry/sentry/pull/115758)
+- (activity) Remove duplicate call to calculate initial priority from group metadata by @shashjar in [#116067](https://github.com/getsentry/sentry/pull/116067)
+- (api-docs) Add GroupDetailsResponse type, params, and example in [#116113](https://github.com/getsentry/sentry/pull/116113)
+- (autopilot) Delete autopilot module and all references by @vgrozdanic in [#115466](https://github.com/getsentry/sentry/pull/115466)
+- (billing) Bump sentry-protos to 0.13.0 in [#116133](https://github.com/getsentry/sentry/pull/116133)
+- (billing-platform) Log requests in service methods by @brendanhsentry in [#115971](https://github.com/getsentry/sentry/pull/115971)
+- (bootstrap) Parallelize locale and moment chunk fetches by @JonasBa in [#115727](https://github.com/getsentry/sentry/pull/115727)
+- (cells) Remove the includeFeatureFlags query param from the org listing request by @lynnagara in [#115833](https://github.com/getsentry/sentry/pull/115833)
+- (ci) Split MDX typechecking into its own gated job by @natemoo-re in [#115744](https://github.com/getsentry/sentry/pull/115744)
+- (compactSelect) Remove unused onSectionToggle callback by @TkDodo in [#115809](https://github.com/getsentry/sentry/pull/115809)
+- (deps) Update sentry conventions package by @nsdeschenes in [#115989](https://github.com/getsentry/sentry/pull/115989)
+- (detectors) Split connected and project alerts into separate sections by @malwilley in [#115947](https://github.com/getsentry/sentry/pull/115947)
+- (dynamic-ampling) Add a metric counter to see if we sometimes have implicit-factor < 1 by @constantinius in [#115834](https://github.com/getsentry/sentry/pull/115834)
+- (eap) Query typed-colon attribute as boolean instead of number in [#116299](https://github.com/getsentry/sentry/pull/116299)
+- (events) Migrate ContextIcon to platformicons by @priscilawebdev in [#115701](https://github.com/getsentry/sentry/pull/115701)
+- (explore) Port toolTags to scraps layout primitives by @priscilawebdev in [#116160](https://github.com/getsentry/sentry/pull/116160)
+- (flagpole-wildcard-ops) Adding support for not_matches op (python) by @Abdkhan14 in [#115901](https://github.com/getsentry/sentry/pull/115901)
+- (github-enterprise) Use monospace font for private key field in [#116303](https://github.com/getsentry/sentry/pull/116303)
+- (hooks) Replace HookStore with a plain hook registry by @evanpurkhiser in [#115811](https://github.com/getsentry/sentry/pull/115811)
+- (hookStore) Change HookStore to single-value semantics by @evanpurkhiser in [#115796](https://github.com/getsentry/sentry/pull/115796)
+- (integrations) Add backfill_github_external_actor.gh_api_fetch_interval_s by @hobzcalvin in [#115763](https://github.com/getsentry/sentry/pull/115763)
+- (issueDetails) Collapse ParticipantList wrapper div to a Flex by @evanpurkhiser in [#116175](https://github.com/getsentry/sentry/pull/116175)
+- (issueDiff) Refactor event data fetching to use useQueries in [#116042](https://github.com/getsentry/sentry/pull/116042)
+- (jira) Add Forge app manifest for Connect-to-Forge migration by @BYK in [#115603](https://github.com/getsentry/sentry/pull/115603)
+- (lint) Ban React.Fragment in favor of named Fragment import by @natemoo-re in [#115939](https://github.com/getsentry/sentry/pull/115939)
+- (metrics) Split metric attribute tree actions by @nsdeschenes in [#115641](https://github.com/getsentry/sentry/pull/115641)
+- (mypy) Rename sort_stronger_modules to sort_weaklist in [#116106](https://github.com/getsentry/sentry/pull/116106)
+- (np) Refactors notification context into a new class by @GabeVillalobos in [#113495](https://github.com/getsentry/sentry/pull/113495)
+- (organization-create) Drop dead browserHistory comment by @evanpurkhiser in [#115928](https://github.com/getsentry/sentry/pull/115928)
+- (overrides) Finish hook → override terminology rename by @evanpurkhiser in [#115825](https://github.com/getsentry/sentry/pull/115825)
+- (oxfmt) Ignore pyproject.toml by @sentry-junior in [#116181](https://github.com/getsentry/sentry/pull/116181)
+- (pipeline) Use Button busy prop for advancing state by @evanpurkhiser in [#116179](https://github.com/getsentry/sentry/pull/116179)
+- (plugins) Inline PluginComponentBase into its two subclasses by @ryan953 in [#116112](https://github.com/getsentry/sentry/pull/116112)
+- (profiling) Rename explore/profiling URL to explore/profiles in [#115627](https://github.com/getsentry/sentry/pull/115627)
+- (project-detail) Migrate projectCharts off browserHistory by @evanpurkhiser in [#115916](https://github.com/getsentry/sentry/pull/115916)
+- (releases) Convert ReleaseIssues to functional component by @ryan953 in [#115698](https://github.com/getsentry/sentry/pull/115698)
+- (replay) Rename Breadcrumbs tab to Activity by @DominikB2014 in [#115278](https://github.com/getsentry/sentry/pull/115278)
+- (routeAnalytics) Replace HookStore persistCallback with a plain module cell by @evanpurkhiser in [#115810](https://github.com/getsentry/sentry/pull/115810)
+- (saved-queries) Align list endpoint access checks with detail by @oioki in [#115379](https://github.com/getsentry/sentry/pull/115379)
+- (scraps) Adopt useModal in remaining call sites by @evanpurkhiser in [#115132](https://github.com/getsentry/sentry/pull/115132)
+- (search) Add EAP API attribute visibility checks in [#116091](https://github.com/getsentry/sentry/pull/116091)
+- (seer-explorer) Replace useSeerExplorerRunId with chat state context by @JonasBa in [#115631](https://github.com/getsentry/sentry/pull/115631)
+- (segments) Add local cache for release creation and modification by @cmanallen in [#116173](https://github.com/getsentry/sentry/pull/116173)
+- (snapshots) Batch image fetches and add timeouts for snapshot download by @NicoHinderling in [#116076](https://github.com/getsentry/sentry/pull/116076)
+- (source-map-processing-errors) Emitting metric irrespective of … by @Abdkhan14 in [#115661](https://github.com/getsentry/sentry/pull/115661)
+- (span-buffer) Remove flusher and buffer logger options by @untitaker in [#115487](https://github.com/getsentry/sentry/pull/115487)
+- (static) Add preload hint for app.js entrypoint by @JonasBa in [#115800](https://github.com/getsentry/sentry/pull/115800)
+- (tasks) Remove base64 encoding for bytes parameters in tasks in [#116293](https://github.com/getsentry/sentry/pull/116293)
+- (taskworker) Move devenv for profiles consumer to taskbroker in [#116194](https://github.com/getsentry/sentry/pull/116194)
+- (teams) Avoid organization N+1 in team projects by @scttcper in [#115735](https://github.com/getsentry/sentry/pull/115735)
+- (test) Remove router return from initializeOrg by @evanpurkhiser in [#116002](https://github.com/getsentry/sentry/pull/116002)
+- (tests) Replace `as jest.Mock` casts with `jest.mocked()` by @evanpurkhiser in [#115790](https://github.com/getsentry/sentry/pull/115790)
+- (trace) Migrate virtualizedViewManager off browserHistory by @evanpurkhiser in [#115927](https://github.com/getsentry/sentry/pull/115927)
+- (traceDrawer) Replace local SectionDivider/VerticalLine with Scraps Separator in [#116168](https://github.com/getsentry/sentry/pull/116168)
+- (types) Add mypy types for sentry.search.snuba.executors by @saponifi3d in [#114994](https://github.com/getsentry/sentry/pull/114994)
+- (ui) Upgrade lodash, figma connect by @scttcper in [#115950](https://github.com/getsentry/sentry/pull/115950)
+- (vercel) Add logs on failure to add project in [#116235](https://github.com/getsentry/sentry/pull/116235)
+- (workflows) Avoid a query on Organization in delayed_workflow by @kcons in [#115965](https://github.com/getsentry/sentry/pull/115965)
+- Instruct agents to prefer type inference over call-side generics in [#116290](https://github.com/getsentry/sentry/pull/116290)
+- Add right padding to seer header copy button in [#116286](https://github.com/getsentry/sentry/pull/116286)
+- Remove code coverage stacktrace insights in [#115417](https://github.com/getsentry/sentry/pull/115417)
+- Remove autopilot CODEOWNERS entries by @vgrozdanic in [#116085](https://github.com/getsentry/sentry/pull/116085)
+- Replace withOrganization with useOrganization in function components by @evanpurkhiser in [#115343](https://github.com/getsentry/sentry/pull/115343)
+- Remove withSentryRouter HOC by @evanpurkhiser in [#115949](https://github.com/getsentry/sentry/pull/115949)
+- Migrate useRouter callsites to native RR6 hooks by @evanpurkhiser in [#115945](https://github.com/getsentry/sentry/pull/115945)
+- Drop unused 'unmigratable' status literal from repo query types by @evanpurkhiser in [#115906](https://github.com/getsentry/sentry/pull/115906)
+- Remove unmigratable repositories code path by @evanpurkhiser in [#115905](https://github.com/getsentry/sentry/pull/115905)
+- Remove OrganizationConfigRepositoriesEndpoint by @evanpurkhiser in [#115898](https://github.com/getsentry/sentry/pull/115898)
+- Remove unused PUT handler from repository details endpoint by @evanpurkhiser in [#115896](https://github.com/getsentry/sentry/pull/115896)
+- Bump taskbroker-client to 0.1.15 by @bmckerry in [#115799](https://github.com/getsentry/sentry/pull/115799)
+- Mark legacy react-router shim hooks as deprecated by @ryan953 in [#115767](https://github.com/getsentry/sentry/pull/115767)
+- Merged Jest changedSince testing into main PR Jest job by @JoshuaKGoldberg in [#115549](https://github.com/getsentry/sentry/pull/115549)
+- Replace browserHistory with useNavigate in useCleanQueryParamsOnRouteLeave by @ryan953 in [#115695](https://github.com/getsentry/sentry/pull/115695)
+- Remove browserHistory by inlining navigate in upgradeNowModal callers by @ryan953 in [#115755](https://github.com/getsentry/sentry/pull/115755)
+- Bump platformicons to 9.5.0 by @priscilawebdev in [#115707](https://github.com/getsentry/sentry/pull/115707)
+- Bump new development version by @sentry-release-bot[bot] in [7ea81f9f](https://github.com/getsentry/sentry/commit/7ea81f9fbf91748936a96fa3105058751548bb07)
+
+### Other
+
+- fix(relocation) Remove invalid token scopes during export in [#116214](https://github.com/getsentry/sentry/pull/116214)
+- chore(relocation) Exclude Email model from relocations v2 in [#116256](https://github.com/getsentry/sentry/pull/116256)
+- chore(cells) Mainline org create via control in [#116046](https://github.com/getsentry/sentry/pull/116046)
+- deps: Upgrade sentry-scm to 0.16.0 in [#116215](https://github.com/getsentry/sentry/pull/116215)
+- chore(relocation) Remove unused outbox handler by @markstory in [#116030](https://github.com/getsentry/sentry/pull/116030)
+- fix(relocation) Fix type errors when spawning a task by @markstory in [#116130](https://github.com/getsentry/sentry/pull/116130)
+- Fix category missing by @noahsmartin in [#116056](https://github.com/getsentry/sentry/pull/116056)
+- chore(relocations) Add bucket_path to RelocationFile by @markstory in [#116035](https://github.com/getsentry/sentry/pull/116035)
+- chore(cells) Remove rollout option for connection pooling by @markstory in [#116011](https://github.com/getsentry/sentry/pull/116011)
+- fix(ci) Don't capture log messages in RPC schema generation by @markstory in [#116003](https://github.com/getsentry/sentry/pull/116003)
+- fix(typing) Remove sentry.middleware.auth from the ignore list by @markstory in [#115798](https://github.com/getsentry/sentry/pull/115798)
+- feat(cells) Make organization avatar URL cell compatible by @markstory in [#115689](https://github.com/getsentry/sentry/pull/115689)
+- deps(ui): Upgrade Rspack to v2, 124 fewer dependencies by @scttcper in [#113795](https://github.com/getsentry/sentry/pull/113795)
+- o11y(seer): Track block content copy in Seer Explorer by @aliu39 in [#115900](https://github.com/getsentry/sentry/pull/115900)
+- org-scoped URL for page export by @strongs in [#115844](https://github.com/getsentry/sentry/pull/115844)
+- feat(cells) Use connection pools for cell RPC operations by @markstory in [#115827](https://github.com/getsentry/sentry/pull/115827)
+- lint: enable jest/prefer-jest-mocked by @evanpurkhiser in [#115791](https://github.com/getsentry/sentry/pull/115791)
+- feat(cells); Add org scoping to `GroupTagExportView` by @strongs in [#115841](https://github.com/getsentry/sentry/pull/115841)
+- Remove legacy code paths for the combined rule endpoint by @ceorourke in [#115750](https://github.com/getsentry/sentry/pull/115750)
+- Auto-create PRs for manual Seer handoff by @JoshFerge in [#115831](https://github.com/getsentry/sentry/pull/115831)
+- feat(cells) Provision new orgs through control with feature flag by @markstory in [#115600](https://github.com/getsentry/sentry/pull/115600)
+- Chore org index silo metrics by @markstory in [#115664](https://github.com/getsentry/sentry/pull/115664)
+- o11y(assisted-query): Track error outcomes and reasons for AI query analytics by @aliu39 in [#115699](https://github.com/getsentry/sentry/pull/115699)
+- deps(ui): Upgrade jest to 30.4 by @scttcper in [#115725](https://github.com/getsentry/sentry/pull/115725)
+
 26.5.0
 ------
 
