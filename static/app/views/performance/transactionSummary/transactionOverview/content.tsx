@@ -59,7 +59,6 @@ import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/trans
 import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
-  EAP_WEB_VITALS,
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
@@ -151,13 +150,7 @@ function EAPSummaryContentInner({
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
-  const hasWebVitals =
-    isSummaryViewFrontendPageLoad(eventView, projects) ||
-    (totalValues !== null &&
-      EAP_WEB_VITALS.some(vital => {
-        const field = `percentile(${vital},${VITAL_PERCENTILE})`;
-        return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
-      }));
+  const hasWebVitals = isSummaryViewFrontendPageLoad(eventView, projects);
 
   const isFrontendView = isSummaryViewFrontend(eventView, projects);
 

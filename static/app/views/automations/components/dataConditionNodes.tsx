@@ -86,6 +86,11 @@ import {
   validatePercentSessionsCondition,
 } from 'sentry/views/automations/components/actionFilters/percentSessions';
 import {
+  SeerActivityTriggerDetails,
+  SeerActivityTriggerNode,
+  validateSeerActivityTriggerCondition,
+} from 'sentry/views/automations/components/actionFilters/seerActivityTrigger';
+import {
   TaggedEventDetails,
   TaggedEventNode,
   validateTaggedEventCondition,
@@ -162,6 +167,16 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Sentry marks an existing issue as high priority'),
       validate: undefined,
+    },
+  ],
+  [
+    DataConditionType.SEER_ACTIVITY_TRIGGER,
+    {
+      label: t('Seer runs on an issue and reaches the stage...'),
+      dataCondition: SeerActivityTriggerNode,
+      details: SeerActivityTriggerDetails,
+      defaultComparison: [],
+      validate: validateSeerActivityTriggerCondition,
     },
   ],
   [

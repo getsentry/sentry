@@ -57,7 +57,9 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         },
         examples=EventAttachmentExamples.LIST_EVENT_ATTACHMENTS,
     )
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(
+        self, request: Request, project, event_id
+    ) -> Response[list[EventAttachmentSerializerResponse]]:
         """
         Retrieve a list of attachments uploaded for a given event.
 

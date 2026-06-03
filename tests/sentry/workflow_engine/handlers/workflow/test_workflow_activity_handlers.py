@@ -1,6 +1,8 @@
 from unittest import mock
 from unittest.mock import MagicMock
 
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
@@ -54,7 +56,7 @@ class SeerActivityHandlerTest(TestCase):
         self.activity = self.create_group_activity(
             group=self.group, type=ActivityType.SEER_PR_CREATED.value
         )
-        self.detector = self.create_detector(type=IssueStreamGroupType.slug, project=self.project)
+        self.detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
 
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
@@ -100,14 +102,50 @@ class SeerActivityHandlerTest(TestCase):
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
     @mock.patch(
-        "sentry.workflow_engine.models.Detector.get_issue_stream_detector_for_project",
-        side_effect=Exception("DoesNotExist"),
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.get_preferred_detector",
+        side_effect=Detector.DoesNotExist,
     )
-    def test_skips_when_no_issue_stream_detector(
+    def test_skips_when_no_detector(
         self, mock_get_detector: MagicMock, mock_process_workflow_activity: MagicMock
     ) -> None:
-        mock_get_detector.side_effect = Detector.DoesNotExist
-
         seer_activity_handler(self.group, self.activity)
 
         mock_process_workflow_activity.delay.assert_not_called()
+
+    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_uses_group_detector(self, mock_process_workflow_activity: MagicMock) -> None:
+        detector = self.create_detector(
+            name="linked_detector", type=MetricIssue.slug, project=self.project
+        )
+        self.create_detector_group(detector=detector, group=self.group)
+
+        seer_activity_handler(self.group, self.activity)
+
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=detector.id,
+        )
+
+    @with_feature("organizations:workflow-engine-evaluate-seer-activities")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_falls_back_to_issue_stream_detector(
+        self, mock_process_workflow_activity: MagicMock
+    ) -> None:
+        Detector.objects.filter(project=self.project, type=ErrorGroupType.slug).delete()
+        issue_stream_detector = Detector.objects.get(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
+
+        seer_activity_handler(self.group, self.activity)
+
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=issue_stream_detector.id,
+        )

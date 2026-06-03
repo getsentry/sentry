@@ -31,11 +31,11 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0017_drop_old_fk_columns
 
-sentry: 1103_backfill_auto_link_repos_by_name
+sentry: 1104_remove_email_model_drop
 
 social_auth: 0003_social_auth_json_field
 
-tempest: 0003_use_encrypted_char_field
+tempest: 0001_squashed_0003_use_encrypted_char_field
 
 uptime: 0055_backfill_2xx_status_assertion
 
