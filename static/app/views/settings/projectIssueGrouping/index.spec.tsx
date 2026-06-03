@@ -51,10 +51,10 @@ describe('projectIssueGrouping', () => {
     await userEvent.type(fingerprintField, 'error.type:Foo -> bar');
     expect(await screen.findByText(/Changing fingerprint rules/)).toBeInTheDocument();
 
-    // The fingerprint form renders first, so its Save button comes first.
-    const [fingerprintSave] = screen.getAllByRole('button', {name: 'Save'});
-    if (fingerprintSave) {
-      await userEvent.click(fingerprintSave);
+    // Scope to the fingerprint form so we click its own Save button.
+    const fingerprintForm = fingerprintField.closest('form');
+    if (fingerprintForm) {
+      await userEvent.click(within(fingerprintForm).getByRole('button', {name: 'Save'}));
     }
 
     await waitFor(() => {
