@@ -64,7 +64,6 @@ export function LegacyWebhookDetails() {
     },
     onSuccess: (responseData, shouldEnable) => {
       addSuccessMessage(shouldEnable ? t('Webhooks enabled') : t('Webhooks disabled'));
-      setUrlsText(null);
       queryClient.setQueryData(webhookQueryOptions.queryKey, {
         json: responseData,
         headers: {},
