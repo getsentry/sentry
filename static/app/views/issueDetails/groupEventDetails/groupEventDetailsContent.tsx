@@ -115,10 +115,7 @@ export function EventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hangProfileData =
-    mechanism === 'mx_hang_diagnostic' &&
-    organization.features.includes('metrickit-flamegraph')
-      ? getHangProfileData(event)
-      : null;
+    mechanism === 'mx_hang_diagnostic' ? getHangProfileData(event) : null;
   const isMetricKitHang = hangProfileData !== null;
   const groupingCurrentLevel = group?.metadata?.current_level;
   const isSampleError = useIsSampleEvent();

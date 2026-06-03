@@ -16,5 +16,6 @@ export function useIssueStreamDetectorsForProject(projectId: string | undefined)
       includeIssueStreamDetectors: true,
     }),
     staleTime: Infinity,
+    enabled: projectId !== undefined,
   });
 }

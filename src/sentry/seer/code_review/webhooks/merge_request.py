@@ -34,6 +34,15 @@ from datetime import datetime, timezone
 from typing import Any
 
 from pydantic import ValidationError
+from scm import actions as scm_actions
+from scm.types import (
+    CreatePullRequestReactionProtocol,
+    DeletePullRequestReactionProtocol,
+    GetAuthenticatedActorProtocol,
+    GetPullRequestReactionsProtocol,
+    Reaction,
+    ReactionResult,
+)
 
 from sentry import features
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -41,6 +50,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.scm import factory as scm_factory
 from sentry.seer.code_review.models import (
     SeerCodeReviewTaskRequestForPrClosed,
     SeerCodeReviewTaskRequestForPrReview,
@@ -50,9 +60,11 @@ from sentry.utils import json
 from sentry.utils.redis import redis_clusters
 
 from ..metrics import (
+    CodeReviewErrorType,
     WebhookFilteredReason,
     record_webhook_enqueued,
     record_webhook_filtered,
+    record_webhook_handler_error,
     record_webhook_received,
 )
 from ..preflight import CodeReviewPreflightService
@@ -167,6 +179,98 @@ def _resolve_review_trigger(
     return None
 
 
+def _delete_existing_reactions_and_add_reaction(
+    *,
+    organization_id: int,
+    repo: Repository,
+    mr_iid: str,
+    action_value: str,
+    reactions_to_delete: list[Reaction],
+    reaction_to_add: Reaction | None,
+) -> None:
+    """
+    Delete stale reactions on the MR and add a fresh one.
+
+    Mirrors ``delete_existing_reactions_and_add_reaction`` from the GitHub webhook
+    path. Uses the SCM library's provider-agnostic reaction actions so the logic
+    is identical for every supported SCM provider. Errors are logged, recorded as
+    a ``REACTION_FAILED`` metric, and swallowed so a failing reaction call never
+    blocks the Seer review task.
+
+    ``reactions_to_delete`` and ``reaction_to_add`` use the SCM ``Reaction`` type
+    values (e.g. ``"hooray"`` for :tada:, ``"eyes"`` for :eyes:); the provider
+    translates them to platform-specific names (GitLab award emoji, etc.).
+
+    Unlike GitHub (where re-adding a reaction is idempotent), GitLab rejects a
+    duplicate ``award_emoji`` POST, so we only add ``reaction_to_add`` when our own
+    user has not already placed it; otherwise a re-review of an MR that already has
+    :eyes: would fail on every trigger.
+    """
+    try:
+        scm = scm_factory.new(organization_id, repo.id, "code-review-webhook")
+    except Exception:
+        logger.warning("gitlab.webhook.merge_request.reaction.scm_init_failed")
+        record_webhook_handler_error(
+            GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
+        )
+        return
+
+    # The SCM facade only exposes capability methods after narrowing against the
+    # relevant runtime-checkable protocols (see ``scm.facade.Facade``); a provider
+    # that does not support reactions would not satisfy these checks.
+    if not (
+        isinstance(scm, GetAuthenticatedActorProtocol)
+        and isinstance(scm, GetPullRequestReactionsProtocol)
+        and isinstance(scm, CreatePullRequestReactionProtocol)
+        and isinstance(scm, DeletePullRequestReactionProtocol)
+    ):
+        logger.warning("gitlab.webhook.merge_request.reaction.unsupported_provider")
+        record_webhook_handler_error(
+            GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
+        )
+        return
+
+    # Reactions placed by the current OAuth user (our integration identity). We only
+    # ever touch our own reactions, and reuse this list to skip a redundant add.
+    own_reactions: list[ReactionResult] = []
+    if reactions_to_delete or reaction_to_add:
+        try:
+            current_actor_id = scm_actions.get_authenticated_actor(scm)["data"]["id"]
+            existing = scm_actions.get_pull_request_reactions(scm, mr_iid)["data"]
+            own_reactions = [
+                reaction
+                for reaction in existing
+                if (author := reaction.get("author")) is not None
+                and author["id"] == current_actor_id
+            ]
+        except Exception:
+            logger.warning("gitlab.webhook.merge_request.reaction.fetch_failed", exc_info=True)
+            record_webhook_handler_error(
+                GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
+            )
+
+    for reaction in own_reactions:
+        if reaction.get("content") in reactions_to_delete and reaction.get("id"):
+            try:
+                scm_actions.delete_pull_request_reaction(scm, mr_iid, str(reaction["id"]))
+            except Exception:
+                logger.warning("gitlab.webhook.merge_request.reaction.delete_failed", exc_info=True)
+                record_webhook_handler_error(
+                    GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
+                )
+
+    if reaction_to_add and not any(
+        reaction.get("content") == reaction_to_add for reaction in own_reactions
+    ):
+        try:
+            scm_actions.create_pull_request_reaction(scm, mr_iid, reaction_to_add)
+        except Exception:
+            logger.warning("gitlab.webhook.merge_request.reaction.add_failed", exc_info=True)
+            record_webhook_handler_error(
+                GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
+            )
+
+
 def handle_merge_request_event(
     *,
     event: Mapping[str, Any],
@@ -270,6 +374,22 @@ def handle_merge_request_event(
     if _is_duplicate_delivery(seen_key):
         logger.warning("gitlab.webhook.merge_request.duplicate_delivery_skipped")
         return
+
+    # Mirror the GitHub pull_request handler: add :eyes: to the MR description to
+    # signal a Seer review run is in progress, and remove any stale :tada: left
+    # over from a previous run. Skip for close/merge since those are not new runs.
+    # Uses SCM Reaction type values: "hooray" = :tada:, "eyes" = :eyes:.
+    if action not in CLOSE_ACTIONS:
+        mr_iid = object_attributes.get("iid")
+        if mr_iid is not None:
+            _delete_existing_reactions_and_add_reaction(
+                organization_id=org.id,
+                repo=repo,
+                mr_iid=str(mr_iid),
+                action_value=action_value,
+                reactions_to_delete=["hooray"],
+                reaction_to_add="eyes",
+            )
 
     _schedule_task(
         action=action,

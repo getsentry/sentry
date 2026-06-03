@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.utils import to_valid_int_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log import ActionType, publish_action, resolve_action_source
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -58,6 +59,16 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         note.delete()
 
+        publish_action(
+            action=ActionType.COMMENT_DELETE,
+            source=resolve_action_source(request),
+            group_id=group.id,
+            organization_id=group.organization.id,
+            project_id=group.project_id,
+            actor_id=request.user.id,
+            metadata={"comment_id": note_id_int},
+        )
+
         comment_deleted.send_robust(
             project=group.project,
             user=request.user,
@@ -101,6 +112,16 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             # Would be nice to have a last_modified timestamp we could bump here
             note.data.update(dict(payload))
             note.save()
+
+            publish_action(
+                action=ActionType.COMMENT_EDIT,
+                source=resolve_action_source(request),
+                group_id=group.id,
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                actor_id=request.user.id,
+                metadata={"comment_id": note.id},
+            )
 
             if note.data.get("external_id"):
                 self.update_external_comment(request, group, note)
