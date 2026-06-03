@@ -1,3 +1,41 @@
+from sentry.utils import json
+
+
+def push_event_with_author(*, name: str, email: str, username: str | None = None) -> str:
+    """Build a minimal push event body with a single commit by the given author.
+
+    Unlike ``PUSH_EVENT_EXAMPLE_INSTALLATION``, this is not a raw string with a precomputed
+    signature: callers are expected to sign the returned body themselves, so field ordering is
+    irrelevant here.
+    """
+    author: dict[str, str] = {"name": name, "email": email}
+    if username is not None:
+        author["username"] = username
+    return json.dumps(
+        {
+            "ref": "refs/heads/main",
+            "installation": {"id": 12345},
+            "commits": [
+                {
+                    "id": "133d60480286590a610a0eb7352ff6e02b9674c4",
+                    "distinct": True,
+                    "message": "Update hello.py",
+                    "timestamp": "2015-05-05T19:45:15-04:00",
+                    "author": author,
+                    "added": [],
+                    "removed": [],
+                    "modified": ["hello.py"],
+                }
+            ],
+            "repository": {
+                "id": 35129377,
+                "full_name": "baxterthehacker/public-repo",
+                "html_url": "https://github.com/baxterthehacker/public-repo",
+            },
+        }
+    )
+
+
 # we keep this as a raw string as order matters for hmac signing
 PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
   "ref": "refs/heads/changes",

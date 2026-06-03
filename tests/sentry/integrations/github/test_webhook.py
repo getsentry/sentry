@@ -17,6 +17,7 @@ from fixtures.github import (
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
+    push_event_with_author,
 )
 from sentry import options
 from sentry.constants import ObjectStatus
@@ -725,34 +726,6 @@ class PushEventWebhookTest(APITestCase):
             integration.add_organization(self.organization.id, self.user)
         return integration
 
-    def _push_event_body(self, *, name: str, email: str, username: str | None) -> str:
-        author = {"name": name, "email": email}
-        if username is not None:
-            author["username"] = username
-        return json.dumps(
-            {
-                "ref": "refs/heads/main",
-                "installation": {"id": 12345},
-                "commits": [
-                    {
-                        "id": "133d60480286590a610a0eb7352ff6e02b9674c4",
-                        "distinct": True,
-                        "message": "Update hello.py",
-                        "timestamp": "2015-05-05T19:45:15-04:00",
-                        "author": author,
-                        "added": [],
-                        "removed": [],
-                        "modified": ["hello.py"],
-                    }
-                ],
-                "repository": {
-                    "id": 35129377,
-                    "full_name": "baxterthehacker/public-repo",
-                    "html_url": "https://github.com/baxterthehacker/public-repo",
-                },
-            }
-        )
-
     @responses.activate
     def test_creates_external_actor_for_new_commit_author(self) -> None:
         member = self.create_user(email="newdev@example.com")
@@ -760,7 +733,7 @@ class PushEventWebhookTest(APITestCase):
         integration = self._setup_github_integration_and_repo()
 
         response = self._send_push_event(
-            self._push_event_body(name="New Dev", email="newdev@example.com", username="newdev")
+            push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
         )
         assert response.status_code == 204
 
@@ -780,7 +753,7 @@ class PushEventWebhookTest(APITestCase):
         self._setup_github_integration_and_repo()
 
         response = self._send_push_event(
-            self._push_event_body(
+            push_event_with_author(
                 name="New Dev",
                 email="newdev@users.noreply.github.com",
                 username="newdev",
@@ -795,7 +768,7 @@ class PushEventWebhookTest(APITestCase):
         self._setup_github_integration_and_repo()
 
         response = self._send_push_event(
-            self._push_event_body(
+            push_event_with_author(
                 name="Stranger", email="stranger@example.com", username="stranger"
             )
         )
@@ -809,7 +782,7 @@ class PushEventWebhookTest(APITestCase):
         self.create_member(user=member, organization=self.organization)
         self._setup_github_integration_and_repo()
 
-        body = self._push_event_body(name="New Dev", email="newdev@example.com", username="newdev")
+        body = push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
         assert self._send_push_event(body).status_code == 204
         # Re-sending creates a new CommitAuthor lookup but must not duplicate the mapping.
         assert self._send_push_event(body).status_code == 204
