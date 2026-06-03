@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -39,8 +40,9 @@ const {
   GITHUB_RUN_ATTEMPT,
 } = process.env;
 
-const JEST_TESTS = process.env.JEST_TESTS
-  ? (JSON.parse(process.env.JEST_TESTS || 'undefined') as string[] | undefined)
+const JEST_TEST_FILES_PATH = path.resolve(import.meta.dirname, 'jest-test-files.json');
+const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
+  ? (JSON.parse(fs.readFileSync(JEST_TEST_FILES_PATH, 'utf-8')) as string[])
   : undefined;
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
