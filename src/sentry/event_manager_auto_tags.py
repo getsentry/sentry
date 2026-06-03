@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
-from ua_parser.user_agent_parser import Parse, _ParseResult
+from ua_parser.user_agent_parser import Parse
+
+if TYPE_CHECKING:
+    from ua_parser.user_agent_parser import _ParseResult
 
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.models.options.project_option import ProjectOption
