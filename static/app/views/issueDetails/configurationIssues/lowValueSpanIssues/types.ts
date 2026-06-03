@@ -2,14 +2,26 @@ import type {EventOccurrence} from 'sentry/types/event';
 
 export interface LowValueSpanEvidenceData {
   avgDurationMs: number | null;
+  count: number | null;
   description: string | null;
   estimatedCostUsd: number | null;
   extrapolatedCount: number | null;
   op: string | null;
-  sdkName: string | null;
-  spanCount: number | null;
   spanOrigin: string | null;
 }
+
+type LowValueSpanEvidencePayload = Partial<{
+  analysisEnd: unknown;
+  analysisStart: unknown;
+  avgDurationMs: unknown;
+  count: unknown;
+  description: unknown;
+  estimatedCostUsd: unknown;
+  extrapolatedCount: unknown;
+  op: unknown;
+  spanOrigin: unknown;
+  valueScore: unknown;
+}>;
 
 function getStringValue(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
@@ -22,14 +34,15 @@ function getNumberValue(value: unknown): number | null {
 export function getLowValueSpanEvidenceData(
   evidenceData: EventOccurrence['evidenceData'] | null | undefined
 ): LowValueSpanEvidenceData {
+  const data = evidenceData as LowValueSpanEvidencePayload | null | undefined;
+
   return {
-    op: getStringValue(evidenceData?.span_op),
-    description: getStringValue(evidenceData?.span_description),
-    spanCount: getNumberValue(evidenceData?.span_count),
-    extrapolatedCount: getNumberValue(evidenceData?.extrapolated_count),
-    avgDurationMs: getNumberValue(evidenceData?.avg_duration_ms),
-    estimatedCostUsd: getNumberValue(evidenceData?.estimated_cost_usd),
-    sdkName: getStringValue(evidenceData?.sdk_name),
-    spanOrigin: getStringValue(evidenceData?.span_origin),
+    op: getStringValue(data?.op),
+    description: getStringValue(data?.description),
+    count: getNumberValue(data?.count),
+    extrapolatedCount: getNumberValue(data?.extrapolatedCount),
+    avgDurationMs: getNumberValue(data?.avgDurationMs),
+    estimatedCostUsd: getNumberValue(data?.estimatedCostUsd),
+    spanOrigin: getStringValue(data?.spanOrigin),
   };
 }

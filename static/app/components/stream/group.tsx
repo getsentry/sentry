@@ -818,7 +818,7 @@ const Wrapper = styled(PanelItem)<{
           background-color: ${p.theme.tokens.background.secondary};
         }
       }
-    `};
+    `}
 `;
 
 const GroupSummary = styled('div')<{canSelect: boolean}>`

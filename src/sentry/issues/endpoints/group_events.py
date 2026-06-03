@@ -29,6 +29,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams, IssueParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidSearchQuery
@@ -86,7 +87,9 @@ class GroupEventsEndpoint(GroupEndpoint):
         examples=EventExamples.GROUP_EVENTS_SIMPLE,
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-events"])
-    def get(self, request: Request, group: Group) -> Response:
+    def get(
+        self, request: Request, group: Group
+    ) -> Response[list[SimpleEventSerializerResponse]] | Response[DetailResponse]:
         """
         Return a list of error events bound to an issue
         """

@@ -9,7 +9,6 @@ import {
 
 import {
   withAutomationDetailsRedirect,
-  withAutomationEditRedirect,
   withDetectorCreateRedirect,
   withDetectorDetailsRedirect,
   withDetectorEditRedirect,
@@ -58,23 +57,6 @@ describe('workflowEngineRedirects', () => {
           makeAutomationDetailsPathname(organization.slug, 'workflow-1')
         );
       });
-    });
-
-    it('renders the wrapped component when redirects are opted out', () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-        features: ['workflow-engine-ui', 'workflow-engine-redirect-opt-out'],
-      });
-
-      const Wrapped = withAutomationEditRedirect(TestComponent);
-      const initialRouterConfig: RouterConfig = {
-        route: '/organizations/:orgId/alerts/rules/:ruleId/',
-        location: {pathname: `/organizations/${organization.slug}/alerts/rules/1/`},
-      };
-
-      render(<Wrapped />, {organization, initialRouterConfig});
-
-      expect(screen.getByText('Wrapped content')).toBeInTheDocument();
     });
   });
 
@@ -256,68 +238,6 @@ describe('workflowEngineRedirects', () => {
       expect(router.location.pathname).toBe(
         `/organizations/${organization.slug}/alerts/1/`
       );
-    });
-
-    it('does not redirect when workflow-engine-redirect-opt-out flag is enabled', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-        features: ['workflow-engine-ui', 'workflow-engine-redirect-opt-out'],
-      });
-
-      const Wrapped = withDetectorDetailsRedirect(TestComponent);
-
-      const initialRouterConfig: RouterConfig = {
-        route: '/organizations/:orgId/alerts/:ruleId/',
-        location: {pathname: `/organizations/${organization.slug}/alerts/1/`},
-      };
-
-      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
-
-      // Path stays the same and we render the wrapped component
-      await screen.findByText('Wrapped content');
-      expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/alerts/1/`
-      );
-    });
-
-    it('does redirect from notification link even when workflow-engine-redirect-opt-out flag is enabled', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-        features: ['workflow-engine-ui', 'workflow-engine-redirect-opt-out'],
-      });
-
-      const Wrapped = withDetectorDetailsRedirect(TestComponent);
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/incident-groupopenperiod/`,
-        body: {
-          groupId: 'group-1',
-          incidentId: null,
-          incidentIdentifier: 'alert-1',
-          openPeriodId: 'open-1',
-        },
-        match: [MockApiClient.matchQuery({incident_identifier: 'alert-1'})],
-      });
-
-      const initialRouterConfig: RouterConfig = {
-        route: '/organizations/:orgId/alerts/:ruleId/',
-        location: {
-          pathname: `/organizations/${organization.slug}/alerts/1/`,
-          query: {alert: 'alert-1', notification_uuid: 'notification-uuid'},
-        },
-      };
-
-      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
-
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/organizations/${organization.slug}/issues/group-1/`
-        );
-      });
-      expect(router.location.query).toMatchObject({
-        alert: 'alert-1',
-        notification_uuid: 'notification-uuid',
-      });
     });
   });
 

@@ -137,8 +137,11 @@ def task_that_produces(
     random_count: bool = False,
 ) -> None:
     assert production_count > 0
-    kafka_producer = KafkaProducer({"bootstrap.servers": bootstrap_servers})
-    producer = TaskProducer(kafka_producer)
+
+    def producer_factory() -> KafkaProducer:
+        return KafkaProducer({"bootstrap.servers": bootstrap_servers})
+
+    producer = TaskProducer(producer_factory)
     production_count = random.randint(1, production_count) if random_count else production_count
     for i in range(production_count):
         logger.debug(f"Producing message {i} onto topic {destination_topic}...")
@@ -146,4 +149,3 @@ def task_that_produces(
             topic=Topic(destination_topic),
             payload=KafkaPayload(key=None, value=payload, headers=[]),
         )
-    kafka_producer.close()

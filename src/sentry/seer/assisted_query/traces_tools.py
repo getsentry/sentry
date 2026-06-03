@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from sentry.api import client
+from sentry.api.client import ApiClient
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -151,7 +151,7 @@ def get_attribute_names(
             query_params["end"] = end
 
         # API returns: [{"key": "...", "name": "span.op", "attributeSource": {...}}, ...]
-        resp = client.get(
+        resp = ApiClient().get(
             auth=api_key,
             user=None,
             path=f"/organizations/{organization.slug}/trace-items/attributes/",
@@ -224,7 +224,7 @@ def get_attribute_values_with_substring(
             query_params["substringMatch"] = substring
 
         # API returns: [{"value": "ok", "count": 123, ...}, ...]
-        resp = client.get(
+        resp = ApiClient().get(
             auth=api_key,
             user=None,
             path=f"/organizations/{organization.slug}/trace-items/attributes/{field}/values/",

@@ -8,8 +8,7 @@ pytestmark = [requires_snuba]
 
 
 class ActionableItemsEndpointTestCase(APITestCase):
-    # These tests will not focus on the actual source map debugging functionality as that is covered in
-    # test_source_map_debug.py. Instead, these tests will focus on the unique parts of this endpoint including the responses,
+    # These tests focus on the unique parts of this endpoint including the responses,
     # and how event errors are handled.
     endpoint = "sentry-api-0-event-actionable-items"
 
