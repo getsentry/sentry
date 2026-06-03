@@ -171,7 +171,6 @@ export function SnapshotHeaderActions({
     const downloadUrl = `/api/0/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/download/`;
 
     downloadFromHref(`snapshot_images_${data.head_artifact_id}.zip`, downloadUrl);
-    addSuccessMessage(t('Snapshot images download started'));
   }, [organizationSlug, data.head_artifact_id]);
 
   return (
