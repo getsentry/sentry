@@ -22,13 +22,18 @@ from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
 from sentry.preprod.snapshots.manifest import (
     ChunkAssignment,
     ChunkCandidate,
+    ChunkResult,
     ComparisonImageResult,
     ComparisonManifest,
     ComparisonPlan,
     ComparisonSummary,
     SnapshotManifest,
 )
-from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.models import (
+    PreprodSnapshotComparison,
+    PreprodSnapshotComparisonChunk,
+    PreprodSnapshotMetrics,
+)
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -40,6 +45,12 @@ logger = logging.getLogger(__name__)
 
 MAX_DIFF_PIXELS = 40_000_000
 MAX_PIXELS_PER_BATCH = 40_000_000
+
+CHUNK_PROCESSING_DEADLINE = 120  # seconds; one ~40M-px batch finishes well under this
+POLL_INTERVAL = 30  # seconds between poll wakes
+CHUNK_STALE_THRESHOLD = 300  # seconds without a heartbeat before a chunk/orchestrator is "dead"
+MAX_CHUNK_ATTEMPTS = 3  # re-dispatches before a chunk is permanently FAILED
+COMPARISON_BUDGET = 1500  # seconds (wall-clock from date_added) before partial-finalize
 
 # Concurrent batch fetches/uploads make transient objectstore 429/503s likelier. Retry once
 # (more would just amplify rate limiting); other errors (e.g. 404) fail fast.
@@ -475,6 +486,149 @@ def _build_comparison_plan(
         base_artifact_id=base_artifact_id,
         chunks=chunks,
         non_diff_images=non_diff_images,
+    )
+
+
+def _process_chunk(
+    session: Session,
+    assignment: ChunkAssignment,
+    org_id: int,
+    project_id: int,
+    head_artifact_id: int,
+    base_artifact_id: int,
+) -> dict[str, ComparisonImageResult]:
+    image_key_prefix = f"{org_id}/{project_id}"
+    images: dict[str, ComparisonImageResult] = {}
+
+    with OdiffServer() as server:
+        diff_pairs: list[tuple[bytes, bytes]] = []
+        batch_names: list[str] = []
+        batch_hashes: list[tuple[str, str]] = []
+        batch_thresholds: list[float] = []
+
+        unique_hashes: set[str] = set()
+        for candidate in assignment.candidates:
+            unique_hashes.add(candidate.head_hash)
+            unique_hashes.add(candidate.base_hash)
+
+        fetch_cache, failed_hashes = _fetch_batch_images(session, image_key_prefix, unique_hashes)
+
+        for candidate in assignment.candidates:
+            if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
+                images[candidate.name] = ComparisonImageResult(
+                    status="errored",
+                    head_hash=candidate.head_hash,
+                    base_hash=candidate.base_hash,
+                    reason="image_fetch_failed",
+                )
+                continue
+            head_data = fetch_cache[candidate.head_hash]
+            base_data = fetch_cache[candidate.base_hash]
+            diff_pairs.append((base_data, head_data))
+            batch_names.append(candidate.name)
+            batch_hashes.append((candidate.head_hash, candidate.base_hash))
+            batch_thresholds.append(candidate.diff_threshold)
+
+        diff_results = compare_images_batch(diff_pairs, server=server)
+
+        for name, (head_hash, base_hash), threshold, diff_result in zip(
+            batch_names, batch_hashes, batch_thresholds, diff_results, strict=True
+        ):
+            if diff_result is None:
+                images[name] = ComparisonImageResult(
+                    status="errored",
+                    head_hash=head_hash,
+                    base_hash=base_hash,
+                    reason="image_processing_failed",
+                )
+                continue
+
+            stem = _image_name_to_path_stem(name)
+            diff_mask_key = (
+                f"{image_key_prefix}/{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
+            )
+            diff_mask_bytes = diff_result.diff_mask_png
+            _retry_objectstore(
+                lambda key=diff_mask_key, data=diff_mask_bytes: session.put(
+                    data, key=key, content_type="image/png"
+                )
+            )
+
+            diff_pct = (
+                diff_result.changed_pixels / diff_result.total_pixels
+                if diff_result.total_pixels > 0
+                else 0
+            )
+            is_changed = diff_pct > threshold
+
+            diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
+
+            images[name] = ComparisonImageResult(
+                status="changed" if is_changed else "unchanged",
+                head_hash=head_hash,
+                base_hash=base_hash,
+                changed_pixels=diff_result.changed_pixels,
+                total_pixels=diff_result.total_pixels,
+                diff_mask_key=diff_mask_key,
+                diff_mask_image_id=diff_mask_image_id,
+                before_width=diff_result.before_width,
+                before_height=diff_result.before_height,
+                after_width=diff_result.after_width,
+                after_height=diff_result.after_height,
+                aligned_height=diff_result.aligned_height,
+            )
+
+    return images
+
+
+@instrumented_task(
+    name="sentry.preprod.tasks.process_snapshot_comparison_chunk",
+    namespace=preprod_tasks,
+    retry=Retry(times=3),
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=CHUNK_PROCESSING_DEADLINE,
+)
+def process_snapshot_comparison_chunk(
+    comparison_id: int,
+    chunk_index: int,
+    org_id: int,
+    project_id: int,
+    head_artifact_id: int,
+    base_artifact_id: int,
+) -> None:
+    chunk = PreprodSnapshotComparisonChunk.objects.filter(
+        comparison_id=comparison_id, chunk_index=chunk_index
+    ).first()
+    if chunk is None or chunk.state == PreprodSnapshotComparisonChunk.State.DONE:
+        return
+
+    PreprodSnapshotComparisonChunk.objects.filter(id=chunk.id).update(
+        state=PreprodSnapshotComparisonChunk.State.PROCESSING, date_updated=timezone.now()
+    )
+
+    session = get_preprod_session(org_id, project_id)
+    plan_key = f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/plan.json"
+    plan = ComparisonPlan(
+        **orjson.loads(_retry_objectstore(lambda: session.get(plan_key).payload.read()))
+    )
+    assignment = next(c for c in plan.chunks if c.chunk_index == chunk_index)
+
+    images = _process_chunk(
+        session, assignment, org_id, project_id, head_artifact_id, base_artifact_id
+    )
+
+    result_key = (
+        f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/chunks/{chunk_index}.json"
+    )
+    result = ChunkResult(chunk_index=chunk_index, images=images)
+    _retry_objectstore(
+        lambda: session.put(
+            orjson.dumps(result.dict()), key=result_key, content_type="application/json"
+        )
+    )
+
+    PreprodSnapshotComparisonChunk.objects.filter(id=chunk.id).update(
+        state=PreprodSnapshotComparisonChunk.State.DONE, date_updated=timezone.now()
     )
 
 
