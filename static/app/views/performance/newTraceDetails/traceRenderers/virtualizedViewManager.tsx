@@ -1125,6 +1125,13 @@ export class VirtualizedViewManager {
   }
 
   transformXFromTimestamp(timestamp: number): number {
+    if (!this.time_compression.enabled) {
+      const config_space_per_px = this.getConfigSpacePerPx();
+      return (
+        (timestamp - this.view.to_origin - this.view.trace_view.x) / config_space_per_px
+      );
+    }
+
     return (
       (this.time_compression.toCompressedOffset(timestamp) -
         this.getCompressedView().left) /
