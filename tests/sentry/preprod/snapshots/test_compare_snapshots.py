@@ -393,6 +393,58 @@ class PollSnapshotComparisonTest(TestCase):
         chunk.refresh_from_db()
         assert chunk.attempts == 1
 
+    def test_stale_chunk_redispatch_is_single_winner(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from sentry.preprod.snapshots import tasks as tasks_module
+        from sentry.preprod.snapshots.tasks import poll_snapshot_comparison
+
+        comparison, h, b = self._comparison(1)
+        chunk = PreprodSnapshotComparisonChunk.objects.create(
+            comparison=comparison,
+            chunk_index=0,
+            state=PreprodSnapshotComparisonChunk.State.PROCESSING,
+            attempts=0,
+        )
+        PreprodSnapshotComparisonChunk.objects.filter(id=chunk.id).update(
+            date_updated=timezone.now() - timedelta(seconds=10_000)
+        )
+
+        # Two overlapping polls both observe the same stale snapshot (attempts=0, stale
+        # date_updated) before either commits its re-dispatch. The guarded atomic UPDATE
+        # carries a date_updated<=stale_cutoff predicate, so the first poll's commit
+        # (which bumps date_updated to now) causes the second poll's identical UPDATE to
+        # match 0 rows: exactly one re-dispatch wins.
+        stale_chunks = list(
+            PreprodSnapshotComparisonChunk.objects.filter(comparison_id=comparison.id)
+        )
+        real_filter = tasks_module.PreprodSnapshotComparisonChunk.objects.filter
+
+        def routed_filter(*a, **k):
+            if k == {"comparison_id": comparison.id}:
+                return list(stale_chunks)
+            return real_filter(*a, **k)
+
+        with (
+            patch(
+                "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
+            ) as redispatch,
+            patch("sentry.preprod.snapshots.tasks.poll_snapshot_comparison.apply_async"),
+            patch.object(
+                tasks_module.PreprodSnapshotComparisonChunk.objects,
+                "filter",
+                side_effect=routed_filter,
+            ),
+        ):
+            poll_snapshot_comparison(**self._kwargs(comparison, h, b))
+            poll_snapshot_comparison(**self._kwargs(comparison, h, b))
+
+        assert redispatch.call_count == 1
+        chunk.refresh_from_db()
+        assert chunk.attempts == 1
+
     def test_partial_success_marks_failed_chunk_images_errored(self):
         from datetime import timedelta
 

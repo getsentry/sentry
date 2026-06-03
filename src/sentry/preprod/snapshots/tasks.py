@@ -10,6 +10,7 @@ from typing import NamedTuple
 
 import orjson
 from django.db import IntegrityError
+from django.db.models import F
 from django.utils import timezone
 from objectstore_client import Session
 from objectstore_client.client import RequestError
@@ -50,7 +51,12 @@ MAX_PIXELS_PER_BATCH = 40_000_000
 CHUNK_PROCESSING_DEADLINE = 120  # seconds; one ~40M-px batch finishes well under this
 POLL_INTERVAL = 30  # seconds between poll wakes
 CHUNK_STALE_THRESHOLD = 300  # seconds without a heartbeat before a chunk/orchestrator is "dead"
-MAX_CHUNK_ATTEMPTS = 3  # re-dispatches before a chunk is permanently FAILED
+# Bounds how many times the poll watchdog re-dispatches a dead/stale chunk before
+# giving up and marking it FAILED. This is NOT a total-run cap: the chunk task carries
+# its own taskworker Retry, which independently recovers from transient per-activation
+# errors. The two are complementary layers — the watchdog handles lost/stalled chunks,
+# the task's Retry handles in-run exceptions.
+MAX_CHUNK_ATTEMPTS = 3
 COMPARISON_BUDGET = 1500  # seconds (wall-clock from date_added) before partial-finalize
 
 # Concurrent batch fetches/uploads make transient objectstore 429/503s likelier. Retry once
@@ -965,33 +971,37 @@ def poll_snapshot_comparison(
         )
         return
 
+    active_states = [
+        PreprodSnapshotComparisonChunk.State.PENDING,
+        PreprodSnapshotComparisonChunk.State.PROCESSING,
+    ]
     for chunk in chunks:
-        if (
-            chunk.state
-            in (
-                PreprodSnapshotComparisonChunk.State.PENDING,
-                PreprodSnapshotComparisonChunk.State.PROCESSING,
+        if chunk.state not in active_states or chunk.date_updated > stale_cutoff:
+            continue
+        if chunk.attempts >= MAX_CHUNK_ATTEMPTS:
+            PreprodSnapshotComparisonChunk.objects.filter(
+                id=chunk.id, state__in=active_states
+            ).update(state=PreprodSnapshotComparisonChunk.State.FAILED)
+            continue
+        # Guarded atomic claim: only the poll whose UPDATE matches a still-stale row wins.
+        # The winner bumps date_updated=now, so a concurrent/duplicate poll's identical
+        # UPDATE matches 0 rows and does not re-dispatch the chunk.
+        claimed = PreprodSnapshotComparisonChunk.objects.filter(
+            id=chunk.id,
+            state__in=active_states,
+            date_updated__lte=stale_cutoff,
+        ).update(attempts=F("attempts") + 1, date_updated=now)
+        if claimed:
+            process_snapshot_comparison_chunk.apply_async(
+                kwargs={
+                    "comparison_id": comparison_id,
+                    "chunk_index": chunk.chunk_index,
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "head_artifact_id": head_artifact_id,
+                    "base_artifact_id": base_artifact_id,
+                }
             )
-            and chunk.date_updated <= stale_cutoff
-        ):
-            if chunk.attempts >= MAX_CHUNK_ATTEMPTS:
-                PreprodSnapshotComparisonChunk.objects.filter(id=chunk.id).update(
-                    state=PreprodSnapshotComparisonChunk.State.FAILED
-                )
-            else:
-                PreprodSnapshotComparisonChunk.objects.filter(id=chunk.id).update(
-                    attempts=chunk.attempts + 1, date_updated=now
-                )
-                process_snapshot_comparison_chunk.apply_async(
-                    kwargs={
-                        "comparison_id": comparison_id,
-                        "chunk_index": chunk.chunk_index,
-                        "org_id": org_id,
-                        "project_id": project_id,
-                        "head_artifact_id": head_artifact_id,
-                        "base_artifact_id": base_artifact_id,
-                    }
-                )
 
     _reschedule()
 
