@@ -1,7 +1,7 @@
 from sentry.issues.action_log.base import (  # noqa: F401
     ActionContext,
     ActionSource,
-    ActionType,
+    DuplicateActionError,
     action_context_scope,
     get_action_context,
     publish_action,

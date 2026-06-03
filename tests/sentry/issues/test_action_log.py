@@ -10,12 +10,23 @@ import sentry.models.groupinbox
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionContext,
-    ActionType,
     GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
     resolve_action_source,
+)
+from sentry.issues.action_log.types import (
+    ArchiveAction,
+    AssignAction,
+    GroupActionType,
+    MarkReviewedAction,
+    MergeFromOtherAction,
+    MergeIntoOtherAction,
+    ResolveAction,
+    SetPriorityAction,
+    UnassignAction,
+    ViewAction,
 )
 from sentry.models.group import GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
@@ -148,7 +159,7 @@ class TestPublishAction(TestCase):
     def test_emits_structured_log(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
-                action=ActionType.RESOLVE,
+                ResolveAction(),
                 source="mcp:claude-code",
                 group_id=1,
                 organization_id=2,
@@ -166,7 +177,7 @@ class TestPublishAction(TestCase):
     def test_actor_type_derived_from_actor(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
-                action=ActionType.RESOLVE,
+                ResolveAction(),
                 source="web",
                 group_id=1,
                 organization_id=2,
@@ -177,7 +188,7 @@ class TestPublishAction(TestCase):
 
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
-                action=ActionType.RESOLVE,
+                ResolveAction(),
                 source="system",
                 group_id=1,
                 organization_id=2,
@@ -192,7 +203,7 @@ class TestPublishActionFromContext(TestCase):
 
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action_from_context(
-                action=ActionType.RESOLVE,
+                ResolveAction(),
                 group_id=1,
                 organization_id=2,
                 project_id=3,
@@ -221,7 +232,9 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(self.url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200
         resolve_calls = [
-            c for c in mock_publish.call_args_list if c.kwargs.get("action") == ActionType.RESOLVE
+            c
+            for c in mock_publish.call_args_list
+            if c.args[0].get_type() == GroupActionType.RESOLVE
         ]
         assert len(resolve_calls) == 1
         assert resolve_calls[0].kwargs["group_id"] == self.group.id
@@ -234,7 +247,9 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(self.url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200
         resolve_calls = [
-            c for c in mock_publish.call_args_list if c.kwargs.get("action") == ActionType.RESOLVE
+            c
+            for c in mock_publish.call_args_list
+            if c.args[0].get_type() == GroupActionType.RESOLVE
         ]
         assert len(resolve_calls) == 0
 
@@ -247,7 +262,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         mock_publish.assert_called_once()
-        assert mock_publish.call_args.kwargs["action"] == ActionType.ARCHIVE
+        assert isinstance(mock_publish.call_args.args[0], ArchiveAction)
 
     @patch.object(sentry.issues.status_change, "publish_action_from_context", autospec=True)
     def test_archive_already_archived_skips(self, mock_publish: MagicMock) -> None:
@@ -265,7 +280,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(self.url, data={"priority": "high"}, format="json")
         assert response.status_code == 200
         mock_publish.assert_called_once()
-        assert mock_publish.call_args.kwargs["action"] == ActionType.SET_PRIORITY
+        assert isinstance(mock_publish.call_args.args[0], SetPriorityAction)
 
     @patch.object(sentry.issues.priority, "publish_action_from_context", autospec=True)
     def test_priority_same_value_skips(self, mock_publish: MagicMock) -> None:
@@ -280,7 +295,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         mock_publish.assert_called_once()
-        assert mock_publish.call_args.kwargs["action"] == ActionType.ASSIGN
+        assert isinstance(mock_publish.call_args.args[0], AssignAction)
 
     @patch.object(sentry.models.groupassignee, "publish_action_from_context", autospec=True)
     def test_assign_same_user_skips(self, mock_publish: MagicMock) -> None:
@@ -296,7 +311,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(self.url, data={"assignedTo": ""}, format="json")
         assert response.status_code == 200
         unassign_calls = [
-            c for c in mock_publish.call_args_list if c.kwargs.get("action") == ActionType.UNASSIGN
+            c for c in mock_publish.call_args_list if isinstance(c.args[0], UnassignAction)
         ]
         assert len(unassign_calls) == 1
 
@@ -311,7 +326,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.get(self.url, format="json")
         assert response.status_code == 200
         mock_publish.assert_called_once()
-        assert mock_publish.call_args.kwargs["action"] == ActionType.VIEW
+        assert isinstance(mock_publish.call_args.args[0], ViewAction)
 
     @patch.object(sentry.models.groupinbox, "publish_action_from_context", autospec=True)
     def test_mark_reviewed_emits_for_inbox_groups(self, mock_publish: MagicMock) -> None:
@@ -331,9 +346,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(url, data={"inbox": False}, format="json")
         assert response.status_code == 200
         reviewed_calls = [
-            c
-            for c in mock_publish.call_args_list
-            if c.kwargs.get("action") == ActionType.MARK_REVIEWED
+            c for c in mock_publish.call_args_list if isinstance(c.args[0], MarkReviewedAction)
         ]
         assert len(reviewed_calls) == 1
         assert reviewed_calls[0].kwargs["group_id"] == group_in_inbox.id
@@ -345,14 +358,10 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(url, data={"merge": 1}, format="json")
         assert response.status_code == 200
         merge_from = [
-            c
-            for c in mock_publish.call_args_list
-            if c.kwargs.get("action") == ActionType.MERGE_FROM_OTHER
+            c for c in mock_publish.call_args_list if isinstance(c.args[0], MergeFromOtherAction)
         ]
         merge_into = [
-            c
-            for c in mock_publish.call_args_list
-            if c.kwargs.get("action") == ActionType.MERGE_INTO_OTHER
+            c for c in mock_publish.call_args_list if isinstance(c.args[0], MergeIntoOtherAction)
         ]
         assert len(merge_from) == 1
         assert len(merge_into) == 1

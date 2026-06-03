@@ -43,11 +43,11 @@ from sentry.integrations.api.serializers.models.external_issue import ExternalIs
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
-    ActionType,
     GroupActionActor,
     publish_action,
     resolve_action_source,
 )
+from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
@@ -342,7 +342,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             data.update({"participants": participants})
 
             publish_action(
-                action=ActionType.VIEW,
+                ViewAction(),
                 source=resolve_action_source(request),
                 group_id=group.id,
                 organization_id=group.organization.id,

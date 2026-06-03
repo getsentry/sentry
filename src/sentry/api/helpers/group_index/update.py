@@ -26,7 +26,6 @@ from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
-    ActionType,
     GroupActionActor,
     action_context_scope,
     get_action_context,
@@ -34,6 +33,7 @@ from sentry.issues.action_log import (
     publish_action_from_context,
     resolve_action_source,
 )
+from sentry.issues.action_log.types import MergeFromOtherAction, MergeIntoOtherAction, ResolveAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
@@ -649,7 +649,7 @@ def process_group_resolution(
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
         publish_action_from_context(
-            action=ActionType.RESOLVE,
+            ResolveAction(),
             group_id=group.id,
             organization_id=group.project.organization_id,
             project_id=group.project_id,
@@ -828,24 +828,22 @@ def prepare_response(
             group_by_id = {g.id: g for g in group_list}
             primary = group_by_id[primary_id]
             publish_action(
-                action=ActionType.MERGE_FROM_OTHER,
+                MergeFromOtherAction(counterpart_group_ids=child_ids),
                 source=ctx.source,
                 group_id=primary_id,
                 organization_id=primary.project.organization_id,
                 project_id=primary.project_id,
                 actor=ctx.actor,
-                metadata={"counterpart_group_ids": child_ids},
             )
             for child_id in child_ids:
                 child = group_by_id[child_id]
                 publish_action(
-                    action=ActionType.MERGE_INTO_OTHER,
+                    MergeIntoOtherAction(counterpart_group_id=primary_id),
                     source=ctx.source,
                     group_id=child_id,
                     organization_id=child.project.organization_id,
                     project_id=child.project_id,
                     actor=ctx.actor,
-                    metadata={"counterpart_group_id": primary_id},
                 )
 
     inbox = result.get("inbox", None)
