@@ -68,13 +68,15 @@ class AutofixStoppingPoint(StrEnum):
     OPEN_PR = "open_pr"
 
 
-SEAT_BASED_STOPPING_POINTS: set[AutofixStoppingPoint] = {
-    AutofixStoppingPoint.CODE_CHANGES,
-    AutofixStoppingPoint.OPEN_PR,
-    AutofixStoppingPoint.ROOT_CAUSE,
-}
+SEAT_BASED_STOPPING_POINTS: frozenset[AutofixStoppingPoint] = frozenset(
+    {
+        AutofixStoppingPoint.CODE_CHANGES,
+        AutofixStoppingPoint.OPEN_PR,
+        AutofixStoppingPoint.ROOT_CAUSE,
+    }
+)
 
-USAGE_BASED_STOPPING_POINTS: set[AutofixStoppingPoint] = SEAT_BASED_STOPPING_POINTS | {
+USAGE_BASED_STOPPING_POINTS: frozenset[AutofixStoppingPoint] = SEAT_BASED_STOPPING_POINTS | {
     AutofixStoppingPoint.SOLUTION,
 }
 
