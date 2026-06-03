@@ -936,6 +936,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
 
         values: Sequence[str] = rpc_response.values
+        counts: Sequence[int] = rpc_response.counts
         if self.context_definition:
             context = self.context_definition.constructor(self.snuba_params, self.resolver)
             values = [context.value_map.get(value, value) for value in values]
@@ -944,11 +945,11 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             TagValue(
                 key=self.key,
                 value=value,
-                times_seen=None,
+                times_seen=count,
                 first_seen=None,
                 last_seen=None,
             )
-            for value in values
+            for value, count in zip(values, counts)
             if value
         ]
 
