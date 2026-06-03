@@ -272,3 +272,91 @@ def test_build_comparison_plan_splits_diff_and_non_diff():
     assert plan.non_diff_images["same.png"].status == "unchanged"
     assert plan.non_diff_images["new.png"].status == "added"
     assert plan.non_diff_images["gone.png"].status == "removed"
+
+
+def test_build_comparison_plan_diff_threshold_precedence():
+    from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+
+    head = SnapshotManifest(
+        images={
+            "per_image.png": ImageMetadata(
+                content_hash="h1", width=10, height=10, diff_threshold=0.25
+            ),
+            "manifest_level.png": ImageMetadata(content_hash="m1", width=10, height=10),
+        },
+        diff_threshold=0.1,
+    )
+    base = SnapshotManifest(
+        images={
+            "per_image.png": ImageMetadata(content_hash="h0", width=10, height=10),
+            "manifest_level.png": ImageMetadata(content_hash="m0", width=10, height=10),
+        },
+        diff_threshold=0.1,
+    )
+
+    plan = _build_comparison_plan(head, base, head_artifact_id=1, base_artifact_id=2)
+
+    thresholds = {c.name: c.diff_threshold for chunk in plan.chunks for c in chunk.candidates}
+    assert thresholds == {"per_image.png": 0.25, "manifest_level.png": 0.1}
+
+
+def test_build_comparison_plan_diff_threshold_defaults_to_zero():
+    from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+
+    head = SnapshotManifest(
+        images={"default.png": ImageMetadata(content_hash="h1", width=10, height=10)},
+        diff_threshold=None,
+    )
+    base = SnapshotManifest(
+        images={"default.png": ImageMetadata(content_hash="h0", width=10, height=10)},
+        diff_threshold=None,
+    )
+
+    plan = _build_comparison_plan(head, base, head_artifact_id=1, base_artifact_id=2)
+
+    thresholds = {c.name: c.diff_threshold for chunk in plan.chunks for c in chunk.candidates}
+    assert thresholds == {"default.png": 0.0}
+
+
+def test_build_comparison_plan_exceeds_pixel_limit():
+    from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+    from sentry.preprod.snapshots.tasks import MAX_DIFF_PIXELS, _build_comparison_plan
+
+    oversized = MAX_DIFF_PIXELS + 1
+    head = SnapshotManifest(
+        images={"huge.png": ImageMetadata(content_hash="h1", width=oversized, height=1)},
+        diff_threshold=None,
+    )
+    base = SnapshotManifest(
+        images={"huge.png": ImageMetadata(content_hash="h0", width=oversized, height=1)},
+        diff_threshold=None,
+    )
+
+    plan = _build_comparison_plan(head, base, head_artifact_id=1, base_artifact_id=2)
+
+    diff_names = {c.name for chunk in plan.chunks for c in chunk.candidates}
+    assert "huge.png" not in diff_names
+    assert plan.non_diff_images["huge.png"].status == "errored"
+    assert plan.non_diff_images["huge.png"].reason == "exceeds_pixel_limit"
+
+
+def test_build_comparison_plan_detects_rename():
+    from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+
+    head = SnapshotManifest(
+        images={"new.png": ImageMetadata(content_hash="shared", width=10, height=10)},
+        diff_threshold=None,
+    )
+    base = SnapshotManifest(
+        images={"old.png": ImageMetadata(content_hash="shared", width=10, height=10)},
+        diff_threshold=None,
+    )
+
+    plan = _build_comparison_plan(head, base, head_artifact_id=1, base_artifact_id=2)
+
+    assert plan.non_diff_images["new.png"].status == "renamed"
+    assert plan.non_diff_images["new.png"].previous_image_file_name == "old.png"
+    assert "old.png" not in plan.non_diff_images
