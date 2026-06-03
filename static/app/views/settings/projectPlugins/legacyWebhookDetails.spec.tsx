@@ -187,7 +187,7 @@ describe('LegacyWebhookDetails', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Enable'}));
 
     await waitFor(() => expect(postMock).toHaveBeenCalled());
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('WebHooks enabled');
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Webhooks enabled');
   });
 
   it('shows disable button when enabled', async () => {

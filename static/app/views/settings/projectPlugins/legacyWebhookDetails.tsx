@@ -62,12 +62,18 @@ export function LegacyWebhookDetails() {
         data: {urls: data?.urls ?? [], enabled: shouldEnable},
       });
     },
-    onSuccess: (_responseData, shouldEnable) => {
-      addSuccessMessage(shouldEnable ? t('WebHooks enabled') : t('WebHooks disabled'));
-      refetch();
+    onSuccess: (responseData, shouldEnable) => {
+      addSuccessMessage(shouldEnable ? t('Webhooks enabled') : t('Webhooks disabled'));
+      setUrlsText(null);
+      queryClient.setQueryData(webhookQueryOptions.queryKey, {
+        json: responseData,
+        headers: {},
+      });
     },
-    onError: () => {
-      addErrorMessage(t('An error occurred'));
+    onError: (_error, shouldEnable) => {
+      addErrorMessage(
+        shouldEnable ? t('Could not enable webhooks.') : t('Could not disable webhooks.')
+      );
     },
   });
 
@@ -164,7 +170,7 @@ export function LegacyWebhookDetails() {
             <Button
               size="xs"
               onClick={() => testMutation.mutate()}
-              disabled={testMutation.isPending || !enabled}
+              disabled={testMutation.isPending || toggleMutation.isPending || !enabled}
               tooltipProps={
                 enabled ? undefined : {title: t('Enable webhooks to send test events')}
               }
@@ -174,6 +180,7 @@ export function LegacyWebhookDetails() {
             <Button
               size="xs"
               variant={enabled ? 'danger' : undefined}
+              disabled={toggleMutation.isPending || saveMutation.isPending}
               onClick={() => toggleMutation.mutate(!enabled)}
             >
               {enabled ? t('Disable') : t('Enable')}
@@ -188,6 +195,7 @@ export function LegacyWebhookDetails() {
               maxRows={16}
               placeholder={t('Enter callback URLs (one per line)')}
               value={displayText}
+              disabled={saveMutation.isPending || toggleMutation.isPending}
               onChange={e => setUrlsText(e.target.value)}
             />
             <Text variant="muted" size="sm">
@@ -198,7 +206,9 @@ export function LegacyWebhookDetails() {
                 size="sm"
                 variant="primary"
                 onClick={handleSave}
-                disabled={saveMutation.isPending || !hasUnsavedChanges}
+                disabled={
+                  saveMutation.isPending || toggleMutation.isPending || !hasUnsavedChanges
+                }
               >
                 {t('Save Changes')}
               </Button>
