@@ -245,6 +245,14 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         return data if key is None else data.get(key)
 
     def fetch_state(self, key: str | None = None) -> Any | None:
+        # In API mode the pipeline drives its own steps and never runs the
+        # legacy nested views, so state always lives at the top level. Providers
+        # mid-migration may still expose a NestedPipelineView via
+        # get_pipeline_views() for the legacy flow; don't surface nested state
+        # for them here.
+        if self.is_api_mode:
+            return self._fetch_state(key)
+
         step_index = self.step_index
         if step_index >= len(self.pipeline_views):
             return self._fetch_state(key)

@@ -41,6 +41,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import ActionType, publish_action, resolve_action_source
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
@@ -333,6 +334,17 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 participant["type"] = "user"
 
             data.update({"participants": participants})
+
+            publish_action(
+                action=ActionType.VIEW,
+                source=resolve_action_source(request),
+                group_id=group.id,
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                actor_id=request.user.id
+                if getattr(request.user, "is_authenticated", False)
+                else None,
+            )
 
             metrics.incr(
                 "group.get.http_response",
