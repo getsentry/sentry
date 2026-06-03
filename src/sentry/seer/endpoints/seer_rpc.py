@@ -44,6 +44,7 @@ from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.exceptions import InvalidSearchQuery
 from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
@@ -638,16 +639,15 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
 
 
 # Counter keys accepted in a judge summary, each mapped onto the matching
-# integer field of PullRequestMetrics. Anything else in the payload is ignored
-# so the contract can grow without breaking older Sentry deploys.
-_PR_METRICS_COUNTER_FIELDS = (
-    "additions",
-    "deletions",
-    "files_changed",
-    "commits_count",
-    "comments_count",
-    "participants_count",
-    "reviews_count",
+# integer field of PullRequestMetrics. Derived from the model so a new counter
+# column extends the contract automatically; the counters are exactly the
+# BoundedPositiveIntegerField columns (is_assigned is a bool handled separately,
+# and the pk/FK/timestamps are other field types). Anything else in the payload
+# is ignored so the contract can grow without breaking older Sentry deploys.
+_PR_METRICS_COUNTER_FIELDS = tuple(
+    field.name
+    for field in PullRequestMetrics._meta.get_fields()
+    if isinstance(field, BoundedPositiveIntegerField) and not field.primary_key
 )
 
 
