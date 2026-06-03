@@ -8,7 +8,7 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, ObjectStatus
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.types import FeatureRunStatus
@@ -95,7 +95,9 @@ def _process_verdicts(
     groups_by_id: dict[int, Group] = {
         g.id: g
         for g in Group.objects.filter(
-            id__in=group_ids, project__organization_id=organization.id
+            id__in=group_ids,
+            project__organization_id=organization.id,
+            project__status=ObjectStatus.ACTIVE,
         ).select_related("project")
     }
 
