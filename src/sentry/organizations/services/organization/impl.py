@@ -735,9 +735,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         _, created = ExternalActor.objects.get_or_create(
             organization_id=organization_id,
             provider=provider,
-            external_name=external_name,
+            external_name__iexact=external_name,
             user_id=user_id,
             defaults={
+                "external_name": external_name,
                 "integration_id": integration_id,
                 "external_id": external_id,
                 "source": source,
