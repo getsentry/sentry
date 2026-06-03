@@ -1,6 +1,6 @@
 import 'echarts/lib/chart/heatmap';
 
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import type {
   TooltipFormatterCallback,
@@ -50,7 +50,7 @@ interface HeatMapWidgetVisualizationProps {
    */
   scale?: 'linear' | 'log';
   /**
-   * Callback that returns an updated query string.
+   * Callback that updates the local filter to include the given Y-axis query.
    */
   updateLocalFilterQuery?: (query: string) => void;
 }
@@ -71,8 +71,8 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   // Using the `<a>` tag will make the page reload and navigate to the url because it doesn't have
   // link history context. Doing the navigation here preserves the link history context and makes the
   // page navigation smoother instead of reloading the page every time a link is clicked.
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
+  const handleTooltipLinksClick = useCallback(
+    (e: MouseEvent) => {
       if (!chartRef.current?.ele?.contains(e.target as Node)) {
         return;
       }
@@ -99,10 +99,14 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           }
         }
       }
-    };
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [navigate, updateLocalFilterQuery]);
+    },
+    [navigate, updateLocalFilterQuery]
+  );
+
+  useEffect(() => {
+    document.addEventListener('click', handleTooltipLinksClick);
+    return () => document.removeEventListener('click', handleTooltipLinksClick);
+  }, [handleTooltipLinksClick]);
 
   if (!plottablesCanBeVisualized(plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);

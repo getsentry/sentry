@@ -67,7 +67,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
     [metric, organization]
   );
 
-  const getUpdatedMetricsQueryUrl = useCallback(
+  const updateMetricQuery = useCallback(
     (query: string) => {
       setMetricQuery(userQuery ? `${userQuery} ${query}` : query);
     },
@@ -91,7 +91,7 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
               plottables={[new HeatMap(heatMapSeries)]}
               scale="log"
               makeExploreUrl={getFilteredExploreUrl}
-              updateLocalFilterQuery={getUpdatedMetricsQueryUrl}
+              updateLocalFilterQuery={updateMetricQuery}
             />
           )
         }
