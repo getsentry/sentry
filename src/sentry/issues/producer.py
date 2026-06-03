@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import MutableMapping
+from functools import partial
 from typing import Any, cast
 
 from arroyo import Topic as ArroyoTopic
@@ -9,6 +10,7 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
+from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.hybridcloud.rpc import ValueEqualityEnum
@@ -34,16 +36,20 @@ class PayloadType(ValueEqualityEnum):
     STATUS_CHANGE = "status_change"
 
 
-def _get_occurrence_producer() -> KafkaProducer:
+def _get_occurrence_producer(name: str = "sentry.issues.producer") -> KafkaProducer:
     return get_arroyo_producer(
-        "sentry.issues.producer",
+        name,
         Topic.INGEST_OCCURRENCES,
         exclude_config_keys=["compression.type", "message.max.bytes"],
     )
 
 
-_occurrence_producer = SingletonProducer(
-    _get_occurrence_producer, max_futures=settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT
+_occurrence_producer = (
+    TaskProducer(partial(_get_occurrence_producer, name="sentry.issues.tasks.producer"))
+    if settings.TASKWORKER_USE_TASK_PRODUCER
+    else SingletonProducer(
+        _get_occurrence_producer, max_futures=settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT
+    )
 )
 
 
