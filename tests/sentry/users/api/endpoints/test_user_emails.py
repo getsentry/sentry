@@ -40,11 +40,12 @@ class UserEmailsTest(APITestCase):
         response = self.client.post(self.url, data={"email": "altemail1@example.com"})
 
         assert response.status_code == 201, response.data
-        assert UserEmail.objects.filter(user=self.user, email="altemail1@example.com").exists()
+        # email is not in db yet - only saved when verified
+        assert not UserEmail.objects.filter(user=self.user, email="altemail1@example.com").exists()
 
-        # duplicate email returns 409
+        # duplicate email returns 201
         response = self.client.post(self.url, data={"email": "altemail1@example.com"})
-        assert response.status_code == 409, response.data
+        assert response.status_code == 201, response.data
 
     def test_cant_have_same_email_with_different_casing(self) -> None:
         user = self.create_user(email="FOOBAR@example.com")
