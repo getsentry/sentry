@@ -41,7 +41,7 @@ from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
-from sentry.utils import json, redis
+from sentry.utils import json, metrics, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.sanitize import sanitize_outbound_name
@@ -154,6 +154,7 @@ def schedule_organizations(
                     batch_id,
                     dry_run=dry_run,
                 )
+                metrics.incr("weekly_report.organization.scheduled")
                 batching.set_last_processed_org_id(organization.id)
 
             batching.delete_min_org_id()
@@ -224,7 +225,8 @@ def prepare_organization_report(
             "weekly_reports.deliver_reports",
             extra={"batch_id": str(batch_id), "organization": organization_id},
         )
-        batch.deliver_reports()
+        with metrics.timer("weekly_report.deliver_reports.duration"):
+            batch.deliver_reports()
 
 
 @dataclass(frozen=True)
@@ -259,14 +261,36 @@ class OrganizationReportBatch:
                 .values_list("user_id", flat=True)
             )
             user_list = [v for v in user_list if v is not None]
+            metrics.distribution(
+                "weekly_report.deliver_reports.org_member_count",
+                len(user_list),
+            )
             user_ids = notifications_service.get_users_for_weekly_reports(
                 organization_id=self.ctx.organization.id, user_ids=user_list
             )
+            metrics.distribution(
+                "weekly_report.deliver_reports.eligible_user_count",
+                len(user_ids),
+            )
+            filtered_by_preference = len(user_list) - len(user_ids)
+            if filtered_by_preference > 0:
+                metrics.incr(
+                    "weekly_report.user.filtered",
+                    amount=filtered_by_preference,
+                    tags={"reason": "notification_preference"},
+                )
             user_template_context_by_user_id_list = []
             if user_ids:
                 user_template_context_by_user_id_list = prepare_template_context(
                     ctx=self.ctx, user_ids=user_ids
                 )
+                skipped_no_projects = len(user_ids) - len(user_template_context_by_user_id_list)
+                if skipped_no_projects > 0:
+                    metrics.incr(
+                        "weekly_report.user.filtered",
+                        amount=skipped_no_projects,
+                        tags={"reason": "no_project_access"},
+                    )
             if user_template_context_by_user_id_list:
                 for user_template in user_template_context_by_user_id_list:
                     self._send_to_user(user_template)
@@ -292,8 +316,10 @@ class OrganizationReportBatch:
                 if not dupe_check.check_for_duplicate_delivery():
                     self.send_email(template_ctx=template_context, user_id=user_id)
                     dupe_check.record_delivery()
+                    metrics.incr("weekly_report.email.sent")
                 else:
                     lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
+                    metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
         # get user options timezone for this user, then format the timestamp according to the timezone
@@ -308,6 +334,7 @@ class OrganizationReportBatch:
             headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
         )
         if self.dry_run:
+            metrics.incr("weekly_report.email.skipped", tags={"reason": "dry_run"})
             return
 
         if self.email_override:

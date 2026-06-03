@@ -17,6 +17,7 @@ from sentry.tasks.summaries.utils import (
     project_key_transactions_last_week,
     project_key_transactions_this_week,
 )
+from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
 
@@ -161,10 +162,24 @@ class OrganizationReportContextFactory:
 
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)
-        self._append_user_project_ownership(ctx)
-        self._append_project_event_counts(ctx)
-        self._append_organization_project_issue_substatus_summaries(ctx)
-        self._append_project_key_errors(ctx)
-        self._hydrate_key_error_groups(ctx)
-        self._hydrate_key_performance_issue_groups(ctx)
+
+        metrics.distribution(
+            "weekly_report.create_context.project_count",
+            len(ctx.projects_context_map),
+        )
+
+        with metrics.timer("weekly_report.create_context.duration"):
+            with metrics.timer("weekly_report.create_context.user_project_ownership"):
+                self._append_user_project_ownership(ctx)
+            with metrics.timer("weekly_report.create_context.project_event_counts"):
+                self._append_project_event_counts(ctx)
+            with metrics.timer("weekly_report.create_context.issue_substatus_summaries"):
+                self._append_organization_project_issue_substatus_summaries(ctx)
+            with metrics.timer("weekly_report.create_context.project_key_errors"):
+                self._append_project_key_errors(ctx)
+            with metrics.timer("weekly_report.create_context.hydrate_key_error_groups"):
+                self._hydrate_key_error_groups(ctx)
+            with metrics.timer("weekly_report.create_context.hydrate_key_performance_issues"):
+                self._hydrate_key_performance_issue_groups(ctx)
+
         return ctx
