@@ -73,7 +73,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   // page navigation smoother instead of reloading the page every time a link is clicked.
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (!chartRef.current?.ele.contains(e.target as Node)) {
+      if (!chartRef.current?.ele?.contains(e.target as Node)) {
         return;
       }
       const localQueryUpdateTarget = (e.target as Element).closest('[data-local-query]');
