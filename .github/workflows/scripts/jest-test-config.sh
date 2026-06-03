@@ -35,14 +35,20 @@ fi
 if [ "$STRATEGY" == "changedSince" ]; then
   # shellcheck disable=SC2086
   JEST_TESTS="$(pnpm exec jest --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq '.')"
+
+  RUNNER_CHUNK_SIZE=250
+  JEST_TESTS_LENGTH=$(echo "$JEST_TESTS" | jq 'length')
+  if [ "$JEST_TESTS_LENGTH" -gt 0 ]; then
+    RUNNERS=$(( ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) > 0 ? ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) : 1 ))
+  else
+    JEST_TESTS="$(pnpm exec jest --listTests --json)"
+    RUNNERS=8
+  fi
 else
   JEST_TESTS="$(pnpm exec jest --listTests --json)"
+  RUNNERS=8
 fi
 echo "$JEST_TESTS" > jest-test-files.json
-
-RUNNER_CHUNK_SIZE=250
-JEST_TESTS_LENGTH=$(echo "$JEST_TESTS" | jq 'length')
-RUNNERS=$(( ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) > 0 ? ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) : 1 ))
 
 INDEX_ARRAY=$(seq 0 $(( RUNNERS - 1 )) | jq -s .)
 echo "jest_test_matrix=$(jq -nc --argjson index "$INDEX_ARRAY" --argjson total "$RUNNERS" '{index: $index, total: [$total]}')" >> "$GITHUB_OUTPUT"
