@@ -5,6 +5,7 @@ import {
   defaultFormOptions,
   FieldGroup,
   FormSearch,
+  setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -18,6 +19,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -44,7 +46,13 @@ function FingerprintRulesForm({
           formApi.reset(value);
           addSuccessMessage(t('Fingerprint rules updated.'));
         })
-        .catch(() => addErrorMessage(t('Unable to save changes.'))),
+        .catch((error: unknown) => {
+          // Surface API validation errors (e.g. invalid rule syntax) inline.
+          if (error instanceof RequestError && setFieldErrors(formApi, error)) {
+            return;
+          }
+          addErrorMessage(t('Unable to save changes.'));
+        }),
   });
 
   return (
@@ -136,7 +144,13 @@ function StackTraceRulesForm({
           formApi.reset(value);
           addSuccessMessage(t('Stack trace rules updated.'));
         })
-        .catch(() => addErrorMessage(t('Unable to save changes.'))),
+        .catch((error: unknown) => {
+          // Surface API validation errors (e.g. invalid rule syntax) inline.
+          if (error instanceof RequestError && setFieldErrors(formApi, error)) {
+            return;
+          }
+          addErrorMessage(t('Unable to save changes.'));
+        }),
   });
 
   return (
@@ -253,7 +267,6 @@ export default function ProjectIssueGrouping() {
       />
 
       <ProjectPermissionAlert project={project} />
-
       <FingerprintRulesForm project={project} hasAccess={hasAccess} />
       <StackTraceRulesForm project={project} hasAccess={hasAccess} />
       <DerivedGroupingEnhancements project={project} />
