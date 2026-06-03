@@ -34,7 +34,7 @@ fi
 
 if [ "$STRATEGY" == "changedSince" ]; then
   # shellcheck disable=SC2086
-  JEST_TESTS="$(pnpm exec jest --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq -r '.')"
+  JEST_TESTS="$(pnpm exec jest --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq '.')"
 else
   JEST_TESTS="$(pnpm exec jest --listTests --json)"
 fi

@@ -194,7 +194,6 @@ jobs:
 
       - name: Download jest-test-files.json
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        continue-on-error: true
         with:
           name: jest-test-files
           path: .

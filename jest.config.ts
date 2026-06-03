@@ -62,6 +62,14 @@ const optionalTags: {
  *
  * By default we'll run everything we were given.
  */
+if (CI && CI_NODE_TOTAL && !JEST_TESTS) {
+  throw new Error(
+    'CI is configured for sharding (CI_NODE_TOTAL is set) but jest-test-files.json is missing. ' +
+      'This would cause each shard to run the entire test suite. ' +
+      'Check that the jest-test-files artifact was uploaded and downloaded successfully.'
+  );
+}
+
 let testMatch = JEST_TESTS;
 
 function getTestsForGroup(
@@ -269,7 +277,7 @@ const config: Config.InitialOptions = {
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
-  passWithNoTests: Boolean(JEST_TESTS?.length),
+  passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     'jest-canvas-mock',
