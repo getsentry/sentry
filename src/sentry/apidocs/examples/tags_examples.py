@@ -65,26 +65,32 @@ SIMPLE_ORGANIZATION_TAGS = [
     {
         "key": "browser",
         "name": "Browser",
+        "totalValues": 350,
     },
     {
         "key": "browser.name",
         "name": "Browser Name",
+        "totalValues": 350,
     },
     {
         "key": "environment",
         "name": "Environment",
+        "totalValues": 500,
     },
     {
         "key": "level",
         "name": "Level",
+        "totalValues": 500,
     },
     {
         "key": "os",
         "name": "OS",
+        "totalValues": 420,
     },
     {
         "key": "release",
         "name": "Release",
+        "totalValues": 100,
     },
 ]
 

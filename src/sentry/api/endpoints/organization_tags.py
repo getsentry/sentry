@@ -52,7 +52,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                 required=False,
                 type=str,
                 description="The dataset to query. Defaults to `discover`.",
-                enum=["discover", "events", "search_issues"],
+                enum=["discover", "events", "search_issues", "replays"],
             ),
             OpenApiParameter(
                 name="use_cache",
