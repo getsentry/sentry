@@ -27,7 +27,6 @@ import {getExploreUrl, prettifyAggregation} from 'sentry/views/explore/utils';
 interface MetricsHeatMapProps {
   actions: React.ReactNode;
   heatmapResult: UseQueryResult<HeatMapSeries>;
-  queryIndex: number;
   title?: string;
 }
 
