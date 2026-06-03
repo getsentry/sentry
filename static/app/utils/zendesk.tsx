@@ -10,14 +10,6 @@ export async function activateZendesk() {
 }
 
 /**
- * Check that zendesk widget is available. Use zendeskIsLoaded to ensure the
- * widget is correctly loaded.
- */
-export function hasZendesk() {
-  return window.zE && typeof window.zE.activate === 'function';
-}
-
-/**
  * Determines if the zendesk widget is loaded and not blocked by web browser
  * configurations (such as Firefox's Strict Mode)
  */
