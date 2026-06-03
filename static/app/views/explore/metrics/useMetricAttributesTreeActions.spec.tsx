@@ -9,6 +9,7 @@ import {
   defaultFields,
   defaultSortBys,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
@@ -110,6 +111,32 @@ describe('useMetricAttributesTreeActions', () => {
     expect(mockSetQueryParams).toHaveBeenCalledWith(
       expect.objectContaining({
         query: 'tags[fallback.number,number]:1.23',
+      })
+    );
+  });
+
+  it('adds filters for known numeric trace metric fields without wrapping them as typed tags', () => {
+    const {result} = renderHookWithProviders(useMetricAttributesTreeActions, {
+      additionalWrapper: Wrapper,
+    });
+
+    const content: AttributesTreeContent = {
+      originalAttribute: {
+        attribute_key: TraceMetricKnownFieldKey.METRIC_VALUE,
+        attribute_value: 12.3,
+        original_attribute_key: TraceMetricKnownFieldKey.METRIC_VALUE,
+        type: 'float' as const,
+      },
+      subtree: {},
+      value: 12.3,
+    };
+
+    const actions = result.current(content);
+    actions[0]!.onAction?.();
+
+    expect(mockSetQueryParams).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: 'value:12.3',
       })
     );
   });

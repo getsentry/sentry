@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {EventTransaction, Level} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import type {GetFieldDefinitionType} from 'sentry/utils/fields';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -224,8 +225,12 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
   return dropdownOptions;
 }
 
-export function getTypedTagKey(key: string, type: string | undefined): string {
-  if (extractBaseKey(key) !== key || getFieldDefinition(key, 'span')) {
+export function getTypedTagKey(
+  key: string,
+  type: string | undefined,
+  fieldDefinitionType: GetFieldDefinitionType = 'span'
+): string {
+  if (extractBaseKey(key) !== key || getFieldDefinition(key, fieldDefinitionType)) {
     return key;
   }
   if (type === 'int' || type === 'float') {

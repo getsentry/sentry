@@ -74,4 +74,37 @@ describe('useLogAttributesTreeActions', () => {
       })
     );
   });
+
+  it('adds known numeric log fields without wrapping them as typed tags', () => {
+    const {result} = renderHookWithProviders(
+      () => useLogAttributesTreeActions({embedded: false}),
+      {
+        additionalWrapper: Wrapper,
+      }
+    );
+
+    const content: AttributesTreeContent = {
+      originalAttribute: {
+        attribute_key: OurLogKnownFieldKey.PAYLOAD_SIZE,
+        attribute_value: 123,
+        original_attribute_key: OurLogKnownFieldKey.PAYLOAD_SIZE,
+        type: 'float' as const,
+      },
+      subtree: {},
+      value: 123,
+    };
+
+    const actions = result.current(content);
+    actions.find(action => action.key === 'add-column')!.onAction?.();
+
+    expect(mockSetQueryParams).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: [
+          OurLogKnownFieldKey.MESSAGE,
+          OurLogKnownFieldKey.PAYLOAD_SIZE,
+          OurLogKnownFieldKey.TIMESTAMP,
+        ],
+      })
+    );
+  });
 });

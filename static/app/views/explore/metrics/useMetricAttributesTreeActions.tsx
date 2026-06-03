@@ -19,7 +19,8 @@ export function useMetricAttributesTreeActions() {
       addSearchFilter({
         key: getTypedTagKey(
           originalAttribute.original_attribute_key,
-          originalAttribute.type
+          originalAttribute.type,
+          'tracemetric'
         ),
         value: String(content.value),
         negated,

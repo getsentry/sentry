@@ -34,7 +34,8 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
       const newSearch = search.copy();
       const key = getTypedTagKey(
         originalAttribute.original_attribute_key,
-        originalAttribute.type
+        originalAttribute.type,
+        'log'
       );
       newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(content.value));
       setLogsSearch(newSearch);
@@ -50,7 +51,8 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
       }
       const typedKey = getTypedTagKey(
         originalAttribute.original_attribute_key,
-        originalAttribute.type
+        originalAttribute.type,
+        'log'
       );
       const newFields = [...fields];
       if (newFields[newFields.length - 1] === OurLogKnownFieldKey.TIMESTAMP) {
@@ -70,7 +72,8 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
       }
       const key = getTypedTagKey(
         content.originalAttribute.original_attribute_key,
-        content.originalAttribute.type
+        content.originalAttribute.type,
+        'log'
       );
       // Drop empty placeholder group bys, dedupe, then append the new key.
       const newGroupBys = groupBys.filter(Boolean);
@@ -91,7 +94,8 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
 
     const typedKey = getTypedTagKey(
       content.originalAttribute.original_attribute_key,
-      content.originalAttribute.type
+      content.originalAttribute.type,
+      'log'
     );
 
     const items: MenuItemProps[] = [

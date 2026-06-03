@@ -4,6 +4,7 @@ import {t, td} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
 
@@ -2798,10 +2799,73 @@ const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
 };
 
 const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  [FieldKey.TIMESTAMP]: {
+  [TraceMetricKnownFieldKey.ID]: {
+    desc: t('Metric event ID'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.ORGANIZATION_ID]: {
+    desc: t('Organization ID'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [TraceMetricKnownFieldKey.PROJECT_ID]: {
+    desc: t('Project ID'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [TraceMetricKnownFieldKey.TRACE]: {
+    desc: t('Trace ID'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.SPAN_ID]: {
+    desc: t('Span ID'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.TIMESTAMP]: {
     desc: t('The time the metric was recorded'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
+  },
+  [TraceMetricKnownFieldKey.TIMESTAMP_PRECISE]: {
+    desc: t('The precise time the metric was recorded'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: {
+    desc: t('The precise time the metric was observed'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [TraceMetricKnownFieldKey.METRIC_NAME]: {
+    desc: t('Metric name'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_TYPE]: {
+    desc: t('Metric type'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_VALUE]: {
+    desc: t('Metric value'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [TraceMetricKnownFieldKey.METRIC_UNIT]: {
+    desc: t('Metric unit'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.PAYLOAD_SIZE]: {
+    desc: t('The size of the metric payload in bytes.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.SIZE,
   },
 };
 

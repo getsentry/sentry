@@ -132,4 +132,9 @@ describe('getTypedTagKey', () => {
       'tags[fallback.boolean,boolean]'
     );
   });
+
+  it('does not wrap first-class fields for the requested field definition type', () => {
+    expect(getTypedTagKey('payload_size', 'float', 'log')).toBe('payload_size');
+    expect(getTypedTagKey('value', 'float', 'tracemetric')).toBe('value');
+  });
 });
