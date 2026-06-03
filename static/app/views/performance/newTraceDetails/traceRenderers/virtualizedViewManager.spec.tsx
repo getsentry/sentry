@@ -251,7 +251,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
       manager.view.setTraceView({width: 500, x: 500});
 
-      expect(Math.round(manager.transformXFromTimestamp(100))).toBe(-500);
+      expect(Math.round(manager.transformXFromTimestamp(100))).toBe(-1000);
     });
   });
 
@@ -273,6 +273,28 @@ describe('VirtualizedViewManger', () => {
       manager.recomputeSpanToPXMatrix();
 
       expect(manager.computeTraceIconPlacement(109.5, 18, [100, 100]).edge).toBeNull();
+    });
+
+    it('uses current view geometry before the span matrix has been recomputed', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
+      manager.view.setTraceView({width: 100, x: 100});
+
+      const placement = manager.computeTraceIconPlacement(199.5, 18, [100, 100]);
+
+      expect(placement.edge).toBe('end');
+      expect(placement.anchorTimestamp).toBe(200);
+      expect(placement.bounds).toEqual([196.4, 200]);
     });
 
     it('anchors end-clamped icons to the visible trace end in a zoomed view', () => {
@@ -801,7 +823,7 @@ describe('VirtualizedViewManger', () => {
       );
 
       manager.view.setTraceSpace([0, 0, 1000, 1]);
-      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 200, 1], [0, 0, 200, 1]);
       manager.view.setTraceView({width: 100, x: 950});
 
       const measuredWidth = 200.2;
