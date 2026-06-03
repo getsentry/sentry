@@ -18,7 +18,6 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
-from sentry.api.endpoints.organization_legacy_webhooks import OrganizationLegacyWebhooksEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
 from sentry.api.endpoints.organization_plugin_deprecation_info import (
@@ -569,7 +568,11 @@ from sentry.sentry_apps.api.endpoints.installation_external_requests import (
 from sentry.sentry_apps.api.endpoints.installation_service_hook_projects import (
     SentryAppInstallationServiceHookProjectsEndpoint,
 )
+from sentry.sentry_apps.api.endpoints.organization_legacy_webhooks import (
+    OrganizationLegacyWebhooksEndpoint,
+)
 from sentry.sentry_apps.api.endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
+from sentry.sentry_apps.api.endpoints.project_legacy_webhooks import ProjectLegacyWebhooksEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_authorizations import (
     SentryAppAuthorizationsEndpoint,
 )
@@ -799,7 +802,6 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
-from .endpoints.project_legacy_webhooks import ProjectLegacyWebhooksEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
