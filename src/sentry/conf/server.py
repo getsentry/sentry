@@ -1658,6 +1658,10 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE = (
 )
 SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS: dict[str, str] = {}
 
+# Glob patterns for the custom-error inbound filter (Relay generic filters).
+# Each entry is (exception_type, message); either may be None.
+SENTRY_INBOUND_FILTER_CUSTOM_VALUES: list[tuple[str | None, str | None]] = []
+
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_ENABLED = False
@@ -2225,7 +2229,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.5.1"
+SELF_HOSTED_STABLE_VERSION = "26.5.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2631,6 +2635,12 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 
 # Mapping of default Kafka topic name to custom names
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
+
+
+# Per-topic Kafka consumer client config, keyed by Topic enum value (region-stable,
+# unlike cluster names). Merged onto the consumer config after the cluster config and
+# before any explicit override_params, so explicit params still win.
+KAFKA_TOPIC_CONSUMER_CONFIG: dict[str, dict[str, Any]] = {}
 
 
 # Mapping of default Kafka topic name to cluster name
@@ -3229,11 +3239,6 @@ MARKETO_BASE_URL = os.getenv("MARKETO_BASE_URL")
 MARKETO_CLIENT_ID = os.getenv("MARKETO_CLIENT_ID")
 MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
 MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
-
-# Base URL for Codecov API. Override if developing against a local instance
-# of Codecov.
-# Stage: "https://stage-api.codecov.dev/"
-CODECOV_API_BASE_URL = "https://api.codecov.io"
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

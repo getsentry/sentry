@@ -8,6 +8,7 @@ import {
 } from 'react';
 import * as Sentry from '@sentry/react';
 import {queryOptions, useMutation, useQueryClient} from '@tanstack/react-query';
+import omitBy from 'lodash/omitBy';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -1019,7 +1020,9 @@ export function SentryAppExternalFormNew({
         method: 'POST',
         data: {
           ...normalizedExtraFields,
-          ...values,
+          // The adapter seeds untouched fields (selects become null); the legacy
+          // FormModel sent only filled values, so reuse hasValue to drop empties.
+          ...omitBy(values, value => !hasValue(value)),
           action,
           uri: config.uri,
         },
