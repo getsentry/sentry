@@ -97,7 +97,7 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         assert run.seer_run is not None
-        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent") as mock_trigger:
+        with patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent") as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
                 run_uuid=str(run.seer_run.uuid),
@@ -136,7 +136,7 @@ class TestDeliverNightShiftResult(TestCase):
 
         assert run.seer_run is not None
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=42
+            "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent", return_value=42
         ) as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
@@ -178,7 +178,7 @@ class TestDeliverNightShiftResult(TestCase):
 
         assert run.seer_run is not None
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=99
+            "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent", return_value=99
         ) as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
@@ -207,7 +207,7 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         assert run.seer_run is not None
-        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent") as mock_trigger:
+        with patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent") as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
                 run_uuid=str(run.seer_run.uuid),
@@ -251,10 +251,10 @@ class TestDeliverNightShiftResult(TestCase):
         assert run.seer_run is not None
         with (
             patch(
-                "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+                "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent",
                 side_effect=trigger_side_effect,
             ),
-            patch("sentry.seer.night_shift.delivery.logger") as mock_logger,
+            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
         ):
             deliver_night_shift_result(
                 organization_id=org.id,
@@ -292,7 +292,7 @@ class TestDeliverNightShiftResult(TestCase):
 
         assert run.seer_run is not None
         with (
-            patch("sentry.seer.night_shift.delivery.trigger_autofix_agent") as mock_trigger,
+            patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent") as mock_trigger,
             patch("sentry.seer.night_shift.delivery.logger") as mock_logger,
         ):
             deliver_night_shift_result(
@@ -326,7 +326,7 @@ class TestDeliverNightShiftResult(TestCase):
 
         assert run.seer_run is not None
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1
+            "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent", return_value=1
         ) as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
@@ -352,7 +352,7 @@ class TestDeliverNightShiftResult(TestCase):
 
         assert run.seer_run is not None
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1
+            "sentry.tasks.seer.night_shift.cron.trigger_autofix_agent", return_value=1
         ) as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
