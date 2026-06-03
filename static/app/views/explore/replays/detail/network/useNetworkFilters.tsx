@@ -108,7 +108,14 @@ export function useNetworkFilters({networkFrames}: Options): Return {
 
   const getResourceTypes = useCallback(
     () =>
-      Array.from(new Set(networkFrames.map(frame => frame.op).concat(type)))
+      Array.from(
+        new Set(
+          networkFrames
+            .map(frame => frame.op)
+            .concat('resource.fetch')
+            .concat(type)
+        )
+      )
         .sort((a, b) => (operationName(a) < operationName(b) ? -1 : 1))
         .map(
           (value): NetworkSelectOption => ({
@@ -126,6 +133,7 @@ export function useNetworkFilters({networkFrames}: Options): Return {
         new Set(
           networkFrames
             .map(frame => String(getFrameStatus(frame) ?? UNKNOWN_STATUS))
+            .concat('200')
             .concat(status)
             .map(String)
         )
