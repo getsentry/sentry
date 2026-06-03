@@ -4,7 +4,9 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {
@@ -140,18 +142,7 @@ export function LegacyWebhookDetails() {
   return (
     <div>
       <SentryDocumentTitle title="WebHooks" projectSlug={project.slug} />
-      <SettingsPageHeader
-        title="WebHooks"
-        action={
-          <Button
-            size="sm"
-            variant={enabled ? 'danger' : undefined}
-            onClick={() => toggleMutation.mutate(!enabled)}
-          >
-            {enabled ? t('Disable') : t('Enable')}
-          </Button>
-        }
-      />
+      <SettingsPageHeader title="WebHooks" />
       <Alert.Container>
         <Alert variant="warning">
           {tct(
@@ -165,7 +156,30 @@ export function LegacyWebhookDetails() {
         </Alert>
       </Alert.Container>
       <Panel>
-        <PanelHeader>{t('Webhook URLs')}</PanelHeader>
+        <PanelHeader hasButtons>
+          <Flex align="center" flex="1">
+            {t('Webhook URLs')}
+          </Flex>
+          <Grid flow="column" align="center" gap="md">
+            <Button
+              size="xs"
+              onClick={() => testMutation.mutate()}
+              disabled={testMutation.isPending || !enabled}
+              tooltipProps={
+                enabled ? undefined : {title: t('Enable webhooks to send test events')}
+              }
+            >
+              {t('Send Test Event')}
+            </Button>
+            <Button
+              size="xs"
+              variant={enabled ? 'danger' : undefined}
+              onClick={() => toggleMutation.mutate(!enabled)}
+            >
+              {enabled ? t('Disable') : t('Enable')}
+            </Button>
+          </Grid>
+        </PanelHeader>
         <PanelBody withPadding>
           <Flex direction="column" gap="md">
             <TextArea
@@ -176,17 +190,10 @@ export function LegacyWebhookDetails() {
               value={displayText}
               onChange={e => setUrlsText(e.target.value)}
             />
-            <Flex gap="md" justify="end">
-              <Button
-                size="sm"
-                onClick={() => testMutation.mutate()}
-                disabled={testMutation.isPending || !enabled}
-                tooltipProps={
-                  enabled ? undefined : {title: t('Enable webhooks to send test events')}
-                }
-              >
-                {t('Send Test Event')}
-              </Button>
+            <Text variant="muted" size="sm">
+              {t('Enter callback URLs to POST new events to (one per line).')}
+            </Text>
+            <Flex gap="md" justify="end" borderTop="primary" paddingTop="lg">
               <Button
                 size="sm"
                 variant="primary"
