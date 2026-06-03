@@ -1649,7 +1649,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 response = self.get_success_response(self.organization.slug, **data)
                 assert response.data["defaultAutomatedRunStoppingPoint"] == choice
 
-    def test_default_automated_run_stopping_point_rejects_invalid(self) -> None:
+    @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    def test_default_automated_run_stopping_point_rejects_invalid(self, mock_seat_based) -> None:
         for invalid in ("solution", "invalid_point"):
             with self.subTest(value=invalid):
                 data = {"defaultAutomatedRunStoppingPoint": invalid}
