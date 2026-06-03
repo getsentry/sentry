@@ -46,6 +46,12 @@ class PullRequestAttributionSignalType(models.TextChoices):
     UNKNOWN = "unknown"
 
 
+class PullRequestAttributionSource(models.TextChoices):
+    WEBHOOK_DATA = "webhook_data"
+    SEER_DATA = "seer_data"
+    SEER_LLM_JUDGE = "seer_llm_judge"
+
+
 class PullRequestVerdict(models.TextChoices):
     MERGED_UNCHANGED = "merged_unchanged"
     MERGED_WITH_ITERATION = "merged_with_iteration"
@@ -305,7 +311,7 @@ class PullRequestAttribution(DefaultFieldsModel):
     pull_request = FlexibleForeignKey("sentry.PullRequest")
     signal_type = models.CharField(max_length=64, choices=PullRequestAttributionSignalType.choices)
     signal_details = models.JSONField(null=True)
-    source = models.CharField(max_length=128)
+    source = models.CharField(max_length=128, choices=PullRequestAttributionSource.choices)
     is_valid = models.BooleanField(default=True)
 
     class Meta:
