@@ -102,10 +102,13 @@ export interface DetailedProject extends ProjectSummary {
   allowedDomains: string[];
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
+  derivedGroupingEnhancements: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
+  fingerprintingRules: string;
   groupingConfig: string;
+  groupingEnhancements: string;
   isInternal: boolean;
   organization: Pick<Organization, 'id' | 'slug'>;
   plugins: Plugin[];

@@ -686,10 +686,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Codecov Integration
-register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.name", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2176,13 +2172,6 @@ register(
     "hybridcloud.apigateway.use_pooling.rate",
     default=0.0,
     type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Preprod snapshot comparison controls
-register(
-    "preprod.snapshots.odiff-worker-count",
-    default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
