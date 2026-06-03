@@ -109,6 +109,10 @@ function computeNextIndexFromAction(
   }
 }
 
+function snapshotVisibleTraceItems(nodes: BaseNode[], _version: number): BaseNode[] {
+  return nodes.slice();
+}
+
 interface TraceProps {
   forceRerender: number;
   isLoading: boolean;
@@ -171,21 +175,26 @@ export function Trace({
   const traceStart = trace.root.space[0];
   const traceDuration = trace.root.space[1];
 
+  const visibleTraceItems = useMemo(
+    () => snapshotVisibleTraceItems(trace.list, forceRerender),
+    [trace.list, forceRerender]
+  );
+
   const timeCompressionOptions = useMemo(() => {
     const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
     return {
       enabled: traceState.preferences.compressedTimeline && trace.type === 'trace',
       traceSpace,
-      nodes: trace.list,
+      nodes: visibleTraceItems,
       indicators: trace.indicators,
     };
   }, [
     trace.indicators,
-    trace.list,
     traceDuration,
     traceStart,
     trace.type,
     traceState.preferences.compressedTimeline,
+    visibleTraceItems,
   ]);
 
   const timeCompression = useMemo(
