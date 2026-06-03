@@ -21,6 +21,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import compute_sliding_window_sample_rate
+from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
 from sentry.dynamic_sampling.tasks.helpers import (
     recalibrate_orgs as legacy_recalibration_cache,
 )
@@ -136,10 +137,17 @@ class BaseDynamicSamplingConfiguration(ABC):
             new_pipeline_factor,
             self.get_sample_rate(),
         )
-        if adjusted_factor is not None:
-            per_org_recalibration_cache.set_guarded_adjusted_factor(
-                self.organization.id, adjusted_factor
-            )
+        if (
+            adjusted_factor is None
+            or adjusted_factor < MIN_REBALANCE_FACTOR
+            or adjusted_factor > MAX_REBALANCE_FACTOR
+        ):
+            per_org_recalibration_cache.delete_adjusted_factor(self.organization.id)
+            return None
+
+        per_org_recalibration_cache.set_guarded_adjusted_factor(
+            self.organization.id, adjusted_factor
+        )
         return adjusted_factor
 
 

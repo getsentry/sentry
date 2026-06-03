@@ -192,6 +192,48 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             },
         )
 
+    def test_subscription_backed_org_deletes_recalibration_factor_when_out_of_bounds(
+        self,
+    ) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=1)
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                return_value=None,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=org_volume,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.legacy_recalibration_cache.get_adjusted_factor",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.get_adjusted_factor",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.delete_adjusted_factor",
+            ) as delete_per_org_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.set_guarded_adjusted_factor",
+            ) as set_per_org_factor,
+        ):
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        assert configuration.organization_recalibration_factor is None
+        delete_per_org_factor.assert_called_once_with(org.id)
+        set_per_org_factor.assert_not_called()
+
     def test_subscription_backed_org_without_sample_rate_is_disabled(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
