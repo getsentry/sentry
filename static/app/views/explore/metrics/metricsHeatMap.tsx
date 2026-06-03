@@ -27,10 +27,16 @@ import {getExploreUrl, prettifyAggregation} from 'sentry/views/explore/utils';
 interface MetricsHeatMapProps {
   actions: React.ReactNode;
   heatmapResult: UseQueryResult<HeatMapSeries>;
+  queryIndex: number;
   title?: string;
 }
 
-export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapProps) {
+export function MetricsHeatMap({
+  heatmapResult,
+  actions,
+  title,
+  queryIndex,
+}: MetricsHeatMapProps) {
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const metricLabel = useMetricLabel();
@@ -67,11 +73,11 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
 
   const getUpdatedMetricsQueryUrl = useCallback(
     (query: string) => {
-      const alteredMetricQueries: BaseMetricQuery[] = metricQueries.map(metricQuery => {
-        if (
-          metricQuery.metric.name === metric.name &&
-          metricQuery.metric.type === metric.type
-        ) {
+      const alteredMetricQueries: BaseMetricQuery[] = metricQueries.map(
+        (metricQuery, index) => {
+          if (index !== queryIndex) {
+            return metricQuery;
+          }
           return {
             ...metricQuery,
             queryParams: metricQuery.queryParams.replace({
@@ -81,15 +87,14 @@ export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapPr
             }),
           };
         }
-        return metricQuery;
-      });
+      );
       return getMetricsUrl({
         organization,
         selection,
         metricQueries: alteredMetricQueries,
       });
     },
-    [metric.name, metric.type, metricQueries, organization, selection]
+    [metricQueries, organization, queryIndex, selection]
   );
 
   return (
