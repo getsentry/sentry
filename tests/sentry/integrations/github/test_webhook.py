@@ -18,6 +18,7 @@ from fixtures.github import (
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
     push_event_with_author,
+    push_event_with_commit_authors,
 )
 from sentry import options
 from sentry.constants import ObjectStatus
@@ -793,6 +794,55 @@ class PushEventWebhookTest(APITestCase):
             ).count()
             == 1
         )
+
+    @responses.activate
+    def test_creates_external_actor_when_username_arrives_in_later_push(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        # GitHub omits the username when the commit email isn't tied to a GitHub
+        # account, so the first push creates the author without one.
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com")
+        )
+        assert response.status_code == 204
+        assert not ExternalActor.objects.filter(organization_id=self.organization.id).exists()
+
+        # A later push for the same email carries the username; the reused author
+        # must still gain its ExternalActor mapping.
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        )
+        assert response.status_code == 204
+
+        external_actors = list(ExternalActor.objects.filter(organization_id=self.organization.id))
+        assert len(external_actors) == 1
+        assert external_actors[0].user_id == member.id
+        assert external_actors[0].external_name == "@newdev"
+
+    @responses.activate
+    def test_creates_external_actor_when_username_arrives_in_later_commit(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        # Within a single push, the first commit lacks the username but a later
+        # commit for the same email includes it.
+        response = self._send_push_event(
+            push_event_with_commit_authors(
+                [
+                    {"name": "New Dev", "email": "newdev@example.com", "username": None},
+                    {"name": "New Dev", "email": "newdev@example.com", "username": "newdev"},
+                ]
+            )
+        )
+        assert response.status_code == 204
+
+        external_actors = list(ExternalActor.objects.filter(organization_id=self.organization.id))
+        assert len(external_actors) == 1
+        assert external_actors[0].user_id == member.id
+        assert external_actors[0].external_name == "@newdev"
 
     @responses.activate
     def test_does_not_duplicate_external_actor_for_casing_variant(self) -> None:

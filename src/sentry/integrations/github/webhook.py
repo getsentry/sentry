@@ -630,13 +630,22 @@ class PushEventWebhook(GitHubWebhook):
             # its optional, lets just throw it out for now
             if len(author_email) > 75:
                 author = None
-            elif author_email not in authors:
-                author, author_created = CommitAuthor.objects.get_or_create(
-                    organization_id=organization.id,
-                    email=author_email,
-                    defaults={"name": commit["author"]["name"][:128]},
-                )
-                authors[author_email] = author
+            else:
+                if author_email not in authors:
+                    author, author_created = CommitAuthor.objects.get_or_create(
+                        organization_id=organization.id,
+                        email=author_email,
+                        defaults={"name": commit["author"]["name"][:128]},
+                    )
+                    authors[author_email] = author
+                else:
+                    # Reuse the author we already resolved earlier in this push. A
+                    # later commit can still carry information (e.g. a GitHub
+                    # username) that the first commit for this email was missing, so
+                    # we continue through the upsert logic below rather than stopping
+                    # here.
+                    author = authors[author_email]
+                    author_created = False
 
                 update_kwargs = {}
 
@@ -658,7 +667,14 @@ class PushEventWebhook(GitHubWebhook):
                     except IntegrityError:
                         pass
 
-                if author_created:
+                # Create the ExternalActor mapping when the author was just created or
+                # when we've only now associated a GitHub username with an existing
+                # author. GitHub omits the commit author's username when the email is
+                # not tied to a GitHub account, so an author created by an earlier
+                # commit (in this push or a previous one) may not gain its username
+                # until a later commit. Gating solely on creation would skip those
+                # authors forever.
+                if author_created or "external_id" in update_kwargs:
                     try:
                         self.maybe_create_external_actor(
                             integration=integration,
@@ -672,8 +688,6 @@ class PushEventWebhook(GitHubWebhook):
                             "github.webhook.external_actor.error",
                             extra={"organization_id": organization.id},
                         )
-            else:
-                author = authors[author_email]
 
             if author:
                 author.preload_users()
