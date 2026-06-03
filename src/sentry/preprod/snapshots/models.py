@@ -89,6 +89,10 @@ class PreprodSnapshotComparison(DefaultFieldsModel):
     images_renamed = BoundedPositiveIntegerField(default=0)
     images_skipped = BoundedPositiveIntegerField(default=0, db_default=0)
 
+    # Set once by the orchestrator after the plan + all chunk rows are written.
+    # NULL means orchestration did not finish; also the poll's done-counting denominator.
+    chunks_total = BoundedPositiveIntegerField(null=True)
+
     # Miscellaneous fields that we don't need columns for
     extras = models.JSONField(null=True)
 
@@ -96,3 +100,38 @@ class PreprodSnapshotComparison(DefaultFieldsModel):
         app_label = "preprod"
         db_table = "sentry_preprodsnapshotcomparison"
         unique_together = ("head_snapshot_metrics", "base_snapshot_metrics")
+
+
+@cell_silo_model
+class PreprodSnapshotComparisonChunk(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    class State(IntEnum):
+        PENDING = 0
+        PROCESSING = 1
+        DONE = 2
+        FAILED = 3
+
+        @classmethod
+        def as_choices(cls) -> tuple[tuple[int, str], ...]:
+            return (
+                (cls.PENDING, "pending"),
+                (cls.PROCESSING, "processing"),
+                (cls.DONE, "done"),
+                (cls.FAILED, "failed"),
+            )
+
+    comparison = FlexibleForeignKey(
+        "preprod.PreprodSnapshotComparison",
+        on_delete=models.CASCADE,
+        related_name="chunks",
+    )
+    chunk_index = BoundedPositiveIntegerField()
+    state = BoundedPositiveIntegerField(default=State.PENDING, choices=State.as_choices())
+    attempts = BoundedPositiveIntegerField(default=0)
+    image_count = BoundedPositiveIntegerField(default=0)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_preprodsnapshotcomparisonchunk"
+        unique_together = ("comparison", "chunk_index")
