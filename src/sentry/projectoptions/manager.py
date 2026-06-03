@@ -9,14 +9,19 @@ class WellKnownProjectOption:
         self._epoch_default_list = sorted(epoch_defaults or ())
 
     def get_default(self, project=None, epoch=None):
-        from sentry.models.options.project_option import get_option
-
         if self.epoch_defaults:
             if epoch is None:
                 if project is None:
                     epoch = 1
-                else:
+                elif isinstance(project, int):
+                    from sentry.models.options.project_option import get_option
+
                     epoch = get_option(project, "sentry:option-epoch") or 1
+                else:
+                    # ``project`` may be a Django ``Project`` or an ``RpcProject``; both
+                    # support ``get_option``, which routes through the RPC service when
+                    # called in a silo without direct DB access.
+                    epoch = project.get_option("sentry:option-epoch") or 1
             # Find where in the ordered epoch list the project's epoch would go
             idx = bisect.bisect(self._epoch_default_list, epoch)
             if idx > 0:
