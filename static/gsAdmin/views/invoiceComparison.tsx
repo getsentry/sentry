@@ -17,8 +17,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getRegions} from 'sentry/utils/regions';
 
 type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
 
@@ -116,7 +116,7 @@ function localInputToUtcIso(value: string): string {
 }
 
 export function InvoiceComparison() {
-  const regions = ConfigStore.get('regions');
+  const regions = getRegions();
   const [region, setRegion] = useState(regions[0] ?? null);
   const [startInput, setStartInput] = useState(hoursAgoLocal(24));
   const [endInput, setEndInput] = useState(nowLocal());

@@ -24,6 +24,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {getRegions} from 'sentry/utils/regions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -322,7 +323,7 @@ export function CustomerDetails() {
     }
   };
 
-  const regionMap = ConfigStore.get('regions').reduce<Record<string, string>>(
+  const regionMap = getRegions().reduce<Record<string, string>>(
     (acc: any, region: any) => {
       acc[region.url] = region.name;
       return acc;

@@ -30,7 +30,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERATORS
-from sentry.search.events.filter import to_list
+from sentry.search.events.filter import ParsedTerm, to_list
 from sentry.search.utils import (
     DEVICE_CLASS,
     get_teams_for_users,
@@ -352,14 +352,25 @@ def convert_query_values(
 ) -> Sequence[QueryToken]: ...
 
 
+@overload
 def convert_query_values(
-    search_filters: Sequence[QueryToken],
+    search_filters: Sequence[ParsedTerm],
     projects: Sequence[Project],
     user: User | RpcUser | AnonymousUser | None,
     environments: Sequence[Environment] | None,
     value_converters=value_converters,
     allow_aggregate_filters=False,
-) -> Sequence[QueryToken]:
+) -> Sequence[ParsedTerm]: ...
+
+
+def convert_query_values(
+    search_filters: Sequence[QueryToken | str],
+    projects: Sequence[Project],
+    user: User | RpcUser | AnonymousUser | None,
+    environments: Sequence[Environment] | None,
+    value_converters=value_converters,
+    allow_aggregate_filters=False,
+) -> Sequence[QueryToken | str]:
     """
     Accepts a collection of SearchFilter objects and converts their values into
     a specific format, based on converters specified in `value_converters`.
@@ -389,7 +400,12 @@ def convert_query_values(
     @overload
     def convert_search_filter(search_filter: QueryOp, organization: Organization) -> QueryOp: ...
 
-    def convert_search_filter(search_filter: QueryToken, organization: Organization) -> QueryToken:
+    @overload
+    def convert_search_filter(search_filter: str, organization: Organization) -> str: ...
+
+    def convert_search_filter(
+        search_filter: QueryToken | str, organization: Organization
+    ) -> QueryToken | str:
         if isinstance(search_filter, ParenExpression):
             return search_filter._replace(
                 children=[
@@ -421,8 +437,8 @@ def convert_query_values(
         return search_filter
 
     def expand_substatus_query_values(
-        search_filters: Sequence[QueryToken], org: Organization
-    ) -> Sequence[QueryToken]:
+        search_filters: Sequence[QueryToken | str], org: Organization
+    ) -> Sequence[QueryToken | str]:
         first_status_incl = None
         first_status_excl = None
         includes_status_filter = False
