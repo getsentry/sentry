@@ -38,7 +38,7 @@ class OrganizationLegacyWebhooksEndpoint(OrganizationEndpoint):
             for p in self.get_projects(
                 request=request,
                 organization=organization,
-                project_ids=list(enabled_projects.keys()),
+                project_ids=set(enabled_projects.keys()),
             )
         }
 
