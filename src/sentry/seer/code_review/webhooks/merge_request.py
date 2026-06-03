@@ -94,9 +94,7 @@ def _is_duplicate_delivery(seen_key: str) -> bool:
     """
     try:
         cluster = redis_clusters.get("default")
-        is_first_time_seen = cluster.set(
-            seen_key, "1", ex=WEBHOOK_SEEN_TTL_SECONDS, nx=True
-        )
+        is_first_time_seen = cluster.set(seen_key, "1", ex=WEBHOOK_SEEN_TTL_SECONDS, nx=True)
     except Exception:
         logger.warning("gitlab.webhook.merge_request.mark_seen_failed")
         return False
@@ -227,9 +225,7 @@ def handle_merge_request_event(
         review_trigger = _resolve_review_trigger(action, event)
         if review_trigger is None:
             record_webhook_filtered(
-                GITLAB_WEBHOOK_EVENT,
-                action_value,
-                WebhookFilteredReason.UNSUPPORTED_ACTION,
+                GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
             )
             return
 
@@ -248,16 +244,13 @@ def handle_merge_request_event(
 
     if not preflight.allowed:
         if preflight.denial_reason:
-            record_webhook_filtered(
-                GITLAB_WEBHOOK_EVENT, action_value, preflight.denial_reason
-            )
+            record_webhook_filtered(GITLAB_WEBHOOK_EVENT, action_value, preflight.denial_reason)
         return
 
     org_code_review_settings = preflight.settings
 
     if review_trigger is not None and (
-        org_code_review_settings is None
-        or review_trigger not in org_code_review_settings.triggers
+        org_code_review_settings is None or review_trigger not in org_code_review_settings.triggers
     ):
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.TRIGGER_DISABLED
@@ -368,9 +361,7 @@ def _schedule_task(
     target_commit_sha: str,
     review_trigger: CodeReviewTrigger | None,
 ) -> None:
-    payload = _build_payload(
-        action, event, organization, repo, target_commit_sha, review_trigger
-    )
+    payload = _build_payload(action, event, organization, repo, target_commit_sha, review_trigger)
 
     # GitLab is not supported by the direct-PyGithub /v1/code_review/* endpoints;
     # it must use the scm-platform RPC counterparts at /v1/scm_code_review/*.
@@ -382,9 +373,7 @@ def _schedule_task(
     )
 
     try:
-        validated: (
-            SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
-        )
+        validated: SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
         if is_closed:
             validated = SeerCodeReviewTaskRequestForPrClosed.parse_obj(payload)
         else:
@@ -403,9 +392,7 @@ def _schedule_task(
         tags={
             "sentry_organization_id": str(organization.id),
             "sentry_organization_slug": organization.slug,
-            "sentry_integration_id": str(repo.integration_id)
-            if repo.integration_id
-            else "",
+            "sentry_integration_id": str(repo.integration_id) if repo.integration_id else "",
             "scm_provider": "gitlab",
         },
     )
@@ -428,9 +415,7 @@ def _get_note_trigger_metadata(event: Mapping[str, Any]) -> dict[str, Any]:
     """Extract trigger metadata from a GitLab note (comment) event."""
     user = event.get("user", {})
     object_attributes = event.get("object_attributes", {})
-    trigger_at = (
-        object_attributes.get("created_at") or datetime.now(timezone.utc).isoformat()
-    )
+    trigger_at = object_attributes.get("created_at") or datetime.now(timezone.utc).isoformat()
     return {
         "trigger_user": user.get("username"),
         "trigger_user_id": user.get("id"),
@@ -523,9 +508,7 @@ def _schedule_note_task(
         tags={
             "sentry_organization_id": str(organization.id),
             "sentry_organization_slug": organization.slug,
-            "sentry_integration_id": str(repo.integration_id)
-            if repo.integration_id
-            else "",
+            "sentry_integration_id": str(repo.integration_id) if repo.integration_id else "",
             "scm_provider": "gitlab",
         },
     )

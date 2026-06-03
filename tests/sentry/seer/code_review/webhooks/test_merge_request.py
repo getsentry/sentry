@@ -53,9 +53,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
 
     @pytest.fixture(autouse=True)
     def mock_seer_request(self) -> Generator[None]:
-        with patch(
-            "sentry.seer.code_review.webhooks.task.make_seer_request"
-        ) as mock_seer:
+        with patch("sentry.seer.code_review.webhooks.task.make_seer_request") as mock_seer:
             self.mock_seer = mock_seer
             yield
 
@@ -213,9 +211,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         # An "update" that only edits metadata (no new commit, no un-draft) must not
         # trigger a review.
         self._setup_code_review()
-        event = _make_event(
-            "update", changes={"title": {"previous": "a", "current": "b"}}
-        )
+        event = _make_event("update", changes={"title": {"previous": "a", "current": "b"}})
 
         with self.tasks():
             self._call_handler(event)
@@ -233,9 +229,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         # GitLab has no "ready_for_review" action; un-drafting arrives as an "update"
         # whose changes flip draft -> false, and must be treated as ready-for-review.
         self._setup_code_review()
-        event = _make_event(
-            "update", changes={"draft": {"previous": True, "current": False}}
-        )
+        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
         assert "oldrev" not in event["object_attributes"]
         # GitLab delivers "changes" at the top level, not under object_attributes.
         assert "changes" in event and "changes" not in event["object_attributes"]
@@ -244,9 +238,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
             self._call_handler(event)
 
         self.mock_seer.assert_called_once()
-        assert (
-            self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
-        )
+        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
 
     @with_feature(
         {
@@ -255,9 +247,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
             "organizations:seer-code-review-gitlab",
         }
     )
-    def test_undraft_update_via_work_in_progress_uses_review_request_endpoint(
-        self,
-    ) -> None:
+    def test_undraft_update_via_work_in_progress_uses_review_request_endpoint(self) -> None:
         self._setup_code_review()
         event = _make_event(
             "update", changes={"work_in_progress": {"previous": True, "current": False}}
@@ -267,9 +257,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
             self._call_handler(event)
 
         self.mock_seer.assert_called_once()
-        assert (
-            self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
-        )
+        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
 
     @with_feature(
         {
@@ -280,9 +268,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
     )
     def test_undraft_update_trigger_is_ready_for_review(self) -> None:
         self._setup_code_review()
-        event = _make_event(
-            "update", changes={"draft": {"previous": True, "current": False}}
-        )
+        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
 
         with self.tasks():
             self._call_handler(event)
@@ -302,9 +288,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         # An un-draft maps to ON_READY_FOR_REVIEW, so a repo that only enabled
         # ON_NEW_COMMIT must not get a review for it.
         self._setup_code_review(triggers=[CodeReviewTrigger.ON_NEW_COMMIT])
-        event = _make_event(
-            "update", changes={"draft": {"previous": True, "current": False}}
-        )
+        event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
 
         with self.tasks():
             self._call_handler(event)
@@ -586,9 +570,7 @@ class MergeRequestEventWebhookTest(GitLabTestCase):
         }
     )
     def test_payload_owner_and_name_handle_subgroups(self) -> None:
-        self._setup_code_review(
-            name="Group / Subgroup / Project", path="group/subgroup/project"
-        )
+        self._setup_code_review(name="Group / Subgroup / Project", path="group/subgroup/project")
         event = _make_event("open")
 
         with self.tasks():
@@ -825,9 +807,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @pytest.fixture(autouse=True)
     def mock_seer_request(self) -> Generator[None]:
-        with patch(
-            "sentry.seer.code_review.webhooks.task.make_seer_request"
-        ) as mock_seer:
+        with patch("sentry.seer.code_review.webhooks.task.make_seer_request") as mock_seer:
             self.mock_seer = mock_seer
             yield
 
@@ -1102,9 +1082,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         """A failing note reaction must not prevent the Seer task from being scheduled."""
         self._setup_code_review()
         event = _make_note_event()
-        self.mock_scm.create_pull_request_comment_reaction.side_effect = Exception(
-            "scm down"
-        )
+        self.mock_scm.create_pull_request_comment_reaction.side_effect = Exception("scm down")
 
         with self.tasks():
             self._call_handler(event)

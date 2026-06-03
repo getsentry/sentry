@@ -27,10 +27,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.integrations.utils.metrics import (
-    IntegrationWebhookEvent,
-    IntegrationWebhookEventType,
-)
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
@@ -134,10 +131,7 @@ class GitlabWebhook(SCMWebhook, ABC):
                 continue
 
     def get_repo(
-        self,
-        integration: RpcIntegration,
-        organization: RpcOrganization,
-        event: Mapping[str, Any],
+        self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
     ):
         """
         Given a webhook payload, get the associated Repository record.
@@ -148,17 +142,14 @@ class GitlabWebhook(SCMWebhook, ABC):
             project_id = event["project"]["id"]
         except KeyError:
             logger.warning(
-                "gitlab.webhook.missing-projectid",
-                extra={"integration_id": integration.id},
+                "gitlab.webhook.missing-projectid", extra={"integration_id": integration.id}
             )
             raise Http404()
 
         external_id = "{}:{}".format(integration.metadata["instance"], project_id)
         try:
             repo = Repository.objects.get(
-                organization_id=organization.id,
-                provider=PROVIDER_NAME,
-                external_id=external_id,
+                organization_id=organization.id, provider=PROVIDER_NAME, external_id=external_id
             )
         except Repository.DoesNotExist:
             return None
@@ -217,13 +208,8 @@ class IssuesEventWebhook(GitlabWebhook):
             self._handle_assignment(integration, event, external_issue_key)
 
         # Handle status changes (CLOSE and REOPEN)
-        if (
-            action in [GitLabIssueAction.CLOSE, GitLabIssueAction.REOPEN]
-            and organization
-        ):
-            self._handle_status_change(
-                integration, external_issue_key, action, organization.id
-            )
+        if action in [GitLabIssueAction.CLOSE, GitLabIssueAction.REOPEN] and organization:
+            self._handle_status_change(integration, external_issue_key, action, organization.id)
 
     def _handle_assignment(
         self,
@@ -354,9 +340,7 @@ class IssuesEventWebhook(GitlabWebhook):
             )
             return None
 
-        return (
-            f"{integration.metadata['domain_name']}:{path_with_namespace}#{issue_iid}"
-        )
+        return f"{integration.metadata['domain_name']}:{path_with_namespace}#{issue_iid}"
 
 
 class MergeEventWebhook(GitlabWebhook):
@@ -410,9 +394,7 @@ class MergeEventWebhook(GitlabWebhook):
             raise Http404()
 
         author = CommitAuthor.objects.get_or_create(
-            organization_id=organization.id,
-            email=author_email,
-            defaults={"name": author_name},
+            organization_id=organization.id, email=author_email, defaults={"name": author_name}
         )[0]
 
         author.preload_users()
@@ -531,9 +513,7 @@ class PushEventWebhook(GitlabWebhook):
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
-                        date_added=parse_date(commit["timestamp"]).astimezone(
-                            timezone.utc
-                        ),
+                        date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
             except IntegrityError:
                 pass
@@ -651,8 +631,6 @@ class GitlabWebhookEndpoint(Endpoint):
                         provider_key=event_handler.provider,
                     ).capture(),
                 ):
-                    event_handler(
-                        event, integration=integration, organization=organization
-                    )
+                    event_handler(event, integration=integration, organization=organization)
 
         return HttpResponse(status=204)
