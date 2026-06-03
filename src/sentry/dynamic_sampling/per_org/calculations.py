@@ -7,7 +7,6 @@ from typing import cast
 import orjson
 import sentry_sdk
 
-from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.full_rebalancing import (
     FullRebalancingInput,
@@ -34,7 +33,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
-MIN_IMPLICIT_FACTOR = 1.0
+REBALANCE_INTENSITY = 0.8
 logger = logging.getLogger(__name__)
 
 
@@ -122,7 +121,6 @@ def run_transaction_balancing(
     project_volumes: list[ProjectVolume],
     transaction_volumes: list[ProjectTransactionCounts],
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
-    intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity")
     sample_rates = config.get_project_sample_rates()
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
     project_volume_by_id = {
@@ -153,70 +151,49 @@ def run_transaction_balancing(
                 sample_rate=sample_rate,
                 total_num_classes=project_volume.num_distinct_transactions,
                 total=project_volume.total,
-                intensity=intensity,
+                intensity=REBALANCE_INTENSITY,
             )
         )
 
-        if implicit_rate < MIN_IMPLICIT_FACTOR * sample_rate:
-            named_rates, implicit_rate = _apply_implicit_factor_floor(
+        if implicit_rate < sample_rate:
+            named_rates, implicit_rate = _apply_implicit_sample_rate_floor(
                 named_rates=named_rates,
-                implicit_rate=implicit_rate,
-                base_sample_rate=sample_rate,
-                total=project_volume.total,
-                min_implicit_factor=MIN_IMPLICIT_FACTOR,
-                intensity=intensity,
+                implicit_sample_rate=implicit_rate,
+                floor_sample_rate=sample_rate,
+                total_volume=project_volume.total,
             )
 
         result[project_id] = (named_rates, implicit_rate)
     return result
 
 
-def _apply_implicit_factor_floor(
+def _apply_implicit_sample_rate_floor(
     named_rates: list[RebalancedItem],
-    implicit_rate: float,
-    base_sample_rate: float,
-    total: int,
-    min_implicit_factor: float,
-    intensity: float,
+    implicit_sample_rate: float,
+    floor_sample_rate: float,
+    total_volume: int,
 ) -> tuple[list[RebalancedItem], float]:
-    """Clamp the implicit factor to at least ``min_implicit_factor`` by reducing
-    the explicit pool's budget by the same amount the implicit pool gains.
+    total_explicit_volume = sum(item.count for item in named_rates)
+    total_implicit_volume = total_volume - total_explicit_volume
+    if total_explicit_volume <= 0 or total_implicit_volume <= 0:
+        return named_rates, floor_sample_rate
 
-    The floor expressed as a *factor* is ``min_implicit_factor`` — i.e. the
-    floor on ``implicit_rate / base_sample_rate``. Setting it to 1.0 guarantees
-    that the long-tail bucket is sampled at least at the project's base rate.
+    additional_implicit_volume = (floor_sample_rate - implicit_sample_rate) * total_implicit_volume
+    previously_used_explicit_volume = sum(item.count * item.new_sample_rate for item in named_rates)
+    new_explicit_volume = previously_used_explicit_volume - additional_implicit_volume
 
-    Conservation holds when ``min_implicit_factor * total_implicit <= total``
-    (always true when ``min_implicit_factor <= 1``). In the pathological case
-    where the requested floor would consume more than the total budget, the
-    explicit pool drops to rate 0 and some overshoot remains; callers should
-    rely on the recalibration loop to absorb the residual.
-    """
+    if new_explicit_volume <= 0:
+        return [], floor_sample_rate
 
-    floor = min_implicit_factor * base_sample_rate
-    total_explicit = sum(item.count for item in named_rates)
-    total_implicit = total - total_explicit
-    if total_explicit <= 0 or total_implicit <= 0:
-        return named_rates, floor
-
-    # Budget the implicit pool would consume at the floor, minus what the model
-    # had already allocated to it. The explicit pool pays the difference.
-    additional_implicit = (floor - implicit_rate) * total_implicit
-    original_explicit_used = sum(item.count * item.new_sample_rate for item in named_rates)
-    new_explicit_budget = original_explicit_used - additional_implicit
-
-    if new_explicit_budget <= 0:
-        return [], floor
-
-    new_explicit_rate = new_explicit_budget / total_explicit
+    new_explicit_sample_rate = new_explicit_volume / total_explicit_volume
     new_rates, _ = FullRebalancingModel().run(
         FullRebalancingInput(
             classes=[RebalancedItem(id=item.id, count=item.count) for item in named_rates],
-            sample_rate=new_explicit_rate,
-            intensity=intensity,
+            sample_rate=new_explicit_sample_rate,
+            intensity=REBALANCE_INTENSITY,
         )
     )
-    return new_rates, floor
+    return new_rates, floor_sample_rate
 
 
 def get_cached_rebalanced_transaction_sample_rates(
