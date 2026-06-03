@@ -23,7 +23,7 @@ const EMPTY_TAG_COLLECTIONS: TraceItemTagCollections = {
   stringAttributes: {},
 };
 
-export function useMetricGroupByFallbackAttributes({
+export function useMetricFallbackAttributes({
   enabled,
   traceMetric,
 }: {
@@ -69,6 +69,8 @@ export function useMetricGroupByFallbackAttributes({
         (canFetchTraceDetails && traceDetailsResult.isLoading)),
   };
 }
+
+export const useMetricGroupByFallbackAttributes = useMetricFallbackAttributes;
 
 function getTagCollectionsFromTraceItemAttributes(
   attributes: TraceItemResponseAttribute[]
