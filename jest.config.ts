@@ -47,12 +47,12 @@ const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const optionalTags: {
-  tests_count: number | 'all';
+  total_tests?: number | 'all';
   node_index?: number;
   node_total?: number;
   balancer_strategy?: string;
 } = {
-  tests_count: JEST_TESTS?.length ?? 'all',
+  total_tests: undefined,
   node_index: undefined,
   node_total: undefined,
   balancer_strategy: undefined,
@@ -214,6 +214,7 @@ if (
   );
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
+  optionalTags.total_tests = JEST_TESTS.length;
   optionalTags.node_total = nodeTotal;
   optionalTags.node_index = nodeIndex;
 
