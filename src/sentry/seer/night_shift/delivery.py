@@ -12,7 +12,7 @@ from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.seer.autofix.utils import AutofixStoppingPoint, read_preference_from_sentry_db
+from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
 from sentry.seer.night_shift.models import TriageResponse
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
@@ -126,13 +126,15 @@ def _process_verdicts(
         for group in groups_by_id.values():
             group.project.organization = organization
 
-        # Build stopping_point_by_project_id from project preferences
+        # Build stopping_point_by_project_id from project preferences (bulk query)
+        project_ids = {c.group.project_id for c in fixable_candidates}
+        preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_ids))
         stopping_point_by_project_id = {
-            c.group.project_id: AutofixStoppingPoint(
-                read_preference_from_sentry_db(c.group.project).automated_run_stopping_point
+            pid: AutofixStoppingPoint(
+                preferences[pid].automated_run_stopping_point
                 or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
             )
-            for c in fixable_candidates
+            for pid in project_ids
         }
 
         results = _run_autofix_for_candidates(
