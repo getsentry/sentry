@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any
 
-from sentry.api import client
+from sentry.api.client import ApiClient, ApiError
 from sentry.issues.grouptype import registry as group_type_registry
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -461,7 +461,7 @@ def get_issue_filter_keys(
 
     # Get event tags
     event_params = {**base_params, "dataset": Dataset.Events.value, "useCache": "1"}
-    event_resp = client.get(
+    event_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/",
@@ -471,7 +471,7 @@ def get_issue_filter_keys(
 
     # Get issue tags (search_issues dataset)
     issue_params = {**base_params, "dataset": Dataset.IssuePlatform.value, "useCache": "1"}
-    issue_resp = client.get(
+    issue_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/",
@@ -498,7 +498,7 @@ def get_issue_filter_keys(
         "useFlagsBackend": "1",
         "useCache": "1",
     }
-    flags_resp = client.get(
+    flags_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/",
@@ -603,7 +603,7 @@ def get_filter_key_values(
 
     # 1. Try events dataset (regular tags)
     events_params = {**base_params, "dataset": Dataset.Events.value}
-    events_resp = client.get(
+    events_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
@@ -614,7 +614,7 @@ def get_filter_key_values(
 
     # 2. Try search_issues dataset
     issues_params = {**base_params, "dataset": Dataset.IssuePlatform.value}
-    issues_resp = client.get(
+    issues_resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
@@ -626,7 +626,7 @@ def get_filter_key_values(
     # 3. Try flags backend (feature flags) only if no results were found. This is only enabled for events dataset
     if not all_results:
         flags_params = {**base_params, "dataset": Dataset.Events.value, "useFlagsBackend": "1"}
-        flags_resp = client.get(
+        flags_resp = ApiClient().get(
             auth=api_key,
             user=None,
             path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
@@ -711,14 +711,14 @@ def execute_issues_query(
         params["sort"] = sort
 
     try:
-        resp = client.get(
+        resp = ApiClient().get(
             auth=api_key,
             user=None,
             path=f"/organizations/{organization.slug}/issues/",
             params=params,
         )
         return resp.data
-    except client.ApiError as e:
+    except ApiError as e:
         if e.status_code == 400:
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return {"error": str(error_detail) if error_detail is not None else str(e.body)}
@@ -777,7 +777,7 @@ def get_issues_stats(
         params["start"] = start
         params["end"] = end
 
-    resp = client.get(
+    resp = ApiClient().get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/issues-stats/",

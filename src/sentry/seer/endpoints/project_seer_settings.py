@@ -39,6 +39,7 @@ from sentry.seer.autofix.utils import (
     AutomationCodingAgent,
     get_automation_handoff,
     get_valid_automated_run_stopping_points,
+    is_seer_seat_based_tier_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -313,20 +314,17 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
     return queryset
 
 
-class ProjectSettingsUpdateSerializer(CamelSnakeSerializer):
+class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer):
     agent = serializers.ChoiceField(choices=[*AutomationCodingAgent], required=False)
     integration_id = serializers.IntegerField(required=False)
     stopping_point = serializers.ChoiceField(choices=[*AutofixStoppingPoint], required=False)
     scanner_automation = serializers.BooleanField(required=False)
     automation_tuning = serializers.ChoiceField(
-        choices=[AutofixAutomationTuningSettings.OFF, AutofixAutomationTuningSettings.MEDIUM],
-        required=False,
+        choices=[*AutofixAutomationTuningSettings], required=False
     )
 
-    def validate_stopping_point(self, value: str) -> str:
-        if value not in get_valid_automated_run_stopping_points(self.context["organization"]):
-            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
-        return value
+    def _update_fields(self) -> set[str]:
+        return {"agent", "stopping_point", "scanner_automation", "automation_tuning"}
 
     def validate_integration_id(self, value: int) -> int:
         organization = self.context["organization"]
@@ -335,6 +333,11 @@ class ProjectSettingsUpdateSerializer(CamelSnakeSerializer):
         )
         if not org_integrations:
             raise serializers.ValidationError(f"{value} is not a valid integration.")
+        return value
+
+    def validate_stopping_point(self, value: str) -> str:
+        if value not in get_valid_automated_run_stopping_points(self.context["organization"]):
+            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
     def validate(self, data):
@@ -353,17 +356,37 @@ class ProjectSettingsUpdateSerializer(CamelSnakeSerializer):
                     {"agent": "Must be an external coding agent when integration_id is provided."}
                 )
 
-        if not any(
-            k in data
-            for k in ("agent", "stopping_point", "scanner_automation", "automation_tuning")
-        ):
+        if not any(k in data for k in self._update_fields()):
             raise serializers.ValidationError("At least one update field must be provided.")
+
+        return data
+
+
+class ProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
+    """Seat-based (new) Seer: restricted tuning choices, stopping point sync."""
+
+    automation_tuning = serializers.ChoiceField(
+        choices=[AutofixAutomationTuningSettings.OFF, AutofixAutomationTuningSettings.MEDIUM],
+        required=False,
+    )
+
+    def validate(self, data):
+        data = super().validate(data)
 
         # Keep stopping point in sync with handoff auto_create_pr.
         if "stopping_point" in data and "auto_create_pr" not in data:
             data["auto_create_pr"] = data["stopping_point"] == AutofixStoppingPoint.OPEN_PR
 
         return data
+
+
+class LegacyProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
+    """Legacy Seer: accepts auto_create_pr and all tuning/stopping point values."""
+
+    auto_create_pr = serializers.BooleanField(required=False)
+
+    def _update_fields(self) -> set[str]:
+        return super()._update_fields() | {"auto_create_pr"}
 
 
 @cell_silo_endpoint
@@ -379,7 +402,12 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
         return Response(serialize_project(project))
 
     def put(self, request: Request, project: Project) -> Response:
-        serializer = ProjectSettingsUpdateSerializer(
+        serializer_cls = (
+            ProjectSettingsUpdateSerializer
+            if is_seer_seat_based_tier_enabled(project.organization)
+            else LegacyProjectSettingsUpdateSerializer
+        )
+        serializer = serializer_cls(
             data=request.data, context={"organization": project.organization}
         )
         if not serializer.is_valid():
@@ -400,6 +428,10 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
 
 
 class BulkProjectSettingsUpdateSerializer(ProjectSettingsUpdateSerializer):
+    query = serializers.CharField(required=False, default="")
+
+
+class LegacyBulkProjectSettingsUpdateSerializer(LegacyProjectSettingsUpdateSerializer):
     query = serializers.CharField(required=False, default="")
 
 
@@ -440,9 +472,12 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
-        serializer = BulkProjectSettingsUpdateSerializer(
-            data=request.data, context={"organization": organization}
+        serializer_cls = (
+            BulkProjectSettingsUpdateSerializer
+            if is_seer_seat_based_tier_enabled(organization)
+            else LegacyBulkProjectSettingsUpdateSerializer
         )
+        serializer = serializer_cls(data=request.data, context={"organization": organization})
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 

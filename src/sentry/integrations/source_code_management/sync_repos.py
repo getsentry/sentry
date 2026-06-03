@@ -432,6 +432,11 @@ def create_repos_batch(
             provider=provider_key,
         )
 
+    if created_repos:
+        repository_service.auto_link_repos_by_name(
+            organization_id=rpc_org.id, repo_ids=[r.id for r in created_repos]
+        )
+
 
 @instrumented_task(
     name="sentry.integrations.source_code_management.sync_repos.disable_repos_batch",
