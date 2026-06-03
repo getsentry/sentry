@@ -74,9 +74,9 @@ class GroupPullRequestsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"pullRequests": []}
 
-    def test_returns_recent_resolving_pull_requests(self) -> None:
-        recent_pr, recent_link = self.create_linked_pull_request(
-            key="1", title="Recent PR", linked_delta=timedelta(days=2)
+    def test_returns_resolving_pull_requests(self) -> None:
+        newer_pr, newer_link = self.create_linked_pull_request(
+            key="1", title="Newer PR", linked_delta=timedelta(days=2)
         )
         self.create_linked_pull_request(key="2", title="Old PR", linked_delta=timedelta(days=91))
         self.create_linked_pull_request(
@@ -93,22 +93,21 @@ class GroupPullRequestsEndpointTest(APITestCase):
             group=self.group,
             project=self.group.project,
             type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
-            data={"pull_request": recent_pr.id + 1000},
+            data={"pull_request": newer_pr.id + 1000},
         )
 
         with self.feature(self.feature_name):
             response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert len(response.data["pullRequests"]) == 1
-        assert response.data["pullRequests"][0]["id"] == "1"
-        assert response.data["pullRequests"][0]["title"] == "Recent PR"
+        assert [item["id"] for item in response.data["pullRequests"]] == ["1", "2"]
+        assert response.data["pullRequests"][0]["title"] == "Newer PR"
         assert response.data["pullRequests"][0]["repository"]["name"] == "getsentry/sentry"
         assert (
             response.data["pullRequests"][0]["externalUrl"]
-            == f"https://github.com/getsentry/sentry/pull/{recent_pr.key}"
+            == f"https://github.com/getsentry/sentry/pull/{newer_pr.key}"
         )
-        assert response.data["pullRequests"][0]["dateLinked"] == recent_link.datetime
+        assert response.data["pullRequests"][0]["dateLinked"] == newer_link.datetime
         assert "author" in response.data["pullRequests"][0]
 
     def test_ignores_pull_requests_with_repositories_in_other_orgs(self) -> None:

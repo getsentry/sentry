@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Literal, TypedDict
 
-from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,13 +12,12 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.pullrequest import (
     PullRequestSerializer,
     PullRequestSerializerResponse,
 )
-from sentry.constants import CELL_API_DEPRECATION_DATE, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
@@ -30,7 +28,6 @@ from sentry.models.repository import Repository
 logger = logging.getLogger(__name__)
 
 DEFAULT_LIMIT = 5
-DEFAULT_DAYS = 90
 
 PullRequestStatus = Literal["merged", "open", "closed", "draft", "unknown"]
 
@@ -134,10 +131,6 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(
-        CELL_API_DEPRECATION_DATE,
-        url_names=["sentry-api-0-organization-group-pull-requests"],
-    )
     def get(self, request: Request, group: Group) -> Response[GroupPullRequestsResponse]:
         if not features.has(
             "organizations:issue-details-linked-pull-requests",
@@ -146,15 +139,12 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
         ):
             return Response(status=404)
 
-        cutoff = timezone.now() - timedelta(days=DEFAULT_DAYS)
-
         group_links = list(
             GroupLink.objects.filter(
                 group_id=group.id,
                 project_id=group.project_id,
                 linked_type=GroupLink.LinkedType.pull_request,
                 relationship=GroupLink.Relationship.resolves,
-                datetime__gte=cutoff,
             ).order_by("-datetime")[:DEFAULT_LIMIT]
         )
 
