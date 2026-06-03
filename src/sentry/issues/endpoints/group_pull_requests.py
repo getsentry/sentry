@@ -137,13 +137,14 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
         )
 
         pull_request_ids = [link.linked_id for link in group_links]
-        pull_requests_by_id = PullRequest.objects.in_bulk(pull_request_ids)
+        pull_requests_by_id = PullRequest.objects.filter(
+            id__in=pull_request_ids,
+            organization_id=group.project.organization_id,
+        ).in_bulk()
         pull_requests = [
             pull_requests_by_id[pull_request_id]
             for pull_request_id in pull_request_ids
             if pull_request_id in pull_requests_by_id
-            and pull_requests_by_id[pull_request_id].organization_id
-            == group.project.organization_id
         ]
 
         repositories_by_id = Repository.objects.filter(
