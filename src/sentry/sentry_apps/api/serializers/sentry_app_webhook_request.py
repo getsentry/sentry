@@ -41,7 +41,7 @@ class SentryAppWebhookRequestSerializerResponse(TypedDict):
     response_body: NotRequired[str | None]
 
 
-class SentryAppWebhookRequestSerializer(Serializer):
+class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerializerResponse]):
     def __init__(self, sentry_app: SentryApp) -> None:
         self.sentry_app = sentry_app
 
