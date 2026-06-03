@@ -242,7 +242,6 @@ export type SentryApp = {
   uuid: string;
   verifyInstall: boolean;
   webhookUrl: string | null;
-  webhookHeaders?: string[];
   allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];
   clientId?: string;
@@ -253,6 +252,7 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  webhookHeaders?: string[];
 };
 
 // Minimal Sentry App representation for use with avatars

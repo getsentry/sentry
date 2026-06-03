@@ -709,7 +709,9 @@ function SentryApplicationForm({
                 autosize
                 value={field.state.value}
                 onChange={field.handleChange}
-                placeholder={'anthropic-version: 2023-06-01\nauthorization: Bearer token123'}
+                placeholder={
+                  'anthropic-version: 2023-06-01\nauthorization: Bearer token123'
+                }
               />
             </field.Layout.Row>
           )}
