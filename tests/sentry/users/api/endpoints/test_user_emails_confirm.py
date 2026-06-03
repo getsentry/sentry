@@ -130,11 +130,48 @@ class UserEmailsConfirmTest(APITestCase):
         assert resp.status_code == 200
         assert resp.redirect_chain == [(reverse("sentry-account-settings-emails"), 302)]
 
+        # Confirmation is idempotent: re-confirming an already-verified email
+        # succeeds rather than surfacing an error.
         messages = list(resp.context["messages"])
         assert len(messages) == 1
-        assert (
-            messages[0].message == "The email you are trying to verify has already been verified."
+        assert messages[0].message == "Thanks for confirming your email"
+
+    def test_confirm_email_existing_unverified(self) -> None:
+        from sentry import options
+
+        EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
+
+        self.login_as(self.user)
+
+        new_email = "newemailfromsignedurl@example.com"
+
+        # An unverified row already exists (e.g. created when the email was added).
+        UserEmail.objects.create(
+            user=self.user,
+            email=new_email,
+            is_verified=False,
         )
+
+        signed_data = sign(
+            user_id=self.user.id,
+            email=new_email,
+            salt=EMAIL_CONFIRMATION_SALT,
+        )
+
+        signed_url = reverse("sentry-account-confirm-signed-email", args=[signed_data])
+
+        resp = self.client.get(signed_url, follow=True)
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [(reverse("sentry-account-settings-emails"), 302)]
+
+        # The existing row is verified in place, not duplicated.
+        user_email = UserEmail.objects.get(user=self.user, email=new_email)
+        assert user_email.is_verified
+        assert UserEmail.objects.filter(user=self.user, email=new_email).count() == 1
+
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert messages[0].message == "Thanks for confirming your email"
 
     def test_confirm_email_expired_signature(self) -> None:
         from datetime import timedelta

@@ -46,16 +46,8 @@ ERR_SIGNATURE_EXPIRED = _(
     "Settings to resend the verification email."
 )
 
-INFO_EMAIL_ALREADY_VERIFIED = _("The email you are trying to verify has already been verified.")
-
 
 class InvalidRequest(Exception):
-    pass
-
-
-class VerifiedEmailAlreadyExists(Exception):
-    """email already exists as a verified email on the account"""
-
     pass
 
 
@@ -419,19 +411,11 @@ def confirm_signed_email(
         if request.user.id != int(data["user_id"]):
             raise InvalidRequest
 
-        # check to see if the email has already been verified
-        try:
-            email = UserEmail.objects.get(user=request.user.id, email=data["email"])
-            if email.is_verified:
-                raise VerifiedEmailAlreadyExists()
-        except UserEmail.DoesNotExist:
-            # user email does not exist, so we can create it
-            pass
-    except VerifiedEmailAlreadyExists:
-        msg = INFO_EMAIL_ALREADY_VERIFIED
-        level = messages.INFO
-        messages.add_message(request, level, msg)
-        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+        email, _created = UserEmail.objects.update_or_create(
+            user_id=request.user.id,
+            email=data["email"],
+            defaults={"validation_hash": "", "is_verified": True},
+        )
     except SignatureExpired:
         msg = ERR_SIGNATURE_EXPIRED
         level = messages.ERROR
@@ -448,15 +432,6 @@ def confirm_signed_email(
         level = messages.ERROR
         messages.add_message(request, level, msg)
         return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
-
-    user = User.objects.get(id=request.user.id)
-    email = UserEmail.objects.create(
-        user=user,
-        email=data["email"],
-        validation_hash="",
-        is_verified=True,
-    )
-    email.save()
 
     email_verified.send(email=email.email, sender=email)
     logger.info(
