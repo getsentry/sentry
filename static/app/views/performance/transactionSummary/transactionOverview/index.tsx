@@ -35,7 +35,6 @@ import {
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
-  EAP_WEB_VITALS,
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
@@ -373,29 +372,14 @@ function getEAPTotalsEventView(
   _organization: Organization,
   eventView: EventView
 ): EventView {
-  const vitals = EAP_WEB_VITALS;
-
   const totalsColumns: QueryFieldValue[] = [
     {
       kind: 'function',
       function: ['p95', '', undefined, undefined],
     },
-    {
-      kind: 'function',
-      function: ['count_unique', 'user', undefined, undefined],
-    },
   ];
 
-  return eventView.withColumns([
-    ...totalsColumns,
-    ...vitals.map(
-      vital =>
-        ({
-          kind: 'function',
-          function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
-        }) as Column
-    ),
-  ]);
+  return eventView.withColumns(totalsColumns);
 }
 
 export default TransactionOverview;
