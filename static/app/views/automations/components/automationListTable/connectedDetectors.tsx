@@ -5,6 +5,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
+import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
@@ -22,6 +23,10 @@ function ConnectedDetectorsBody({detectorIds}: {detectorIds: string[]}) {
   const detectorData = useDetectorDataContext();
   const shownIds = detectorIds.slice(0, MAX_DISPLAYED_DETECTORS);
   const hasMore = detectorIds.length > MAX_DISPLAYED_DETECTORS;
+
+  if (detectorData?.isError) {
+    return <LoadingError />;
+  }
 
   if (!detectorData || detectorData.isPending) {
     return (

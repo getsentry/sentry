@@ -7,6 +7,7 @@ import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 interface DetectorDataContextValue {
   detectorsById: Map<string, Detector>;
+  isError: boolean;
   isPending: boolean;
 }
 
@@ -25,8 +26,15 @@ export function DetectorDataContextProvider({
 }) {
   const organization = useOrganization();
   const queryEnabled = detectorIds.length > 0;
-  const {data, isPending: queryIsPending} = useQuery({
-    ...detectorListApiOptions(organization, {ids: detectorIds}),
+  const {
+    data,
+    isPending: queryIsPending,
+    isError,
+  } = useQuery({
+    ...detectorListApiOptions(organization, {
+      ids: detectorIds,
+      limit: detectorIds.length,
+    }),
     enabled: queryEnabled,
   });
   const isPending = queryEnabled && queryIsPending;
@@ -42,7 +50,10 @@ export function DetectorDataContextProvider({
     return map;
   }, [data]);
 
-  const value = useMemo(() => ({detectorsById, isPending}), [detectorsById, isPending]);
+  const value = useMemo(
+    () => ({detectorsById, isError, isPending}),
+    [detectorsById, isError, isPending]
+  );
 
   return <DetectorDataContext value={value}>{children}</DetectorDataContext>;
 }
