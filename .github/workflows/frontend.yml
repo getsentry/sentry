@@ -100,27 +100,29 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/eslint-stylish.json"
 
-      # When this resolves a merge base, lint just the impacted files; otherwise (non-PR
-      # events, or no merge base) lint everything — the same fallback the Jest job uses.
-      - name: Compute merge base
-        id: merge-base
-        run: echo "merge_base=$(./.github/workflows/scripts/git-merge-base.sh)" >> "$GITHUB_OUTPUT"
+      # Decide whether to lint just the PR's impacted files or everything (see
+      # frontend-changed-scope.sh): we scope to impacted files only when a merge base
+      # resolves and every changed file lives under static/, otherwise we lint everything —
+      # global config or dependency changes can't be traced from source files.
+      - name: Compute lint strategy
+        id: strategy
+        run: ./.github/workflows/scripts/frontend-changed-scope.sh >> "$GITHUB_OUTPUT"
 
       - name: eslint (all files)
         id: eslint
-        if: steps.merge-base.outputs.merge_base == ''
+        if: steps.strategy.outputs.scope == 'full'
         run: pnpm run lint:js
 
-      # When a merge base was computed, lint just the files transitively impacted by the PR.
-      # Diff the merge base against HEAD^2 (the PR head) so we only seed on the PR's own
-      # changes — same range the Jest job uses. Diffing against the working tree (the merge
-      # commit) would also pull in everything that landed on master since the fork point.
+      # Lint just the files transitively impacted by the PR. Diff the merge base against
+      # HEAD^2 (the PR head) so we only seed on the PR's own changes. Diffing against the
+      # working tree (the merge commit) would also pull in everything that landed on master
+      # since the fork point.
       - name: eslint (impacted files)
         id: eslint-impacted
-        if: steps.merge-base.outputs.merge_base != ''
+        if: steps.strategy.outputs.scope == 'scoped'
         run: pnpm exec run-on-changed --since "$MERGE_BASE..HEAD^2" -- eslint --concurrency=3
         env:
-          MERGE_BASE: ${{ steps.merge-base.outputs.merge_base }}
+          MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
 
   knip:
