@@ -1408,7 +1408,7 @@ def _finalize_comparison(
             "app_id_temp": head_artifact.app_id or "",
         }
 
-        e2e_duration_s = (timezone.now() - comparison.date_added).total_seconds()
+        e2e_duration_s = (timezone.now() - head_artifact.date_added).total_seconds()
         metrics.distribution(
             "preprod.snapshots.e2e_duration_s",
             e2e_duration_s,

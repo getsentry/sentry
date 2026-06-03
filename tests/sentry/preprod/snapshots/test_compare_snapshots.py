@@ -288,6 +288,46 @@ class PollSnapshotComparisonTest(TestCase):
         assert called_manifest.head_artifact_id == h.id
         assert called_session is session
 
+    def test_finalize_is_exactly_once(self):
+        from sentry.preprod.snapshots.manifest import (
+            ChunkResult,
+            ComparisonImageResult,
+            ComparisonPlan,
+        )
+        from sentry.preprod.snapshots.tasks import poll_snapshot_comparison
+
+        comparison, h, b = self._comparison(1)
+        PreprodSnapshotComparisonChunk.objects.create(
+            comparison=comparison,
+            chunk_index=0,
+            state=PreprodSnapshotComparisonChunk.State.DONE,
+            image_count=1,
+        )
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        plan = ComparisonPlan(
+            head_artifact_id=h.id, base_artifact_id=b.id, chunks=[], non_diff_images={}
+        )
+        chunk_result = ChunkResult(
+            chunk_index=0, images={"a.png": ComparisonImageResult(status="changed")}
+        )
+        stored = {
+            f"{prefix}/plan.json": orjson.dumps(plan.dict()),
+            f"{prefix}/chunks/0.json": orjson.dumps(chunk_result.dict()),
+        }
+        session = _mock_session_with_manifests(stored)
+        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
+            key, contents
+        )
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as mock_auto_approve,
+        ):
+            poll_snapshot_comparison(**self._kwargs(comparison, h, b))
+            poll_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert mock_auto_approve.call_count == 1
+
     def test_dead_orchestrator_redispatched(self):
         from datetime import timedelta
 
