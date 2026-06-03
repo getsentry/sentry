@@ -367,12 +367,18 @@ class GitHubWebhook(SCMWebhook, ABC):
 
         external_name = f"@{gh_username.lstrip('@')}"
 
+        # GitHub usernames are case-insensitive, and mapping resolution elsewhere
+        # matches on external_name__iexact. Match the same way here so we don't
+        # create a casing-variant duplicate (e.g. @User vs @user) that would split
+        # assignment/codeowner resolution. The __iexact lookup is used only for the
+        # match; the actual (case-preserving) value is written via defaults.
         ExternalActor.objects.get_or_create(
             organization_id=organization.id,
             provider=provider,
-            external_name=external_name,
+            external_name__iexact=external_name,
             user_id=user.id,
             defaults={
+                "external_name": external_name,
                 "integration_id": integration.id,
                 "external_id": str(gh_user_id) if gh_user_id else None,
                 "source": ExternalActorSource.COMMIT_AUTHOR.value,

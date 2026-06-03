@@ -795,6 +795,34 @@ class PushEventWebhookTest(APITestCase):
         )
 
     @responses.activate
+    def test_does_not_duplicate_external_actor_for_casing_variant(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        integration = self._setup_github_integration_and_repo()
+
+        # Pre-existing mapping uses a different casing than the webhook payload.
+        existing = ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            user_id=member.id,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@NewDev",
+        )
+
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        )
+        assert response.status_code == 204
+
+        external_actors = list(
+            ExternalActor.objects.filter(organization_id=self.organization.id, user_id=member.id)
+        )
+        assert len(external_actors) == 1
+        # The original casing is preserved; no casing-variant duplicate is created.
+        assert external_actors[0].id == existing.id
+        assert external_actors[0].external_name == "@NewDev"
+
+    @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github.webhook.PushEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
