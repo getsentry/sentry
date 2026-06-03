@@ -45,9 +45,9 @@ export function useMetricGroupByFallbackAttributes({
     defined(firstSample?.[TraceMetricKnownFieldKey.TRACE]);
 
   const traceDetailsResult = useMetricTraceDetail({
-    metricId: String(firstSample?.[TraceMetricKnownFieldKey.ID] ?? ''),
-    projectId: String(firstSample?.[TraceMetricKnownFieldKey.PROJECT_ID] ?? ''),
-    traceId: String(firstSample?.[TraceMetricKnownFieldKey.TRACE] ?? ''),
+    metricId: firstSample?.[TraceMetricKnownFieldKey.ID] ?? '',
+    projectId: firstSample?.[TraceMetricKnownFieldKey.PROJECT_ID] ?? '',
+    traceId: firstSample?.[TraceMetricKnownFieldKey.TRACE] ?? '',
     timestamp: getTimeStampFromTableDateField(
       firstSample?.[TraceMetricKnownFieldKey.TIMESTAMP]
     ),
