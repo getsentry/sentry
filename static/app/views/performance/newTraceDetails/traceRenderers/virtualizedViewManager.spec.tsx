@@ -272,7 +272,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTraceView({width: 100, x: 100});
       manager.recomputeSpanToPXMatrix();
 
-      expect(manager.computeTraceIconEdge(109.5, 18)).toBeNull();
+      expect(manager.computeTraceIconPlacement(109.5, 18, [100, 100]).edge).toBeNull();
     });
 
     it('anchors end-clamped icons to the visible trace end in a zoomed view', () => {
@@ -291,7 +291,10 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTraceView({width: 100, x: 100});
       manager.recomputeSpanToPXMatrix();
 
-      expect(manager.computeTraceIconAnchorTimestamp(199.5, 'end')).toBe(200);
+      const placement = manager.computeTraceIconPlacement(199.5, 18, [100, 100]);
+
+      expect(placement.edge).toBe('end');
+      expect(placement.anchorTimestamp).toBe(200);
     });
   });
 

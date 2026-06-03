@@ -10,20 +10,23 @@ import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDeta
 import {TraceIssueIcons} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
 
 const manager = {
-  computeTraceIconAnchorTimestamp: (timestamp: number, edge: 'start' | 'end' | null) => {
-    if (edge === 'start') {
-      return 1000;
-    }
-    if (edge === 'end') {
-      return 1100;
-    }
-    return timestamp;
-  },
-  computeTraceIconEdge: (timestamp: number) => {
-    if (timestamp < 1009) {
-      return 'start';
-    }
-    return null;
+  computeTraceIconPlacement: (
+    timestamp: number,
+    width: number,
+    nodeSpace: [number, number]
+  ) => {
+    const clampedTimestamp = Math.min(
+      Math.max(timestamp, nodeSpace[0]),
+      nodeSpace[0] + nodeSpace[1]
+    );
+    const edge = clampedTimestamp < 1009 ? 'start' : null;
+    const anchorTimestamp = edge === 'start' ? nodeSpace[0] : clampedTimestamp;
+
+    return {
+      edge,
+      anchorTimestamp,
+      bounds: [anchorTimestamp - width / 2, anchorTimestamp + width / 2],
+    };
   },
   computeRelativeLeftPositionFromOrigin: (
     timestamp: number,
@@ -170,10 +173,16 @@ describe('TraceIssueIcons', () => {
   });
 
   it('uses measured issue count text width for child-derived issue pill edge clamping', () => {
-    const computeTraceIconEdge = jest.fn(() => null);
+    const computeTraceIconPlacement = jest.fn(
+      (timestamp: number, width: number, nodeSpace: [number, number]) => ({
+        edge: null,
+        anchorTimestamp: timestamp,
+        bounds: [nodeSpace[0], nodeSpace[0] + width],
+      })
+    );
     const measuredManager = {
       ...manager,
-      computeTraceIconEdge,
+      computeTraceIconPlacement,
       text_measurer: {
         measure: jest.fn(() => 32),
       },
@@ -205,7 +214,7 @@ describe('TraceIssueIcons', () => {
     );
 
     expect(measuredManager.text_measurer.measure).toHaveBeenCalledWith('1');
-    expect(computeTraceIconEdge).toHaveBeenCalledWith(1040, 56);
+    expect(computeTraceIconPlacement).toHaveBeenCalledWith(1040, 56, [1000, 100]);
   });
 
   it('keeps a child-derived issue pill centered when it does not overlap the span edge', () => {

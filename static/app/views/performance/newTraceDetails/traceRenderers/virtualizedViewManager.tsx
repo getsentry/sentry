@@ -25,6 +25,14 @@ import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
 
+type TraceIconEdge = 'start' | 'end' | null;
+
+interface TraceIconPlacement {
+  anchorTimestamp: number;
+  bounds: [number, number];
+  edge: TraceIconEdge;
+}
+
 function easeOutSine(x: number): number {
   return Math.sin((x * Math.PI) / 2);
 }
@@ -1146,7 +1154,51 @@ export class VirtualizedViewManager {
     return (timestamp - entire_space[0]) / entire_space[1];
   }
 
-  computeTraceIconEdge(timestamp: number, iconWidthPx: number): 'start' | 'end' | null {
+  computeTraceIconPlacement(
+    timestamp: number,
+    iconWidthPx: number,
+    span_space: [number, number]
+  ): TraceIconPlacement {
+    const span_start = span_space[0];
+    const span_end = span_space[0] + span_space[1];
+    const clamped_timestamp = clamp(timestamp, span_start, span_end);
+    const edge = this.computeTraceIconEdge(clamped_timestamp, iconWidthPx);
+    const anchorTimestamp = clamp(
+      this.computeTraceIconAnchorTimestamp(clamped_timestamp, edge),
+      span_start,
+      span_end
+    );
+    const icon_width_config_space = iconWidthPx * this.span_to_px[0];
+
+    if (edge === 'start') {
+      return {
+        edge,
+        anchorTimestamp,
+        bounds: [anchorTimestamp, anchorTimestamp + icon_width_config_space],
+      };
+    }
+
+    if (edge === 'end') {
+      return {
+        edge,
+        anchorTimestamp,
+        bounds: [anchorTimestamp - icon_width_config_space, anchorTimestamp],
+      };
+    }
+
+    const half_icon_width_config_space = icon_width_config_space / 2;
+
+    return {
+      edge,
+      anchorTimestamp,
+      bounds: [
+        anchorTimestamp - half_icon_width_config_space,
+        anchorTimestamp + half_icon_width_config_space,
+      ],
+    };
+  }
+
+  private computeTraceIconEdge(timestamp: number, iconWidthPx: number): TraceIconEdge {
     const halfIconWidthPx = iconWidthPx / 2;
     const x = this.transformXFromTimestamp(timestamp);
 
@@ -1161,9 +1213,9 @@ export class VirtualizedViewManager {
     return null;
   }
 
-  computeTraceIconAnchorTimestamp(
+  private computeTraceIconAnchorTimestamp(
     timestamp: number,
-    edge: 'start' | 'end' | null
+    edge: TraceIconEdge
   ): number {
     if (edge === 'start') {
       return this.view.to_origin + this.view.trace_view.x;
@@ -1218,12 +1270,9 @@ export class VirtualizedViewManager {
     const timestamps = getIconTimestamps(
       node,
       span_space,
-      this.span_to_px[0],
       value => this.text_measurer.measure(value),
-      [
-        this.view.to_origin + this.view.trace_view.x,
-        this.view.to_origin + this.view.trace_view.x + this.view.trace_view.width,
-      ]
+      (timestamp, iconWidthPx) =>
+        this.computeTraceIconPlacement(timestamp, iconWidthPx, span_space)
     );
     const text_left = Math.min(span_space[0], timestamps[0]!);
     const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]!);
@@ -1774,9 +1823,8 @@ export class VirtualizedViewManager {
 function getIconTimestamps(
   node: BaseNode,
   span_space: [number, number],
-  px_to_config_space: number,
   measureText: (text: string) => number,
-  visible_space: [number, number]
+  getTraceIconPlacement: (timestamp: number, iconWidthPx: number) => TraceIconPlacement
 ) {
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
@@ -1785,7 +1833,7 @@ function getIconTimestamps(
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
-  let max_icon_width = TRACE_ICON_WIDTH;
+  let max_icon_width_config_space = 0;
 
   for (const {issue, additionalIssueCount} of getRenderableTraceIssues(
     node,
@@ -1796,21 +1844,17 @@ function getIconTimestamps(
       additionalIssueCount === undefined
         ? TRACE_ICON_WIDTH
         : getTraceIconGroupWidth(additionalIssueCount, measureText);
-    const icon_width_config_space = icon_width_px * px_to_config_space;
     const timestamp = getTraceIssueTimestamp(issue, span_space);
-    const [icon_left, icon_right] = getTraceIconBounds(
-      timestamp,
-      span_space,
-      visible_space,
-      icon_width_config_space
-    );
+    const {bounds} = getTraceIconPlacement(timestamp, icon_width_px);
+    const [icon_left, icon_right] = bounds;
 
     min_icon_timestamp = Math.min(min_icon_timestamp, icon_left);
     max_icon_timestamp = Math.max(max_icon_timestamp, icon_right);
-    max_icon_width = Math.max(max_icon_width, icon_width_px);
+    max_icon_width_config_space = Math.max(
+      max_icon_width_config_space,
+      icon_right - icon_left
+    );
   }
-
-  const max_icon_width_config_space = max_icon_width * px_to_config_space;
 
   min_icon_timestamp = clamp(
     min_icon_timestamp,
@@ -1824,34 +1868,6 @@ function getIconTimestamps(
   );
 
   return [min_icon_timestamp, max_icon_timestamp];
-}
-
-function getTraceIconBounds(
-  timestamp: number,
-  span_space: [number, number],
-  visible_space: [number, number],
-  icon_width_config_space: number
-): [number, number] {
-  const clamped_timestamp = clamp(
-    timestamp,
-    span_space[0],
-    span_space[0] + span_space[1]
-  );
-  const half_icon_width_config_space = icon_width_config_space / 2;
-  const centered_icon_left = clamped_timestamp - half_icon_width_config_space;
-  const centered_icon_right = clamped_timestamp + half_icon_width_config_space;
-
-  if (centered_icon_left <= visible_space[0]) {
-    const anchor = Math.max(visible_space[0], span_space[0]);
-    return [anchor, anchor + icon_width_config_space];
-  }
-
-  if (centered_icon_right >= visible_space[1]) {
-    const anchor = Math.min(visible_space[1], span_space[0] + span_space[1]);
-    return [anchor - icon_width_config_space, anchor];
-  }
-
-  return [centered_icon_left, centered_icon_right];
 }
 
 /**

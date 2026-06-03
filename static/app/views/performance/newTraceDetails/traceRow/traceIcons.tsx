@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import clamp from 'lodash/clamp';
 
 import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
@@ -38,22 +37,13 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
         const className = getTraceIssueSeverityClassName(issue);
 
         if (additionalIssueCount !== undefined) {
-          const clampedTimestamp = clamp(
-            timestamp,
-            node_space[0],
-            node_space[0] + node_space[1]
-          );
           const width = getTraceIconGroupWidth(additionalIssueCount, text =>
             props.manager.text_measurer.measure(text)
           );
-          const edge = props.manager.computeTraceIconEdge(clampedTimestamp, width);
-          // The anchor timestamp may snap to the visible viewport edge, which can
-          // fall outside the span when the viewport extends past it. Clamp it back
-          // into the span so the pill stays flush within the bar (0%-100%).
-          const anchorTimestamp = clamp(
-            props.manager.computeTraceIconAnchorTimestamp(clampedTimestamp, edge),
-            node_space[0],
-            node_space[0] + node_space[1]
+          const {edge, anchorTimestamp} = props.manager.computeTraceIconPlacement(
+            timestamp,
+            width,
+            node_space
           );
           const left = props.manager.computeRelativeLeftPositionFromOrigin(
             anchorTimestamp,
@@ -80,19 +70,10 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
           );
         }
 
-        const clampedTimestamp = clamp(
+        const {edge, anchorTimestamp} = props.manager.computeTraceIconPlacement(
           timestamp,
-          node_space[0],
-          node_space[0] + node_space[1]
-        );
-        const edge = props.manager.computeTraceIconEdge(
-          clampedTimestamp,
-          TRACE_ICON_WIDTH
-        );
-        const anchorTimestamp = clamp(
-          props.manager.computeTraceIconAnchorTimestamp(clampedTimestamp, edge),
-          node_space[0],
-          node_space[0] + node_space[1]
+          TRACE_ICON_WIDTH,
+          node_space
         );
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
           anchorTimestamp,
