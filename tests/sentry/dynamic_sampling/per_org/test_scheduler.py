@@ -179,7 +179,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_traffic(self) -> None:
         org = self.create_organization()
-        self.create_project(organization=org)
+        self.create_project(organization=org, teams=[])
 
         with (
             patch(
@@ -220,7 +220,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_continues_with_traffic(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
+        project = self.create_project(organization=org, teams=[])
         org_volume_5_minutes = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         org_volume_1_hour = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
         project_volumes = [_project_volume(project.id)]
@@ -311,7 +311,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         self,
     ) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
+        project = self.create_project(organization=org, teams=[])
         org_volume_1_hour = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
         project_volumes = [_project_volume(project.id)]
         rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
@@ -388,7 +388,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
-            transaction_config, get_transaction_volumes.return_value
+            transaction_config, project_volumes, get_transaction_volumes.return_value
         )
         get_factor.assert_not_called()
         get_per_org_factor.assert_not_called()
@@ -396,7 +396,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_project_volumes(self) -> None:
         org = self.create_organization()
-        self.create_project(organization=org)
+        self.create_project(organization=org, teams=[])
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
 
         with (
@@ -440,7 +440,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_transaction_volumes(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
+        project = self.create_project(organization=org, teams=[])
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
         rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
@@ -499,7 +499,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_project_balancing_for_project_mode(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
+        project = self.create_project(organization=org, teams=[])
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
         project.update_option("sentry:target_sample_rate", 0.2)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
@@ -553,7 +553,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
+        project = self.create_project(organization=org, teams=[])
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
@@ -638,7 +638,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_project_mode_without_project_rates(self) -> None:
         org = self.create_organization()
-        self.create_project(organization=org)
+        self.create_project(organization=org, teams=[])
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
 
         with (
@@ -663,7 +663,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
+        project = self.create_project(organization=org, teams=[])
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
         rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]

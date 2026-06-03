@@ -135,15 +135,8 @@ class ProjectBalancingCalculationsTest(TestCase):
 
     def test_calculate_recalibration_factor(self) -> None:
         org_volume = OrganizationDataVolume(org_id=1, total=100, indexed=25)
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.legacy_recalibration_cache.compute_adjusted_factor",
-            return_value=0.7,
-        ) as compute_adjusted_factor:
-            adjusted_factor = calculate_recalibration_factor(org_volume, 1.4, 0.5)
-
-        assert adjusted_factor == 0.7
-        compute_adjusted_factor.assert_called_once_with(1.4, 0.25, 0.5)
+        adjusted_factor = calculate_recalibration_factor(org_volume, 1.4, 0.5)
+        assert adjusted_factor == 2.8
 
 
 def _project_transactions(

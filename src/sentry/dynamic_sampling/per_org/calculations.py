@@ -21,7 +21,6 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume, sample_rate_to_float

@@ -18,7 +18,6 @@ from sentry.dynamic_sampling.per_org.calculations import (
 )
 from sentry.dynamic_sampling.per_org.configuration import (
     get_configuration,
-    per_org_recalibration_cache,
 )
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import (
@@ -146,8 +145,4 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         config, rebalanced_transactions, cached_transaction_sample_rates
     )
 
-    if config.organization_recalibration_factor is not None:
-        per_org_recalibration_cache.set_guarded_adjusted_factor(
-            config.organization.id, config.organization_recalibration_factor
-        )
     return None

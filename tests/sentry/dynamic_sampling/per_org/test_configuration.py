@@ -139,7 +139,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
     def test_subscription_backed_org_calculates_recalibration_factor(self) -> None:
         org = self.create_organization()
-        self.create_project(organization=org)
+        self.create_project(organization=org, teams=[])
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
 
         with (
@@ -186,6 +186,9 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             extra={
                 "org_id": org.id,
                 "discrepancy": pytest.approx(0.3),
+                "old_pipeline_factor": 1.1,
+                "new_pipeline_factor": 1.4,
+                "sample_rate": 0.5,
             },
         )
 

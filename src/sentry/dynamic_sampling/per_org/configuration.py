@@ -62,7 +62,7 @@ class BaseDynamicSamplingConfiguration(ABC):
     measure: SamplingMeasure
     sample_rate: TargetSampleRate = None
     should_balance_projects: bool = True
-    needs_recalibration: bool = False
+    organization_recalibration_factor: RecalibrationFactor = None
     projects: list[Project]
 
     def __init__(self, organization: Organization) -> None:
@@ -110,7 +110,7 @@ class BaseDynamicSamplingConfiguration(ABC):
         )
 
     def _get_organization_recalibration_factor(self) -> RecalibrationFactor:
-        if not self.needs_recalibration or not self.projects:
+        if not self.projects:
             return None
 
         org_volume = get_outcomes_organization_volume(
@@ -128,13 +128,13 @@ class BaseDynamicSamplingConfiguration(ABC):
                 "discrepancy": new_pipeline_factor - old_pipeline_factor,
                 "old_pipeline_factor": old_pipeline_factor,
                 "new_pipeline_factor": new_pipeline_factor,
-                "sample_rate": self.sample_rate,
+                "sample_rate": self.get_sample_rate(),
             },
         )
         adjusted_factor = calculate_recalibration_factor(
             org_volume,
             new_pipeline_factor,
-            self.sample_rate,
+            self.get_sample_rate(),
         )
         if adjusted_factor is not None:
             per_org_recalibration_cache.set_guarded_adjusted_factor(
