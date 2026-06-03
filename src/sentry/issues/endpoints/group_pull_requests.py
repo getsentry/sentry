@@ -35,6 +35,12 @@ DEFAULT_DAYS = 90
 PullRequestStatus = Literal["merged", "open", "closed", "draft", "unknown"]
 
 
+class ProviderPullRequestResponse(TypedDict, total=False):
+    draft: bool
+    merged: bool
+    state: str
+
+
 class LinkedPullRequestResponse(PullRequestSerializerResponse):
     dateLinked: datetime
     status: PullRequestStatus
@@ -53,7 +59,7 @@ def _get_pull_request_repo_name(repository: Repository) -> str:
 
 def _fetch_pull_request_status_response(
     pull_request: PullRequest, repository: Repository
-) -> object | None:
+) -> ProviderPullRequestResponse | None:
     if repository.integration_id is None:
         return None
 
@@ -71,7 +77,19 @@ def _fetch_pull_request_status_response(
     if not callable(get_pull_request):
         return None
 
-    return get_pull_request(_get_pull_request_repo_name(repository), pull_request.key)
+    response = get_pull_request(_get_pull_request_repo_name(repository), pull_request.key)
+    if not isinstance(response, Mapping):
+        return None
+
+    provider_response: ProviderPullRequestResponse = {
+        "draft": bool(response.get("draft")),
+        "merged": bool(response.get("merged")),
+    }
+    state = response.get("state")
+    if isinstance(state, str):
+        provider_response["state"] = state
+
+    return provider_response
 
 
 def _get_pull_request_status(
@@ -94,18 +112,15 @@ def _get_pull_request_status(
         )
         return "unknown"
 
-    if not isinstance(response, Mapping):
+    if response is None:
         return "unknown"
 
     if response.get("draft"):
         return "draft"
     if response.get("merged"):
         return "merged"
-    if response.get("state") == "closed":
-        return "closed"
-    if response.get("state") == "open":
-        return "open"
-    return "unknown"
+    state = response.get("state")
+    return state if state in ("closed", "open") else "unknown"
 
 
 @cell_silo_endpoint
