@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import type {Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
@@ -33,16 +33,22 @@ export function useVirtualizedItems<T extends ObjectLike>({
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const heightEstimation = heightEstimations[size];
 
-  const virtualizer = useVirtualizer({
-    count: listItems.length,
-    getScrollElement: () => scrollElementRef?.current,
-    estimateSize: index => {
+  const estimateSize = useCallback(
+    (index: number) => {
       const item = listItems[index];
       if (item?.value && 'details' in item.value) {
         return heightEstimation.large;
       }
       return heightEstimation.regular;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [heightEstimation.large, heightEstimation.regular, listItems]
+  );
+
+  const virtualizer = useVirtualizer({
+    count: listItems.length,
+    getScrollElement: () => scrollElementRef?.current,
+    estimateSize,
     enabled: virtualized,
   });
 
@@ -52,7 +58,6 @@ export function useVirtualizedItems<T extends ObjectLike>({
       items: virtualizedItems,
       scrollElementRef,
       itemProps: (index: number) => ({
-        ref: virtualizer.measureElement,
         'data-index': index,
       }),
       wrapperProps: {

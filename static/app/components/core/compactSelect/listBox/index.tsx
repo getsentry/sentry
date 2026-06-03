@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -309,10 +309,8 @@ function useVirtualizedItems<T extends ListItemBase>({
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const heightEstimation = heightEstimations[size];
 
-  const virtualizer = useVirtualizer({
-    count: listItems.length,
-    getScrollElement: () => scrollElementRef?.current,
-    estimateSize: index => {
+  const estimateSize = useCallback(
+    (index: number) => {
       const item = listItems[index];
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (item?.props?.details) {
@@ -320,6 +318,14 @@ function useVirtualizedItems<T extends ListItemBase>({
       }
       return heightEstimation.regular;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [heightEstimation.large, heightEstimation.regular, listItems]
+  );
+
+  const virtualizer = useVirtualizer({
+    count: listItems.length,
+    getScrollElement: () => scrollElementRef?.current,
+    estimateSize,
     enabled: virtualized,
   });
 
@@ -332,7 +338,6 @@ function useVirtualizedItems<T extends ListItemBase>({
       },
       scrollElementRef,
       itemProps: (index: number) => ({
-        ref: virtualizer.measureElement,
         'data-index': index,
       }),
       wrapperProps: {
