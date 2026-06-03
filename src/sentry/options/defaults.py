@@ -2179,13 +2179,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Preprod snapshot comparison controls
-register(
-    "preprod.snapshots.odiff-worker-count",
-    default=4,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Webhook processing controls
 register(
     "hybridcloud.webhookpayload.worker_threads",
