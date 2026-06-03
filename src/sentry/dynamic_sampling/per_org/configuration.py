@@ -166,7 +166,6 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
     """
 
     sample_rate: TargetSampleRate
-    needs_recalibration: bool = True
     organization_recalibration_factor: RecalibrationFactor
 
     def __init__(self, organization: Organization) -> None:
@@ -225,7 +224,6 @@ class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfigur
     """
 
     sample_rate: TargetSampleRate
-    needs_recalibration: bool = True
     organization_recalibration_factor: RecalibrationFactor
 
     def __init__(self, organization: Organization) -> None:
@@ -257,7 +255,6 @@ class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration
     """
 
     should_balance_projects: bool = False
-    needs_recalibration: bool = False
 
     def __init__(self, organization: Organization) -> None:
         super().__init__(organization)
