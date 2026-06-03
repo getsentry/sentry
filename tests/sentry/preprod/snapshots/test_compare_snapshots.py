@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+from django.db import IntegrityError, router, transaction
+
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotComparisonChunk,
@@ -21,12 +24,19 @@ class PreprodSnapshotComparisonChunkModelTest(TestCase):
             state=PreprodSnapshotComparison.State.PROCESSING,
         )
 
-    def test_chunk_defaults_and_uniqueness(self):
+    def test_chunk_defaults(self):
         comparison = self._comparison()
         chunk = PreprodSnapshotComparisonChunk.objects.create(comparison=comparison, chunk_index=0)
         assert chunk.state == PreprodSnapshotComparisonChunk.State.PENDING
         assert chunk.attempts == 0
         assert chunk.image_count == 0
+
+    def test_chunk_uniqueness(self):
+        comparison = self._comparison()
+        PreprodSnapshotComparisonChunk.objects.create(comparison=comparison, chunk_index=0)
+        with pytest.raises(IntegrityError):
+            with transaction.atomic(using=router.db_for_write(PreprodSnapshotComparisonChunk)):
+                PreprodSnapshotComparisonChunk.objects.create(comparison=comparison, chunk_index=0)
 
     def test_chunks_total_nullable_default(self):
         comparison = self._comparison()
