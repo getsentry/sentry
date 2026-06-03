@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -30,12 +29,10 @@ function renderIcon(repo: Repository) {
 type Props = {
   pullRequest: PullRequest;
   repository: Repository;
-  inline?: boolean;
 };
 
-export function PullRequestLink({pullRequest, repository, inline}: Props) {
+export function PullRequestLink({pullRequest, repository}: Props) {
   const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
-  const icon = renderIcon(repository);
 
   if (!pullRequest.externalUrl) {
     return (
@@ -45,17 +42,15 @@ export function PullRequestLink({pullRequest, repository, inline}: Props) {
     );
   }
 
-  return inline ? (
+  const icon = renderIcon(repository);
+
+  return (
     <ExternalPullLink href={pullRequest.externalUrl}>
       {icon && <PullRequestProviderIcon>{icon}</PullRequestProviderIcon>}
       <Text as="span" density="comfortable" variant="inherit" wordBreak="break-word">
         {displayId}
       </Text>
     </ExternalPullLink>
-  ) : (
-    <LinkButton external href={pullRequest.externalUrl} size="sm" icon={icon}>
-      {displayId}
-    </LinkButton>
   );
 }
 
