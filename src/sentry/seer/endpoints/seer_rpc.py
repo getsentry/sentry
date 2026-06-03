@@ -222,7 +222,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     authentication_classes = (SeerRpcSignatureAuthentication,)
@@ -520,7 +520,6 @@ def get_attributes_for_span(
     attributes = convert_rpc_attribute_to_json(
         response_dict.get("attributes", []),
         SupportedTraceItemType.SPANS,
-        use_sentry_conventions=False,
         include_internal=False,
     )
 

@@ -9,7 +9,7 @@ import {
   KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
-import {IconCodecov, IconEdit, IconSentry, IconSettings} from 'sentry/icons';
+import {IconEdit, IconSentry, IconSettings} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('KeyValueData', story => {
@@ -268,7 +268,7 @@ function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
         ),
         value: (
           <span style={{color: theme.colors.pink400}}>
-            Custom Value Node <IconCodecov />
+            Custom Value Node <IconSentry />
           </span>
         ),
       },

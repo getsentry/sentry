@@ -1850,7 +1850,11 @@ class GitHubPipelineAdvancerTest(IntegrationTestCase):
         )
 
     def _get_expected_redirect(self, installation_id: str = "12345") -> str:
-        return reverse("integration-installation", args=["github", installation_id])
+        return reverse(
+            "sentry-integration-installation-link",
+            kwargs={"integration_slug": "github"},
+            query={"installationId": installation_id},
+        )
 
     @responses.activate
     def test_no_pipeline_redirects_to_org_picker(self) -> None:
@@ -1874,7 +1878,7 @@ class GitHubPipelineAdvancerTest(IntegrationTestCase):
         resp = self.client.get(self._get_setup_install_url())
         assert resp.status_code == 200
         assert b"window.opener" in resp.content
-        assert b"extensions/external-install" in resp.content
+        assert b'"/extensions/github/link/?installationId=12345"' in resp.content
 
 
 @control_silo_test

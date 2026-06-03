@@ -2,25 +2,44 @@ import {useMemo} from 'react';
 
 import {Select} from '@sentry/scraps/select';
 
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
-import type {Integration} from 'sentry/types/integrations';
+import type {Integration, Repository} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmSearchControl} from './scmSearchControl';
 import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
 import {useScmRepos} from './useScmRepos';
 import {useScmRepoSelection} from './useScmRepoSelection';
 
+const REPO_SELECTED_EVENT = {
+  onboarding: 'onboarding.scm_connect_repo_selected',
+  'project-creation': 'project_creation.scm_connect_repo_selected',
+} as const;
+
 interface ScmRepoSelectorProps {
+  // Which flow this component is rendered in. Drives analytics event names.
+  analyticsFlow: ScmAnalyticsFlow;
   integration: Integration;
+  // Fired once per user-driven change (select or clear) so callers can
+  // invalidate state derived from the repo (platform, features, created
+  // project). Distinct from onRepositoryChange because the underlying repo
+  // selection hook can fire that callback multiple times for one user action
+  // (optimistic + resolved + error paths).
+  onClearDerivedState: () => void;
+  onRepositoryChange: (repo: Repository | undefined) => void;
+  selectedRepository: Repository | undefined;
 }
 
-export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
+export function ScmRepoSelector({
+  analyticsFlow,
+  integration,
+  onClearDerivedState,
+  onRepositoryChange,
+  selectedRepository,
+}: ScmRepoSelectorProps) {
   const organization = useOrganization();
-  const {selectedRepository, setSelectedRepository, clearDerivedState} =
-    useOnboardingContext();
   const {reposByIdentifier, dropdownItems, isFetching, isError} = useScmRepos(
     integration.id,
     selectedRepository
@@ -28,7 +47,7 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
 
   const {busy, handleSelect, handleRemove} = useScmRepoSelection({
     integration,
-    onSelect: setSelectedRepository,
+    onSelect: onRepositoryChange,
     reposByIdentifier,
   });
 
@@ -50,16 +69,14 @@ export function ScmRepoSelector({integration}: ScmRepoSelectorProps) {
   }, [dropdownItems, selectedRepository]);
 
   function handleChange(option: {value: string} | null) {
-    // Changing or clearing the repo invalidates downstream state (platform,
-    // features, created project) which are all derived from the selected repo.
-    clearDerivedState();
+    onClearDerivedState();
 
     if (option === null) {
       handleRemove();
     } else {
       const repo = reposByIdentifier.get(option.value);
       if (repo) {
-        trackAnalytics('onboarding.scm_connect_repo_selected', {
+        trackAnalytics(REPO_SELECTED_EVENT[analyticsFlow], {
           organization,
           provider: integration.provider.key,
           repo: repo.name,

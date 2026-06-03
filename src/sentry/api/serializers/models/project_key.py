@@ -67,7 +67,7 @@ class ProjectKeySerializerResponse(TypedDict):
 
 
 @register(ProjectKey)
-class ProjectKeySerializer(Serializer):
+class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
     def serialize(
         self, obj: ProjectKey, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> ProjectKeySerializerResponse:

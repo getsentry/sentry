@@ -27,12 +27,13 @@ const mockBooleanTags: TagCollection = {
 
 const mockDispatch = jest.fn();
 
-// Add mock for useSearchQueryBuilder
+// Add mock for search query builder contexts
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
-  useSearchQueryBuilder: () => ({
+  useSearchQueryBuilderState: () => ({
     query: '',
-    getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
     dispatch: mockDispatch,
+  }),
+  useSearchQueryBuilderLayout: () => ({
     wrapperRef: {current: null},
   }),
   SearchQueryBuilderProvider: ({children}: {children: React.ReactNode}) => children,
@@ -275,16 +276,14 @@ describe('SchemaHintsList', () => {
   });
 
   it('should remove hint from query when checkbox is unchecked on drawer', async () => {
-    const mockUseSearchQueryBuilder = jest
+    const mockUseSearchQueryBuilderState = jest
       .spyOn(
         require('sentry/components/searchQueryBuilder/context'),
-        'useSearchQueryBuilder'
+        'useSearchQueryBuilderState'
       )
       .mockImplementation(() => ({
         query: '!stringTag1:"" numberTag1:>0',
-        getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
         dispatch: mockDispatch,
-        wrapperRef: {current: null},
       }));
 
     render(
@@ -313,20 +312,18 @@ describe('SchemaHintsList', () => {
       shouldCommitQuery: false,
     });
 
-    mockUseSearchQueryBuilder.mockRestore();
+    mockUseSearchQueryBuilderState.mockRestore();
   });
 
   it('should remove aggregate hint from query when checkbox is unchecked on drawer', async () => {
-    const mockUseSearchQueryBuilder = jest
+    const mockUseSearchQueryBuilderState = jest
       .spyOn(
         require('sentry/components/searchQueryBuilder/context'),
-        'useSearchQueryBuilder'
+        'useSearchQueryBuilderState'
       )
       .mockImplementation(() => ({
         query: 'stringTag1:"" numberTag1:>0 count_unique(user):>0',
-        getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
         dispatch: mockDispatch,
-        wrapperRef: {current: null},
       }));
 
     render(
@@ -355,7 +352,7 @@ describe('SchemaHintsList', () => {
       shouldCommitQuery: false,
     });
 
-    mockUseSearchQueryBuilder.mockRestore();
+    mockUseSearchQueryBuilderState.mockRestore();
   });
 
   it('should keep drawer open when query is updated', async () => {
@@ -415,16 +412,14 @@ describe('SchemaHintsList', () => {
   });
 
   it('should set focus override propely on duplicate filters', async () => {
-    const mockUseSearchQueryBuilder = jest
+    const mockUseSearchQueryBuilderState = jest
       .spyOn(
         require('sentry/components/searchQueryBuilder/context'),
-        'useSearchQueryBuilder'
+        'useSearchQueryBuilderState'
       )
       .mockImplementation(() => ({
         query: 'stringTag1:"something"',
-        getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
         dispatch: mockDispatch,
-        wrapperRef: {current: null},
       }));
 
     render(
@@ -449,7 +444,7 @@ describe('SchemaHintsList', () => {
       shouldCommitQuery: false,
     });
 
-    mockUseSearchQueryBuilder.mockRestore();
+    mockUseSearchQueryBuilderState.mockRestore();
   });
 
   it('should filter schema hints in bar but show all in drawer for logs source', async () => {

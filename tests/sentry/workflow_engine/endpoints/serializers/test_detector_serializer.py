@@ -50,7 +50,6 @@ class TestDetectorSerializer(TestCase):
             "alertRuleId": None,
             "ruleId": None,
             "latestGroup": None,
-            "openIssues": 0,
         }
 
     def test_serialize_full(self) -> None:
@@ -183,7 +182,6 @@ class TestDetectorSerializer(TestCase):
             "alertRuleId": None,
             "ruleId": None,
             "latestGroup": mock.ANY,
-            "openIssues": 1,
         }
 
     def test_serialize_latest_group(self) -> None:

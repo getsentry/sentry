@@ -421,6 +421,48 @@ export function getDeviceContextData({
           subject: t('Supports Vibration'),
           value: data.supports_vibration,
         };
+      case DeviceContextKey.TIMEZONE:
+        return {
+          key: ctxKey,
+          subject: t('Timezone'),
+          value: data.timezone,
+        };
+      case DeviceContextKey.LOCALE:
+        return {
+          key: ctxKey,
+          subject: t('Locale'),
+          value: data.locale,
+        };
+      case DeviceContextKey.ARCHS:
+        return {
+          key: ctxKey,
+          subject: t('Architectures'),
+          value: data.archs,
+        };
+      case DeviceContextKey.CHIPSET:
+        return {
+          key: ctxKey,
+          subject: t('Chipset'),
+          value: data.chipset,
+        };
+      case DeviceContextKey.CONNECTION_TYPE:
+        return {
+          key: ctxKey,
+          subject: t('Connection Type'),
+          value: data.connection_type,
+        };
+      case DeviceContextKey.LOW_POWER_MODE:
+        return {
+          key: ctxKey,
+          subject: t('Low Power Mode'),
+          value: data.low_power_mode,
+        };
+      case DeviceContextKey.THERMAL_STATE:
+        return {
+          key: ctxKey,
+          subject: t('Thermal State'),
+          value: data.thermal_state,
+        };
       default:
         return {
           key: ctxKey,

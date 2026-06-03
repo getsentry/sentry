@@ -134,7 +134,14 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
 
-  ${p => (p.sticky ? `position: sticky; top: 0; z-index: ${Z_INDEX_STICKY_HEADER}` : '')}
+  ${p =>
+    p.sticky
+      ? css`
+          position: sticky;
+          top: 0;
+          z-index: ${Z_INDEX_STICKY_HEADER};
+        `
+      : ''}
 `;
 
 export const GridHeadCell = styled('th')<{isFirst: boolean}>`

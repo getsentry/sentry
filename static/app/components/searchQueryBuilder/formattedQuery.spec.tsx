@@ -15,9 +15,11 @@ const FILTER_KEYS: TagCollection = {
 };
 
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
-  useSearchQueryBuilder: () => ({
-    size: 'normal',
+  useSearchQueryBuilderConfig: () => ({
     getFieldDefinition: () => null,
+  }),
+  useSearchQueryBuilderLayout: () => ({
+    size: 'normal',
   }),
 }));
 

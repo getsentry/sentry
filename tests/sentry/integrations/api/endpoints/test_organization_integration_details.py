@@ -89,7 +89,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
             response = self.get_error_response(
                 self.organization.slug, self.integration.id, **config, status_code=400
             )
-            assert response.data["detail"] == ["hello"]
+            assert response.data["detail"] == "hello"
 
         with patch.object(
             GitlabIntegration,
@@ -99,7 +99,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
             response = self.get_error_response(
                 self.organization.slug, self.integration.id, **config, status_code=400
             )
-            assert response.data["detail"] == ["hi"]
+            assert response.data["detail"] == "hi"
 
 
 @control_silo_test

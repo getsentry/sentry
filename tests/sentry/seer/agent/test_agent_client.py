@@ -76,7 +76,7 @@ class TestSeerAgentClient(TestCase):
         mock_collect_context.assert_called_once_with(self.user, self.organization, request=None)
         assert mock_post.called
         body = mock_post.call_args[0][0]
-        assert "enable_frontend_code_search" not in body
+        assert "enable_frontend_code_search" not in body["agent_run_options"]
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
@@ -148,7 +148,7 @@ class TestSeerAgentClient(TestCase):
         body = mock_post.call_args[0][0]
         assert body["category_key"] == "bug-fixer"
         assert body["category_value"] == "issue-123"
-        assert body["enable_frontend_code_search"] is True
+        assert body["agent_run_options"]["enable_frontend_code_search"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_init_category_key_only_raises_error(self, mock_access):
@@ -279,7 +279,7 @@ class TestSeerAgentClient(TestCase):
         assert run_id == 456
         assert mock_post.called
         body = mock_post.call_args[0][0]
-        assert "enable_frontend_code_search" not in body
+        assert "enable_frontend_code_search" not in body["agent_run_options"]
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
@@ -299,7 +299,7 @@ class TestSeerAgentClient(TestCase):
 
         assert run_id == 789
         body = mock_post.call_args[0][0]
-        assert body["enable_frontend_code_search"] is True
+        assert body["agent_run_options"]["enable_frontend_code_search"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")

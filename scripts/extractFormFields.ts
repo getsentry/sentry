@@ -11,8 +11,14 @@ import {fileURLToPath} from 'node:url';
 
 import * as ts from 'typescript';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Named THIS_FILE / THIS_DIR rather than the conventional __filename /
+// __dirname so SWC's CJS transform (used by Jest) doesn't emit a
+// `const __dirname = ...` that collides with the wrapper-provided
+// binding and crashes the frontend test run with a SyntaxError.
+// Behavior-equivalent at runtime — the originals only shadowed the
+// wrapper inside this module.
+const THIS_FILE = fileURLToPath(import.meta.url);
+const THIS_DIR = path.dirname(THIS_FILE);
 
 interface ExtractedField {
   formId: string;
@@ -480,14 +486,14 @@ ${registryEntries}
 
 // Main execution
 try {
-  const configPath = path.join(__dirname, '../tsconfig.json');
+  const configPath = path.join(THIS_DIR, '../tsconfig.json');
   const extractor = new FormFieldExtractor(configPath);
 
   console.log('🔍 Extracting form fields from TypeScript files...');
   const fields = extractor.extractAllFields();
 
   const outputPath = path.join(
-    __dirname,
+    THIS_DIR,
     '../static/app/components/core/form/generatedFieldRegistry.ts'
   );
 
