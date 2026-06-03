@@ -17,7 +17,7 @@ const DEFAULT_FILTERS = {
   f_e_project: [],
 } as Record<ErrorSelectOption['qs'], string[]>;
 
-export type FilterFields = {
+type FilterFields = {
   f_e_level: string[];
   f_e_project: string[];
   f_e_search: string;

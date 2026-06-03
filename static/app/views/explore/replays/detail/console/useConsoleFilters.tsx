@@ -11,7 +11,7 @@ import {
 } from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 
-export type FilterFields = {
+type FilterFields = {
   f_c_logLevel: string[];
   f_c_search: string;
 };

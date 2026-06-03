@@ -18,7 +18,7 @@ const DEFAULT_FILTERS = {
   f_n_type: [],
 } as Record<NetworkSelectOption['qs'], string[]>;
 
-export type FilterFields = {
+type FilterFields = {
   f_n_method: string[];
   f_n_search: string;
   f_n_status: string[];

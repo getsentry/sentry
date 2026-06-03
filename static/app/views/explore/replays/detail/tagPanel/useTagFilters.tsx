@@ -5,7 +5,7 @@ import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersIn
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
-export type FilterFields = {
+type FilterFields = {
   f_t_search: string;
 };
 
