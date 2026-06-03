@@ -87,6 +87,53 @@ class UserEmailsTest(APITestCase):
         assert user.email != "altemail1@example.com"
         assert user.username != "altemail1@example.com"
 
+    def test_change_email_not_on_account_to_primary(self) -> None:
+        response = self.client.put(self.url, data={"email": "neveradded@example.com"})
+        assert response.status_code == 400, response.data
+
+        user = User.objects.get(id=self.user.id)
+        assert user.email == "foo@example.com"
+        assert not UserEmail.objects.filter(user=self.user, email="neveradded@example.com").exists()
+
+    def test_change_to_email_on_another_account(self) -> None:
+        shared_email = "shared@example.com"
+        # another account already owns this email as its primary
+        self.create_user(email=shared_email)
+        # current user has added and verified the same email as a secondary
+        self.create_useremail(user=self.user, email=shared_email, is_verified=True)
+
+        response = self.client.put(self.url, data={"email": shared_email})
+        assert response.status_code == 400, response.data
+        assert "another account" in str(response.data["email"])
+
+        user = User.objects.get(id=self.user.id)
+        assert user.email == "foo@example.com"
+
+    def test_change_primary_migrates_matching_user_options(self) -> None:
+        new_email = "altemail1@example.com"
+        self.create_useremail(user=self.user, email=new_email, is_verified=True)
+
+        # a per-project notification option pointing at the current primary
+        matching_option = UserOption.objects.create(
+            user=self.user, project_id=self.project.id, key="mail:email", value="foo@example.com"
+        )
+        # a per-project option pointing at a different address - must be left alone
+        other_project = self.create_project(organization=self.organization)
+        unrelated_option = UserOption.objects.create(
+            user=self.user,
+            project_id=other_project.id,
+            key="mail:email",
+            value="elsewhere@example.com",
+        )
+
+        response = self.client.put(self.url, data={"email": new_email})
+        assert response.status_code == 200, response.data
+
+        matching_option.refresh_from_db()
+        unrelated_option.refresh_from_db()
+        assert matching_option.value == new_email
+        assert unrelated_option.value == "elsewhere@example.com"
+
     def test_remove_email(self) -> None:
         UserEmail.objects.create(user=self.user, email="altemail1@example.com")
 

@@ -46,6 +46,8 @@ ERR_SIGNATURE_EXPIRED = _(
     "Settings to resend the verification email."
 )
 
+SUCCESS_CONFIRMING_EMAIL = _("Thanks for confirming your email")
+
 
 class InvalidRequest(Exception):
     pass
@@ -398,9 +400,6 @@ def confirm_signed_email(
 ) -> HttpResponseRedirect | HttpResponse:
     EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
 
-    msg = _("Thanks for confirming your email")
-    level = messages.SUCCESS
-
     try:
         data = unsign(
             signed_data, salt=EMAIL_CONFIRMATION_SALT, max_age=2 * 24 * 60 * 60
@@ -417,31 +416,23 @@ def confirm_signed_email(
             defaults={"validation_hash": "", "is_verified": True},
         )
     except SignatureExpired:
-        msg = ERR_SIGNATURE_EXPIRED
-        level = messages.ERROR
-        messages.add_message(request, level, msg)
-        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+        msg, level = ERR_SIGNATURE_EXPIRED, messages.ERROR
     except (InvalidRequest, BadSignature):
-        msg = ERR_CONFIRMING_EMAIL
-        level = messages.ERROR
-        messages.add_message(request, level, msg)
-        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+        msg, level = ERR_CONFIRMING_EMAIL, messages.ERROR
     except Exception:
         logger.exception("user.email.signed-confirm.error")
-        msg = ERR_CONFIRMING_EMAIL
-        level = messages.ERROR
-        messages.add_message(request, level, msg)
-        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
-
-    email_verified.send(email=email.email, sender=email)
-    logger.info(
-        "user.email.signed-confirm",
-        extra={
-            "user_id": request.user.id,
-            "ip_address": request.META["REMOTE_ADDR"],
-            "email": email.email,
-        },
-    )
+        msg, level = ERR_CONFIRMING_EMAIL, messages.ERROR
+    else:
+        email_verified.send(email=email.email, sender=email)
+        logger.info(
+            "user.email.signed-confirm",
+            extra={
+                "user_id": request.user.id,
+                "ip_address": request.META["REMOTE_ADDR"],
+                "email": email.email,
+            },
+        )
+        msg, level = SUCCESS_CONFIRMING_EMAIL, messages.SUCCESS
 
     messages.add_message(request, level, msg)
     return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
