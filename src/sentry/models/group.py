@@ -246,7 +246,7 @@ STATUS_UPDATE_CHOICES = {
 # Maps the Activity type driving a status change to the action we record, mirroring
 # ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS. Substatus-only transitions (e.g.
 # AUTO_SET_ONGOING, SET_ESCALATING) have no entry and are intentionally not recorded.
-ACTIVITY_TYPE_TO_GROUP_ACTION: dict[int, type[GroupAction]] = {
+ACTIVITY_TYPE_TO_GROUP_ACTION: dict[int, type[GroupAction]] = {  # TODO DEDUPLICATE
     ActivityType.SET_RESOLVED.value: ResolveAction,
     ActivityType.SET_RESOLVED_IN_COMMIT.value: ResolveAction,
     ActivityType.SET_RESOLVED_IN_RELEASE.value: ResolveAction,

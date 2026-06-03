@@ -25,12 +25,14 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.action_log import ActionSource, publish_action
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.registry import invoke_workflow_activity_handlers
 from sentry.workflow_engine.types import DetectorId
+from sentry.utils.action_log.activity_translator import activity_to_action
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -107,6 +109,20 @@ class ActivityManager(BaseManager["Activity"]):
             activity.send_notification()
 
         invoke_workflow_activity_handlers(group, activity, detector_id)
+
+        return activity
+
+    def create(self, **kwargs: Any) -> Activity:
+        activity = super().create(**kwargs)
+
+        group_action = activity_to_action(activity)
+        publish_action(
+            group_action,
+            source=ActionSource.UNKNOWN,  # TODO figure this out
+            group_id=kwargs["group"].id,
+            organization_id=kwargs["group"].organization.id,
+            project_id=kwargs["group"].project.id,
+        )
 
         return activity
 
