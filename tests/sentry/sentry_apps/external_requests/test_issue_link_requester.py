@@ -5,6 +5,7 @@ import responses
 from requests import HTTPError
 
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.sentry_apps.external_requests.issue_link_requester import (
     FAILURE_REASON_BASE,
     IssueLinkRequester,
@@ -216,6 +217,48 @@ class TestIssueLinkRequester(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
         )
+
+    @responses.activate
+    def test_request_failure_records_external_response_diagnostics(self) -> None:
+        # A 4xx body that stands in for sensitive data the integrator returned.
+        external_body = "token=super-secret-do-not-leak"
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/link-issue",
+            body=external_body,
+            status=400,
+        )
+
+        captured: dict[str, object] = {}
+        original_record_halt = EventLifecycle.record_halt
+
+        def spy(self: EventLifecycle, *args: object, **kwargs: object) -> None:
+            captured["extra"] = kwargs.get("extra")
+            return original_record_halt(self, *args, **kwargs)
+
+        with patch.object(EventLifecycle, "record_halt", autospec=True, side_effect=spy):
+            with pytest.raises(SentryAppIntegratorError) as exception_info:
+                IssueLinkRequester(
+                    install=self.install,
+                    group=self.group,
+                    uri="/link-issue",
+                    fields={},
+                    user=self.rpc_user,
+                    action=IssueRequestActionType("create"),
+                ).run()
+
+        # The external status code and (truncated) body are forwarded to the
+        # internal halt log so we can see why these requests fail.
+        halt_extra = captured["extra"]
+        assert isinstance(halt_extra, dict)
+        assert halt_extra["external_status_code"] == 400
+        assert halt_extra["external_response_body"] == external_body
+
+        # ...but they must never reach the client-facing message or the
+        # integrator webhook_context.
+        assert external_body not in exception_info.value.message
+        assert "external_response_body" not in exception_info.value.webhook_context
+        assert "external_status_code" not in exception_info.value.webhook_context
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

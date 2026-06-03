@@ -30,6 +30,9 @@ FAILURE_REASON_BASE = f"{SentryAppEventType.EXTERNAL_ISSUE_LINKED}.{{}}"
 BAD_RESPONSE_HALT_REASON = FAILURE_REASON_BASE.format(
     SentryAppExternalRequestHaltReason.BAD_RESPONSE
 )
+# External response bodies can be large and may contain sensitive data, so we
+# only log a truncated copy to internal logs (never surfaced to the client).
+MAX_LOGGED_RESPONSE_BODY = 1024
 
 
 class IssueRequestActionType(StrEnum):
@@ -116,9 +119,21 @@ class IssueLinkRequester:
                 )
             except RequestException as e:
                 extras["error_message"] = str(e)
+
+                # Forward the status code and body the external service actually
+                # returned so we can tell why these requests fail. Kept in the
+                # internal halt log only — not added to the client-facing
+                # message or the integrator webhook_context, since the body is
+                # unbounded and may contain sensitive data.
+                log_extras = {**extras}
+                response = getattr(e, "response", None)
+                if response is not None:
+                    log_extras["external_status_code"] = response.status_code
+                    log_extras["external_response_body"] = response.text[:MAX_LOGGED_RESPONSE_BODY]
+
                 lifecycle.record_halt(
                     halt_reason=e,
-                    extra={"halt_reason": BAD_RESPONSE_HALT_REASON, **extras},
+                    extra={"halt_reason": BAD_RESPONSE_HALT_REASON, **log_extras},
                 )
 
                 raise SentryAppIntegratorError(
