@@ -168,12 +168,17 @@ def query_commit_author_public_emails(
         gh_id = str(profile["id"]) if profile.get("id") else None
         external_name = f"@{username}"
         try:
+            # GitHub usernames are case-insensitive, so match existing rows
+            # case-insensitively (consistent with the external_actor API
+            # serializer and sync.py) to avoid creating duplicate mappings that
+            # differ only in casing. The canonical casing is stored via defaults.
             _, created = ExternalActor.objects.get_or_create(
                 organization_id=organization_id,
                 provider=provider,
-                external_name=external_name,
+                external_name__iexact=external_name,
                 user_id=user_id,
                 defaults={
+                    "external_name": external_name,
                     "integration_id": integration_id,
                     "external_id": gh_id,
                     "source": ExternalActorSource.SCM_API.value,
