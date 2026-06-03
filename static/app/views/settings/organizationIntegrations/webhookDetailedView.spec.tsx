@@ -66,7 +66,10 @@ describe('WebhookDetailedView', () => {
     render(<WebhookDetailedView />, {
       organization,
       initialRouterConfig: {
-        location: {query: {tab: 'configurations'}},
+        location: {
+          pathname: `/settings/${organization.slug}/plugins/webhooks/`,
+          query: {tab: 'configurations'},
+        },
       },
     });
 
@@ -84,7 +87,10 @@ describe('WebhookDetailedView', () => {
     render(<WebhookDetailedView />, {
       organization,
       initialRouterConfig: {
-        location: {query: {tab: 'configurations'}},
+        location: {
+          pathname: `/settings/${organization.slug}/plugins/webhooks/`,
+          query: {tab: 'configurations'},
+        },
       },
     });
 
