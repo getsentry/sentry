@@ -347,45 +347,37 @@ class GitHubWebhook(SCMWebhook, ABC):
         - the email is not an anonymous GitHub noreply address, and
         - the email resolves to exactly one verified member of the organization.
         """
-        try:
-            if not gh_username:
-                return
-
-            if self.is_anonymous_email(commit_author.email):
-                return
-
-            users = commit_author.find_users()
-            # Only create a mapping when the email unambiguously resolves to a
-            # single Sentry user, otherwise we risk linking the wrong account.
-            if len(users) != 1:
-                return
-            user = users[0]
-
-            if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE.value:
-                provider = ExternalProviders.GITHUB_ENTERPRISE.value
-            else:
-                provider = ExternalProviders.GITHUB.value
-
-            external_name = f"@{gh_username.lstrip('@')}"
-
-            _, created = ExternalActor.objects.get_or_create(
-                organization_id=organization.id,
-                provider=provider,
-                external_name=external_name,
-                user_id=user.id,
-                defaults={
-                    "integration_id": integration.id,
-                    "external_id": str(gh_user_id) if gh_user_id else None,
-                    "source": ExternalActorSource.COMMIT_AUTHOR.value,
-                },
-            )
-        except Exception:
-            # Never let external actor creation disrupt the main webhook flow.
-            logger.exception(
-                "github.webhook.external_actor.error",
-                extra={"organization_id": organization.id},
-            )
+        if not gh_username:
             return
+
+        if self.is_anonymous_email(commit_author.email):
+            return
+
+        users = commit_author.find_users()
+        # Only create a mapping when the email unambiguously resolves to a
+        # single Sentry user, otherwise we risk linking the wrong account.
+        if len(users) != 1:
+            return
+        user = users[0]
+
+        if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE.value:
+            provider = ExternalProviders.GITHUB_ENTERPRISE.value
+        else:
+            provider = ExternalProviders.GITHUB.value
+
+        external_name = f"@{gh_username.lstrip('@')}"
+
+        ExternalActor.objects.get_or_create(
+            organization_id=organization.id,
+            provider=provider,
+            external_name=external_name,
+            user_id=user.id,
+            defaults={
+                "integration_id": integration.id,
+                "external_id": str(gh_user_id) if gh_user_id else None,
+                "source": ExternalActorSource.COMMIT_AUTHOR.value,
+            },
+        )
 
 
 class InstallationEventWebhook(GitHubWebhook):
@@ -661,12 +653,19 @@ class PushEventWebhook(GitHubWebhook):
                         pass
 
                 if author_created:
-                    self.maybe_create_external_actor(
-                        integration=integration,
-                        organization=organization,
-                        commit_author=author,
-                        gh_username=gh_username,
-                    )
+                    try:
+                        self.maybe_create_external_actor(
+                            integration=integration,
+                            organization=organization,
+                            commit_author=author,
+                            gh_username=gh_username,
+                        )
+                    except Exception:
+                        # Never let external actor creation disrupt the main webhook flow.
+                        logger.exception(
+                            "github.webhook.external_actor.error",
+                            extra={"organization_id": organization.id},
+                        )
             else:
                 author = authors[author_email]
 
@@ -993,13 +992,20 @@ class PullRequestEventWebhook(GitHubWebhook):
                 },
             )
             if author_created:
-                self.maybe_create_external_actor(
-                    integration=integration,
-                    organization=organization,
-                    commit_author=author,
-                    gh_username=user["login"],
-                    gh_user_id=user.get("id"),
-                )
+                try:
+                    self.maybe_create_external_actor(
+                        integration=integration,
+                        organization=organization,
+                        commit_author=author,
+                        gh_username=user["login"],
+                        gh_user_id=user.get("id"),
+                    )
+                except Exception:
+                    # Never let external actor creation disrupt the main webhook flow.
+                    logger.exception(
+                        "github.webhook.external_actor.error",
+                        extra={"organization_id": organization.id},
+                    )
 
         author.preload_users()
         try:
