@@ -44,23 +44,17 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
         result = self.get_all_values(organization)
         return result.get(key, default)
 
-    def unset_value(self, organization: int | Organization, key: str) -> None:
-        if isinstance(organization, models.Model):
-            organization_id = organization.id
-        else:
-            organization_id = organization
+    def unset_value(self, organization: Organization, key: str) -> None:
+        try:
+            inst = self.get(organization=organization, key=key)
+        except self.model.DoesNotExist:
+            return
+        inst.delete()
+        self.reload_cache(organization.id, "organizationoption.unset_value")
 
-        self.filter(organization_id=organization_id, key=key).delete()
-        self.reload_cache(organization_id, "organizationoption.unset_value")
-
-    def set_value(self, organization: int | Organization, key: str, value: Any) -> bool:
-        if isinstance(organization, models.Model):
-            organization_id = organization.id
-        else:
-            organization_id = organization
-
-        self.update_or_create(organization_id=organization_id, key=key, defaults={"value": value})
-        self.reload_cache(organization_id, "organizationoption.set_value")
+    def set_value(self, organization: Organization, key: str, value: Any) -> bool:
+        self.update_or_create(organization=organization, key=key, defaults={"value": value})
+        self.reload_cache(organization.id, "organizationoption.set_value")
         return True
 
     def get_all_values(self, organization: Organization | int) -> Mapping[str, Any]:
@@ -135,11 +129,3 @@ def get_option(
     validate: Callable[[object], bool] | None = None,
 ) -> Any:
     return OrganizationOption.objects.get_value(organization, key, default, validate)
-
-
-def set_option(organization: int | Organization, key: str, value: Any) -> bool:
-    return OrganizationOption.objects.set_value(organization, key, value)
-
-
-def unset_option(organization: int | Organization, key: str) -> None:
-    return OrganizationOption.objects.unset_value(organization, key)

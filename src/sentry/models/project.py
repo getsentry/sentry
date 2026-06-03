@@ -450,14 +450,10 @@ class Project(Model):
         """
         Updates a project option for this project.
         """
-        from sentry.models.options.project_option import set_option
-
-        return set_option(self.id, key, value)
+        return self.option_manager.set_value(self, key, value)
 
     def delete_option(self, key: str) -> None:
-        from sentry.models.options.project_option import unset_option
-
-        return unset_option(self.id, key)
+        self.option_manager.unset_value(self, key)
 
     @property
     def color(self):
