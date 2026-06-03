@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.issues.action_log.base import ActionSource
 from sentry.issues.action_log.recording import DuplicateActionError, record_group_action
 from sentry.issues.action_log.types import (
     GroupActionActor,
@@ -20,6 +21,7 @@ class RecordTest(TestCase):
             project_id=group.project_id,
             action=ViewAction(),
             actor=GroupActionActor.user(self.user.id),
+            source=ActionSource.API,
         )
 
         assert entry.group_id == group.id
@@ -27,6 +29,7 @@ class RecordTest(TestCase):
         assert entry.type == GroupActionType.VIEW
         assert entry.actor_id == self.user.id
         assert entry.actor_type == GroupActorType.USER
+        assert entry.source == ActionSource.API
         assert entry.data == {}
         assert entry.date_added is not None
 
@@ -38,6 +41,7 @@ class RecordTest(TestCase):
             project_id=group.project_id,
             action=ViewAction(),
             actor=GroupActionActor.SYSTEM,
+            source=ActionSource.SYSTEM,
         )
 
         assert entry.actor_type == GroupActorType.SYSTEM
@@ -52,6 +56,7 @@ class RecordTest(TestCase):
                 project_id=group.project_id,
                 action=ViewAction(),
                 actor=GroupActionActor.user(self.user.id),
+                source=ActionSource.API,
             )
 
         entries = list(
@@ -67,6 +72,7 @@ class RecordTest(TestCase):
             project_id=group.project_id,
             action=ViewAction(),
             actor=GroupActionActor.user(self.user.id),
+            source=ActionSource.API,
             idempotency_key="view-123",
         )
 

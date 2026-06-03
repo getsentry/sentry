@@ -51,6 +51,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.bounded.BoundedPositiveIntegerField(),
                 ),
                 ("actor_id", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
+                ("source", models.CharField(max_length=64)),
                 ("data", models.JSONField(default=dict)),
                 (
                     "date_added",

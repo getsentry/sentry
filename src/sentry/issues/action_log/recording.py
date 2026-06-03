@@ -16,6 +16,7 @@ def record_group_action(
     project_id: int,
     action: GroupAction,
     actor: GroupActionActor,
+    source: str,
     idempotency_key: str | None = None,
 ) -> GroupActionLogEntry:
     """Append an entry to the group action log."""
@@ -25,6 +26,7 @@ def record_group_action(
         type=action.get_type().value,
         actor_type=actor.actor_type.value,
         actor_id=actor.actor_id,
+        source=source,
         data=action.dict(),
         idempotency_key=idempotency_key,
     )
