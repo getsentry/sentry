@@ -834,6 +834,14 @@ def compare_snapshots(
                 },
             )
 
+        # A re-dispatch (poll's stale-orchestrator recovery) can replan with fewer
+        # chunks than a prior attempt. Drop the orphaned higher-index rows so the
+        # row set matches the current plan exactly; otherwise a leftover DONE row
+        # skews the poll's done/total counts and finalize reads a stale chunk.
+        PreprodSnapshotComparisonChunk.objects.filter(
+            comparison=comparison, chunk_index__gte=len(plan.chunks)
+        ).delete()
+
         for assignment in plan.chunks:
             process_snapshot_comparison_chunk.apply_async(
                 kwargs={

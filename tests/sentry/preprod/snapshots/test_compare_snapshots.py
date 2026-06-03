@@ -10,6 +10,7 @@ from objectstore_client.client import RequestError
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotComparisonChunk,
+    PreprodSnapshotMetrics,
 )
 from sentry.preprod.snapshots.tasks import _retry_objectstore
 from sentry.testutils.cases import TestCase
@@ -490,3 +491,65 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         assert PreprodSnapshotComparisonChunk.objects.filter(comparison=comparison).count() == 1
         assert dispatch.call_count == 1
         assert poll.called
+
+    def test_orchestrator_removes_orphan_chunk_rows_on_retry(self):
+        import orjson
+
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact = self._setup()
+        head = PreprodSnapshotMetrics.objects.get(preprod_artifact=head_artifact)
+        base = PreprodSnapshotMetrics.objects.get(preprod_artifact=base_artifact)
+        comparison = self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head,
+            base_snapshot_metrics=base,
+            state=PreprodSnapshotComparison.State.FAILED,
+        )
+        for i in range(3):
+            PreprodSnapshotComparisonChunk.objects.create(comparison=comparison, chunk_index=i)
+
+        head_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="h1", width=100, height=100)},
+            diff_threshold=None,
+        )
+        base_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="h0", width=100, height=100)},
+            diff_threshold=None,
+        )
+        session = _mock_session_with_manifests(
+            {
+                "head_manifest": orjson.dumps(head_manifest.dict()),
+                "base_manifest": orjson.dumps(base_manifest.dict()),
+            }
+        )
+        session.put.side_effect = lambda *a, **k: None
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.poll_snapshot_comparison.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        assert (
+            PreprodSnapshotComparison.objects.get(
+                head_snapshot_metrics=head, base_snapshot_metrics=base
+            ).id
+            == comparison.id
+        )
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
+        assert comparison.chunks_total == 1
+        remaining = PreprodSnapshotComparisonChunk.objects.filter(comparison=comparison)
+        assert remaining.count() == 1
+        assert list(remaining.values_list("chunk_index", flat=True)) == [0]
+        assert not PreprodSnapshotComparisonChunk.objects.filter(
+            comparison=comparison, chunk_index__in=[1, 2]
+        ).exists()
