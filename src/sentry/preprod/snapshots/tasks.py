@@ -646,7 +646,6 @@ def compare_snapshots(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
-    task_start_time = timezone.now()
     logger.info(
         "Snapshot comparison kicked off for artifacts",
         extra={
@@ -756,6 +755,17 @@ def compare_snapshots(
         update_pr_comment=False,
     )
 
+    poll_snapshot_comparison.apply_async(
+        kwargs={
+            "comparison_id": comparison.id,
+            "org_id": org_id,
+            "project_id": project_id,
+            "head_artifact_id": head_artifact_id,
+            "base_artifact_id": base_artifact_id,
+        },
+        countdown=POLL_INTERVAL,
+    )
+
     try:
         session = get_preprod_session(org_id, project_id)
 
@@ -803,389 +813,48 @@ def compare_snapshots(
             )
             return
 
-        diff_threshold = head_manifest.diff_threshold
-
-        head_images = head_manifest.images
-        base_images = base_manifest.images
-
-        head_meta_by_hash = {m.content_hash: m for m in head_images.values()}
-        base_meta_by_hash = {m.content_hash: m for m in base_images.values()}
-
-        categories = categorize_image_diff(head_manifest, base_manifest)
-        renamed_pairs = categories.renamed_pairs
-        added = categories.added
-        removed = categories.removed
-        matched = categories.matched
-        head_by_name = categories.head_by_name
-        base_by_name = categories.base_by_name
-
-        image_results: dict[str, dict[str, object]] = {}
-        changed_count = 0
-        unchanged_count = 0
-        error_count = 0
-
-        image_key_prefix = f"{org_id}/{project_id}"
-
-        eligible: list[_DiffCandidate] = []
-
-        for name in sorted(matched):
-            head_hash = head_by_name[name]
-            base_hash = base_by_name[name]
-
-            if head_hash == base_hash:
-                unchanged_count += 1
-                image_results[name] = {
-                    "status": "unchanged",
-                    "head_hash": head_hash,
-                    "base_hash": base_hash,
-                }
-                continue
-
-            head_meta = head_meta_by_hash[head_hash]
-            base_meta = base_meta_by_hash[base_hash]
-            head_pixels = head_meta.width * head_meta.height
-            base_pixels = base_meta.width * base_meta.height
-            pixel_count = max(head_pixels, base_pixels)
-
-            if pixel_count > MAX_DIFF_PIXELS:
-                error_count += 1
-                logger.warning(
-                    "Skipping oversized image in snapshot comparison",
-                    extra={
-                        "name": name,
-                        "pixel_count": pixel_count,
-                        "max_diff_pixels": MAX_DIFF_PIXELS,
-                        "head_artifact_id": head_artifact_id,
-                        "base_artifact_id": base_artifact_id,
-                    },
-                )
-                image_results[name] = {
-                    "status": "errored",
-                    "head_hash": head_hash,
-                    "base_hash": base_hash,
-                    "reason": "exceeds_pixel_limit",
-                }
-                continue
-
-            eligible.append(_DiffCandidate(name, head_hash, base_hash, pixel_count))
-
-        logger.info(
-            "compare_snapshots: image matching done",
-            extra={
-                "head_artifact_id": head_artifact_id,
-                "matched": len(matched),
-                "added": len(added),
-                "removed": len(removed),
-                "eligible_for_diff": len(eligible),
-                "unchanged_count": unchanged_count,
-                "error_count": error_count,
-            },
+        plan = _build_comparison_plan(
+            head_manifest, base_manifest, head_artifact_id, base_artifact_id
         )
 
-        total_fetched_bytes = 0
-        total_fetched_count = 0
-
-        batches = _create_pixel_batches(eligible, MAX_PIXELS_PER_BATCH)
-
-        logger.info(
-            "compare_snapshots: starting odiff, %d batches, %d pairs",
-            len(batches),
-            len(eligible),
-            extra={"head_artifact_id": head_artifact_id},
-        )
-
-        # TODO: spawn N OdiffServer workers and distribute pairs across them
-        # via a thread pool to parallelize the odiff comparison step per batch
-        with OdiffServer() as server:
-            for batch in batches:
-                diff_pairs: list[tuple[bytes, bytes]] = []
-                batch_names: list[str] = []
-                batch_hashes: list[tuple[str, str]] = []
-
-                unique_hashes: set[str] = set()
-                for candidate in batch:
-                    unique_hashes.add(candidate.head_hash)
-                    unique_hashes.add(candidate.base_hash)
-
-                # Fetch unique hashes in parallel; session.get() is thread-safe
-                fetch_cache, failed_hashes = _fetch_batch_images(
-                    session, image_key_prefix, unique_hashes
-                )
-
-                for candidate in batch:
-                    if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
-                        logger.warning(
-                            "compare_snapshots: failed to fetch images for %s",
-                            candidate.name,
-                            extra={
-                                "head_artifact_id": head_artifact_id,
-                                "head_hash": candidate.head_hash,
-                                "base_hash": candidate.base_hash,
-                            },
-                        )
-                        error_count += 1
-                        image_results[candidate.name] = {
-                            "status": "errored",
-                            "head_hash": candidate.head_hash,
-                            "base_hash": candidate.base_hash,
-                            "reason": "image_fetch_failed",
-                        }
-                        continue
-                    head_data = fetch_cache[candidate.head_hash]
-                    base_data = fetch_cache[candidate.base_hash]
-                    total_fetched_bytes += len(head_data) + len(base_data)
-                    total_fetched_count += 2
-                    diff_pairs.append((base_data, head_data))
-                    batch_names.append(candidate.name)
-                    batch_hashes.append((candidate.head_hash, candidate.base_hash))
-
-                logger.info(
-                    "compare_snapshots: running batch of %d pairs (%d unique hashes fetched)",
-                    len(diff_pairs),
-                    len(fetch_cache),
-                    extra={"head_artifact_id": head_artifact_id, "names": batch_names},
-                )
-                diff_results = compare_images_batch(diff_pairs, server=server)
-                logger.info(
-                    "compare_snapshots: batch complete, %d results",
-                    len(diff_results),
-                    extra={"head_artifact_id": head_artifact_id},
-                )
-
-                for name, (head_hash, base_hash), diff_result in zip(
-                    batch_names, batch_hashes, diff_results, strict=True
-                ):
-                    if diff_result is None:
-                        error_count += 1
-                        image_results[name] = {
-                            "status": "errored",
-                            "head_hash": head_hash,
-                            "base_hash": base_hash,
-                            "reason": "image_processing_failed",
-                        }
-                        continue
-
-                    stem = _image_name_to_path_stem(name)
-                    diff_mask_key = (
-                        f"{image_key_prefix}/{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
-                    )
-                    diff_mask_bytes = diff_result.diff_mask_png
-                    logger.info(
-                        "compare_snapshots: uploading mask for %s (%d bytes, changed_px=%d)",
-                        name,
-                        len(diff_mask_bytes),
-                        diff_result.changed_pixels,
-                        extra={
-                            "head_artifact_id": head_artifact_id,
-                            "diff_mask_key": diff_mask_key,
-                        },
-                    )
-                    _retry_objectstore(
-                        lambda: session.put(
-                            diff_mask_bytes, key=diff_mask_key, content_type="image/png"
-                        )
-                    )
-
-                    diff_pct = (
-                        diff_result.changed_pixels / diff_result.total_pixels
-                        if diff_result.total_pixels > 0
-                        else 0
-                    )
-                    specific_image_diff_threshold = head_images[name].diff_threshold
-                    effective_threshold = (
-                        specific_image_diff_threshold
-                        if specific_image_diff_threshold is not None
-                        else diff_threshold
-                        if diff_threshold is not None
-                        else 0.0
-                    )
-                    is_changed = diff_pct > effective_threshold
-                    if is_changed:
-                        changed_count += 1
-                    else:
-                        unchanged_count += 1
-
-                    logger.debug(
-                        "compare_snapshots: %s diff_pct=%.6f threshold=%s (per_image=%s global=%s) is_changed=%s pixels=%d/%d",
-                        name,
-                        diff_pct,
-                        effective_threshold,
-                        specific_image_diff_threshold,
-                        diff_threshold,
-                        is_changed,
-                        diff_result.changed_pixels,
-                        diff_result.total_pixels,
-                        extra={"head_artifact_id": head_artifact_id},
-                    )
-
-                    diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
-
-                    image_results[name] = {
-                        "status": "changed" if is_changed else "unchanged",
-                        "head_hash": head_hash,
-                        "base_hash": base_hash,
-                        "changed_pixels": diff_result.changed_pixels,
-                        "total_pixels": diff_result.total_pixels,
-                        "diff_mask_key": diff_mask_key,
-                        "diff_mask_image_id": diff_mask_image_id,
-                        "before_width": diff_result.before_width,
-                        "before_height": diff_result.before_height,
-                        "after_width": diff_result.after_width,
-                        "after_height": diff_result.after_height,
-                        "aligned_height": diff_result.aligned_height,
-                    }
-
-        for name in sorted(added):
-            image_results[name] = {"status": "added", "head_hash": head_by_name[name]}
-
-        for name in sorted(removed):
-            base_hash = base_by_name[name]
-            base_meta = base_meta_by_hash[base_hash]
-            image_results[name] = {
-                "status": "removed",
-                "base_hash": base_hash,
-                "before_width": base_meta.width,
-                "before_height": base_meta.height,
-            }
-
-        skipped = categories.skipped
-        for name in sorted(skipped):
-            base_hash = base_by_name[name]
-            base_meta = base_meta_by_hash[base_hash]
-            image_results[name] = {
-                "status": "skipped",
-                "base_hash": base_hash,
-                "before_width": base_meta.width,
-                "before_height": base_meta.height,
-            }
-
-        for new_name, old_name in sorted(renamed_pairs):
-            content_hash = head_by_name[new_name]
-            image_results[new_name] = {
-                "status": "renamed",
-                "head_hash": content_hash,
-                "previous_image_file_name": old_name,
-            }
-
-        comparison_manifest = ComparisonManifest(
-            head_artifact_id=head_artifact_id,
-            base_artifact_id=base_artifact_id,
-            summary=ComparisonSummary(
-                total=len(matched) + len(added) + len(removed) + len(renamed_pairs) + len(skipped),
-                changed=changed_count,
-                unchanged=unchanged_count,
-                added=len(added),
-                removed=len(removed),
-                errored=error_count,
-                renamed=len(renamed_pairs),
-                skipped=len(skipped),
-            ),
-            images=image_results,
-        )
-
-        comparison_key = (
-            f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/comparison.json"
-        )
+        plan_key = f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/plan.json"
         _retry_objectstore(
             lambda: session.put(
-                orjson.dumps(comparison_manifest.dict()),
-                key=comparison_key,
-                content_type="application/json",
+                orjson.dumps(plan.dict()), key=plan_key, content_type="application/json"
             )
         )
 
-        comparison.state = PreprodSnapshotComparison.State.SUCCESS
-        comparison.error_code = None
-        comparison.images_changed = changed_count
-        comparison.images_unchanged = unchanged_count
-        comparison.images_added = len(added)
-        comparison.images_removed = len(removed)
-        comparison.images_renamed = len(renamed_pairs)
-        comparison.images_skipped = len(skipped)
-        extras = comparison.extras or {}
-        # EME-896: Could become a proper column on PreprodSnapshotComparison
-        extras["comparison_key"] = comparison_key
-        extras["diff_algorithm_version"] = DIFF_ALGORITHM_VERSION
-        comparison.extras = extras
-        comparison.save(
-            update_fields=[
-                "state",
-                "error_code",
-                "images_changed",
-                "images_unchanged",
-                "images_added",
-                "images_removed",
-                "images_renamed",
-                "images_skipped",
-                "extras",
-                "date_updated",
-            ]
-        )
-
-        time_now = timezone.now()
-
-        metric_tags = {
-            "app_id_temp": head_artifact.app_id or "",
-        }
-
-        diff_duration_s = (time_now - task_start_time).total_seconds()
-        metrics.distribution(
-            "preprod.snapshots.diff.duration_s",
-            diff_duration_s,
-            sample_rate=1.0,
-            tags=metric_tags,
-        )
-
-        e2e_duration_s = (time_now - head_artifact.date_added).total_seconds()
-        metrics.distribution(
-            "preprod.snapshots.e2e_duration_s",
-            e2e_duration_s,
-            sample_rate=1.0,
-            tags=metric_tags,
-        )
-
-        if total_fetched_count > 0:
-            metrics.distribution(
-                "preprod.snapshots.image.avg_size_bytes",
-                total_fetched_bytes / total_fetched_count,
-                sample_rate=1.0,
-                tags=metric_tags,
+        for assignment in plan.chunks:
+            PreprodSnapshotComparisonChunk.objects.update_or_create(
+                comparison=comparison,
+                chunk_index=assignment.chunk_index,
+                defaults={
+                    "state": PreprodSnapshotComparisonChunk.State.PENDING,
+                    "image_count": len(assignment.candidates),
+                },
             )
 
-        if (
-            changed_count == 0
-            and not added
-            and not removed
-            and not renamed_pairs
-            and not error_count
-        ):
-            metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0, tags=metric_tags)
-
-        try:
-            _try_auto_approve_snapshot(head_artifact, comparison_manifest, session)
-        except Exception:
-            logger.exception(
-                "Auto-approve failed after successful comparison",
-                extra={"head_artifact_id": head_artifact_id},
+        for assignment in plan.chunks:
+            process_snapshot_comparison_chunk.apply_async(
+                kwargs={
+                    "comparison_id": comparison.id,
+                    "chunk_index": assignment.chunk_index,
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "head_artifact_id": head_artifact_id,
+                    "base_artifact_id": base_artifact_id,
+                }
             )
 
-        update_preprod_snapshot_vcs(
-            preprod_artifact_id=head_artifact_id,
-            caller="compare_completion",
-        )
+        comparison.chunks_total = len(plan.chunks)
+        comparison.save(update_fields=["chunks_total", "date_updated"])
 
         logger.info(
-            "Snapshot comparison complete",
+            "compare_snapshots: orchestration dispatched",
             extra={
                 "head_artifact_id": head_artifact_id,
                 "base_artifact_id": base_artifact_id,
-                "organization_slug": head_artifact.project.organization.slug,
-                "changed": changed_count,
-                "unchanged": unchanged_count,
-                "added": len(added),
-                "removed": len(removed),
-                "renamed": len(renamed_pairs),
-                "errored": error_count,
+                "chunks_total": len(plan.chunks),
             },
         )
 

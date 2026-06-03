@@ -427,3 +427,66 @@ class PollSnapshotComparisonTest(TestCase):
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
         comparison_manifest = orjson.loads(stored[f"{prefix}/comparison.json"])
         assert comparison_manifest["summary"]["errored"] == 1
+
+
+@cell_silo_test
+class CompareSnapshotsOrchestratorTest(TestCase):
+    def _setup(self):
+        head_artifact = self.create_preprod_artifact(project=self.project)
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        head.extras = {"manifest_key": "head_manifest"}
+        head.save()
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        base.extras = {"manifest_key": "base_manifest"}
+        base.save()
+        return head_artifact, base_artifact
+
+    def test_orchestrator_creates_chunks_and_sets_total(self):
+        import orjson
+
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact = self._setup()
+        head_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="h1", width=100, height=100)},
+            diff_threshold=None,
+        )
+        base_manifest = SnapshotManifest(
+            images={"changed.png": ImageMetadata(content_hash="h0", width=100, height=100)},
+            diff_threshold=None,
+        )
+        session = _mock_session_with_manifests(
+            {
+                "head_manifest": orjson.dumps(head_manifest.dict()),
+                "base_manifest": orjson.dumps(base_manifest.dict()),
+            }
+        )
+        session.put.side_effect = lambda *a, **k: None
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
+            ) as dispatch,
+            patch("sentry.preprod.snapshots.tasks.poll_snapshot_comparison.apply_async") as poll,
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=head_artifact
+        )
+        assert comparison.chunks_total == 1
+        assert (
+            comparison.state == PreprodSnapshotComparison.State.PROCESSING
+        )  # finalizer sets SUCCESS, not orchestrator
+        assert PreprodSnapshotComparisonChunk.objects.filter(comparison=comparison).count() == 1
+        assert dispatch.call_count == 1
+        assert poll.called
