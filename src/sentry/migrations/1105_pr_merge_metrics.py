@@ -40,6 +40,7 @@ class Migration(CheckedMigration):
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
                 ("event_type", models.CharField(max_length=64)),
+                ("webhook_id", models.CharField(max_length=255)),
                 ("payload", models.JSONField(default=dict)),
                 (
                     "pull_request",
@@ -50,6 +51,7 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_pullrequest_activity",
+                "unique_together": {("pull_request", "webhook_id")},
             },
         ),
         migrations.CreateModel(
@@ -76,6 +78,7 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_pullrequest_attribution",
+                "unique_together": {("pull_request", "signal_type", "source")},
             },
         ),
         migrations.CreateModel(

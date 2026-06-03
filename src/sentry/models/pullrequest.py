@@ -280,6 +280,10 @@ class PullRequestActivity(DefaultFieldsModel):
 
     pull_request = FlexibleForeignKey("sentry.PullRequest")
     event_type = models.CharField(max_length=64, choices=PullRequestActivityType.choices)
+    # The SCM webhook delivery id (e.g. GitHub's X-GitHub-Delivery). A row is only
+    # created once we have this id, so it dedupes redelivered webhooks: a retry
+    # hits the unique constraint instead of creating a duplicate activity row.
+    webhook_id = models.CharField(max_length=255)
     payload = models.JSONField(default=dict)
 
     class Meta:
@@ -289,6 +293,7 @@ class PullRequestActivity(DefaultFieldsModel):
             models.Index(fields=["pull_request", "date_added"]),
             models.Index(fields=["date_added"]),
         )
+        unique_together = (("pull_request", "webhook_id"),)
 
     __repr__ = sane_repr("pull_request_id", "event_type")
 
@@ -306,6 +311,7 @@ class PullRequestAttribution(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pullrequest_attribution"
+        unique_together = (("pull_request", "signal_type", "source"),)
 
     __repr__ = sane_repr("pull_request_id", "signal_type")
 

@@ -175,6 +175,7 @@ class PullRequestDeletionTaskTest(TestCase):
         activity = PullRequestActivity.objects.create(
             pull_request=pr,
             event_type=PullRequestActivityType.OPENED,
+            webhook_id="11111111-1111-1111-1111-111111111111",
         )
         attribution = PullRequestAttribution.objects.create(
             pull_request=pr,
