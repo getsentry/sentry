@@ -265,6 +265,29 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert len(response.data) == 1
         assert response.data[0]["email"] == "billy@localhost"
 
+    def test_list_with_missing_control_user(self) -> None:
+        # Control-silo User can be missing for a member whose user_id is set
+        # (deletion in Control, replication lag, RPC tombstone). The list
+        # endpoint must still return the member, using the outbox-denormalized
+        # user_email as the email fallback rather than crashing on the
+        # serializer's `assert email is not None`.
+        member = OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user2.id
+        )
+        member.update(user_email="bar@localhost")
+
+        with patch(
+            "sentry.api.serializers.models.organization_member.base.user_service.serialize_many",
+            return_value=[],
+        ):
+            response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 2
+        emails = {row["email"] for row in response.data}
+        assert "bar@localhost" in emails
+        missing_user_row = next(row for row in response.data if row["email"] == "bar@localhost")
+        assert missing_user_row["user"] is None
+
     def test_email_query(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": self.user.email}
