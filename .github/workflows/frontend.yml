@@ -15,7 +15,7 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
-  NODE_OPTIONS: "--max-old-space-size=5120"
+  NODE_OPTIONS: '--max-old-space-size=5120'
 
 jobs:
   files-changed:
@@ -142,8 +142,7 @@ jobs:
 
       - name: eslint
         id: eslint
-        run: |
-          pnpm run lint:js
+        run: pnpm run lint:js
 
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
