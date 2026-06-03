@@ -96,8 +96,6 @@ def query_commit_author_public_emails(
     )
 
     interval = options.get("integrations.backfill_github_external_actor.gh_api_fetch_interval_s")
-    if interval is None:
-        interval = 0.1
 
     for author in authors:
         username = author.get_username_from_external_id()
