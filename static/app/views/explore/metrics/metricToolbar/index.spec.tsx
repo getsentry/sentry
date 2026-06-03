@@ -2,7 +2,13 @@ import {type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -245,6 +251,119 @@ describe('MetricToolbar', () => {
     });
 
     await userEvent.click(groupByButton);
+
+    expect(await screen.findByText('endpoint.attribute')).toBeInTheDocument();
+    expect(screen.getByText('fallback.string')).toBeInTheDocument();
+    expect(screen.getByText('fallback.number')).toBeInTheDocument();
+    expect(screen.getByText('fallback.boolean')).toBeInTheDocument();
+    expect(screen.getAllByText('shared.attribute')).toHaveLength(1);
+    expect(screen.queryByText('tags[fallback.number,number]')).not.toBeInTheDocument();
+    expect(screen.queryByText('sentry.item_type')).not.toBeInTheDocument();
+  });
+
+  it('merges trace item detail attributes into query builder options on load', async () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-enabled'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          attributeType: 'string',
+          key: 'endpoint.attribute',
+          name: 'endpoint.attribute',
+        },
+        {
+          attributeType: 'string',
+          key: 'shared.attribute',
+          name: 'shared.attribute',
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            [TraceMetricKnownFieldKey.ID]: 'metric-id',
+            [TraceMetricKnownFieldKey.PROJECT_ID]: project.id,
+            [TraceMetricKnownFieldKey.TRACE]: 'trace-id',
+            [TraceMetricKnownFieldKey.TIMESTAMP]: '2025-04-10T14:37:55+00:00',
+          },
+        ],
+        meta: {fields: {}},
+      },
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.explore.metric-samples-table',
+        }),
+      ],
+    });
+    const mockTraceItemDetailsRequest = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/trace-items/metric-id/',
+      asyncDelay: 50,
+      body: {
+        attributes: [
+          {name: 'fallback.string', type: 'str', value: 'value'},
+          {name: 'tags[fallback.number,number]', type: 'float', value: 1.23},
+          {name: 'tags[fallback.boolean,boolean]', type: 'bool', value: true},
+          {name: 'tags[sentry.item_type,number]', type: 'float', value: 0},
+          {name: 'shared.attribute', type: 'str', value: 'duplicate'},
+        ],
+        itemId: 'metric-id',
+        meta: {},
+        timestamp: '2025-04-10T14:37:55+00:00',
+      },
+    });
+
+    render(
+      <MetricToolbar
+        traceMetric={{name: 'test_metric', type: 'distribution'}}
+        queryLabel="A"
+      />,
+      {
+        organization,
+        additionalWrapper: ({children}: {children: ReactNode}) => (
+          <Wrapper
+            queryParams={
+              new ReadableQueryParams({
+                extrapolate: true,
+                mode: Mode.SAMPLES,
+                query: '',
+                cursor: '',
+                fields: ['id', 'timestamp'],
+                sortBys: [{field: 'timestamp', kind: 'desc'}],
+                aggregateCursor: '',
+                aggregateFields: [
+                  new VisualizeFunction('sum(value,test_metric,distribution,none)'),
+                ],
+                aggregateSortBys: [
+                  {field: 'sum(value,test_metric,distribution,none)', kind: 'desc'},
+                ],
+              })
+            }
+          >
+            {children}
+          </Wrapper>
+        ),
+      }
+    );
+
+    const searchBuilder = await screen.findByTestId('search-query-builder');
+    const searchInput = within(searchBuilder).getByRole('combobox', {
+      name: 'Add a search term',
+    });
+
+    await waitFor(() => {
+      expect(mockTraceItemDetailsRequest).toHaveBeenCalled();
+      expect(searchInput).toBeDisabled();
+    });
+
+    await waitFor(() => {
+      expect(searchInput).toBeEnabled();
+    });
+
+    await userEvent.click(searchInput);
 
     expect(await screen.findByText('endpoint.attribute')).toBeInTheDocument();
     expect(screen.getByText('fallback.string')).toBeInTheDocument();
