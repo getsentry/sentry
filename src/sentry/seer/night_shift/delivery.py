@@ -122,19 +122,17 @@ def _process_verdicts(
 
     results: list[SeerNightShiftRunResult] = []
     if not dry_run and fixable_candidates:
+        # Cache organization on each group's project to avoid N+1 queries
+        for group in groups_by_id.values():
+            group.project.organization = organization
+
         # Build stopping_point_by_project_id from project preferences
-        project_ids = {c.group.project_id for c in fixable_candidates}
-        project_by_id = {g.project_id: g.project for g in groups_by_id.values()}
-
-        for project in project_by_id.values():
-            project.organization = organization
-
         stopping_point_by_project_id = {
-            pid: AutofixStoppingPoint(
-                read_preference_from_sentry_db(project_by_id[pid]).automated_run_stopping_point
+            c.group.project_id: AutofixStoppingPoint(
+                read_preference_from_sentry_db(c.group.project).automated_run_stopping_point
                 or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
             )
-            for pid in project_ids
+            for c in fixable_candidates
         }
 
         results = _run_autofix_for_candidates(
