@@ -13,7 +13,7 @@ set -euo pipefail
 #   jest_test_matrix (via output) - JSON matrix for GitHub Actions strategy
 
 if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
-  MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
+  MERGE_BASE=$(./.github/workflows/scripts/git-merge-base.sh)
   if [ -n "$MERGE_BASE" ]; then
     CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD^2)
     if echo "$CHANGED" | grep -qvE '^static/'; then

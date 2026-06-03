@@ -100,15 +100,11 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/eslint-stylish.json"
 
-      # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
-      # The merge base of those two is the fork point we diff against. If it can't be
-      # computed (or this isn't a PR), lint everything — the same fallback the Jest job uses.
+      # When this resolves a merge base, lint just the impacted files; otherwise (non-PR
+      # events, or no merge base) lint everything — the same fallback the Jest job uses.
       - name: Compute merge base
         id: merge-base
-        if: github.event_name == 'pull_request'
-        run: |
-          MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
-          echo "merge_base=$MERGE_BASE" >> "$GITHUB_OUTPUT"
+        run: echo "merge_base=$(./.github/workflows/scripts/git-merge-base.sh)" >> "$GITHUB_OUTPUT"
 
       - name: eslint (all files)
         id: eslint
