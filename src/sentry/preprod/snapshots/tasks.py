@@ -1018,13 +1018,35 @@ def _finalize_comparison(
     for chunk in chunks:
         if chunk.state == PreprodSnapshotComparisonChunk.State.DONE:
             idx = chunk.chunk_index
-            result = ChunkResult(
-                **orjson.loads(
-                    _retry_objectstore(
-                        lambda idx=idx: session.get(f"{prefix}/chunks/{idx}.json").payload.read()
+            try:
+                result = ChunkResult(
+                    **orjson.loads(
+                        _retry_objectstore(
+                            lambda idx=idx: session.get(
+                                f"{prefix}/chunks/{idx}.json"
+                            ).payload.read()
+                        )
                     )
                 )
-            )
+            except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+                # A DONE chunk whose result blob is missing/evicted/corrupt must not crash
+                # finalize, otherwise the comparison stays PROCESSING forever and every poll
+                # re-raises. Degrade its candidates to errored, mirroring the FAILED branch.
+                logger.exception(
+                    "finalize: failed to read DONE chunk result, degrading to errored",
+                    extra={"comparison_id": comparison.id, "chunk_index": idx},
+                )
+                assignment = assignment_by_index.get(idx)
+                if assignment is None:
+                    continue
+                for candidate in assignment.candidates:
+                    images[candidate.name] = ComparisonImageResult(
+                        status="errored",
+                        head_hash=candidate.head_hash,
+                        base_hash=candidate.base_hash,
+                        reason="chunk_result_unreadable",
+                    )
+                continue
             images.update(result.images)
         elif chunk.state == PreprodSnapshotComparisonChunk.State.FAILED:
             for candidate in assignment_by_index[chunk.chunk_index].candidates:

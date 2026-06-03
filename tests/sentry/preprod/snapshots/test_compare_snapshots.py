@@ -447,6 +447,51 @@ class PollSnapshotComparisonTest(TestCase):
         comparison_manifest = orjson.loads(stored[f"{prefix}/comparison.json"])
         assert comparison_manifest["summary"]["errored"] == 1
 
+    def test_finalize_degrades_when_done_chunk_result_unreadable(self):
+        from sentry.preprod.snapshots.manifest import (
+            ChunkAssignment,
+            ChunkCandidate,
+            ComparisonPlan,
+        )
+        from sentry.preprod.snapshots.tasks import poll_snapshot_comparison
+
+        comparison, h, b = self._comparison(1)
+        PreprodSnapshotComparisonChunk.objects.create(
+            comparison=comparison,
+            chunk_index=0,
+            state=PreprodSnapshotComparisonChunk.State.DONE,
+            image_count=1,
+        )
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        plan = ComparisonPlan(
+            head_artifact_id=h.id,
+            base_artifact_id=b.id,
+            chunks=[
+                ChunkAssignment(
+                    chunk_index=0,
+                    candidates=[
+                        ChunkCandidate(
+                            name="a.png",
+                            head_hash="h",
+                            base_hash="bb",
+                            pixel_count=10,
+                            diff_threshold=0.0,
+                        )
+                    ],
+                )
+            ],
+            non_diff_images={},
+        )
+        stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
+        session = _dict_backed_session(stored)
+        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+            poll_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        comparison_manifest = orjson.loads(stored[f"{prefix}/comparison.json"])
+        assert comparison_manifest["summary"]["errored"] == 1
+        assert comparison_manifest["images"]["a.png"]["status"] == "errored"
+
 
 @cell_silo_test
 class CompareSnapshotsOrchestratorTest(TestCase):
