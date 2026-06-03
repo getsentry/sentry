@@ -19,6 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationsTableActions} from 'sentry/views/automations/components/automationListTable/actions';
+import {DetectorDataContextProvider} from 'sentry/views/automations/components/automationListTable/detectorDataContext';
 import {
   AutomationListRow,
   AutomationListRowSkeleton,
@@ -120,6 +121,11 @@ export function AutomationListTable({
     [automations, selected]
   );
 
+  const allDetectorIds = useMemo(
+    () => [...new Set(automations.flatMap(a => a.detectorIds))],
+    [automations]
+  );
+
   const handleSelect = useCallback(
     (id: string) => {
       const newSelected = new Set(selected);
@@ -203,15 +209,18 @@ export function AutomationListTable({
       )}
       {isError && <LoadingError message={t('Error loading alerts')} />}
       {isPending && <LoadingSkeletons />}
-      {isSuccess &&
-        automations.map(automation => (
-          <AutomationListRow
-            key={automation.id}
-            automation={automation}
-            selected={selected.has(automation.id)}
-            onSelect={handleSelect}
-          />
-        ))}
+      {isSuccess && (
+        <DetectorDataContextProvider detectorIds={allDetectorIds}>
+          {automations.map(automation => (
+            <AutomationListRow
+              key={automation.id}
+              automation={automation}
+              selected={selected.has(automation.id)}
+              onSelect={handleSelect}
+            />
+          ))}
+        </DetectorDataContextProvider>
+      )}
     </AutomationsSimpleTable>
   );
 }
