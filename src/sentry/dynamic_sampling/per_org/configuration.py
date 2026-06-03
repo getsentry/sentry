@@ -137,11 +137,9 @@ class BaseDynamicSamplingConfiguration(ABC):
             new_pipeline_factor,
             self.get_sample_rate(),
         )
-        if (
-            adjusted_factor is None
-            or adjusted_factor < MIN_REBALANCE_FACTOR
-            or adjusted_factor > MAX_REBALANCE_FACTOR
-        ):
+        if adjusted_factor is None:
+            return None
+        if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
             per_org_recalibration_cache.delete_adjusted_factor(self.organization.id)
             return None
 
