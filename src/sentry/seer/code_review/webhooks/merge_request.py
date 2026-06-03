@@ -44,6 +44,7 @@ from typing import Any
 
 from pydantic import ValidationError
 from scm import actions as scm_actions
+from scm.types import CreatePullRequestCommentReactionProtocol, Reaction
 
 from sentry import features
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -464,7 +465,7 @@ def _add_note_reaction(
     repo: Repository,
     mr_iid: str,
     note_id: str,
-    reaction: str,
+    reaction: Reaction,
 ) -> None:
     """
     Add a reaction (award emoji) to an MR note via the SCM library.
@@ -475,6 +476,7 @@ def _add_note_reaction(
     """
     try:
         scm = make_scm(organization_id, repo.id, referrer="seer")
+        assert isinstance(scm, CreatePullRequestCommentReactionProtocol)
         scm_actions.create_pull_request_comment_reaction(scm, mr_iid, note_id, reaction)
     except Exception:
         logger.warning("gitlab.webhook.note.reaction_add_failed", exc_info=True)
