@@ -694,7 +694,6 @@ module = [
     "sentry.api.validators.*",
     "sentry.apidocs",
     "sentry.apidocs.api_ownership_allowlist_dont_modify",
-    "sentry.apidocs.api_publish_status_allowlist_dont_modify",
     "sentry.apidocs.build",
     "sentry.apidocs.constants",
     "sentry.apidocs.extensions",
