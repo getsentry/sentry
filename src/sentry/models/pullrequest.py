@@ -280,7 +280,7 @@ class PullRequestActivity(DefaultFieldsModel):
 
     pull_request = FlexibleForeignKey("sentry.PullRequest")
     event_type = models.CharField(max_length=64, choices=PullRequestActivityType.choices)
-    payload = models.JSONField(null=True)
+    payload = models.JSONField(default=dict)
 
     class Meta:
         app_label = "sentry"

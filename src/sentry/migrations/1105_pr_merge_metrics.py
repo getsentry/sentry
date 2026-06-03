@@ -40,7 +40,7 @@ class Migration(CheckedMigration):
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
                 ("event_type", models.CharField(max_length=64)),
-                ("payload", models.JSONField(null=True)),
+                ("payload", models.JSONField(default=dict)),
             ],
             options={
                 "db_table": "sentry_pullrequest_activity",
