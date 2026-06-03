@@ -7,7 +7,6 @@ from typing import cast
 import orjson
 import sentry_sdk
 
-from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.full_rebalancing import (
     FullRebalancingInput,
@@ -34,6 +33,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
+REBALANCE_INTENSITY = 0.8
 logger = logging.getLogger(__name__)
 
 
@@ -121,9 +121,6 @@ def run_transaction_balancing(
     project_volumes: list[ProjectVolume],
     transaction_volumes: list[ProjectTransactionCounts],
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
-    rebalance_intensity = options.get(
-        "dynamic-sampling.prioritise_transactions.rebalance_intensity"
-    )
     sample_rates = config.get_project_sample_rates()
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
     project_volume_by_id = {
@@ -154,7 +151,7 @@ def run_transaction_balancing(
                 sample_rate=sample_rate,
                 total_num_classes=project_volume.num_distinct_transactions,
                 total=project_volume.total,
-                intensity=rebalance_intensity,
+                intensity=REBALANCE_INTENSITY,
             )
         )
 
@@ -164,7 +161,6 @@ def run_transaction_balancing(
                 implicit_sample_rate=implicit_rate,
                 floor_sample_rate=sample_rate,
                 total_volume=project_volume.total,
-                rebalance_intensity=rebalance_intensity,
             )
 
         result[project_id] = (named_rates, implicit_rate)
@@ -176,7 +172,6 @@ def _apply_implicit_sample_rate_floor(
     implicit_sample_rate: float,
     floor_sample_rate: float,
     total_volume: int,
-    rebalance_intensity: float,
 ) -> tuple[list[RebalancedItem], float]:
     total_explicit_volume = sum(item.count for item in named_rates)
     total_implicit_volume = total_volume - total_explicit_volume
@@ -195,7 +190,7 @@ def _apply_implicit_sample_rate_floor(
         FullRebalancingInput(
             classes=[RebalancedItem(id=item.id, count=item.count) for item in named_rates],
             sample_rate=new_explicit_sample_rate,
-            intensity=rebalance_intensity,
+            intensity=REBALANCE_INTENSITY,
         )
     )
     return new_rates, floor_sample_rate
