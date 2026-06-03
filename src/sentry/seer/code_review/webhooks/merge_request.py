@@ -43,6 +43,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from pydantic import ValidationError
+from scm import actions as scm_actions
 
 from sentry import features
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -50,6 +51,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.scm.factory import new as make_scm
 from sentry.seer.code_review.models import (
     SeerCodeReviewTaskRequestForPrClosed,
     SeerCodeReviewTaskRequestForPrReview,
@@ -472,7 +474,7 @@ def _add_note_reaction(
     Errors are swallowed so a failing reaction never blocks the Seer task.
     """
     try:
-        scm = scm_factory.new(organization_id, repo.id, "code-review-webhook")
+        scm = make_scm(organization_id, repo.id, referrer="seer")
         scm_actions.create_pull_request_comment_reaction(scm, mr_iid, note_id, reaction)
     except Exception:
         logger.warning("gitlab.webhook.note.reaction_add_failed", exc_info=True)
