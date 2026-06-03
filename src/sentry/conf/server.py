@@ -1333,6 +1333,8 @@ LOGGING: LoggingConfig = {
         },
         "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
         "taskbroker_client": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        # Configure grpc explicitly so its errors aren't dropped by disable_existing_loggers.
+        "grpc": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
         "django.request": {
             "level": "WARNING",

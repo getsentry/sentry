@@ -805,6 +805,11 @@ def _recommended_aggregation(
     # Group type boost: additive signal per issue type
     group_type_boosts = options.get("snuba.search.recommended.group-type-boost")
 
+    # Message penalty: downranks capture_message issues (no exception/stacktrace).
+    # Subtracted from the score below, and only on the events dataset -- issue-platform
+    # occurrences don't have exception_stacks.
+    message_penalty_weight = options.get("snuba.search.recommended.message-penalty-weight")
+
     # Skip zero-weighted factors: their term is always 0, so computing them in
     # ClickHouse is wasted work -- especially expensive aggregates like user
     # impact's uniq(tags[sentry:user]).
@@ -837,6 +842,11 @@ def _recommended_aggregation(
     score_expr = terms[0]
     for term in terms[1:]:
         score_expr = f"plus({score_expr}, {term})"
+
+    if type_column is None and message_penalty_weight:
+        has_exception_ratio = "divide(countIf(notEmpty(exception_stacks.type)), count())"
+        message_penalty = f"multiply({message_penalty_weight}, minus(1.0, {has_exception_ratio}))"
+        score_expr = f"minus({score_expr}, {message_penalty})"
 
     return [score_expr, ""]
 
