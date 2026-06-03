@@ -153,6 +153,34 @@ describe('useActiveReplayTab', () => {
     });
   });
 
+  it('should clear replay detail filters when changing tabs', async () => {
+    const {result, router} = renderHookWithProviders(useActiveReplayTab, {
+      initialProps: {},
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            query: 'click.tag:button',
+            f_c_logLevel: ['error'],
+            f_n_search: 'pokemon',
+            n_detail_row: '0',
+            n_detail_tab: 'response',
+          },
+        },
+      },
+      organization: OrganizationFixture({features: []}),
+    });
+
+    act(() => result.current.setActiveTab('network'));
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        query: 'click.tag:button',
+        t_main: 'network',
+      });
+    });
+  });
+
   it('should update the tab query parameter shallowly', async () => {
     const onUrlUpdate = jest.fn<
       ReturnType<OnUrlUpdateFunction>,
