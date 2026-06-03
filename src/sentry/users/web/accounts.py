@@ -410,7 +410,9 @@ def confirm_signed_email(
         if request.user.id != int(data["user_id"]):
             raise InvalidRequest
 
-        email, _created = UserEmail.objects.update_or_create(
+        # Verifying an existing unverified email is a separate path
+        # This path is only emails that don't exist yet
+        email, created = UserEmail.objects.get_or_create(
             user_id=request.user.id,
             email=data["email"],
             defaults={"validation_hash": "", "is_verified": True},
@@ -423,15 +425,16 @@ def confirm_signed_email(
         logger.exception("user.email.signed-confirm.error")
         msg, level = ERR_CONFIRMING_EMAIL, messages.ERROR
     else:
-        email_verified.send(email=email.email, sender=email)
-        logger.info(
-            "user.email.signed-confirm",
-            extra={
-                "user_id": request.user.id,
-                "ip_address": request.META["REMOTE_ADDR"],
-                "email": email.email,
-            },
-        )
+        if created:
+            email_verified.send(email=email.email, sender=email)
+            logger.info(
+                "user.email.signed-confirm",
+                extra={
+                    "user_id": request.user.id,
+                    "ip_address": request.META["REMOTE_ADDR"],
+                    "email": email.email,
+                },
+            )
         msg, level = SUCCESS_CONFIRMING_EMAIL, messages.SUCCESS
 
     messages.add_message(request, level, msg)
