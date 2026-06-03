@@ -1,3 +1,5 @@
+import sentry.integrations.source_code_management.receivers  # noqa: F401,E402
+
 from .analytics import *  # noqa: F401,F403
 from .auth import *  # noqa: F401,F403
 from .core import *  # noqa: F401,F403

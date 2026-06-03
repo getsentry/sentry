@@ -430,7 +430,7 @@ class UncompressedAssetsDetectorTest(TestCase):
             settings[UncompressedAssetSpanDetector.settings_key], event
         )
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -443,4 +443,4 @@ class UncompressedAssetsDetectorTest(TestCase):
             settings[UncompressedAssetSpanDetector.settings_key], event
         )
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()
