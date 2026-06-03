@@ -1,9 +1,10 @@
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
+from scm.types import CreatePullRequestCommentReactionProtocol
 
 from fixtures.gitlab import (
     MERGE_REQUEST_NOTE_EVENT,
@@ -813,11 +814,9 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @pytest.fixture(autouse=True)
     def mock_scm(self) -> Generator[None]:
-        from unittest.mock import MagicMock
-
-        mock_scm_instance = MagicMock()
+        mock_scm_instance = MagicMock(spec=CreatePullRequestCommentReactionProtocol)
         with patch(
-            "sentry.seer.code_review.webhooks.merge_request.scm_factory.new",
+            "sentry.seer.code_review.webhooks.merge_request.make_scm",
             return_value=mock_scm_instance,
         ):
             self.mock_scm = mock_scm_instance
