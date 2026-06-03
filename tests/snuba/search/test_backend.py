@@ -4164,6 +4164,43 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
         )[0]
         return {gid: score for gid, score in results}
 
+    def test_recommended_message_penalty(self) -> None:
+        ts = before_now(hours=1).isoformat()
+        exception_event = self.store_event(
+            data={
+                "fingerprint": ["exception-group"],
+                "event_id": "a" * 32,
+                "timestamp": ts,
+                "message": "exception-group",
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "something broke",
+                            "stacktrace": {"frames": [{"module": "app.main"}]},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        message_event = self.store_event(
+            data={
+                "fingerprint": ["message-group"],
+                "event_id": "b" * 32,
+                "timestamp": ts,
+                "message": "message-group",
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        with self.options({"snuba.search.recommended.message-penalty-weight": 0.10}):
+            scores = self._recommended_scores([exception_event.group.id, message_event.group.id])
+
+        assert scores[exception_event.group.id] > scores[message_event.group.id]
+
     def test_recommended_zero_weight_factor_excluded(self) -> None:
         ts = before_now(hours=1).isoformat()
         for i in range(5):
