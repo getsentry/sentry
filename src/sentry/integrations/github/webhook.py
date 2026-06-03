@@ -379,11 +379,11 @@ class GitHubWebhook(SCMWebhook, ABC):
                     "source": ExternalActorSource.COMMIT_AUTHOR.value,
                 },
             )
-        except Exception as e:
+        except Exception:
             # Never let external actor creation disrupt the main webhook flow.
-            logger.warning(
+            logger.exception(
                 "github.webhook.external_actor.error",
-                extra={"organization_id": organization.id, "error": str(e)},
+                extra={"organization_id": organization.id},
             )
             return
 
