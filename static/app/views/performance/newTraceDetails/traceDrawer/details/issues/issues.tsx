@@ -34,7 +34,7 @@ type UseTraceIssueGroupProps = {
   organization: Organization;
 };
 
-export function useTraceIssueGroup({issueId, organization}: UseTraceIssueGroupProps) {
+function useTraceIssueGroup({issueId, organization}: UseTraceIssueGroupProps) {
   return useQuery(
     apiOptions.as<Group>()('/organizations/$organizationIdOrSlug/issues/$issueId/', {
       path: issueId ? {organizationIdOrSlug: organization.slug, issueId} : skipToken,
