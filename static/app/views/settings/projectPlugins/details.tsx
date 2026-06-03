@@ -25,9 +25,21 @@ import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
+import {LegacyWebhookDetails} from './legacyWebhookDetails';
 import {useTogglePluginMutation} from './useTogglePluginMutation';
 
 export default function ProjectPluginDetails() {
+  const organization = useOrganization();
+  const {pluginId} = useParams<{pluginId: string; projectId: string}>();
+
+  if (pluginId === 'webhooks' && organization.features.includes('legacy-webhook-ui')) {
+    return <LegacyWebhookDetails />;
+  }
+
+  return <PluginDetails />;
+}
+
+function PluginDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const {pluginId} = useParams<{pluginId: string; projectId: string}>();

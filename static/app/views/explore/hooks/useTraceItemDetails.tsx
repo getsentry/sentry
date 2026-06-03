@@ -228,6 +228,9 @@ export function usePrefetchTraceItemDetailsOnHover({
   projectRef.current = project;
   const queryClient = useQueryClient();
   const [traceItemMeta, setTraceItemMeta] = useState<TraceItemDetailsMeta | undefined>();
+  const [traceItemAttributes, setTraceItemAttributes] = useState<
+    TraceItemResponseAttribute[] | undefined
+  >();
 
   const {hoverProps} = useHover({
     onHoverStart: () => {
@@ -254,6 +257,7 @@ export function usePrefetchTraceItemDetailsOnHover({
         queryClient.fetchQuery(options).then(
           response => {
             setTraceItemMeta(response?.json?.meta);
+            setTraceItemAttributes(response?.json?.attributes);
           },
           () => {}
         );
@@ -267,5 +271,5 @@ export function usePrefetchTraceItemDetailsOnHover({
     isDisabled: hoverPrefetchDisabled,
   });
 
-  return {hoverProps, traceItemMeta};
+  return {hoverProps, traceItemMeta, traceItemAttributes};
 }

@@ -67,9 +67,7 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
     ReleaseThresholdStatusIndexEndpoint,
 )
 from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
-from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
-    SourceMapDebugBlueThunderEditionEndpoint,
-)
+from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
 from sentry.conduit.endpoints.organization_conduit_demo import OrganizationConduitDemoEndpoint
 from sentry.core.endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
@@ -319,7 +317,6 @@ from sentry.issues.endpoints import (
     RelatedIssuesEndpoint,
     SharedGroupDetailsEndpoint,
     ShortIdLookupEndpoint,
-    SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
 from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
@@ -2774,8 +2771,9 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-event-source-map-debug",
     ),
     re_path(
+        # Legacy alias the frontend still hardcodes; remove once it migrates to source-map-debug/.
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/source-map-debug-blue-thunder-edition/$",
-        SourceMapDebugBlueThunderEditionEndpoint.as_view(),
+        SourceMapDebugEndpoint.as_view(),
         name="sentry-api-0-event-source-map-debug-blue-thunder-edition",
     ),
     re_path(

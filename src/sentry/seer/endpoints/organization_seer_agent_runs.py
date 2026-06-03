@@ -29,7 +29,7 @@ class OrganizationSeerAgentRunsPermission(OrganizationPermission):
 @cell_silo_endpoint
 class OrganizationSeerAgentRunsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True

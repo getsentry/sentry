@@ -256,8 +256,6 @@ export const SEER_AGENTS_PROJECT_ID = 6178942;
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
-export const MENU_CLOSE_DELAY = 200;
-
 export const SLOW_TOOLTIP_DELAY = 1000;
 
 export const MAX_PICKABLE_DAYS = 90;
@@ -767,8 +765,7 @@ export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queri
 export const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
-export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
-export const NODE_ENV = process.env.NODE_ENV;
+export {IS_ACCEPTANCE_TEST, NODE_ENV} from './env';
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
