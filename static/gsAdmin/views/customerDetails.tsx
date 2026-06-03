@@ -22,6 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {getRegions} from 'sentry/utils/regions';
@@ -30,7 +31,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
