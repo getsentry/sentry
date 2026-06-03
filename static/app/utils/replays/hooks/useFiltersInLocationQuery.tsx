@@ -50,27 +50,40 @@ type ArrayReplayDetailFilterKey = {
     : never;
 }[keyof ReplayDetailFilterQuery];
 
-const stringReplayDetailFilterKeys: StringReplayDetailFilterKey[] = [
-  'f_b_search',
-  'f_c_search',
-  'f_e_search',
-  'f_n_search',
-  'f_ol_search',
-  'f_t_search',
-  'n_detail_row',
-  'n_detail_tab',
-];
+function makeReplayDetailFilterKeys<
+  StringKeys extends StringReplayDetailFilterKey,
+  ArrayKeys extends ArrayReplayDetailFilterKey,
+>(keys: {
+  array: ArrayKeys[];
+  missing: Record<Exclude<keyof ReplayDetailFilterQuery, StringKeys | ArrayKeys>, never>;
+  string: StringKeys[];
+}) {
+  return keys;
+}
 
-const arrayReplayDetailFilterKeys: ArrayReplayDetailFilterKey[] = [
-  'f_b_type',
-  'f_c_logLevel',
-  'f_e_level',
-  'f_e_project',
-  'f_n_method',
-  'f_n_status',
-  'f_n_type',
-  'f_ol_severity',
-];
+const replayDetailFilterKeys = makeReplayDetailFilterKeys({
+  string: [
+    'f_b_search',
+    'f_c_search',
+    'f_e_search',
+    'f_n_search',
+    'f_ol_search',
+    'f_t_search',
+    'n_detail_row',
+    'n_detail_tab',
+  ],
+  array: [
+    'f_b_type',
+    'f_c_logLevel',
+    'f_e_level',
+    'f_e_project',
+    'f_n_method',
+    'f_n_status',
+    'f_n_type',
+    'f_ol_severity',
+  ],
+  missing: {},
+});
 
 function setNullableStringValue(
   target: NullableReplayDetailFilterUpdate,
@@ -96,10 +109,10 @@ function toNullableQuery(
   updatedQuery: ReplayDetailFilterUpdate
 ): NullableReplayDetailFilterUpdate {
   const nullableQuery: NullableReplayDetailFilterUpdate = {};
-  for (const key of stringReplayDetailFilterKeys) {
+  for (const key of replayDetailFilterKeys.string) {
     setNullableStringValue(nullableQuery, updatedQuery, key);
   }
-  for (const key of arrayReplayDetailFilterKeys) {
+  for (const key of replayDetailFilterKeys.array) {
     setNullableArrayValue(nullableQuery, updatedQuery, key);
   }
   return nullableQuery;
