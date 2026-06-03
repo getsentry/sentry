@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
 import type {PullRequest, Repository} from 'sentry/types/integrations';
@@ -34,34 +35,38 @@ type Props = {
 
 export function PullRequestLink({pullRequest, repository, inline}: Props) {
   const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
+  const icon = renderIcon(repository);
 
   if (!pullRequest.externalUrl) {
-    return <span>{displayId}</span>;
+    return (
+      <Text as="span" wordBreak="break-word">
+        {displayId}
+      </Text>
+    );
   }
 
   return inline ? (
     <ExternalPullLink href={pullRequest.externalUrl}>
-      {renderIcon(repository)}
-      {displayId}
+      {icon && <PullRequestProviderIcon>{icon}</PullRequestProviderIcon>}
+      <Text as="span" density="comfortable" variant="inherit" wordBreak="break-word">
+        {displayId}
+      </Text>
     </ExternalPullLink>
   ) : (
-    <LinkButton
-      external
-      href={pullRequest.externalUrl}
-      size="sm"
-      icon={renderIcon(repository)}
-    >
+    <LinkButton external href={pullRequest.externalUrl} size="sm" icon={icon}>
       {displayId}
     </LinkButton>
   );
 }
 
 const ExternalPullLink = styled(ExternalLink)`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
+  display: inline;
+`;
 
+const PullRequestProviderIcon = styled('span')`
   svg {
-    flex-shrink: 0;
+    display: inline-block;
+    margin-right: ${p => p.theme.space.xs};
+    vertical-align: -0.075em;
   }
 `;
