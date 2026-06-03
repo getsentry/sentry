@@ -206,11 +206,7 @@ def _apply_implicit_factor_floor(
     new_explicit_budget = original_explicit_used - additional_implicit
 
     if new_explicit_budget <= 0:
-        zeroed = [
-            RebalancedItem(id=item.id, count=item.count, new_sample_rate=0.0)
-            for item in named_rates
-        ]
-        return zeroed, floor
+        return [], floor
 
     new_explicit_rate = new_explicit_budget / total_explicit
     new_rates, _ = FullRebalancingModel().run(
