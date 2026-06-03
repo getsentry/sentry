@@ -944,11 +944,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-similar-issues-embeddings",
         ),
         re_path(
-            r"^(?P<issue_id>[^/]+)/pull-requests/$",
-            GroupPullRequestsEndpoint.as_view(),
-            name=f"{name_prefix}-group-pull-requests",
-        ),
-        re_path(
             r"^(?P<issue_id>[^/]+)/external-issues/$",
             GroupExternalIssuesEndpoint.as_view(),
             name=f"{name_prefix}-group-external-issues",
@@ -1303,6 +1298,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/(?P<issue_id>[^/]+)/pull-requests/$",
+        GroupPullRequestsEndpoint.as_view(),
+        name="sentry-api-0-organization-group-pull-requests",
     ),
     # first-last-release is only available via org-scoped URL (legacy URL deprecated for cellularization)
     re_path(

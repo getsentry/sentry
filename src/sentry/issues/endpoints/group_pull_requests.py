@@ -134,7 +134,10 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-pull-requests"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        url_names=["sentry-api-0-organization-group-pull-requests"],
+    )
     def get(self, request: Request, group: Group) -> Response[GroupPullRequestsResponse]:
         if not features.has(
             "organizations:issue-details-linked-pull-requests",
