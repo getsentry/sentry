@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import pytest
 from django.db import IntegrityError, router, transaction
+from objectstore_client.client import RequestError
 
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotComparisonChunk,
 )
+from sentry.preprod.snapshots.tasks import _retry_objectstore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -41,3 +43,32 @@ class PreprodSnapshotComparisonChunkModelTest(TestCase):
     def test_chunks_total_nullable_default(self):
         comparison = self._comparison()
         assert comparison.chunks_total is None
+
+
+def test_retry_objectstore_retries_once_on_429():
+    calls = {"n": 0}
+
+    def op():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RequestError("rate limited", 429, "rate limited")
+        return "ok"
+
+    assert _retry_objectstore(op) == "ok"
+    assert calls["n"] == 2
+
+
+def test_retry_objectstore_fails_fast_on_404():
+    def op():
+        raise RequestError("missing", 404, "missing")
+
+    with pytest.raises(RequestError):
+        _retry_objectstore(op)
+
+
+def test_retry_objectstore_gives_up_after_max_attempts():
+    def op():
+        raise RequestError("unavailable", 503, "unavailable")
+
+    with pytest.raises(RequestError):
+        _retry_objectstore(op)

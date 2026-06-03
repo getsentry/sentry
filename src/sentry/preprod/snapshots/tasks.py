@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
+from collections.abc import Callable
 from difflib import SequenceMatcher
 from typing import NamedTuple
 
@@ -34,6 +36,26 @@ logger = logging.getLogger(__name__)
 
 MAX_DIFF_PIXELS = 40_000_000
 MAX_PIXELS_PER_BATCH = 40_000_000
+
+# Concurrent batch fetches/uploads make transient objectstore 429/503s likelier. Retry once
+# (more would just amplify rate limiting); other errors (e.g. 404) fail fast.
+_RETRYABLE_OBJECTSTORE_STATUSES = frozenset({429, 503})
+_OBJECTSTORE_MAX_ATTEMPTS = 2
+_OBJECTSTORE_RETRY_DELAY_S = 0.5
+
+
+def _retry_objectstore[T](operation: Callable[[], T]) -> T:
+    for attempt in range(1, _OBJECTSTORE_MAX_ATTEMPTS + 1):
+        try:
+            return operation()
+        except RequestError as e:
+            if (
+                e.status not in _RETRYABLE_OBJECTSTORE_STATUSES
+                or attempt == _OBJECTSTORE_MAX_ATTEMPTS
+            ):
+                raise
+            time.sleep(_OBJECTSTORE_RETRY_DELAY_S)
+    raise AssertionError("unreachable")
 
 
 class _DiffCandidate(NamedTuple):
@@ -170,7 +192,8 @@ def _fetch_batch_images(
 
     def fetch(image_hash: str) -> None:
         try:
-            data = session.get(f"{key_prefix}/{image_hash}").payload.read()
+            key = f"{key_prefix}/{image_hash}"
+            data = _retry_objectstore(lambda: session.get(key).payload.read())
             with lock:
                 cache[image_hash] = data
         except Exception:
@@ -471,10 +494,14 @@ def compare_snapshots(
 
         try:
             head_manifest = SnapshotManifest(
-                **orjson.loads(session.get(head_manifest_key).payload.read())
+                **orjson.loads(
+                    _retry_objectstore(lambda: session.get(head_manifest_key).payload.read())
+                )
             )
             base_manifest = SnapshotManifest(
-                **orjson.loads(session.get(base_manifest_key).payload.read())
+                **orjson.loads(
+                    _retry_objectstore(lambda: session.get(base_manifest_key).payload.read())
+                )
             )
         except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
             logger.exception(
@@ -670,7 +697,11 @@ def compare_snapshots(
                             "diff_mask_key": diff_mask_key,
                         },
                     )
-                    session.put(diff_mask_bytes, key=diff_mask_key, content_type="image/png")
+                    _retry_objectstore(
+                        lambda: session.put(
+                            diff_mask_bytes, key=diff_mask_key, content_type="image/png"
+                        )
+                    )
 
                     diff_pct = (
                         diff_result.changed_pixels / diff_result.total_pixels
@@ -772,10 +803,12 @@ def compare_snapshots(
         comparison_key = (
             f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/comparison.json"
         )
-        session.put(
-            orjson.dumps(comparison_manifest.dict()),
-            key=comparison_key,
-            content_type="application/json",
+        _retry_objectstore(
+            lambda: session.put(
+                orjson.dumps(comparison_manifest.dict()),
+                key=comparison_key,
+                content_type="application/json",
+            )
         )
 
         comparison.state = PreprodSnapshotComparison.State.SUCCESS
