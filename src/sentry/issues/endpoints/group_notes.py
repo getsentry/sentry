@@ -13,7 +13,12 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.issues.action_log import ActionType, publish_action, resolve_action_source
+from sentry.issues.action_log import (
+    ActionType,
+    GroupActionActor,
+    publish_action,
+    resolve_action_source,
+)
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -89,7 +94,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             group_id=group.id,
             organization_id=group.organization.id,
             project_id=group.project_id,
-            actor_id=request.user.id,
+            actor=GroupActionActor.user(request.user.id),
             metadata={"comment_id": activity.id},
         )
 

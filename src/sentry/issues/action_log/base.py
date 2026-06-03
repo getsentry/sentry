@@ -10,6 +10,7 @@ from typing import Any
 
 from rest_framework.request import Request
 
+from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
 from sentry.middleware import is_frontend_request
 from sentry.utils import metrics
 
@@ -105,11 +106,6 @@ def resolve_action_source(request: Request) -> str:
     return ActionSource.API
 
 
-class ActorType(StrEnum):
-    USER = "user"
-    SYSTEM = "system"
-
-
 class ActionType(StrEnum):
     VIEW = "view"
     RESOLVE = "resolve"
@@ -134,19 +130,19 @@ class ActionType(StrEnum):
 @dataclass(frozen=True)
 class ActionContext:
     source: str
-    actor_id: int | None = None
+    actor: GroupActionActor = SYSTEM_ACTOR
 
 
 _action_context: ContextVar[ActionContext | None] = ContextVar("action_context", default=None)
 
 
 @contextmanager
-def action_context_scope(source: str, actor_id: int | None) -> Generator[None]:
+def action_context_scope(source: str, actor: GroupActionActor) -> Generator[None]:
     """
     Set action attribution context for the duration of a block. Must be set before
     any code path that calls publish_action_from_context().
     """
-    token = _action_context.set(ActionContext(source=source, actor_id=actor_id))
+    token = _action_context.set(ActionContext(source=source, actor=actor))
     try:
         yield
     finally:
@@ -164,7 +160,7 @@ def publish_action(
     group_id: int,
     organization_id: int,
     project_id: int,
-    actor_id: int | None = None,
+    actor: GroupActionActor = SYSTEM_ACTOR,
     metadata: dict[str, Any] | None = None,
     idempotency_key: str | None = None,
 ) -> None:
@@ -173,7 +169,6 @@ def publish_action(
     where the request is in scope (VIEW, COMMENT, TRIGGER_AUTOFIX). For mutation
     sites deeper in the stack, prefer publish_action_from_context().
     """
-    actor_type = ActorType.USER if actor_id is not None else ActorType.SYSTEM
     metrics.incr("issue.action_log", tags={"action": action, "source": source})
     logger.info(
         "issue.action_log",
@@ -183,8 +178,8 @@ def publish_action(
             "group_id": group_id,
             "organization_id": organization_id,
             "project_id": project_id,
-            "actor_type": actor_type,
-            "actor_id": actor_id,
+            "actor_type": actor.actor_type.name.lower(),
+            "actor_id": actor.actor_id,
             "metadata": metadata or {},
             "idempotency_key": idempotency_key,
         },
@@ -212,16 +207,16 @@ def publish_action_from_context(
             extra={"action": action, "group_id": group_id},
         )
         source: str = ActionSource.UNKNOWN
-        actor_id = None
+        actor = SYSTEM_ACTOR
     else:
         source = ctx.source
-        actor_id = ctx.actor_id
+        actor = ctx.actor
     publish_action(
         action=action,
         source=source,
         group_id=group_id,
         organization_id=organization_id,
         project_id=project_id,
-        actor_id=actor_id,
+        actor=actor,
         metadata=metadata,
     )

@@ -5,6 +5,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
     ActionSource,
     ActionType,
     action_context_scope,
@@ -180,7 +181,7 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
         new_priority = get_priority_for_ongoing_group(group)
 
     if new_priority is not None and new_priority != group.priority:
-        with action_context_scope(source=ActionSource.SYSTEM, actor_id=None):
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
             update_priority(
                 group=group,
                 priority=new_priority,

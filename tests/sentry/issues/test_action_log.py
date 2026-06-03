@@ -8,8 +8,10 @@ import sentry.issues.status_change
 import sentry.models.groupassignee
 import sentry.models.groupinbox
 from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
     ActionContext,
     ActionType,
+    GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
@@ -116,27 +118,30 @@ class TestActionContext(TestCase):
         assert get_action_context() is None
 
     def test_scope_sets_and_resets(self) -> None:
-        with action_context_scope(source="web", actor_id=42):
+        actor = GroupActionActor.user(42)
+        with action_context_scope(source="web", actor=actor):
             ctx = get_action_context()
             assert ctx is not None
             assert ctx.source == "web"
-            assert ctx.actor_id == 42
+            assert ctx.actor == actor
         assert get_action_context() is None
 
     def test_scope_without_actor(self) -> None:
-        with action_context_scope(source="system", actor_id=None):
+        with action_context_scope(source="system", actor=SYSTEM_ACTOR):
             ctx = get_action_context()
             assert ctx is not None
             assert ctx.source == "system"
-            assert ctx.actor_id is None
+            assert ctx.actor == SYSTEM_ACTOR
 
     def test_nested_scopes(self) -> None:
-        with action_context_scope(source="web", actor_id=1):
-            with action_context_scope(source="api", actor_id=2):
+        actor1 = GroupActionActor.user(1)
+        actor2 = GroupActionActor.user(2)
+        with action_context_scope(source="web", actor=actor1):
+            with action_context_scope(source="api", actor=actor2):
                 ctx = get_action_context()
-                assert ctx == ActionContext(source="api", actor_id=2)
+                assert ctx == ActionContext(source="api", actor=actor2)
             ctx = get_action_context()
-            assert ctx == ActionContext(source="web", actor_id=1)
+            assert ctx == ActionContext(source="web", actor=actor1)
 
 
 class TestPublishAction(TestCase):
@@ -148,7 +153,7 @@ class TestPublishAction(TestCase):
                 group_id=1,
                 organization_id=2,
                 project_id=3,
-                actor_id=4,
+                actor=GroupActionActor.user(4),
             )
         assert len(logs.records) == 1
         record = logs.records[0]
@@ -158,7 +163,7 @@ class TestPublishAction(TestCase):
         assert extra["source"] == "mcp:claude-code"
         assert extra["actor_id"] == 4
 
-    def test_actor_type_derived_from_actor_id(self) -> None:
+    def test_actor_type_derived_from_actor(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
                 action=ActionType.RESOLVE,
@@ -166,7 +171,7 @@ class TestPublishAction(TestCase):
                 group_id=1,
                 organization_id=2,
                 project_id=3,
-                actor_id=99,
+                actor=GroupActionActor.user(99),
             )
         assert logs.records[0].__dict__["actor_type"] == "user"
 

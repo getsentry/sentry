@@ -25,7 +25,9 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
     ActionType,
+    GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
@@ -214,9 +216,9 @@ def update_groups(
         return handle_discard(request, groups, projects, acting_user)
 
     source = resolve_action_source(request)
-    actor_id = acting_user.id if acting_user else None
+    actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
 
-    with action_context_scope(source=source, actor_id=actor_id):
+    with action_context_scope(source=source, actor=actor):
         status_details = result.pop("statusDetails", result)
         status = result.get("status")
         res_type = None
@@ -831,7 +833,7 @@ def prepare_response(
                 group_id=primary_id,
                 organization_id=primary.project.organization_id,
                 project_id=primary.project_id,
-                actor_id=ctx.actor_id,
+                actor=ctx.actor,
                 metadata={"counterpart_group_ids": child_ids},
             )
             for child_id in child_ids:
@@ -842,7 +844,7 @@ def prepare_response(
                     group_id=child_id,
                     organization_id=child.project.organization_id,
                     project_id=child.project_id,
-                    actor_id=ctx.actor_id,
+                    actor=ctx.actor,
                     metadata={"counterpart_group_id": primary_id},
                 )
 

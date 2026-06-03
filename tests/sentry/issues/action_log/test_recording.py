@@ -3,6 +3,7 @@ import pytest
 from sentry.issues.action_log.base import ActionSource
 from sentry.issues.action_log.recording import DuplicateActionError, record_group_action
 from sentry.issues.action_log.types import (
+    SYSTEM_ACTOR,
     GroupActionActor,
     GroupActionType,
     GroupActorType,
@@ -40,7 +41,7 @@ class RecordTest(TestCase):
             group_id=group.id,
             project_id=group.project_id,
             action=ViewAction(),
-            actor=GroupActionActor.SYSTEM,
+            actor=SYSTEM_ACTOR,
             source=ActionSource.SYSTEM,
         )
 
