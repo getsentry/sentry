@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types/project';
 
 import type {LowValueSpanEvidenceData} from './types';
 
@@ -7,6 +8,16 @@ const JAVASCRIPT_SPAN_FILTERING_DOCS_URL =
 const PYTHON_SPAN_FILTERING_DOCS_URL =
   'https://docs.sentry.io/platforms/python/configuration/filtering/#filtering-transaction-events';
 const GENERIC_SPAN_FILTERING_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/';
+const JAVASCRIPT_PROJECT_PLATFORMS = new Set<PlatformKey>([
+  'bun',
+  'capacitor',
+  'cordova',
+  'deno',
+  'electron',
+  'ionic',
+  'react',
+  'react-native',
+]);
 
 export function getSpanLabel(evidenceData: LowValueSpanEvidenceData): string {
   const {op, description} = evidenceData;
@@ -52,29 +63,33 @@ export function formatEstimatedCostUsd(estimatedCostUsd: number | null): string 
   });
 }
 
-export function isPythonSdk(evidenceData: LowValueSpanEvidenceData): boolean {
-  const sdkName = evidenceData.sdkName?.toLowerCase() ?? '';
+export function isPythonProjectPlatform(projectPlatform?: PlatformKey | null): boolean {
+  if (projectPlatform === null || projectPlatform === undefined) {
+    return false;
+  }
 
-  return sdkName.includes('python');
+  return projectPlatform.startsWith('python');
 }
 
-export function isJavaScriptSdk(evidenceData: LowValueSpanEvidenceData): boolean {
-  const sdkName = evidenceData.sdkName?.toLowerCase() ?? '';
+export function isJavaScriptProjectPlatform(
+  projectPlatform?: PlatformKey | null
+): boolean {
+  if (projectPlatform === null || projectPlatform === undefined) {
+    return false;
+  }
 
   return (
-    sdkName.includes('javascript') ||
-    sdkName.includes('node') ||
-    sdkName.includes('browser') ||
-    sdkName.includes('nextjs') ||
-    sdkName.includes('react')
+    projectPlatform.startsWith('javascript') ||
+    projectPlatform.startsWith('node') ||
+    JAVASCRIPT_PROJECT_PLATFORMS.has(projectPlatform)
   );
 }
 
-export function getSpanFilteringDocsUrl(evidenceData: LowValueSpanEvidenceData): string {
-  if (isPythonSdk(evidenceData)) {
+export function getSpanFilteringDocsUrl(projectPlatform?: PlatformKey | null): string {
+  if (isPythonProjectPlatform(projectPlatform)) {
     return PYTHON_SPAN_FILTERING_DOCS_URL;
   }
-  if (isJavaScriptSdk(evidenceData)) {
+  if (isJavaScriptProjectPlatform(projectPlatform)) {
     return JAVASCRIPT_SPAN_FILTERING_DOCS_URL;
   }
   return GENERIC_SPAN_FILTERING_DOCS_URL;

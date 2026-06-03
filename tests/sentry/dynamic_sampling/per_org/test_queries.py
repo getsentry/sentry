@@ -12,6 +12,7 @@ from sentry.dynamic_sampling.per_org.configuration import (
 from sentry.dynamic_sampling.per_org.queries import (
     DynamicSamplingQueryFields,
     DynamicSamplingQueryFilters,
+    ProjectTransactionCounts,
     ProjectVolume,
     get_eap_organization_volume,
     get_eap_project_volumes,
@@ -212,11 +213,13 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
                     "sentry.dsc.project_id": project.id,
                     "count()": 2,
                     "count_sample()": 2,
+                    "count_unique(sentry.dsc.transaction)": 7,
                 },
                 {
                     "sentry.dsc.project_id": other_project.id,
                     "count()": 1,
                     "count_sample()": 1,
+                    "count_unique(sentry.dsc.transaction)": 1,
                 },
             ],
         ) as run_table_query:
@@ -225,8 +228,12 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             )
 
         assert sorted(project_volumes) == [
-            ProjectVolume(project_id=project.id, total=2, keep=2, drop=0),
-            ProjectVolume(project_id=other_project.id, total=1, keep=1, drop=0),
+            ProjectVolume(
+                project_id=project.id, total=2, keep=2, drop=0, num_distinct_transactions=7
+            ),
+            ProjectVolume(
+                project_id=other_project.id, total=1, keep=1, drop=0, num_distinct_transactions=1
+            ),
         ]
         run_table_query.assert_called_once()
         query = run_table_query.call_args.args[0]
@@ -239,6 +246,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             DynamicSamplingQueryFields.DSC_PROJECT_ID,
             DynamicSamplingQueryFields.COUNT,
             DynamicSamplingQueryFields.COUNT_SAMPLE,
+            DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS,
         ]
         assert query["orderby"] == [DynamicSamplingQueryFields.DSC_PROJECT_ID]
         assert query["referrer"] == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value
@@ -451,20 +459,16 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         assert volumes == [
-            {
-                "org_id": organization.id,
-                "project_id": project.id,
-                "transaction_counts": [("checkout", 3), ("product", 1)],
-                "total_num_transactions": 4,
-                "total_num_classes": 2,
-            },
-            {
-                "org_id": organization.id,
-                "project_id": other_project.id,
-                "transaction_counts": [("checkout", 1)],
-                "total_num_transactions": 1,
-                "total_num_classes": 1,
-            },
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[("checkout", 3), ("product", 1)],
+            ),
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=other_project.id,
+                transaction_counts=[("checkout", 1)],
+            ),
         ]
 
     def test_get_eap_transaction_volumes_without_projects(self) -> None:
@@ -502,13 +506,11 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         volumes = get_eap_transaction_volumes(self.get_config(organization))
 
         assert volumes == [
-            {
-                "org_id": organization.id,
-                "project_id": originating_project.id,
-                "transaction_counts": [("checkout", 1)],
-                "total_num_transactions": 1,
-                "total_num_classes": 1,
-            }
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=originating_project.id,
+                transaction_counts=[("checkout", 1)],
+            )
         ]
 
     def test_get_eap_transaction_volumes_with_max_transactions_caps_total_rows(self) -> None:
@@ -555,18 +557,14 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         # Top 2 rows globally: project/alpha (3) and other_project/beta (2);
         # project/gamma is excluded by the cap.
         assert volumes == [
-            {
-                "org_id": organization.id,
-                "project_id": project.id,
-                "transaction_counts": [("alpha", 3)],
-                "total_num_transactions": 3,
-                "total_num_classes": 1,
-            },
-            {
-                "org_id": organization.id,
-                "project_id": other_project.id,
-                "transaction_counts": [("beta", 2)],
-                "total_num_transactions": 2,
-                "total_num_classes": 1,
-            },
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[("alpha", 3)],
+            ),
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=other_project.id,
+                transaction_counts=[("beta", 2)],
+            ),
         ]

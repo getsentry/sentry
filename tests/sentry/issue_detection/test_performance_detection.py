@@ -382,29 +382,11 @@ class PerformanceDetectionTest(TestCase):
             assert_n_plus_one_db_problem(perf_problems)
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_respects_organization_creation_permissions(self) -> None:
+    def test_respects_creation_permissions(self) -> None:
         n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
-        with patch.object(
-            NPlusOneDBSpanDetector, "is_creation_allowed_for_organization", return_value=False
-        ):
-            perf_problems = _detect_performance_problems(
-                n_plus_one_event, sdk_span_mock, self.project
-            )
-            assert perf_problems == []
-
-        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
-        assert_n_plus_one_db_problem(perf_problems)
-
-    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_respects_project_creation_permissions(self) -> None:
-        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
-        sdk_span_mock = Mock()
-
-        with patch.object(
-            NPlusOneDBSpanDetector, "is_creation_allowed_for_project", return_value=False
-        ):
+        with patch.object(NPlusOneDBSpanDetector, "is_creation_allowed", return_value=False):
             perf_problems = _detect_performance_problems(
                 n_plus_one_event, sdk_span_mock, self.project
             )
