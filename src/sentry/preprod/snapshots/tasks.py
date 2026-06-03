@@ -1398,6 +1398,41 @@ def _finalize_comparison(
         date_updated=timezone.now(),
     )
     if updated:
+        head_artifact = PreprodArtifact.objects.select_related("project__organization").get(
+            id=head_artifact_id,
+            project__organization_id=org_id,
+            project_id=project_id,
+        )
+
+        metric_tags = {
+            "app_id_temp": head_artifact.app_id or "",
+        }
+
+        e2e_duration_s = (timezone.now() - comparison.date_added).total_seconds()
+        metrics.distribution(
+            "preprod.snapshots.e2e_duration_s",
+            e2e_duration_s,
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+
+        if (
+            counts["changed"] == 0
+            and counts["added"] == 0
+            and counts["removed"] == 0
+            and counts["renamed"] == 0
+            and counts["errored"] == 0
+        ):
+            metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0, tags=metric_tags)
+
+        try:
+            _try_auto_approve_snapshot(head_artifact, comparison_manifest, session)
+        except Exception:
+            logger.exception(
+                "Auto-approve failed after successful comparison",
+                extra={"head_artifact_id": head_artifact_id},
+            )
+
         update_preprod_snapshot_vcs(
             preprod_artifact_id=head_artifact_id, caller="compare_completion"
         )
