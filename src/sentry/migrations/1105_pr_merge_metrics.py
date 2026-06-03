@@ -41,6 +41,12 @@ class Migration(CheckedMigration):
                 ("date_added", models.DateTimeField(auto_now_add=True)),
                 ("event_type", models.CharField(max_length=64)),
                 ("payload", models.JSONField(default=dict)),
+                (
+                    "pull_request",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.pullrequest"
+                    ),
+                ),
             ],
             options={
                 "db_table": "sentry_pullrequest_activity",
@@ -61,6 +67,12 @@ class Migration(CheckedMigration):
                 ("signal_details", models.JSONField(null=True)),
                 ("source", models.CharField(max_length=128)),
                 ("is_valid", models.BooleanField(default=True)),
+                (
+                    "pull_request",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.pullrequest"
+                    ),
+                ),
             ],
             options={
                 "db_table": "sentry_pullrequest_attribution",
@@ -107,6 +119,14 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
                 ),
                 ("is_assigned", models.BooleanField(default=False)),
+                (
+                    "pull_request",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="metrics",
+                        to="sentry.pullrequest",
+                    ),
+                ),
             ],
             options={
                 "db_table": "sentry_pullrequest_metrics",
@@ -131,29 +151,6 @@ class Migration(CheckedMigration):
             model_name="pullrequest",
             name="state",
             field=models.CharField(max_length=32, null=True),
-        ),
-        migrations.AddField(
-            model_name="pullrequestactivity",
-            name="pull_request",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="sentry.pullrequest"
-            ),
-        ),
-        migrations.AddField(
-            model_name="pullrequestattribution",
-            name="pull_request",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="sentry.pullrequest"
-            ),
-        ),
-        migrations.AddField(
-            model_name="pullrequestmetrics",
-            name="pull_request",
-            field=models.OneToOneField(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="metrics",
-                to="sentry.pullrequest",
-            ),
         ),
         migrations.AddIndex(
             model_name="pullrequestactivity",
