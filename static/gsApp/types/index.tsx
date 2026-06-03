@@ -23,10 +23,6 @@ declare global {
      */
     uetq: any;
     /**
-     * Zendesk widget
-     */
-    zE: any;
-    /**
      * Stripe SDK
      */
     Stripe?: StripeConstructor;
@@ -37,6 +33,7 @@ declare global {
   }
 
   namespace React {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- type param must match React.DOMAttributes<T> for declaration merging
     interface DOMAttributes<T> {
       'data-test-id'?: string;
     }
