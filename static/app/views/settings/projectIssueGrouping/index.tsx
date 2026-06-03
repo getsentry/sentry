@@ -66,7 +66,7 @@ function FingerprintRulesForm({
                       }
                     )}
                   </Text>
-                  <Text as="pre" monospace size="sm">
+                  <Text as="div" monospace size="sm" wrap="pre">
                     {`# force all errors of the same type to have the same fingerprint
 error.type:DatabaseUnavailable -> system-down
 # force all memory allocation errors to be grouped together
@@ -156,7 +156,7 @@ function StackTraceRulesForm({
                       }
                     )}
                   </Text>
-                  <Text as="pre" monospace size="sm">
+                  <Text as="div" monospace size="sm" wrap="pre">
                     {`# remove all frames above a certain function from grouping
 stack.function:panic_handler ^-group
 # mark all functions following a prefix in-app
