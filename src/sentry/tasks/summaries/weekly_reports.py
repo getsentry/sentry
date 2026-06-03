@@ -316,7 +316,6 @@ class OrganizationReportBatch:
                 if not dupe_check.check_for_duplicate_delivery():
                     self.send_email(template_ctx=template_context, user_id=user_id)
                     dupe_check.record_delivery()
-                    metrics.incr("weekly_report.email.sent")
                 else:
                     lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
                     metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
@@ -339,6 +338,7 @@ class OrganizationReportBatch:
 
         if self.email_override:
             message.send(to=(self.email_override,))
+            metrics.incr("weekly_report.email.sent")
         else:
             try:
                 analytics.record(
@@ -365,6 +365,7 @@ class OrganizationReportBatch:
 
             message.add_users((user_id,))
             message.send_async()
+            metrics.incr("weekly_report.email.sent")
 
 
 class _DuplicateDeliveryCheck:
