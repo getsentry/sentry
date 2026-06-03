@@ -112,10 +112,13 @@ jobs:
         run: pnpm run lint:js
 
       # When a merge base was computed, lint just the files transitively impacted by the PR.
+      # Diff the merge base against HEAD^2 (the PR head) so we only seed on the PR's own
+      # changes — same range the Jest job uses. Diffing against the working tree (the merge
+      # commit) would also pull in everything that landed on master since the fork point.
       - name: eslint (impacted files)
         id: eslint-impacted
         if: steps.merge-base.outputs.merge_base != ''
-        run: pnpm exec run-on-changed --since "$MERGE_BASE" -- eslint --concurrency=3
+        run: pnpm exec run-on-changed --since "$MERGE_BASE..HEAD^2" -- eslint --concurrency=3
         env:
           MERGE_BASE: ${{ steps.merge-base.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
