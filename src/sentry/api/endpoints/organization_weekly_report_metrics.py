@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,6 +15,8 @@ from sentry.models.organization import Organization
 from sentry.tasks.summaries.utils import ONE_DAY
 from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
 from sentry.utils.dates import floor_to_utc_day, to_datetime
+
+SATURDAY_ISOWEEKDAY = 6
 
 METRIC_KEY_MAP = {
     "e": "totalErrors",
@@ -57,8 +61,10 @@ class OrganizationWeeklyReportMetricsEndpoint(OrganizationEndpoint):
         ):
             return Response(status=404)
 
-        now = floor_to_utc_day(timezone.now())
-        current_timestamp = now.timestamp()
+        today = floor_to_utc_day(timezone.now())
+        days_since_saturday = (today.isoweekday() - SATURDAY_ISOWEEKDAY) % 7
+        last_saturday = today - timedelta(days=days_since_saturday)
+        current_timestamp = last_saturday.timestamp()
         previous_timestamp = current_timestamp - (ONE_DAY * 7)
 
         projects = self.get_projects(request, organization)
