@@ -9,6 +9,10 @@ import sentry_sdk
 
 from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.models.full_rebalancing import (
+    FullRebalancingInput,
+    FullRebalancingModel,
+)
 from sentry.dynamic_sampling.models.projects_rebalancing import (
     ProjectsRebalancingInput,
     ProjectsRebalancingModel,
@@ -18,9 +22,8 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingModel,
 )
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
-from sentry.dynamic_sampling.per_org.queries import ProjectVolume
+from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import ProjectTransactions
 from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
@@ -31,6 +34,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
+MIN_IMPLICIT_FACTOR = 1.0
 logger = logging.getLogger(__name__)
 
 
@@ -115,13 +119,24 @@ def compare_rebalanced_projects_with_cache(
 
 def run_transaction_balancing(
     config: BaseDynamicSamplingConfiguration,
-    transaction_volumes: list[ProjectTransactions],
+    project_volumes: list[ProjectVolume],
+    transaction_volumes: list[ProjectTransactionCounts],
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity")
     sample_rates = config.get_project_sample_rates()
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
+    project_volume_by_id = {
+        project_volume.project_id: project_volume for project_volume in project_volumes
+    }
     for project_data in transaction_volumes:
-        project_id = project_data["project_id"]
+        project_id = project_data.project_id
+        project_volume = project_volume_by_id.get(project_id)
+        if project_volume is None:
+            sentry_sdk.capture_message(
+                "Project volume not found when trying to adjust the sample rates of "
+                "its transactions"
+            )
+            continue
         sample_rate = sample_rates.get(project_id)
         if sample_rate is None:
             sentry_sdk.capture_message(
@@ -129,19 +144,79 @@ def run_transaction_balancing(
                 "its transactions"
             )
             continue
-        result[project_id] = TransactionsRebalancingModel().run(
+        named_rates, implicit_rate = TransactionsRebalancingModel().run(
             TransactionsRebalancingInput(
                 classes=[
                     RebalancedItem(id=transaction_name, count=count)
-                    for transaction_name, count in project_data["transaction_counts"]
+                    for transaction_name, count in project_data.transaction_counts
                 ],
                 sample_rate=sample_rate,
-                total_num_classes=project_data.get("total_num_classes"),
-                total=project_data.get("total_num_transactions"),
+                total_num_classes=project_volume.num_distinct_transactions,
+                total=project_volume.total,
                 intensity=intensity,
             )
         )
+
+        if implicit_rate < MIN_IMPLICIT_FACTOR * sample_rate:
+            named_rates, implicit_rate = _apply_implicit_factor_floor(
+                named_rates=named_rates,
+                implicit_rate=implicit_rate,
+                base_sample_rate=sample_rate,
+                total=project_volume.total,
+                min_implicit_factor=MIN_IMPLICIT_FACTOR,
+                intensity=intensity,
+            )
+
+        result[project_id] = (named_rates, implicit_rate)
     return result
+
+
+def _apply_implicit_factor_floor(
+    named_rates: list[RebalancedItem],
+    implicit_rate: float,
+    base_sample_rate: float,
+    total: int,
+    min_implicit_factor: float,
+    intensity: float,
+) -> tuple[list[RebalancedItem], float]:
+    """Clamp the implicit factor to at least ``min_implicit_factor`` by reducing
+    the explicit pool's budget by the same amount the implicit pool gains.
+
+    The floor expressed as a *factor* is ``min_implicit_factor`` — i.e. the
+    floor on ``implicit_rate / base_sample_rate``. Setting it to 1.0 guarantees
+    that the long-tail bucket is sampled at least at the project's base rate.
+
+    Conservation holds when ``min_implicit_factor * total_implicit <= total``
+    (always true when ``min_implicit_factor <= 1``). In the pathological case
+    where the requested floor would consume more than the total budget, the
+    explicit pool drops to rate 0 and some overshoot remains; callers should
+    rely on the recalibration loop to absorb the residual.
+    """
+
+    floor = min_implicit_factor * base_sample_rate
+    total_explicit = sum(item.count for item in named_rates)
+    total_implicit = total - total_explicit
+    if total_explicit <= 0 or total_implicit <= 0:
+        return named_rates, floor
+
+    # Budget the implicit pool would consume at the floor, minus what the model
+    # had already allocated to it. The explicit pool pays the difference.
+    additional_implicit = (floor - implicit_rate) * total_implicit
+    original_explicit_used = sum(item.count * item.new_sample_rate for item in named_rates)
+    new_explicit_budget = original_explicit_used - additional_implicit
+
+    if new_explicit_budget <= 0:
+        return [], floor
+
+    new_explicit_rate = new_explicit_budget / total_explicit
+    new_rates, _ = FullRebalancingModel().run(
+        FullRebalancingInput(
+            classes=[RebalancedItem(id=item.id, count=item.count) for item in named_rates],
+            sample_rate=new_explicit_rate,
+            intensity=intensity,
+        )
+    )
+    return new_rates, floor
 
 
 def get_cached_rebalanced_transaction_sample_rates(
