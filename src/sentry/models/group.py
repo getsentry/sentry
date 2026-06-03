@@ -544,6 +544,7 @@ class GroupManager(BaseManager["Group"]):
                 data=activity_data,
                 send_notification=send_activity_notification,
                 datetime=update_date,
+                detector_id=detector_id,
             )
             record_group_history_from_activity_type(group, activity_type.value)
 
@@ -557,6 +558,7 @@ class GroupManager(BaseManager["Group"]):
                         "reason": PriorityChangeReason.ONGOING,
                     },
                     datetime=update_date,
+                    detector_id=detector_id,
                 )
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
