@@ -714,7 +714,7 @@ class SeerAgentClient:
         repo_name: str | None = None,
         blocking: bool = True,
         pr_description_suffix: str | None = None,
-        ready_for_review: bool = False,
+        ready_for_review: bool = True,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
     ) -> SeerRunState | None:

@@ -254,7 +254,6 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             123,
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
             state=state,
-            ready_for_review=True,
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
