@@ -93,6 +93,24 @@ def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMoc
     return session
 
 
+def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
+    session = MagicMock()
+
+    def _get(key):
+        if key not in stored:
+            raise RequestError(f"Key not found: {key}", 404, "not found")
+        result = MagicMock()
+        result.payload.read.return_value = stored[key]
+        return result
+
+    def _put(contents, key, content_type):
+        stored[key] = contents
+
+    session.get.side_effect = _get
+    session.put.side_effect = _put
+    return session
+
+
 @cell_silo_test
 class ProcessChunkTest(TestCase):
     def test_chunk_processes_slice_and_marks_done(self):
@@ -553,3 +571,216 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         assert not PreprodSnapshotComparisonChunk.objects.filter(
             comparison=comparison, chunk_index__in=[1, 2]
         ).exists()
+
+
+@cell_silo_test
+class EndToEndFanoutTest(TestCase):
+    def _setup_artifacts(self):
+        head_artifact = self.create_preprod_artifact(project=self.project)
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        head.extras = {"manifest_key": "head_manifest"}
+        head.save()
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        base.extras = {"manifest_key": "base_manifest"}
+        base.save()
+        return head_artifact, base_artifact
+
+    def _build_manifests(self):
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+
+        head_manifest = SnapshotManifest(
+            images={
+                "changed_a.png": ImageMetadata(content_hash="ha1", width=10, height=10),
+                "changed_b.png": ImageMetadata(content_hash="hb1", width=10, height=10),
+                "changed_c.png": ImageMetadata(content_hash="hc1", width=10, height=10),
+                "added.png": ImageMetadata(content_hash="hadd", width=10, height=10),
+                "unchanged.png": ImageMetadata(content_hash="hsame", width=10, height=10),
+            },
+            diff_threshold=None,
+        )
+        base_manifest = SnapshotManifest(
+            images={
+                "changed_a.png": ImageMetadata(content_hash="ha0", width=10, height=10),
+                "changed_b.png": ImageMetadata(content_hash="hb0", width=10, height=10),
+                "changed_c.png": ImageMetadata(content_hash="hc0", width=10, height=10),
+                "unchanged.png": ImageMetadata(content_hash="hsame", width=10, height=10),
+            },
+            diff_threshold=None,
+        )
+        return head_manifest, base_manifest
+
+    def _diff_result(self):
+        from sentry.preprod.snapshots.image_diff.types import DiffResult
+
+        return DiffResult(
+            diff_mask_png=b"png",
+            changed_pixels=50,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+    def _fake_fetch(self, session, key_prefix, hashes):
+        return {h: b"img" for h in hashes}, set()
+
+    def test_full_flow_reaches_success(self):
+        from sentry.preprod.snapshots.tasks import (
+            compare_snapshots,
+            poll_snapshot_comparison,
+            process_snapshot_comparison_chunk,
+        )
+
+        head_artifact, base_artifact = self._setup_artifacts()
+        head_manifest, base_manifest = self._build_manifests()
+        stored = {
+            "head_manifest": orjson.dumps(head_manifest.dict()),
+            "base_manifest": orjson.dumps(base_manifest.dict()),
+        }
+        session = _dict_backed_session(stored)
+
+        dispatched: list[dict] = []
+
+        kwargs = dict(
+            project_id=self.project.id,
+            org_id=self.organization.id,
+            head_artifact_id=head_artifact.id,
+            base_artifact_id=base_artifact.id,
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 1),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
+            ),
+            patch(
+                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                side_effect=lambda pairs, server: [self._diff_result() for _ in pairs],
+            ),
+            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch(
+                "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async",
+                side_effect=lambda kwargs, **_: dispatched.append(kwargs),
+            ),
+            patch("sentry.preprod.snapshots.tasks.poll_snapshot_comparison.apply_async"),
+        ):
+            compare_snapshots(**kwargs)
+
+            comparison = PreprodSnapshotComparison.objects.get(
+                head_snapshot_metrics__preprod_artifact=head_artifact
+            )
+            assert comparison.chunks_total == 3
+            assert PreprodSnapshotComparisonChunk.objects.filter(comparison=comparison).count() == 3
+            assert len(dispatched) == 3
+
+            for chunk_kwargs in dispatched:
+                process_snapshot_comparison_chunk(**chunk_kwargs)
+                idx = chunk_kwargs["chunk_index"]
+                chunk = PreprodSnapshotComparisonChunk.objects.get(
+                    comparison=comparison, chunk_index=idx
+                )
+                assert chunk.state == PreprodSnapshotComparisonChunk.State.DONE
+                prefix = (
+                    f"{self.organization.id}/{self.project.id}/"
+                    f"{head_artifact.id}/{base_artifact.id}"
+                )
+                assert f"{prefix}/chunks/{idx}.json" in stored
+
+            poll_snapshot_comparison(
+                comparison_id=comparison.id,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.images_changed == 3
+        assert comparison.images_added == 1
+        assert comparison.images_unchanged == 1
+        prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
+        assert f"{prefix}/comparison.json" in stored
+        manifest = orjson.loads(stored[f"{prefix}/comparison.json"])
+        assert manifest["summary"]["changed"] == 3
+        assert manifest["summary"]["added"] == 1
+
+    def test_partial_success_over_budget_marks_unrun_chunk_errored(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from sentry.preprod.snapshots.tasks import (
+            compare_snapshots,
+            poll_snapshot_comparison,
+            process_snapshot_comparison_chunk,
+        )
+
+        head_artifact, base_artifact = self._setup_artifacts()
+        head_manifest, base_manifest = self._build_manifests()
+        stored = {
+            "head_manifest": orjson.dumps(head_manifest.dict()),
+            "base_manifest": orjson.dumps(base_manifest.dict()),
+        }
+        session = _dict_backed_session(stored)
+
+        dispatched: list[dict] = []
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 1),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
+            ),
+            patch(
+                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                side_effect=lambda pairs, server: [self._diff_result() for _ in pairs],
+            ),
+            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch(
+                "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async",
+                side_effect=lambda kwargs, **_: dispatched.append(kwargs),
+            ),
+            patch("sentry.preprod.snapshots.tasks.poll_snapshot_comparison.apply_async"),
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+            comparison = PreprodSnapshotComparison.objects.get(
+                head_snapshot_metrics__preprod_artifact=head_artifact
+            )
+            assert comparison.chunks_total == 3
+            assert len(dispatched) == 3
+
+            for chunk_kwargs in dispatched[:-1]:
+                process_snapshot_comparison_chunk(**chunk_kwargs)
+
+            PreprodSnapshotComparison.objects.filter(id=comparison.id).update(
+                date_added=timezone.now() - timedelta(seconds=100_000)
+            )
+            comparison.refresh_from_db()
+
+            poll_snapshot_comparison(
+                comparison_id=comparison.id,
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
+        assert f"{prefix}/comparison.json" in stored
+        manifest = orjson.loads(stored[f"{prefix}/comparison.json"])
+        assert manifest["summary"]["errored"] >= 1
