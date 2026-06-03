@@ -4,6 +4,12 @@ import copy
 from typing import TYPE_CHECKING, Any
 
 from sentry.db.models import DefaultFieldsModel
+from sentry.workflow_engine.models import (
+    DataCondition,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    WorkflowDataConditionGroup,
+)
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -32,12 +38,6 @@ def clone_workflow_to_organization(
     is left intact for the projects that remain. The owner team/user is dropped because it
     won't belong to the new org, and fire history / detector state are not copied.
     """
-    from sentry.workflow_engine.models import (
-        DataCondition,
-        DataConditionGroup,
-        DataConditionGroupAction,
-        WorkflowDataConditionGroup,
-    )
 
     def clone_condition_group(
         condition_group: DataConditionGroup,

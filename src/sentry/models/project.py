@@ -49,7 +49,6 @@ from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
-from sentry.workflow_engine.processors.project_transfer import clone_workflow_to_organization
 
 logger = logging.getLogger(__name__)
 
@@ -515,6 +514,9 @@ class Project(Model):
             DetectorWorkflow,
             Workflow,
         )
+        from sentry.workflow_engine.processors.project_transfer import (
+            clone_workflow_to_organization,
+        )
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
@@ -672,7 +674,10 @@ class Project(Model):
                 )
 
                 all_workflow_ids = set(
-                    Workflow.objects.filter(detectorworkflow__detector_id__in=detector_ids)
+                    Workflow.objects.filter(
+                        detectorworkflow__detector_id__in=detector_ids,
+                        organization_id=old_org_id,
+                    )
                     .distinct()
                     .values_list("id", flat=True)
                 )
@@ -740,6 +745,9 @@ class Project(Model):
                 )
 
                 # Clone the shared workflows into the new org and re-point only this project's links.
+                # we use DetectorWorkflow to identify Workflows that need to be cloned, but once we clone
+                # we remove the DetectorWorkflow links to the old Workflow so that in a re-run these cloned
+                # workflows will be treated as exclusive and no-op transferred
                 if shared_workflow_ids:
                     project_rule_ids = list(
                         Rule.objects.filter(project_id=self.id).values_list("id", flat=True)
