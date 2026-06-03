@@ -74,6 +74,14 @@ class GitHubIdentityProvider(OAuth2Provider):
         # A linked GitHub identity is an authoritative user<->GitHub mapping, so mirror
         # it into ExternalActor for the user's GitHub-integrated orgs. Best-effort.
         #
+        # NOTE: This hook only fires for the "associate identity from account settings"
+        # flow (sentry.users.web.account_identity.AccountIdentityAssociateView ->
+        # IdentityPipeline.finish_pipeline). The primary "Sign in with GitHub" login/
+        # signup flow lives in getsentry (getsentry.web.identity, the `github_login`
+        # provider) and never reaches finish_pipeline, so it calls
+        # ensure_external_actors_for_github_identity() directly. Both paths are wired
+        # so either way of establishing a GitHub identity reacts the same way.
+        #
         # This is github.com only by design: GitHub Enterprise has no social-login flow
         # (GitHubEnterpriseIdentityProvider.build_identity raises). The only enterprise
         # identity that ever exists is the installer's (linked at integration-install
@@ -103,8 +111,19 @@ def ensure_external_actors_for_github_identity(
     control models); only the row write crosses into the org's cell, via a single
     cell-resolved RPC per org.
 
-    This is best-effort: it must never raise into the linking flow, and the periodic
-    backfill remains the safety net for anything missed here.
+    This mirrors the ``ExternalActorSource.IDENTITY`` discovery in getsentry's
+    ``backfill_github_external_actor`` job, but reactively at identity-link time rather
+    than as a periodic sweep (and cheaper: the GitHub login arrives in the OAuth payload,
+    so we skip the per-user ``/user/{id}`` lookup the backfill has to make).
+
+    Called from two places, since GitHub identities get established in two flows:
+      - getsentry's ``github_login`` login/signup views (the "Sign in with GitHub"
+        button) -- the common path; see ``getsentry.web.identity``.
+      - ``GitHubIdentityProvider.post_link_identity`` (the "associate identity from
+        account settings" flow).
+
+    This is best-effort and never raises into the caller's flow; the periodic backfill
+    remains the safety net for anything missed here.
     """
     if not github_login:
         return
@@ -118,12 +137,16 @@ def ensure_external_actors_for_github_identity(
         if not org_ids:
             return
 
-        org_integrations = OrganizationIntegration.objects.filter(
-            organization_id__in=org_ids,
-            status=ObjectStatus.ACTIVE,
-            integration__provider=IntegrationProviderSlug.GITHUB.value,
-            integration__status=ObjectStatus.ACTIVE,
-        ).values_list("organization_id", "integration_id")
+        # Materialize inside the try so a DB error here can't escape into the
+        # caller's login/link flow (the iteration below would otherwise run the query).
+        org_integrations = list(
+            OrganizationIntegration.objects.filter(
+                organization_id__in=org_ids,
+                status=ObjectStatus.ACTIVE,
+                integration__provider=IntegrationProviderSlug.GITHUB.value,
+                integration__status=ObjectStatus.ACTIVE,
+            ).values_list("organization_id", "integration_id")
+        )
     except Exception:
         logger.exception(
             "github.identity.external_actor.discovery_failed",

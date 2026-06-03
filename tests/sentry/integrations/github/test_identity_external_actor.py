@@ -13,8 +13,13 @@ from sentry.integrations.types import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import no_silo_test
 
 
+# Monolith mode: the orchestrator reads control models (OrganizationMemberMapping/
+# OrganizationIntegration) and writes the cell-silo ExternalActor via RPC, and the
+# assertions read ExternalActor back -- all of which must be locally accessible.
+@no_silo_test
 class EnsureExternalActorsForGithubIdentityTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -158,6 +163,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         assert not self._external_actors(user_id=self.user.id).exists()
 
 
+@no_silo_test
 class GitHubIdentityProviderPostLinkTest(TestCase):
     def setUp(self):
         super().setUp()
