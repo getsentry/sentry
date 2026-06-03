@@ -432,7 +432,7 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
 
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
-        assert body["is_context_engine_enabled"] is False
+        assert body["agent_run_options"]["is_context_engine_enabled"] is False
 
     @patch("sentry.seer.agent.client.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
@@ -453,7 +453,7 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
 
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
-        assert body["is_context_engine_enabled"] is True
+        assert body["agent_run_options"]["is_context_engine_enabled"] is True
 
     @patch("sentry.seer.agent.client.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
@@ -473,7 +473,7 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
 
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
-        assert body.get("is_context_engine_enabled") is not False
+        assert body.get("agent_run_options", {}).get("is_context_engine_enabled") is not False
 
 
 class TestCodeModeSerializerField:
