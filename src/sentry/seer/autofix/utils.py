@@ -299,19 +299,6 @@ def make_autofix_start_request(
     )
 
 
-def make_autofix_update_request(
-    body: bytes,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/update",
-        body=body,
-        viewer_context=viewer_context,
-    )
-
-
 def make_store_coding_agent_states_request(
     body: StoreCodingAgentStatesRequest,
     connection_pool: HTTPConnectionPool | None = None,
