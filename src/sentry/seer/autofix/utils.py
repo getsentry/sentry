@@ -105,7 +105,7 @@ def extract_api_error_message(response: Any) -> str | None:
 
 def get_valid_automated_run_stopping_points(
     organization: Organization,
-) -> set[AutofixStoppingPoint]:
+) -> frozenset[AutofixStoppingPoint]:
     """Return the set of stopping points valid for an org's billing tier."""
     if is_seer_seat_based_tier_enabled(organization):
         return SEAT_BASED_STOPPING_POINTS
