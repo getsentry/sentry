@@ -32,8 +32,8 @@ class DebugWeeklyReportView(MailPreviewView):
         timestamp = floor_to_utc_day(
             to_datetime(
                 random.randint(
-                    int(datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp()),
-                    int(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp()),
+                    datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp(),
+                    datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp(),
                 )
             )
         ).timestamp()
@@ -117,9 +117,7 @@ class DebugWeeklyReportView(MailPreviewView):
 
             ctx.projects_context_map[project.id] = project_context
 
-        user_id = request.user.id
-        ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
-        return render_template_context(ctx, user_id)
+        return render_template_context(ctx, None)
 
     @property
     def html_template(self) -> str:
