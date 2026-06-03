@@ -737,10 +737,12 @@ class PushEventWebhook(GitHubWebhook):
 
         # Hand the authors seen in this push off to an async task to look up
         # their public profile email and (maybe) create ExternalActor mappings.
-        # The task filters for GitHub authors and is gated by
-        # CommitAuthor.public_email_queried_at, so re-seeing a recent author is
-        # cheap; we don't need them to be brand-new.
-        if authors:
+        # The task is gated by CommitAuthor.public_email_queried_at, so re-seeing
+        # a recent author is cheap; we don't need them to be brand-new.
+        if authors and integration.provider in (
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ):
             query_commit_author_public_emails.apply_async(
                 kwargs={
                     "organization_id": organization.id,

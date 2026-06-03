@@ -13,11 +13,7 @@ from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import (
-    ExternalActorSource,
-    ExternalProviders,
-    IntegrationProviderSlug,
-)
+from sentry.integrations.types import ExternalActorSource, ExternalProviders
 from sentry.models.commitauthor import CommitAuthor
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -62,15 +58,15 @@ def query_commit_author_public_emails(
     if not commit_author_ids:
         return
 
+    # The caller (GitHub/GHE push webhook) already knows the integration is a
+    # GitHub one, so we don't re-check the provider here; we just need to confirm
+    # it's still active and grab a client.
     integration = integration_service.get_integration(
         integration_id=integration_id,
         organization_id=organization_id,
         status=ObjectStatus.ACTIVE,
     )
-    if integration is None or integration.provider not in (
-        IntegrationProviderSlug.GITHUB.value,
-        IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-    ):
+    if integration is None:
         return
 
     installation = integration.get_installation(organization_id=organization_id)
