@@ -71,7 +71,7 @@ def _save_split_decision_for_widget(
     widget.save()
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def _get_and_save_split_decision_for_dashboard_widget(
     widget_query: DashboardWidgetQuery, dry_run: bool
 ) -> tuple[int, bool]:

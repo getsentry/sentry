@@ -29,7 +29,7 @@ class Score(TypedDict):
     is_filtered: bool
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def get_suspect_flag_scores(
     org_id: int,
     project_id: int,
@@ -81,7 +81,7 @@ def get_suspect_flag_scores(
     ]
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def query_baseline_set(
     organization_id: int,
     project_id: int,
@@ -167,7 +167,7 @@ def query_baseline_set(
     ]
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def query_selection_set(
     organization_id: int,
     project_id: int,
@@ -321,7 +321,7 @@ def _query_error_counts_eap(
     )
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def query_error_counts(
     organization_id: int,
     project_id: int,

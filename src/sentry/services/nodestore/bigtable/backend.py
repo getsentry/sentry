@@ -93,7 +93,9 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        with sentry_sdk.start_span(op="nodestore.bigtable.delete"):
+        with sentry_sdk.traces.start_span(
+            name="nodestore.bigtable.delete", attributes={"sentry.op": "nodestore.bigtable.delete"}
+        ):
             try:
                 with measure_storage_operation("delete", "nodestore"):
                     self.store.delete(id)
@@ -104,8 +106,11 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        with sentry_sdk.start_span(op="nodestore.bigtable.delete_multi") as span:
-            span.set_tag("num_ids", len(id_list))
+        with sentry_sdk.traces.start_span(
+            name="nodestore.bigtable.delete_multi",
+            attributes={"sentry.op": "nodestore.bigtable.delete_multi"},
+        ) as span:
+            span.set_attribute("num_ids", len(id_list))
 
             if len(id_list) == 1:
                 self.delete(id_list[0])

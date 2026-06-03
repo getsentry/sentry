@@ -55,7 +55,9 @@ class RatelimitMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         # process_view is automatically called by Django
-        with sentry_sdk.start_span(op="ratelimit.__call__"):
+        with sentry_sdk.traces.start_span(
+            name="ratelimit.__call__", attributes={"sentry.op": "ratelimit.__call__"}
+        ):
             response = self.get_response(request)
             self.process_response(request, response)
             return response

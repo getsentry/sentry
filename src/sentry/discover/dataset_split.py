@@ -375,7 +375,7 @@ def _get_snuba_dataclass_for_saved_query(
     return _get_snuba_dataclass(saved_query.organization, projects, start, end, period, environment)
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def _get_and_save_split_decision_for_query(
     saved_query: DiscoverSavedQuery, dry_run: bool
 ) -> tuple[int, bool]:

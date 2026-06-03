@@ -90,7 +90,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     has_viewed: bool
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def process_raw_response(
     response: list[dict[str, Any]], fields: list[str]
 ) -> list[ReplayDetailsResponse]:

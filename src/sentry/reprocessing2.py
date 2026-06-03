@@ -182,13 +182,19 @@ class ReprocessableEvent:
 def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
     from sentry.lang.native.processing import get_required_attachment_types
 
-    with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
+    with sentry_sdk.traces.start_span(
+        name="reprocess_events.eventstore.get",
+        attributes={"sentry.op": "reprocess_events.eventstore.get"},
+    ):
         event = eventstore.backend.get_event_by_id(project_id, event_id)
 
     if event is None:
         raise CannotReprocess("event.not_found")
 
-    with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
+    with sentry_sdk.traces.start_span(
+        name="reprocess_events.nodestore.get",
+        attributes={"sentry.op": "reprocess_events.nodestore.get"},
+    ):
         node_id = Event.generate_node_id(project_id, event_id)
         data = nodestore.backend.get(node_id, subkey="unprocessed")
 
@@ -231,8 +237,11 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     cache_key = cache_key_for_event(data)
     attachment_objects = []
     for attachment_id, attachment in enumerate(attachments):
-        with sentry_sdk.start_span(op="reprocess_event._maybe_copy_attachment_into_cache") as span:
-            span.set_data("attachment_id", attachment.id)
+        with sentry_sdk.traces.start_span(
+            name="reprocess_event._maybe_copy_attachment_into_cache",
+            attributes={"sentry.op": "reprocess_event._maybe_copy_attachment_into_cache"},
+        ) as span:
+            span.set_attribute("attachment_id", attachment.id)
             attachment_objects.append(
                 _maybe_copy_attachment_into_cache(
                     project=project,
@@ -397,8 +406,11 @@ def buffered_delete_old_primary_hash(
     scope.set_tag("old_group_id", group_id)
     scope.set_tag("old_primary_hash", old_primary_hash)
 
-    with sentry_sdk.start_span(
-        op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
+    with sentry_sdk.traces.start_span(
+        name="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events",
+        attributes={
+            "sentry.op": "sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
+        },
     ):
         _send_delete_old_primary_hash_messages(
             project_id, group_id, old_primary_hashes, force_flush_batch

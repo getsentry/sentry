@@ -156,22 +156,24 @@ def handle_message(
 
         callback = subscriber_registry[subscription.type]
         with (
-            sentry_sdk.start_span(op="process_message") as span,
+            sentry_sdk.traces.start_span(
+                name="process_message", attributes={"sentry.op": "process_message"}
+            ) as span,
             metrics.timer(
                 "snuba_query_subscriber.callback.duration",
                 instance=subscription.type,
                 tags={"dataset": dataset},
             ),
         ):
-            span.set_data("payload", contents)
-            span.set_data("subscription_dataset", subscription.snuba_query.dataset)
-            span.set_data("subscription_query", subscription.snuba_query.query)
-            span.set_data("subscription_aggregation", subscription.snuba_query.aggregate)
-            span.set_data("subscription_time_window", subscription.snuba_query.time_window)
-            span.set_data("subscription_resolution", subscription.snuba_query.resolution)
-            span.set_data("message_offset", message_offset)
-            span.set_data("message_partition", message_partition)
-            span.set_data("message_value", message_value)
+            span.set_attribute("payload", contents)
+            span.set_attribute("subscription_dataset", subscription.snuba_query.dataset)
+            span.set_attribute("subscription_query", subscription.snuba_query.query)
+            span.set_attribute("subscription_aggregation", subscription.snuba_query.aggregate)
+            span.set_attribute("subscription_time_window", subscription.snuba_query.time_window)
+            span.set_attribute("subscription_resolution", subscription.snuba_query.resolution)
+            span.set_attribute("message_offset", message_offset)
+            span.set_attribute("message_partition", message_partition)
+            span.set_attribute("message_value", message_value)
 
             callback(contents, subscription)
 

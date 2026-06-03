@@ -131,7 +131,10 @@ class GroupTypeRegistry:
     def get_visible(
         self, organization: Organization, actor: Any | None = None
     ) -> list[type[GroupType]]:
-        with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
+        with sentry_sdk.traces.start_span(
+            name="GroupTypeRegistry.get_visible",
+            attributes={"sentry.op": "GroupTypeRegistry.get_visible"},
+        ) as span:
             released = [gt for gt in self.all() if gt.released]
             feature_to_grouptype: dict[str, type[GroupType]] = {}
             for gt in self.all():
@@ -151,11 +154,11 @@ class GroupTypeRegistry:
                         if gt.type_id not in seen:
                             seen.add(gt.type_id)
                             enabled.append(gt)
-            span.set_tag("organization_id", organization.id)
-            span.set_tag("has_batch_features", batch_features is not None)
-            span.set_tag("released", released)
-            span.set_tag("enabled", enabled)
-            span.set_data("feature_to_grouptype", feature_to_grouptype)
+            span.set_attribute("organization_id", organization.id)
+            span.set_attribute("has_batch_features", batch_features is not None)
+            span.set_attribute("released", released)
+            span.set_attribute("enabled", enabled)
+            span.set_attribute("feature_to_grouptype", feature_to_grouptype)
             return released + enabled
 
     def get_all_group_type_ids(self) -> set[int]:

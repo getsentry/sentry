@@ -116,20 +116,26 @@ def send_notification_as_email(
 ) -> None:
     for recipient in recipients:
         recipient_actor = Actor.from_object(recipient)
-        with sentry_sdk.start_span(op="notification.send_email", name="one_recipient"):
+        with sentry_sdk.traces.start_span(
+            name="one_recipient", attributes={"sentry.op": "notification.send_email"}
+        ):
             if recipient_actor.is_team:
                 # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
                 continue
             _log_message(notification, recipient_actor)
 
-            with sentry_sdk.start_span(op="notification.send_email", name="build_message"):
+            with sentry_sdk.traces.start_span(
+                name="build_message", attributes={"sentry.op": "notification.send_email"}
+            ):
                 msg = MessageBuilder(
                     **get_builder_args(
                         notification, recipient_actor, shared_context, extra_context_by_actor
                     )
                 )
 
-            with sentry_sdk.start_span(op="notification.send_email", name="send_message"):
+            with sentry_sdk.traces.start_span(
+                name="send_message", attributes={"sentry.op": "notification.send_email"}
+            ):
                 # TODO: find better way of handling this
                 add_users_kwargs = {}
                 if isinstance(notification, ProjectNotification):

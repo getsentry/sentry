@@ -7,7 +7,7 @@ from ._base import EncryptedField
 
 
 class EncryptedCharField(EncryptedField, CharField):
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
         db_value = super().from_db_value(value, expression, connection)
         if db_value is None:

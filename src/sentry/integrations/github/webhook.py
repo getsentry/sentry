@@ -1102,12 +1102,10 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         # Create a new transaction for each webhook event to ensure separate traces
         transaction_name = f"github.webhook.{github_event.value}"
-        with sentry_sdk.start_transaction(
-            op="webhook",
-            name=transaction_name,
-            source="component",
+        with sentry_sdk.traces.start_span(
+            name=transaction_name, attributes={"sentry.op": "webhook"}, parent_span=None
         ) as transaction:
-            transaction.set_tag("github_event", github_event.value)
+            transaction.set_attribute("github_event", github_event.value)
 
             github_delivery_id = request.META.get("HTTP_X_GITHUB_DELIVERY")
             if github_delivery_id is not None:

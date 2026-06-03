@@ -625,7 +625,7 @@ class Release(Model):
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
     def set_refs(self, refs, user_id, fetch=False):
-        with sentry_sdk.start_span(op="set_refs"):
+        with sentry_sdk.traces.start_span(name="set_refs", attributes={"sentry.op": "set_refs"}):
             from sentry.api.exceptions import InvalidRepository
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
             from sentry.models.repository import Repository
@@ -666,7 +666,7 @@ class Release(Model):
                     }
                 )
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def set_commits(self, commit_list):
         """
         Bind a list of commits to this release.
@@ -747,7 +747,9 @@ class Release(Model):
         """
         Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
         """
-        with sentry_sdk.start_span(op="clear_commits"):
+        with sentry_sdk.traces.start_span(
+            name="clear_commits", attributes={"sentry.op": "clear_commits"}
+        ):
             from sentry.models.releasecommit import ReleaseCommit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
 

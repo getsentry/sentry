@@ -403,7 +403,9 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
     if not _should_symbolicate(profile):
         return True
 
-    with sentry_sdk.start_span(op="task.profiling.symbolicate"):
+    with sentry_sdk.traces.start_span(
+        name="task.profiling.symbolicate", attributes={"sentry.op": "task.profiling.symbolicate"}
+    ):
         try:
             if "debug_meta" not in profile or not profile["debug_meta"]:
                 metrics.incr(
@@ -469,7 +471,9 @@ def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
     if not _should_deobfuscate(profile):
         return True
 
-    with sentry_sdk.start_span(op="task.profiling.deobfuscate"):
+    with sentry_sdk.traces.start_span(
+        name="task.profiling.deobfuscate", attributes={"sentry.op": "task.profiling.deobfuscate"}
+    ):
         try:
             if "profile" not in profile or not profile["profile"]:
                 metrics.incr(
@@ -493,7 +497,9 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
     if profile.get("normalized", False):
         return True
 
-    with sentry_sdk.start_span(op="task.profiling.normalize"):
+    with sentry_sdk.traces.start_span(
+        name="task.profiling.normalize", attributes={"sentry.op": "task.profiling.normalize"}
+    ):
         try:
             _normalize(profile=profile, organization=organization)
             profile["normalized"] = True
@@ -532,7 +538,10 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 def _prepare_frames_from_profile(
     profile: Profile, platform: str | None
 ) -> tuple[list[Any], list[Any], set[int]]:
-    with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
+    with sentry_sdk.traces.start_span(
+        name="task.profiling.symbolicate.prepare_frames",
+        attributes={"sentry.op": "task.profiling.symbolicate.prepare_frames"},
+    ):
         modules = profile["debug_meta"]["images"]
         frames: list[Any] = []
         frames_sent: set[int] = set()
@@ -679,7 +688,10 @@ def run_symbolicate(
     )
 
     try:
-        with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
+        with sentry_sdk.traces.start_span(
+            name="task.profiling.symbolicate.process_payload",
+            attributes={"sentry.op": "task.profiling.symbolicate.process_payload"},
+        ):
             response = symbolicate(
                 symbolicator=symbolicator,
                 profile=profile,
@@ -728,7 +740,10 @@ def _process_symbolicator_results(
     frames_sent: set[int],
     platform: str,
 ) -> None:
-    with sentry_sdk.start_span(op="task.profiling.symbolicate.process_results"):
+    with sentry_sdk.traces.start_span(
+        name="task.profiling.symbolicate.process_results",
+        attributes={"sentry.op": "task.profiling.symbolicate.process_results"},
+    ):
         # update images with status after symbolication
         profile["debug_meta"]["images"] = modules
 
@@ -947,7 +962,10 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
     )
 
     try:
-        with sentry_sdk.start_span(op="task.profiling.deobfuscate.process_payload"):
+        with sentry_sdk.traces.start_span(
+            name="task.profiling.deobfuscate.process_payload",
+            attributes={"sentry.op": "task.profiling.deobfuscate.process_payload"},
+        ):
             response = symbolicate(
                 symbolicator=symbolicator,
                 profile=profile,
@@ -1015,7 +1033,10 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
         return
 
     try:
-        with sentry_sdk.start_span(op="deobfuscate_with_symbolicator"):
+        with sentry_sdk.traces.start_span(
+            name="deobfuscate_with_symbolicator",
+            attributes={"sentry.op": "deobfuscate_with_symbolicator"},
+        ):
             success = _deobfuscate_using_symbolicator(
                 project=project,
                 profile=profile,
@@ -1325,18 +1346,25 @@ def _process_vroomrs_profile(profile: Profile, project: Project) -> bool:
 
 
 def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> bool:
-    with sentry_sdk.start_span(op="task.profiling.process_vroomrs_transaction_profile"):
+    with sentry_sdk.traces.start_span(
+        name="task.profiling.process_vroomrs_transaction_profile",
+        attributes={"sentry.op": "task.profiling.process_vroomrs_transaction_profile"},
+    ):
         try:
             # todo (improvement): check the feasibility of passing the profile
             # dict directly to the PyO3 module to avoid json serialization/deserialization
-            with sentry_sdk.start_span(op="json.dumps"):
+            with sentry_sdk.traces.start_span(
+                name="json.dumps", attributes={"sentry.op": "json.dumps"}
+            ):
                 json_profile = json.dumps(profile)
                 metrics.distribution(
                     "profiling.profile.payload.size",
                     len(json_profile),
                     tags={"type": "profile", "platform": profile["platform"]},
                 )
-            with sentry_sdk.start_span(op="json.unmarshal"):
+            with sentry_sdk.traces.start_span(
+                name="json.unmarshal", attributes={"sentry.op": "json.unmarshal"}
+            ):
                 prof = vroomrs.profile_from_json_str(json_profile, profile["platform"])
             prof.normalize()
             if not prof.is_sampled():
@@ -1346,7 +1374,9 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                 # either of snuba/sentry/front-end
                 prof.set_profile_id(UNSAMPLED_PROFILE_ID)
             if prof.is_sampled():
-                with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
+                with sentry_sdk.traces.start_span(
+                    name="compress and write", attributes={"sentry.op": "gcs.write"}
+                ):
                     storage = get_profiles_storage()
                     with measure_storage_operation(
                         "put", "profiling", len(json_profile)
@@ -1356,7 +1386,9 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                         storage.save(prof.storage_path(), io.BytesIO(compressed_profile))
                 # we only run find_occurrences for sampled profiles, unsampled profiles
                 # are skipped
-                with sentry_sdk.start_span(op="processing", name="find occurrences"):
+                with sentry_sdk.traces.start_span(
+                    name="find occurrences", attributes={"sentry.op": "processing"}
+                ):
                     occurrences = prof.find_occurrences()
                     occurrences.filter_none_type_issues()
                     for occurrence in occurrences.occurrences:
@@ -1366,7 +1398,9 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                         )
                         profile_occurrences_producer.produce(topic, payload)
             # function metrics are extracted for both sampled and unsampled profiles
-            with sentry_sdk.start_span(op="processing", name="extract functions metrics"):
+            with sentry_sdk.traces.start_span(
+                name="extract functions metrics", attributes={"sentry.op": "processing"}
+            ):
                 functions = prof.extract_functions_metrics(
                     min_depth=1, filter_system_frames=True, max_unique_functions=100
                 )
@@ -1377,7 +1411,9 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                     )
                     profile_functions_producer.produce(topic, payload)
             if features.has("projects:profile-functions-metrics-eap-ingestion", project):
-                with sentry_sdk.start_span(op="processing", name="extract functions metrics (eap)"):
+                with sentry_sdk.traces.start_span(
+                    name="extract functions metrics (eap)", attributes={"sentry.op": "processing"}
+                ):
                     eap_functions = prof.extract_functions_metrics(
                         min_depth=1,
                         filter_system_frames=True,
@@ -1400,7 +1436,9 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
                         )
             if prof.is_sampled():
                 # Send profile metadata to Kafka
-                with sentry_sdk.start_span(op="processing", name="send profile kafka message"):
+                with sentry_sdk.traces.start_span(
+                    name="send profile kafka message", attributes={"sentry.op": "processing"}
+                ):
                     payload = build_profile_kafka_message(prof)
                     topic = ArroyoTopic(
                         get_topic_definition(Topic.PROCESSED_PROFILES)["real_topic_name"]
@@ -1418,21 +1456,30 @@ def _process_vroomrs_transaction_profile(profile: Profile, project: Project) -> 
 
 
 def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
-    with sentry_sdk.start_span(op="task.profiling.process_vroomrs_chunk_profile"):
+    with sentry_sdk.traces.start_span(
+        name="task.profiling.process_vroomrs_chunk_profile",
+        attributes={"sentry.op": "task.profiling.process_vroomrs_chunk_profile"},
+    ):
         try:
             # todo (improvement): check the feasibility of passing the profile
             # dict directly to the PyO3 module to avoid json serialization/deserialization
-            with sentry_sdk.start_span(op="json.dumps"):
+            with sentry_sdk.traces.start_span(
+                name="json.dumps", attributes={"sentry.op": "json.dumps"}
+            ):
                 json_profile = json.dumps(profile)
                 metrics.distribution(
                     "profiling.profile.payload.size",
                     len(json_profile),
                     tags={"type": "chunk", "platform": profile["platform"]},
                 )
-            with sentry_sdk.start_span(op="json.unmarshal"):
+            with sentry_sdk.traces.start_span(
+                name="json.unmarshal", attributes={"sentry.op": "json.unmarshal"}
+            ):
                 chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
-            with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
+            with sentry_sdk.traces.start_span(
+                name="compress and write", attributes={"sentry.op": "gcs.write"}
+            ):
                 storage = get_profiles_storage()
                 with measure_storage_operation(
                     "put", "profiling", len(json_profile)
@@ -1440,11 +1487,15 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                     compressed_chunk = chunk.compress()
                     metric_emitter.record_compressed_size(len(compressed_chunk), "lz4")
                     storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
-            with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
+            with sentry_sdk.traces.start_span(
+                name="send chunk to kafka", attributes={"sentry.op": "processing"}
+            ):
                 payload = build_chunk_kafka_message(chunk)
                 topic = ArroyoTopic(get_topic_definition(Topic.PROFILE_CHUNKS)["real_topic_name"])
                 profile_chunks_producer.produce(topic, payload)
-            with sentry_sdk.start_span(op="processing", name="extract functions metrics"):
+            with sentry_sdk.traces.start_span(
+                name="extract functions metrics", attributes={"sentry.op": "processing"}
+            ):
                 functions = chunk.extract_functions_metrics(
                     min_depth=1, filter_system_frames=True, max_unique_functions=100
                 )
@@ -1455,7 +1506,9 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                     )
                     profile_functions_producer.produce(topic, payload)
             if features.has("projects:profile-functions-metrics-eap-ingestion", project):
-                with sentry_sdk.start_span(op="processing", name="extract functions metrics (eap)"):
+                with sentry_sdk.traces.start_span(
+                    name="extract functions metrics (eap)", attributes={"sentry.op": "processing"}
+                ):
                     eap_functions = chunk.extract_functions_metrics(
                         min_depth=1,
                         filter_system_frames=True,

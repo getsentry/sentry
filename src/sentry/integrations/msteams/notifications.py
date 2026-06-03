@@ -103,7 +103,9 @@ def send_notification_as_msteams(
         )
         return
 
-    with sentry_sdk.start_span(op="notification.send_msteams", name="gen_channel_integration_map"):
+    with sentry_sdk.traces.start_span(
+        name="gen_channel_integration_map", attributes={"sentry.op": "notification.send_msteams"}
+    ):
         data = get_integrations_by_channel_by_recipient(
             organization=notification.organization,
             recipients=recipients,
@@ -111,11 +113,15 @@ def send_notification_as_msteams(
         )
 
         for recipient, integrations_by_channel in data.items():
-            with sentry_sdk.start_span(op="notification.send_msteams", name="send_one"):
+            with sentry_sdk.traces.start_span(
+                name="send_one", attributes={"sentry.op": "notification.send_msteams"}
+            ):
                 extra_context = (extra_context_by_actor or {}).get(recipient, {})
                 context = get_context(notification, recipient, shared_context, extra_context)
 
-                with sentry_sdk.start_span(op="notification.send_msteams", name="gen_attachments"):
+                with sentry_sdk.traces.start_span(
+                    name="gen_attachments", attributes={"sentry.op": "notification.send_msteams"}
+                ):
                     if isinstance(notification, GroupActivityNotification) or isinstance(
                         notification, AlertRuleNotification
                     ):
@@ -128,8 +134,9 @@ def send_notification_as_msteams(
 
                     client = MsTeamsClient(integration)
                     try:
-                        with sentry_sdk.start_span(
-                            op="notification.send_msteams", name="notify_recipient"
+                        with sentry_sdk.traces.start_span(
+                            name="notify_recipient",
+                            attributes={"sentry.op": "notification.send_msteams"},
                         ):
                             client.send_card(conversation_id, card)
 

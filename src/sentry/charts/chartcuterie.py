@@ -65,9 +65,8 @@ class Chartcuterie(ChartRenderer):
         if size:
             payload.update(size)
 
-        with sentry_sdk.start_span(
-            op="charts.chartcuterie.generate_chart",
-            name=type(self).__name__,
+        with sentry_sdk.traces.start_span(
+            name=type(self).__name__, attributes={"sentry.op": "charts.chartcuterie.generate_chart"}
         ):
             # Using sentry json formatter to handle datetime objects
             assert self.service_url is not None
@@ -87,9 +86,8 @@ class Chartcuterie(ChartRenderer):
 
         file_name = f"{request_id}.png"
 
-        with sentry_sdk.start_span(
-            op="charts.chartcuterie.upload",
-            name=type(self).__name__,
+        with sentry_sdk.traces.start_span(
+            name=type(self).__name__, attributes={"sentry.op": "charts.chartcuterie.upload"}
         ):
             storage = get_storage(self.storage_options)
             storage.save(file_name, BytesIO(resp.content))

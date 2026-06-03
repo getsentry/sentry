@@ -311,7 +311,9 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response([])
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="trend_dates"):
+        with sentry_sdk.traces.start_span(
+            name="trend_dates", attributes={"sentry.op": "discover.endpoint"}
+        ):
             middle_date = request.GET.get("middle")
             if middle_date:
                 try:
