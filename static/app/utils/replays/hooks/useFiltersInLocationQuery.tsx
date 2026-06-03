@@ -35,29 +35,57 @@ type NullableReplayDetailFilterUpdate = Partial<{
   [Key in keyof ReplayDetailFilterQuery]: ReplayDetailFilterQuery[Key] | null;
 }>;
 
-const replayDetailFilterKeys: Array<keyof ReplayDetailFilterQuery> = [
+type StringReplayDetailFilterKey = {
+  [Key in keyof ReplayDetailFilterQuery]: ReplayDetailFilterQuery[Key] extends
+    | string
+    | null
+    ? Key
+    : never;
+}[keyof ReplayDetailFilterQuery];
+type ArrayReplayDetailFilterKey = {
+  [Key in keyof ReplayDetailFilterQuery]: ReplayDetailFilterQuery[Key] extends
+    | string[]
+    | null
+    ? Key
+    : never;
+}[keyof ReplayDetailFilterQuery];
+
+const stringReplayDetailFilterKeys: StringReplayDetailFilterKey[] = [
   'f_b_search',
-  'f_b_type',
-  'f_c_logLevel',
   'f_c_search',
-  'f_e_level',
-  'f_e_project',
   'f_e_search',
-  'f_n_method',
   'f_n_search',
-  'f_n_status',
-  'f_n_type',
   'f_ol_search',
-  'f_ol_severity',
   'f_t_search',
   'n_detail_row',
   'n_detail_tab',
 ];
 
-function setNullableValue<Key extends keyof ReplayDetailFilterQuery>(
+const arrayReplayDetailFilterKeys: ArrayReplayDetailFilterKey[] = [
+  'f_b_type',
+  'f_c_logLevel',
+  'f_e_level',
+  'f_e_project',
+  'f_n_method',
+  'f_n_status',
+  'f_n_type',
+  'f_ol_severity',
+];
+
+function setNullableStringValue(
   target: NullableReplayDetailFilterUpdate,
   source: ReplayDetailFilterUpdate,
-  key: Key
+  key: StringReplayDetailFilterKey
+) {
+  if (key in source) {
+    target[key] = source[key] ?? null;
+  }
+}
+
+function setNullableArrayValue(
+  target: NullableReplayDetailFilterUpdate,
+  source: ReplayDetailFilterUpdate,
+  key: ArrayReplayDetailFilterKey
 ) {
   if (key in source) {
     target[key] = source[key] ?? null;
@@ -68,8 +96,11 @@ function toNullableQuery(
   updatedQuery: ReplayDetailFilterUpdate
 ): NullableReplayDetailFilterUpdate {
   const nullableQuery: NullableReplayDetailFilterUpdate = {};
-  for (const key of replayDetailFilterKeys) {
-    setNullableValue(nullableQuery, updatedQuery, key);
+  for (const key of stringReplayDetailFilterKeys) {
+    setNullableStringValue(nullableQuery, updatedQuery, key);
+  }
+  for (const key of arrayReplayDetailFilterKeys) {
+    setNullableArrayValue(nullableQuery, updatedQuery, key);
   }
   return nullableQuery;
 }
