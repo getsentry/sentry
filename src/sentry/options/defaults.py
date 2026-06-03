@@ -1160,22 +1160,10 @@ register(
 )
 
 register(
-    "seer.explorer_index.enable",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.explorer_index.killswitch.enable",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.explorer-index.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.explorer.context-engine-rollout",
@@ -2372,14 +2360,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# When True, the circuit breaker tracks state and emits metrics but does not block requests.
-register(
-    "sentry-apps.webhook.circuit-breaker.dry-run",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enables statistical detectors for a project
 register(
     "statistical_detectors.enable",
@@ -3126,13 +3106,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "workflow_engine.scheduler.use_conditional_delete",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "workflow_engine.associate_error_detectors",
     type=Bool,
