@@ -256,3 +256,41 @@ Frontend (`static/`) and backend (`src/`, `tests/`) are **not atomically deploye
 - If your changes touch both frontend and backend, split them into **separate PRs**.
 - Land the backend PR first when the frontend depends on new API changes.
 - Pure test additions alongside `src/` changes are fine in one PR.
+
+## Cursor Cloud specific instructions
+
+Cloud VMs do not run macOS `devenv bootstrap`. Use `devenv --nocoderoot sync` (also in the VM update script) to refresh Python/Node dependencies. `devenv sync` may exit non-zero on `prek install` when `core.hooksPath` is set by the agent runtime; Python/JS deps still install — run `.venv/bin/prek run -q` directly for lint.
+
+### Docker and `devservices`
+
+- Docker must be running before `devservices up` / `devservices serve`. If `docker ps` fails with permission errors: `sudo service docker start` and ensure the user can access `/var/run/docker.sock` (e.g. `sudo chmod 666 /var/run/docker.sock` in ephemeral VMs).
+- Start backing services: `devservices up` (default mode: postgres, redis, kafka, clickhouse, snuba, relay, objectstore, spotlight).
+- First-time DB setup (after postgres is up): `sentry init --dev --no-clobber` (creates `~/.sentry/`), create DBs via `scripts/lib.sh` helpers or `docker exec postgres-postgres-1 createdb ...`, then `sentry upgrade --noinput` and `sentry createuser --superuser --email admin@sentry.io --password admin --no-input`.
+
+### Environment variables
+
+When not using `direnv allow`, export before `sentry` / `pytest` / `devservices`:
+
+```bash
+export PATH="/workspace/.venv/bin:$HOME/.local/share/sentry-devenv/bin:$PATH"
+export SENTRY_CONF="${SENTRY_CONF:-$HOME/.sentry}"
+```
+
+Use Node from devenv for frontend commands: `export PATH="/workspace/.devenv/bin/node-env/bin:$PATH"` (or rely on `devenv sync` putting it on PATH).
+
+### Dev server
+
+- `devservices serve` — webpack on **127.0.0.1:8000**, Django on **0.0.0.0:8001** (proxy via 8000). Login: `admin@sentry.io` / `admin`.
+- Frontend-only (no Docker): `pnpm run dev-ui` → https://sentry.dev.getsentry.net:7999/ (API proxied to production).
+
+### Lint / test (quick checks)
+
+See main sections above; typical cloud-agent smoke tests:
+
+```bash
+.venv/bin/prek run -q
+.venv/bin/pytest -n0 --reuse-db tests/sentry/middleware/test_health.py
+pnpm test-ci static/app/utils/slugify.spec.tsx
+```
+
+Event ingestion through to Issues requires `devservices up --mode ingest` and `devservices serve -- --ingest --workers`; default mode accepts events at Relay but may not show issues without ingest consumers.
