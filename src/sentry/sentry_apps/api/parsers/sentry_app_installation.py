@@ -5,7 +5,13 @@ from sentry.constants import SentryAppInstallationStatus
 
 
 class SentryAppInstallationParser(Serializer):
-    status = serializers.CharField()
+    status = serializers.CharField(
+        help_text=(
+            f"The new status of the installation. The only accepted value is "
+            f"`{SentryAppInstallationStatus.INSTALLED_STR}`, which marks a pending "
+            f"installation as installed."
+        )
+    )
 
     def validate_status(self, new_status):
         # can only set status to installed
