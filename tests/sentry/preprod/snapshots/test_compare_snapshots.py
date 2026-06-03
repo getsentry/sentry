@@ -173,3 +173,174 @@ class ProcessChunkTest(TestCase):
         chunk.refresh_from_db()
         assert chunk.state == PreprodSnapshotComparisonChunk.State.DONE
         assert f"{prefix}/chunks/0.json" in stored
+
+
+@cell_silo_test
+class PollSnapshotComparisonTest(TestCase):
+    def _comparison(self, chunks_total, state=PreprodSnapshotComparison.State.PROCESSING):
+        head_artifact = self.create_preprod_artifact(project=self.project)
+        base_artifact = self.create_preprod_artifact(project=self.project)
+        head = self.create_preprod_snapshot_metrics(head_artifact)
+        base = self.create_preprod_snapshot_metrics(base_artifact)
+        comparison = self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head, base_snapshot_metrics=base, state=state
+        )
+        comparison.chunks_total = chunks_total
+        comparison.save()
+        return comparison, head_artifact, base_artifact
+
+    def _kwargs(self, comparison, head_artifact, base_artifact):
+        return dict(
+            comparison_id=comparison.id,
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            head_artifact_id=head_artifact.id,
+            base_artifact_id=base_artifact.id,
+        )
+
+    def test_terminal_state_stops(self):
+        from sentry.preprod.snapshots.tasks import poll_snapshot_comparison
+
+        comparison, h, b = self._comparison(1, state=PreprodSnapshotComparison.State.SUCCESS)
+        with patch(
+            "sentry.preprod.snapshots.tasks.poll_snapshot_comparison.apply_async"
+        ) as reschedule:
+            poll_snapshot_comparison(**self._kwargs(comparison, h, b))
+        assert not reschedule.called
+
+    def test_all_done_finalizes(self):
+        from sentry.preprod.snapshots.manifest import (
+            ChunkResult,
+            ComparisonImageResult,
+            ComparisonPlan,
+        )
+        from sentry.preprod.snapshots.tasks import poll_snapshot_comparison
+
+        comparison, h, b = self._comparison(1)
+        PreprodSnapshotComparisonChunk.objects.create(
+            comparison=comparison,
+            chunk_index=0,
+            state=PreprodSnapshotComparisonChunk.State.DONE,
+            image_count=1,
+        )
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        plan = ComparisonPlan(
+            head_artifact_id=h.id, base_artifact_id=b.id, chunks=[], non_diff_images={}
+        )
+        chunk_result = ChunkResult(
+            chunk_index=0, images={"a.png": ComparisonImageResult(status="changed")}
+        )
+        stored = {
+            f"{prefix}/plan.json": orjson.dumps(plan.dict()),
+            f"{prefix}/chunks/0.json": orjson.dumps(chunk_result.dict()),
+        }
+        session = _mock_session_with_manifests(stored)
+        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
+            key, contents
+        )
+        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+            poll_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.images_changed == 1
+        assert f"{prefix}/comparison.json" in stored
+
+    def test_dead_orchestrator_redispatched(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from sentry.preprod.snapshots.tasks import poll_snapshot_comparison
+
+        comparison, h, b = self._comparison(None)
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(
+            date_updated=timezone.now() - timedelta(seconds=10_000)
+        )
+        with (
+            patch("sentry.preprod.snapshots.tasks.compare_snapshots.apply_async") as orch,
+            patch("sentry.preprod.snapshots.tasks.poll_snapshot_comparison.apply_async"),
+        ):
+            poll_snapshot_comparison(**self._kwargs(comparison, h, b))
+        assert orch.called
+
+    def test_stale_chunk_redispatched(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from sentry.preprod.snapshots.tasks import poll_snapshot_comparison
+
+        comparison, h, b = self._comparison(1)
+        chunk = PreprodSnapshotComparisonChunk.objects.create(
+            comparison=comparison,
+            chunk_index=0,
+            state=PreprodSnapshotComparisonChunk.State.PROCESSING,
+            attempts=0,
+        )
+        PreprodSnapshotComparisonChunk.objects.filter(id=chunk.id).update(
+            date_updated=timezone.now() - timedelta(seconds=10_000)
+        )
+        with (
+            patch(
+                "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
+            ) as redispatch,
+            patch("sentry.preprod.snapshots.tasks.poll_snapshot_comparison.apply_async"),
+        ):
+            poll_snapshot_comparison(**self._kwargs(comparison, h, b))
+        assert redispatch.called
+        chunk.refresh_from_db()
+        assert chunk.attempts == 1
+
+    def test_partial_success_marks_failed_chunk_images_errored(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from sentry.preprod.snapshots.manifest import (
+            ChunkAssignment,
+            ChunkCandidate,
+            ComparisonPlan,
+        )
+        from sentry.preprod.snapshots.tasks import poll_snapshot_comparison
+
+        comparison, h, b = self._comparison(1)
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(
+            date_added=timezone.now() - timedelta(seconds=100_000)
+        )
+        PreprodSnapshotComparisonChunk.objects.create(
+            comparison=comparison,
+            chunk_index=0,
+            state=PreprodSnapshotComparisonChunk.State.PROCESSING,
+            image_count=1,
+        )
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        plan = ComparisonPlan(
+            head_artifact_id=h.id,
+            base_artifact_id=b.id,
+            chunks=[
+                ChunkAssignment(
+                    chunk_index=0,
+                    candidates=[
+                        ChunkCandidate(
+                            name="a.png",
+                            head_hash="h",
+                            base_hash="bb",
+                            pixel_count=10,
+                            diff_threshold=0.0,
+                        )
+                    ],
+                )
+            ],
+            non_diff_images={},
+        )
+        stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
+        session = _mock_session_with_manifests(stored)
+        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
+            key, contents
+        )
+        with patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session):
+            poll_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        comparison_manifest = orjson.loads(stored[f"{prefix}/comparison.json"])
+        assert comparison_manifest["summary"]["errored"] == 1

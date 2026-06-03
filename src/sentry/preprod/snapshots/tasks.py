@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 from collections.abc import Callable
+from datetime import timedelta
 from difflib import SequenceMatcher
 from typing import NamedTuple
 
@@ -1213,3 +1214,190 @@ def compare_snapshots(
             caller="compare_failure",
         )
         raise
+
+
+@instrumented_task(
+    name="sentry.preprod.tasks.poll_snapshot_comparison",
+    namespace=preprod_tasks,
+    retry=Retry(times=3),
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=60,
+)
+def poll_snapshot_comparison(
+    comparison_id: int,
+    org_id: int,
+    project_id: int,
+    head_artifact_id: int,
+    base_artifact_id: int,
+) -> None:
+    comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()
+    if comparison is None:
+        return
+    if comparison.state in (
+        PreprodSnapshotComparison.State.SUCCESS,
+        PreprodSnapshotComparison.State.FAILED,
+    ):
+        return
+
+    now = timezone.now()
+    stale_cutoff = now - timedelta(seconds=CHUNK_STALE_THRESHOLD)
+    over_budget = (now - comparison.date_added).total_seconds() > COMPARISON_BUDGET
+
+    def _reschedule() -> None:
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(date_updated=now)
+        poll_snapshot_comparison.apply_async(
+            kwargs={
+                "comparison_id": comparison_id,
+                "org_id": org_id,
+                "project_id": project_id,
+                "head_artifact_id": head_artifact_id,
+                "base_artifact_id": base_artifact_id,
+            },
+            countdown=POLL_INTERVAL,
+        )
+
+    if comparison.chunks_total is None:
+        if comparison.date_updated <= stale_cutoff:
+            compare_snapshots.apply_async(
+                kwargs={
+                    "project_id": project_id,
+                    "org_id": org_id,
+                    "head_artifact_id": head_artifact_id,
+                    "base_artifact_id": base_artifact_id,
+                }
+            )
+        _reschedule()
+        return
+
+    chunks = list(PreprodSnapshotComparisonChunk.objects.filter(comparison_id=comparison_id))
+    done = sum(1 for c in chunks if c.state == PreprodSnapshotComparisonChunk.State.DONE)
+
+    if done == comparison.chunks_total:
+        _finalize_comparison(
+            comparison, org_id, project_id, head_artifact_id, base_artifact_id, chunks
+        )
+        return
+
+    if over_budget:
+        PreprodSnapshotComparisonChunk.objects.filter(comparison_id=comparison_id).exclude(
+            state=PreprodSnapshotComparisonChunk.State.DONE
+        ).update(state=PreprodSnapshotComparisonChunk.State.FAILED)
+        chunks = list(PreprodSnapshotComparisonChunk.objects.filter(comparison_id=comparison_id))
+        _finalize_comparison(
+            comparison, org_id, project_id, head_artifact_id, base_artifact_id, chunks
+        )
+        return
+
+    for chunk in chunks:
+        if (
+            chunk.state
+            in (
+                PreprodSnapshotComparisonChunk.State.PENDING,
+                PreprodSnapshotComparisonChunk.State.PROCESSING,
+            )
+            and chunk.date_updated <= stale_cutoff
+        ):
+            if chunk.attempts >= MAX_CHUNK_ATTEMPTS:
+                PreprodSnapshotComparisonChunk.objects.filter(id=chunk.id).update(
+                    state=PreprodSnapshotComparisonChunk.State.FAILED
+                )
+            else:
+                PreprodSnapshotComparisonChunk.objects.filter(id=chunk.id).update(
+                    attempts=chunk.attempts + 1, date_updated=now
+                )
+                process_snapshot_comparison_chunk.apply_async(
+                    kwargs={
+                        "comparison_id": comparison_id,
+                        "chunk_index": chunk.chunk_index,
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "head_artifact_id": head_artifact_id,
+                        "base_artifact_id": base_artifact_id,
+                    }
+                )
+
+    _reschedule()
+
+
+def _finalize_comparison(
+    comparison: PreprodSnapshotComparison,
+    org_id: int,
+    project_id: int,
+    head_artifact_id: int,
+    base_artifact_id: int,
+    chunks: list[PreprodSnapshotComparisonChunk],
+) -> None:
+    session = get_preprod_session(org_id, project_id)
+    prefix = f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}"
+    plan = ComparisonPlan(
+        **orjson.loads(
+            _retry_objectstore(lambda: session.get(f"{prefix}/plan.json").payload.read())
+        )
+    )
+
+    images: dict[str, ComparisonImageResult] = dict(plan.non_diff_images)
+    assignment_by_index = {c.chunk_index: c for c in plan.chunks}
+
+    for chunk in chunks:
+        if chunk.state == PreprodSnapshotComparisonChunk.State.DONE:
+            idx = chunk.chunk_index
+            result = ChunkResult(
+                **orjson.loads(
+                    _retry_objectstore(
+                        lambda idx=idx: session.get(f"{prefix}/chunks/{idx}.json").payload.read()
+                    )
+                )
+            )
+            images.update(result.images)
+        elif chunk.state == PreprodSnapshotComparisonChunk.State.FAILED:
+            for candidate in assignment_by_index[chunk.chunk_index].candidates:
+                images[candidate.name] = ComparisonImageResult(
+                    status="errored",
+                    head_hash=candidate.head_hash,
+                    base_hash=candidate.base_hash,
+                    reason="chunk_failed",
+                )
+
+    counts = {
+        s: 0 for s in ("changed", "unchanged", "added", "removed", "errored", "renamed", "skipped")
+    }
+    for result in images.values():
+        if result.status in counts:
+            counts[result.status] += 1
+
+    comparison_manifest = ComparisonManifest(
+        head_artifact_id=head_artifact_id,
+        base_artifact_id=base_artifact_id,
+        summary=ComparisonSummary(total=len(images), **counts),
+        images=images,
+    )
+    comparison_key = f"{prefix}/comparison.json"
+    _retry_objectstore(
+        lambda: session.put(
+            orjson.dumps(comparison_manifest.dict()),
+            key=comparison_key,
+            content_type="application/json",
+        )
+    )
+
+    extras = comparison.extras or {}
+    extras["comparison_key"] = comparison_key
+    extras["diff_algorithm_version"] = DIFF_ALGORITHM_VERSION
+    updated = PreprodSnapshotComparison.objects.filter(
+        id=comparison.id, state=PreprodSnapshotComparison.State.PROCESSING
+    ).update(
+        state=PreprodSnapshotComparison.State.SUCCESS,
+        error_code=None,
+        images_changed=counts["changed"],
+        images_unchanged=counts["unchanged"],
+        images_added=counts["added"],
+        images_removed=counts["removed"],
+        images_renamed=counts["renamed"],
+        images_skipped=counts["skipped"],
+        extras=extras,
+        date_updated=timezone.now(),
+    )
+    if updated:
+        update_preprod_snapshot_vcs(
+            preprod_artifact_id=head_artifact_id, caller="compare_completion"
+        )
