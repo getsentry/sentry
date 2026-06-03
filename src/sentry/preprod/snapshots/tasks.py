@@ -20,7 +20,11 @@ from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION, compare_images_batch
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
 from sentry.preprod.snapshots.manifest import (
+    ChunkAssignment,
+    ChunkCandidate,
+    ComparisonImageResult,
     ComparisonManifest,
+    ComparisonPlan,
     ComparisonSummary,
     SnapshotManifest,
 )
@@ -347,6 +351,130 @@ def _try_auto_approve_snapshot(
             "prev_approved_artifact_id": approved_sibling.id,
             "organization_slug": head_artifact.project.organization.slug,
         },
+    )
+
+
+def _build_comparison_plan(
+    head_manifest: SnapshotManifest,
+    base_manifest: SnapshotManifest,
+    head_artifact_id: int,
+    base_artifact_id: int,
+) -> ComparisonPlan:
+    diff_threshold = head_manifest.diff_threshold
+
+    head_images = head_manifest.images
+    base_images = base_manifest.images
+
+    head_meta_by_hash = {m.content_hash: m for m in head_images.values()}
+    base_meta_by_hash = {m.content_hash: m for m in base_images.values()}
+
+    categories = categorize_image_diff(head_manifest, base_manifest)
+    renamed_pairs = categories.renamed_pairs
+    added = categories.added
+    removed = categories.removed
+    matched = categories.matched
+    head_by_name = categories.head_by_name
+    base_by_name = categories.base_by_name
+    skipped = categories.skipped
+
+    non_diff_images: dict[str, ComparisonImageResult] = {}
+    eligible: list[_DiffCandidate] = []
+    eligible_thresholds: dict[str, float] = {}
+
+    for name in sorted(matched):
+        head_hash = head_by_name[name]
+        base_hash = base_by_name[name]
+
+        if head_hash == base_hash:
+            non_diff_images[name] = ComparisonImageResult(
+                status="unchanged",
+                head_hash=head_hash,
+                base_hash=base_hash,
+            )
+            continue
+
+        head_meta = head_meta_by_hash[head_hash]
+        base_meta = base_meta_by_hash[base_hash]
+        head_pixels = head_meta.width * head_meta.height
+        base_pixels = base_meta.width * base_meta.height
+        pixel_count = max(head_pixels, base_pixels)
+
+        if pixel_count > MAX_DIFF_PIXELS:
+            non_diff_images[name] = ComparisonImageResult(
+                status="errored",
+                head_hash=head_hash,
+                base_hash=base_hash,
+                reason="exceeds_pixel_limit",
+            )
+            continue
+
+        specific_image_diff_threshold = head_images[name].diff_threshold
+        effective_threshold = (
+            specific_image_diff_threshold
+            if specific_image_diff_threshold is not None
+            else diff_threshold
+            if diff_threshold is not None
+            else 0.0
+        )
+        eligible.append(_DiffCandidate(name, head_hash, base_hash, pixel_count))
+        eligible_thresholds[name] = effective_threshold
+
+    for name in sorted(added):
+        non_diff_images[name] = ComparisonImageResult(
+            status="added",
+            head_hash=head_by_name[name],
+        )
+
+    for name in sorted(removed):
+        base_hash = base_by_name[name]
+        base_meta = base_meta_by_hash[base_hash]
+        non_diff_images[name] = ComparisonImageResult(
+            status="removed",
+            base_hash=base_hash,
+            before_width=base_meta.width,
+            before_height=base_meta.height,
+        )
+
+    for name in sorted(skipped):
+        base_hash = base_by_name[name]
+        base_meta = base_meta_by_hash[base_hash]
+        non_diff_images[name] = ComparisonImageResult(
+            status="skipped",
+            base_hash=base_hash,
+            before_width=base_meta.width,
+            before_height=base_meta.height,
+        )
+
+    for new_name, old_name in sorted(renamed_pairs):
+        non_diff_images[new_name] = ComparisonImageResult(
+            status="renamed",
+            head_hash=head_by_name[new_name],
+            previous_image_file_name=old_name,
+        )
+
+    batches = _create_pixel_batches(eligible, MAX_PIXELS_PER_BATCH)
+    chunks = [
+        ChunkAssignment(
+            chunk_index=i,
+            candidates=[
+                ChunkCandidate(
+                    name=candidate.name,
+                    head_hash=candidate.head_hash,
+                    base_hash=candidate.base_hash,
+                    pixel_count=candidate.pixel_count,
+                    diff_threshold=eligible_thresholds[candidate.name],
+                )
+                for candidate in batch
+            ],
+        )
+        for i, batch in enumerate(batches)
+    ]
+
+    return ComparisonPlan(
+        head_artifact_id=head_artifact_id,
+        base_artifact_id=base_artifact_id,
+        chunks=chunks,
+        non_diff_images=non_diff_images,
     )
 
 

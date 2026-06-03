@@ -242,3 +242,33 @@ class TestCategorizeImageDiffSelective:
         assert result.skipped == {"b.png", "c.png"}
         assert result.removed == set()
         assert result.matched == {"a.png"}
+
+
+def test_build_comparison_plan_splits_diff_and_non_diff():
+    from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+
+    head = SnapshotManifest(
+        images={
+            "changed.png": ImageMetadata(content_hash="h1", width=100, height=100),
+            "same.png": ImageMetadata(content_hash="sameh", width=10, height=10),
+            "new.png": ImageMetadata(content_hash="n1", width=10, height=10),
+        },
+        diff_threshold=None,
+    )
+    base = SnapshotManifest(
+        images={
+            "changed.png": ImageMetadata(content_hash="h0", width=100, height=100),
+            "same.png": ImageMetadata(content_hash="sameh", width=10, height=10),
+            "gone.png": ImageMetadata(content_hash="g0", width=10, height=10),
+        },
+        diff_threshold=None,
+    )
+
+    plan = _build_comparison_plan(head, base, head_artifact_id=1, base_artifact_id=2)
+
+    diff_names = {c.name for chunk in plan.chunks for c in chunk.candidates}
+    assert diff_names == {"changed.png"}
+    assert plan.non_diff_images["same.png"].status == "unchanged"
+    assert plan.non_diff_images["new.png"].status == "added"
+    assert plan.non_diff_images["gone.png"].status == "removed"
