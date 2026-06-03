@@ -79,7 +79,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=TagsExamples.ORGANIZATION_TAGS,
+        examples=[TagsExamples.ORGANIZATION_TAGS],
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
