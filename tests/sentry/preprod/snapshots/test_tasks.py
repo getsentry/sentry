@@ -1,5 +1,18 @@
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
-from sentry.preprod.snapshots.tasks import categorize_image_diff
+from sentry.preprod.snapshots.tasks import (
+    _chunk_result_key,
+    _comparison_key,
+    _diff_mask_key,
+    _plan_key,
+    categorize_image_diff,
+)
+
+
+def test_objectstore_key_layout():
+    assert _plan_key(1, 2, 3, 4) == "1/2/3/4/plan.json"
+    assert _chunk_result_key(1, 2, 3, 4, 5) == "1/2/3/4/chunks/5.json"
+    assert _comparison_key(1, 2, 3, 4) == "1/2/3/4/comparison.json"
+    assert _diff_mask_key(1, 2, 3, 4, "foo/bar") == "1/2/3/4/diff/foo/bar.png"
 
 
 def _meta(content_hash: str) -> ImageMetadata:

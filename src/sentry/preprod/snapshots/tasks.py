@@ -66,6 +66,34 @@ _OBJECTSTORE_MAX_ATTEMPTS = 2
 _OBJECTSTORE_RETRY_DELAY_S = 0.5
 
 
+def _comparison_prefix(
+    org_id: int, project_id: int, head_artifact_id: int, base_artifact_id: int
+) -> str:
+    return f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}"
+
+
+def _plan_key(org_id: int, project_id: int, head_artifact_id: int, base_artifact_id: int) -> str:
+    return f"{_comparison_prefix(org_id, project_id, head_artifact_id, base_artifact_id)}/plan.json"
+
+
+def _chunk_result_key(
+    org_id: int, project_id: int, head_artifact_id: int, base_artifact_id: int, chunk_index: int
+) -> str:
+    return f"{_comparison_prefix(org_id, project_id, head_artifact_id, base_artifact_id)}/chunks/{chunk_index}.json"
+
+
+def _comparison_key(
+    org_id: int, project_id: int, head_artifact_id: int, base_artifact_id: int
+) -> str:
+    return f"{_comparison_prefix(org_id, project_id, head_artifact_id, base_artifact_id)}/comparison.json"
+
+
+def _diff_mask_key(
+    org_id: int, project_id: int, head_artifact_id: int, base_artifact_id: int, stem: str
+) -> str:
+    return f"{_comparison_prefix(org_id, project_id, head_artifact_id, base_artifact_id)}/diff/{stem}.png"
+
+
 def _retry_objectstore[T](operation: Callable[[], T]) -> T:
     for attempt in range(1, _OBJECTSTORE_MAX_ATTEMPTS + 1):
         try:
@@ -551,8 +579,8 @@ def _process_chunk(
                 continue
 
             stem = _image_name_to_path_stem(name)
-            diff_mask_key = (
-                f"{image_key_prefix}/{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
+            diff_mask_key = _diff_mask_key(
+                org_id, project_id, head_artifact_id, base_artifact_id, stem
             )
             diff_mask_bytes = diff_result.diff_mask_png
             _retry_objectstore(
@@ -614,7 +642,7 @@ def process_snapshot_comparison_chunk(
     )
 
     session = get_preprod_session(org_id, project_id)
-    plan_key = f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/plan.json"
+    plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
     plan = ComparisonPlan(
         **orjson.loads(_retry_objectstore(lambda: session.get(plan_key).payload.read()))
     )
@@ -624,8 +652,8 @@ def process_snapshot_comparison_chunk(
         session, assignment, org_id, project_id, head_artifact_id, base_artifact_id
     )
 
-    result_key = (
-        f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/chunks/{chunk_index}.json"
+    result_key = _chunk_result_key(
+        org_id, project_id, head_artifact_id, base_artifact_id, chunk_index
     )
     result = ChunkResult(chunk_index=chunk_index, images=images)
     _retry_objectstore(
@@ -823,7 +851,7 @@ def compare_snapshots(
             head_manifest, base_manifest, head_artifact_id, base_artifact_id
         )
 
-        plan_key = f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/plan.json"
+        plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
         _retry_objectstore(
             lambda: session.put(
                 orjson.dumps(plan.dict()), key=plan_key, content_type="application/json"
@@ -1015,11 +1043,9 @@ def _finalize_comparison(
     chunks: list[PreprodSnapshotComparisonChunk],
 ) -> None:
     session = get_preprod_session(org_id, project_id)
-    prefix = f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}"
+    plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
     plan = ComparisonPlan(
-        **orjson.loads(
-            _retry_objectstore(lambda: session.get(f"{prefix}/plan.json").payload.read())
-        )
+        **orjson.loads(_retry_objectstore(lambda: session.get(plan_key).payload.read()))
     )
 
     images: dict[str, ComparisonImageResult] = dict(plan.non_diff_images)
@@ -1028,13 +1054,14 @@ def _finalize_comparison(
     for chunk in chunks:
         if chunk.state == PreprodSnapshotComparisonChunk.State.DONE:
             idx = chunk.chunk_index
+            chunk_result_key = _chunk_result_key(
+                org_id, project_id, head_artifact_id, base_artifact_id, idx
+            )
             try:
                 result = ChunkResult(
                     **orjson.loads(
                         _retry_objectstore(
-                            lambda idx=idx: session.get(
-                                f"{prefix}/chunks/{idx}.json"
-                            ).payload.read()
+                            lambda key=chunk_result_key: session.get(key).payload.read()
                         )
                     )
                 )
@@ -1080,7 +1107,7 @@ def _finalize_comparison(
         summary=ComparisonSummary(total=len(images), **counts),
         images=images,
     )
-    comparison_key = f"{prefix}/comparison.json"
+    comparison_key = _comparison_key(org_id, project_id, head_artifact_id, base_artifact_id)
     _retry_objectstore(
         lambda: session.put(
             orjson.dumps(comparison_manifest.dict()),
