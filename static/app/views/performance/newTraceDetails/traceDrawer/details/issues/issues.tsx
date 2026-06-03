@@ -29,24 +29,6 @@ type IssueProps = {
 
 const MAX_DISPLAYED_ISSUES_COUNT = 3;
 
-type UseTraceIssueGroupProps = {
-  issueId: number;
-  organization: Organization;
-};
-
-function useTraceIssueGroup({issueId, organization}: UseTraceIssueGroupProps) {
-  return useQuery(
-    apiOptions.as<Group>()('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-      path: issueId ? {organizationIdOrSlug: organization.slug, issueId} : skipToken,
-      query: {
-        collapse: 'release',
-        expand: 'inbox',
-      },
-      staleTime: 2 * 60 * 1000,
-    })
-  );
-}
-
 const issueOrderPriority: Record<Level | 'default', number> = {
   fatal: 0,
   error: 1,
@@ -74,10 +56,18 @@ function Issue(props: IssueProps) {
     data: fetchedIssue,
     isError,
     error,
-  } = useTraceIssueGroup({
-    issueId: props.issue.issue_id,
-    organization: props.organization,
-  });
+  } = useQuery(
+    apiOptions.as<Group>()('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+      path: props.issue.issue_id
+        ? {organizationIdOrSlug: props.organization.slug, issueId: props.issue.issue_id}
+        : skipToken,
+      query: {
+        collapse: 'release',
+        expand: 'inbox',
+      },
+      staleTime: 2 * 60 * 1000,
+    })
+  );
 
   const iconClassName = getTraceIssueSeverityClassName(props.issue);
 
