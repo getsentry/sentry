@@ -308,6 +308,18 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'Field names which data scrubbers should ignore. Separate multiple entries with a newline'
     ),
   },
+  'project-issue-grouping.fingerprintingRules': {
+    name: 'fingerprintingRules',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Fingerprint Rules'),
+  },
+  'project-issue-grouping.groupingEnhancements': {
+    name: 'groupingEnhancements',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Stack Trace Rules'),
+  },
   'project-replays.sentry:replay_rage_click_issues': {
     name: 'sentry:replay_rage_click_issues',
     formId: 'project-replays',
