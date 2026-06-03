@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Protocol
+import abc
+from typing import TYPE_CHECKING, Any
 
 from ua_parser.user_agent_parser import Parse
 
@@ -13,19 +13,18 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 
 
-class TagDeriver(Protocol):
+class TagDeriver(abc.ABC):
     tag: str
     option_key: str
     default_enabled: bool
 
+    @abc.abstractmethod
     def get_tags(self, event: Any) -> list[tuple[str, str]]: ...
 
 
-class _UserAgentTagDeriver:
+class _UserAgentTagDeriver(TagDeriver):
     """Base for derivers that extract tags from the User-Agent header."""
 
-    tag: str
-    option_key: str
     default_enabled = True
 
     def get_tags(self, event: Any) -> list[tuple[str, str]]:
@@ -91,7 +90,7 @@ class DeviceTagDeriver(_UserAgentTagDeriver):
         return ua["device"]["family"]
 
 
-class UrlTagDeriver:
+class UrlTagDeriver(TagDeriver):
     tag = "url"
     option_key = "auto_tag:_urls:enabled"
     default_enabled = True
@@ -105,7 +104,7 @@ class UrlTagDeriver:
         return [(self.tag, http.url)]
 
 
-class InterfaceTypeTagDeriver:
+class InterfaceTypeTagDeriver(TagDeriver):
     tag = "interface_type"
     option_key = "auto_tag:_interface_types:enabled"
     default_enabled = False
@@ -118,7 +117,7 @@ class InterfaceTypeTagDeriver:
         ]
 
 
-ALL_TAG_DERIVERS: Sequence[TagDeriver] = [
+ALL_TAG_DERIVERS: list[TagDeriver] = [
     BrowserTagDeriver(),
     OsTagDeriver(),
     DeviceTagDeriver(),
