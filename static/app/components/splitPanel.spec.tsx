@@ -1,8 +1,34 @@
 import {Fragment} from 'react';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SplitPanel} from 'sentry/components/splitPanel';
+import type {BreakpointSize} from 'sentry/utils/theme';
+
+const theme = ThemeFixture();
+
+// Stub window.matchMedia so a chosen set of breakpoints reports as active.
+function setupMediaQueries(matches: Partial<Record<BreakpointSize, boolean>>) {
+  const original = window.matchMedia;
+  window.matchMedia = jest.fn((query: string) => {
+    const value = query.match(/min-width:\s*(.+?)\)/)?.[1];
+    const name = Object.entries(theme.breakpoints).find(([, v]) => v === value)?.[0];
+    return {
+      matches: name ? (matches[name as BreakpointSize] ?? false) : false,
+      media: query,
+      onchange: null,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    } as unknown as MediaQueryList;
+  });
+  return () => {
+    window.matchMedia = original;
+  };
+}
 
 describe('SplitPanel', () => {
   describe('horizontal orientation', () => {
@@ -108,6 +134,32 @@ describe('SplitPanel', () => {
 
       expect(screen.getByText('top')).toBeInTheDocument();
       expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('responsive orientation', () => {
+    it('resolves the orientation for the active breakpoint', () => {
+      const cleanup = setupMediaQueries({xs: true, sm: true, md: true});
+
+      render(
+        <SplitPanel.Root orientation={{xs: 'vertical', md: 'horizontal'}}>
+          <SplitPanel.Panel defaultSize={200} minSize={100} maxSize={600}>
+            <div>one</div>
+          </SplitPanel.Panel>
+          <SplitPanel.Divider />
+          <SplitPanel.Panel>
+            <div>two</div>
+          </SplitPanel.Panel>
+        </SplitPanel.Root>
+      );
+
+      // md is active, so the panel splits horizontally (separator runs vertically).
+      expect(screen.getByRole('separator')).toHaveAttribute(
+        'data-orientation',
+        'horizontal'
+      );
+
+      cleanup();
     });
   });
 

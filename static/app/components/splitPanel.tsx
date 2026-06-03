@@ -11,7 +11,12 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  type Responsive,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -75,9 +80,10 @@ type SplitPanelProps = {
   }) => void;
   /**
    * Layout direction. `horizontal` splits left/right; `vertical` splits
-   * top/bottom.
+   * top/bottom. Accepts a responsive value to switch direction per breakpoint,
+   * e.g. `{xs: 'vertical', md: 'horizontal'}`.
    */
-  orientation?: Orientation;
+  orientation?: Responsive<Orientation>;
 };
 
 type SplitPanelPanelProps = {
@@ -273,11 +279,16 @@ function buildSplitPanelTree(children: React.ReactNode): {
 
 function Root({
   children,
-  orientation = 'horizontal',
+  orientation: orientationProp = 'horizontal',
   onMouseDown,
   onResize,
   onResizeEnd,
 }: SplitPanelProps) {
+  // Resolve the (possibly responsive) orientation to the value for the active
+  // breakpoint; the rest of the layout and resize logic works off a concrete
+  // orientation. The hook always returns a concrete value, but its return type
+  // widens to include the responsive shape, so narrow it back.
+  const orientation = useResponsivePropValue(orientationProp) as Orientation;
   const containerRef = useRef<HTMLDivElement>(null);
   const dims = useDimensions({elementRef: containerRef});
   const availableSize = orientation === 'horizontal' ? dims.width : dims.height;
