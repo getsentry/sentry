@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -11,7 +10,6 @@ import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMa
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetWrapper} from 'sentry/views/explore/metrics/metricGraph/styles';
-import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricLabel,
   useMetricName,
@@ -19,9 +17,11 @@ import {
   useMetricVisualizes,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
-import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
-import {getMetricsUrl} from 'sentry/views/explore/metrics/utils';
+import {
+  useQueryParamsQuery,
+  useSetQueryParamsQuery,
+} from 'sentry/views/explore/queryParams/context';
 import {getExploreUrl, prettifyAggregation} from 'sentry/views/explore/utils';
 
 interface MetricsHeatMapProps {
@@ -31,20 +31,16 @@ interface MetricsHeatMapProps {
   title?: string;
 }
 
-export function MetricsHeatMap({
-  heatmapResult,
-  actions,
-  title,
-  queryIndex,
-}: MetricsHeatMapProps) {
+export function MetricsHeatMap({heatmapResult, actions, title}: MetricsHeatMapProps) {
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const metricLabel = useMetricLabel();
   const metricName = useMetricName();
   const metric = useTraceMetric();
-  const metricQueries = useMultiMetricsQueryParams();
+  const userQuery = useQueryParamsQuery();
+  const setMetricQuery = useSetQueryParamsQuery();
+
   const organization = useOrganization();
-  const {selection} = usePageFilters();
 
   const {data: heatMapSeries, isPending, error} = heatmapResult;
 
@@ -73,28 +69,9 @@ export function MetricsHeatMap({
 
   const getUpdatedMetricsQueryUrl = useCallback(
     (query: string) => {
-      const alteredMetricQueries: BaseMetricQuery[] = metricQueries.map(
-        (metricQuery, index) => {
-          if (index !== queryIndex) {
-            return metricQuery;
-          }
-          return {
-            ...metricQuery,
-            queryParams: metricQuery.queryParams.replace({
-              query: metricQuery.queryParams.query
-                ? `${metricQuery.queryParams.query} ${query}`
-                : query,
-            }),
-          };
-        }
-      );
-      return getMetricsUrl({
-        organization,
-        selection,
-        metricQueries: alteredMetricQueries,
-      });
+      setMetricQuery(userQuery ? `${userQuery} ${query}` : query);
     },
-    [metricQueries, organization, queryIndex, selection]
+    [userQuery, setMetricQuery]
   );
 
   return (
@@ -114,7 +91,7 @@ export function MetricsHeatMap({
               plottables={[new HeatMap(heatMapSeries)]}
               scale="log"
               makeExploreUrl={getFilteredExploreUrl}
-              makeLocalQueryUpdateUrl={getUpdatedMetricsQueryUrl}
+              updateLocalFilterQuery={getUpdatedMetricsQueryUrl}
             />
           )
         }

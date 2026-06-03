@@ -46,17 +46,17 @@ interface HeatMapWidgetVisualizationProps {
    */
   makeExploreUrl?: (query: string, filteredSelection: PageFilters) => string;
   /**
-   * Callback that returns an updated query string.
-   */
-  makeLocalQueryUpdateUrl?: (query: string) => string;
-  /**
    * Experimental! Specify the Z-axis scale type. Logarithmic scales can be much more useful for values with a high range.
    */
   scale?: 'linear' | 'log';
+  /**
+   * Callback that returns an updated query string.
+   */
+  updateLocalFilterQuery?: (query: string) => void;
 }
 
 export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProps) {
-  const {plottables, makeLocalQueryUpdateUrl, makeExploreUrl} = props;
+  const {plottables, updateLocalFilterQuery, makeExploreUrl} = props;
   const theme = useTheme();
   const renderToString = useRenderToString();
   const navigate = useNavigate();
@@ -76,9 +76,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       if (!chartRef.current?.ele.contains(e.target as Node)) {
         return;
       }
-      const localQueryUpdateTarget = (e.target as Element).closest(
-        '[data-local-query-update-url]'
-      );
+      const localQueryUpdateTarget = (e.target as Element).closest('[data-local-query]');
       const tracesLinkTarget = (e.target as Element).closest('[data-traces-link]');
       if (!localQueryUpdateTarget && !tracesLinkTarget) {
         return;
@@ -86,15 +84,9 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
       e.preventDefault();
       const openInNewTab = e.metaKey || e.ctrlKey;
       if (localQueryUpdateTarget) {
-        const localUrl = localQueryUpdateTarget.getAttribute(
-          'data-local-query-update-url'
-        );
-        if (localUrl) {
-          if (openInNewTab) {
-            window.open(localUrl, '_blank');
-          } else {
-            navigate(localUrl);
-          }
+        const localQuery = localQueryUpdateTarget.getAttribute('data-local-query');
+        if (localQuery && updateLocalFilterQuery) {
+          updateLocalFilterQuery(localQuery);
         }
       }
       if (tracesLinkTarget) {
@@ -110,7 +102,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     };
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
-  }, [navigate]);
+  }, [navigate, updateLocalFilterQuery]);
 
   if (!plottablesCanBeVisualized(plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
@@ -227,7 +219,6 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             }
 
             let tracesLink: string | undefined;
-            let localQueryUpdateUrl: string | undefined;
             const metricsQuery = defined(rawYValue)
               ? yAxisBucketSize === 0
                 ? `value:<=${rawYValue}`
@@ -252,10 +243,6 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               }
             }
 
-            if (makeLocalQueryUpdateUrl && metricsQuery) {
-              localQueryUpdateUrl = makeLocalQueryUpdateUrl(metricsQuery);
-            }
-
             return (
               <Fragment key={param.seriesIndex}>
                 <div>
@@ -264,7 +251,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                   </span>{' '}
                   {formattedZValue}
                 </div>
-                {defined(tracesLink) && (
+                {makeExploreUrl && defined(tracesLink) && (
                   <div>
                     <span className="tooltip-label tooltip-label-centered">
                       <a data-traces-link={tracesLink} href={tracesLink}>
@@ -273,15 +260,10 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                     </span>
                   </div>
                 )}
-                {defined(localQueryUpdateUrl) && (
+                {updateLocalFilterQuery && defined(metricsQuery) && (
                   <div>
                     <span className="tooltip-label tooltip-label-centered">
-                      <a
-                        data-local-query-update-url={localQueryUpdateUrl}
-                        href={localQueryUpdateUrl}
-                      >
-                        {t('Add to filter')}
-                      </a>
+                      <a data-local-query={metricsQuery}>{t('Add to filter')}</a>
                     </span>
                   </div>
                 )}
