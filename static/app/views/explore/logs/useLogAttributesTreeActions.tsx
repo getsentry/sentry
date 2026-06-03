@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {extractBaseKey} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useLogsSidebar} from 'sentry/views/explore/logs/logsSidebarContext';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
@@ -15,6 +16,11 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getTypedTagKey} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+
+function containsAttributeKey(keys: readonly string[], key: string): boolean {
+  const baseKey = extractBaseKey(key);
+  return keys.some(existingKey => extractBaseKey(existingKey) === baseKey);
+}
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
   const setLogsSearch = useSetQueryParamsSearch();
@@ -54,6 +60,9 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
         originalAttribute.type,
         'log'
       );
+      if (containsAttributeKey(fields, typedKey)) {
+        return;
+      }
       const newFields = [...fields];
       if (newFields[newFields.length - 1] === OurLogKnownFieldKey.TIMESTAMP) {
         newFields.splice(-1, 0, typedKey);
@@ -77,9 +86,10 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
       );
       // Drop empty placeholder group bys, dedupe, then append the new key.
       const newGroupBys = groupBys.filter(Boolean);
-      if (!newGroupBys.includes(key)) {
-        newGroupBys.push(key);
+      if (containsAttributeKey(newGroupBys, key)) {
+        return;
       }
+      newGroupBys.push(key);
       setGroupBys(newGroupBys, Mode.AGGREGATE);
       // Reveal the Group By controls so the user can see the grouping they just added.
       sidebar?.(true);
@@ -113,14 +123,14 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
         key: 'add-column',
         label: t('Add this as table column'),
         hidden: embedded,
-        disabled: fields.includes(typedKey),
+        disabled: containsAttributeKey(fields, typedKey),
         onAction: () => addColumn(content),
       },
       {
         key: 'add-group-by',
         label: t('Group by attribute'),
         hidden: embedded,
-        disabled: groupBys.includes(typedKey),
+        disabled: containsAttributeKey(groupBys, typedKey),
         onAction: () => addGroupBy(content),
       },
     ];

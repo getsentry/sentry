@@ -12,29 +12,37 @@ import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQuer
 
 const mockSetQueryParams = jest.fn();
 
-function Wrapper({children}: {children: ReactNode}) {
-  const queryParams = new ReadableQueryParams({
-    aggregateCursor: defaultCursor(),
-    aggregateFields: [],
-    aggregateSortBys: [],
-    cursor: defaultCursor(),
-    extrapolate: true,
-    fields: [OurLogKnownFieldKey.MESSAGE, OurLogKnownFieldKey.TIMESTAMP],
-    mode: Mode.SAMPLES,
-    query: '',
-    sortBys: [],
-  });
+function makeWrapper({
+  aggregateFields = [],
+  fields = [OurLogKnownFieldKey.MESSAGE, OurLogKnownFieldKey.TIMESTAMP],
+}: {
+  aggregateFields?: Array<{groupBy: string}>;
+  fields?: string[];
+} = {}) {
+  return function Wrapper({children}: {children: ReactNode}) {
+    const queryParams = new ReadableQueryParams({
+      aggregateCursor: defaultCursor(),
+      aggregateFields,
+      aggregateSortBys: [],
+      cursor: defaultCursor(),
+      extrapolate: true,
+      fields,
+      mode: Mode.SAMPLES,
+      query: '',
+      sortBys: [],
+    });
 
-  return (
-    <QueryParamsContextProvider
-      isUsingDefaultFields={false}
-      queryParams={queryParams}
-      setQueryParams={mockSetQueryParams}
-      shouldManageFields={false}
-    >
-      {children}
-    </QueryParamsContextProvider>
-  );
+    return (
+      <QueryParamsContextProvider
+        isUsingDefaultFields={false}
+        queryParams={queryParams}
+        setQueryParams={mockSetQueryParams}
+        shouldManageFields={false}
+      >
+        {children}
+      </QueryParamsContextProvider>
+    );
+  };
 }
 
 describe('useLogAttributesTreeActions', () => {
@@ -46,7 +54,7 @@ describe('useLogAttributesTreeActions', () => {
     const {result} = renderHookWithProviders(
       () => useLogAttributesTreeActions({embedded: false}),
       {
-        additionalWrapper: Wrapper,
+        additionalWrapper: makeWrapper(),
       }
     );
 
@@ -79,7 +87,7 @@ describe('useLogAttributesTreeActions', () => {
     const {result} = renderHookWithProviders(
       () => useLogAttributesTreeActions({embedded: false}),
       {
-        additionalWrapper: Wrapper,
+        additionalWrapper: makeWrapper(),
       }
     );
 
@@ -106,5 +114,71 @@ describe('useLogAttributesTreeActions', () => {
         ],
       })
     );
+  });
+
+  it('treats raw and typed attribute column keys as the same attribute', () => {
+    const {result} = renderHookWithProviders(
+      () => useLogAttributesTreeActions({embedded: false}),
+      {
+        additionalWrapper: makeWrapper({
+          fields: [
+            OurLogKnownFieldKey.MESSAGE,
+            'fallback.number',
+            OurLogKnownFieldKey.TIMESTAMP,
+          ],
+        }),
+      }
+    );
+
+    const content: AttributesTreeContent = {
+      originalAttribute: {
+        attribute_key: 'fallback.number',
+        attribute_value: 1.23,
+        original_attribute_key: 'fallback.number',
+        type: 'float' as const,
+      },
+      subtree: {},
+      value: 1.23,
+    };
+
+    const actions = result.current(content);
+    const addColumn = actions.find(action => action.key === 'add-column')!;
+
+    expect(addColumn.disabled).toBe(true);
+
+    addColumn.onAction?.();
+
+    expect(mockSetQueryParams).not.toHaveBeenCalled();
+  });
+
+  it('treats raw and typed attribute group-by keys as the same attribute', () => {
+    const {result} = renderHookWithProviders(
+      () => useLogAttributesTreeActions({embedded: false}),
+      {
+        additionalWrapper: makeWrapper({
+          aggregateFields: [{groupBy: 'fallback.number'}],
+        }),
+      }
+    );
+
+    const content: AttributesTreeContent = {
+      originalAttribute: {
+        attribute_key: 'fallback.number',
+        attribute_value: 1.23,
+        original_attribute_key: 'fallback.number',
+        type: 'float' as const,
+      },
+      subtree: {},
+      value: 1.23,
+    };
+
+    const actions = result.current(content);
+    const addGroupBy = actions.find(action => action.key === 'add-group-by')!;
+
+    expect(addGroupBy.disabled).toBe(true);
+
+    addGroupBy.onAction?.();
+
+    expect(mockSetQueryParams).not.toHaveBeenCalled();
   });
 });
