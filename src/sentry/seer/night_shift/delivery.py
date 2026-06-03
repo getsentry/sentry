@@ -131,11 +131,13 @@ def _process_verdicts(
         # Build stopping_point_by_project_id from project preferences (bulk query)
         project_ids = {c.group.project_id for c in fixable_candidates}
         preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_ids))
+        default_stopping_point = AutofixStoppingPoint(SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT)
         stopping_point_by_project_id = {
             pid: AutofixStoppingPoint(
-                preferences[pid].automated_run_stopping_point
-                or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+                pref.automated_run_stopping_point or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
             )
+            if (pref := preferences.get(pid)) is not None
+            else default_stopping_point
             for pid in project_ids
         }
 
