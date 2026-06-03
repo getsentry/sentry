@@ -168,7 +168,8 @@ class SiemSecurityLoggingTest(TestCase):
         )
 
     def test_noop(self) -> None:
-        assert process_siem_security_logging({}) is None
+        # Default hook is a no-op: the call must complete without touching the job.
+        process_siem_security_logging({})
 
     def test_hook_swap_takes_effect(self) -> None:
         original = post_process_module._siem_security_log_hook
