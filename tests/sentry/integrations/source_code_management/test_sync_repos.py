@@ -1275,6 +1275,7 @@ class VstsIsBrokenIntegrationErrorTestCase(TestCase):
         )
 
 
+@control_silo_test
 class SyncReposForOrgPerforceTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
