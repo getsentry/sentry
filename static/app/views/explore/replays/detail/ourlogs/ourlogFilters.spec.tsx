@@ -5,6 +5,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldKind} from 'sentry/utils/fields';
+import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {OurLogFilters} from 'sentry/views/explore/replays/detail/ourlogs/ourlogFilters';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -32,6 +33,18 @@ function Wrapper({children}: {children: React.ReactNode}) {
     >
       {children}
     </LogsQueryParamsProvider>
+  );
+}
+
+function TestOurLogFilters() {
+  const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(
+    baseSearchQueryBuilderProps
+  );
+  return (
+    <OurLogFilters
+      searchQueryBuilderProps={baseSearchQueryBuilderProps}
+      searchQueryBuilderProviderProps={searchQueryBuilderProviderProps}
+    />
   );
 }
 
@@ -64,7 +77,7 @@ describe('OurLogFilters', () => {
 
     render(
       <Wrapper>
-        <OurLogFilters searchQueryBuilderProps={baseSearchQueryBuilderProps} />
+        <TestOurLogFilters />
       </Wrapper>,
       {organization}
     );
@@ -79,7 +92,7 @@ describe('OurLogFilters', () => {
 
     render(
       <Wrapper>
-        <OurLogFilters searchQueryBuilderProps={baseSearchQueryBuilderProps} />
+        <TestOurLogFilters />
       </Wrapper>,
       {organization}
     );
@@ -92,7 +105,7 @@ describe('OurLogFilters', () => {
 
     render(
       <Wrapper>
-        <OurLogFilters searchQueryBuilderProps={baseSearchQueryBuilderProps} />
+        <TestOurLogFilters />
       </Wrapper>,
       {organization}
     );

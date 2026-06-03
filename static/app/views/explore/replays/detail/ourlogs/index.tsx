@@ -111,15 +111,16 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
     setHasAnyLogs(false);
   }, [replayId]);
 
-  const {tracesItemSearchQueryBuilderProps} = useLogsSearchQueryBuilderProps({
-    attributeQuery: replayAttributeFilter,
-    stringAttributes,
-    numberAttributes,
-    booleanAttributes,
-    stringSecondaryAliases,
-    numberSecondaryAliases,
-    booleanSecondaryAliases,
-  });
+  const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
+    useLogsSearchQueryBuilderProps({
+      attributeQuery: replayAttributeFilter,
+      stringAttributes,
+      numberAttributes,
+      booleanAttributes,
+      stringSecondaryAliases,
+      numberSecondaryAliases,
+      booleanSecondaryAliases,
+    });
 
   const handleReplayTimeClick = useCallback(
     (offsetMs: string) => {
@@ -158,6 +159,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
       <OurLogFilters
         replayId={replayId}
         searchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
+        searchQueryBuilderProviderProps={searchQueryBuilderProviderProps}
       />
       <LogsItemContainer border="primary" radius="md" flex="1 1 auto">
         {isPending ? (

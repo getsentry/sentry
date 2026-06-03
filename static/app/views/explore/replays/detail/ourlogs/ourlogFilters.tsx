@@ -5,31 +5,31 @@ import {t} from 'sentry/locale';
 import {
   TraceItemSearchQueryBuilder,
   type TraceItemSearchQueryBuilderProps,
-  useTraceItemSearchQueryBuilderProps,
+  type useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
 import {OpenInLogsButton} from 'sentry/views/explore/replays/detail/ourlogs/openInLogsButton';
 
 type Props = {
   searchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
+  searchQueryBuilderProviderProps: ReturnType<typeof useTraceItemSearchQueryBuilderProps>;
   replayId?: string;
 };
 
 const REPLAY_LOGS_PLACEHOLDER = t('Search on log levels, messages, and more');
 
-export function OurLogFilters({replayId, searchQueryBuilderProps}: Props) {
-  const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps({
-    ...searchQueryBuilderProps,
-    placeholder: REPLAY_LOGS_PLACEHOLDER,
-  });
-
+export function OurLogFilters({
+  replayId,
+  searchQueryBuilderProps,
+  searchQueryBuilderProviderProps,
+}: Props) {
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
+    <SearchQueryBuilderProvider
+      {...searchQueryBuilderProviderProps}
+      placeholder={REPLAY_LOGS_PLACEHOLDER}
+    >
       <StyledFiltersGrid>
-        <TraceItemSearchQueryBuilder
-          {...searchQueryBuilderProps}
-          placeholder={REPLAY_LOGS_PLACEHOLDER}
-        />
+        <TraceItemSearchQueryBuilder {...searchQueryBuilderProps} />
         <OpenInLogsButton replayId={replayId} />
       </StyledFiltersGrid>
     </SearchQueryBuilderProvider>
