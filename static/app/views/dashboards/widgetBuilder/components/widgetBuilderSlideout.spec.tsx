@@ -765,19 +765,17 @@ describe('WidgetBuilderSlideout', () => {
 
   it('stays in series mode after a dataset round-trip', async () => {
     render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderSlideout
-          dashboard={DashboardFixture([])}
-          dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
-          openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
-        />
-      </WidgetBuilderProvider>,
+      <WidgetBuilderSlideout
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{release: undefined}}
+        isWidgetInvalid={false}
+        onClose={jest.fn()}
+        onQueryConditionChange={jest.fn()}
+        onSave={jest.fn()}
+        setIsPreviewDraggable={jest.fn()}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
+      />,
       {
         organization: OrganizationFixture({
           features: [
@@ -796,6 +794,7 @@ describe('WidgetBuilderSlideout', () => {
             },
           },
         },
+        additionalWrapper: WidgetBuilderProvider,
       }
     );
 
@@ -816,19 +815,17 @@ describe('WidgetBuilderSlideout', () => {
 
   it('restores equation mode after a dataset round-trip', async () => {
     render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderSlideout
-          dashboard={DashboardFixture([])}
-          dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
-          openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
-        />
-      </WidgetBuilderProvider>,
+      <WidgetBuilderSlideout
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{release: undefined}}
+        isWidgetInvalid={false}
+        onClose={jest.fn()}
+        onQueryConditionChange={jest.fn()}
+        onSave={jest.fn()}
+        setIsPreviewDraggable={jest.fn()}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
+      />,
       {
         organization: OrganizationFixture({
           features: [
@@ -849,6 +846,7 @@ describe('WidgetBuilderSlideout', () => {
             },
           },
         },
+        additionalWrapper: WidgetBuilderProvider,
       }
     );
 
@@ -869,19 +867,17 @@ describe('WidgetBuilderSlideout', () => {
 
   it('does not show the mode toggle without the equation feature flag', async () => {
     render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderSlideout
-          dashboard={DashboardFixture([])}
-          dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
-          onClose={jest.fn()}
-          onQueryConditionChange={jest.fn()}
-          onSave={jest.fn()}
-          setIsPreviewDraggable={jest.fn()}
-          openWidgetTemplates={false}
-          setOpenWidgetTemplates={jest.fn()}
-        />
-      </WidgetBuilderProvider>,
+      <WidgetBuilderSlideout
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{release: undefined}}
+        isWidgetInvalid={false}
+        onClose={jest.fn()}
+        onQueryConditionChange={jest.fn()}
+        onSave={jest.fn()}
+        setIsPreviewDraggable={jest.fn()}
+        openWidgetTemplates={false}
+        setOpenWidgetTemplates={jest.fn()}
+      />,
       {
         organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
         initialRouterConfig: {
@@ -894,6 +890,7 @@ describe('WidgetBuilderSlideout', () => {
             },
           },
         },
+        additionalWrapper: WidgetBuilderProvider,
       }
     );
 

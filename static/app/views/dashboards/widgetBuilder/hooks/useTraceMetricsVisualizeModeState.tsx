@@ -1,5 +1,4 @@
 import {type RefObject, useCallback, useEffect, useRef, useState} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 
 import {explodeFieldString, type QueryFieldValue} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -88,10 +87,12 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         return vis && isVisualizeFunction(vis);
       });
 
-      derivedFields = functionQueries
-        .map(q => q.queryParams.visualizes[0]?.yAxis)
-        .filter((yAxis): yAxis is string => !!yAxis)
-        .map(yAxis => explodeFieldString(yAxis));
+      for (const functionQuery of functionQueries) {
+        const yAxis = functionQuery.queryParams.visualizes[0]?.yAxis;
+        if (yAxis) {
+          derivedFields.push(explodeFieldString(yAxis));
+        }
+      }
     }
 
     if (derivedFields.length === 0) {
@@ -139,9 +140,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
   // cached equation mode if the user was in equation mode when they left.
   useEffect(() => {
     if (state.dataset !== WidgetType.TRACEMETRICS || !hasEquations) {
-      if (isEquationMode) {
-        setIsEquationMode(false);
-      }
+      setIsEquationMode(false);
       return;
     }
 
@@ -174,7 +173,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
           state.fields
         );
         seriesSnapshot.current = {
-          fields: currentFields ? cloneDeep(currentFields) : [],
+          fields: currentFields ? structuredClone(currentFields) : [],
           query: state.query ? [...state.query] : [],
         };
         restoreEquationState();
