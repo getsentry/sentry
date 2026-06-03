@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import DEFAULT_TYPE_ID, GroupStatus
@@ -112,7 +112,7 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
         {"workflow_engine.group.type_id.open_periods_type_denylist": [DEFAULT_TYPE_ID]}
     )
     @patch("sentry.workflow_engine.models.data_condition.logger")
-    def test_error_group_does_not_log(self, mock_logger) -> None:
+    def test_error_group_does_not_log(self, mock_logger: MagicMock) -> None:
         error_group, _, error_group_event = self.create_group_event()
         error_event_data = WorkflowEventData(event=error_group_event, group=error_group_event.group)
         self.deescalating_dc_warning.evaluate_value(error_event_data)
