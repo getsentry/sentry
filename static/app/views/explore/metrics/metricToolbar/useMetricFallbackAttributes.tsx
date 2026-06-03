@@ -70,8 +70,6 @@ export function useMetricFallbackAttributes({
   };
 }
 
-export const useMetricGroupByFallbackAttributes = useMetricFallbackAttributes;
-
 function getTagCollectionsFromTraceItemAttributes(
   attributes: TraceItemResponseAttribute[]
 ): TraceItemTagCollections {

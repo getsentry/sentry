@@ -22,7 +22,7 @@ import {
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabSeerComboBox} from 'sentry/views/explore/metrics/metricsTabSeerComboBox';
-import {useMetricFallbackAttributes} from 'sentry/views/explore/metrics/metricToolbar/useMetricGroupByFallbackAttributes';
+import {useMetricFallbackAttributes} from 'sentry/views/explore/metrics/metricToolbar/useMetricFallbackAttributes';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsQuery,
