@@ -676,8 +676,8 @@ class Project(Model):
                 all_workflow_ids = set(
                     Workflow.objects.filter(
                         detectorworkflow__detector_id__in=detector_ids,
-                        organization_id=old_org_id,
                     )
+                    .exclude(organization_id=organization.id)
                     .distinct()
                     .values_list("id", flat=True)
                 )
