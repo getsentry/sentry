@@ -1215,6 +1215,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
             assert gk.key == "foo"
             assert gk.values_seen == 1
+            assert gk.top_values is not None
             assert gk.top_values[0].value == "bar"
 
 

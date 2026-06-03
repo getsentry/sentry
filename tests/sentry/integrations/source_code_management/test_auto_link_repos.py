@@ -1,6 +1,7 @@
 from sentry.constants import ObjectStatus
 from sentry.integrations.source_code_management.auto_link_repos import (
     auto_link_repos_by_name,
+    auto_link_repos_on_project_create,
     get_repo_name_candidates,
 )
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
@@ -219,3 +220,68 @@ class AutoLinkReposByNameTest(TestCase):
             ProjectRepository.objects.filter(project=self.project, repository=self.repo).count()
             == 1
         )
+
+
+class AutoLinkReposOnProjectCreateTest(TestCase):
+    def test_links_matching_repo_on_project_create(self) -> None:
+        org = self.create_organization()
+        Repository.objects.create(
+            organization_id=org.id,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+        )
+        project = self.create_project(organization=org, slug="sentry")
+
+        with (
+            self.feature("organizations:auto-link-repos-by-name"),
+            self.options({"repository.auto-link-by-name-dry-run": False}),
+        ):
+            auto_link_repos_on_project_create(project)
+
+        assert ProjectRepository.objects.filter(
+            project=project,
+            source=ProjectRepositorySource.AUTO_NAME_MATCH,
+        ).exists()
+
+    def test_skips_when_no_matching_repo(self) -> None:
+        org = self.create_organization()
+        Repository.objects.create(
+            organization_id=org.id,
+            name="getsentry/relay",
+            provider="integrations:github",
+            external_id="456",
+        )
+        project = self.create_project(organization=org, slug="sentry")
+
+        with (
+            self.feature("organizations:auto-link-repos-by-name"),
+            self.options({"repository.auto-link-by-name-dry-run": False}),
+        ):
+            auto_link_repos_on_project_create(project)
+
+        assert not ProjectRepository.objects.filter(project=project).exists()
+
+    def test_skips_already_linked_repos(self) -> None:
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+        )
+        other_project = self.create_project(organization=org, slug="other")
+        ProjectRepository.objects.create(
+            project=other_project,
+            repository=repo,
+            source=ProjectRepositorySource.MANUAL,
+        )
+        project = self.create_project(organization=org, slug="sentry")
+
+        with (
+            self.feature("organizations:auto-link-repos-by-name"),
+            self.options({"repository.auto-link-by-name-dry-run": False}),
+        ):
+            auto_link_repos_on_project_create(project)
+
+        assert not ProjectRepository.objects.filter(project=project).exists()

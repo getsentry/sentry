@@ -1,8 +1,9 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TitledPlugin} from 'sentry/components/group/pluginActionsModal';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
+import type {ParsedOwnershipRule} from 'sentry/types/ownership';
+import type {TitledPlugin} from 'sentry/types/plugins';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -558,20 +559,6 @@ type SuggestedOwner = {
   owner: string;
   type: SuggestedOwnerReason;
 };
-
-/**
- * Mirrors OwnershipRuleOwnerResponse from the backend
- */
-interface OwnershipRuleOwner {
-  name: string;
-  type: 'user' | 'team';
-  id?: string;
-}
-
-export interface ParsedOwnershipRule {
-  matcher: {pattern: string; type: string};
-  owners: OwnershipRuleOwner[];
-}
 
 export type IssueOwnership = {
   autoAssignment:

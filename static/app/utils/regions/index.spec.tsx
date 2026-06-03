@@ -21,7 +21,7 @@ describe('getRegionUrlOptions', () => {
     ]);
 
     const res = getRegionUrlOptions([
-      {name: 'us', url: 'https://us.sentry.io', displayName: 'us'},
+      {name: 'us', url: 'https://us.sentry.io', displayName: 'us', label: 'us'},
     ]);
     expect(res).toHaveLength(2);
     expect(res[0]).toEqual({
@@ -32,7 +32,7 @@ describe('getRegionUrlOptions', () => {
 
     // Excluding the only included option = empty set.
     const none = getRegionUrlOptions(
-      [{name: 'us', url: 'https://us.sentry.io', displayName: 'us'}],
+      [{name: 'us', url: 'https://us.sentry.io', displayName: 'us', label: 'us'}],
       ['us']
     );
     expect(none).toHaveLength(0);

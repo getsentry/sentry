@@ -485,7 +485,7 @@ describe('Core StackTrace', () => {
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${javascriptEvent.id}/source-map-debug-blue-thunder-edition/`,
+      url: `/projects/${organization.slug}/${project.slug}/events/${javascriptEvent.id}/source-map-debug/`,
       body: {
         dist: null,
         exceptions: [

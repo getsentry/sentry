@@ -111,8 +111,9 @@ export function useTraceItemSearchQueryBuilderProps({
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
+  placeholder,
 }: TraceItemSearchQueryBuilderProps) {
-  const placeholderText = itemTypeToDefaultPlaceholder(itemType);
+  const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
 
   const {selection} = usePageFilters();
   const effectiveProjects = projects ?? selection.projects;
@@ -259,6 +260,7 @@ export function TraceItemSearchQueryBuilder({
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
+  placeholder,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -289,6 +291,7 @@ export function TraceItemSearchQueryBuilder({
     attributeQuery,
     hiddenAttributeKeys,
     allowedAttributeKeys,
+    placeholder,
   });
 
   return (
