@@ -7,7 +7,7 @@ import {
   FormSearch,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
@@ -66,12 +66,14 @@ function FingerprintRulesForm({
                       }
                     )}
                   </Text>
-                  <Text as="div" monospace size="sm" wrap="pre">
-                    {`# force all errors of the same type to have the same fingerprint
+                  <Container background="secondary" padding="md lg" radius="md">
+                    <Text as="div" monospace size="sm" wrap="pre-wrap">
+                      {`# force all errors of the same type to have the same fingerprint
 error.type:DatabaseUnavailable -> system-down
 # force all memory allocation errors to be grouped together
 stack.function:malloc -> memory-allocation-error`}
-                  </Text>
+                    </Text>
+                  </Container>
                   <field.TextArea
                     value={field.state.value}
                     onChange={field.handleChange}
@@ -156,12 +158,14 @@ function StackTraceRulesForm({
                       }
                     )}
                   </Text>
-                  <Text as="div" monospace size="sm" wrap="pre">
-                    {`# remove all frames above a certain function from grouping
+                  <Container background="secondary" padding="md lg" radius="md">
+                    <Text as="div" monospace size="sm" wrap="pre-wrap">
+                      {`# remove all frames above a certain function from grouping
 stack.function:panic_handler ^-group
 # mark all functions following a prefix in-app
 stack.function:mylibrary_* +app`}
-                  </Text>
+                    </Text>
+                  </Container>
                   <field.TextArea
                     value={field.state.value}
                     onChange={field.handleChange}
