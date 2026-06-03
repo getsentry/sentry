@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -12,10 +12,9 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
@@ -56,18 +55,14 @@ function Issue(props: IssueProps) {
     data: fetchedIssue,
     isError,
     error,
-  } = useQuery(
-    apiOptions.as<Group>()('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-      path: props.issue.issue_id
-        ? {organizationIdOrSlug: props.organization.slug, issueId: props.issue.issue_id}
-        : skipToken,
-      query: {
-        collapse: 'release',
-        expand: 'inbox',
-      },
-      staleTime: 2 * 60 * 1000,
-    })
-  );
+  } = useQuery({
+    ...groupApiOptions({
+      groupId: String(props.issue.issue_id),
+      organizationSlug: props.organization.slug,
+      environments: [],
+    }),
+    staleTime: 10 * 60 * 1000,
+  });
 
   const iconClassName = getTraceIssueSeverityClassName(props.issue);
 
@@ -183,9 +178,9 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   const uniqueIssues = [
     ...node.uniqueErrorIssues.sort(sortIssuesByLevel),
     ...node.uniqueOccurrenceIssues,
-  ];
+  ].filter(issue => issue.issue_id);
 
-  if (!issues.length) {
+  if (!issues.length || !uniqueIssues.length) {
     return null;
   }
 

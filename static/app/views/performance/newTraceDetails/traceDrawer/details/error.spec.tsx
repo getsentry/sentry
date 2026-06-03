@@ -75,7 +75,10 @@ describe('ErrorNodeDetails', () => {
       expect(issueMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/issues/${group.id}/`,
         expect.objectContaining({
-          query: {collapse: 'release', expand: 'inbox'},
+          query: {
+            collapse: ['release', 'tags', 'stats'],
+            expand: ['inbox', 'owners'],
+          },
         })
       );
     });
