@@ -945,11 +945,11 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             TagValue(
                 key=self.key,
                 value=value,
-                times_seen=count,
+                times_seen=counts[index] if len(counts) == len(values) else None,
                 first_seen=None,
                 last_seen=None,
             )
-            for value, count in zip(values, counts)
+            for index, value in enumerate(values)
             if value
         ]
 
