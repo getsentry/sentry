@@ -18,6 +18,7 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
+from sentry.api.endpoints.organization_legacy_webhooks import OrganizationLegacyWebhooksEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
 from sentry.api.endpoints.organization_plugin_deprecation_info import (
@@ -2187,6 +2188,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/configs/$",
         OrganizationPluginsConfigsEndpoint.as_view(),
         name="sentry-api-0-organization-plugins-configs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/legacy-webhooks/$",
+        OrganizationLegacyWebhooksEndpoint.as_view(),
+        name="sentry-api-0-organization-legacy-webhooks",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/releases/$",
