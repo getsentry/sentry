@@ -21,8 +21,13 @@ interface TraceIssueIconsProps {
 
 export function TraceIssueIcons(props: TraceIssueIconsProps) {
   const issues = useMemo(() => {
-    return getRenderableTraceIssues(props.node, props.errors, props.occurrences);
-  }, [props.node, props.errors, props.occurrences]);
+    return getRenderableTraceIssues(
+      props.node,
+      props.errors,
+      props.occurrences,
+      props.node_space
+    );
+  }, [props.node, props.errors, props.occurrences, props.node_space]);
 
   if (!issues.length || !props.node_space) {
     return null;

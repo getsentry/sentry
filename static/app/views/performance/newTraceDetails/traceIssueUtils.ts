@@ -16,7 +16,8 @@ interface RenderableTraceIssue {
 export function getRenderableTraceIssues(
   node: BaseNode,
   errors: BaseNode['errors'],
-  occurrences: BaseNode['occurrences']
+  occurrences: BaseNode['occurrences'],
+  nodeSpace: [number, number] | null = null
 ): RenderableTraceIssue[] {
   const directErrors = getDirectErrors(node);
   const directOccurrences = getDirectOccurrences(node);
@@ -39,7 +40,7 @@ export function getRenderableTraceIssues(
     }
   }
 
-  const childRepresentative = getMostSevereTraceIssue(childIssues);
+  const childRepresentative = getMostSevereTraceIssue(childIssues, nodeSpace);
   if (childRepresentative) {
     const additionalIssueCount = childIssues.length - 1;
     issues.push(
@@ -118,7 +119,8 @@ export function getDirectOccurrences(node: BaseNode): Set<TraceTree.TraceOccurre
 }
 
 function getMostSevereTraceIssue(
-  issues: TraceTree.TraceIssue[]
+  issues: TraceTree.TraceIssue[],
+  nodeSpace: [number, number] | null
 ): TraceTree.TraceIssue | null {
   return issues.reduce<TraceTree.TraceIssue | null>((mostSevere, issue) => {
     if (!mostSevere) {
@@ -132,11 +134,12 @@ function getMostSevereTraceIssue(
       return issue;
     }
 
-    if (
-      severityDiff === 0 &&
-      getTraceIssueTimestamp(issue, [0, 0]) < getTraceIssueTimestamp(mostSevere, [0, 0])
-    ) {
-      return issue;
+    if (severityDiff === 0 && nodeSpace) {
+      const issueTimestamp = getTraceIssueTimestamp(issue, nodeSpace);
+      const mostSevereTimestamp = getTraceIssueTimestamp(mostSevere, nodeSpace);
+      if (issueTimestamp < mostSevereTimestamp) {
+        return issue;
+      }
     }
 
     return mostSevere;

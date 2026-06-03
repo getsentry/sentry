@@ -1838,7 +1838,8 @@ function getIconTimestamps(
   for (const {issue, additionalIssueCount} of getRenderableTraceIssues(
     node,
     node.errors,
-    node.occurrences
+    node.occurrences,
+    span_space
   )) {
     const icon_width_px =
       additionalIssueCount === undefined
