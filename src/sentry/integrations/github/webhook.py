@@ -76,6 +76,7 @@ from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
+from .tasks.query_commit_author_public_emails import query_commit_author_public_emails
 from .types import IssueEvenntWebhookActionType
 
 logger = logging.getLogger("sentry.webhooks")
@@ -733,6 +734,22 @@ class PushEventWebhook(GitHubWebhook):
             set(repo.languages or []).union({lang for lang in languages if lang is not None})
         )
         repo.save()
+
+        # Hand the authors seen in this push off to an async task to look up
+        # their public profile email and (maybe) create ExternalActor mappings.
+        # The task is gated by CommitAuthor.public_email_queried_at, so re-seeing
+        # a recent author is cheap; we don't need them to be brand-new.
+        if authors and integration.provider in (
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ):
+            query_commit_author_public_emails.apply_async(
+                kwargs={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                    "commit_author_ids": sorted(author.id for author in authors.values()),
+                }
+            )
 
 
 class IssuesEventWebhook(GitHubWebhook):
