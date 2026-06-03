@@ -231,6 +231,20 @@ class ReleaseParams:
         type=str,
         description="The version identifier of the release",
     )
+    FILE_ID = OpenApiParameter(
+        name="file_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the release file.",
+    )
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=OpenApiTypes.STR,
+        description="Case-insensitive substring match against the release version.",
+    )
     PROJECT_ID = OpenApiParameter(
         name="project_id",
         location="query",
@@ -590,6 +604,13 @@ class SentryAppParams:
         many=False,
         type=str,
         description="The ID or slug of the custom integration.",
+    )
+    INSTALLATION_UUID = OpenApiParameter(
+        name="uuid",
+        location="path",
+        required=True,
+        type=str,
+        description="The UUID of the Sentry App installation.",
     )
 
 

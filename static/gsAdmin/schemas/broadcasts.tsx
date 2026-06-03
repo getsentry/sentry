@@ -39,6 +39,14 @@ export function getBroadcastSchema(): Field[] {
       placeholder: 'e.g. https://blog.sentry.io/2021/01/01/shiny-new-feature',
     },
     {
+      name: 'organizations',
+      type: 'string',
+      required: false,
+      label: 'Organization IDs',
+      placeholder: 'e.g. 123, 456, 789 (leave empty to broadcast to all users)',
+      help: 'Comma-separated list of organization IDs to restrict this broadcast to. If left empty, the broadcast will be shown to all users.',
+    },
+    {
       name: 'mediaUrl',
       type: 'string',
       required: false,

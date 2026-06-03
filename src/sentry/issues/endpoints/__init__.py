@@ -34,7 +34,6 @@ from .project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from .project_stacktrace_source_context import ProjectStacktraceSourceContextEndpoint
 from .related_issues import RelatedIssuesEndpoint
 from .shared_group_details import SharedGroupDetailsEndpoint
-from .source_map_debug import SourceMapDebugEndpoint
 from .team_groups_old import TeamGroupsOldEndpoint
 
 __all__ = (
@@ -73,6 +72,5 @@ __all__ = (
     "RelatedIssuesEndpoint",
     "SharedGroupDetailsEndpoint",
     "ShortIdLookupEndpoint",
-    "SourceMapDebugEndpoint",
     "TeamGroupsOldEndpoint",
 )

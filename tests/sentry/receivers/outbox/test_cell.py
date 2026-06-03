@@ -286,3 +286,50 @@ class HandleSeerRunCreateTest(TestCase):
         run.refresh_from_db()
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
         assert run.seer_run_state_id is None
+
+    @patch("sentry.receivers.outbox.cell._trigger_explorer_indexes_if_needed")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_explorer_calls_index_trigger_with_response_flags(
+        self, mock_request: Mock, mock_trigger: Mock
+    ) -> None:
+        mock_request.return_value = Mock(
+            status=200,
+            json=Mock(
+                return_value={
+                    "run_id": 99,
+                    "has_explorer_index": False,
+                    "has_org_project_context": False,
+                }
+            ),
+        )
+        run = self.create_seer_run(type=SeerRunType.EXPLORER)
+
+        handle_seer_run_create(
+            object_identifier=run.id,
+            payload=self._make_payload(),
+            shard_identifier=run.id,
+        )
+
+        run.refresh_from_db()
+        assert run.seer_run_state_id == 99
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE
+        mock_trigger.assert_called_once_with(run.organization_id, False, False)
+
+    @patch("sentry.receivers.outbox.cell._trigger_explorer_indexes_if_needed")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_explorer_index_trigger_exception_does_not_fail_run(
+        self, mock_request: Mock, mock_trigger: Mock
+    ) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 99}))
+        mock_trigger.side_effect = RuntimeError("boom")
+        run = self.create_seer_run(type=SeerRunType.EXPLORER)
+
+        handle_seer_run_create(
+            object_identifier=run.id,
+            payload=self._make_payload(),
+            shard_identifier=run.id,
+        )
+
+        run.refresh_from_db()
+        assert run.seer_run_state_id == 99
+        assert run.mirror_status == SeerRunMirrorStatus.LIVE

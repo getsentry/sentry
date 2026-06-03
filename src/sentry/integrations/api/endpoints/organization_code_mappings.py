@@ -123,10 +123,10 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
-            project_repo, _ = ProjectRepository.objects.get_or_create(
+            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
                 project_id=validated_data.pop("project_id"),
                 repository_id=validated_data.pop("repository_id"),
-                defaults={"source": ProjectRepositorySource.MANUAL},
+                source=ProjectRepositorySource.MANUAL,
             )
             return RepositoryProjectPathConfig.objects.create(
                 organization_integration_id=self.org_integration.id,
@@ -141,14 +141,14 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
             validated_data.pop("id")
         if self.instance:
             with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
-                project_repo, _ = ProjectRepository.objects.get_or_create(
+                project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
                     project_id=validated_data.pop(
                         "project_id", self.instance.project_repository.project_id
                     ),
                     repository_id=validated_data.pop(
                         "repository_id", self.instance.project_repository.repository_id
                     ),
-                    defaults={"source": ProjectRepositorySource.MANUAL},
+                    source=ProjectRepositorySource.MANUAL,
                 )
                 self.instance.project_repository = project_repo
                 for key, value in validated_data.items():

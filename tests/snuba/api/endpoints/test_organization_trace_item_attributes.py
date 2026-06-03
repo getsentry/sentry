@@ -7,7 +7,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry.api.endpoints.organization_trace_item_attributes import (
+from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
 )
 from sentry.exceptions import InvalidSearchQuery
@@ -400,6 +400,41 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "tags[is_deleted,boolean]" in keys
         assert "tags[feature_enabled,boolean]" in keys
         assert "tags[another_flag,boolean]" in keys
+
+    def test_debug_as_superuser(self) -> None:
+        logs = [
+            self.create_ourlog(
+                extra_data={"body": "log message"},
+                organization=self.organization,
+                project=self.project,
+                attributes={"test.attr": {"string_value": "value"}},
+            ),
+        ]
+        self.store_eap_items(logs)
+
+        superuser = self.create_user(is_superuser=True)
+        self.create_member(user=superuser, organization=self.organization)
+        self.login_as(user=superuser, superuser=True)
+
+        response = self.do_request(query={"attributeType": "string", "debug": "true"})
+        assert response.status_code == 200, response.content
+        assert "data" in response.data
+        assert "debug_info" in response.data
+        assert isinstance(response.data["data"], list)
+        assert isinstance(response.data["debug_info"], list)
+        keys = {item["key"] for item in response.data["data"]}
+        assert "test.attr" in keys
+
+        assert len(response.data["debug_info"]) > 0
+        debug_entry = response.data["debug_info"][0]
+        assert "attribute_type" in debug_entry
+        assert "raw_request" in debug_entry
+        assert "raw_response" in debug_entry
+
+    def test_debug_as_regular_user(self) -> None:
+        response = self.do_request(query={"attributeType": "string", "debug": "true"})
+        assert response.status_code == 200, response.content
+        assert isinstance(response.data, list)
 
 
 class OrganizationTraceItemAttributesEndpointSpansTest(

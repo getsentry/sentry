@@ -39,6 +39,9 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
+from sentry.seer.code_review.webhooks.seat_tracking import (
+    track_gitlab_contributor_seat_processor,
+)
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -244,6 +247,7 @@ class IssuesEventWebhook(GitlabWebhook):
         # GitLab supports multiple assignees, but Sentry currently only supports one
         # Take the first assignee from the current state
         first_assignee = assignees[0]
+        assignee_id = first_assignee.get("id")
         assignee_username = first_assignee.get("username")
 
         if not assignee_username:
@@ -264,6 +268,7 @@ class IssuesEventWebhook(GitlabWebhook):
             external_user_name=assignee_name,
             external_issue_key=external_issue_key,
             assign=True,
+            external_user_id=assignee_id,
         )
 
         logger.info(
@@ -271,6 +276,7 @@ class IssuesEventWebhook(GitlabWebhook):
             extra={
                 "integration_id": integration.id,
                 "external_issue_key": external_issue_key,
+                "assignee_id": assignee_id,
                 "assignee_name": assignee_name,
                 "total_assignees": len(assignees),
             },
@@ -345,7 +351,13 @@ class MergeEventWebhook(GitlabWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = (handle_merge_request_event,)
+    # Order matters: seed OrganizationContributors before the code-review
+    # handler runs preflight, otherwise the first MR open from a new
+    # contributor would be denied with ORG_CONTRIBUTOR_NOT_FOUND.
+    WEBHOOK_EVENT_PROCESSORS = (
+        track_gitlab_contributor_seat_processor,
+        handle_merge_request_event,
+    )
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (
