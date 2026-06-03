@@ -16,6 +16,7 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         group = event_data.group
 
+        # This condition only works for issue types that create open periods (which excludes errors).
         if not should_create_open_periods(group.type):
             return False
 
