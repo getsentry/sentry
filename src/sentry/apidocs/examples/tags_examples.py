@@ -61,6 +61,34 @@ SIMPLE_TAG_VALUES = [
 ]
 
 
+SIMPLE_ORGANIZATION_TAGS = [
+    {
+        "key": "browser",
+        "name": "Browser",
+    },
+    {
+        "key": "browser.name",
+        "name": "Browser Name",
+    },
+    {
+        "key": "environment",
+        "name": "Environment",
+    },
+    {
+        "key": "level",
+        "name": "Level",
+    },
+    {
+        "key": "os",
+        "name": "OS",
+    },
+    {
+        "key": "release",
+        "name": "Release",
+    },
+]
+
+
 class TagsExamples:
     GROUP_TAGKEY_DETAILS = OpenApiExample(
         "Return a specific tag's details",
@@ -72,6 +100,13 @@ class TagsExamples:
     GROUP_TAGKEY_VALUES = OpenApiExample(
         "Return all tag values for a specific tag",
         value=SIMPLE_TAG_VALUES,
+        response_only=True,
+        status_codes=["200"],
+    )
+
+    ORGANIZATION_TAGS = OpenApiExample(
+        "Return a list of tag keys for an organization",
+        value=SIMPLE_ORGANIZATION_TAGS,
         response_only=True,
         status_codes=["200"],
     )
