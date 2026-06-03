@@ -5,7 +5,11 @@ from typing import Any, Literal, TypeAlias
 from pydantic import BaseModel, Field, root_validator, validator
 
 from sentry.models.dashboard import Dashboard
-from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
+from sentry.models.dashboard_widget import (
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetTypes,
+    get_max_widget_limit,
+)
 
 GRID_WIDTH = 6
 
@@ -39,14 +43,6 @@ Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
 
 # Blocklist for frequently hallucinated functions or functions we want to avoid using
 FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex", "http_error_count", "http_error_count_percent"}
-
-# Per-display-type limit
-# in src/sentry/api/serializers/rest_framework/dashboard.py.
-_LIMIT_MAX_BY_DISPLAY_TYPE: dict[str, int] = {
-    "categorical_bar": 25,
-    "table": 20,
-}
-_DEFAULT_LIMIT_MAX = 10
 
 
 class GeneratedWidgetQuery(BaseModel):
@@ -247,7 +243,9 @@ class GeneratedWidget(BaseModel):
         limit = values.get("limit")
         if display_type is None or limit is None or display_type == "text":
             return values
-        max_limit = _LIMIT_MAX_BY_DISPLAY_TYPE.get(display_type, _DEFAULT_LIMIT_MAX)
+        max_limit = get_max_widget_limit(
+            DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
+        )
         if limit > max_limit:
             raise ValueError(
                 f"limit={limit} exceeds the maximum of {max_limit} for display_type '{display_type}'"
