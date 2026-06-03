@@ -893,7 +893,7 @@ export function useWidgetBuilderState(): {
               [
                 {
                   kind: 'desc',
-                  field: generateFieldAsString(action.payload[0]!),
+                  field: generateSortField(action.payload, 0),
                 },
               ],
               options
@@ -1383,6 +1383,10 @@ function checkTraceMetricSortUsed(
 ): boolean {
   const sortValue = sort[0]?.field;
   const sortInFields = fields?.some(field => generateFieldAsString(field) === sortValue);
-  const sortInYAxis = yAxis?.some(field => generateFieldAsString(field) === sortValue);
+  const sortInYAxis = yAxis?.some(
+    (field, i) =>
+      generateFieldAsString(field) === sortValue ||
+      generateSortField(yAxis, i) === sortValue
+  );
   return sortInFields || sortInYAxis;
 }
