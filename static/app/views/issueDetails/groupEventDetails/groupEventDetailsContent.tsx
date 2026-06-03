@@ -1,8 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
-import {ClassNames} from '@emotion/react';
 
 import Feature from 'sentry/components/acl/feature';
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -101,6 +99,9 @@ export function EventDetailsContent({
   project,
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
+  const shouldUseNewStackTrace =
+    // New stack trace is currently only non-native platforms.
+    !isNativePlatform(event.platform);
   const shouldUseNewNativeThreadStackTrace =
     organization.features.includes('issue-details-new-stack-trace') &&
     isNativePlatform(event.platform);
@@ -118,10 +119,7 @@ export function EventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hangProfileData =
-    mechanism === 'mx_hang_diagnostic' &&
-    organization.features.includes('metrickit-flamegraph')
-      ? getHangProfileData(event)
-      : null;
+    mechanism === 'mx_hang_diagnostic' ? getHangProfileData(event) : null;
   const isMetricKitHang = hangProfileData !== null;
   const groupingCurrentLevel = group?.metadata?.current_level;
   const isSampleError = useIsSampleEvent();
@@ -174,89 +172,77 @@ export function EventDetailsContent({
       {isMetricKitHang ? (
         <MetricKitHangProfileSection data={hangProfileData} />
       ) : (
-        /* Wrapping all stacktrace components since multiple could appear */
-        <ClassNames>
-          {({css}) => (
-            <GuideAnchor
-              target="stacktrace"
-              position="top"
-              // Prevent the container span from shrinking the content
-              containerClassName={css`
-                display: block !important;
-              `}
-            >
-              {shouldShowTombstonesBanner(event) && !isSampleError && (
-                <ErrorBoundary mini>
-                  <AndroidNativeTombstonesBanner
-                    event={event}
-                    projectId={group?.project.id ?? event.projectID ?? ''}
-                  />
-                </ErrorBoundary>
-              )}
-              {defined(eventEntries[EntryType.EXCEPTION]) && (
-                <EntryErrorBoundary type={EntryType.EXCEPTION}>
-                  {isNativePlatform(event.platform) ? (
-                    <Exception
-                      event={event}
-                      data={eventEntries[EntryType.EXCEPTION].data}
-                      projectSlug={project.slug}
-                      group={group}
-                      groupingCurrentLevel={groupingCurrentLevel}
-                    />
-                  ) : (
-                    <IssueStackTrace
-                      event={event}
-                      values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
-                      projectSlug={project.slug}
-                      group={group}
-                    />
-                  )}
-                </EntryErrorBoundary>
-              )}
-              {issueTypeConfig.stacktrace.enabled &&
-                defined(eventEntries[EntryType.STACKTRACE]) && (
-                  <EntryErrorBoundary type={EntryType.STACKTRACE}>
-                    {isNativePlatform(event.platform) ? (
-                      <StackTrace
-                        event={event}
-                        data={eventEntries[EntryType.STACKTRACE].data}
-                        projectSlug={projectSlug}
-                        groupingCurrentLevel={groupingCurrentLevel}
-                      />
-                    ) : (
-                      <IssueStackTrace
-                        event={event}
-                        stacktrace={eventEntries[EntryType.STACKTRACE].data}
-                        projectSlug={projectSlug}
-                        group={group}
-                      />
-                    )}
-                  </EntryErrorBoundary>
-                )}
-              {defined(eventEntries[EntryType.THREADS]) && (
-                <EntryErrorBoundary type={EntryType.THREADS}>
-                  {shouldUseNewNativeThreadStackTrace ? (
-                    <IssueThreadStackTrace
-                      event={event}
-                      data={eventEntries[EntryType.THREADS].data}
-                      projectSlug={project.slug}
-                      groupingCurrentLevel={groupingCurrentLevel}
-                      group={group}
-                    />
-                  ) : (
-                    <Threads
-                      event={event}
-                      data={eventEntries[EntryType.THREADS].data}
-                      projectSlug={project.slug}
-                      groupingCurrentLevel={groupingCurrentLevel}
-                      group={group}
-                    />
-                  )}
-                </EntryErrorBoundary>
-              )}
-            </GuideAnchor>
+        <Fragment>
+          {shouldShowTombstonesBanner(event) && !isSampleError && (
+            <ErrorBoundary mini>
+              <AndroidNativeTombstonesBanner
+                event={event}
+                projectId={group?.project.id ?? event.projectID ?? ''}
+              />
+            </ErrorBoundary>
           )}
-        </ClassNames>
+          {defined(eventEntries[EntryType.EXCEPTION]) && (
+            <EntryErrorBoundary type={EntryType.EXCEPTION}>
+              {shouldUseNewStackTrace ? (
+                <IssueStackTrace
+                  event={event}
+                  values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
+                  projectSlug={project.slug}
+                  group={group}
+                />
+              ) : (
+                <Exception
+                  event={event}
+                  data={eventEntries[EntryType.EXCEPTION].data}
+                  projectSlug={project.slug}
+                  group={group}
+                  groupingCurrentLevel={groupingCurrentLevel}
+                />
+              )}
+            </EntryErrorBoundary>
+          )}
+          {issueTypeConfig.stacktrace.enabled &&
+            defined(eventEntries[EntryType.STACKTRACE]) && (
+              <EntryErrorBoundary type={EntryType.STACKTRACE}>
+                {shouldUseNewStackTrace ? (
+                  <IssueStackTrace
+                    event={event}
+                    stacktrace={eventEntries[EntryType.STACKTRACE].data}
+                    projectSlug={projectSlug}
+                    group={group}
+                  />
+                ) : (
+                  <StackTrace
+                    event={event}
+                    data={eventEntries[EntryType.STACKTRACE].data}
+                    projectSlug={projectSlug}
+                    groupingCurrentLevel={groupingCurrentLevel}
+                  />
+                )}
+              </EntryErrorBoundary>
+            )}
+          {defined(eventEntries[EntryType.THREADS]) && (
+            <EntryErrorBoundary type={EntryType.THREADS}>
+              {shouldUseNewNativeThreadStackTrace ? (
+                <IssueThreadStackTrace
+                  event={event}
+                  data={eventEntries[EntryType.THREADS].data}
+                  projectSlug={project.slug}
+                  groupingCurrentLevel={groupingCurrentLevel}
+                  group={group}
+                />
+              ) : (
+                <Threads
+                  event={event}
+                  data={eventEntries[EntryType.THREADS].data}
+                  projectSlug={project.slug}
+                  groupingCurrentLevel={groupingCurrentLevel}
+                  group={group}
+                />
+              )}
+            </EntryErrorBoundary>
+          )}
+        </Fragment>
       )}
       <ScreenshotDataSection event={event} projectSlug={project.slug} />
       {isANR && (

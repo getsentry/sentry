@@ -1316,8 +1316,10 @@ const MultilineTextWrapper = styled('div')`
 function MultilineJSON({
   value,
   maxDefaultDepth = 2,
+  autoCollapseLimit,
 }: {
   value: any;
+  autoCollapseLimit?: number;
   maxDefaultDepth?: number;
 }) {
   const [showRaw, setShowRaw] = useState(false);
@@ -1328,9 +1330,9 @@ function MultilineJSON({
 
   // Ensure root ('$') is always expanded, while children follow maxDefaultDepth rules
   const computedExpandedPaths = useMemo(() => {
-    const childPaths = getDefaultExpanded(maxDefaultDepth, json);
+    const childPaths = getDefaultExpanded(maxDefaultDepth, json, autoCollapseLimit);
     return Array.from(new Set(['$', ...childPaths]));
-  }, [maxDefaultDepth, json]);
+  }, [maxDefaultDepth, json, autoCollapseLimit]);
 
   return (
     <MultilineTextWrapperMonospace {...hoverProps}>
@@ -1367,6 +1369,7 @@ function MultilineJSON({
           }}
           value={json}
           maxDefaultDepth={maxDefaultDepth}
+          autoCollapseLimit={autoCollapseLimit}
           initialExpandedPaths={computedExpandedPaths}
           withAnnotatedText
         />

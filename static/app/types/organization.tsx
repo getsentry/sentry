@@ -21,7 +21,6 @@ import type {User} from './user';
  */
 export interface OrganizationSummary {
   avatar: Avatar;
-  codecovAccess: boolean;
   dateCreated: string;
   hideAiFeatures: boolean;
   id: string;

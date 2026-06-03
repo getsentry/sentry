@@ -52,8 +52,7 @@ import {IntegrationExternalUserMappings} from './integrationExternalUserMappings
 import {IntegrationItem} from './integrationItem';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
-const TABS = ['settings', 'codeMappings', 'userMappings', 'teamMappings'] as const;
-type Tab = (typeof TABS)[number];
+type Tab = 'settings' | 'codeMappings' | 'userMappings' | 'teamMappings';
 
 const makeIntegrationQuery = (
   organization: Organization,
@@ -80,8 +79,6 @@ function ConfigureIntegration() {
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
-  const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'settings';
   const {integrationId, providerKey} = useParams<{
     integrationId: string;
     providerKey: string;
@@ -166,6 +163,59 @@ function ConfigureIntegration() {
   if (!provider || !integration) {
     return null;
   }
+
+  // The Settings tab only has content when there is something to render in
+  // renderMainTab(). When empty, the tab is hidden entirely.
+  const settingsInstructions =
+    integration.dynamicDisplayInformation?.configure_integration?.instructions;
+  const hasSettingsTabContent =
+    integration.configOrganization.length > 0 ||
+    (settingsInstructions?.length ?? 0) > 0 ||
+    provider.features.includes('alert-rule') ||
+    provider.features.includes('serverless');
+
+  const hasStacktraceLinking = provider.features.includes('stacktrace-link');
+  const hasCodeOwners =
+    provider.features.includes('codeowners') &&
+    organization.features.includes('integrations-codeowners');
+  const hasUserMapping = provider.features.includes('user-mapping');
+
+  // The Settings tab is paired with stacktrace linking or user mapping; it is
+  // only shown when renderMainTab() would actually have content.
+  const settingsTabs: Array<[Tab, string]> =
+    hasSettingsTabContent && (hasStacktraceLinking || hasUserMapping)
+      ? [['settings', t('Settings')]]
+      : [];
+
+  const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
+    ? [['codeMappings', t('Code Mappings')]]
+    : [];
+
+  const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
+    ? [
+        ['userMappings', t('User Mappings')],
+        ['teamMappings', t('Team Mappings')],
+      ]
+    : [];
+
+  // User mappings are mutually exclusive with stacktrace linking
+  // and code owners, so only render the main settings tab and user mappings.
+  const userMappingTabs: Array<[Tab, string]> = hasUserMapping
+    ? [['userMappings', t('User Mappings')]]
+    : [];
+
+  const allTabs = [
+    ...settingsTabs,
+    ...stackTraceLinkingTabs,
+    ...codeOwnerTabs,
+    ...userMappingTabs,
+  ];
+
+  const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
+  const tab =
+    tabParam && allTabs.some(([key]) => key === tabParam)
+      ? tabParam
+      : (allTabs[0]?.[0] ?? 'settings');
 
   const onTabChange = (value: Tab) => {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
@@ -458,41 +508,6 @@ function ConfigureIntegration() {
   }
 
   function renderMainContent() {
-    const hasStacktraceLinking = provider!.features.includes('stacktrace-link');
-    const hasCodeOwners =
-      provider!.features.includes('codeowners') &&
-      organization.features.includes('integrations-codeowners');
-    const hasUserMapping = provider!.features.includes('user-mapping');
-
-    const tabs: Array<[Tab, string]> = [];
-    const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
-      ? [
-          ['settings', t('Settings')],
-          ['codeMappings', t('Code Mappings')],
-        ]
-      : [];
-
-    const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
-      ? [
-          ['userMappings', t('User Mappings')],
-          ['teamMappings', t('Team Mappings')],
-        ]
-      : [];
-
-    // User mappings are mutually exclusive with stacktrace linking
-    // and code owners, so only render the main settings tab and user mappings.
-    const userMappingTabs: Array<[Tab, string]> = hasUserMapping
-      ? [
-          ['settings', t('Settings')],
-          ['userMappings', t('User Mappings')],
-        ]
-      : [];
-
-    const allTabs = tabs
-      .concat(stackTraceLinkingTabs)
-      .concat(codeOwnerTabs)
-      .concat(userMappingTabs);
-
     if (allTabs.length === 0) {
       return renderMainTab();
     }

@@ -106,10 +106,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const isSticky = layout === 'sidebar';
 
   const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
-  const hasRedirectOptOut = organization.features.includes(
-    'workflow-engine-redirect-opt-out'
-  );
-  const shouldRedirectToWorkflowEngineUI = !hasRedirectOptOut && hasWorkflowEngineUI;
+  const shouldRedirectToWorkflowEngineUI = hasWorkflowEngineUI;
 
   const alertsLink = shouldRedirectToWorkflowEngineUI
     ? makeAutomationBasePathname(organization.slug)

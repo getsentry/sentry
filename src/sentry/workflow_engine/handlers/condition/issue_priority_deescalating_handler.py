@@ -1,7 +1,7 @@
 from typing import Any
 
 from sentry.models.group import GroupStatus
-from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.models.groupopenperiod import get_latest_open_period, should_create_open_periods
 from sentry.workflow_engine.models.data_condition import Condition, DataConditionEvaluationException
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -15,6 +15,10 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         group = event_data.group
+
+        # This condition only works for issue types that create open periods (which excludes errors).
+        if not should_create_open_periods(group.type):
+            return False
 
         # we will fire actions on de-escalation if the priority seen is >= the threshold
         # priority specified in the comparison

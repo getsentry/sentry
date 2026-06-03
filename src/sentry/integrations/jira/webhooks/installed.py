@@ -14,7 +14,6 @@ from sentry.integrations.jira.tasks import sync_metadata
 from sentry.integrations.jira.webhooks.base import JiraWebhookBase
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import authenticate_asymmetric_jwt, verify_claims
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
@@ -92,12 +91,13 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 )
 
             # Bind iss to whichever value build_integration will persist as
-            # Integration.external_id. Branch on state["jira"] (the parent
-            # dict) to match build_integration exactly — branching on the
-            # inner external_id's truthiness diverges when it's empty.
-            jira_state = state.get(IntegrationProviderSlug.JIRA.value)
-            if jira_state:
-                expected_external_id = jira_state.get("external_id")
+            # Integration.external_id, mirroring its branch order exactly. The
+            # request body is attacker-controlled and not covered by the JWT, so
+            # the issuer must be validated against the same external_id we store;
+            # otherwise a valid token for one tenant could install an integration
+            # keyed to another tenant.
+            if "external_id" in state and "metadata" in state:
+                expected_external_id = state.get("external_id")
             else:
                 expected_external_id = state.get("clientKey")
             if decoded_claims.get("iss") != expected_external_id:

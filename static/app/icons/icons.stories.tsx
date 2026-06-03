@@ -246,13 +246,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'codecov',
-        groups: ['logo'],
-        keywords: ['coverage', 'testing', 'code'],
-        name: 'Codecov',
-        defaultProps: {},
-      },
-      {
         id: 'bitbucket',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'atlassian'],

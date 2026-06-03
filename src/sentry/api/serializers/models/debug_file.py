@@ -21,7 +21,7 @@ class DebugFileSerializerResponse(TypedDict):
 
 
 @register(ProjectDebugFile)
-class DebugFileSerializer(Serializer):
+class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> DebugFileSerializerResponse:
         return {
             "id": str(obj.id),

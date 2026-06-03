@@ -3,10 +3,21 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {useExperiment} from 'sentry/utils/useExperiment';
 
 import {CreateProject} from './createProject';
+import {ScmCreateProject} from './scmCreateProject';
 
 function NewProject() {
+  const {inExperiment: hasScmProjectCreation} = useExperiment({
+    feature: 'onboarding-scm-project-creation-experiment',
+    reportExposure: true,
+  });
+
+  if (hasScmProjectCreation) {
+    return <ScmCreateProject />;
+  }
+
   return (
     <SentryDocumentTitle>
       <Stack flex={1}>
