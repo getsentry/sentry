@@ -35,6 +35,7 @@ import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/
 import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
 import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import {PluginDeprecationAlert} from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
+import {WebhookDetailedView} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
 
 // TODO @sentaur-athena: remove this once we have a solution to deprecate these plugins
 const TEMPORARY_PERMITTED_PLUGINS = new Set(['amazon-sqs']);
@@ -369,4 +370,18 @@ const AddButton = styled(Button)`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-export default PluginDetailedView;
+function PluginDetailedViewRouter() {
+  const {integrationSlug} = useParams<{integrationSlug: string}>();
+  const organization = useOrganization();
+
+  if (
+    integrationSlug === 'webhooks' &&
+    organization.features.includes('legacy-webhook-ui')
+  ) {
+    return <WebhookDetailedView />;
+  }
+
+  return <PluginDetailedView />;
+}
+
+export default PluginDetailedViewRouter;
