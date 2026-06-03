@@ -22,7 +22,7 @@ function makeLogsPinning(pinnedIds: string[]): LogsPinning {
     clearPinnedRows: jest.fn(),
     getPinnedRowIds: jest.fn().mockReturnValue(pinnedIds),
     hasPinnedRow: jest.fn((id: string) => pinnedIds.includes(id)),
-    removePinnedRow: jest.fn(),
+    removePinnedRows: jest.fn(),
     togglePinnedRow: jest.fn(),
   };
 }
@@ -59,6 +59,7 @@ describe('usePinnedLogsQuery', () => {
     const logRow = LogFixture({
       [OurLogKnownFieldKey.ID]: 'log-1',
       [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     });
     const logsPinning = makeLogsPinning(['log-1']);
 
@@ -85,6 +86,7 @@ describe('usePinnedLogsQuery', () => {
     const missingLog = LogFixture({
       [OurLogKnownFieldKey.ID]: 'log-missing',
       [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
       [OurLogKnownFieldKey.MESSAGE]: 'fetched log',
     });
 
@@ -121,7 +123,55 @@ describe('usePinnedLogsQuery', () => {
     expect(result.current.fetchedRows[0]?.[OurLogKnownFieldKey.ID]).toBe('log-missing');
   });
 
-  it('does not call removePinnedRow when the scan was only partial', async () => {
+  it('includes the utc flag when fetching with an absolute date range', async () => {
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: null,
+        start: '2024-01-01T00:00:00',
+        end: '2024-01-02T00:00:00',
+        utc: true,
+      },
+    });
+
+    const missingLog = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-missing',
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [missingLog],
+        meta: {fields: {id: 'string'}, units: {}},
+      },
+    });
+
+    const logsPinning = makeLogsPinning(['log-missing']);
+
+    renderHookWithProviders(() => usePinnedLogsQuery({allRows: [], logsPinning}), {
+      organization,
+      additionalWrapper: AdditionalWrapper,
+    });
+
+    await waitFor(() => {
+      expect(eventsRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            utc: true,
+            start: '2024-01-01T00:00:00',
+            end: '2024-01-02T00:00:00',
+          }),
+        })
+      );
+    });
+  });
+
+  it('does not call removePinnedRows when the scan was only partial', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -142,20 +192,26 @@ describe('usePinnedLogsQuery', () => {
       expect(result.current.isPending).toBe(false);
     });
 
-    expect(logsPinning.removePinnedRow).not.toHaveBeenCalled();
+    expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
   });
 
-  it('calls removePinnedRow for ids not found in the API response', async () => {
+  it('calls removePinnedRows with every id not found in the API response', async () => {
+    const foundLog = LogFixture({
+      [OurLogKnownFieldKey.ID]: 'log-found',
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {
-        data: [],
+        data: [foundLog],
         meta: {fields: {id: 'string'}, units: {}},
       },
     });
 
-    const logsPinning = makeLogsPinning(['log-gone']);
+    const logsPinning = makeLogsPinning(['log-gone-1', 'log-found', 'log-gone-2']);
 
     renderHookWithProviders(() => usePinnedLogsQuery({allRows: [], logsPinning}), {
       organization,
@@ -163,14 +219,18 @@ describe('usePinnedLogsQuery', () => {
     });
 
     await waitFor(() => {
-      expect(logsPinning.removePinnedRow).toHaveBeenCalledWith('log-gone');
+      expect(logsPinning.removePinnedRows).toHaveBeenCalledWith([
+        'log-gone-1',
+        'log-gone-2',
+      ]);
     });
   });
 
-  it('does not call removePinnedRow for ids that are found in the API response', async () => {
+  it('does not call removePinnedRows for ids that are found in the API response', async () => {
     const foundLog = LogFixture({
       [OurLogKnownFieldKey.ID]: 'log-found',
       [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     });
 
     MockApiClient.addMockResponse({
@@ -190,7 +250,7 @@ describe('usePinnedLogsQuery', () => {
     });
 
     await waitFor(() => {
-      expect(logsPinning.removePinnedRow).not.toHaveBeenCalled();
+      expect(logsPinning.removePinnedRows).not.toHaveBeenCalled();
     });
   });
 
@@ -217,12 +277,17 @@ describe('usePinnedLogsQuery', () => {
     act(() => {
       resolveRequest({});
     });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(false);
+    });
   });
 
   it('does not fetch when pinned ids are already in allRows', () => {
     const existingLog = LogFixture({
       [OurLogKnownFieldKey.ID]: 'log-existing',
       [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     });
 
     const eventsRequest = MockApiClient.addMockResponse({

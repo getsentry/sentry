@@ -55,6 +55,7 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
           : {
               start: selection.datetime.start ?? undefined,
               end: selection.datetime.end ?? undefined,
+              utc: selection.datetime.utc ?? undefined,
             }),
         environment: selection.environments,
         per_page: missingIds.length,
@@ -65,14 +66,14 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
     })
   );
 
-  const {removePinnedRow} = logsPinning ?? {};
+  const {removePinnedRows} = logsPinning ?? {};
 
   useEffect(() => {
     if (
       !queryResult.data ||
       queryResult.data.meta?.dataScanned === 'partial' ||
       !queryResult.isSuccess ||
-      !removePinnedRow
+      !removePinnedRows
     ) {
       return;
     }
@@ -81,12 +82,11 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
       queryResult.data.data.map(row => row[OurLogKnownFieldKey.ID])
     );
 
-    for (const id of missingIds) {
-      if (!foundIds.has(id)) {
-        removePinnedRow(id);
-      }
+    const idsToRemove = missingIds.filter(id => !foundIds.has(id));
+    if (idsToRemove.length > 0) {
+      removePinnedRows(idsToRemove);
     }
-  }, [queryResult.isSuccess, queryResult.data, missingIds, removePinnedRow]);
+  }, [queryResult.isSuccess, queryResult.data, missingIds, removePinnedRows]);
 
   return {
     fetchedRows: queryResult.data?.data ?? [],

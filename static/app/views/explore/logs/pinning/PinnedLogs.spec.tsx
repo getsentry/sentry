@@ -9,7 +9,10 @@ import {
 
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 
 const allRows: LogTableRowItem[] = [
@@ -37,7 +40,7 @@ function PinnedLogsWrapper({
   fetchedPinnedRows = [],
   isFetchingPinnedRows = false,
 }: {
-  fetchedPinnedRows?: LogTableRowItem[];
+  fetchedPinnedRows?: OurLogsResponseItem[];
   isFetchingPinnedRows?: boolean;
 }) {
   const logsPinning = useLogsPinning()!;
@@ -60,7 +63,7 @@ function PinnedLogsWrapper({
 function renderPinnedLogs(
   options: RenderOptions = {},
   wrapperProps?: {
-    fetchedPinnedRows?: LogTableRowItem[];
+    fetchedPinnedRows?: OurLogsResponseItem[];
     isFetchingPinnedRows?: boolean;
   }
 ) {
