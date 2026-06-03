@@ -120,7 +120,11 @@ def _get_pull_request_status(
     if response.get("merged"):
         return "merged"
     state = response.get("state")
-    return state if state in ("closed", "open") else "unknown"
+    if state == "closed":
+        return "closed"
+    if state == "open":
+        return "open"
+    return "unknown"
 
 
 @cell_silo_endpoint
