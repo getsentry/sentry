@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {useTheme, type Theme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -56,6 +56,31 @@ import {
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import type {TraceReducerState} from './traceState';
+
+const traceIssueIconBackgroundStyles = css`
+  &.info {
+    background-color: var(--info);
+  }
+  &.warning {
+    background-color: var(--warning);
+  }
+  &.debug {
+    background-color: var(--debug);
+  }
+  &.error,
+  &.fatal {
+    background-color: var(--error);
+  }
+  &.occurrence {
+    background-color: var(--occurrence);
+  }
+  &.default {
+    background-color: var(--default);
+  }
+  &.unknown {
+    background-color: var(--unknown);
+  }
+`;
 
 function computeNextIndexFromAction(
   current_index: number,
@@ -1170,28 +1195,8 @@ const TraceStylingWrapper = styled('div')`
       justify-content: center;
       z-index: 1;
 
-      &.info {
-        background-color: var(--info);
-      }
-      &.warning {
-        background-color: var(--warning);
-      }
-      &.debug {
-        background-color: var(--debug);
-      }
-      &.error,
-      &.fatal {
-        background-color: var(--error);
-      }
-      &.occurrence {
-        background-color: var(--occurrence);
-      }
-      &.default {
-        background-color: var(--default);
-      }
-      &.unknown {
-        background-color: var(--unknown);
-      }
+      ${traceIssueIconBackgroundStyles}
+
       &.profile {
         background-color: var(--profile);
       }
@@ -1232,28 +1237,7 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.colors.white};
       z-index: 1;
 
-      &.info {
-        background-color: var(--info);
-      }
-      &.warning {
-        background-color: var(--warning);
-      }
-      &.debug {
-        background-color: var(--debug);
-      }
-      &.error,
-      &.fatal {
-        background-color: var(--error);
-      }
-      &.occurrence {
-        background-color: var(--occurrence);
-      }
-      &.default {
-        background-color: var(--default);
-      }
-      &.unknown {
-        background-color: var(--unknown);
-      }
+      ${traceIssueIconBackgroundStyles}
 
       .TraceIconGlyph {
         flex: 0 0 auto;
