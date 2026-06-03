@@ -12,7 +12,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useMetricGroupByFallbackAttributes} from 'sentry/views/explore/metrics/metricToolbar/useMetricGroupByFallbackAttributes';
+import {useMetricFallbackAttributes} from 'sentry/views/explore/metrics/metricToolbar/useMetricFallbackAttributes';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsGroupBys,
@@ -74,7 +74,7 @@ export function GroupBySelector({
   });
 
   const {attributes: fallbackAttributes, isLoading: isFallbackLoading} =
-    useMetricGroupByFallbackAttributes({
+    useMetricFallbackAttributes({
       enabled: !skipTraceMetricFilter && hasTraceMetricFilter,
       traceMetric,
     });
