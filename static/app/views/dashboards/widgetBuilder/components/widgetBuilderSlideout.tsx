@@ -66,8 +66,8 @@ import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {useIsEquationMode} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEquationMode';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
+import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
@@ -146,9 +146,11 @@ function WidgetBuilderSlideoutInner({
     convertBuilderStateToWidget(state)
   );
 
+  const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
+
   // Tracks whether the user has entered the metrics equation mode since we
   // do not render the filter bar. The metrics equations UI has filters built in.
-  const [isInEquationMode, setIsInEquationMode] = useIsEquationMode();
+  const isInEquationMode = traceMetricsVisualizeMode.isEquationMode;
 
   useEffect(() => {
     if (!openWidgetTemplates) {
@@ -487,8 +489,7 @@ function WidgetBuilderSlideoutInner({
                         <Visualize
                           error={error}
                           setError={setError}
-                          isEquationMode={isInEquationMode}
-                          onSetEquationMode={setIsInEquationMode}
+                          traceMetricsVisualizeMode={traceMetricsVisualizeMode}
                         />
                       </Section>
                     )}

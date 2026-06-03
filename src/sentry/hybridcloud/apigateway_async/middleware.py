@@ -7,7 +7,7 @@ from asgiref.sync import iscoroutinefunction, markcoroutinefunction
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
-from . import proxy_request_if_needed
+from .apigateway import proxy_request_if_needed
 
 
 class ApiGatewayMiddleware:

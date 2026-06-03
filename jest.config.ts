@@ -1,4 +1,4 @@
-import {execFileSync} from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -38,59 +38,20 @@ const {
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
-  MERGE_BASE,
-  MERGE_BASE_STRATEGY,
 } = process.env;
 
+const JEST_TEST_FILES_PATH = path.resolve(import.meta.dirname, 'jest-test-files.json');
+const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
+  ? (JSON.parse(fs.readFileSync(JEST_TEST_FILES_PATH, 'utf-8')) as string[])
+  : undefined;
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const optionalTags: {
   balancer?: boolean;
   balancer_strategy?: string;
-  merge_base: string;
-  merge_base_strategy: string;
 } = {
   balancer: false,
-  merge_base: MERGE_BASE || '',
-  merge_base_strategy: MERGE_BASE_STRATEGY || 'full',
 };
-
-let JEST_TESTS: string[] | undefined;
-
-// prevents forkbomb as we don't want jest --listTests --json
-// to reexec itself here
-if (CI && !process.env.JEST_LIST_TESTS_INNER) {
-  try {
-    const listTestArguments = ['exec', 'jest', '--listTests', '--json'];
-
-    if (MERGE_BASE) {
-      console.log('MERGE_BASE detected:', MERGE_BASE);
-      listTestArguments.push('--changedSince', MERGE_BASE, '--passWithNoTests');
-    }
-
-    const stdout = execFileSync('pnpm', listTestArguments, {
-      stdio: 'pipe',
-      encoding: 'utf-8',
-      env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
-    });
-    JEST_TESTS = JSON.parse(stdout);
-  } catch (err: any) {
-    if (err.code) {
-      throw new Error(`err code ${err.code} when spawning process`);
-    } else {
-      const {stdout, stderr} = err;
-      throw new Error(`
-error listing jest tests
-
-stdout:
-${stdout}
-
-stderr:
-${stderr}
-`);
-    }
-  }
-}
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
@@ -98,8 +59,18 @@ ${stderr}
  * `JEST_TESTS` is a list of all tests that will run, captured by `jest --listTests --json`
  * Then we split up the tests based on the total number of CI instances that will
  * be running the tests.
+ *
+ * By default we'll run everything we were given.
  */
-let testMatch: string[] | undefined;
+if (CI && CI_NODE_TOTAL && !JEST_TESTS) {
+  throw new Error(
+    'CI is configured for sharding (CI_NODE_TOTAL is set) but jest-test-files.json is missing. ' +
+      'This would cause each shard to run the entire test suite. ' +
+      'Check that the jest-test-files artifact was uploaded and downloaded successfully.'
+  );
+}
+
+let testMatch = JEST_TESTS;
 
 function getTestsForGroup(
   nodeIndex: number,
@@ -306,7 +277,7 @@ const config: Config.InitialOptions = {
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
-  passWithNoTests: !!MERGE_BASE,
+  passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
     'jest-canvas-mock',
@@ -315,7 +286,9 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
   ],
-  testMatch: testMatch || ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
+  testMatch: testMatch?.length
+    ? testMatch
+    : ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
 
   unmockedModulePathPatterns: [

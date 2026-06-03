@@ -11,11 +11,6 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogSeverityLevel} from 'sentry/views/explore/logs/utils';
 
-type FilterFields = {
-  f_ol_search: string;
-  f_ol_severity: string[];
-};
-
 type Options = {
   logItems: OurLogsResponseItem[];
 };
@@ -64,7 +59,7 @@ function filterItems<T>(options: {
 }
 
 export function useOurLogFilters({logItems}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const {setFilter, query} = useFiltersInLocationQuery();
 
   const severityValues = useMemo(
     () => decodeList(query.f_ol_severity),

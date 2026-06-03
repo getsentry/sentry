@@ -329,17 +329,22 @@ export const LogRowContent = memo(function LogRowContent({
   const logTimestampSeconds = isRegularLogResponseItem(dataRow)
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
-  const {hoverProps, traceItemMeta} = usePrefetchTraceItemDetailsOnHover({
-    traceItemId: rowId,
-    projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
-    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
-    traceItemType: TraceItemDataset.LOGS,
-    referrer: 'api.explore.log-item-details',
-    timestamp: logTimestampSeconds,
-    sharedHoverTimeoutRef,
-    timeout: prefetchTimeout,
-  });
+  const {hoverProps, traceItemMeta, traceItemAttributes} =
+    usePrefetchTraceItemDetailsOnHover({
+      traceItemId: rowId,
+      projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
+      traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
+      traceItemType: TraceItemDataset.LOGS,
+      referrer: 'api.explore.log-item-details',
+      timestamp: logTimestampSeconds,
+      sharedHoverTimeoutRef,
+      timeout: prefetchTimeout,
+    });
   const [caseInsensitivity] = useCaseInsensitivity();
+
+  const observedTimestamp = traceItemAttributes?.find(
+    a => a.name === 'sentry.observed_timestamp_nanos'
+  );
 
   const rendererExtra: RendererExtra = {
     highlightTerms,
@@ -349,7 +354,12 @@ export const LogRowContent = memo(function LogRowContent({
     location,
     navigate,
     organization,
-    attributes: dataRow as OurLogsResponseItem,
+    attributes: {
+      ...dataRow,
+      ...(observedTimestamp && {
+        [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: String(observedTimestamp.value),
+      }),
+    } as OurLogsResponseItem,
     attributeTypes: meta?.fields ?? {},
     theme,
     projectSlug,

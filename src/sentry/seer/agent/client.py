@@ -340,6 +340,11 @@ class SeerAgentClient:
 
         user_org_context = collect_user_org_context(self.user, self.organization, request=request)
 
+        agent_run_options: dict[str, Any] = {
+            "enable_coding": self.enable_coding,
+            "enable_code_mode_tools": self.enable_code_mode_tools,
+        }
+
         chat_body: AgentChatRequest = AgentChatRequest(
             organization_id=self.organization.id,
             query=prompt,
@@ -350,8 +355,7 @@ class SeerAgentClient:
             user_org_context=user_org_context,
             intelligence_level=self.intelligence_level,
             is_interactive=self.is_interactive,
-            enable_coding=self.enable_coding,
-            enable_code_mode_tools=self.enable_code_mode_tools,
+            agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
 
@@ -396,21 +400,21 @@ class SeerAgentClient:
 
         if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
-                chat_body["is_context_engine_enabled"] = True
+                agent_run_options["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-explorer-context-engine-allow-fe-override",
             self.organization,
             actor=self.user,
         ):
-            chat_body["is_context_engine_enabled"] = override_ce_enable
+            agent_run_options["is_context_engine_enabled"] = override_ce_enable
 
         if features.has(
             "organizations:seer-agent-source-code-search",
             self.organization,
             actor=self.user,
         ):
-            chat_body["enable_frontend_code_search"] = True
+            agent_run_options["enable_frontend_code_search"] = True
 
         if features.has("organizations:seer-run-mirror-explorer", self.organization):
             user_id = (
@@ -527,6 +531,11 @@ class SeerAgentClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
+        agent_run_options: dict[str, Any] = {
+            "enable_coding": self.enable_coding,
+            "enable_code_mode_tools": self.enable_code_mode_tools,
+        }
+
         chat_body: AgentChatRequest = AgentChatRequest(
             organization_id=self.organization.id,
             query=prompt,
@@ -535,8 +544,7 @@ class SeerAgentClient:
             on_page_context=on_page_context,
             page_name=page_name,
             is_interactive=self.is_interactive,
-            enable_coding=self.enable_coding,
-            enable_code_mode_tools=self.enable_code_mode_tools,
+            agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
 
@@ -554,14 +562,14 @@ class SeerAgentClient:
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
         if _has_context_engine(self.organization, self.user):
-            chat_body["is_context_engine_enabled"] = True
+            agent_run_options["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-agent-source-code-search",
             self.organization,
             actor=self.user,
         ):
-            chat_body["enable_frontend_code_search"] = True
+            agent_run_options["enable_frontend_code_search"] = True
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
@@ -714,6 +722,7 @@ class SeerAgentClient:
         repo_name: str | None = None,
         blocking: bool = True,
         pr_description_suffix: str | None = None,
+        ready_for_review: bool = True,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
     ) -> SeerRunState | None:
@@ -743,7 +752,7 @@ class SeerAgentClient:
             raise SeerPermissionError("Code generation is disabled for this organization")
 
         # Trigger PR creation
-        payload: dict[str, Any] = {"type": "create_pr"}
+        payload: dict[str, Any] = {"type": "create_pr", "ready_for_review": ready_for_review}
         if repo_name:
             payload["repo_name"] = repo_name
         if pr_description_suffix:
