@@ -264,11 +264,19 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
             status = self._ensure_build(artifact, metrics, retry)
             payload: dict[str, object] = {"status": status}
             if status == "building":
-                # _ensure_build may return early without refreshing, so re-read to
-                # avoid reporting a stale progress percent from before this request.
+                # _ensure_build may decide "building" from the metrics row loaded
+                # in _resolve, which a concurrent build could have since flipped
+                # to "ready" or "failed". Re-read and reconcile so we never report
+                # building (plus stale progress) for a settled row, which would
+                # keep clients polling past a finished or failed build.
                 metrics.refresh_from_db()
                 state = get_zip_state(metrics)
-                payload["progress"] = state.get("progress") if state else None
+                if self._ready_file(metrics) is not None:
+                    payload["status"] = "ready"
+                elif state and state.get("status") == "failed":
+                    payload["status"] = "failed"
+                else:
+                    payload["progress"] = state.get("progress") if state else None
         except PreprodSnapshotMetrics.DoesNotExist:
             # The artifact was deleted between _resolve and re-reading state.
             return Response({"detail": "Snapshot not found"}, status=404)
