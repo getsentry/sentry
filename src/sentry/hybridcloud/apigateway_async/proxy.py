@@ -57,6 +57,7 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
     "sentry-api-0-organization-preprod-snapshots-download": 90.0,
+    "sentry-api-0-organization-preprod-snapshots-archive": 90.0,
 }
 
 # stream 0.5 MB at a time
