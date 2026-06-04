@@ -439,15 +439,15 @@ export function GlobalCommandPaletteActions() {
             </CMDKAction>
           )}
           <CMDKAction
-            display={{label: t('Search All Dashboards'), icon: <IconSearch />}}
+            display={{label: t('All Dashboards'), icon: <IconSearch />}}
             prompt={t('Search for a dashboard...')}
             limit={5}
-            resource={(query, context) =>
+            resource={query =>
               cmdkQueryOptions({
                 ...dashboardsApiOptions(organization, {
                   query: {query, per_page: 20},
                 }),
-                enabled: context.state === 'selected',
+                enabled: query.length >= 1,
                 select: data =>
                   data.json.map(dashboard => ({
                     display: {
@@ -459,7 +459,9 @@ export function GlobalCommandPaletteActions() {
                   })),
               })
             }
-          />
+          >
+            {data => data.map((item, i) => renderAsyncResult(item, i))}
+          </CMDKAction>
         </CMDKAction>
 
         {/* Hide the entire Insights section only when both migrations are active.
