@@ -2,23 +2,8 @@
 
 > For critical commands and testing rules, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
-## Frontend Tech Stack
+## File Location Map
 
-- **Language**: TypeScript
-- **Framework**: React 19
-- **Build Tool**: Rspack (Webpack alternative)
-- **Package management**: pnpm
-- **State Management**: Reflux, React Query (TanStack Query)
-- **Styling**: Emotion (CSS-in-JS), Less
-- **Testing**: Jest, React Testing Library
-
-## Important Files and Directories
-
-- `package.json`: Node.js dependencies and scripts
-- `rspack.config.ts`: Frontend build configuration
-- `tsconfig.json`: TypeScript configuration
-- `eslint.config.ts`: ESLint configuration
-- `stylelint.config.js`: CSS/styling linting
 - **Components**: `static/app/components/{component}/`
 - **Views**: `static/app/views/{area}/{page}.tsx`
 - **Stores**: `static/app/stores/{store}Store.tsx`
