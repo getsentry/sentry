@@ -120,6 +120,15 @@ def handle_emission(
     # the PR's terminal transition. A redelivered close/merge finds the PR
     # already closed/merged and claims nothing, so it's dropped before any emit
     # *or* judge forward — a retry must never re-launch the pricey judge work.
+    #
+    # The claim is intentionally upstream of emit_pr_metrics_row's tracking gate:
+    # claiming here, then skipping the emit for an untracked PR (or failing
+    # afterwards), still consumes the one-shot claim, so later redeliveries won't
+    # emit even if the PR becomes tracked in the meantime. We accept that — the
+    # guard's job is to make the terminal event single-shot regardless of fork,
+    # and not re-launching judge work outweighs recovering a missed emit. A PR's
+    # attribution is established at/before open, so a close arriving untracked is
+    # the rare case, not the norm.
     if not _claim_terminal_transition(pr, pull_request):
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         logger.info(
