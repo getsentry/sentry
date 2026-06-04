@@ -93,7 +93,17 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
     def headers(self) -> dict[str, str]:
         request_uuid = uuid4().hex
 
+        # Start with any custom headers configured on the sentry app. Sentry's
+        # own headers are merged in last so they always take precedence and
+        # cannot be spoofed by the app owner.
+        custom_headers: dict[str, str] = {}
+        for header_line in self.install.sentry_app.webhook_headers:
+            if ":" in header_line:
+                name, _, value = header_line.partition(":")
+                custom_headers[name.strip()] = value.strip()
+
         return {
+            **custom_headers,
             "Content-Type": "application/json",
             "Request-ID": request_uuid,
             "Sentry-Hook-Resource": self.resource,
