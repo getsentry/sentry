@@ -32,7 +32,7 @@ describe('WebhookDetailedView', () => {
       body: {
         projects: [
           {
-            projectId: '1',
+            projectId: 1,
             projectSlug: 'my-project',
             projectName: 'My Project',
             projectPlatform: 'javascript',
@@ -53,7 +53,7 @@ describe('WebhookDetailedView', () => {
       body: {
         projects: [
           {
-            projectId: '1',
+            projectId: 1,
             projectSlug: 'my-project',
             projectName: 'My Project',
             projectPlatform: 'javascript',

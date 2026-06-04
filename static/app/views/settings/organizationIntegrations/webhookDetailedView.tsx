@@ -36,7 +36,7 @@ import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/
 
 interface WebhookProject {
   enabled: boolean;
-  projectId: string;
+  projectId: number;
   projectName: string;
   projectPlatform: PlatformKey;
   projectSlug: string;
@@ -202,7 +202,7 @@ function WebhookProjectRow({
 }) {
   const projectAccess = hasEveryAccess(['project:write'], {
     organization,
-    project: allProjects.find(p => p.id === project.projectId),
+    project: allProjects.find(p => p.id === String(project.projectId)),
   });
 
   const toggleMutation = useMutation({
@@ -211,7 +211,7 @@ function WebhookProjectRow({
       return fetchMutation({
         method: 'POST',
         url: `/projects/${organization.slug}/${project.projectSlug}/legacy-webhooks/`,
-        data: {urls: [], enabled: shouldEnable},
+        data: {enabled: shouldEnable},
       });
     },
     onSuccess: (_data, shouldEnable) => {
