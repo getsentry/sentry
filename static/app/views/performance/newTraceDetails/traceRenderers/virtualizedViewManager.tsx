@@ -526,6 +526,7 @@ export class VirtualizedViewManager {
   ) {
     if (!ref) {
       this.collapsed_gap_markers[index] = undefined;
+      this._collapsed_gap_marker_positions[index] = undefined;
       return;
     }
 
