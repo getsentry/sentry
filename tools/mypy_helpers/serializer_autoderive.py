@@ -23,7 +23,6 @@ _AUTODERIVE_DENYLIST: frozenset[str] = frozenset(
     {
         "sentry.api.serializers.models.actor.ActorSerializer",
         "sentry.api.serializers.models.commit.CommitSerializer",
-        "sentry.api.serializers.models.dashboard.DashboardListSerializer",
         "sentry.api.serializers.models.event.EventSerializer",
         "sentry.api.serializers.models.group.GroupSerializerBase",
         "sentry.api.serializers.models.organization_member.base.OrganizationMemberSerializer",
@@ -35,7 +34,6 @@ _AUTODERIVE_DENYLIST: frozenset[str] = frozenset(
         "sentry.api.serializers.models.userreport.UserReportSerializer",
         "sentry.incidents.endpoints.serializers.workflow_engine_detector.WorkflowEngineDetectorSerializer",
         "sentry.incidents.endpoints.serializers.workflow_engine_incident.WorkflowEngineIncidentSerializer",
-        "sentry.integrations.api.serializers.models.integration.IntegrationSerializer",
         "sentry.sentry_apps.api.serializers.sentry_app_avatar.SentryAppAvatarSerializer",
         "sentry.users.api.serializers.authenticator.AuthenticatorInterfaceSerializer",
         "sentry.users.api.serializers.user.UserSerializer",
