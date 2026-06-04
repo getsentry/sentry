@@ -1,16 +1,31 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.models.commit import get_users_for_commits
+from sentry.api.serializers.release_details_types import Author
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.repository import Repository
 
 
+class EmptyCommitAuthorResponse(TypedDict):
+    pass
+
+
+class CommitFileChangeSerializerResponse(TypedDict):
+    id: str
+    orgId: int
+    author: Author | EmptyCommitAuthorResponse
+    commitMessage: str | None
+    filename: str
+    type: Literal["A", "D", "M"]
+    repoName: str | None
+
+
 @register(CommitFileChange)
-class CommitFileChangeSerializer(Serializer):
+class CommitFileChangeSerializer(Serializer[CommitFileChangeSerializerResponse]):
     def get_attrs(self, item_list, user, **kwargs):
         commits = list(
             Commit.objects.filter(id__in=[f.commit_id for f in item_list]).select_related("author")
@@ -35,7 +50,7 @@ class CommitFileChangeSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> CommitFileChangeSerializerResponse:
         return {
             "id": str(obj.id),
             "orgId": obj.organization_id,
