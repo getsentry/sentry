@@ -1,4 +1,4 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,7 +8,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.commit import CommitSerializerResponse
+from sentry.api.serializers.models.commit import CommitSerializerResponseWithReleases
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
@@ -18,27 +18,45 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 
+_REPOSITORY_ID_QUERY_PARAM = OpenApiParameter(
+    name="repo_id",
+    location=OpenApiParameter.QUERY,
+    required=False,
+    type=str,
+    description="The repository external ID to filter commits by.",
+)
+_REPOSITORY_NAME_QUERY_PARAM = OpenApiParameter(
+    name="repo_name",
+    location=OpenApiParameter.QUERY,
+    required=False,
+    type=str,
+    description="The repository name to filter commits by.",
+)
+
 
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
 
     @extend_schema(
         operation_id="List a Project Release's Commits",
+        description="List a project release's commits.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             ReleaseParams.VERSION,
+            _REPOSITORY_ID_QUERY_PARAM,
+            _REPOSITORY_NAME_QUERY_PARAM,
             CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "ListProjectReleaseCommitsResponse", list[CommitSerializerResponse]
+                "ListProjectReleaseCommitsResponse", list[CommitSerializerResponseWithReleases]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -46,11 +64,9 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         },
         examples=ReleaseExamples.LIST_RELEASE_COMMITS,
     )
-    def get(self, request: Request, project, version) -> Response[list[CommitSerializerResponse]]:
-        """
-        Retrieve a list of commits for a given release.
-        """
-
+    def get(
+        self, request: Request, project, version
+    ) -> Response[list[CommitSerializerResponseWithReleases]]:
         organization_id = project.organization_id
 
         try:

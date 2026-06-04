@@ -31,6 +31,10 @@ class NonMappableUser(TypedDict):
     email: str
 
 
+class EmptyResponseObject(TypedDict):
+    pass
+
+
 Author = UserSerializerResponse | NonMappableUser
 
 
