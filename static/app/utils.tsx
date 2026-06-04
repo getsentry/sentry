@@ -1,5 +1,3 @@
-export {defined} from 'sentry/utils/defined';
-
 /**
  * Replaces slug special chars with a space
  */

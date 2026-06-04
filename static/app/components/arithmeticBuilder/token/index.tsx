@@ -1,6 +1,6 @@
 import type {Location, LocationRange} from 'peggy';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export enum TokenKind {
   UNKNOWN = 'unknown',
