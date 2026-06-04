@@ -4,7 +4,10 @@ import {queryOptions, mutationOptions} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
+import {
+  CodingAgentProvider,
+  PROVIDER_TO_HANDOFF_TARGET,
+} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
@@ -17,11 +20,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type PreferredAgent = 'seer' | CodingAgentIntegration;
 
-export function useOrgDefaultAgent() {
+/**
+ * Fetch the list of existing coding agent integrations.
+ */
+export function useKnownAgents() {
   const organization = useOrganization();
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
 
-  const integrations = useMemo(
+  return useMemo(
     () =>
       (agentOptions.data ?? [])
         .filter(
@@ -30,6 +36,34 @@ export function useOrgDefaultAgent() {
         .map(o => o.value),
     [agentOptions.data]
   );
+}
+
+/**
+ * Convert the list of known agents to a list of options for a select component.
+ */
+export function useAgentSelectOptions() {
+  const integrations = useKnownAgents();
+
+  return useMemo(() => {
+    const providerToTarget: Record<string, CodingAgentProvider> = {
+      cursor: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+      claude_code: CodingAgentProvider.CLAUDE_CODE_AGENT,
+      github_copilot: CodingAgentProvider.GITHUB_COPILOT_AGENT,
+    };
+
+    return [
+      {value: 'seer' as const, label: t('Seer')},
+      ...integrations.flatMap(agent => {
+        const value = providerToTarget[agent.provider];
+        return value ? [{value, label: agent.name}] : [];
+      }),
+    ];
+  }, [integrations]);
+}
+
+export function useOrgDefaultAgent() {
+  const organization = useOrganization();
+  const integrations = useKnownAgents();
 
   return useMemo((): PreferredAgent => {
     if (organization.defaultCodingAgentIntegrationId) {

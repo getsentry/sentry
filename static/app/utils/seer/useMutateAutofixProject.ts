@@ -16,7 +16,7 @@ import {
   getTuningFromStoppingPoint,
   resolveStoppingPoint,
 } from 'sentry/utils/seer/stoppingPoint';
-import type {UserFacingStoppingPoint} from 'sentry/utils/seer/stoppingPoint';
+import type {UserFacingStoppingPoint} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TData = [DetailedProject, SeerPreferencesResponse];

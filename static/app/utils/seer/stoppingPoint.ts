@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import type {QueryClient, UseMutateFunction} from '@tanstack/react-query';
 import {mutationOptions} from '@tanstack/react-query';
 
@@ -13,15 +14,20 @@ import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import type {
+  InternalStoppingPoint,
+  UserFacingStoppingPoint,
+} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
-
-export const PROJECT_STOPPING_POINT_OPTIONS = [
-  {value: 'off' as const, label: t('No Automation')},
-  {value: 'root_cause' as const, label: t('Stop after Root Cause')},
-  {value: 'plan' as const, label: t('Stop after Plan')},
-  {value: 'create_pr' as const, label: t('Stop after PR drafted')},
+export const PROJECT_STOPPING_POINT_OPTIONS: Array<{
+  label: string;
+  value: UserFacingStoppingPoint;
+}> = [
+  {value: 'off', label: t('No Automation')},
+  {value: 'root_cause', label: t('Stop after Root Cause')},
+  {value: 'plan', label: t('Stop after Plan')},
+  {value: 'create_pr', label: t('Stop after PR drafted')},
 ];
 
 export const PROJECT_STOPPING_POINT_SORT_ORDER: Record<UserFacingStoppingPoint, number> =
@@ -31,6 +37,64 @@ export const PROJECT_STOPPING_POINT_SORT_ORDER: Record<UserFacingStoppingPoint, 
     plan: 3,
     create_pr: 4,
   };
+
+/**
+ * Convert between the internal/old enum for stoppingPoint, to the newer, limited user-facing values.
+ */
+export function getUserFacingStoppingPoint(
+  stoppingPoint: InternalStoppingPoint
+): UserFacingStoppingPoint {
+  switch (stoppingPoint) {
+    case 'off':
+      return 'off';
+    case 'root_cause':
+      return 'root_cause';
+    case 'solution':
+      return 'plan';
+    case 'code_changes':
+      return 'create_pr';
+    case 'open_pr':
+      return 'create_pr';
+  }
+}
+
+/**
+ * Convert from the new user-facing values to the internal/old enum for stoppingPoint.
+ */
+export function getInternalStoppingPoint(
+  stoppingPoint: UserFacingStoppingPoint,
+  autoCreatePr?: boolean
+): InternalStoppingPoint {
+  switch (stoppingPoint) {
+    case 'off':
+      return 'off';
+    case 'root_cause':
+      return 'root_cause';
+    case 'plan':
+      return 'solution';
+    case 'create_pr':
+      return autoCreatePr ? 'open_pr' : 'code_changes';
+  }
+}
+
+/**
+ * Return a list of user-facing stopping point options for a select component.
+ */
+export function useStoppingPointSelectOptions() {
+  return useMemo<
+    Array<{
+      label: string;
+      value: UserFacingStoppingPoint;
+    }>
+  >(() => {
+    return [
+      {value: 'off', label: t('No Automation')},
+      {value: 'root_cause', label: t('Stop after Root Cause')},
+      {value: 'plan', label: t('Stop after Plan')},
+      {value: 'create_pr', label: t('Stop after PR drafted')},
+    ];
+  }, []);
+}
 
 export function useOrgDefaultStoppingPoint(): UserFacingStoppingPoint {
   const organization = useOrganization();

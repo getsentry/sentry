@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -9,22 +8,27 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
-import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {
-  getProjectAgentMutationOptions,
+  useAgentSelectOptions,
+  useKnownAgents,
   getCodingAgentSelectQueryOptions,
-  getSelectedAgentForProject,
 } from 'sentry/utils/seer/preferredAgent';
+import {
+  getMutateSeerProjectSettingsOptions,
+  getSeerProjectSettingsQueryOptions,
+  seerProjectSettingsSchema,
+} from 'sentry/utils/seer/seerProjectSettings';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
   getProjectStoppingPointMutationOptions,
   getProjectStoppingPointValue,
 } from 'sentry/utils/seer/stoppingPoint';
+import type {SeerAgent} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type NightShiftValue = 'on' | 'off' | 'default';
@@ -58,25 +62,8 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
   const updateProject = useUpdateProject(project);
 
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
-
-  // Derive the integration objects from the options data for the agent selector
-  const integrations = useMemo(
-    () =>
-      (agentOptions.data ?? [])
-        .filter(
-          (o): o is {label: string; value: CodingAgentIntegration} => o.value !== 'seer'
-        )
-        .map(o => o.value),
-    [agentOptions.data]
-  );
-
-  const selectedAgent = getSelectedAgentForProject({integrations, preference});
-
-  const agentMutationOptions = getProjectAgentMutationOptions({
-    organization,
-    project,
-    queryClient,
-  });
+  const agentSelectOptions = useAgentSelectOptions();
+  const knownAgents = useKnownAgents();
 
   const stoppingPointMutationOptions = getProjectStoppingPointMutationOptions({
     organization,
@@ -84,6 +71,10 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
   });
 
   const stoppingPointValue = getProjectStoppingPointValue(project, preference);
+
+  const {data: projectSettings} = useQuery(
+    getSeerProjectSettingsQueryOptions({organization, project})
+  );
 
   const disabledReason = canWrite
     ? null
@@ -93,11 +84,14 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
     <FieldGroup>
       <AutoSaveForm
         name="agent"
-        schema={z.object({
-          agent: z.union([z.literal('seer'), z.custom<CodingAgentIntegration>()]),
+        schema={seerProjectSettingsSchema}
+        initialValue={projectSettings?.agent ?? 'seer'}
+        mutationOptions={getMutateSeerProjectSettingsOptions({
+          organization,
+          project,
+          queryClient,
+          knownAgents,
         })}
-        initialValue={selectedAgent}
-        mutationOptions={agentMutationOptions}
       >
         {field => (
           <field.Layout.Row
@@ -125,10 +119,11 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
                 disabled={Boolean(disabledReason)}
                 value={field.state.value}
                 onChange={field.handleChange}
-                options={agentOptions.data}
-                isValueEqual={(a, b) =>
-                  a === b ||
-                  (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
+                options={
+                  agentSelectOptions as Array<{
+                    label: string;
+                    value: SeerAgent;
+                  }>
                 }
               />
             )}
