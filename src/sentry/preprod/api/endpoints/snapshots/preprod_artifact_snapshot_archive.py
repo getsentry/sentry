@@ -105,13 +105,29 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
             return None
         return File.objects.filter(id=state["file_id"]).first()
 
-    def _ensure_build(self, artifact: PreprodArtifact, metrics: PreprodSnapshotMetrics) -> str:
-        """Return the current status, enqueuing a build if needed. Idempotent."""
-        if self._ready_file(metrics) is not None:
-            return "ready"
+    def _ensure_build(
+        self, artifact: PreprodArtifact, metrics: PreprodSnapshotMetrics, retry: bool
+    ) -> str:
+        """Return the current status, enqueuing a build if needed. Idempotent.
 
-        if _is_building_fresh(get_zip_state(metrics)):
-            return "building"
+        A ``failed`` build is reported as-is so the client can stop polling and
+        surface an error; a fresh build is only re-enqueued when ``retry`` is set
+        (an explicit user request), never automatically on a failed state.
+        """
+
+        def _settled_status() -> str | None:
+            if self._ready_file(metrics) is not None:
+                return "ready"
+            state = get_zip_state(metrics)
+            if _is_building_fresh(state):
+                return "building"
+            if not retry and state and state.get("status") == "failed":
+                return "failed"
+            return None
+
+        settled = _settled_status()
+        if settled is not None:
+            return settled
 
         lock = locks.get(
             f"preprod-snapshot-zip:{artifact.id}",
@@ -121,10 +137,9 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
         try:
             with lock.acquire():
                 metrics.refresh_from_db()
-                if self._ready_file(metrics) is not None:
-                    return "ready"
-                if _is_building_fresh(get_zip_state(metrics)):
-                    return "building"
+                settled = _settled_status()
+                if settled is not None:
+                    return settled
                 enqueued_at = datetime.now(timezone.utc).isoformat()
                 set_zip_state(
                     metrics,
@@ -143,7 +158,11 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                 )
                 return "building"
         except UnableToAcquireLock:
-            return "building"
+            # Another request holds the lock to start a build; report the latest
+            # committed status rather than assuming "building".
+            metrics.refresh_from_db()
+            state = get_zip_state(metrics)
+            return state.get("status", "building") if state else "building"
 
     def _download(
         self, request: Request, artifact: PreprodArtifact, file_obj: File
@@ -222,9 +241,13 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                 return Response({"detail": "Download not ready"}, status=409)
             return self._download(request, artifact, file_obj)
 
-        status = self._ensure_build(artifact, metrics)
+        retry = request.GET.get("retry") is not None
+        status = self._ensure_build(artifact, metrics, retry)
         payload: dict[str, object] = {"status": status}
         if status == "building":
+            # _ensure_build may return early without refreshing, so re-read to
+            # avoid reporting a stale progress percent from before this request.
+            metrics.refresh_from_db()
             state = get_zip_state(metrics)
             payload["progress"] = state.get("progress") if state else None
         return Response(payload)

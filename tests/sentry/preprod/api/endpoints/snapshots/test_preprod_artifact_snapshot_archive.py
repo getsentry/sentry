@@ -109,6 +109,24 @@ class SnapshotDownloadStatusTest(APITestCase):
             response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
         assert response.data["status"] == "building"
+
+    @patch(ENQUEUE_TARGET)
+    def test_status_reports_failed_without_reenqueue(self, mock_task):
+        artifact = self._artifact(extras={"images_zip": {"status": "failed"}})
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(self._url(artifact.id))
+        assert response.status_code == 200
+        assert response.data["status"] == "failed"
+        mock_task.apply_async.assert_not_called()
+
+    @patch(ENQUEUE_TARGET)
+    def test_status_retry_reenqueues_failed_build(self, mock_task):
+        artifact = self._artifact(extras={"images_zip": {"status": "failed"}})
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(self._url(artifact.id) + "?retry=true")
+        assert response.status_code == 200
+        assert response.data["status"] == "building"
+        mock_task.apply_async.assert_called_once()
         mock_task.apply_async.assert_called_once()
 
 
