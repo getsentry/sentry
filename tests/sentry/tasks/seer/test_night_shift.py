@@ -639,6 +639,109 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
 
 @django_db_all
+class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
+    """Coverage for the seer.night_shift.use_feature_delivery path, which hands
+    triage off to Seer's feature-run endpoint instead of running it in-process."""
+
+    reset_snuba_data = False
+
+    def _make_eligible(self, project, **tweak_overrides):
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
+        self.create_seer_project_repository(project=project, repository=repo)
+        project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
+
+    def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
+        event = self.store_event(
+            data={
+                "fingerprint": [fingerprint],
+                "timestamp": before_now(hours=1).isoformat(),
+                "environment": "production",
+            },
+            project_id=project.id,
+        )
+        Group.objects.filter(id=event.group_id).update(**group_attrs)
+        return Group.objects.get(id=event.group_id)
+
+    def test_dispatches_candidates_to_seer_feature(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+
+        group = self._store_event_and_update_group(
+            project, "fixable", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with (
+            self.options({"seer.night_shift.use_feature_delivery": True}),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.trigger_seer_feature",
+                return_value=4242,
+            ) as mock_trigger,
+            patch("sentry.tasks.seer.night_shift.cron.agentic_triage_strategy") as mock_in_process,
+            patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent") as mock_autofix,
+        ):
+            run_night_shift_for_org(org.id)
+
+        # The deprecated in-process path is bypassed entirely.
+        mock_in_process.assert_not_called()
+        mock_autofix.assert_not_called()
+
+        mock_trigger.assert_called_once()
+        request = mock_trigger.call_args.args[0]
+        assert request["feature_id"] == "night_shift"
+        assert [c["group_id"] for c in request["payload"]["candidates"]] == [group.id]
+        assert mock_trigger.call_args.kwargs["viewer_context"] == {"organization_id": org.id}
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.seer_run is not None
+        assert request["ref"] == str(run.seer_run.uuid)
+        assert run.extras["agent_run_id"] == 4242
+        assert run.extras.get("error_message") is None
+        # Verdicts and autofix are Seer's responsibility now; no result rows here.
+        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+
+    def test_no_candidates_skips_dispatch(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+
+        with (
+            self.options({"seer.night_shift.use_feature_delivery": True}),
+            patch("sentry.tasks.seer.night_shift.cron.trigger_seer_feature") as mock_trigger,
+        ):
+            run_night_shift_for_org(org.id)
+
+        mock_trigger.assert_not_called()
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.seer_run is None
+
+    def test_seer_feature_error_records_error_message(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+
+        self._store_event_and_update_group(
+            project, "fixable", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with (
+            self.options({"seer.night_shift.use_feature_delivery": True}),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.trigger_seer_feature",
+                side_effect=RuntimeError("seer down"),
+            ),
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.extras["error_message"] == "Night shift run failed"
+        assert "agent_run_id" not in run.extras
+
+
+@django_db_all
 class TestRunNightShiftForOrgManualPath(TestCase):
     """Manual-path coverage for run_night_shift_for_org — invoked from the
     project-settings "Run Now" endpoint with source="manual" and project_ids."""
