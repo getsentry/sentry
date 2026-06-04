@@ -8,7 +8,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.commit import CommitSerializerResponse
+from sentry.api.serializers.models.commit import CommitSerializerResponseWithReleases
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
@@ -22,11 +22,12 @@ from sentry.models.releasecommit import ReleaseCommit
 class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
         operation_id="List an Organization Release's Commits",
+        description="List an organization release's commits.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
@@ -34,7 +35,8 @@ class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "ListOrganizationReleaseCommitsResponse", list[CommitSerializerResponse]
+                "ListOrganizationReleaseCommitsResponse",
+                list[CommitSerializerResponseWithReleases],
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -44,10 +46,7 @@ class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
     )
     def get(
         self, request: Request, organization, version
-    ) -> Response[list[CommitSerializerResponse]]:
-        """
-        Retrieve a list of commits for a given release.
-        """
+    ) -> Response[list[CommitSerializerResponseWithReleases]]:
         try:
             release = Release.objects.distinct().get(
                 organization_id=organization.id,
