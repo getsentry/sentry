@@ -17,7 +17,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -218,7 +218,13 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               }
 
               if (defined(zValue) && typeof zValue === 'number') {
-                formattedZValue = formatAbbreviatedNumber(zValue, 4, false);
+                // when the z-axis is in log scale, the values are log values and don't reflect the actual value
+                // so we need to convert them back to the actual value
+                formattedZValue = formatAbbreviatedNumber(
+                  scale === 'log' ? Math.expm1(zValue) : zValue,
+                  4,
+                  false
+                );
               }
             }
 

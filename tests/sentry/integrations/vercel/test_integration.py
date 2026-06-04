@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 from unittest import mock
-from urllib.parse import parse_qs
 
 import orjson
 import pytest
@@ -40,92 +39,28 @@ class VercelIntegrationTest(IntegrationTestCase):
     team_id = "my_team_id"
     config_id = "my_config_id"
 
-    def assert_setup_flow(self, is_team=False, multi_config_org=None, no_name=False):
-        responses.reset()
-        access_json = {
-            "user_id": "my_user_id",
-            "access_token": "my_access_token",
-            "installation_id": self.config_id,
-        }
-
-        if is_team:
-            team_query = f"teamId={self.team_id}"
-            access_json["team_id"] = self.team_id
-            responses.add(
-                responses.GET,
-                f"{VercelClient.base_url}{VercelClient.GET_TEAM_URL % self.team_id}?{team_query}",
-                json={"name": "My Team Name", "slug": "my_team_slug"},
-            )
-        else:
-            team_query = ""
-            name = None if no_name else "My Name"
-            responses.add(
-                responses.GET,
-                f"{VercelClient.base_url}{VercelClient.GET_USER_URL}",
-                json={"user": {"name": name, "username": "my_user_name"}},
-            )
-
-        responses.add(
-            responses.POST, VercelIdentityProvider.oauth_access_token_url, json=access_json
+    def install_integration(self, is_team: bool = False) -> Integration:
+        """Create an installed Vercel integration the way the pipeline does, for
+        tests that exercise the installation rather than the install flow itself
+        (which is covered by VercelApiPipelineTest).
+        """
+        integration = self.create_provider_integration(
+            provider="vercel",
+            external_id=self.team_id if is_team else "my_user_id",
+            name="My Team Name" if is_team else "My Name",
+            metadata={
+                "access_token": "my_access_token",
+                "installation_id": self.config_id,
+                "installation_type": "team" if is_team else "user",
+            },
         )
-
-        responses.add(
-            responses.GET,
-            f"{VercelClient.base_url}{VercelClient.GET_PROJECTS_URL}?limit={VercelClient.pagination_limit}&{team_query}",
-            json={"projects": [], "pagination": {"count": 0, "next": None}},
+        integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CELL):
+            rpc_organization = serialize_rpc_organization(self.organization)
+        VercelIntegrationProvider().post_install(
+            integration, rpc_organization, extra={"user_id": self.user.id}
         )
-
-        params = {
-            "configurationId": "config_id",
-            "code": "oauth-code",
-            "next": "https://example.com",
-        }
-        self.pipeline.bind_state("user_id", self.user.id)
-        # TODO: Should use the setup path since we /configure instead
-        resp = self.client.get(self.setup_path, params)
-
-        mock_request = responses.calls[0].request
-        req_params = parse_qs(mock_request.body)
-        assert req_params["grant_type"] == ["authorization_code"]
-        assert req_params["code"] == ["oauth-code"]
-        assert req_params["redirect_uri"] == ["http://testserver/extensions/vercel/configure/"]
-        assert req_params["client_id"] == ["vercel-client-id"]
-        assert req_params["client_secret"] == ["vercel-client-secret"]
-
-        assert resp.status_code == 200
-        self.assertDialogSuccess(resp)
-
-        integration = Integration.objects.get(provider=self.provider.key)
-
-        external_id = self.team_id if is_team else "my_user_id"
-        name = "My Team Name" if is_team else "my_user_name" if no_name else "My Name"
-        installation_type = "team" if is_team else "user"
-
-        assert integration.external_id == external_id
-        assert integration.name == name
-        assert integration.metadata == {
-            "access_token": "my_access_token",
-            "installation_id": self.config_id,
-            "installation_type": installation_type,
-        }
-        assert OrganizationIntegration.objects.get(
-            integration=integration, organization_id=self.organization.id
-        )
-        assert SentryAppInstallationForProvider.objects.get(
-            organization_id=self.organization.id, provider="vercel"
-        )
-
-    @responses.activate
-    def test_team_flow(self) -> None:
-        self.assert_setup_flow(is_team=True)
-
-    @responses.activate
-    def test_user_flow(self) -> None:
-        self.assert_setup_flow(is_team=False)
-
-    @responses.activate
-    def test_no_name(self) -> None:
-        self.assert_setup_flow(no_name=True)
+        return integration
 
     @responses.activate
     def test_use_existing_installation(self) -> None:
@@ -140,14 +75,16 @@ class VercelIntegrationTest(IntegrationTestCase):
             provider="vercel",
             sentry_app_installation=sentry_app_installation,
         )
-        self.assert_setup_flow(is_team=False)
+        with self.tasks():
+            self.install_integration()
+        # post_install should reuse the existing internal integration
         assert SentryAppInstallation.objects.count() == 1
 
     @responses.activate
     def test_update_organization_config(self) -> None:
         """Test that Vercel environment variables are created"""
         with self.tasks():
-            self.assert_setup_flow()
+            self.install_integration()
 
         org = self.organization
         project_id = self.project.id
@@ -240,48 +177,48 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
 
         # assert the env vars were created correctly
-        req_params = orjson.loads(responses.calls[5].request.body)
+        req_params = orjson.loads(responses.calls[1].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[6].request.body)
+        req_params = orjson.loads(responses.calls[2].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[7].request.body)
+        req_params = orjson.loads(responses.calls[3].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production", "preview", "development"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[8].request.body)
+        req_params = orjson.loads(responses.calls[4].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[9].request.body)
+        req_params = orjson.loads(responses.calls[5].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "system"
 
-        req_params = orjson.loads(responses.calls[10].request.body)
+        req_params = orjson.loads(responses.calls[6].request.body)
         assert req_params["key"] == "SENTRY_VERCEL_LOG_DRAIN_URL"
         assert req_params["value"] == f"{integration_endpoint}vercel/logs/"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[11].request.body)
+        req_params = orjson.loads(responses.calls[7].request.body)
         assert req_params["key"] == "SENTRY_OTLP_TRACES_URL"
         assert req_params["value"] == f"{integration_endpoint}otlp/v1/traces"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[12].request.body)
+        req_params = orjson.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_PUBLIC_KEY"
         assert req_params["value"] == public_key
         assert req_params["target"] == ["production", "preview"]
@@ -292,7 +229,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         """Test the case wherein the secret and env vars already exist"""
 
         with self.tasks():
-            self.assert_setup_flow()
+            self.install_integration()
 
         org = self.organization
         project_id = self.project.id
@@ -400,48 +337,48 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
 
-        req_params = orjson.loads(responses.calls[5].request.body)
+        req_params = orjson.loads(responses.calls[1].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[8].request.body)
+        req_params = orjson.loads(responses.calls[4].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[11].request.body)
+        req_params = orjson.loads(responses.calls[7].request.body)
         assert req_params["key"] == "SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production", "preview", "development"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[14].request.body)
+        req_params = orjson.loads(responses.calls[10].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[17].request.body)
+        req_params = orjson.loads(responses.calls[13].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "system"
 
-        req_params = orjson.loads(responses.calls[20].request.body)
+        req_params = orjson.loads(responses.calls[16].request.body)
         assert req_params["key"] == "SENTRY_VERCEL_LOG_DRAIN_URL"
         assert req_params["value"] == f"{integration_endpoint}vercel/logs/"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[23].request.body)
+        req_params = orjson.loads(responses.calls[19].request.body)
         assert req_params["key"] == "SENTRY_OTLP_TRACES_URL"
         assert req_params["value"] == f"{integration_endpoint}otlp/v1/traces"
         assert req_params["target"] == ["production", "preview"]
         assert req_params["type"] == "encrypted"
 
-        req_params = orjson.loads(responses.calls[26].request.body)
+        req_params = orjson.loads(responses.calls[22].request.body)
         assert req_params["key"] == "SENTRY_PUBLIC_KEY"
         assert req_params["value"] == public_key
         assert req_params["target"] == ["production", "preview"]
@@ -452,7 +389,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         """Test that the function doesn't progress if there is no active DSN"""
 
         with self.tasks():
-            self.assert_setup_flow()
+            self.install_integration()
 
         project_id = self.project.id
         org = self.organization
@@ -471,7 +408,7 @@ class VercelIntegrationTest(IntegrationTestCase):
     def test_update_organization_config_logs_on_failure(self) -> None:
         """Test that a log is emitted when linking a Sentry project fails."""
         with self.tasks():
-            self.assert_setup_flow()
+            self.install_integration()
 
         project_id = self.project.id
         org = self.organization
@@ -504,7 +441,7 @@ class VercelIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_get_dynamic_display_information(self) -> None:
         with self.tasks():
-            self.assert_setup_flow()
+            self.install_integration()
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization.id)
         dynamic_display_info = installation.get_dynamic_display_information()
@@ -516,7 +453,7 @@ class VercelIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_uninstall(self) -> None:
         with self.tasks():
-            self.assert_setup_flow()
+            self.install_integration()
             responses.add(
                 responses.DELETE,
                 f"{VercelClient.base_url}{VercelClient.UNINSTALL % self.config_id}",
@@ -541,7 +478,7 @@ class VercelIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_post_install_missing_user_id(self) -> None:
         with self.tasks():
-            self.assert_setup_flow()
+            self.install_integration()
 
         integration = Integration.objects.get(provider=self.provider.key)
 

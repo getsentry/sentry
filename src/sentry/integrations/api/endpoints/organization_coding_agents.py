@@ -8,7 +8,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -94,9 +93,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         ]
 
         github_copilot_installed = any(i.provider == "github_copilot" for i in integrations)
-        if github_copilot_installed and features.has(
-            "organizations:integrations-github-copilot-agent", organization
-        ):
+        if github_copilot_installed:
             has_identity = False
             if request.user and request.user.id:
                 try:

@@ -3,7 +3,7 @@ import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {SpanFields} from 'sentry/views/insights/types';
 import {
   TraceDrawerComponents,

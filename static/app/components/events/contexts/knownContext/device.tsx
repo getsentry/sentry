@@ -7,8 +7,8 @@ import {FileSize} from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
 import {DeviceContextKey, type DeviceContext, type Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
+import {defined} from 'sentry/utils/defined';
 
 function formatMemory(memory_size: number, free_memory: number, usable_memory: number) {
   if (

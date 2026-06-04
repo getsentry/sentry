@@ -1578,6 +1578,24 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
     trigger_lightweight_rca_cluster_task.delay(group.id)
 
 
+def _noop_siem_security_log_hook(job: PostProcessJob) -> None:
+    pass
+
+
+# No-op in sentry; getsentry overrides via set_siem_security_log_hook. Resolved
+# at call time so the override needs no changes to the pipelines below.
+_siem_security_log_hook: Callable[[PostProcessJob], None] = _noop_siem_security_log_hook
+
+
+def set_siem_security_log_hook(hook: Callable[[PostProcessJob], None]) -> None:
+    global _siem_security_log_hook
+    _siem_security_log_hook = hook
+
+
+def process_siem_security_logging(job: PostProcessJob) -> None:
+    _siem_security_log_hook(job)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
     GroupCategory, list[Callable[[PostProcessJob], None]]
 ] = {
@@ -1606,6 +1624,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         check_if_flags_sent,
         process_processing_errors_eap,
         process_processing_issue_detection,
+        process_siem_security_logging,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

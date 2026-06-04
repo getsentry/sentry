@@ -194,6 +194,18 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.recentSearches).toBeDefined();
   });
 
+  it('passes disabled through to search query builder provider props', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        disabled: true,
+      },
+      organization,
+    });
+
+    expect(result.current.disabled).toBe(true);
+  });
+
   it('getTagKeys fetches keys across string, number, and boolean attributes', async () => {
     const traceItemAttributesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
