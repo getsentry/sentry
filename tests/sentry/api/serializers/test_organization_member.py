@@ -54,7 +54,7 @@ class OrganizationMemberSerializerTest(TestCase):
         assert result["user"]["id"] == str(user.id)
         assert result["user"]["name"] == "bob"
 
-    def test_member_with_missing_control_user_and_no_denormalized_email(self) -> None:
+    def test_member_with_missing_user_and_no_denormalized_email(self) -> None:
         # Tests the case where we have no user to resolve, and need to have
         # _something_ to populate the user email field with.
         user = self.create_user(name="deleted_user", email="deleted@example.com")
