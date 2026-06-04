@@ -6,18 +6,7 @@ from sentry.api.serializers.release_details_types import Author, LastDeploy, Pro
 
 # Reponse type for OrganizationReleaseDetailsEndpoint
 class ReleaseSerializerResponseOptional(TypedDict, total=False):
-    ref: str | None
-    url: str | None
-    dateReleased: datetime | None
-    dateCreated: datetime | None
     dateStarted: datetime | None
-    owner: dict[str, Any] | None
-    lastCommit: dict[str, Any] | None
-    lastDeploy: LastDeploy | None
-    firstEvent: datetime | None
-    lastEvent: datetime | None
-    currentProjectMeta: dict[str, Any] | None
-    userAgent: str | None
     adoptionStages: dict[str, Any] | None  # Only included if with_adoption_stages is True
 
 
@@ -33,11 +22,22 @@ class ReleaseSerializerResponse(ReleaseSerializerResponseOptional):
     status: str
     shortVersion: str
     versionInfo: VersionInfo | None
+    ref: str | None
+    url: str | None
+    dateReleased: datetime | None
+    dateCreated: datetime
     data: dict[str, Any]
     commitCount: int
     deployCount: int
     authors: list[Author]
     projects: list[Project]
+    owner: dict[str, Any] | None
+    lastCommit: dict[str, Any] | None
+    lastDeploy: LastDeploy | None
+    firstEvent: datetime | None
+    lastEvent: datetime | None
+    currentProjectMeta: dict[str, Any]
+    userAgent: str | None
 
 
 class GroupEventReleaseSerializerResponse(TypedDict, total=False):
