@@ -1,8 +1,9 @@
 import {useState} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {t} from 'sentry/locale';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import type {Sort} from 'sentry/utils/discover/fields';
+import {type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -22,6 +23,8 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 interface WidgetPreviewProps {
   dashboard: DashboardDetails;
@@ -91,6 +94,23 @@ export function WidgetPreview({
   function handleWidgetTableResizeColumn(columns: TabularColumn[]) {
     const widths = columns.map(column => column.width!);
     setTableWidths(widths);
+  }
+
+  if (widget.widgetType === WidgetType.TRACEMETRICS) {
+    const hasBlankEquation = state.yAxis?.some(
+      yAxis => yAxis.kind === FieldValueKind.EQUATION && yAxis.field.trim() === ''
+    );
+    if (hasBlankEquation) {
+      return (
+        <Widget
+          Title={<Widget.WidgetTitle title={widget.title} />}
+          Visualization={
+            <Widget.WidgetError error={t('Enter an equation to preview results')} />
+          }
+          noVisualizationPadding
+        />
+      );
+    }
   }
 
   return (
