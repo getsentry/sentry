@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import analytics, quotas
+from sentry import analytics, features, quotas
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -223,13 +223,28 @@ def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> 
     return state
 
 
+def _default_intelligence_level(organization: Organization) -> Literal["low", "medium", "high"]:
+    if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
+        return "high"
+    return "medium"
+
+
+def _default_reasoning_effort(
+    organization: Organization,
+    step_default: Literal["low", "medium", "high"] | None,
+) -> Literal["low", "medium", "high"] | None:
+    if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
+        return "high"
+    return step_default
+
+
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
     referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
-    intelligence_level: Literal["low", "medium", "high"] = "medium",
+    intelligence_level: Literal["low", "medium", "high"] = _UNSET,
     reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
@@ -257,12 +272,21 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
+    resolved_intelligence_level = (
+        _default_intelligence_level(group.organization)
+        if intelligence_level is _UNSET
+        else intelligence_level
+    )
+    resolved_reasoning_effort = (
+        _default_reasoning_effort(group.organization, config.reasoning_effort)
+        if reasoning_effort is _UNSET
+        else reasoning_effort
+    )
+
     client = get_autofix_agent_client(
         group,
-        intelligence_level=intelligence_level,
-        reasoning_effort=(
-            config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
-        ),
+        intelligence_level=resolved_intelligence_level,
+        reasoning_effort=resolved_reasoning_effort,
         enable_coding=config.enable_coding,
     )
     if run_id is not None:
