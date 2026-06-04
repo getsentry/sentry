@@ -22,7 +22,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Panel} from 'sentry/components/panels/panel';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   MODULE_DATA_TYPES,

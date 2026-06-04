@@ -403,7 +403,7 @@ describe('useConversation', () => {
     expect(queryArg).not.toHaveProperty('statsPeriod');
   });
 
-  it('falls back to ALL_ACCESS_PROJECTS and 30d when no filters are set', async () => {
+  it('falls back to ALL_ACCESS_PROJECTS with no time params when no filters are set', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
       body: [BASE_SPAN],
@@ -421,10 +421,14 @@ describe('useConversation', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           project: [-1],
-          statsPeriod: '30d',
         }),
       })
     );
+    // No statsPeriod sent — backend uses its 30d retention fallback
+    const queryArg = mockRequest.mock.calls[0]![1]!.query;
+    expect(queryArg).not.toHaveProperty('statsPeriod');
+    expect(queryArg).not.toHaveProperty('start');
+    expect(queryArg).not.toHaveProperty('end');
   });
 
   it('uses relative period from page filters when explicitly set', async () => {

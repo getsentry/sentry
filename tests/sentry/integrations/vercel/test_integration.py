@@ -1,8 +1,13 @@
+from __future__ import annotations
+
+from typing import Any
+from unittest import mock
 from urllib.parse import parse_qs
 
 import orjson
 import pytest
 import responses
+from django.urls import reverse
 from rest_framework.serializers import ValidationError
 
 from sentry.constants import ObjectStatus
@@ -10,6 +15,7 @@ from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.identity.vercel.provider import VercelIdentityProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider, metadata
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
@@ -20,7 +26,8 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 )
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase, TestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -461,6 +468,40 @@ class VercelIntegrationTest(IntegrationTestCase):
             installation.update_organization_config(data)
 
     @responses.activate
+    def test_update_organization_config_logs_on_failure(self) -> None:
+        """Test that a log is emitted when linking a Sentry project fails."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        project_id = self.project.id
+        org = self.organization
+        data = {"project_mappings": [[project_id, self.project_id]]}
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation = integration.get_installation(org.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
+            dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
+
+        with (
+            mock.patch("sentry.integrations.vercel.integration.logger") as mock_logger,
+            pytest.raises(ValidationError),
+        ):
+            installation.update_organization_config(data)
+
+        mock_logger.exception.assert_called_once_with(
+            "vercel.link_sentry_project.failed",
+            extra={
+                "organization_id": org.id,
+                "integration_id": integration.id,
+                "sentry_project_id": project_id,
+                "vercel_project_id": self.project_id,
+                "error_type": "ValidationError",
+            },
+        )
+
+    @responses.activate
     def test_get_dynamic_display_information(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
@@ -516,6 +557,156 @@ class VercelIntegrationTest(IntegrationTestCase):
             VercelIntegrationProvider().post_install(
                 integration=integration, organization=org, extra={"user_id": None}
             )
+
+
+@control_silo_test
+class VercelApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    config_id = "my_config_id"
+    team_id = "my_team_id"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def tearDown(self) -> None:
+        responses.reset()
+        super().tearDown()
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self, code: str = "oauth-code") -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={
+                "action": "initialize",
+                "provider": "vercel",
+                "initialData": {"code": code},
+            },
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _get_pipeline_signature(self, resp: Any) -> str:
+        return resp.data["data"]["state"]
+
+    @responses.activate
+    @with_feature("organizations:integrations-vercel")
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "vercel"
+        # The marketplace already granted the code, so the step signals the
+        # frontend to auto-advance -- no authorize popup, no code echoed out.
+        assert resp.data["data"]["state"]
+        assert "oauthUrl" not in resp.data["data"]
+        assert "code" not in resp.data["data"]
+
+    @responses.activate
+    @with_feature("organizations:integrations-vercel")
+    def test_initialize_requires_code(self) -> None:
+        resp = self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "vercel"},
+            format="json",
+        )
+        assert resp.status_code == 400
+
+    @responses.activate
+    @with_feature("organizations:integrations-vercel")
+    def test_full_pipeline_team_flow(self) -> None:
+        responses.add(
+            responses.POST,
+            VercelIdentityProvider.oauth_access_token_url,
+            json={
+                "access_token": "my_access_token",
+                "user_id": "my_user_id",
+                "installation_id": self.config_id,
+                "team_id": self.team_id,
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_TEAM_URL % self.team_id}?teamId={self.team_id}",
+            json={"name": "My Team Name", "slug": "my_team_slug"},
+        )
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_PROJECTS_URL}?limit={VercelClient.pagination_limit}&teamId={self.team_id}",
+            json={"projects": [], "pagination": {"count": 0, "next": None}},
+        )
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="vercel")
+        assert integration.external_id == self.team_id
+        assert integration.name == "My Team Name"
+        assert integration.metadata["access_token"] == "my_access_token"
+        assert integration.metadata["installation_id"] == self.config_id
+        assert integration.metadata["installation_type"] == "team"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    @responses.activate
+    @with_feature("organizations:integrations-vercel")
+    def test_full_pipeline_user_flow(self) -> None:
+        responses.add(
+            responses.POST,
+            VercelIdentityProvider.oauth_access_token_url,
+            json={
+                "access_token": "my_access_token",
+                "user_id": "my_user_id",
+                "installation_id": self.config_id,
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_USER_URL}",
+            json={"user": {"name": "My Name", "username": "my_user_name"}},
+        )
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_PROJECTS_URL}?limit={VercelClient.pagination_limit}&",
+            json={"projects": [], "pagination": {"count": 0, "next": None}},
+        )
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="vercel")
+        assert integration.external_id == "my_user_id"
+        assert integration.name == "My Name"
+        assert integration.metadata["access_token"] == "my_access_token"
+        assert integration.metadata["installation_id"] == self.config_id
+        assert integration.metadata["installation_type"] == "user"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
 
 
 class VercelIntegrationMetadataTest(TestCase):

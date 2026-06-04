@@ -50,7 +50,7 @@ const StyledTabListWrap = styled('ul', {
           grid-auto-flow: row;
           align-content: start;
           padding-right: ${p.theme.space.xs};
-        `};
+        `}
 `;
 
 const StyledTabListOverflowWrap = styled('div')`
@@ -254,21 +254,23 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
       (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
     );
 
-    return sortedOverflowTabs.flatMap<SelectOption<string | number>>(key => {
+    return sortedOverflowTabs.flatMap(key => {
       const item = state.collection.getItem(key);
 
       if (!item) {
         return [];
       }
 
+      const itemProps: TabListItemProps = item.props;
+
       return {
         value: key,
-        label: item.props.children,
-        disabled: item.props.disabled,
-        tooltip: item.props.tooltip?.title,
-        tooltipOptions: item.props.tooltip,
+        label: itemProps.children,
+        disabled: itemProps.disabled,
+        tooltip: itemProps.tooltip?.title,
+        tooltipOptions: itemProps.tooltip,
         textValue: item.textValue,
-      };
+      } satisfies SelectOption<string | number>;
     });
   }, [state.collection, overflowTabs]);
 
@@ -288,7 +290,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
             orientation={orientation}
             size={size}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
-            tooltipProps={item.props.tooltip}
+            tooltipProps={(item.props as TabListItemProps).tooltip}
             ref={element => {
               tabItemsRef.current[item.key] = element;
             }}

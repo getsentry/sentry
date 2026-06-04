@@ -7,7 +7,7 @@ from enum import StrEnum
 import sentry_sdk
 from django.db.models import Q
 
-from sentry import features
+from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
@@ -156,14 +156,21 @@ def evaluate_workflow_triggers(
     # Retrieve these as a batch to avoid a query/cache-lookup per DCG.
     data_conditions_by_dcg_id = _get_data_conditions_for_group_by_dcg(dcg_ids)
 
+    # Retrieve data condition groups as a batch to avoid a query/cache-lookup per DCG.
+    data_condition_groups_by_id: dict[int, DataConditionGroup] = {
+        dcg.id: dcg for dcg in DataConditionGroup.objects.get_many_from_cache(dcg_ids)
+    }
+
     tainted_untriggered, untainted_untriggered = 0, 0
     for workflow in workflows:
         when_data_conditions = None
+        when_condition_group = None
         if dcg_id := workflow.when_condition_group_id:
             when_data_conditions = data_conditions_by_dcg_id.get(dcg_id)
+            when_condition_group = data_condition_groups_by_id.get(dcg_id)
 
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(
-            event_data, when_data_conditions
+            event_data, when_data_conditions, when_condition_group
         )
 
         if remaining_conditions:
@@ -476,6 +483,20 @@ def process_workflows(
         log_context.set_verbose(True)
 
     workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
+    wrong_org_workflows = {wf for wf in workflows if wf.organization_id != organization.id}
+    if wrong_org_workflows:
+        logger.warning(
+            "workflow_engine.process_workflows.wrong_organization",
+            extra={
+                "organization_id": organization.id,
+                "wrong_org_workflow_ids": sorted(wf.id for wf in wrong_org_workflows),
+                "wrong_org_organization_ids": sorted(
+                    wf.organization_id for wf in wrong_org_workflows
+                ),
+            },
+        )
+        if options.get("workflow_engine.filter_cross_org_workflows"):
+            workflows = workflows - wrong_org_workflows
 
     if workflows:
         metrics_incr("process_workflows", len(workflows))

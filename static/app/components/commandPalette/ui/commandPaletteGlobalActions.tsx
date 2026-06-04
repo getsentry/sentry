@@ -22,6 +22,7 @@ import {
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
+import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {
   IconAdd,
   IconAllProjects,
@@ -344,7 +345,11 @@ export function GlobalCommandPaletteActions() {
         </CMDKAction>
 
         <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
-          <CMDKAction display={{label: t('Traces')}} to={`${prefix}/explore/traces/`} />
+          <CMDKAction
+            display={{label: t('Traces')}}
+            keywords={[t('spans'), t('trace explorer')]}
+            to={`${prefix}/explore/traces/`}
+          />
           {organization.features.includes('ourlogs-enabled') && (
             <CMDKAction display={{label: t('Logs')}} to={`${prefix}/explore/logs/`} />
           )}
@@ -364,17 +369,20 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('profiling') && (
             <CMDKAction
               display={{label: t('Profiles')}}
-              to={`${prefix}/explore/profiling/`}
+              keywords={[t('profiling')]}
+              to={`${prefix}/explore/profiles/`}
             />
           )}
           {organization.features.includes('session-replay-ui') && (
             <CMDKAction
               display={{label: t('Replays')}}
+              keywords={[t('rum'), t('session replay')]}
               to={`${prefix}/explore/replays/`}
             />
           )}
           <CMDKAction
             display={{label: t('Releases')}}
+            keywords={[t('release health')]}
             to={`${prefix}/explore/releases/`}
           />
           {organization.features.includes('gen-ai-conversations') && (
@@ -528,6 +536,7 @@ export function GlobalCommandPaletteActions() {
             )}
             <CMDKAction
               display={{label: t('Alerts')}}
+              keywords={[t('alert rules'), t('issue alert')]}
               to={`${prefix}/monitors/alerts/`}
             />
           </CMDKAction>
@@ -765,7 +774,7 @@ export function GlobalCommandPaletteActions() {
         />
         <CMDKAction
           display={{label: t('Create Alert'), icon: <IconAdd />}}
-          keywords={[t('add alert')]}
+          keywords={[t('add alert'), t('alert rules'), t('issue alert')]}
           to={`${prefix}/issues/alerts/wizard/`}
         />
         <CMDKAction
@@ -786,7 +795,10 @@ export function GlobalCommandPaletteActions() {
         />
       </CMDKAction>
 
-      <CMDKAction display={{label: t('DSN')}} keywords={[t('client keys')]}>
+      <CMDKAction
+        display={{label: t('DSN')}}
+        keywords={[t('client keys'), t('sentry dsn')]}
+      >
         <CMDKAction
           display={{
             label: t('Reverse DSN lookup'),
@@ -1053,6 +1065,34 @@ export function GlobalCommandPaletteActions() {
           />
         </CMDKAction>
       </CMDKAction>
+
+      {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (
+        <CMDKAction
+          display={{label: t('Open in Production'), icon: <IconOpen />}}
+          keywords={['production', 'prod', 'live']}
+          onAction={() => {
+            window.open(
+              `https://${organization.slug}.sentry.io${location.pathname}${location.search}`,
+              '_blank',
+              'noreferrer'
+            );
+          }}
+        />
+      )}
+
+      {NODE_ENV === 'production' && user.isStaff && (
+        <CMDKAction
+          display={{label: t('Open in Development'), icon: <IconOpen />}}
+          keywords={['development', 'dev', 'dev-ui', 'localhost', 'local']}
+          onAction={() => {
+            window.open(
+              `https://${organization.slug}.dev.getsentry.net:7999${location.pathname}${location.search}`,
+              '_blank',
+              'noreferrer'
+            );
+          }}
+        />
+      )}
     </CommandPaletteSlot>
   );
 }

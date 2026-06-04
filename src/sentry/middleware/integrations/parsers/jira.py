@@ -8,7 +8,7 @@ from django.http.response import HttpResponseBase
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.jira.endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
 from sentry.integrations.jira.views import (
-    JiraExtensionConfigurationView,
+    JiraConfigureRedirectView,
     JiraSentryInstallationView,
     JiraSentryIssueDetailsView,
 )
@@ -39,7 +39,7 @@ class JiraRequestParser(BaseRequestParser):
         JiraSentryInstallationView,
         JiraSentryInstalledWebhook,
         JiraSentryUninstalledWebhook,
-        JiraExtensionConfigurationView,
+        JiraConfigureRedirectView,
         JiraSearchEndpoint,
         JiraSentryIssueDetailsControlView,
     ]

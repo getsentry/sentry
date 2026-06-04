@@ -62,7 +62,7 @@ from sentry.search.eap.types import (
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
-from sentry.utils import json, snuba_rpc
+from sentry.utils import json, metrics, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -91,6 +91,7 @@ class TableQuery:
     page_token: PageToken | None = None
     additional_queries: AdditionalQueries | None = None
     extra_conditions: TraceItemFilter | None = None
+    max_string_length: int | None = None
 
 
 @dataclass
@@ -238,10 +239,13 @@ class RPCBase:
 
     @classmethod
     def build_rpc_table_row_context(cls, query: TableQuery) -> dict[str, Any]:
-        return {
+        ctx: dict[str, Any] = {
             "project_ids": list(query.resolver.params.project_ids),
             "organization_id": query.resolver.params.organization_id,
         }
+        if query.max_string_length is not None:
+            ctx["max_string_length"] = query.max_string_length
+        return ctx
 
     @classmethod
     def get_table_rpc_request(cls, query: TableQuery) -> TableRequest:
@@ -311,6 +315,10 @@ class RPCBase:
                 raise InvalidSearchQuery("orderby must also be in the selected columns or groupby")
             else:
                 resolved_column = resolver.resolve_column(stripped_orderby)[0]
+                if resolver.should_hide_api_column(stripped_orderby, resolved_column):
+                    raise InvalidSearchQuery(
+                        "orderby must also be in the selected columns or groupby"
+                    )
 
             # Virtual context columns transform values (e.g. "1" -> "low") which
             # can produce an undesirable alphabetical sort order. When a sort_column
@@ -324,6 +332,10 @@ class RPCBase:
                     internal_name=context_def.sort_column,
                     search_type="string",
                 )
+                if resolver.should_hide_api_column(stripped_orderby, sort_col):
+                    raise InvalidSearchQuery(
+                        "orderby must also be in the selected columns or groupby"
+                    )
                 orderby_resolved = sort_col
                 all_columns.append(sort_col)
                 sort_column_aliases.add(sort_alias)
@@ -392,7 +404,7 @@ class RPCBase:
         table_request = cls.get_table_rpc_request(query)
         rpc_request = table_request.rpc_request
         try:
-            rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+            rpc_response = snuba_rpc.table_rpc([rpc_request], debug=debug)[0]
         except Exception as e:
             # add the rpc to the error so we can include it in the response
             if debug:
@@ -423,12 +435,15 @@ class RPCBase:
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
+        max_string_length: int | None = None,
     ) -> EAPResponse:
         raise NotImplementedError()
 
     @classmethod
     @sentry_sdk.trace
-    def run_bulk_table_queries(cls, queries: list[TableQuery]) -> dict[str, EAPResponse]:
+    def run_bulk_table_queries(
+        cls, queries: list[TableQuery], debug: str | bool = False
+    ) -> dict[str, EAPResponse]:
         """Validate the bulk queries"""
         names: set[str] = set()
         for query in queries:
@@ -461,8 +476,9 @@ class RPCBase:
         final_data: SnubaData,
         attribute: Any,
         resolved_column: ResolvedColumn,
-        **_context_kwargs: Any,
+        **context_kwargs: Any,
     ) -> None:
+        max_string_length: int | None = context_kwargs.get("max_string_length")
         for index, result in enumerate(column_value.results):
             result_value: Any
             if result.is_null:
@@ -470,6 +486,17 @@ class RPCBase:
             else:
                 result_value = anyvalue_to_python(result)
             result_value = process_value(result_value)
+
+            # Note: post-query truncation may not be our preferred method long-term.
+            # We may want to set up a function that filters/truncates at the EAP side.
+            if max_string_length is not None and isinstance(result_value, str):
+                if len(result_value) > max_string_length:
+                    result_value = result_value[:max_string_length] + "..."
+                    metrics.incr(
+                        "snuba.rpc.process_column_values.truncated",
+                        tags={"field": attribute},
+                    )
+
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
     @classmethod

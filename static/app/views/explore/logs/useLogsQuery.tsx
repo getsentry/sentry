@@ -43,6 +43,7 @@ import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
 } from 'sentry/views/explore/logs/types';
+import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
 import {
   isRowVisibleInVirtualStream,
   useVirtualStreaming,
@@ -64,6 +65,7 @@ export function useExploreLogsTableRow(props: {
   projectId: string;
   traceId: string;
   enabled?: boolean;
+  timestamp?: number | null;
 }) {
   const {isReady: pageFiltersReady} = usePageFilters();
   return useTraceItemDetails({
@@ -73,6 +75,7 @@ export function useExploreLogsTableRow(props: {
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
     enabled: props.enabled && pageFiltersReady,
+    timestamp: props.timestamp,
   });
 }
 
@@ -98,6 +101,7 @@ function useLogsApiOptions({
   const projectIds = useLogsFrozenProjectIds();
   const groupBys = useQueryParamsGroupBys();
   const [caseInsensitive] = useCaseInsensitivity();
+  const truncate = useLogsQueryTruncate();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -139,6 +143,7 @@ function useLogsApiOptions({
     referrer,
     sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
     caseInsensitive: caseInsensitive ? '1' : undefined,
+    truncate,
   };
 
   const path = {organizationIdOrSlug: organization.slug};

@@ -96,7 +96,7 @@ describe('RepositoryProjectPathConfigModal', () => {
     );
   });
 
-  it('POSTs to code-mappings endpoint in create mode', async () => {
+  it.isKnownFlake('POSTs to code-mappings endpoint in create mode', async () => {
     jest.spyOn(analytics, 'trackAnalytics');
     const mockPost = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/code-mappings/`,

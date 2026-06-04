@@ -11,7 +11,7 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 /**
- * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
+ * Shared tags and feature flags distributions drawer used by issue details.
  */
 export function useGroupDistributionsDrawer({
   group,

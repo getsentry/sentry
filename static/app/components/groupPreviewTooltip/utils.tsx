@@ -5,7 +5,7 @@ import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
-import {getEventSearchFromIssueQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
+import {getEventSearchFromIssueQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {
   groupEventApiOptions,

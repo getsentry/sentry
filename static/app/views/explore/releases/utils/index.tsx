@@ -11,7 +11,7 @@ import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/components/pageFilters/constants
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {desktop, mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {Release, SemverVersion, VersionInfo} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {defined} from 'sentry/utils';

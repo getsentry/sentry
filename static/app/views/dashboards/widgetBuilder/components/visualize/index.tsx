@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {css, useTheme} from '@emotion/react';
@@ -8,14 +8,13 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, TriggerLabel} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {IconDelete, IconLink} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
@@ -38,12 +37,7 @@ import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
-import {
-  DisplayType,
-  WidgetType,
-  type LinkedDashboard,
-} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {correctDragOverlayOffset} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
@@ -61,10 +55,10 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import type {TraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {LINK_FIELD_TOOLTIP} from 'sentry/views/dashboards/widgetBuilder/settings';
 import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
@@ -72,16 +66,8 @@ import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
-import {SpanFields} from 'sentry/views/insights/types';
 
 export const NONE = 'none';
-
-/**
- * Fields that should not show the linked dashboard button.
- */
-const FIELDS_DISABLED_FOR_LINKING: readonly string[] = [
-  SpanFields.IS_STARRED_TRANSACTION,
-];
 
 const NONE_AGGREGATE = {
   textValue: t('field'),
@@ -295,17 +281,11 @@ export function parseAggregateFromValueKey(value: string) {
 
 interface VisualizeProps {
   error?: Record<string, any>;
-  isEquationMode?: boolean;
-  onSetEquationMode?: (isEquationMode: boolean) => void;
   setError?: (error: Record<string, any>) => void;
+  traceMetricsVisualizeMode?: TraceMetricsVisualizeModeState;
 }
 
-export function Visualize({
-  error,
-  setError,
-  isEquationMode,
-  onSetEquationMode,
-}: VisualizeProps) {
+export function Visualize({error, setError, traceMetricsVisualizeMode}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const theme = useTheme();
@@ -324,6 +304,13 @@ export function Visualize({
   const canShowTraceMetricEquations =
     state.dataset === WidgetType.TRACEMETRICS &&
     canUseMetricsEquationsInDashboards(organization);
+
+  const {isEquationMode, handleModeToggle, equationSnapshot} =
+    traceMetricsVisualizeMode ?? {
+      isEquationMode: false,
+      handleModeToggle: () => {},
+      equationSnapshot: {current: null},
+    };
 
   let hiddenKeys: string[] = [];
   if (state.dataset === WidgetType.TRACEMETRICS) {
@@ -443,8 +430,6 @@ export function Visualize({
     isTableWidget ||
     ((isBigNumberWidget || isCategoricalBarWidget) &&
       (datasetConfig.enableEquations || canShowTraceMetricEquations));
-  const linkedDashboards = state.linkedDashboards || [];
-
   // Determines which action to use for updating visualization fields:
   // - Line, Area, Bar (Time Series): SET_Y_AXIS for Y-axis aggregates
   // - Bar (Categorical): SET_CATEGORICAL_AGGREGATE (reducer handles merging with X-axis)
@@ -523,8 +508,6 @@ export function Visualize({
     state.displayType !== DisplayType.CATEGORICAL_BAR;
 
   const draggableFieldIds = fields?.map((_field, index) => index.toString()) ?? [];
-
-  const hasDrillDownFlows = useHasDrillDownFlows();
 
   // Default field to add to the widget query when adding a new field.
   const defaultField =
@@ -636,18 +619,26 @@ export function Visualize({
     tableFieldOptions,
   ]);
 
-  const handleEquationRemoved = useCallback(() => {
-    onSetEquationMode?.(false);
-  }, [onSetEquationMode]);
-
   return (
     <Fragment>
       <SectionHeader
         title={isTableWidget ? t('Columns') : t('Visualize')}
         tooltipText={tooltipText}
       />
+      {canShowTraceMetricEquations && (
+        <Container paddingBottom="md">
+          <SegmentedControl
+            value={isEquationMode ? 'equation' : 'series'}
+            onChange={value => handleModeToggle(value === 'equation')}
+            size="sm"
+          >
+            <SegmentedControl.Item key="series">{t('Series')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="equation">{t('Equation')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </Container>
+      )}
       {isEquationMode && canShowTraceMetricEquations ? (
-        <MetricsEquationVisualize onEquationRemoved={handleEquationRemoved} />
+        <MetricsEquationVisualize equationSnapshot={equationSnapshot} />
       ) : (
         <Fragment>
           <StyledFieldGroup
@@ -1019,61 +1010,6 @@ export function Visualize({
                                   }}
                                 />
                               )}
-                              {hasDrillDownFlows &&
-                                isTableWidget &&
-                                fields[index]?.kind === FieldValueKind.FIELD &&
-                                !FIELDS_DISABLED_FOR_LINKING.includes(
-                                  fields[index]?.field ?? ''
-                                ) && (
-                                  <Tooltip title={LINK_FIELD_TOOLTIP}>
-                                    <Button
-                                      variant="transparent"
-                                      icon={<IconLink />}
-                                      aria-label={t('Link field')}
-                                      size="zero"
-                                      onClick={() => {
-                                        openLinkToDashboardModal({
-                                          onLink: dashboardId => {
-                                            if (
-                                              fields[index]?.kind ===
-                                                FieldValueKind.FIELD &&
-                                              fields[index]?.field
-                                            ) {
-                                              const fieldName = fields[index].field;
-                                              const newLinkedDashboards: LinkedDashboard[] =
-                                                [
-                                                  ...linkedDashboards.filter(
-                                                    ld => ld.field !== fieldName
-                                                  ),
-                                                  {dashboardId, field: fieldName},
-                                                ];
-                                              dispatch({
-                                                type: BuilderStateAction.SET_LINKED_DASHBOARDS,
-                                                payload: newLinkedDashboards,
-                                              });
-                                            }
-                                          },
-                                          currentLinkedDashboard: linkedDashboards.find(
-                                            linkedDashboard => {
-                                              if (
-                                                fields[index]?.kind ===
-                                                  FieldValueKind.FIELD &&
-                                                fields[index]?.field
-                                              ) {
-                                                return (
-                                                  linkedDashboard.field ===
-                                                  fields[index].field
-                                                );
-                                              }
-                                              return false;
-                                            }
-                                          ),
-                                          source,
-                                        });
-                                      }}
-                                    />
-                                  </Tooltip>
-                                )}
                               {(!isBigNumberWidget ||
                                 datasetConfig.enableEquations ||
                                 (isBigNumberWidget && fields.length > 1)) && (
@@ -1177,15 +1113,13 @@ export function Visualize({
                     ? t('+ Add Field')
                     : t('+ Add Column')}
               </AddButton>
-              {(datasetConfig.enableEquations || canShowTraceMetricEquations) && (
-                <AddButton
-                  variant="link"
-                  disabled={disableTransactionWidget}
-                  aria-label={t('Add Equation')}
-                  onClick={() => {
-                    if (canShowTraceMetricEquations) {
-                      onSetEquationMode?.(true);
-                    } else {
+              {datasetConfig.enableEquations &&
+                state.dataset !== WidgetType.TRACEMETRICS && (
+                  <AddButton
+                    variant="link"
+                    disabled={disableTransactionWidget}
+                    aria-label={t('Add Equation')}
+                    onClick={() => {
                       dispatch({
                         type: updateAction,
                         payload: [
@@ -1193,22 +1127,21 @@ export function Visualize({
                           {kind: FieldValueKind.EQUATION, field: ''},
                         ],
                       });
-                    }
 
-                    trackAnalytics('dashboards_views.widget_builder.change', {
-                      builder_version: WidgetBuilderVersion.SLIDEOUT,
-                      field: 'visualize.addEquation',
-                      from: source,
-                      new_widget: !isEditing,
-                      value: '',
-                      widget_type: state.dataset ?? '',
-                      organization,
-                    });
-                  }}
-                >
-                  {t('+ Add Equation')}
-                </AddButton>
-              )}
+                      trackAnalytics('dashboards_views.widget_builder.change', {
+                        builder_version: WidgetBuilderVersion.SLIDEOUT,
+                        field: 'visualize.addEquation',
+                        from: source,
+                        new_widget: !isEditing,
+                        value: '',
+                        widget_type: state.dataset ?? '',
+                        organization,
+                      });
+                    }}
+                  >
+                    {t('+ Add Equation')}
+                  </AddButton>
+                )}
             </AddButtons>
           )}
         </Fragment>

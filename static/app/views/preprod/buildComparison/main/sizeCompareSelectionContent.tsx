@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery, useMutation} from '@tanstack/react-query';
 
@@ -346,7 +347,7 @@ const BuildItemContainer = styled(Flex)<{isSelected: boolean}>`
 
   ${p =>
     p.isSelected &&
-    `
+    css`
       background-color: ${p.theme.tokens.background.tertiary};
     `}
 `;

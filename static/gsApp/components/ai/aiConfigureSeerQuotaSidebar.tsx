@@ -10,7 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AutofixContent,
   type AutofixContentProps,
-} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
+} from 'sentry/views/issueDetails/sidebar/autofixSection';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
