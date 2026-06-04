@@ -91,3 +91,41 @@ class AppPlatformEventSerializerTest(TestCase):
         assert result.headers["Content-Type"] == "application/json"
         assert result.headers["Sentry-Hook-Resource"] == "installation"
         assert result.headers["Sentry-Hook-Signature"] == signature
+
+    def test_custom_webhook_headers_are_sent(self) -> None:
+        """Custom webhook_headers from the SentryApp are included in outgoing headers."""
+        self.sentry_app.webhook_headers = [
+            "X-Api-Version: 2023-06-01",
+            "X-Custom-Token: secret",
+        ]
+        self.sentry_app.save()
+        # Reload install so sentry_app reflects the updated record
+        self.install.refresh_from_db()
+
+        result = AppPlatformEvent[dict[str, Any]](
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.ASSIGNED,
+            install=self.install,
+            data={},
+        )
+
+        assert result.headers["X-Api-Version"] == "2023-06-01"
+        assert result.headers["X-Custom-Token"] == "secret"
+        # Sentry's own headers must still take precedence
+        assert result.headers["Content-Type"] == "application/json"
+
+    def test_reserved_headers_cannot_be_overridden_by_webhook_headers(self) -> None:
+        """Sentry system headers always take precedence over custom webhook_headers."""
+        self.sentry_app.webhook_headers = ["Content-Type: text/plain"]
+        self.sentry_app.save()
+        self.install.refresh_from_db()
+
+        result = AppPlatformEvent[dict[str, Any]](
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.ASSIGNED,
+            install=self.install,
+            data={},
+        )
+
+        # Sentry's Content-Type must win
+        assert result.headers["Content-Type"] == "application/json"
