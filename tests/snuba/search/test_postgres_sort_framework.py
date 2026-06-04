@@ -17,6 +17,7 @@ from sentry.search.snuba.executors import (
 )
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
@@ -300,6 +301,23 @@ class TestFallbackBehavior(PostgresSortTestBase):
                 referrer=Referrer.TESTING_TEST.value,
             )
             assert result is None
+
+    def test_overflow_fallback_uses_chunked_path_not_shortcut(self):
+        # A Postgres sort with no Snuba equivalent that overflows falls back to `date`,
+        # but must go through the chunked Snuba path (which hides non-default issue types),
+        # not the postgres-only shortcut that skips type-visibility filtering. The chunked
+        # path calls snuba_search; the shortcut does not.
+        with (
+            _patch_pg_strategies({"test_sort": _ts_strategy()}),
+            override_options({"snuba.search.max-pre-snuba-candidates": 0}),
+            mock.patch.object(
+                PostgresSnubaQueryExecutor,
+                "snuba_search",
+                return_value=([(g.id, 1) for g in self.groups], len(self.groups)),
+            ) as snuba_spy,
+        ):
+            list(self.make_query("test_sort"))
+        assert snuba_spy.called
 
     def test_unknown_sort_uses_snuba_path(self):
         results = list(self.make_query("date"))

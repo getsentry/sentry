@@ -1212,6 +1212,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # is invalid.
             return self.empty_result
 
+        pg_overflow_fallback = False
         pg_strategy = self.postgres_sort_strategies.get(sort_by)
         if pg_strategy is not None:
             pg_result = self._execute_postgres_sort(
@@ -1240,8 +1241,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 return pg_result
             # Overflow: too many candidates to score in memory. Fall through to the Snuba
             # chunked path. If this sort has no Snuba-only equivalent, fall back to `date`.
+            # The fallback must go through the chunked path (which applies issue-type
+            # visibility), not the postgres-only `date` shortcut below, which does not.
             if sort_by not in self.sort_strategies:
                 sort_by = "date"
+                pg_overflow_fallback = True
 
         # If the requested sort is `date` (`last_seen`) and there
         # are no other Snuba-based search predicates, we can simply
@@ -1250,6 +1254,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # XXX: Don't enable this for now, it doesn't properly respect issue platform rules for hiding issue types.
             # We'll need to consolidate where we apply the type filters if we do want this.
             allow_postgres_only_search
+            and not pg_overflow_fallback
             and cursor is None
             and sort_by == "date"
             and
