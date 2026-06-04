@@ -1452,6 +1452,53 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             },
         ]
 
+    def test_tags_keys_with_different_counts(self) -> None:
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for index, tag in enumerate(["foo", "bar", "baz"]):
+            for _ in range(index + 1):
+                self.store_segment(
+                    self.project.id,
+                    uuid4().hex,
+                    uuid4().hex,
+                    span_id=uuid4().hex[:16],
+                    organization_id=self.organization.id,
+                    parent_span_id=None,
+                    timestamp=timestamp,
+                    transaction="foo",
+                    duration=100,
+                    exclusive_time=100,
+                    tags={"tag": tag},
+                )
+
+        response = self.do_request(key="tag")
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": 3,
+                "key": "tag",
+                "value": "baz",
+                "name": "baz",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": 2,
+                "key": "tag",
+                "value": "bar",
+                "name": "bar",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+            {
+                "count": 1,
+                "key": "tag",
+                "value": "foo",
+                "name": "foo",
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            },
+        ]
+
     def test_transaction_keys_autocomplete(self) -> None:
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for transaction in ["foo", "*bar", "*baz"]:
