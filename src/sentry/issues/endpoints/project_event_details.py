@@ -149,7 +149,10 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             raise ParseError(detail="Invalid date range")
 
         group_id_s = request.GET.get("group_id")
-        group_id = int(group_id_s) if group_id_s else None
+        try:
+            group_id = int(group_id_s) if group_id_s else None
+        except ValueError:
+            raise ParseError(detail="Invalid group_id: must be a numeric value")
 
         event = eventstore.backend.get_event_by_id(project.id, event_id, group_id=group_id)
 
