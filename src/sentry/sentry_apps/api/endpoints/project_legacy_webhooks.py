@@ -17,8 +17,8 @@ _url_validator = URLValidator(schemes=["http", "https"])
 
 
 class LegacyWebhookSerializer(serializers.Serializer[None]):
-    urls = serializers.ListField(child=serializers.CharField(max_length=2048), required=True)
-    enabled = serializers.BooleanField(required=True)
+    urls = serializers.ListField(child=serializers.CharField(max_length=2048), required=False)
+    enabled = serializers.BooleanField(required=False)
 
     def validate_urls(self, value: list[str]) -> list[str]:
         for url in value:
@@ -51,12 +51,26 @@ class ProjectLegacyWebhooksEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        urls = serializer.validated_data["urls"]
-        enabled = serializer.validated_data["enabled"]
-        ProjectOption.objects.set_value(project, "webhooks:urls", "\n".join(urls))
-        ProjectOption.objects.set_value(project, "webhooks:enabled", enabled)
-        return Response({"urls": urls, "enabled": enabled}, status=200)
+        if "urls" in serializer.validated_data:
+            urls = serializer.validated_data["urls"]
+            ProjectOption.objects.set_value(project, "webhooks:urls", "\n".join(urls))
+
+        if "enabled" in serializer.validated_data:
+            enabled = serializer.validated_data["enabled"]
+            ProjectOption.objects.set_value(project, "webhooks:enabled", enabled)
+
+        urls_raw = ProjectOption.objects.get_value(project, "webhooks:urls", default="")
+        return Response(
+            {
+                "urls": split_urls(urls_raw),
+                "enabled": ProjectOption.objects.get_value(
+                    project, "webhooks:enabled", default=False
+                ),
+            },
+            status=200,
+        )
 
     def delete(self, request: Request, project: Project) -> Response:
         ProjectOption.objects.unset_value(project, "webhooks:urls")
+        ProjectOption.objects.unset_value(project, "webhooks:enabled")
         return Response(status=204)

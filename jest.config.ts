@@ -48,10 +48,15 @@ const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const optionalTags: {
-  balancer?: boolean;
+  total_tests?: number | 'all';
+  node_index?: number;
+  node_total?: number;
   balancer_strategy?: string;
 } = {
-  balancer: false,
+  total_tests: undefined,
+  node_index: undefined,
+  node_total: undefined,
+  balancer_strategy: undefined,
 };
 
 /**
@@ -210,11 +215,13 @@ if (
   );
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
+  optionalTags.total_tests = JEST_TESTS.length;
+  optionalTags.node_total = nodeTotal;
+  optionalTags.node_index = nodeIndex;
 
   if (balance) {
-    optionalTags.balancer = true;
-    optionalTags.balancer_strategy = 'by_path';
     testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
+    optionalTags.balancer_strategy = 'by_duration';
   } else {
     const tests = envTestList.sort((a, b) => b.localeCompare(a));
 
@@ -225,6 +232,7 @@ if (
     const chunk = size + (nodeIndex < remainder ? 1 : 0);
 
     testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
+    optionalTags.balancer_strategy = 'by_name';
   }
 }
 

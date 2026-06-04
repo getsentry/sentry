@@ -62,7 +62,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[EventUserSerializerResponse]]:
         """
         Return a list of users seen within this project.
         """

@@ -162,12 +162,7 @@ return Response({"message": "Invalid input"}, status=400)
 
 ### Feature Flags
 
-```python
-from sentry import features
-
-if features.has('organizations:new-feature', organization):
-    # New feature code
-```
+See **Feature Flags (FlagPole)** in `/AGENTS.md` for registration, the `features.has(...)` check, and test usage.
 
 ### Permissions
 

@@ -319,7 +319,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, version) -> Response:
+    def get(
+        self, request: Request, project, version
+    ) -> Response[list[ReleaseFileSerializerResponse]]:
         """
         Retrieve a list of files for a given release.
         """
@@ -351,7 +353,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
             409: RESPONSE_CONFLICT,
         },
     )
-    def post(self, request: Request, project, version) -> Response:
+    def post(self, request: Request, project, version) -> Response[ReleaseFileSerializerResponse]:
         """
         Upload a new file for the given release.
 

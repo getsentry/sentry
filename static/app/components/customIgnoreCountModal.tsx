@@ -2,12 +2,12 @@ import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {IgnoredStatusDetails} from 'sentry/types/group';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';

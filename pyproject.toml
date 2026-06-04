@@ -2055,7 +2055,6 @@ module = [
     "tests.sentry.models.test_organizationmember",
     "tests.sentry.models.test_organizationmemberteam",
     "tests.sentry.models.test_organizationoption",
-    "tests.sentry.models.test_organizationslugreservation",
     "tests.sentry.models.test_orgauthtoken",
     "tests.sentry.models.test_project",
     "tests.sentry.models.test_projectcodeowners",
