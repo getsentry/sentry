@@ -144,6 +144,11 @@ class SentryAppParser(Serializer):
         required=False,
         help_text="The list of allowed origins for CORS.",
     )
+    webhookHeaders = serializers.ListField(
+        child=serializers.CharField(max_length=1024),
+        required=False,
+        help_text="Custom headers sent with every webhook request. Each entry must be in 'Name: value' format.",
+    )
     # Bounds chosen to match PositiveSmallIntegerField (https://docs.djangoproject.com/en/3.2/ref/models/fields/#positivesmallintegerfield)
     popularity = serializers.IntegerField(
         min_value=0,
@@ -197,6 +202,31 @@ class SentryAppParser(Serializer):
         for allowed_origin in value:
             if "*" in allowed_origin:
                 raise ValidationError("'*' not allowed in origin")
+        return value
+
+    # Headers that Sentry sets on every webhook request and must not be overridden.
+    _RESERVED_HEADER_PREFIXES = (
+        "sentry-hook-",
+        "content-type",
+        "request-id",
+    )
+
+    def validate_webhookHeaders(self, value):
+        for header in value:
+            if ":" not in header:
+                raise ValidationError(
+                    f"Invalid header format '{header}'. Each header must be in 'Name: value' format."
+                )
+            name, _, _ = header.partition(":")
+            name = name.strip().lower()
+            if not name:
+                raise ValidationError(
+                    f"Invalid header format '{header}'. Header name cannot be empty."
+                )
+            if any(name.startswith(prefix) for prefix in self._RESERVED_HEADER_PREFIXES):
+                raise ValidationError(
+                    f"Header '{name}' is reserved and cannot be overridden."
+                )
         return value
 
     def validate_scopes(self, value):
