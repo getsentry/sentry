@@ -3,7 +3,6 @@ import {
   keyValueListDataToMarkdownLines,
 } from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
-import {t} from 'sentry/locale';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import {
   AI_DETECTED_ISSUE_TYPES,
@@ -41,7 +40,7 @@ function getSpanMarkdownValue(span: EvidenceSpan): string {
   if (op && description) {
     return `${op} - ${description}`;
   }
-  return description || op || t('(no value)');
+  return description || op || '(no value)';
 }
 
 /**
@@ -110,7 +109,9 @@ function summarizeSpanGroup(
   const byOp = new Map<string, EvidenceSpan[]>();
   valid.forEach(span => {
     const op = span?.op || '(no op)';
-    byOp.set(op, [...(byOp.get(op) ?? []), span]);
+    const existing = byOp.get(op) ?? [];
+    existing.push(span);
+    byOp.set(op, existing);
   });
 
   let sampleBudget = MAX_SAMPLE_SPANS_PER_SECTION;
@@ -177,7 +178,9 @@ export function formatSpanEvidenceToMarkdown(
     if (regressionLines.length === 0) {
       return '';
     }
-    return `\n## Span Evidence\n\n${regressionLines.join('\n')}\n`;
+    // Regressions surface metrics (not spans); the UI shows these under a
+    // separate "Regression Summary" section, so mirror that heading here.
+    return `\n## Regression Summary\n\n${regressionLines.join('\n')}\n`;
   }
 
   // Only emit span evidence for issue types whose config enables it — the same
@@ -191,12 +194,6 @@ export function formatSpanEvidenceToMarkdown(
 
   const evidenceData = event.occurrence?.evidenceData ?? {};
   const evidenceDisplay = event.occurrence?.evidenceDisplay ?? [];
-  // Only attempt to resolve span info when the event actually carries the
-  // evidence payload, to avoid the error capture inside the helper.
-  const spanInfo =
-    eventTransaction.perfProblem || event.occurrence?.evidenceData
-      ? getSpanInfoFromTransactionEvent(eventTransaction)
-      : null;
 
   const lines: string[] = [];
   const typeId = event.occurrence?.type;
@@ -218,6 +215,14 @@ export function formatSpanEvidenceToMarkdown(
     // Transaction-based issues (N+1, slow query, consecutive, etc.) carry the
     // offending spans in the event. Summarize them with dedup, cardinality,
     // timing and code location instead of dumping every span.
+    //
+    // Only resolve span info when the event carries the evidence payload, to
+    // avoid the error capture inside the helper.
+    const spanInfo =
+      eventTransaction.perfProblem || event.occurrence?.evidenceData
+        ? getSpanInfoFromTransactionEvent(eventTransaction)
+        : null;
+
     if (spanInfo?.parentSpan) {
       lines.push(`**Parent Span:** ${getSpanMarkdownValue(spanInfo.parentSpan)}`);
     }

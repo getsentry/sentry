@@ -628,7 +628,7 @@ LIMIT 21`;
         )
       ).toMatchInlineSnapshot(`
         "
-        ## Span Evidence
+        ## Regression Summary
 
         **Endpoint Name:** /api/0/users/
         **Change in Duration:** 2min to 3min (+100%)
@@ -664,7 +664,7 @@ LIMIT 21`;
         )
       ).toMatchInlineSnapshot(`
         "
-        ## Span Evidence
+        ## Regression Summary
 
         **Function Name:** processData
         **Package Name:** com.example.app
