@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from sentry import analytics
 
-if TYPE_CHECKING:
-    from sentry.models.pullrequest import PullRequestVerdict
 
-
-@analytics.eventclass("pr_metrics.row")
+@analytics.eventclass("pr_metrics.recorded")
 class PrCloseMetricsEvent(analytics.Event):
     """Analytics row emitted when a tracked PR is closed or merged.
 
@@ -22,12 +19,13 @@ class PrCloseMetricsEvent(analytics.Event):
     # The PR number as stored on ``PullRequest.key`` (e.g. "5131" on GitHub).
     pr_key: str
     close_action: Literal["closed", "merged"]
-    # Set once a judge has scored the PR; None when no judge ran.
-    verdict: PullRequestVerdict | None = None
-    head_commit_sha: str | None = None
+    # Always present on a close/merge webhook — read fail-fast so a malformed
+    # payload errors loudly instead of emitting a silent null.
+    head_commit_sha: str
+    opened_at: str
+    closed_at: str
+    # Null for a closed-but-unmerged PR (no merge commit / merge time).
     merge_commit_sha: str | None = None
-    opened_at: str | None = None
-    closed_at: str | None = None
     merged_at: str | None = None
     draft: bool = False
     # Structural counters read straight from the close/merge webhook payload (no

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Final, Literal
 
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
@@ -21,16 +21,18 @@ logger = logging.getLogger(__name__)
 
 # GitHub fires a single ``closed`` action for both outcomes; the ``merged`` flag
 # on the payload disambiguates.
-CLOSE_ACTION_CLOSED = "closed"
-CLOSE_ACTION_MERGED = "merged"
+CLOSE_ACTION_CLOSED: Final = "closed"
+CLOSE_ACTION_MERGED: Final = "merged"
+
+CloseAction = Literal["closed", "merged"]
 
 
 def needs_judge(pull_request: PullRequest) -> bool:
     """Whether this PR's terminal event must round-trip to Seer for a judge.
 
     Currently always ``False``: the judge path isn't wired yet, so every tracked
-    close/merge is emitted immediately with no verdict. Once judges exist this
-    gates the forward-to-Seer path that emits a judge-enriched row on the result.
+    close/merge is emitted immediately. Once judges exist this gates the
+    forward-to-Seer path that emits a judge-enriched row on the result.
     """
     return False
 
@@ -57,7 +59,7 @@ def _active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
-    close_action: str,
+    close_action: CloseAction,
     payload: Mapping[str, Any],
     attributions: list[dict[str, Any]],
 ) -> PrCloseMetricsEvent:
@@ -69,8 +71,7 @@ def build_pr_metrics_row(
     the active-attribution snapshot (see ``_active_attributions``), passed in so
     the caller's tracking gate and the emitted row read the same query.
     """
-    head_commit_sha = (payload.get("head") or {}).get("sha")
-    merge_commit_sha = payload.get("merge_commit_sha") if payload.get("merged") else None
+    is_merged = bool(payload.get("merged"))
 
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
@@ -78,12 +79,14 @@ def build_pr_metrics_row(
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,
         close_action=close_action,
-        verdict=None,
-        head_commit_sha=head_commit_sha,
-        merge_commit_sha=merge_commit_sha,
-        opened_at=payload.get("created_at"),
-        closed_at=payload.get("closed_at"),
-        merged_at=payload.get("merged_at"),
+        # Subscript (not .get) on always-present fields: a missing key raises and
+        # the webhook loop logs it, rather than emitting a row with null lifecycle.
+        head_commit_sha=payload["head"]["sha"],
+        opened_at=payload["created_at"],
+        closed_at=payload["closed_at"],
+        # Present only on a merge; null for a closed-but-unmerged PR.
+        merge_commit_sha=payload["merge_commit_sha"] if is_merged else None,
+        merged_at=payload["merged_at"] if is_merged else None,
         draft=bool(payload.get("draft")),
         # GitHub includes these aggregate counts on the PR object in the
         # close/merge payload, so we get size/activity for free without an SCM
@@ -102,7 +105,7 @@ def build_pr_metrics_row(
 def emit_pr_metrics_row(
     *,
     pull_request: PullRequest,
-    close_action: str,
+    close_action: CloseAction,
     payload: Mapping[str, Any],
 ) -> bool:
     """Emit one BigQuery row for a tracked PR's terminal event.

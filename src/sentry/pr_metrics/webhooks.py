@@ -30,6 +30,7 @@ from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.emit import (
     CLOSE_ACTION_CLOSED,
     CLOSE_ACTION_MERGED,
+    CloseAction,
     emit_pr_metrics_row,
     needs_judge,
 )
@@ -109,12 +110,14 @@ def handle_emission(
 
     # pr is set, so the payload is present and non-null (subscript narrows it).
     pull_request = event["pull_request"]
-    close_action = CLOSE_ACTION_MERGED if pull_request.get("merged") else CLOSE_ACTION_CLOSED
+    close_action: CloseAction = (
+        CLOSE_ACTION_MERGED if pull_request.get("merged") else CLOSE_ACTION_CLOSED
+    )
 
     if needs_judge(pr):
         # The judge path (forward to Seer, emit on the judge result) isn't wired
         # yet, so fall through to immediate emit — a judge-eligible PR still
-        # produces a verdict-less row rather than none.
+        # produces a row rather than none.
         logger.info(
             "pr_metrics.emit.judge_path_not_implemented",
             extra={"organization_id": organization.id, "pull_request_id": pr.id},

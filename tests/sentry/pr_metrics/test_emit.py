@@ -1,6 +1,8 @@
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.pullrequest import (
     PullRequestAttribution,
@@ -84,7 +86,6 @@ class PrMetricsEmissionTest(TestCase):
             attributions=[SENTRY_APP_ATTRIBUTION],
         )
         assert row.close_action == "merged"
-        assert row.verdict is None
         assert row.merge_commit_sha == MERGE_SHA
         assert row.head_commit_sha == HEAD_SHA
         assert json.loads(row.attributions) == [SENTRY_APP_ATTRIBUTION]
@@ -110,12 +111,29 @@ class PrMetricsEmissionTest(TestCase):
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="closed",
-            payload={"number": 42, "merged": False, "head": {"sha": HEAD_SHA}},
+            payload={
+                "number": 42,
+                "merged": False,
+                "head": {"sha": HEAD_SHA},
+                "created_at": "2026-06-04T09:00:00Z",
+                "closed_at": "2026-06-04T10:00:00Z",
+            },
             attributions=[],
         )
         assert row.additions == 0
         assert row.commits_count == 0
         assert row.is_assigned is False
+
+    def test_build_row_raises_when_required_lifecycle_field_missing(self) -> None:
+        # Always-present fields are read fail-fast — a malformed payload errors
+        # (and the webhook loop logs it) rather than emitting a null lifecycle.
+        with pytest.raises(KeyError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="closed",
+                payload={"number": 42, "merged": False},
+                attributions=[],
+            )
 
     def test_build_row_for_close_omits_merge_commit_sha(self) -> None:
         row = build_pr_metrics_row(
@@ -170,7 +188,6 @@ class PrMetricsEmissionTest(TestCase):
                 pull_request_id=self.pull_request.id,
                 pr_key="42",
                 close_action="merged",
-                verdict=None,
                 head_commit_sha=HEAD_SHA,
                 merge_commit_sha=MERGE_SHA,
                 opened_at="2026-06-04T09:00:00Z",

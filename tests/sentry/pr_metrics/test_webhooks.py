@@ -325,6 +325,9 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         return {
             "number": 42,
             "merged": merged,
+            "created_at": "2026-06-04T09:00:00Z",
+            "closed_at": "2026-06-04T10:00:00Z",
+            "merged_at": "2026-06-04T10:00:00Z",
             "merge_commit_sha": MERGE_SHA,
             "head": {"sha": HEAD_SHA},
         }
