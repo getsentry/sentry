@@ -114,6 +114,7 @@ class SentryAppsTest(APITestCase):
         assert sentry_app.application is not None
         data = {
             "allowedOrigins": [],
+            "webhookHeaders": [],
             "author": sentry_app.author,
             "avatars": [],
             "clientId": sentry_app.application.client_id,
@@ -758,6 +759,29 @@ class PostSentryAppsTest(SentryAppsTest):
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
         assert sentry_app.application is not None
         assert sentry_app.application.get_allowed_origins() == ["google.com", "example.com"]
+
+    def test_create_integration_with_webhook_headers(self) -> None:
+        headers = ["X-Custom-Header: value", "Authorization: Bearer token123"]
+        response = self.get_success_response(
+            **self.get_data(webhookHeaders=headers), status_code=201
+        )
+        sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.webhook_headers == headers
+        assert response.data["webhookHeaders"] == headers
+
+    def test_create_integration_with_invalid_webhook_header_format(self) -> None:
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["BadHeader"]),
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_reserved_webhook_header(self) -> None:
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["Sentry-Hook-Resource: spoofed"]),
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
 
     def test_create_internal_integration_with_allowed_origins_and_test_route(self) -> None:
         self.create_project(organization=self.organization)
