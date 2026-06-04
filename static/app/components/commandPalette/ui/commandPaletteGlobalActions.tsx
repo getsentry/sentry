@@ -405,67 +405,61 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction
-          display={{label: t('Dashboards'), icon: <IconDashboard />}}
-          prompt={t('Search for a dashboard...')}
-          limit={5}
-          resource={(query, context) =>
-            cmdkQueryOptions({
-              ...dashboardsApiOptions(organization, {
-                query: {query, per_page: 20},
-              }),
-              enabled: context.state === 'selected',
-              select: data =>
-                data.json.map(dashboard => ({
-                  display: {
-                    label: dashboard.title,
-                    icon: dashboard.isFavorited ? <IconStar /> : <IconDashboard />,
-                  },
-                  keywords: [dashboard.title],
-                  to: `${prefix}/dashboard/${dashboard.id}/`,
-                })),
-            })
-          }
-        >
-          {dashboards => (
-            <React.Fragment>
-              {hasPrebuiltDashboards && (
-                <CMDKAction
-                  display={{label: t('All Dashboards')}}
-                  to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
-                />
-              )}
-              <CMDKAction
-                display={{
-                  label: hasPrebuiltDashboards
-                    ? t('Custom Dashboards')
-                    : t('All Dashboards'),
-                }}
-                to={`${prefix}/dashboards/`}
-              />
-              {hasPrebuiltDashboards && (
-                <CMDKAction
-                  display={{label: t('Sentry Built')}}
-                  to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
-                />
-              )}
-              {starredDashboards.length > 0 && (
-                <CMDKAction
-                  display={{label: t('Starred Dashboards'), icon: <IconStar />}}
-                  keywords={[t('bookmarked'), t('favorites')]}
-                >
-                  {starredDashboards.map(dashboard => (
-                    <CMDKAction
-                      key={dashboard.id}
-                      display={{label: dashboard.title, icon: <IconStar />}}
-                      to={`${prefix}/dashboard/${dashboard.id}/`}
-                    />
-                  ))}
-                </CMDKAction>
-              )}
-              {dashboards.map(renderAsyncResult)}
-            </React.Fragment>
+        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+          {hasPrebuiltDashboards && (
+            <CMDKAction
+              display={{label: t('All Dashboards')}}
+              to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
+            />
           )}
+          <CMDKAction
+            display={{
+              label: hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards'),
+            }}
+            to={`${prefix}/dashboards/`}
+          />
+          {hasPrebuiltDashboards && (
+            <CMDKAction
+              display={{label: t('Sentry Built')}}
+              to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
+            />
+          )}
+          {starredDashboards.length > 0 && (
+            <CMDKAction
+              display={{label: t('Starred Dashboards'), icon: <IconStar />}}
+              keywords={[t('bookmarked'), t('favorites')]}
+            >
+              {starredDashboards.map(dashboard => (
+                <CMDKAction
+                  key={dashboard.id}
+                  display={{label: dashboard.title, icon: <IconStar />}}
+                  to={`${prefix}/dashboard/${dashboard.id}/`}
+                />
+              ))}
+            </CMDKAction>
+          )}
+          <CMDKAction
+            display={{label: t('Search All Dashboards'), icon: <IconSearch />}}
+            prompt={t('Search for a dashboard...')}
+            limit={5}
+            resource={(query, context) =>
+              cmdkQueryOptions({
+                ...dashboardsApiOptions(organization, {
+                  query: {query, per_page: 20},
+                }),
+                enabled: context.state === 'selected',
+                select: data =>
+                  data.json.map(dashboard => ({
+                    display: {
+                      label: dashboard.title,
+                      icon: dashboard.isFavorited ? <IconStar /> : <IconDashboard />,
+                    },
+                    keywords: [dashboard.title],
+                    to: `${prefix}/dashboard/${dashboard.id}/`,
+                  })),
+              })
+            }
+          />
         </CMDKAction>
 
         {/* Hide the entire Insights section only when both migrations are active.

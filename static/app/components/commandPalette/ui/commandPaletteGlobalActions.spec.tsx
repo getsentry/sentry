@@ -448,15 +448,20 @@ describe('GlobalCommandPaletteActions - search recall', () => {
 
     renderPalette();
 
-    // Open the Dashboards section by clicking on it
     const input = await screen.findByRole('textbox', {name: 'Search commands'});
-    await userEvent.type(input, 'Dashboards');
 
-    // Click on the Dashboards option to drill in
+    // Navigate to Dashboards section
+    await userEvent.type(input, 'Dashboards');
     const dashboardsOption = await screen.findByRole('option', {name: /Dashboards/});
     await userEvent.click(dashboardsOption);
 
-    // Now type in the search query
+    // Click on "Search All Dashboards" to access the search feature
+    const searchAllOption = await screen.findByRole('option', {
+      name: /Search All Dashboards/,
+    });
+    await userEvent.click(searchAllOption);
+
+    // Type the search query
     await userEvent.clear(input);
     await userEvent.type(input, 'quer');
 
