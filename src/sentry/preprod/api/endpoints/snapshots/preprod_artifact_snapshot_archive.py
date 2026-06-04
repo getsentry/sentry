@@ -134,17 +134,20 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                     return "ready"
                 if _is_building_fresh(get_zip_state(metrics)):
                     return "building"
+                enqueued_at = datetime.now(timezone.utc).isoformat()
                 set_zip_state(
                     metrics,
                     status="building",
-                    enqueued_at=datetime.now(timezone.utc).isoformat(),
+                    enqueued_at=enqueued_at,
                     file_id=None,
+                    progress=0,
                 )
                 build_snapshot_images_zip.apply_async(
                     kwargs={
                         "org_id": artifact.project.organization_id,
                         "project_id": artifact.project_id,
                         "artifact_id": artifact.id,
+                        "build_token": enqueued_at,
                     }
                 )
                 return "building"

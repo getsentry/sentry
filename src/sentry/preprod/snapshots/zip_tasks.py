@@ -28,15 +28,26 @@ ZIP_FILE_TYPE = "preprod_snapshot_images.zip"
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=900,
 )
-def build_snapshot_images_zip(org_id: int, project_id: int, artifact_id: int) -> None:
+def build_snapshot_images_zip(
+    org_id: int, project_id: int, artifact_id: int, build_token: str
+) -> None:
     try:
         snapshot_metrics = PreprodSnapshotMetrics.objects.get(preprod_artifact_id=artifact_id)
     except PreprodSnapshotMetrics.DoesNotExist:
         return
 
+    def _superseded() -> bool:
+        # Each enqueue stamps a fresh ``enqueued_at`` token. After the staleness
+        # re-enqueue an older worker can still finish; if the stored token no
+        # longer matches ours, a newer build owns the state and we must not touch
+        # it (otherwise we'd clobber its progress/result or delete its File).
+        snapshot_metrics.refresh_from_db()
+        return (get_zip_state(snapshot_metrics) or {}).get("enqueued_at") != build_token
+
     manifest_key = (snapshot_metrics.extras or {}).get("manifest_key")
     if not manifest_key:
-        set_zip_state(snapshot_metrics, status="failed")
+        if not _superseded():
+            set_zip_state(snapshot_metrics, status="failed")
         return
 
     session = get_preprod_session(org_id, project_id)
@@ -51,6 +62,8 @@ def build_snapshot_images_zip(org_id: int, project_id: int, artifact_id: int) ->
             # Refresh so progress merges into the latest extras blob rather than
             # clobbering concurrent writes to other keys with a stale copy.
             snapshot_metrics.refresh_from_db()
+            if (get_zip_state(snapshot_metrics) or {}).get("enqueued_at") != build_token:
+                return
             set_zip_state(snapshot_metrics, progress=pct)
 
         with NamedTemporaryFile() as tmp:
@@ -77,13 +90,17 @@ def build_snapshot_images_zip(org_id: int, project_id: int, artifact_id: int) ->
         )
         if file_obj is not None:
             file_obj.delete()
-        snapshot_metrics.refresh_from_db()
-        set_zip_state(snapshot_metrics, status="failed")
+        if not _superseded():
+            set_zip_state(snapshot_metrics, status="failed")
         return
 
     assert file_obj is not None
     snapshot_metrics.refresh_from_db()
     old = get_zip_state(snapshot_metrics) or {}
+    if old.get("enqueued_at") != build_token:
+        # A newer build superseded us; discard our archive and leave its state intact.
+        file_obj.delete()
+        return
     set_zip_state(
         snapshot_metrics,
         status="ready",

@@ -45,22 +45,24 @@ class SnapshotDownloadStatusTest(APITestCase):
             response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
         assert response.data["status"] == "building"
+        state = PreprodSnapshotMetrics.objects.get(preprod_artifact=artifact).extras["images_zip"]
         mock_task.apply_async.assert_called_once_with(
             kwargs={
                 "org_id": self.org.id,
                 "project_id": self.project.id,
                 "artifact_id": artifact.id,
+                "build_token": state["enqueued_at"],
             }
         )
 
     @patch(ENQUEUE_TARGET)
-    def test_status_returns_null_progress_on_fresh_enqueue(self, mock_task):
+    def test_status_resets_progress_on_fresh_enqueue(self, mock_task):
         artifact = self._artifact()
         with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
         assert response.data["status"] == "building"
-        assert response.data["progress"] is None
+        assert response.data["progress"] == 0
 
     @patch(ENQUEUE_TARGET)
     def test_status_surfaces_build_progress(self, mock_task):
