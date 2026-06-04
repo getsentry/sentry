@@ -49,7 +49,6 @@ import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widg
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
-import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {
   ALLOWED_CELL_ACTIONS,
   MISSING_DATA_MESSAGE,
@@ -60,6 +59,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {RageAndDeadClicksWidgetVisualization} from 'sentry/views/dashboards/widgets/rageAndDeadClicksWidget/rageAndDeadClicksVisualization';
 import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -452,7 +452,6 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
       </StyledErrorPanel>
     );
   }
-
 
   return (
     <ChartWrapper autoHeightResize>
