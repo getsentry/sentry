@@ -38,7 +38,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.seer.code_review.webhooks.debug_log import debug_log
+from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.seer.code_review.webhooks.seat_tracking import (
     track_gitlab_contributor_seat_processor,

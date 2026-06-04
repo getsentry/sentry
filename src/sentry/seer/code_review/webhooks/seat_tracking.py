@@ -52,7 +52,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.code_review.contributor_seats import track_contributor_seat
-from sentry.seer.code_review.webhooks.debug_log import debug_log
+from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -121,7 +121,6 @@ def track_gitlab_contributor_seat_processor(
             organization,
             "missing_author_data",
             level=logging.WARNING,
-            integration_id=integration.id,
             error=str(e),
             **base_extra,
         )

@@ -69,7 +69,7 @@ from ..metrics import (
 )
 from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, _common_codegen_request_payload
-from .debug_log import debug_log
+from .logging import debug_log
 from .task import process_github_webhook_event
 
 logger = logging.getLogger(__name__)
