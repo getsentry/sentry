@@ -1,6 +1,8 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 import sentry.api.helpers.group_index.update
 import sentry.issues.endpoints.group_details
 import sentry.issues.priority
@@ -10,16 +12,19 @@ import sentry.models.groupinbox
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionContext,
+    DuplicateActionError,
     GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
     resolve_action_source,
 )
+from sentry.issues.action_log.base import ActionSource
 from sentry.issues.action_log.types import (
     ArchiveAction,
     AssignAction,
     GroupActionType,
+    GroupActorType,
     MarkReviewedAction,
     MergeFromOtherAction,
     MergeIntoOtherAction,
@@ -28,6 +33,7 @@ from sentry.issues.action_log.types import (
     UnassignAction,
     ViewAction,
 )
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
@@ -365,3 +371,92 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         ]
         assert len(merge_from) == 1
         assert len(merge_into) == 1
+
+
+class TestPublishActionWrite(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+
+    def test_creates_log_entry(self) -> None:
+        with self.options({"issues.action-log.write-to-db": True}):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                actor=GroupActionActor.user(self.user.id),
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.type == GroupActionType.VIEW
+        assert entry.actor_id == self.user.id
+        assert entry.actor_type == GroupActorType.USER
+        assert entry.source == ActionSource.API
+        assert entry.data == {}
+        assert entry.date_added is not None
+
+    def test_system_action(self) -> None:
+        with self.options({"issues.action-log.write-to-db": True}):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.SYSTEM,
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                actor=SYSTEM_ACTOR,
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.actor_type == GroupActorType.SYSTEM
+        assert entry.actor_id == 0
+
+    def test_multiple_entries_ordered(self) -> None:
+        with self.options({"issues.action-log.write-to-db": True}):
+            for _ in range(3):
+                publish_action(
+                    ViewAction(),
+                    source=ActionSource.API,
+                    group_id=self.group.id,
+                    organization_id=self.group.project.organization_id,
+                    project_id=self.group.project_id,
+                    actor=GroupActionActor.user(self.user.id),
+                )
+
+        entries = list(
+            GroupActionLogEntry.objects.filter(group_id=self.group.id).order_by("date_added", "id")
+        )
+        assert len(entries) == 3
+        assert entries[0].id < entries[1].id < entries[2].id
+
+    def test_duplicate_idempotency_key_raises(self) -> None:
+        kwargs = dict(
+            source=ActionSource.API,
+            group_id=self.group.id,
+            organization_id=self.group.project.organization_id,
+            project_id=self.group.project_id,
+            actor=GroupActionActor.user(self.user.id),
+            idempotency_key="view-123",
+        )
+
+        with self.options({"issues.action-log.write-to-db": True}):
+            publish_action(ViewAction(), **kwargs)
+
+            with pytest.raises(DuplicateActionError):
+                publish_action(ViewAction(), **kwargs)
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    def test_option_disabled_skips_write(self) -> None:
+        with self.options({"issues.action-log.write-to-db": False}):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                actor=GroupActionActor.user(self.user.id),
+            )
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
