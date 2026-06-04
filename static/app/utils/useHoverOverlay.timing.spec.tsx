@@ -5,8 +5,8 @@ import {act, fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 // Disable the NODE_ENV === 'test' instant-open bypass for this file so we can
 // drive the real state machine with fake timers. The rest of the tooltip test
 // suite keeps the bypass and does not need to be rewritten.
-jest.mock('sentry/constants', () => ({
-  ...jest.requireActual('sentry/constants'),
+jest.mock('sentry/constants/env', () => ({
+  ...jest.requireActual('sentry/constants/env'),
   NODE_ENV: 'production',
 }));
 
