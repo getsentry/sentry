@@ -105,14 +105,7 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('formats basic issue information correctly', () => {
-      const result = issueAndEventToMarkdown(
-        group,
-        event,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      const result = issueAndEventToMarkdown({group, event, organization});
 
       expect(result).toContain(`# ${group.title}`);
       expect(result).toContain(`**Issue ID:** ${group.id}`);
@@ -120,14 +113,12 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('includes group summary data when provided', () => {
-      const result = issueAndEventToMarkdown(
+      const result = issueAndEventToMarkdown({
         group,
         event,
-        mockGroupSummaryData,
-        null,
-        undefined,
-        organization
-      );
+        groupSummaryData: mockGroupSummaryData,
+        organization,
+      });
 
       expect(result).toContain('## Issue Summary');
       expect(result).toContain(mockGroupSummaryData.headline);
@@ -139,14 +130,12 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('includes autofix data when provided', () => {
-      const result = issueAndEventToMarkdown(
+      const result = issueAndEventToMarkdown({
         group,
         event,
-        null,
-        mockAutofixData,
-        undefined,
-        organization
-      );
+        autofixData: mockAutofixData,
+        organization,
+      });
 
       expect(result).toContain('## Root Cause');
       expect(result).toContain('## Plan');
@@ -161,14 +150,11 @@ describe('useCopyIssueDetails', () => {
         ],
       };
 
-      const result = issueAndEventToMarkdown(
+      const result = issueAndEventToMarkdown({
         group,
-        eventWithTags,
-        null,
-        null,
-        undefined,
-        organization
-      );
+        event: eventWithTags,
+        organization,
+      });
 
       expect(result).toContain('## Tags');
       expect(result).toContain('**browser:** Chrome');
@@ -206,14 +192,11 @@ describe('useCopyIssueDetails', () => {
         ],
       });
 
-      const result = issueAndEventToMarkdown(
+      const result = issueAndEventToMarkdown({
         group,
-        eventWithException,
-        null,
-        null,
-        undefined,
-        organization
-      );
+        event: eventWithException,
+        organization,
+      });
 
       expect(result).toContain('## Exception');
       expect(result).toContain('**Type:** TypeError');
@@ -268,14 +251,12 @@ describe('useCopyIssueDetails', () => {
       });
 
       // Pass activeThreadId = 1 to select Main Thread
-      const result = issueAndEventToMarkdown(
+      const result = issueAndEventToMarkdown({
         group,
-        eventWithThreads,
-        null,
-        null,
-        1,
-        organization
-      );
+        event: eventWithThreads,
+        activeThreadId: 1,
+        organization,
+      });
 
       expect(result).toContain('## Thread: Main Thread');
       expect(result).toContain('(crashed)');
@@ -333,14 +314,12 @@ describe('useCopyIssueDetails', () => {
       });
 
       // Pass activeThreadId = 2 to select Worker Thread
-      const result = issueAndEventToMarkdown(
+      const result = issueAndEventToMarkdown({
         group,
-        eventWithThreads,
-        null,
-        null,
-        2,
-        organization
-      );
+        event: eventWithThreads,
+        activeThreadId: 2,
+        organization,
+      });
 
       expect(result).toContain('## Thread: Worker Thread');
       expect(result).not.toContain('(crashed)');
@@ -381,14 +360,11 @@ describe('useCopyIssueDetails', () => {
         ],
       });
 
-      const result = issueAndEventToMarkdown(
+      const result = issueAndEventToMarkdown({
         group,
-        eventWithThreads,
-        null,
-        null,
-        undefined,
-        organization
-      );
+        event: eventWithThreads,
+        organization,
+      });
 
       expect(result).not.toContain('## Thread');
       expect(result).not.toContain('mainFunction');
@@ -491,14 +467,11 @@ LIMIT 21`;
     });
 
     it('dedupes repeated queries instead of printing every span', () => {
-      const result = issueAndEventToMarkdown(
-        performanceGroup,
-        nPlusOneEvent,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      const result = issueAndEventToMarkdown({
+        group: performanceGroup,
+        event: nPlusOneEvent,
+        organization,
+      });
 
       // The identical query collapses to one fenced block per group (preceding +
       // offending) rather than once per span.
@@ -538,14 +511,11 @@ LIMIT 21`;
         entries: [{type: EntryType.SPANS, data: offenders}],
       });
 
-      const result = issueAndEventToMarkdown(
-        performanceGroup,
-        manyOffenderEvent,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      const result = issueAndEventToMarkdown({
+        group: performanceGroup,
+        event: manyOffenderEvent,
+        organization,
+      });
 
       // Count indented sample bullets that are actual values (exclude "…and more").
       const sampleLines = (result.match(/^ {2}- (?!…)/gm) ?? []).length;
@@ -685,14 +655,11 @@ LIMIT 21`;
         },
       });
 
-      const endpointResult = issueAndEventToMarkdown(
-        endpointRegressionGroup,
-        endpointRegressionEvent,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      const endpointResult = issueAndEventToMarkdown({
+        group: endpointRegressionGroup,
+        event: endpointRegressionEvent,
+        organization,
+      });
 
       expect(endpointResult).not.toContain('## Span Evidence');
       expect(endpointResult).not.toContain('**Transaction:** ApiException');
@@ -706,41 +673,30 @@ LIMIT 21`;
         },
       });
 
-      const functionResult = issueAndEventToMarkdown(
-        functionRegressionGroup,
-        functionRegressionEvent,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      const functionResult = issueAndEventToMarkdown({
+        group: functionRegressionGroup,
+        event: functionRegressionEvent,
+        organization,
+      });
 
       expect(functionResult).not.toContain('## Span Evidence');
       expect(functionResult).not.toContain('**Transaction:** ApiException');
     });
 
     it('does not include span evidence for non-performance issues', () => {
-      const result = issueAndEventToMarkdown(
-        group,
-        event,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      const result = issueAndEventToMarkdown({group, event, organization});
 
       expect(result).not.toContain('## Span Evidence');
     });
 
     it('prefers autofix rootCause over groupSummary possibleCause', () => {
-      const result = issueAndEventToMarkdown(
+      const result = issueAndEventToMarkdown({
         group,
         event,
-        mockGroupSummaryData,
-        mockAutofixData,
-        undefined,
-        organization
-      );
+        groupSummaryData: mockGroupSummaryData,
+        autofixData: mockAutofixData,
+        organization,
+      });
 
       expect(result).toContain('## Root Cause');
       expect(result).not.toContain(

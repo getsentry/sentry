@@ -120,14 +120,14 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
 
   const handleCopyMarkdown = useCallback(() => {
-    const markdownText = issueAndEventToMarkdown(
+    const markdownText = issueAndEventToMarkdown({
       group,
       event,
       groupSummaryData,
       autofixData,
       activeThreadId,
-      organization
-    );
+      organization,
+    });
 
     trackAnalytics('issue_details.copy_issue_details_as_markdown', {
       organization,

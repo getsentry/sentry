@@ -143,14 +143,23 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
   return markdownText;
 }
 
-export const issueAndEventToMarkdown = (
-  group: Group,
-  event: Event | null | undefined,
-  groupSummaryData: GroupSummaryData | null | undefined,
-  autofixData: ExplorerAutofixState | null | undefined,
-  activeThreadId: number | undefined,
-  organization: Organization
-): string => {
+interface IssueAndEventToMarkdownOptions {
+  group: Group;
+  organization: Organization;
+  activeThreadId?: number;
+  autofixData?: ExplorerAutofixState | null;
+  event?: Event | null;
+  groupSummaryData?: GroupSummaryData | null;
+}
+
+export const issueAndEventToMarkdown = ({
+  group,
+  event,
+  groupSummaryData,
+  autofixData,
+  activeThreadId,
+  organization,
+}: IssueAndEventToMarkdownOptions): string => {
   // Format the basic issue information
   let markdownText = `# ${group.title}\n\n`;
   markdownText += `**Issue ID:** ${group.id}\n`;
@@ -217,14 +226,14 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {
-    return issueAndEventToMarkdown(
+    return issueAndEventToMarkdown({
       group,
       event,
       groupSummaryData,
       autofixData,
       activeThreadId,
-      organization
-    );
+      organization,
+    });
   }, [group, event, groupSummaryData, autofixData, activeThreadId, organization]);
 
   const {copy} = useCopyToClipboard();
