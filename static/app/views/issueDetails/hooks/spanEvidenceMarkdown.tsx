@@ -7,11 +7,11 @@ import {t} from 'sentry/locale';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import {
   AI_DETECTED_ISSUE_TYPES,
-  getIssueTypeFromOccurrenceType,
+  type Group,
   isTransactionBased,
-  IssueType,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
@@ -165,16 +165,11 @@ function summarizeSpanGroup(
  */
 export function formatSpanEvidenceToMarkdown(
   event: Event,
-  organization: Organization
+  organization: Organization,
+  group: Group
 ): string {
   const eventTransaction = event as EventTransaction;
-  const issueType =
-    eventTransaction.perfProblem?.issueType ??
-    getIssueTypeFromOccurrenceType(event.occurrence?.type);
-
-  if (!issueType) {
-    return '';
-  }
+  const issueType = group.issueType;
 
   const regressionData = getKeyValueListData(organization, issueType, event);
   if (regressionData) {
@@ -185,13 +180,12 @@ export function formatSpanEvidenceToMarkdown(
     return `\n## Span Evidence\n\n${regressionLines.join('\n')}\n`;
   }
 
-  // Regression issues only use getKeyValueListData (see RegressionEvidence in
-  // spanEvidenceKeyValueList). Without evidenceData, omit the section rather than
-  // falling through to generic span evidence (which can show event.title as Transaction).
-  if (
-    issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION ||
-    issueType === IssueType.PROFILE_FUNCTION_REGRESSION
-  ) {
+  // Only emit span evidence for issue types whose config enables it — the same
+  // flag the issue page uses to decide whether to render the Span Evidence panel.
+  // This excludes regressions (their summary is handled above) plus metric and
+  // other categories that don't expose span evidence, and stays in sync as new
+  // performance types are added.
+  if (!getConfigForIssueType(group, group.project).spanEvidence.enabled) {
     return '';
   }
 

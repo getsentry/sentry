@@ -10,6 +10,7 @@ import * as explorerAutofixHooks from 'sentry/components/events/autofix/useExplo
 import type {GroupSummaryData} from 'sentry/components/group/groupSummary';
 import * as groupSummaryHooks from 'sentry/components/group/groupSummary';
 import {EntryType} from 'sentry/types/event';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
 import * as useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -22,6 +23,20 @@ jest.mock('sentry/utils/useCopyToClipboard');
 describe('useCopyIssueDetails', () => {
   const organization = OrganizationFixture();
   const group = GroupFixture();
+  // Span Evidence gating uses the issue type config, which is keyed off the
+  // group's category/type — performance issues must use a performance group.
+  const performanceGroup = GroupFixture({
+    issueCategory: IssueCategory.PERFORMANCE,
+    issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+  });
+  const endpointRegressionGroup = GroupFixture({
+    issueCategory: IssueCategory.PERFORMANCE,
+    issueType: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+  });
+  const functionRegressionGroup = GroupFixture({
+    issueCategory: IssueCategory.PERFORMANCE,
+    issueType: IssueType.PROFILE_FUNCTION_REGRESSION,
+  });
   const event = EventFixture({
     id: '123456',
     dateCreated: '2023-01-01T00:00:00Z',
@@ -442,7 +457,7 @@ LIMIT 21`;
 
     it('summarizes N+1 span evidence with dedup, cardinality, code and timing', () => {
       const result = issueAndEventToMarkdown(
-        group,
+        performanceGroup,
         nPlusOneEvent,
         null,
         null,
@@ -476,7 +491,7 @@ LIMIT 21`;
 
     it('dedupes repeated queries instead of printing every span', () => {
       const result = issueAndEventToMarkdown(
-        group,
+        performanceGroup,
         nPlusOneEvent,
         null,
         null,
@@ -523,7 +538,7 @@ LIMIT 21`;
       });
 
       const result = issueAndEventToMarkdown(
-        group,
+        performanceGroup,
         manyOffenderEvent,
         null,
         null,
@@ -553,7 +568,7 @@ LIMIT 21`;
       });
 
       const result = issueAndEventToMarkdown(
-        group,
+        performanceGroup,
         profileEvent,
         null,
         null,
@@ -580,7 +595,7 @@ LIMIT 21`;
       });
 
       const result = issueAndEventToMarkdown(
-        group,
+        performanceGroup,
         profileEvent,
         null,
         null,
@@ -611,7 +626,7 @@ LIMIT 21`;
       });
 
       const result = issueAndEventToMarkdown(
-        group,
+        endpointRegressionGroup,
         regressionEvent,
         null,
         null,
@@ -647,7 +662,7 @@ LIMIT 21`;
       });
 
       const result = issueAndEventToMarkdown(
-        group,
+        functionRegressionGroup,
         regressionEvent,
         null,
         null,
@@ -674,7 +689,7 @@ LIMIT 21`;
       });
 
       const endpointResult = issueAndEventToMarkdown(
-        group,
+        endpointRegressionGroup,
         endpointRegressionEvent,
         null,
         null,
@@ -695,7 +710,7 @@ LIMIT 21`;
       });
 
       const functionResult = issueAndEventToMarkdown(
-        group,
+        functionRegressionGroup,
         functionRegressionEvent,
         null,
         null,

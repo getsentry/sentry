@@ -202,7 +202,7 @@ export const issueAndEventToMarkdown = (
   }
 
   if (event) {
-    markdownText += formatSpanEvidenceToMarkdown(event, organization);
+    markdownText += formatSpanEvidenceToMarkdown(event, organization, group);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
