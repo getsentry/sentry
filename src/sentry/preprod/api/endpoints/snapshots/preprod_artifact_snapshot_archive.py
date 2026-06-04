@@ -149,14 +149,25 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                     file_id=None,
                     progress=0,
                 )
-                build_snapshot_images_zip.apply_async(
-                    kwargs={
-                        "org_id": artifact.project.organization_id,
-                        "project_id": artifact.project_id,
-                        "artifact_id": artifact.id,
-                        "build_token": enqueued_at,
-                    }
-                )
+                try:
+                    build_snapshot_images_zip.apply_async(
+                        kwargs={
+                            "org_id": artifact.project.organization_id,
+                            "project_id": artifact.project_id,
+                            "artifact_id": artifact.id,
+                            "build_token": enqueued_at,
+                        }
+                    )
+                except Exception:
+                    # Enqueue failed (e.g. broker unavailable). Don't leave an
+                    # orphaned "building" state that blocks retries until the
+                    # staleness window; mark failed so the client can retry.
+                    logger.exception(
+                        "preprod_snapshot_zip.enqueue_failed",
+                        extra={"preprod_artifact_id": artifact.id},
+                    )
+                    set_zip_state(metrics, status="failed")
+                    return "failed"
                 return "building"
         except UnableToAcquireLock:
             # Another request holds the lock to start a build; report the latest

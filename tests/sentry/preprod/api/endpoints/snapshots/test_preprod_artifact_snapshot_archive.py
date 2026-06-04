@@ -154,6 +154,19 @@ class SnapshotDownloadStatusTest(APITestCase):
         assert response.data["status"] == "building"
 
     @patch(ENQUEUE_TARGET)
+    def test_status_marks_failed_when_enqueue_fails(self, mock_task):
+        mock_task.apply_async.side_effect = Exception("broker down")
+        artifact = self._artifact()
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(self._url(artifact.id))
+        assert response.status_code == 200
+        assert response.data["status"] == "failed"
+        metrics = PreprodSnapshotMetrics.objects.get(preprod_artifact=artifact)
+        assert metrics.extras is not None
+        state = metrics.extras["images_zip"]
+        assert state["status"] == "failed"
+
+    @patch(ENQUEUE_TARGET)
     def test_status_returns_404_when_metrics_deleted_mid_request(self, mock_task):
         artifact = self._artifact()
         with (
