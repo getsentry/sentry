@@ -17,7 +17,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
 
-class _MinimalSentryAppPayload(TypedDict):
+class _ActivitySentryAppEmbed(TypedDict):
     id: str
     name: str
     slug: str
@@ -52,7 +52,7 @@ class ActivitySerializer(Serializer):
         if user_ids:
             sentry_apps_list = app_service.get_sentry_apps_by_proxy_users(proxy_user_ids=user_ids)
         # Minimal Sentry App serialization to keep the payload minimal
-        sentry_apps: dict[str, _MinimalSentryAppPayload] = {
+        sentry_apps: dict[str, _ActivitySentryAppEmbed] = {
             str(app.proxy_user_id): {
                 "id": str(app.id),
                 "name": app.name,
