@@ -63,7 +63,7 @@ export function keyValueListDataToMarkdownLines(data: KeyValueListData): string[
 }
 
 export function getKeyValueListData(
-  organization: Organization | undefined,
+  organization: Organization,
   issueType: IssueType,
   event: Event
 ): KeyValueListData | null {
@@ -74,30 +74,24 @@ export function getKeyValueListData(
 
   switch (issueType) {
     case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
+      const target = transactionSummaryRouteWithQuery({
+        organization,
+        transaction: evidenceData.transaction,
+        query: {},
+        trendFunction: 'p95',
+        projectID: event.projectID,
+        display: DisplayModes.TREND,
+      });
       return [
         {
           key: 'endpoint',
           subject: t('Endpoint Name'),
           value: evidenceData.transaction,
-          ...(organization
-            ? {
-                actionButton: (
-                  <LinkButton
-                    size="xs"
-                    to={transactionSummaryRouteWithQuery({
-                      organization,
-                      transaction: evidenceData.transaction,
-                      query: {},
-                      trendFunction: 'p95',
-                      projectID: event.projectID,
-                      display: DisplayModes.TREND,
-                    })}
-                  >
-                    {t('View Transaction')}
-                  </LinkButton>
-                ),
-              }
-            : {}),
+          actionButton: (
+            <LinkButton size="xs" to={target}>
+              {t('View Transaction')}
+            </LinkButton>
+          ),
         },
         {
           key: 'duration change',

@@ -89,7 +89,14 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('formats basic issue information correctly', () => {
-      const result = issueAndEventToMarkdown(group, event, null, null, undefined);
+      const result = issueAndEventToMarkdown(
+        group,
+        event,
+        null,
+        null,
+        undefined,
+        organization
+      );
 
       expect(result).toContain(`# ${group.title}`);
       expect(result).toContain(`**Issue ID:** ${group.id}`);
@@ -102,7 +109,8 @@ describe('useCopyIssueDetails', () => {
         event,
         mockGroupSummaryData,
         null,
-        undefined
+        undefined,
+        organization
       );
 
       expect(result).toContain('## Issue Summary');
@@ -120,7 +128,8 @@ describe('useCopyIssueDetails', () => {
         event,
         null,
         mockAutofixData,
-        undefined
+        undefined,
+        organization
       );
 
       expect(result).toContain('## Root Cause');
@@ -136,7 +145,14 @@ describe('useCopyIssueDetails', () => {
         ],
       };
 
-      const result = issueAndEventToMarkdown(group, eventWithTags, null, null, undefined);
+      const result = issueAndEventToMarkdown(
+        group,
+        eventWithTags,
+        null,
+        null,
+        undefined,
+        organization
+      );
 
       expect(result).toContain('## Tags');
       expect(result).toContain('**browser:** Chrome');
@@ -179,7 +195,8 @@ describe('useCopyIssueDetails', () => {
         eventWithException,
         null,
         null,
-        undefined
+        undefined,
+        organization
       );
 
       expect(result).toContain('## Exception');
@@ -235,7 +252,14 @@ describe('useCopyIssueDetails', () => {
       });
 
       // Pass activeThreadId = 1 to select Main Thread
-      const result = issueAndEventToMarkdown(group, eventWithThreads, null, null, 1);
+      const result = issueAndEventToMarkdown(
+        group,
+        eventWithThreads,
+        null,
+        null,
+        1,
+        organization
+      );
 
       expect(result).toContain('## Thread: Main Thread');
       expect(result).toContain('(crashed)');
@@ -293,7 +317,14 @@ describe('useCopyIssueDetails', () => {
       });
 
       // Pass activeThreadId = 2 to select Worker Thread
-      const result = issueAndEventToMarkdown(group, eventWithThreads, null, null, 2);
+      const result = issueAndEventToMarkdown(
+        group,
+        eventWithThreads,
+        null,
+        null,
+        2,
+        organization
+      );
 
       expect(result).toContain('## Thread: Worker Thread');
       expect(result).not.toContain('(crashed)');
@@ -339,7 +370,8 @@ describe('useCopyIssueDetails', () => {
         eventWithThreads,
         null,
         null,
-        undefined
+        undefined,
+        organization
       );
 
       expect(result).not.toContain('## Thread');
@@ -379,7 +411,8 @@ describe('useCopyIssueDetails', () => {
         performanceEvent,
         null,
         null,
-        undefined
+        undefined,
+        organization
       );
 
       expect(result).toContain('## Span Evidence');
@@ -406,7 +439,14 @@ describe('useCopyIssueDetails', () => {
         },
       });
 
-      const result = issueAndEventToMarkdown(group, profileEvent, null, null, undefined);
+      const result = issueAndEventToMarkdown(
+        group,
+        profileEvent,
+        null,
+        null,
+        undefined,
+        organization
+      );
 
       expect(result).toContain('## Span Evidence');
       expect(result).not.toContain('**Transaction:** ApiException');
@@ -426,7 +466,14 @@ describe('useCopyIssueDetails', () => {
         },
       });
 
-      const result = issueAndEventToMarkdown(group, profileEvent, null, null, undefined);
+      const result = issueAndEventToMarkdown(
+        group,
+        profileEvent,
+        null,
+        null,
+        undefined,
+        organization
+      );
 
       expect(result).toContain('**Transaction:** app.start');
       expect(result).not.toContain('**Transaction:** ApiException');
@@ -455,7 +502,8 @@ describe('useCopyIssueDetails', () => {
         regressionEvent,
         null,
         null,
-        undefined
+        undefined,
+        organization
       );
 
       expect(result).toContain('## Span Evidence');
@@ -490,7 +538,8 @@ describe('useCopyIssueDetails', () => {
         regressionEvent,
         null,
         null,
-        undefined
+        undefined,
+        organization
       );
 
       expect(result).toContain('## Span Evidence');
@@ -502,7 +551,14 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('does not include span evidence for non-performance issues', () => {
-      const result = issueAndEventToMarkdown(group, event, null, null, undefined);
+      const result = issueAndEventToMarkdown(
+        group,
+        event,
+        null,
+        null,
+        undefined,
+        organization
+      );
 
       expect(result).not.toContain('## Span Evidence');
     });
@@ -513,7 +569,8 @@ describe('useCopyIssueDetails', () => {
         event,
         mockGroupSummaryData,
         mockAutofixData,
-        undefined
+        undefined,
+        organization
       );
 
       expect(result).toContain('## Root Cause');

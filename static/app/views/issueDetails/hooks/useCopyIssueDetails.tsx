@@ -29,6 +29,7 @@ import {
   isTransactionBased,
   type Group,
 } from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -167,7 +168,7 @@ function getSpanMarkdownValue(
  * issues. Returns an empty string for issues that don't expose span evidence
  * (e.g. errors).
  */
-function formatSpanEvidenceToMarkdown(event: Event): string {
+function formatSpanEvidenceToMarkdown(event: Event, organization: Organization): string {
   const eventTransaction = event as EventTransaction;
   const issueType =
     eventTransaction.perfProblem?.issueType ??
@@ -177,7 +178,7 @@ function formatSpanEvidenceToMarkdown(event: Event): string {
     return '';
   }
 
-  const regressionData = getKeyValueListData(undefined, issueType, event);
+  const regressionData = getKeyValueListData(organization, issueType, event);
   if (regressionData) {
     const regressionLines = keyValueListDataToMarkdownLines(regressionData);
     if (regressionLines.length === 0) {
@@ -257,7 +258,8 @@ export const issueAndEventToMarkdown = (
   event: Event | null | undefined,
   groupSummaryData: GroupSummaryData | null | undefined,
   autofixData: ExplorerAutofixState | null | undefined,
-  activeThreadId: number | undefined
+  activeThreadId: number | undefined,
+  organization: Organization
 ): string => {
   // Format the basic issue information
   let markdownText = `# ${group.title}\n\n`;
@@ -310,7 +312,7 @@ export const issueAndEventToMarkdown = (
   }
 
   if (event) {
-    markdownText += formatSpanEvidenceToMarkdown(event);
+    markdownText += formatSpanEvidenceToMarkdown(event, organization);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
@@ -330,9 +332,10 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
       event,
       groupSummaryData,
       autofixData,
-      activeThreadId
+      activeThreadId,
+      organization
     );
-  }, [group, event, groupSummaryData, autofixData, activeThreadId]);
+  }, [group, event, groupSummaryData, autofixData, activeThreadId, organization]);
 
   const {copy} = useCopyToClipboard();
 
