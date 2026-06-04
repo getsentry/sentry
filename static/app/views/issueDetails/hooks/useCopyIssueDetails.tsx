@@ -19,7 +19,11 @@ import {
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
-import {getIssueTypeFromOccurrenceType, type Group} from 'sentry/types/group';
+import {
+  getIssueTypeFromOccurrenceType,
+  isTransactionBased,
+  type Group,
+} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -165,9 +169,10 @@ function getSpanMarkdownValue(
  */
 function formatSpanEvidenceToMarkdown(event: Event): string {
   const eventTransaction = event as EventTransaction;
+  const occurrenceType = event.occurrence?.type;
   const issueType =
     eventTransaction.perfProblem?.issueType ??
-    getIssueTypeFromOccurrenceType(event.occurrence?.type);
+    getIssueTypeFromOccurrenceType(occurrenceType);
 
   if (!issueType) {
     return '';
@@ -185,8 +190,17 @@ function formatSpanEvidenceToMarkdown(event: Event): string {
   type EvidenceSpan = {description?: string; op?: string} | null | undefined;
   const lines: string[] = [];
 
-  if (event.title) {
+  const hasTransactionNameEvidenceDisplay = evidenceDisplay.some(
+    item => item?.name === 'Transaction Name'
+  );
+
+  if ((eventTransaction.perfProblem || isTransactionBased(occurrenceType)) && event.title) {
     lines.push(`**Transaction:** ${event.title}`);
+  } else if (
+    typeof evidenceData.transactionName === 'string' &&
+    !hasTransactionNameEvidenceDisplay
+  ) {
+    lines.push(`**Transaction Name:** ${evidenceData.transactionName}`);
   }
 
   if (spanInfo?.parentSpan) {
