@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
 import {SourceSuggestionType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {

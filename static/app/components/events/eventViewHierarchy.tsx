@@ -11,8 +11,8 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
