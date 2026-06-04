@@ -77,6 +77,27 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
         return group
 
+    def _get_target_group(
+        self,
+        request: Request,
+        organization: Organization,
+        detector_id: str | None,
+        group_id: str | None,
+    ) -> Group | None:
+        if detector_id:
+            detector = self.get_detector_from_detector_id(detector_id, organization)
+            if not request.access.has_project_access(detector.project):
+                raise ValidationError({"detectorId": "Detector not found"})
+            return self.get_group_from_detector(detector)
+
+        if group_id:
+            group = self.get_group_from_group_id(group_id, organization)
+            if not request.access.has_project_access(group.project):
+                raise ValidationError({"groupId": "Group not found"})
+            return group
+
+        return None
+
     @extend_schema(
         operation_id="Fetch Group Open Periods",
         parameters=[
@@ -136,16 +157,12 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if detector_id_param and group_id_param:
             raise ValidationError({"detail": "Must provide only one of detectorId or groupId"})
 
-        target_group: Group | None = None
-        if detector_id_param:
-            detector = self.get_detector_from_detector_id(detector_id_param, organization)
-            if not request.access.has_project_access(detector.project):
-                raise ValidationError({"detectorId": "Detector not found"})
-            target_group = self.get_group_from_detector(detector)
-        elif group_id_param:
-            target_group = self.get_group_from_group_id(group_id_param, organization)
-            if not request.access.has_project_access(target_group.project):
-                raise ValidationError({"groupId": "Group not found"})
+        target_group = self._get_target_group(
+            request=request,
+            organization=organization,
+            detector_id=detector_id_param,
+            group_id=group_id_param,
+        )
 
         if not target_group:
             return self.paginate(request=request, queryset=[])
