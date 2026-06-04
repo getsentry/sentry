@@ -36,10 +36,12 @@ from sentry.tasks.summaries.utils import (
 )
 from sentry.tasks.summaries.weekly_reports import (
     OrganizationReportBatch,
+    build_report_data,
     date_format,
     group_status_to_color,
     prepare_organization_report,
     prepare_template_context,
+    render_template_context,
     schedule_organizations,
 )
 from sentry.testutils.cases import (
@@ -1431,3 +1433,102 @@ class WeeklyReportsTest(
             message_params = call_args.kwargs
             context = message_params["context"]
             assert len(context["trends"]["legend"]) == 0
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_build_report_data_returns_none_for_no_access(self) -> None:
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+        assert build_report_data(ctx, None) is None
+        assert build_report_data(ctx, 999999) is None
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_build_report_data_has_no_colors(self) -> None:
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
+        project = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+            date_added=self.now - timedelta(days=90),
+        )
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.store_event_outcomes(self.organization.id, project.id, self.two_days_ago, num_times=2)
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+
+        data = build_report_data(ctx, user.id)
+        assert data is not None
+
+        assert "organization" in data
+        assert "notification_uuid" in data
+        assert "trends" in data
+        assert "key_errors" in data
+        assert "key_transactions" in data
+        assert "key_performance_issues" in data
+        assert "issue_summary" in data
+
+        trends = data["trends"]
+        assert "num_projects_taken" in trends
+        assert "has_others" in trends
+        for entry in trends["legend"]:
+            assert "color" not in entry
+        for _ts, day_series in trends["series"]:
+            for entry in day_series:
+                assert "color" not in entry
+        assert "error_maximum" not in trends
+        assert "transaction_maximum" not in trends
+        assert "replay_maximum" not in trends
+
+        for error in data["key_errors"]:
+            assert "status_color" not in error
+            assert "group_substatus_color" not in error
+            assert "group_substatus_border_color" not in error
+            assert "group_substatus" in error
+
+        for issue in data["key_performance_issues"]:
+            assert "status_color" not in issue
+            assert "group_history" in issue
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_render_template_context_adds_email_presentation(self) -> None:
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
+        project = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+            date_added=self.now - timedelta(days=90),
+        )
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.store_event_outcomes(self.organization.id, project.id, self.two_days_ago, num_times=2)
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+
+        data = build_report_data(ctx, user.id)
+        assert data is not None
+
+        email_ctx = render_template_context(data)
+
+        trends = email_ctx["trends"]
+        assert "num_projects_taken" not in trends
+        assert "has_others" not in trends
+        for entry in trends["legend"]:
+            assert "color" in entry
+        for _ts, day_series in trends["series"]:
+            for entry in day_series:
+                assert "color" in entry
+        assert "error_maximum" in trends
+        assert "transaction_maximum" in trends
+        assert "replay_maximum" in trends
+
+        for error in email_ctx["key_errors"]:
+            assert "status_color" in error
+            assert "group_substatus_color" in error
+            assert "group_substatus_border_color" in error
+
+        for issue in email_ctx["key_performance_issues"]:
+            assert "status_color" in issue
+            assert "group_history" not in issue

@@ -36,7 +36,7 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
+from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
@@ -511,10 +511,32 @@ def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datet
     return (local_start, local_end)
 
 
-def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
-    # Serialize ctx for template, and calculate view parameters (like graph bar heights)
-    # Fetch the list of projects associated with the user.
-    # Projects owned by teams that the user has membership of.
+MAX_LEGEND_PROJECTS = len(project_breakdown_colors)
+
+
+def _sum_event_counts(
+    project_ctxs: Sequence[ProjectContext],
+) -> tuple[int, int, int, int, int, int]:
+    event_counts = [
+        (
+            project_ctx.accepted_error_count,
+            project_ctx.dropped_error_count,
+            project_ctx.accepted_transaction_count,
+            project_ctx.dropped_transaction_count,
+            project_ctx.accepted_replay_count,
+            project_ctx.dropped_replay_count,
+        )
+        for project_ctx in project_ctxs
+    ]
+    return tuple(sum(event[i] for event in event_counts) for i in range(6))  # type: ignore[return-value]
+
+
+def build_report_data(ctx: OrganizationReportContext, user_id: int | None) -> dict[str, Any] | None:
+    """
+    Builds the provider-agnostic report data for a user. Returns None if the
+    user has no project access. The returned dict contains no presentation
+    concerns (colors, CSS, bar-height maximums).
+    """
     if user_id and user_id in ctx.project_ownership:
         user_projects = [
             project_ctx
@@ -529,170 +551,113 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
     notification_uuid = str(uuid.uuid4())
     local_start, local_end = get_local_dates(ctx, user_id)
 
-    # Render the first section of the email where we had the table showing the
-    # number of accepted/dropped errors/transactions for each project.
-    def trends():
-        # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
-        def sum_event_counts(project_ctxs):
-            event_counts = [
-                (
-                    project_ctx.accepted_error_count,
-                    project_ctx.dropped_error_count,
-                    project_ctx.accepted_transaction_count,
-                    project_ctx.dropped_transaction_count,
-                    project_ctx.accepted_replay_count,
-                    project_ctx.dropped_replay_count,
-                )
-                for project_ctx in project_ctxs
-            ]
-            return tuple(sum(event[i] for event in event_counts) for i in range(6))
+    projects_associated_with_user = sorted(
+        user_projects,
+        reverse=True,
+        key=lambda item: item.accepted_error_count + (item.accepted_transaction_count / 10),
+    )
 
-        # Highest volume projects go first
-        projects_associated_with_user = sorted(
-            user_projects,
-            reverse=True,
-            key=lambda item: item.accepted_error_count + (item.accepted_transaction_count / 10),
-        )
-        # Calculate total
-        (
-            total_error,
-            total_dropped_error,
-            total_transaction,
-            total_dropped_transaction,
-            total_replays,
-            total_dropped_replays,
-        ) = sum_event_counts(projects_associated_with_user)
+    (
+        total_error,
+        total_dropped_error,
+        total_transaction,
+        total_dropped_transaction,
+        total_replays,
+        total_dropped_replays,
+    ) = _sum_event_counts(projects_associated_with_user)
 
-        # The number of reports to keep is the same as the number of colors
-        # available to use in the legend.
-        projects_taken = projects_associated_with_user[: len(project_breakdown_colors)]
-        # All other items are merged to "Others"
-        projects_not_taken = projects_associated_with_user[len(project_breakdown_colors) :]
+    projects_taken = projects_associated_with_user[:MAX_LEGEND_PROJECTS]
+    projects_not_taken = projects_associated_with_user[MAX_LEGEND_PROJECTS:]
 
-        # Calculate legend
-        legend: list[dict[str, Any]] = [
-            {
-                "slug": project_ctx.project.slug,
-                "url": project_ctx.project.get_absolute_url(
-                    params={"referrer": "weekly_report", "notification_uuid": notification_uuid}
-                ),
-                "color": project_breakdown_colors[i],
-                "dropped_error_count": project_ctx.dropped_error_count,
-                "accepted_error_count": project_ctx.accepted_error_count,
-                "dropped_transaction_count": project_ctx.dropped_transaction_count,
-                "accepted_transaction_count": project_ctx.accepted_transaction_count,
-                "dropped_replay_count": project_ctx.dropped_replay_count,
-                "accepted_replay_count": project_ctx.accepted_replay_count,
-            }
-            for i, project_ctx in enumerate(projects_taken)
-        ]
-
-        if len(projects_not_taken) > 0:
-            (
-                others_error,
-                others_dropped_error,
-                others_transaction,
-                others_dropped_transaction,
-                others_replays,
-                others_dropped_replays,
-            ) = sum_event_counts(projects_not_taken)
-            legend.append(
-                {
-                    "slug": f"Other ({len(projects_not_taken)})",
-                    "color": other_color,
-                    "dropped_error_count": others_dropped_error,
-                    "accepted_error_count": others_error,
-                    "dropped_transaction_count": others_dropped_transaction,
-                    "accepted_transaction_count": others_transaction,
-                    "dropped_replay_count": others_dropped_replays,
-                    "accepted_replay_count": others_replays,
-                }
-            )
-        if len(projects_taken) > 1:
-            legend.append(
-                {
-                    "slug": f"Total ({len(projects_associated_with_user)})",
-                    "color": total_color,
-                    "dropped_error_count": total_dropped_error,
-                    "accepted_error_count": total_error,
-                    "dropped_transaction_count": total_dropped_transaction,
-                    "accepted_transaction_count": total_transaction,
-                    "dropped_replay_count": total_dropped_replays,
-                    "accepted_replay_count": total_replays,
-                }
-            )
-
-        # Calculate series
-        series = []
-        for i in range(0, 7):
-            t = int(ctx.start.timestamp()) + ONE_DAY * i
-            project_series = [
-                {
-                    "color": project_breakdown_colors[i],
-                    "error_count": project_ctx.error_count_by_day.get(t, 0),
-                    "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
-                    "replay_count": project_ctx.replay_count_by_day.get(t, 0),
-                }
-                for i, project_ctx in enumerate(projects_taken)
-            ]
-            if len(projects_not_taken) > 0:
-                project_series.append(
-                    {
-                        "color": other_color,
-                        "error_count": sum(
-                            project_ctx.error_count_by_day.get(t, 0)
-                            for project_ctx in projects_not_taken
-                        ),
-                        "transaction_count": sum(
-                            project_ctx.transaction_count_by_day.get(t, 0)
-                            for project_ctx in projects_not_taken
-                        ),
-                        "replay_count": sum(
-                            project_ctx.replay_count_by_day.get(t, 0)
-                            for project_ctx in projects_not_taken
-                        ),
-                    }
-                )
-            series.append((to_datetime(t), project_series))
-        return {
-            "legend": legend,
-            "series": series,
-            "total_error_count": total_error,
-            "total_transaction_count": total_transaction,
-            "total_replay_count": total_replays,
-            "error_maximum": max(  # The max error count on any single day
-                sum(value["error_count"] for value in values) for timestamp, values in series
+    legend: list[dict[str, Any]] = [
+        {
+            "slug": project_ctx.project.slug,
+            "url": project_ctx.project.get_absolute_url(
+                params={"referrer": "weekly_report", "notification_uuid": notification_uuid}
             ),
-            "transaction_maximum": max(  # The max transaction count on any single day
-                sum(value["transaction_count"] for value in values) for timestamp, values in series
-            ),
-            "replay_maximum": (
-                max(  # The max replay count on any single day
-                    sum(value["replay_count"] for value in values) for timestamp, values in series
-                )
-                if len(projects_taken) > 0
-                else 0
-            ),
+            "dropped_error_count": project_ctx.dropped_error_count,
+            "accepted_error_count": project_ctx.accepted_error_count,
+            "dropped_transaction_count": project_ctx.dropped_transaction_count,
+            "accepted_transaction_count": project_ctx.accepted_transaction_count,
+            "dropped_replay_count": project_ctx.dropped_replay_count,
+            "accepted_replay_count": project_ctx.accepted_replay_count,
         }
+        for project_ctx in projects_taken
+    ]
+
+    if len(projects_not_taken) > 0:
+        (
+            others_error,
+            others_dropped_error,
+            others_transaction,
+            others_dropped_transaction,
+            others_replays,
+            others_dropped_replays,
+        ) = _sum_event_counts(projects_not_taken)
+        legend.append(
+            {
+                "slug": f"Other ({len(projects_not_taken)})",
+                "dropped_error_count": others_dropped_error,
+                "accepted_error_count": others_error,
+                "dropped_transaction_count": others_dropped_transaction,
+                "accepted_transaction_count": others_transaction,
+                "dropped_replay_count": others_dropped_replays,
+                "accepted_replay_count": others_replays,
+            }
+        )
+    if len(projects_taken) > 1:
+        legend.append(
+            {
+                "slug": f"Total ({len(projects_associated_with_user)})",
+                "dropped_error_count": total_dropped_error,
+                "accepted_error_count": total_error,
+                "dropped_transaction_count": total_dropped_transaction,
+                "accepted_transaction_count": total_transaction,
+                "dropped_replay_count": total_dropped_replays,
+                "accepted_replay_count": total_replays,
+            }
+        )
+
+    series = []
+    for i in range(0, 7):
+        t = int(ctx.start.timestamp()) + ONE_DAY * i
+        project_series = [
+            {
+                "error_count": project_ctx.error_count_by_day.get(t, 0),
+                "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
+                "replay_count": project_ctx.replay_count_by_day.get(t, 0),
+            }
+            for project_ctx in projects_taken
+        ]
+        if len(projects_not_taken) > 0:
+            project_series.append(
+                {
+                    "error_count": sum(
+                        project_ctx.error_count_by_day.get(t, 0)
+                        for project_ctx in projects_not_taken
+                    ),
+                    "transaction_count": sum(
+                        project_ctx.transaction_count_by_day.get(t, 0)
+                        for project_ctx in projects_not_taken
+                    ),
+                    "replay_count": sum(
+                        project_ctx.replay_count_by_day.get(t, 0)
+                        for project_ctx in projects_not_taken
+                    ),
+                }
+            )
+        series.append((to_datetime(t), project_series))
 
     def key_errors():
         def all_key_errors():
             for project_ctx in user_projects:
                 for group, count in project_ctx.key_errors_by_group:
-                    (
-                        substatus,
-                        substatus_color,
-                        substatus_border_color,
-                    ) = get_group_status_badge(group)
-
+                    substatus, _, _ = get_group_status_badge(group)
                     yield {
                         "count": count,
                         "group": group,
                         "status": "Unresolved",
-                        "status_color": (group_status_to_color[GroupHistoryStatus.NEW]),
                         "group_substatus": substatus,
-                        "group_substatus_color": substatus_color,
-                        "group_substatus_border_color": substatus_border_color,
                     }
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
@@ -727,11 +692,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                         "status": (
                             group_history.get_status_display() if group_history else "Unresolved"
                         ),
-                        "status_color": (
-                            group_status_to_color[group_history.status]
-                            if group_history
-                            else group_status_to_color[GroupHistoryStatus.NEW]
-                        ),
+                        "group_history": group_history,
                     }
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
@@ -760,7 +721,15 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "organization": ctx.organization,
         "start": date_format(local_start),
         "end": date_format(local_end),
-        "trends": trends(),
+        "trends": {
+            "legend": legend,
+            "series": series,
+            "total_error_count": total_error,
+            "total_transaction_count": total_transaction,
+            "total_replay_count": total_replays,
+            "num_projects_taken": len(projects_taken),
+            "has_others": len(projects_not_taken) > 0,
+        },
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
@@ -770,18 +739,73 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
     }
 
 
+def render_template_context(data: dict[str, Any]) -> dict[str, Any]:
+    trends = data["trends"]
+    legend = trends["legend"]
+    series = trends["series"]
+    num_projects_taken = trends["num_projects_taken"]
+    has_others = trends["has_others"]
+
+    for i, entry in enumerate(legend):
+        if i < num_projects_taken:
+            entry["color"] = project_breakdown_colors[i]
+        elif has_others and i == num_projects_taken:
+            entry["color"] = other_color
+        else:
+            entry["color"] = total_color
+
+    for _timestamp, project_series in series:
+        for i, entry in enumerate(project_series):
+            if i < num_projects_taken:
+                entry["color"] = project_breakdown_colors[i]
+            else:
+                entry["color"] = other_color
+
+    trends["error_maximum"] = max(
+        sum(value["error_count"] for value in values) for _timestamp, values in series
+    )
+    trends["transaction_maximum"] = max(
+        sum(value["transaction_count"] for value in values) for _timestamp, values in series
+    )
+    trends["replay_maximum"] = (
+        max(sum(value["replay_count"] for value in values) for _timestamp, values in series)
+        if num_projects_taken > 0
+        else 0
+    )
+
+    for error in data["key_errors"]:
+        _, substatus_color, substatus_border_color = get_group_status_badge(error["group"])
+        error["status_color"] = group_status_to_color[GroupHistoryStatus.NEW]
+        error["group_substatus_color"] = substatus_color
+        error["group_substatus_border_color"] = substatus_border_color
+
+    for issue in data["key_performance_issues"]:
+        group_history = issue.pop("group_history")
+        issue["status_color"] = (
+            group_status_to_color[group_history.status]
+            if group_history
+            else group_status_to_color[GroupHistoryStatus.NEW]
+        )
+
+    del trends["num_projects_taken"]
+    del trends["has_others"]
+
+    return data
+
+
 def prepare_template_context(
     ctx: OrganizationReportContext, user_ids: Sequence[int | None]
 ) -> list[Mapping[str, Any]] | list:
     user_template_context_by_user_id_list = []
     for user_id in user_ids:
-        template_ctx = render_template_context(ctx, user_id)
-        if not template_ctx:
+        report_data = build_report_data(ctx, user_id)
+        if not report_data:
             logger.debug(
                 "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",
                 ctx.organization.id,
                 user_id,
             )
             continue
+        template_ctx = render_template_context(report_data)
         user_template_context_by_user_id_list.append({"context": template_ctx, "user_id": user_id})
     return user_template_context_by_user_id_list

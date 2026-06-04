@@ -9,7 +9,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
-from sentry.tasks.summaries.weekly_reports import render_template_context
+from sentry.tasks.summaries.weekly_reports import build_report_data, render_template_context
 from sentry.utils import loremipsum
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.web.decorators import login_required
@@ -122,7 +122,11 @@ class DebugWeeklyReportView(MailPreviewView):
 
         user_id = request.user.id
         ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
-        return render_template_context(ctx, user_id)
+
+        report_data = build_report_data(ctx, user_id)
+        if report_data is None:
+            return {}
+        return render_template_context(report_data)
 
     @property
     def html_template(self) -> str:
