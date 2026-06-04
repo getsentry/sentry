@@ -44,8 +44,9 @@ function makeRenderProps(closeModal: jest.Mock) {
   };
 }
 
-import {GlobalCommandPaletteActions} from './commandPaletteGlobalActions';
 import * as userOrgNavConfig from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
+
+import {GlobalCommandPaletteActions} from './commandPaletteGlobalActions';
 
 function SlotOutlets() {
   return (
@@ -490,22 +491,20 @@ describe('GlobalCommandPaletteActions - org settings show filter', () => {
   }
 
   it('excludes org nav items with show: false from the Settings section', async () => {
-    jest
-      .spyOn(userOrgNavConfig, 'getUserOrgNavigationConfiguration')
-      .mockReturnValue([
-        {
-          id: 'test-section',
-          name: 'Test',
-          items: [
-            {path: '/settings/:orgId/visible-item/', title: 'Visible Setting Item'},
-            {
-              path: '/settings/:orgId/hidden-item/',
-              title: 'Hidden Setting Item',
-              show: false,
-            },
-          ],
-        },
-      ]);
+    jest.spyOn(userOrgNavConfig, 'getUserOrgNavigationConfiguration').mockReturnValue([
+      {
+        id: 'test-section',
+        name: 'Test',
+        items: [
+          {path: '/settings/:orgId/visible-item/', title: 'Visible Setting Item'},
+          {
+            path: '/settings/:orgId/hidden-item/',
+            title: 'Hidden Setting Item',
+            show: false,
+          },
+        ],
+      },
+    ]);
 
     renderPalette();
     const input = await screen.findByRole('textbox', {name: 'Search commands'});
@@ -519,7 +518,9 @@ describe('GlobalCommandPaletteActions - org settings show filter', () => {
     // The item with show: false should be filtered out
     await userEvent.clear(input);
     await userEvent.type(input, 'Hidden Setting');
-    expect(screen.queryByRole('option', {name: /Hidden Setting Item/})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Hidden Setting Item/})
+    ).not.toBeInTheDocument();
   });
 
   it('does not surface API Keys as a Settings nav entry (regression)', async () => {
