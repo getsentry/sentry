@@ -22,9 +22,9 @@ from sentry.utils.eventuser import EventUser
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectUsersEndpoint(ProjectEndpoint):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     rate_limits = RateLimitConfig(
         limit_overrides={
