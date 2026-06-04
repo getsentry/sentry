@@ -1,5 +1,5 @@
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -41,7 +41,40 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Repositories",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
+        description="Return a list of version control repositories for a given organization.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                description="Filter repositories by name.",
+            ),
+            OpenApiParameter(
+                name="status",
+                location="query",
+                required=False,
+                type=str,
+                enum=["active", "deleted"],
+                description="Filter repositories by status. Defaults to `active`.",
+            ),
+            OpenApiParameter(
+                name="integration_id",
+                location="query",
+                required=False,
+                type=str,
+                description="Filter repositories by integration ID.",
+            ),
+            OpenApiParameter(
+                name="expand",
+                location="query",
+                required=False,
+                type=str,
+                description="Optional repository fields to expand, such as `settings`.",
+            ),
+            CursorQueryParam,
+        ],
         responses={
             200: inline_sentry_response_serializer(
                 "ListOrganizationRepositoriesResponse", list[RepositorySerializerResponse]
@@ -55,15 +88,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[list[RepositorySerializerResponse]]:
         """
-        List an Organization's Repositories
-        ```````````````````````````````````
-
         Return a list of version control repositories for a given organization.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization
-        :qparam string query: optional filter by repository name
-        :qparam string expand: optional expand parameter to include related data (e.g., "settings")
-        :auth: required
         """
         queryset = Repository.objects.filter(organization_id=organization.id)
 
