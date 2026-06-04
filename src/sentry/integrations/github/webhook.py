@@ -28,6 +28,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.pr_metrics_webhook_processors import handle_webhook_for_pr_metrics
 from sentry.integrations.github.webhook_types import (
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
     GithubWebhookType,
@@ -76,6 +77,7 @@ from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
+from .tasks.query_commit_author_public_emails import query_commit_author_public_emails
 from .types import IssueEvenntWebhookActionType
 
 logger = logging.getLogger("sentry.webhooks")
@@ -137,6 +139,25 @@ def _handle_pr_webhook_for_autofix_processor(
         # Because we require that the sentry github integration be installed for autofix, we can piggyback
         # on this webhook for autofix for now. We may move to a separate autofix github integration in the future
         handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+
+
+def _handle_pr_metrics_attribution_processor(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    **kwargs: Any,
+) -> None:
+    pull_request = event.get("pull_request")
+    if not pull_request:
+        return
+
+    action = event.get("action")
+    user = pull_request.get("user")
+
+    if organization and action and user:
+        handle_webhook_for_pr_metrics(organization, action, pull_request, user, repo.id, event)
 
 
 class GitHubWebhook(SCMWebhook, ABC):
@@ -734,6 +755,22 @@ class PushEventWebhook(GitHubWebhook):
         )
         repo.save()
 
+        # Hand the authors seen in this push off to an async task to look up
+        # their public profile email and (maybe) create ExternalActor mappings.
+        # The task is gated by CommitAuthor.public_email_queried_at, so re-seeing
+        # a recent author is cheap; we don't need them to be brand-new.
+        if authors and integration.provider in (
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ):
+            query_commit_author_public_emails.apply_async(
+                kwargs={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                    "commit_author_ids": sorted(author.id for author in authors.values()),
+                }
+            )
+
 
 class IssuesEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#issuesevent"""
@@ -928,6 +965,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = (
         _handle_pr_webhook_for_autofix_processor,
         code_review_handle_webhook_event,
+        _handle_pr_metrics_attribution_processor,
     )
 
     def _handle(

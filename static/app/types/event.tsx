@@ -13,7 +13,7 @@ import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
 import type {IssueAttachment, IssueCategory, IssueType, UserReport} from './group';
-import type {PlatformKey} from './project';
+import type {PlatformKey} from './platform';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
 

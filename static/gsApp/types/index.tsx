@@ -23,10 +23,6 @@ declare global {
      */
     uetq: any;
     /**
-     * Zendesk widget
-     */
-    zE: any;
-    /**
      * Stripe SDK
      */
     Stripe?: StripeConstructor;

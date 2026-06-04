@@ -5,7 +5,7 @@ import type {AriaListBoxOptions} from '@react-aria/listbox';
 import type {ListProps} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {ControlContext} from './control';

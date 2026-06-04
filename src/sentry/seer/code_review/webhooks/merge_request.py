@@ -23,6 +23,15 @@ omits it to lock in the intended production behavior (related to Issue 1).
 GitLab has no dedicated "ready_for_review" action: un-drafting an MR arrives as an
 "update" whose top-level ``changes`` flips draft/work_in_progress to false, which is
 treated as an ON_READY_FOR_REVIEW trigger (see ``_resolve_review_trigger``).
+
+``@sentry review`` comment support
+------------------------------------
+
+GitLab fires a "Note Hook" when a user comments on an MR. This module also
+exports ``handle_merge_request_note_event`` which processes those events and
+forwards a review request to Seer when the comment body contains
+``@sentry review``.  The payload uses ``trigger: on_command_phrase``, matching
+the GitHub ``issue_comment`` webhook forwarder.
 """
 
 from __future__ import annotations
@@ -36,6 +45,7 @@ from typing import Any
 from pydantic import ValidationError
 from scm import actions as scm_actions
 from scm.types import (
+    CreatePullRequestCommentReactionProtocol,
     CreatePullRequestReactionProtocol,
     DeletePullRequestReactionProtocol,
     GetAuthenticatedActorProtocol,
@@ -51,6 +61,7 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.scm import factory as scm_factory
+from sentry.scm.factory import new as make_scm
 from sentry.seer.code_review.models import (
     SeerCodeReviewTaskRequestForPrClosed,
     SeerCodeReviewTaskRequestForPrReview,
@@ -69,11 +80,17 @@ from ..metrics import (
 )
 from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, _common_codegen_request_payload
+from .logging import debug_log
 from .task import process_github_webhook_event
 
 logger = logging.getLogger(__name__)
 
 GITLAB_WEBHOOK_EVENT = "merge_request"
+GITLAB_WEBHOOK_NOTE_EVENT = "note"
+
+SENTRY_REVIEW_COMMAND = "@sentry review"
+
+WEBHOOK_NOTE_SEEN_KEY_PREFIX = "webhook:gitlab:note:"
 
 # GitLab redelivers webhooks (e.g. when our response times out), and the endpoint
 # dispatches the same payload once per installed organization. Either can enqueue
@@ -280,8 +297,21 @@ def handle_merge_request_event(
     **kwargs: Any,
 ) -> None:
     """Handle GitLab merge request webhook events for code review."""
+    mr_iid = (event.get("object_attributes") or {}).get("iid")
+    base_log = {
+        "organization_id": organization.id,
+        "organization_slug": organization.slug,
+        "repo_id": repo.id,
+        "mr_iid": mr_iid,
+    }
+
     if integration is None:
+        debug_log(logger, organization, "missing_integration", base_log)
         return
+
+    base_log["integration_id"] = integration.id
+
+    debug_log(logger, organization, "handler_started", base_log)
 
     if not features.has("organizations:seer-code-review-gitlab", organization):
         return
@@ -289,19 +319,23 @@ def handle_merge_request_event(
     object_attributes = event.get("object_attributes", {})
     action_value = object_attributes.get("action")
     if not action_value or not isinstance(action_value, str):
+        debug_log(logger, organization, "missing_action", base_log)
         return
 
+    base_log["action"] = action_value
     record_webhook_received(GITLAB_WEBHOOK_EVENT, action_value)
 
     try:
         action = MergeRequestAction(action_value)
     except ValueError:
+        debug_log(logger, organization, "unsupported_action", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
 
     if action not in WHITELISTED_ACTIONS:
+        debug_log(logger, organization, "action_not_whitelisted", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
@@ -314,6 +348,7 @@ def handle_merge_request_event(
     if action not in CLOSE_ACTIONS:
         review_trigger = _resolve_review_trigger(action, event)
         if review_trigger is None:
+            debug_log(logger, organization, "no_review_trigger", base_log)
             record_webhook_filtered(
                 GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
             )
@@ -322,6 +357,7 @@ def handle_merge_request_event(
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:
+        debug_log(logger, organization, "organization_not_found", base_log)
         return
 
     author_id = object_attributes.get("author_id")
@@ -333,15 +369,30 @@ def handle_merge_request_event(
     ).check()
 
     if not preflight.allowed:
+        denial = preflight.denial_reason.value if preflight.denial_reason else None
+        debug_log(
+            logger,
+            organization,
+            "preflight_denied",
+            {**base_log, "denial_reason": denial},
+        )
         if preflight.denial_reason:
             record_webhook_filtered(GITLAB_WEBHOOK_EVENT, action_value, preflight.denial_reason)
         return
+
+    debug_log(logger, organization, "preflight_passed", base_log)
 
     org_code_review_settings = preflight.settings
 
     if review_trigger is not None and (
         org_code_review_settings is None or review_trigger not in org_code_review_settings.triggers
     ):
+        debug_log(
+            logger,
+            organization,
+            "trigger_disabled",
+            {**base_log, "review_trigger": review_trigger.value},
+        )
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.TRIGGER_DISABLED
         )
@@ -350,6 +401,7 @@ def handle_merge_request_event(
     if action in CLOSE_ACTIONS and (
         org_code_review_settings is None or not org_code_review_settings.triggers
     ):
+        debug_log(logger, organization, "close_trigger_disabled", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.TRIGGER_DISABLED
         )
@@ -360,19 +412,31 @@ def handle_merge_request_event(
             object_attributes.get("draft") is True
             or object_attributes.get("work_in_progress") is True
         ):
+            debug_log(logger, organization, "draft_skipped", base_log)
             return
 
     last_commit = object_attributes.get("last_commit") or {}
     target_commit_sha = last_commit.get("id")
     if not target_commit_sha:
+        debug_log(logger, organization, "missing_target_commit_sha", base_log)
         return
+
+    base_log["target_commit_sha"] = target_commit_sha
+    if review_trigger is not None:
+        base_log["review_trigger"] = review_trigger.value
 
     seen_key = (
         f"{WEBHOOK_SEEN_KEY_PREFIX}{org.id}:{repo.id}:"
         f"{object_attributes.get('iid')}:{action_value}:{target_commit_sha}"
     )
     if _is_duplicate_delivery(seen_key):
-        logger.warning("gitlab.webhook.merge_request.duplicate_delivery_skipped")
+        debug_log(
+            logger,
+            organization,
+            "duplicate_delivery_skipped",
+            base_log,
+            level=logging.WARNING,
+        )
         return
 
     # Mirror the GitHub pull_request handler: add :eyes: to the MR description to
@@ -391,6 +455,7 @@ def handle_merge_request_event(
                 reaction_to_add="eyes",
             )
 
+    debug_log(logger, organization, "scheduling_seer_task", base_log)
     _schedule_task(
         action=action,
         action_value=action_value,
@@ -399,6 +464,7 @@ def handle_merge_request_event(
         repo=repo,
         target_commit_sha=target_commit_sha,
         review_trigger=review_trigger,
+        log_context=base_log,
     )
 
 
@@ -466,6 +532,7 @@ def _schedule_task(
     repo: Repository,
     target_commit_sha: str,
     review_trigger: CodeReviewTrigger | None,
+    log_context: dict[str, object] | None = None,
 ) -> None:
     payload = _build_payload(action, event, organization, repo, target_commit_sha, review_trigger)
 
@@ -485,13 +552,29 @@ def _schedule_task(
         else:
             validated = SeerCodeReviewTaskRequestForPrReview.parse_obj(payload)
         serialized_payload = json.loads(validated.json())
-    except ValidationError:
-        logger.warning("gitlab.webhook.merge_request.validation_failed")
+    except ValidationError as e:
+        debug_log(
+            logger,
+            organization,
+            "validation_failed",
+            {
+                **(log_context or {}),
+                "seer_path": seer_path,
+                "validation_errors": e.errors(),
+            },
+            level=logging.WARNING,
+        )
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.INVALID_PAYLOAD
         )
         return
 
+    debug_log(
+        logger,
+        organization,
+        "seer_task_enqueued",
+        {**(log_context or {}), "seer_path": seer_path},
+    )
     process_github_webhook_event.delay(
         seer_path=seer_path,
         event_payload=serialized_payload,
@@ -503,3 +586,236 @@ def _schedule_task(
         },
     )
     record_webhook_enqueued(GITLAB_WEBHOOK_EVENT, action_value)
+
+
+# ---------------------------------------------------------------------------
+# GitLab Note Hook ("@sentry review" command) handler
+# ---------------------------------------------------------------------------
+
+
+def _is_sentry_review_command(note: str | None) -> bool:
+    """Return True when the note body contains the @sentry review command."""
+    if note is None:
+        return False
+    return SENTRY_REVIEW_COMMAND in note.lower()
+
+
+def _get_note_trigger_metadata(event: Mapping[str, Any]) -> dict[str, Any]:
+    """Extract trigger metadata from a GitLab note (comment) event."""
+    user = event.get("user", {})
+    object_attributes = event.get("object_attributes", {})
+    trigger_at = object_attributes.get("created_at") or datetime.now(timezone.utc).isoformat()
+    return {
+        "trigger_user": user.get("username"),
+        "trigger_user_id": user.get("id"),
+        # Note ID is the comment identifier; "issue_comment" matches the
+        # SeerCodeReviewConfig.trigger_comment_type Literal constraint and
+        # is the value Seer uses to understand command-phrase triggering.
+        "trigger_comment_id": object_attributes.get("id"),
+        "trigger_comment_type": "issue_comment",
+        "trigger_at": trigger_at,
+    }
+
+
+def _build_note_payload(
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    target_commit_sha: str,
+    mr_iid: int,
+) -> dict[str, Any]:
+    """Build the Seer review-request payload for an @sentry review note."""
+    payload = _common_codegen_request_payload(
+        add_experiment_enabled=True,
+        repo=repo,
+        target_commit_sha=target_commit_sha,
+        organization=organization,
+        event_payload=event,
+    )
+    payload["data"]["pr_id"] = mr_iid
+    config = payload["data"]["config"]
+    trigger_metadata = _get_note_trigger_metadata(event)
+    config["trigger"] = SeerCodeReviewTrigger.ON_COMMAND_PHRASE.value
+    config["trigger_user"] = trigger_metadata["trigger_user"]
+    config["trigger_user_id"] = trigger_metadata["trigger_user_id"]
+    config["trigger_comment_id"] = trigger_metadata["trigger_comment_id"]
+    config["trigger_comment_type"] = trigger_metadata["trigger_comment_type"]
+    config["trigger_at"] = trigger_metadata["trigger_at"]
+    config["sentry_received_trigger_at"] = datetime.now(timezone.utc).isoformat()
+    return payload
+
+
+def _add_note_reaction(
+    *,
+    organization_id: int,
+    repo: Repository,
+    mr_iid: str,
+    note_id: str,
+    reaction: Reaction,
+) -> None:
+    """
+    Add a reaction (award emoji) to an MR note via the SCM library.
+
+    Mirrors the GitHub issue_comment path which calls
+    ``client.create_comment_reaction(repo.name, comment_id, reaction)``.
+    Errors are swallowed so a failing reaction never blocks the Seer task.
+    """
+    try:
+        scm = make_scm(organization_id, repo.id, referrer="seer")
+        assert isinstance(scm, CreatePullRequestCommentReactionProtocol)
+        scm_actions.create_pull_request_comment_reaction(scm, mr_iid, note_id, reaction)
+    except Exception:
+        logger.warning("gitlab.webhook.note.reaction_add_failed", exc_info=True)
+
+
+def _schedule_note_task(
+    *,
+    action_value: str,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    target_commit_sha: str,
+    mr_iid: int,
+) -> None:
+    """Validate the payload and enqueue the Seer review-request task."""
+    payload = _build_note_payload(event, organization, repo, target_commit_sha, mr_iid)
+
+    try:
+        validated = SeerCodeReviewTaskRequestForPrReview.parse_obj(payload)
+        serialized_payload = json.loads(validated.json())
+    except ValidationError:
+        logger.warning("gitlab.webhook.note.validation_failed")
+        record_webhook_filtered(
+            GITLAB_WEBHOOK_NOTE_EVENT,
+            action_value,
+            WebhookFilteredReason.INVALID_PAYLOAD,
+        )
+        return
+
+    process_github_webhook_event.delay(
+        seer_path=SeerEndpoint.SCM_CODE_REVIEW_REVIEW_REQUEST.value,
+        event_payload=serialized_payload,
+        tags={
+            "sentry_organization_id": str(organization.id),
+            "sentry_organization_slug": organization.slug,
+            "sentry_integration_id": str(repo.integration_id) if repo.integration_id else "",
+            "scm_provider": "gitlab",
+        },
+    )
+    record_webhook_enqueued(GITLAB_WEBHOOK_NOTE_EVENT, action_value)
+
+
+def handle_merge_request_note_event(
+    *,
+    event: Mapping[str, Any],
+    organization: RpcOrganization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """
+    Handle GitLab Note Hook events for @sentry review commands on merge requests.
+
+    GitLab fires a Note Hook whenever a user creates a comment on an MR, issue,
+    commit, or snippet.  This handler:
+
+    1. Ignores notes that are not on merge requests or not ``@sentry review``.
+    2. Runs the standard code-review preflight check.
+    3. Adds :eyes: to the note to acknowledge the command.
+    4. Enqueues a Seer review request with ``trigger: on_command_phrase``.
+    """
+    if integration is None:
+        return
+
+    if not features.has("organizations:seer-code-review-gitlab", organization):
+        return
+
+    object_attributes = event.get("object_attributes", {})
+    action_value = object_attributes.get("action", "")
+
+    record_webhook_received(GITLAB_WEBHOOK_NOTE_EVENT, action_value)
+
+    # Only process newly created notes; ignore edits and deletions.
+    if action_value != "create":
+        record_webhook_filtered(
+            GITLAB_WEBHOOK_NOTE_EVENT,
+            action_value,
+            WebhookFilteredReason.UNSUPPORTED_ACTION,
+        )
+        return
+
+    # Only handle notes on merge requests, not issues, commits, or snippets.
+    if object_attributes.get("noteable_type") != "MergeRequest":
+        record_webhook_filtered(
+            GITLAB_WEBHOOK_NOTE_EVENT,
+            action_value,
+            WebhookFilteredReason.NOT_PR_COMMENT,
+        )
+        return
+
+    # Filter for the @sentry review command phrase.
+    if not _is_sentry_review_command(object_attributes.get("note")):
+        record_webhook_filtered(
+            GITLAB_WEBHOOK_NOTE_EVENT,
+            action_value,
+            WebhookFilteredReason.NOT_REVIEW_COMMAND,
+        )
+        return
+
+    try:
+        org = Organization.objects.get_from_cache(id=organization.id)
+    except Organization.DoesNotExist:
+        return
+
+    # Billing seat is keyed to the MR author, not the commenter.
+    merge_request = event.get("merge_request") or {}
+    mr_author_id = merge_request.get("author_id")
+    preflight = CodeReviewPreflightService(
+        organization=org,
+        repo=repo,
+        integration_id=integration.id,
+        pr_author_external_id=str(mr_author_id) if mr_author_id else None,
+    ).check()
+
+    if not preflight.allowed:
+        if preflight.denial_reason:
+            record_webhook_filtered(
+                GITLAB_WEBHOOK_NOTE_EVENT, action_value, preflight.denial_reason
+            )
+        return
+
+    last_commit = merge_request.get("last_commit") or {}
+    target_commit_sha = last_commit.get("id")
+    if not target_commit_sha:
+        return
+
+    mr_iid = merge_request.get("iid")
+    if mr_iid is None:
+        return
+
+    note_id = object_attributes.get("id")
+
+    # Dedup redeliveries: GitLab may resend the same note event on timeout.
+    seen_key = f"{WEBHOOK_NOTE_SEEN_KEY_PREFIX}{org.id}:{repo.id}:{note_id}"
+    if _is_duplicate_delivery(seen_key):
+        logger.warning("gitlab.webhook.note.duplicate_delivery_skipped")
+        return
+
+    # Add :eyes: to the note to signal we received the command.
+    if note_id is not None:
+        _add_note_reaction(
+            organization_id=org.id,
+            repo=repo,
+            mr_iid=str(mr_iid),
+            note_id=str(note_id),
+            reaction="eyes",
+        )
+
+    _schedule_note_task(
+        action_value=action_value,
+        event=event,
+        organization=org,
+        repo=repo,
+        target_commit_sha=target_commit_sha,
+        mr_iid=mr_iid,
+    )

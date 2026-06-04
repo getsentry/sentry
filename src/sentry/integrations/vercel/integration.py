@@ -15,7 +15,6 @@ from sentry import options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2ApiStep
-from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.vercel.provider import VercelIdentityProvider
 from sentry.integrations.base import (
     FeatureDescription,
@@ -31,7 +30,6 @@ from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
-from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
 from sentry.projects.services.project_key.model import RpcProjectKey
@@ -481,16 +479,8 @@ class VercelIntegrationProvider(IntegrationProvider):
     # feature flag handler is in getsentry
     requires_feature_flag = True
 
-    def _identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
-        return NestedPipelineView(
-            bind_key="identity",
-            provider_key=self.key,
-            pipeline_cls=IdentityPipeline,
-            config={"redirect_url": absolute_uri("/extensions/vercel/configure/")},
-        )
-
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return [self._identity_pipeline_view()]
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         provider = VercelIdentityProvider()
@@ -513,13 +503,7 @@ class VercelIntegrationProvider(IntegrationProvider):
         return VercelInitialDataSerializer
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        # TODO: legacy views write token data to state["identity"]["data"] via
-        # NestedPipelineView. API steps write directly to state["oauth_data"].
-        # Remove the legacy path once the old views are retired.
-        if "oauth_data" in state:
-            data = state["oauth_data"]
-        else:
-            data = state["identity"]["data"]
+        data = state["oauth_data"]
         access_token = data["access_token"]
         team_id = data.get("team_id")
         client = VercelClient(access_token, team_id)
