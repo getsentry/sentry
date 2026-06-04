@@ -436,14 +436,14 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     });
     const dashboard2 = DashboardListItemFixture({
       id: '2',
-      title: 'Performance Dashboard',
+      title: 'Query Performance',
       isFavorited: true,
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/dashboards/`,
       body: [dashboard1, dashboard2],
-      match: [MockApiClient.matchQuery({query: 'queries'})],
+      match: [MockApiClient.matchQuery({query: 'quer'})],
     });
 
     renderPalette();
@@ -458,10 +458,10 @@ describe('GlobalCommandPaletteActions - search recall', () => {
 
     // Now type in the search query
     await userEvent.clear(input);
-    await userEvent.type(input, 'queries');
+    await userEvent.type(input, 'quer');
 
     // Wait for the dashboard results to appear
     expect(await screen.findByRole('option', {name: 'Queries Dashboard'})).toBeInTheDocument();
-    expect(await screen.findByRole('option', {name: 'Performance Dashboard'})).toBeInTheDocument();
+    expect(await screen.findByRole('option', {name: 'Query Performance'})).toBeInTheDocument();
   });
 });
