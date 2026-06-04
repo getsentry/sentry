@@ -80,7 +80,7 @@ class _UserOptions(TypedDict):
     prefersIssueDetailsStreamlinedUI: bool | None
 
 
-class UserSerializerResponseOptional(TypedDict):
+class UserSerializerResponse(TypedDict):
     # NOTE: There is a bug here where trying to move these fields to
     # UserSerializerResponse and using NotRequired. "identities" is marked as
     # required for places where UserSerializerResponse is used as a field (e.g
@@ -89,9 +89,6 @@ class UserSerializerResponseOptional(TypedDict):
     avatar: NotRequired[SerializedAvatarFields]
     authenticators: NotRequired[list[Any]]  # TODO: find out what type this is
     canReset2fa: NotRequired[bool]
-
-
-class UserSerializerResponse(UserSerializerResponseOptional):
     id: str
     name: str
     username: str

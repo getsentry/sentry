@@ -101,15 +101,12 @@ class GroupProjectResponse(TypedDict):
     platform: str | None
 
 
-class BaseGroupResponseOptional(TypedDict):
+class BaseGroupSerializerResponse(TypedDict):
     isUnhandled: NotRequired[bool]
     count: NotRequired[str]
     userCount: NotRequired[int]
     firstSeen: NotRequired[datetime | None]
     lastSeen: NotRequired[datetime | None]
-
-
-class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     id: str
     shareId: str | None
     shortId: str

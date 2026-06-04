@@ -4,22 +4,16 @@ from typing import Any, NotRequired, TypedDict
 from sentry.users.api.serializers.user import UserSerializerResponse
 
 
-class VersionInfoOptional(TypedDict):
+class VersionInfo(TypedDict):
     description: NotRequired[str]
-
-
-class VersionInfo(VersionInfoOptional):
     package: str | None
     version: dict[str, Any]
     buildHash: str | None
 
 
-class LastDeployOptional(TypedDict):
+class LastDeploy(TypedDict):
     dateStarted: NotRequired[str | None]
     url: NotRequired[str | None]
-
-
-class LastDeploy(LastDeployOptional):
     id: str
     environment: str
     dateFinished: str
@@ -34,7 +28,7 @@ class NonMappableUser(TypedDict):
 Author = UserSerializerResponse | NonMappableUser
 
 
-class HealthDataOptional(TypedDict):
+class HealthData(TypedDict):
     durationP50: NotRequired[float | None]
     durationP90: NotRequired[float | None]
     crashFreeUsers: NotRequired[float | None]
@@ -47,23 +41,17 @@ class HealthDataOptional(TypedDict):
     totalProjectSessions24h: NotRequired[int | None]
     adoption: NotRequired[float | None]
     sessionsAdoption: NotRequired[float | None]
-
-
-class HealthData(HealthDataOptional):
     sessionsCrashed: int
     sessionsErrored: int
     hasHealthData: bool
     stats: dict[str, Any]
 
 
-class ProjectOptional(TypedDict):
+class BaseProject(TypedDict):
     healthData: NotRequired[HealthData | None]
     dateReleased: NotRequired[datetime | None]
     dateCreated: NotRequired[datetime | None]
     dateStarted: NotRequired[datetime | None]
-
-
-class BaseProject(ProjectOptional):
     id: int
     slug: str
     name: str

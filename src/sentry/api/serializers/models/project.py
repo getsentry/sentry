@@ -273,13 +273,10 @@ def get_has_trace_metrics(project: Project) -> bool:
     return True
 
 
-class _ProjectSerializerOptionalBaseResponse(TypedDict):
+class ProjectSerializerBaseResponse(TypedDict):
     stats: NotRequired[Any]
     transactionStats: NotRequired[Any]
     sessionStats: NotRequired[Any]
-
-
-class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     id: str
     slug: str
     name: str  # TODO: add deprecation about this field (not used in app)

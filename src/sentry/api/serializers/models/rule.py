@@ -86,7 +86,11 @@ class _ErrorDict(TypedDict):
     detail: str
 
 
-class RuleSerializerResponseOptional(TypedDict):
+class RuleSerializerResponse(TypedDict):
+    """
+    This represents a Sentry Rule.
+    """
+
     owner: NotRequired[str | None]
     createdBy: NotRequired[RuleCreatedBy | None]
     environment: NotRequired[str | None]
@@ -96,12 +100,6 @@ class RuleSerializerResponseOptional(TypedDict):
     disableReason: NotRequired[str]
     disableDate: NotRequired[str]
     errors: NotRequired[list[_ErrorDict]]
-
-
-class RuleSerializerResponse(RuleSerializerResponseOptional):
-    """
-    This represents a Sentry Rule.
-    """
 
     id: str | None
     conditions: list[dict]

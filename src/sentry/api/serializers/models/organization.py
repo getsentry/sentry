@@ -133,16 +133,13 @@ class OnboardingTasksSerializerResponse(TypedDict):
     data: Any  # JSON objec
 
 
-class OrganizationSummarySerializerResponseOptional(TypedDict):
+class OrganizationSummarySerializerResponse(TypedDict):
     features: NotRequired[list[str]]  # Only included if include_feature_flags is True
     extraOptions: NotRequired[dict[str, dict[str, Any]]]
     access: NotRequired[frozenset[str]]  # Only if access=... is passed
     onboardingTasks: NotRequired[
         list[OnboardingTasksSerializerResponse]
     ]  # Only if access=... is passed
-
-
-class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
     id: str
     slug: str
     status: _Status

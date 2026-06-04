@@ -12,7 +12,7 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
 
-class DiscoverSavedQueryResponseOptional(TypedDict):
+class DiscoverSavedQueryResponse(TypedDict):
     environment: NotRequired[list[str]]
     query: NotRequired[str]
     fields: NotRequired[list[str]]
@@ -29,9 +29,6 @@ class DiscoverSavedQueryResponseOptional(TypedDict):
     topEvents: NotRequired[int]
     interval: NotRequired[str]
     exploreQuery: NotRequired[dict]
-
-
-class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
     id: str
     name: str
     projects: list[int]

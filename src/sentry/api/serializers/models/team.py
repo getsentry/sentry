@@ -345,14 +345,11 @@ class SCIMTeamMemberListItem(TypedDict):
     display: str
 
 
-class OrganizationTeamSCIMSerializerRequired(TypedDict):
+class OrganizationTeamSCIMSerializerResponse(TypedDict):
     schemas: list[str]
     id: str
     displayName: str
     meta: SCIMMeta
-
-
-class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequired):
     members: NotRequired[list[SCIMTeamMemberListItem]]
 
 

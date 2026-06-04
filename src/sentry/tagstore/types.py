@@ -129,13 +129,10 @@ class GroupTagValue(TagType):
         self.last_seen = last_seen
 
 
-class TagKeySerializerResponseOptional(TypedDict):
+class TagKeySerializerResponse(TypedDict):
     uniqueValues: NotRequired[int | None]
     totalValues: NotRequired[int | None]
     topValues: NotRequired[list[TagValueSerializerResponse] | None]
-
-
-class TagKeySerializerResponse(TagKeySerializerResponseOptional):
     key: str
     name: str
 
@@ -159,11 +156,8 @@ class TagKeySerializer(Serializer[TagKeySerializerResponse]):
         return output
 
 
-class TagValueSerializerResponseOptional(TypedDict):
+class TagValueSerializerResponse(TypedDict):
     query: NotRequired[str | None]
-
-
-class TagValueSerializerResponse(TagValueSerializerResponseOptional):
     key: str
     name: str
     value: str | None

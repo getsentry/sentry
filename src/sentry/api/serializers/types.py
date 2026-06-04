@@ -4,8 +4,7 @@ from typing import Any, NotRequired, TypedDict
 from sentry.api.serializers.release_details_types import Author, LastDeploy, Project, VersionInfo
 
 
-# Reponse type for OrganizationReleaseDetailsEndpoint
-class ReleaseSerializerResponseOptional(TypedDict):
+class ReleaseSerializerResponse(TypedDict):
     ref: NotRequired[str | None]
     url: NotRequired[str | None]
     dateReleased: NotRequired[datetime | None]
@@ -21,9 +20,6 @@ class ReleaseSerializerResponseOptional(TypedDict):
     adoptionStages: NotRequired[
         dict[str, Any] | None
     ]  # Only included if with_adoption_stages is True
-
-
-class ReleaseSerializerResponse(ReleaseSerializerResponseOptional):
     # NOTE: The API design guidelines (https://develop.sentry.dev/backend/api/design/)
     # call for resource identifiers to be returned as strings. This release `id` is a
     # long-standing integer in the public response and is relied on by existing clients,

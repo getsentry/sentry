@@ -171,11 +171,8 @@ class MonitorAlertRuleSerializerResponse(TypedDict):
     environment: str
 
 
-class MonitorSerializerResponseOptional(TypedDict):
+class MonitorSerializerResponse(TypedDict):
     alertRule: NotRequired[MonitorAlertRuleSerializerResponse]
-
-
-class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     id: str
     name: str
     slug: str
@@ -322,11 +319,8 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
         return key in self.expand
 
 
-class MonitorCheckInSerializerResponseOptional(TypedDict):
+class MonitorCheckInSerializerResponse(TypedDict):
     groups: NotRequired[list[str]]
-
-
-class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional):
     id: str
     environment: str
     status: str

@@ -26,17 +26,13 @@ class SCIMMeta(TypedDict):
     resourceType: str
 
 
-class OrganizationMemberSCIMSerializerOptional(TypedDict):
-    """Sentry doesn't use this field but is expected by SCIM"""
-
-    active: NotRequired[bool]
-
-
-class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):
+class OrganizationMemberSCIMSerializerResponse(TypedDict):
     """
     Conforming to the SCIM RFC, this represents a Sentry Org Member
     as a SCIM user object.
     """
+
+    active: NotRequired[bool]
 
     schemas: list[str]
     id: str

@@ -41,11 +41,8 @@ MAX_SQL_FORMAT_OPS = 20
 MAX_SQL_FORMAT_LENGTH = 1500
 
 
-class EventTagOptional(TypedDict):
+class EventTag(TypedDict):
     query: NotRequired[str]
-
-
-class EventTag(EventTagOptional):
     key: str
     value: str
 
