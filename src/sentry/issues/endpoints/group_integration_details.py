@@ -25,7 +25,17 @@ from sentry.integrations.project_management.metrics import (
     ProjectManagementEvent,
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.issues.action_log import ActionType, publish_action, resolve_action_source
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    GroupActionActor,
+    publish_action,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import (
+    CreateExternalIssueAction,
+    LinkExternalIssueAction,
+    UnlinkExternalIssueAction,
+)
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -230,16 +240,19 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         self.create_issue_activity(request, group, installation, external_issue, new=True)
 
         publish_action(
-            action=ActionType.CREATE_EXTERNAL_ISSUE,
+            CreateExternalIssueAction(
+                provider=integration.provider,
+                external_issue_key=external_issue.key,
+            ),
             source=resolve_action_source(request),
             group_id=group.id,
             organization_id=organization_id,
             project_id=group.project_id,
-            actor_id=request.user.id if request.user.is_authenticated else None,
-            metadata={
-                "provider": integration.provider,
-                "external_issue_key": external_issue.key,
-            },
+            actor=(
+                GroupActionActor.user(request.user.id)
+                if request.user.is_authenticated
+                else SYSTEM_ACTOR
+            ),
         )
 
         # TODO(jess): return serialized issue
@@ -346,16 +359,19 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         self.create_issue_activity(request, group, installation, external_issue, new=False)
 
         publish_action(
-            action=ActionType.LINK_EXTERNAL_ISSUE,
+            LinkExternalIssueAction(
+                provider=integration.provider,
+                external_issue_key=external_issue.key,
+            ),
             source=resolve_action_source(request),
             group_id=group.id,
             organization_id=organization_id,
             project_id=group.project_id,
-            actor_id=request.user.id if request.user.is_authenticated else None,
-            metadata={
-                "provider": integration.provider,
-                "external_issue_key": external_issue.key,
-            },
+            actor=(
+                GroupActionActor.user(request.user.id)
+                if request.user.is_authenticated
+                else SYSTEM_ACTOR
+            ),
         )
 
         # TODO(jess): would be helpful to return serialized external issue
@@ -419,16 +435,19 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         # returns 204 when nothing was linked to this group.
         if deleted:
             publish_action(
-                action=ActionType.UNLINK_EXTERNAL_ISSUE,
+                UnlinkExternalIssueAction(
+                    provider=integration.provider,
+                    external_issue_key=external_issue.key,
+                ),
                 source=resolve_action_source(request),
                 group_id=group.id,
                 organization_id=organization_id,
                 project_id=group.project_id,
-                actor_id=request.user.id if request.user.is_authenticated else None,
-                metadata={
-                    "provider": integration.provider,
-                    "external_issue_key": external_issue.key,
-                },
+                actor=(
+                    GroupActionActor.user(request.user.id)
+                    if request.user.is_authenticated
+                    else SYSTEM_ACTOR
+                ),
             )
 
         return Response(status=204)

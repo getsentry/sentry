@@ -19,7 +19,7 @@
 // `scripts/genPlatformProductInfo.ts`.
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 export const PLATFORM_PRODUCT_INFO: Partial<
   Record<PlatformKey, readonly ProductSolution[]>

@@ -154,7 +154,7 @@ class UserIdentityConfigSerializerResponse(TypedDict):
 
 
 @register(UserIdentityConfig)
-class UserIdentityConfigSerializer(Serializer):
+class UserIdentityConfigSerializer(Serializer[UserIdentityConfigSerializerResponse]):
     def get_attrs(
         self,
         item_list: Sequence[UserIdentityConfig],
