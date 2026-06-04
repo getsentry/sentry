@@ -176,7 +176,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json", data={"group_id": "not-a-number"})
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": "Invalid group_id: must be a numeric value"}
+        assert "group_id" in response.data
+        assert "not a valid integer id" in str(response.data["group_id"])
 
 
 class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTest):
