@@ -10,7 +10,8 @@ from django.db.models.signals import post_save
 
 from sentry import options
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.action_log import ActionType, publish_action_from_context
+from sentry.issues.action_log import publish_action_from_context
+from sentry.issues.action_log.types import ArchiveAction, UnresolveAction
 from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.models.activity import Activity
@@ -154,9 +155,9 @@ def handle_status_update(
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
-        action = ActionType.ARCHIVE if new_status == GroupStatus.IGNORED else ActionType.UNRESOLVE
+        action = ArchiveAction() if new_status == GroupStatus.IGNORED else UnresolveAction()
         publish_action_from_context(
-            action=action,
+            action,
             group_id=group.id,
             organization_id=project_lookup[group.project_id].organization_id,
             project_id=group.project_id,
