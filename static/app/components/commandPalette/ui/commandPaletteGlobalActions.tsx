@@ -545,6 +545,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
           {getUserOrgNavigationConfiguration()
             .flatMap(section => section.items)
+            .filter(item => item.show !== false)
             .sort((a, b) => a.title.localeCompare(b.title))
             .map(item => (
               <CMDKAction
