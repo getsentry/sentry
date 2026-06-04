@@ -49,6 +49,7 @@ import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widg
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
 import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {
   ALLOWED_CELL_ACTIONS,
   MISSING_DATA_MESSAGE,
@@ -442,6 +443,16 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 
   // Create Bars plottables from the transformed data
   const plottables = categoricalSeriesData.map(series => new Bars(series));
+  // Guard against all-null data (no plottable values) to avoid throwing inside
+  // CategoricalSeriesWidgetVisualization, which would surface as an ErrorBoundary error.
+  if (!plottablesCanBeVisualized(plottables)) {
+    return (
+      <StyledErrorPanel>
+        <IconWarning variant="primary" size="lg" />
+      </StyledErrorPanel>
+    );
+  }
+
 
   return (
     <ChartWrapper autoHeightResize>
