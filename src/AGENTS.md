@@ -2,29 +2,6 @@
 
 > For critical commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
-## Overview
-
-Sentry is a developer-first error tracking and performance monitoring platform. This repository contains the main Sentry application, which is a large-scale Django application with a React frontend.
-
-## Tech Stack
-
-### Backend
-
-- **Language**: Python 3.13+
-- **Framework**: Django 5.2+
-- **API**: Django REST Framework with drf-spectacular for OpenAPI docs
-- **Task Queue**: Celery 5.5+
-- **Databases**: PostgreSQL (primary), Redis, ClickHouse (via Snuba)
-- **Message Queue**: Kafka, RabbitMQ
-- **Stream Processing**: Arroyo (Kafka consumer/producer framework)
-- **Cloud Services**: Google Cloud Platform (Bigtable, Pub/Sub, Storage, KMS)
-
-### Infrastructure
-
-- **Container**: Docker (via devservices)
-- **Package Management**: pnpm (Node.js), pip (Python)
-- **Node Version**: 24.14.0 LTS (from `.node-version`, installed by `devenv/sync.py`)
-
 ## Security Guidelines
 
 ### Preventing Indirect Object References (IDOR)
@@ -71,15 +48,7 @@ projects = self.get_projects(
 
 ## Development Services
 
-Sentry uses `devservices` to manage local development dependencies:
-
-- **PostgreSQL**: Primary database
-- **Redis**: Caching and queuing
-- **Snuba**: ClickHouse-based event storage
-- **Relay**: Event ingestion service
-- **Symbolicator**: Debug symbol processing
-- **Taskbroker**: Asynchronous task processing
-- **Spotlight**: Local debugging tool
+Local dependencies are managed by `devservices` (config: `devservices/config.yml`).
 
 📖 Full devservices documentation: https://develop.sentry.dev/development-infrastructure/devservices.md
 
@@ -141,29 +110,6 @@ class DetailedSerializer(MySerializer):
         for item in item_list:
             attrs[item]["extra"] = extra_by_id.get(item.id)
         return attrs
-```
-
-### Celery Task Pattern
-
-```python
-# src/sentry/tasks/email.py
-from sentry.tasks.base import instrumented_task
-
-@instrumented_task(
-    name="sentry.tasks.send_email",
-    queue="email",
-    max_retries=3,
-    default_retry_delay=60,
-)
-def send_email(user_id: int, subject: str, body: str) -> None:
-    from sentry.models import User
-
-    try:
-        user = User.objects.get(id=user_id)
-        # Send email logic
-    except User.DoesNotExist:
-        # Don't retry if user doesn't exist
-        return
 ```
 
 ## API Development
@@ -306,35 +252,6 @@ analytics.record(
 )
 ```
 
-### Arroyo Stream Processing
-
-```python
-# Using Arroyo for Kafka producers with dependency injection for testing
-from arroyo.backends.abstract import Producer
-from arroyo.backends.kafka import KafkaProducer, KafkaPayload
-from arroyo.backends.local.backend import LocalBroker
-from arroyo.backends.local.storages.memory import MemoryMessageStorage
-
-# Production producer
-def create_kafka_producer(config):
-    return KafkaProducer(build_kafka_configuration(default_config=config))
-
-# Test producer using Arroyo's LocalProducer
-def create_test_producer_factory():
-    storage = MemoryMessageStorage()
-    broker = LocalBroker(storage)
-    return lambda config: broker.get_producer(), storage
-
-# Dependency injection pattern for testable Kafka producers
-class MultiProducer:
-    def __init__(self, topic: Topic, producer_factory: Callable[[Mapping[str, object]], Producer[KafkaPayload]] | None = None):
-        self.producer_factory = producer_factory or self._default_producer_factory
-        # ... setup code
-
-    def _default_producer_factory(self, config) -> KafkaProducer:
-        return KafkaProducer(build_kafka_configuration(default_config=config))
-```
-
 ## Architecture Rules
 
 ### Silo Mode
@@ -448,50 +365,6 @@ def my_function():
     ...
 ```
 
-## Performance Considerations
-
-1. Use database indexing appropriately
-2. Implement pagination for list endpoints
-3. Cache expensive computations with Redis
-4. Use Celery for background tasks
-5. Optimize queries with `select_related` and `prefetch_related`
-
-## Debugging Tips
-
-1. Use `devservices serve` for full stack debugging
-2. Access Django shell: `sentry django shell`
-3. View Celery tasks: monitor RabbitMQ management UI
-4. Database queries: use Django Debug Toolbar
-
-### Quick Debugging
-
-```python
-# Print SQL queries
-from django.db import connection
-print(connection.queries)
-
-# Debug Celery task
-from sentry.tasks import my_task
-my_task.apply(args=[...]).get()  # Run synchronously
-
-# Check feature flag
-from sentry import features
-features.has('organizations:feature', org)
-
-# Current silo mode
-from sentry.silo import SiloMode
-from sentry.services.hybrid_cloud import silo_mode_delegation
-print(silo_mode_delegation.get_current_mode())
-```
-
-## Important Configuration Files
-
-- `pyproject.toml`: Python project configuration
-- `setup.cfg`: Python package metadata
-- `.github/`: CI/CD workflows
-- `devservices/config.yml`: Local service configuration
-- `.pre-commit-config.yaml`: Pre-commit hooks configuration
-
 ## File Location Map
 
 ### Backend
@@ -517,55 +390,6 @@ print(silo_mode_delegation.get_current_mode())
    - `webhooks/` (if needed)
 3. Register in `src/sentry/integrations/registry.py`
 4. Add feature flag in `temporary.py`
-
-### Integration Pattern
-
-```python
-# src/sentry/integrations/example/integration.py
-from sentry.integrations import Integration, IntegrationProvider
-
-class ExampleIntegration(Integration):
-    def get_client(self):
-        from .client import ExampleClient
-        return ExampleClient(self.metadata['access_token'])
-
-class ExampleIntegrationProvider(IntegrationProvider):
-    key = "example"
-    name = "Example"
-    features = ["issue-basic", "alert-rule"]
-
-    def build_integration(self, state):
-        # OAuth flow handling
-        pass
-```
-
-## Contributing Guidelines
-
-1. Follow existing code style
-2. Write comprehensive tests
-3. Update documentation
-4. Add feature flags for experimental features
-5. Consider backwards compatibility
-6. Performance test significant changes
-
-## Common Gotchas
-
-1. **Hybrid Cloud**: Check silo mode before cross-silo queries
-2. **Feature Flags**: Always add for new features
-3. **Migrations**: Test rollback, never drop columns immediately
-4. **Celery**: Always handle task failures/retries
-5. **API**: Serializers can be expensive, use `@attach_scenarios`
-6. **Tests**: Use `self.create_*` helpers, not direct model creation
-7. **Permissions**: Check both RBAC and scopes
-
-## Useful Resources
-
-- Development Setup Guide: https://develop.sentry.dev/getting-started/
-- Devservices Documentation: https://develop.sentry.dev/development-infrastructure/devservices
-- Main Documentation: https://docs.sentry.io/
-- Internal Contributing Guide: https://docs.sentry.io/internal/contributing/
-- GitHub Discussions: https://github.com/getsentry/sentry/discussions
-- Discord: https://discord.gg/PXa5Apfe7K
 
 ## Python Typing
 
