@@ -59,6 +59,7 @@ import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -71,7 +72,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
@@ -250,7 +250,6 @@ export function GlobalCommandPaletteActions() {
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const {starredViews} = useStarredIssueViews();
-  const {data: starredDashboards = []} = useGetStarredDashboards();
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
       fetchMutation({
@@ -404,7 +403,28 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}} limit={4}>
+        <CMDKAction
+          display={{label: t('Dashboards'), icon: <IconDashboard />}}
+          prompt={t('Search for a dashboard...')}
+          limit={5}
+          resource={query =>
+            cmdkQueryOptions({
+              ...dashboardsApiOptions(organization, {
+                query: {query, per_page: 20},
+              }),
+              enabled: query.length >= 0,
+              select: data =>
+                data.json.map(dashboard => ({
+                  display: {
+                    label: dashboard.title,
+                    icon: dashboard.isFavorited ? <IconStar /> : <IconDashboard />,
+                  },
+                  keywords: [dashboard.title],
+                  to: `${prefix}/dashboard/${dashboard.id}/`,
+                })),
+            })
+          }
+        >
           {hasPrebuiltDashboards && (
             <CMDKAction
               display={{label: t('All Dashboards')}}
@@ -423,18 +443,6 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
             />
           )}
-          <CMDKAction
-            display={{label: t('Starred Dashboards'), icon: <IconStar />}}
-            keywords={[t('bookmarked'), t('favorites')]}
-          >
-            {starredDashboards.map(dashboard => (
-              <CMDKAction
-                key={dashboard.id}
-                display={{label: dashboard.title, icon: <IconStar />}}
-                to={`${prefix}/dashboard/${dashboard.id}/`}
-              />
-            ))}
-          </CMDKAction>
         </CMDKAction>
 
         {/* Hide the entire Insights section only when both migrations are active.
