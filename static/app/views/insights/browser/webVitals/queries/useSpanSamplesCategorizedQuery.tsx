@@ -1,4 +1,4 @@
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   CLS_SPANS_FILTER,
   INTERACTION_SPANS_FILTER,

@@ -30,7 +30,8 @@ import type {
   EChartHighlightHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import {defined, escape} from 'sentry/utils';
+import {escape} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

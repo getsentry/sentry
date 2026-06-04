@@ -38,7 +38,12 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.examples.project_examples import ProjectExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.core.endpoints.team_projects import (
@@ -110,7 +115,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Projects",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
+            VisibilityParams.PER_PAGE,
+            OrganizationParams.PROJECT_QUERY,
+        ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(

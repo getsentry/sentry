@@ -162,10 +162,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                         )
                     )
 
-            elif action_type == Action.Type.PLUGIN:
-                continue
-
-            # add all other action types (EMAIL, etc.)
+            # add all other action types (EMAIL, PLUGIN, etc.)
             else:
                 actions.append(
                     serialize(
@@ -176,7 +173,11 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
         actions.sort(
             key=lambda x: (
                 x["handlerGroup"],
-                (0 if x["type"] in [Action.Type.EMAIL, Action.Type.WEBHOOK] else 1),
+                (
+                    0
+                    if x["type"] in [Action.Type.EMAIL, Action.Type.PLUGIN, Action.Type.WEBHOOK]
+                    else 1
+                ),
                 x["type"],
                 (x["sentryApp"].get("name", "") if x.get("sentryApp") else ""),
             )

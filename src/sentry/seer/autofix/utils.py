@@ -68,6 +68,19 @@ class AutofixStoppingPoint(StrEnum):
     OPEN_PR = "open_pr"
 
 
+SEAT_BASED_STOPPING_POINTS: frozenset[AutofixStoppingPoint] = frozenset(
+    {
+        AutofixStoppingPoint.CODE_CHANGES,
+        AutofixStoppingPoint.OPEN_PR,
+        AutofixStoppingPoint.ROOT_CAUSE,
+    }
+)
+
+USAGE_BASED_STOPPING_POINTS: frozenset[AutofixStoppingPoint] = SEAT_BASED_STOPPING_POINTS | {
+    AutofixStoppingPoint.SOLUTION,
+}
+
+
 def extract_api_error_message(response: Any) -> str | None:
     # Anthropic returns {"error": {"type": "...", "message": "..."}}; others
     # (OpenAI, GitHub, Stripe) use one of "error.message" or top-level "message".
@@ -92,12 +105,11 @@ def extract_api_error_message(response: Any) -> str | None:
 
 def get_valid_automated_run_stopping_points(
     organization: Organization,
-) -> set[AutofixStoppingPoint]:
-    """Return the set of stopping points valid for the given organization."""
-    valid = {AutofixStoppingPoint.CODE_CHANGES, AutofixStoppingPoint.OPEN_PR}
-    if features.has("organizations:root-cause-stopping-point", organization):
-        valid.add(AutofixStoppingPoint.ROOT_CAUSE)
-    return valid
+) -> frozenset[AutofixStoppingPoint]:
+    """Return the set of stopping points valid for an org's billing tier."""
+    if is_seer_seat_based_tier_enabled(organization):
+        return SEAT_BASED_STOPPING_POINTS
+    return USAGE_BASED_STOPPING_POINTS
 
 
 class AutofixRequest(BaseModel):
@@ -297,19 +309,6 @@ def make_autofix_start_request(
     )
 
 
-def make_autofix_update_request(
-    body: bytes,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/update",
-        body=body,
-        viewer_context=viewer_context,
-    )
-
-
 def make_store_coding_agent_states_request(
     body: StoreCodingAgentStatesRequest,
     connection_pool: HTTPConnectionPool | None = None,
@@ -365,12 +364,12 @@ def default_seer_project_preference(project: Project) -> SeerProjectPreference:
 def get_org_default_seer_automation_handoff(
     organization: Organization,
 ) -> tuple[str, SeerAutomationHandoffConfiguration | None]:
-    """Get the default stopping point and automation handoff for an organization."""
+    """Get the default stopping point and automation handoff for a seat-based organization."""
     stopping_point = organization.get_option(
         "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
     )
     # Guard against stored stopping points that are no longer valid.
-    if stopping_point not in get_valid_automated_run_stopping_points(organization):
+    if stopping_point not in SEAT_BASED_STOPPING_POINTS:
         stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 
     auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
@@ -493,10 +492,10 @@ def _write_preferences_to_sentry_db(
 
         if project_repos_to_create:
             for project, repository_id, spr in project_repos_to_create:
-                spr.project_repository, _ = ProjectRepository.objects.get_or_create(
-                    project=project,
+                spr.project_repository, _ = ProjectRepository.objects.get_or_create_with_source(
+                    project_id=project.id,
                     repository_id=repository_id,
-                    defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+                    source=ProjectRepositorySource.SEER_PREFERENCE,
                 )
 
             created_project_repos = SeerProjectRepository.objects.bulk_create(
@@ -838,10 +837,10 @@ def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateD
     result_ids = []
     with transaction.atomic(router.db_for_write(SeerProjectRepository)):
         for data in repos_data:
-            project_repo, _ = ProjectRepository.objects.get_or_create(
-                project=project,
+            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+                project_id=project.id,
                 repository_id=data["repository_id"],
-                defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+                source=ProjectRepositorySource.SEER_PREFERENCE,
             )
             seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
                 project_repository=project_repo,
@@ -867,10 +866,10 @@ def replace_all_seer_project_repos(
         ).delete()
 
         for data in repos_data:
-            project_repo, _ = ProjectRepository.objects.get_or_create(
-                project=project,
+            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+                project_id=project.id,
                 repository_id=data["repository_id"],
-                defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+                source=ProjectRepositorySource.SEER_PREFERENCE,
             )
             seer_project_repo, _ = SeerProjectRepository.objects.update_or_create(
                 project_repository=project_repo,

@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {CrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';

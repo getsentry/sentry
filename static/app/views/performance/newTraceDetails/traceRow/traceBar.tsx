@@ -4,10 +4,7 @@ import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {TraceBackgroundPatterns} from 'sentry/views/performance/newTraceDetails/traceRow/traceBackgroundPatterns';
-import {
-  TraceErrorIcons,
-  TraceOccurenceIcons,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
+import {TraceIssueIcons} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
 
 interface InvisibleTraceBarProps {
   children: React.ReactNode;
@@ -147,22 +144,18 @@ export function TraceBar(props: TraceBarProps) {
   return (
     <Fragment>
       <div ref={registerSpanBarRef} className="TraceBar">
-        {props.errors.size > 0 ? (
-          <TraceErrorIcons
+        {props.errors.size > 0 || props.occurrences.size > 0 ? (
+          <TraceIssueIcons
+            node={props.node}
             node_space={props.node_space}
             errors={props.errors}
-            manager={props.manager}
-          />
-        ) : null}
-        {props.occurrences.size > 0 ? (
-          <TraceOccurenceIcons
-            node_space={props.node_space}
             occurrences={props.occurrences}
             manager={props.manager}
           />
         ) : null}
         {props.occurrences.size > 0 || props.errors.size > 0 || props.node.hasProfiles ? (
           <TraceBackgroundPatterns
+            node={props.node}
             node_space={props.node_space}
             occurrences={props.occurrences}
             errors={props.errors}
@@ -255,16 +248,11 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         })}
         {/* Autogrouped bars only render icons. That is because in the case of multiple bars
             with tiny gaps, the background pattern looks broken as it does not repeat nicely */}
-        {props.errors.size > 0 ? (
-          <TraceErrorIcons
+        {props.errors.size > 0 || props.occurrences.size > 0 ? (
+          <TraceIssueIcons
+            node={props.node}
             node_space={props.entire_space}
             errors={props.errors}
-            manager={props.manager}
-          />
-        ) : null}
-        {props.occurrences.size > 0 ? (
-          <TraceOccurenceIcons
-            node_space={props.entire_space}
             occurrences={props.occurrences}
             manager={props.manager}
           />

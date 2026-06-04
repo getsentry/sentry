@@ -18,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';

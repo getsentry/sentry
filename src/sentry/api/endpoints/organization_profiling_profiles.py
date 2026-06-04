@@ -129,9 +129,6 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             FLAMEGRAPH_EXPAND_PARAM,
         ],
         responses={
-            # The flamegraph payload is proxied verbatim from the profiling
-            # service; its shape is owned there, so it is documented as a generic
-            # object rather than mirrored in a TypedDict here.
             200: inline_sentry_response_serializer(
                 "OrganizationProfilingFlamegraphResponse", dict[str, Any]
             ),
@@ -146,11 +143,9 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         Retrieve an aggregated flamegraph for the organization, built from the
         requested data source (transactions, profiles, functions, or spans).
 
-        The response is forwarded from Sentry's internal profiling service and includes
-        per-profile shared frame tables, sample counts, platform metadata, and
-        optionally flamegraph metrics when `expand=metrics` is passed.
+        Pass `expand=metrics` to include aggregated function metrics in the response.
 
-        Requires the `profiling` organization feature.
+        Requires profiling to be enabled for the organization.
         """
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
@@ -189,9 +184,58 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         )
 
 
+PROFILER_ID_QUERY_PARAM = OpenApiParameter(
+    name="profiler_id",
+    location="query",
+    required=True,
+    type=str,
+    description="The continuous-profiler ID to fetch chunks for.",
+)
+
+CHUNKS_PROJECT_PARAM = OpenApiParameter(
+    name="project",
+    location="query",
+    required=True,
+    type=int,
+    description="The ID of the project to fetch chunks for. Exactly one project must be specified.",
+)
+
+
+@extend_schema(tags=["Profiling"])
 @cell_silo_endpoint
 class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
+
+    @extend_schema(
+        operation_id="Retrieve Profile Chunks for an Organization",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CHUNKS_PROJECT_PARAM,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            PROFILER_ID_QUERY_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationProfilingChunksResponse", dict[str, Any]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ProfilingExamples.PROFILE_CHUNKS,
+    )
     def get(self, request: Request, organization: Organization) -> HttpResponse:
+        """
+        Retrieve continuous profiling data for a profiler over a time range.
+
+        Exactly one project must be specified via the `project` query parameter.
+
+        Requires continuous profiling to be enabled for the organization.
+        """
         if not features.has("organizations:continuous-profiling", organization, actor=request.user):
             return Response(status=404)
 

@@ -16,6 +16,7 @@ from sentry.api.serializers.models.event import EventSerializerResponse
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -62,7 +63,9 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.EVENT_EXAMPLES,
     )
-    def get(self, request: Request, organization: Organization, event_id: str) -> Response:
+    def get(
+        self, request: Request, organization: Organization, event_id: str
+    ) -> Response[EventIdLookupResponse] | Response[DetailResponse]:
         """
         This resolves an event ID to the project slug and internal issue ID and internal event ID.
         """

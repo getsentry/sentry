@@ -1,7 +1,7 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import type {Repository} from 'sentry/types/integrations';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
