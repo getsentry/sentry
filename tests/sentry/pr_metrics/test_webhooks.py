@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 
@@ -31,7 +32,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             title="Fix the bug",
             message="Closes TICKET-1",
         )
-        self.base_pr_payload: dict = {
+        self.base_pr_payload: dict[str, Any] = {
             "number": 42,
             "title": "Fix the bug",
             "body": "Closes TICKET-1",
@@ -43,7 +44,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
         user_id: int = 999,
         title: str | None = None,
         body: str | None = None,
-        changes: dict | None = None,
+        changes: dict[str, Any] | None = None,
     ) -> None:
         payload = dict(self.base_pr_payload)
         payload["user"] = {"id": user_id, "login": "testbot"}
@@ -51,7 +52,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             payload["title"] = title
         if body is not None:
             payload["body"] = body
-        event: dict = {"action": action, "pull_request": payload}
+        event: dict[str, Any] = {"action": action, "pull_request": payload}
         if changes is not None:
             event["changes"] = changes
         handle_attribution(
@@ -321,7 +322,7 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             is_valid=True,
         )
 
-    def _payload(self, *, merged: bool = True) -> dict:
+    def _payload(self, *, merged: bool = True) -> dict[str, Any]:
         return {
             "number": 42,
             "merged": merged,
@@ -341,13 +342,13 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_emits_on_merge(self, mock_record) -> None:
+    def test_emits_on_merge(self, mock_record: MagicMock) -> None:
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
         assert mock_record.call_args_list[-1].args[0].close_action == "merged"
 
     @patch("sentry.analytics.record")
-    def test_emits_on_close_unmerged(self, mock_record) -> None:
+    def test_emits_on_close_unmerged(self, mock_record: MagicMock) -> None:
         self._call(merged=False)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
         assert mock_record.call_args_list[-1].args[0].close_action == "closed"
@@ -355,33 +356,33 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
     @patch(f"{MODULE}.needs_judge", return_value=True)
     @patch("sentry.analytics.record")
     def test_falls_back_to_immediate_emit_when_judge_needed(
-        self, mock_record, _needs_judge
+        self, mock_record: MagicMock, _needs_judge: MagicMock
     ) -> None:
         # Until the judge path is wired, a judge-needed PR still emits immediately.
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 
     @patch("sentry.analytics.record")
-    def test_ignores_non_terminal_actions(self, mock_record) -> None:
+    def test_ignores_non_terminal_actions(self, mock_record: MagicMock) -> None:
         self._call(action="opened")
         self._call(action="edited")
         self._call(action="synchronize")
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
-    def test_does_nothing_when_flag_off(self, mock_record) -> None:
+    def test_does_nothing_when_flag_off(self, mock_record: MagicMock) -> None:
         with self.feature({"organizations:pr-metrics-emit": False}):
             self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
-    def test_skips_untracked_pr(self, mock_record) -> None:
+    def test_skips_untracked_pr(self, mock_record: MagicMock) -> None:
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
-    def test_redelivery_emits_each_time(self, mock_record) -> None:
+    def test_redelivery_emits_each_time(self, mock_record: MagicMock) -> None:
         # Emission is stateless — it does not dedupe webhook redeliveries; that
         # guard lives at the terminal-event/PR-status check, not here.
         self._call(merged=True)
@@ -390,7 +391,9 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
 
     @patch(f"{MODULE}.logger")
     @patch("sentry.analytics.record")
-    def test_missing_pr_logs_warning_and_does_not_emit(self, mock_record, mock_logger) -> None:
+    def test_missing_pr_logs_warning_and_does_not_emit(
+        self, mock_record: MagicMock, mock_logger: MagicMock
+    ) -> None:
         # A close webhook can arrive before the PR row exists (race).
         handle_emission(
             github_event=GithubWebhookType.PULL_REQUEST,
