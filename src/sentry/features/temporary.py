@@ -56,6 +56,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:auto-link-repos-by-name", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enabled for orgs that participated in the code review beta
     manager.add("organizations:code-review-beta", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Record PullRequestAttribution from the seer.pr_created event (PR Merge Live Metrics rollout)
+    manager.add("organizations:pr-metrics-attribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable continuous profiling
     manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the ingestion of profile functions metrics into EAP
@@ -291,6 +293,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-disable-coding-setting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GitLab as a supported SCM provider for Seer
     manager.add("organizations:seer-gitlab-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Run Seer agents inside the sandbox execution environment
+    manager.add("organizations:seer-use-agent-sandbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Disable select orgs from ingesting mobile replay events.
     # Enable double-read from EAP for session health data validation
     manager.add("organizations:session-health-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)

@@ -35,7 +35,6 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
@@ -66,7 +65,6 @@ type Props = {
   generateEventView: (props: {
     location: Location;
     organization: Organization;
-    shouldUseEAP: boolean;
     theme: Theme;
     transactionName: string;
   }) => EventView;
@@ -179,8 +177,6 @@ export function PageLayout(props: Props) {
     navigate(normalizeUrl(getNewRoute(newTab)));
   };
 
-  const shouldUseEAP = useTransactionSummaryEAP();
-
   if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location, navigate);
     return null;
@@ -190,7 +186,6 @@ export function PageLayout(props: Props) {
     location,
     organization,
     transactionName,
-    shouldUseEAP,
     theme,
   });
 
