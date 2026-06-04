@@ -127,10 +127,12 @@ function FilterActions({
         : undefined,
       statsPeriod: pageFilters.datetime.period,
     };
+    const tagKey = key === FieldKey.FIRST_RELEASE ? 'release' : key;
+
     const fetchParams = {
       api,
       orgSlug: organization.slug,
-      tagKey: key,
+      tagKey,
       search: '',
       projectIds,
       endpointParams,
@@ -142,21 +144,20 @@ function FilterActions({
       return values.map(v => v.value);
     }
 
-    if (key === FieldKey.FIRST_RELEASE) {
-      const values = await fetchTagValues({
-        ...fetchParams,
-        tagKey: 'release',
-        dataset: Dataset.ERRORS,
-      });
-      return ['latest', ...values.map(v => v.value)];
-    }
-
     const [errorsValues, platformValues] = await Promise.all([
       fetchTagValues({...fetchParams, dataset: Dataset.ERRORS}),
       fetchTagValues({...fetchParams, dataset: Dataset.ISSUE_PLATFORM}),
     ]);
 
-    return mergeAndSortTagValues(errorsValues, platformValues, 'count').map(v => v.value);
+    const values = mergeAndSortTagValues(errorsValues, platformValues, 'count').map(
+      v => v.value
+    );
+
+    if (key === FieldKey.RELEASE || key === FieldKey.FIRST_RELEASE) {
+      return ['latest', ...values];
+    }
+
+    return values;
   };
 
   const issueFields = useMemo(

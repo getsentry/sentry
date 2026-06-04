@@ -20,7 +20,7 @@ import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {defined} from 'sentry/utils';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 

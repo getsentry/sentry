@@ -60,7 +60,6 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
-    "organizations:relay-new-error-processing",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",

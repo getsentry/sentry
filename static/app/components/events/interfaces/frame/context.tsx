@@ -11,7 +11,7 @@ import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';

@@ -106,12 +106,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "hybrid_cloud.authentication.use_api_key_replica",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "outbox_replication.sentry_apitoken.replication_version",

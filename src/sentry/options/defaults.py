@@ -686,10 +686,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Codecov Integration
-register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.name", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -900,6 +896,11 @@ register(
     type=Dict,
     default={7001: 0.15},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.message-penalty-weight",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
@@ -1164,22 +1165,10 @@ register(
 )
 
 register(
-    "seer.explorer_index.enable",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.explorer_index.killswitch.enable",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.explorer-index.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.explorer.context-engine-rollout",
@@ -2179,13 +2168,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Preprod snapshot comparison controls
-register(
-    "preprod.snapshots.odiff-worker-count",
-    default=4,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Webhook processing controls
 register(
     "hybridcloud.webhookpayload.worker_threads",
@@ -2380,14 +2362,6 @@ register(
         "floor": 500,  # 500 errors before error rate check applies
         "metrics_key": "sentry-app.webhook",  # to avoid high cardinality slug tag
     },
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# When True, the circuit breaker tracks state and emits metrics but does not block requests.
-register(
-    "sentry-apps.webhook.circuit-breaker.dry-run",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3137,13 +3111,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "workflow_engine.scheduler.use_conditional_delete",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "workflow_engine.associate_error_detectors",
     type=Bool,

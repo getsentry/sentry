@@ -5,7 +5,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 import {SpanCode} from './spanCode';
 import type {LowValueSpanEvidenceData} from './types';

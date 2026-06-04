@@ -2,16 +2,21 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, Self, TypedDict
+from typing import Any, Self, TypedDict, cast
 from urllib.parse import urlencode
 
 import sentry_sdk
+from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import CharField
 from rest_framework.serializers import ValidationError
 
 from sentry import options
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
+from sentry.identity.oauth2 import OAuth2ApiStep
 from sentry.identity.pipeline import IdentityPipeline
+from sentry.identity.vercel.provider import VercelIdentityProvider
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -24,7 +29,8 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.base import Pipeline
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
@@ -427,15 +433,51 @@ class VercelIntegration(IntegrationInstallation):
                 raise
 
 
+class VercelInitialDataSerializer(CamelSnakeSerializer):
+    """Initial pipeline data for marketplace-originated Vercel installs.
+
+    Vercel performs the OAuth grant on its side and redirects back to Sentry
+    with an authorization `code`. The frontend forwards it here so the pipeline
+    can exchange it for an access token without a second authorize round-trip.
+    """
+
+    code = CharField(required=True)
+
+
+class VercelAdvanceSerializer(CamelSnakeSerializer):
+    state = CharField(required=True)
+
+
+class VercelOAuthApiStep(OAuth2ApiStep):
+    """API-mode install step for Vercel.
+
+    Vercel installs are always initiated from the Vercel marketplace, which
+    performs the OAuth grant and forwards the authorization `code` as initialData
+    (bound to pipeline state). There is no authorize popup: the step signals the
+    frontend to auto-advance and reads the code back out of pipeline state to
+    exchange it, rather than opening an authorize URL and reading it from the
+    callback POST.
+    """
+
+    def get_step_data(self, pipeline: Pipeline[Any, Any], request: HttpRequest) -> dict[str, str]:
+        return {"state": pipeline.signature}
+
+    def get_serializer_cls(self) -> type:
+        return VercelAdvanceSerializer
+
+    def extract_code(self, validated_data: dict[str, str], pipeline: Pipeline[Any, Any]) -> str:
+        return cast(str, pipeline.fetch_state("code"))
+
+
 class VercelIntegrationProvider(IntegrationProvider):
     key = "vercel"
     name = "Vercel"
     can_add = False
+    can_add_externally = True
     can_disable = False
     metadata = metadata
     integration_cls = VercelIntegration
     features = frozenset([IntegrationFeatures.DEPLOYMENT])
-    oauth_redirect_url = "/extensions/vercel/configure/"
     # feature flag handler is in getsentry
     requires_feature_flag = True
 
@@ -444,14 +486,40 @@ class VercelIntegrationProvider(IntegrationProvider):
             bind_key="identity",
             provider_key=self.key,
             pipeline_cls=IdentityPipeline,
-            config={"redirect_url": absolute_uri(self.oauth_redirect_url)},
+            config={"redirect_url": absolute_uri("/extensions/vercel/configure/")},
         )
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [self._identity_pipeline_view()]
 
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        provider = VercelIdentityProvider()
+        return [
+            VercelOAuthApiStep(
+                # No authorize popup: the marketplace already granted the code.
+                authorize_url="",
+                client_id=str(provider.get_oauth_client_id()),
+                client_secret=provider.get_oauth_client_secret(),
+                access_token_url=provider.get_oauth_access_token_url(),
+                scope="",
+                # The code is issued against the marketplace redirect URI, so the
+                # token exchange must send the same value back to Vercel.
+                redirect_url="/extensions/vercel/configure/",
+                bind_key="oauth_data",
+            ),
+        ]
+
+    def get_initial_data_serializer_cls(self) -> type[VercelInitialDataSerializer]:
+        return VercelInitialDataSerializer
+
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        data = state["identity"]["data"]
+        # TODO: legacy views write token data to state["identity"]["data"] via
+        # NestedPipelineView. API steps write directly to state["oauth_data"].
+        # Remove the legacy path once the old views are retired.
+        if "oauth_data" in state:
+            data = state["oauth_data"]
+        else:
+            data = state["identity"]["data"]
         access_token = data["access_token"]
         team_id = data.get("team_id")
         client = VercelClient(access_token, team_id)
