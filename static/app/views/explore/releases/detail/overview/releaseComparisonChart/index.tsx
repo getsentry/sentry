@@ -24,7 +24,7 @@ import {
   SessionStatus,
   type SessionApiResponse,
 } from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {
   ReleaseComparisonChartType,
   type ReleaseProject,

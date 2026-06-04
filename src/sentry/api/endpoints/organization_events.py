@@ -154,6 +154,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
+            VisibilityParams.ALLOW_AGGREGATE_CONDITIONS,
             CursorQueryParam,
         ],
         responses={
@@ -242,7 +243,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         elif not is_valid_referrer(referrer):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
-        use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
+        use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") in ("1", "true")
 
         max_string_length: int | None = None
         truncate_str = request.GET.get("truncate")

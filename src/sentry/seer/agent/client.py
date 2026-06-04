@@ -416,6 +416,13 @@ class SeerAgentClient:
         ):
             agent_run_options["enable_frontend_code_search"] = True
 
+        if features.has(
+            "organizations:seer-use-agent-sandbox",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["use_agent_sandbox"] = True
+
         if features.has("organizations:seer-run-mirror-explorer", self.organization):
             user_id = (
                 self.user.id
@@ -571,6 +578,13 @@ class SeerAgentClient:
         ):
             agent_run_options["enable_frontend_code_search"] = True
 
+        if features.has(
+            "organizations:seer-use-agent-sandbox",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["use_agent_sandbox"] = True
+
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
@@ -722,6 +736,7 @@ class SeerAgentClient:
         repo_name: str | None = None,
         blocking: bool = True,
         pr_description_suffix: str | None = None,
+        ready_for_review: bool = True,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
     ) -> SeerRunState | None:
@@ -751,7 +766,7 @@ class SeerAgentClient:
             raise SeerPermissionError("Code generation is disabled for this organization")
 
         # Trigger PR creation
-        payload: dict[str, Any] = {"type": "create_pr"}
+        payload: dict[str, Any] = {"type": "create_pr", "ready_for_review": ready_for_review}
         if repo_name:
             payload["repo_name"] = repo_name
         if pr_description_suffix:

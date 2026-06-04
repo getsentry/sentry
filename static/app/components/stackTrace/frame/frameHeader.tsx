@@ -14,7 +14,7 @@ import {
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {defined} from 'sentry/utils';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 

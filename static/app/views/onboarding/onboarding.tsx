@@ -20,7 +20,7 @@ import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';

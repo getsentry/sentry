@@ -25,28 +25,6 @@ Sentry is a developer-first error tracking and performance monitoring platform. 
 - **Package Management**: pnpm (Node.js), pip (Python)
 - **Node Version**: 24.14.0 LTS (from `.node-version`, installed by `devenv/sync.py`)
 
-## Project Structure
-
-```
-sentry/
-├── src/
-│   ├── sentry/           # Main Django application
-│   │   ├── api/          # REST API endpoints
-│   │   ├── models/       # Django models
-│   │   ├── tasks/        # Celery tasks
-│   │   ├── integrations/ # Third-party integrations
-│   │   ├── issues/       # Issue tracking logic
-│   │   └── web/          # Web views and middleware
-│   ├── sentry_plugins/   # Plugin system
-│   └── social_auth/      # Social authentication
-├── static/               # Frontend application
-├── tests/                # Test suite
-├── fixtures/             # Test fixtures
-├── devenv/               # Development environment config
-├── migrations/           # Database migrations
-└── config/               # Configuration files
-```
-
 ## Security Guidelines
 
 ### Preventing Indirect Object References (IDOR)
@@ -91,17 +69,6 @@ projects = self.get_projects(
 )
 ```
 
-## Exception Handling
-
-- Avoid blanket exception handling (`except Exception:` or bare `except:`)
-- Only catch specific exceptions when you have a meaningful way to handle them
-- We have global exception handlers in tasks and endpoints that automatically log errors and report them to Sentry
-- Let exceptions bubble up unless you need to:
-  - Add context to the error
-  - Perform cleanup operations
-  - Convert one exception type to another with additional information
-  - Recover from expected error conditions
-
 ## Development Services
 
 Sentry uses `devservices` to manage local development dependencies:
@@ -137,40 +104,6 @@ Sentry uses `devservices` to manage local development dependencies:
 2. Use `@instrumented_task` decorator
 3. Set appropriate `queue` and `max_retries`
 4. Test location: `tests/sentry/tasks/test_{category}.py`
-
-## Critical Patterns (Copy-Paste Ready)
-
-### API Endpoint Pattern
-
-```python
-# src/sentry/core/endpoints/organization_details.py
-from rest_framework.request import Request
-from rest_framework.response import Response
-from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import OrganizationSerializer
-
-@cell_silo_endpoint
-class OrganizationDetailsEndpoint(OrganizationEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
-    }
-
-    def get(self, request: Request, organization: Organization) -> Response:
-        """Get organization details."""
-        return Response(
-            serialize(
-                organization,
-                request.user,
-                OrganizationSerializer()
-            )
-        )
-
-# Add to src/sentry/api/urls.py:
-# path('organizations/<slug:organization_slug>/', OrganizationDetailsEndpoint.as_view()),
-```
 
 ### Serializers: Avoiding N+1 Queries
 
@@ -401,41 +334,6 @@ class MultiProducer:
     def _default_producer_factory(self, config) -> KafkaProducer:
         return KafkaProducer(build_kafka_configuration(default_config=config))
 ```
-
-## Code Comments
-
-Comments should not repeat what the code is saying. Instead, reserve comments for explaining **why** something is being done, or to provide context that is not obvious from the code itself.
-
-```python
-# Bad - obvious from the code itself
-result = self.create_project(organization=org)  # Create a project
-
-# Good - explains why
-# Some APIs occasionally return 500s on valid requests. We retry up to
-# 3 times before surfacing an error.
-retries += 1
-
-# Good - provides non-obvious context
-# Seer requires at least 10 events before it can analyze patterns
-if event_count < 10:
-    return None
-```
-
-**When to Comment:**
-
-- To explain why a particular approach or workaround was chosen
-- To clarify intent when the code could be misread or misunderstood
-- To provide context from external systems, specs, or requirements
-- To document assumptions, edge cases, or limitations
-- To explain non-obvious business logic or domain knowledge
-
-**When Not to Comment:**
-
-- Don't narrate what the code is doing — the code already says that
-- Don't duplicate function or variable names in plain English
-- Don't leave stale comments that contradict the code
-- Don't reference removed or obsolete code paths (e.g. "No longer uses X format")
-- Don't comment on obvious test setup steps (e.g. "Create organization", "Call the API")
 
 ## Architecture Rules
 

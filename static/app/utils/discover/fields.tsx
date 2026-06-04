@@ -936,14 +936,6 @@ export function measurementType(field: string): MeasurementType {
   return FieldValueType.NUMBER;
 }
 
-export function getMeasurementSlug(field: string): string | null {
-  const results = field.match(MEASUREMENT_PATTERN);
-  if (results && results.length >= 2) {
-    return results[1]!;
-  }
-  return null;
-}
-
 const AGGREGATE_PATTERN = /^(\w+)\((.*)\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
 export const AGGREGATE_BASE = /(\w+)\((.*)\)/g;

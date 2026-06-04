@@ -16,6 +16,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
 from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
 from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
+from sentry.models.dashboard import Dashboard
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client import SeerAgentClient
@@ -56,7 +57,7 @@ This session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboa
     + TRACE_METRICS_GUIDANCE
 )
 
-DASHBOARD_INSTRUCTIONS = """\
+DASHBOARD_INSTRUCTIONS = f"""\
 You are generating a Sentry dashboard. Follow these rules strictly:
 
 Data accuracy:
@@ -82,6 +83,7 @@ Widget-type-specific rules:
 description must not exceed 15,000 characters.
 
 Limits:
+- A dashboard can have at most {Dashboard.MAX_WIDGETS} widgets.
 - For non-table, non-big_number chart widgets that have group-by columns, limit must be explicitly \
 set. The maximum is 10 for most chart types, 25 for categorical bar charts, and 20 for table widgets.
 
