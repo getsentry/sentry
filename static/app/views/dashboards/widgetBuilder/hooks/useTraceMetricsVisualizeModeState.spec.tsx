@@ -348,7 +348,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
   });
 
-  it('falls back to equation row when selectedLabel does not match', async () => {
+  it('falls back to first aggregate when selectedLabel does not match', async () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
@@ -358,7 +358,10 @@ describe('useTraceMetricsVisualizeModeState', () => {
           query: {
             dataset: WidgetType.TRACEMETRICS,
             displayType: DisplayType.LINE,
-            yAxis: ['count(value,gamma_metric,counter,none)'],
+            yAxis: [
+              'equation|sum(value,alpha_metric,counter,none) + avg(value,gamma_metric,counter,none)',
+            ],
+            label: 'test',
           },
         },
       },
@@ -379,9 +382,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            yAxis: [
-              'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
-            ],
+            yAxis: ['sum(value,alpha_metric,counter,none)'],
           }),
         }),
         expect.anything()

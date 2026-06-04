@@ -161,10 +161,6 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
 
     const selected =
       snapshot.queries.find(q => q.label === snapshot.selectedLabel) ??
-      snapshot.queries.find(q => {
-        const vis = q.queryParams.visualizes[0];
-        return vis && isVisualizeEquation(vis);
-      }) ??
       snapshot.queries[0];
     if (!selected) {
       return;
