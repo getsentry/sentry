@@ -29,13 +29,7 @@ _AUTODERIVE_DENYLIST: frozenset[str] = frozenset(
         "sentry.api.serializers.models.project.ProjectSerializer",
         "sentry.api.serializers.models.release.GroupEventReleaseSerializer",
         "sentry.api.serializers.models.release.ReleaseSerializer",
-        "sentry.api.serializers.models.rule.WorkflowEngineRuleSerializer",
         "sentry.api.serializers.models.team.BaseTeamSerializer",
-        "sentry.api.serializers.models.userreport.UserReportSerializer",
-        "sentry.incidents.endpoints.serializers.workflow_engine_detector.WorkflowEngineDetectorSerializer",
-        "sentry.incidents.endpoints.serializers.workflow_engine_incident.WorkflowEngineIncidentSerializer",
-        "sentry.sentry_apps.api.serializers.sentry_app_avatar.SentryAppAvatarSerializer",
-        "sentry.users.api.serializers.authenticator.AuthenticatorInterfaceSerializer",
         "sentry.users.api.serializers.user.UserSerializer",
     }
 )
