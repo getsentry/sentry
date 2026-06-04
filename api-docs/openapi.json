@@ -151,9 +151,6 @@
     "/api/0/sentry-app-installations/{uuid}/external-issues/": {
       "$ref": "paths/integration-platform/sentry-app-external-issues.json"
     },
-    "/api/0/sentry-app-installations/{uuid}/external-issues/{external_issue_id}/": {
-      "$ref": "paths/integration-platform/sentry-app-external-issue-details.json"
-    },
     "/api/0/organizations/{organization_id_or_slug}/spike-protections/": {
       "$ref": "paths/projects/spike-protection.json"
     }

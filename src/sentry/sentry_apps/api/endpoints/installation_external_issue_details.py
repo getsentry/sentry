@@ -6,12 +6,14 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import SentryAppParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
@@ -32,24 +34,24 @@ _EXTERNAL_ISSUE_ID_PARAM = OpenApiParameter(
 class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
         operation_id="Delete an External Issue",
+        description="Delete an external issue.",
         parameters=[SentryAppParams.INSTALLATION_UUID, _EXTERNAL_ISSUE_ID_PARAM],
         responses={
             204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, installation, external_issue_id) -> Response:
-        """
-        Remove the link between a Sentry issue and an external resource created through a
-        custom integration (Sentry App) installation.
-        """
+    def delete(
+        self, request: Request, installation, external_issue_id
+    ) -> Response[None] | Response[DetailResponse]:
         try:
             external_issue_id = int(external_issue_id)
         except (ValueError, TypeError):
