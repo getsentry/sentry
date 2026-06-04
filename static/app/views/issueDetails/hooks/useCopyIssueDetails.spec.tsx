@@ -13,6 +13,7 @@ import {EntryType} from 'sentry/types/event';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
 import * as useOrganization from 'sentry/utils/useOrganization';
+import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
 import {
   issueAndEventToMarkdown,
   useCopyIssueDetails,
@@ -456,37 +457,37 @@ LIMIT 21`;
     });
 
     it('summarizes N+1 span evidence with dedup, cardinality, code and timing', () => {
-      const result = issueAndEventToMarkdown(
-        performanceGroup,
-        nPlusOneEvent,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      expect(formatSpanEvidenceToMarkdown(nPlusOneEvent, organization, performanceGroup))
+        .toMatchInlineSnapshot(`
+        "
+        ## Span Evidence
 
-      expect(result).toContain('## Span Evidence');
-      expect(result).toContain('**Transaction:** /api/0/relays/projectconfigs/');
-      expect(result).toContain(
-        '**Parent Span:** base.dispatch.execute - RelayProjectConfigsEndpoint.post'
-      );
-      expect(result).toContain('**Offending Spans (4):**');
-
-      // Distinct cache keys are reported as cardinality, not listed per-span.
-      expect(result).toContain('distinct keys');
-
-      // The cache-miss → DB-read pattern note is surfaced.
-      expect(result).toContain('cache miss → DB read');
-
-      // Code location from span data is included.
-      expect(result).toContain(
-        'code: src/sentry/relay/config/__init__.py:212 get_project_config'
-      );
-
-      // Duration Impact (% of transaction) is shown.
-      expect(result).toContain('of txn');
-
-      expect(result).toContain('**Pattern Size:** 4');
+        **Transaction:** /api/0/relays/projectconfigs/
+        **Parent Span:** base.dispatch.execute - RelayProjectConfigsEndpoint.post
+        **Preceding Spans (2):**
+        - \`db\` (2×, 0ms, 0% of txn):
+        \`\`\`sql
+        SELECT sentry_option.id, sentry_option.key, sentry_option.value
+        FROM sentry_option
+        WHERE sentry_option.key = %s
+        LIMIT 21
+        \`\`\`
+        **Offending Spans (4):**
+        - \`cache.get\` (2×, 2 distinct keys, 0ms, 0% of txn)
+          - o:abc
+          - o:def
+        - \`db\` (2×, 20ms, 2% of txn):
+        \`\`\`sql
+        SELECT sentry_option.id, sentry_option.key, sentry_option.value
+        FROM sentry_option
+        WHERE sentry_option.key = %s
+        LIMIT 21
+        \`\`\`
+          code: src/sentry/relay/config/__init__.py:212 get_project_config
+        _Pattern: cache miss → DB read, repeated per entity._
+        **Pattern Size:** 4
+        "
+      `);
     });
 
     it('dedupes repeated queries instead of printing every span', () => {
@@ -567,19 +568,15 @@ LIMIT 21`;
         },
       });
 
-      const result = issueAndEventToMarkdown(
-        performanceGroup,
-        profileEvent,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      expect(formatSpanEvidenceToMarkdown(profileEvent, organization, performanceGroup))
+        .toMatchInlineSnapshot(`
+        "
+        ## Span Evidence
 
-      expect(result).toContain('## Span Evidence');
-      expect(result).not.toContain('**Transaction:** ApiException');
-      expect(result).toContain('**Transaction Name:** app.start');
-      expect(result).toContain('**File Path:** /data/cache.db');
+        **Transaction Name:** app.start
+        **File Path:** /data/cache.db
+        "
+      `);
     });
 
     it('uses evidenceData.transactionName for profiling issues', () => {
@@ -594,17 +591,15 @@ LIMIT 21`;
         },
       });
 
-      const result = issueAndEventToMarkdown(
-        performanceGroup,
-        profileEvent,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      expect(formatSpanEvidenceToMarkdown(profileEvent, organization, performanceGroup))
+        .toMatchInlineSnapshot(`
+        "
+        ## Span Evidence
 
-      expect(result).toContain('**Transaction:** app.start');
-      expect(result).not.toContain('**Transaction:** ApiException');
+        **Transaction:** app.start
+        **File Path:** /data/cache.db
+        "
+      `);
     });
 
     it('includes regression metrics for endpoint regression issues', () => {
@@ -625,21 +620,21 @@ LIMIT 21`;
         },
       });
 
-      const result = issueAndEventToMarkdown(
-        endpointRegressionGroup,
-        regressionEvent,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      expect(
+        formatSpanEvidenceToMarkdown(
+          regressionEvent,
+          organization,
+          endpointRegressionGroup
+        )
+      ).toMatchInlineSnapshot(`
+        "
+        ## Span Evidence
 
-      expect(result).toContain('## Span Evidence');
-      expect(result).toContain('**Endpoint Name:** /api/0/users/');
-      expect(result).toContain('**Change in Duration:**');
-      expect(result).toContain('**Approx. Start Time:**');
-      expect(result).not.toContain('**Transaction:** ApiException');
-      expect(result).not.toContain('**Parent Span:**');
+        **Endpoint Name:** /api/0/users/
+        **Change in Duration:** 2min to 3min (+100%)
+        **Approx. Start Time:** Feb 28, 2024 11:00:00 PM UTC
+        "
+      `);
     });
 
     it('includes regression metrics for function regression issues', () => {
@@ -661,21 +656,23 @@ LIMIT 21`;
         },
       });
 
-      const result = issueAndEventToMarkdown(
-        functionRegressionGroup,
-        regressionEvent,
-        null,
-        null,
-        undefined,
-        organization
-      );
+      expect(
+        formatSpanEvidenceToMarkdown(
+          regressionEvent,
+          organization,
+          functionRegressionGroup
+        )
+      ).toMatchInlineSnapshot(`
+        "
+        ## Span Evidence
 
-      expect(result).toContain('## Span Evidence');
-      expect(result).toContain('**Function Name:** processData');
-      expect(result).toContain('**Package Name:** com.example.app');
-      expect(result).toContain('**File Name:** MainActivity.kt');
-      expect(result).toContain('**Change in Duration:**');
-      expect(result).toContain('**Approx. Start Time:**');
+        **Function Name:** processData
+        **Package Name:** com.example.app
+        **File Name:** MainActivity.kt
+        **Change in Duration:** 1s to 2s (+100%)
+        **Approx. Start Time:** Feb 28, 2024 11:00:00 PM UTC
+        "
+      `);
     });
 
     it('omits span evidence when regression issues lack evidenceData', () => {
