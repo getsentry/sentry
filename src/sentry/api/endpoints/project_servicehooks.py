@@ -34,8 +34,8 @@ from sentry.sentry_apps.services.hook import hook_service
 class ProjectServiceHooksEndpoint(ProjectEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
 
     def has_feature(self, request: Request, project):
