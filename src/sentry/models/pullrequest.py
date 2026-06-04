@@ -107,6 +107,11 @@ class PullRequest(Model):
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
 
+    # Set once when a terminal (close/merge) webhook is first processed. The
+    # pr_metrics emission path uses a non-null closed_at as its redelivery guard
+    # (see pr_metrics.webhooks._claim_terminal_transition): a compare-and-set on
+    # this column drops redelivered close/merge events before any emit or judge
+    # forward, so it must stay null until that first terminal event lands.
     closed_at = models.DateTimeField(null=True)
     merged_at = models.DateTimeField(null=True)
     state = models.CharField(max_length=32, null=True, choices=PullRequestLifecycleState.choices)
