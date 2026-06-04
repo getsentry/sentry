@@ -109,11 +109,13 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowFreeText,
   disallowLogicalOperators,
   disableRecentSearches,
+  disabled,
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
+  placeholder,
 }: TraceItemSearchQueryBuilderProps) {
-  const placeholderText = itemTypeToDefaultPlaceholder(itemType);
+  const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
 
   const {selection} = usePageFilters();
   const effectiveProjects = projects ?? selection.projects;
@@ -194,12 +196,14 @@ export function useTraceItemSearchQueryBuilderProps({
         ...booleanSecondaryAliases,
       },
       caseInsensitive,
+      disabled,
       onCaseInsensitiveClick,
       invalidFilterKeys,
     }),
     [
       booleanSecondaryAliases,
       caseInsensitive,
+      disabled,
       disallowFreeText,
       disallowLogicalOperators,
       disableRecentSearches,
@@ -260,6 +264,7 @@ export function TraceItemSearchQueryBuilder({
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
+  placeholder,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -287,18 +292,14 @@ export function TraceItemSearchQueryBuilder({
     disallowFreeText,
     disallowLogicalOperators,
     disableRecentSearches,
+    disabled,
     attributeQuery,
     hiddenAttributeKeys,
     allowedAttributeKeys,
+    placeholder,
   });
 
-  return (
-    <SearchQueryBuilder
-      autoFocus={autoFocus}
-      disabled={disabled}
-      {...searchQueryBuilderProps}
-    />
-  );
+  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
 }
 
 function useFunctionTags(

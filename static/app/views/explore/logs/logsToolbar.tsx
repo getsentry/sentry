@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {optionFromTag} from 'sentry/views/explore/components/attributeOption';

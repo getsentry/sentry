@@ -11,7 +11,7 @@ from django.conf import settings as django_settings
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.models.project import Project
 
 
@@ -476,8 +476,6 @@ def launch_coding_agents_for_run(
     is_github_copilot = provider == "github_copilot"
 
     if is_github_copilot:
-        if not features.has("organizations:integrations-github-copilot-agent", organization):
-            raise PermissionDenied("GitHub Copilot is not enabled for this organization")
         user_access_token: str | None = None
         if user_id is not None:
             user_access_token = github_copilot_identity_service.get_access_token_for_user(

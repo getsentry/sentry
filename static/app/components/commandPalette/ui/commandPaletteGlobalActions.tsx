@@ -118,7 +118,7 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/account/notifications/': <IconSubscribed />,
 };
 
-const helpSearch = new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop']);
+const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 const EVENT_ID_PATTERN =
   /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
 const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
@@ -639,7 +639,14 @@ export function GlobalCommandPaletteActions() {
                 icon: <ProjectAvatar project={project} size={16} />,
                 trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
               }}
-              keywords={[t('dsn'), t('client keys'), t('dsn key'), project.slug]}
+              keywords={[
+                t('dsn'),
+                t('client keys'),
+                t('dsn key'),
+                'SENTRY_DSN',
+                'Sentry DSN',
+                project.slug,
+              ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
             />
           ))}

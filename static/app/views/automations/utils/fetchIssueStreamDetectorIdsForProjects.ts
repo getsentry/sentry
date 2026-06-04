@@ -1,7 +1,7 @@
 import type {QueryClient} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 export async function fetchIssueStreamDetectorIdsForProjects({

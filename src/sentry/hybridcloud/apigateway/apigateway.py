@@ -68,14 +68,6 @@ def proxy_request_if_needed(
         org_id_or_slug = str(
             view_kwargs.get("organization_slug") or view_kwargs.get("organization_id_or_slug", "")
         )
-
-        metrics.incr(
-            "apigateway.proxy_request",
-            tags={
-                "url_name": url_name,
-                "kind": "orgslug",
-            },
-        )
         return proxy_request(request, org_id_or_slug, url_name)
 
     resolver = _get_view_cell_resolver(view_func)

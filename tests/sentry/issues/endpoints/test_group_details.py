@@ -5,7 +5,7 @@ from django.test import override_settings
 from django.utils import timezone
 
 from sentry import audit_log, buffer, tsdb
-from sentry.analytics.events.issue_fix_attribution import IssueViewAttribution
+from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -309,12 +309,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200
             assert_any_analytics_event(
                 mock_record,
-                IssueViewAttribution(
+                IssueViewedEvent(
                     organization_id=group.project.organization.id,
                     project_id=group.project.id,
                     group_id=group.id,
-                    feature="mcp",
-                    referrer="cursor",
+                    client="mcp - cursor",
                     user_id=self.user.id,
                 ),
             )
