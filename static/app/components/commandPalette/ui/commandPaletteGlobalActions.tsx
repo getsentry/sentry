@@ -59,6 +59,7 @@ import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -425,10 +426,10 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}} limit={4}>
+        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
           {hasPrebuiltDashboards && (
             <CMDKAction
-              display={{label: t('All Dashboards')}}
+              display={{label: t('Dashboards')}}
               to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
             />
           )}
@@ -444,17 +445,43 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
             />
           )}
+          {starredDashboards.length > 0 && (
+            <CMDKAction
+              display={{label: t('Starred Dashboards'), icon: <IconStar />}}
+              keywords={[t('bookmarked'), t('favorites')]}
+            >
+              {starredDashboards.map(dashboard => (
+                <CMDKAction
+                  key={dashboard.id}
+                  display={{label: dashboard.title, icon: <IconStar />}}
+                  to={`${prefix}/dashboard/${dashboard.id}/`}
+                />
+              ))}
+            </CMDKAction>
+          )}
           <CMDKAction
-            display={{label: t('Starred Dashboards'), icon: <IconStar />}}
-            keywords={[t('bookmarked'), t('favorites')]}
+            display={{label: t('All Dashboards'), icon: <IconSearch />}}
+            prompt={t('Search for a dashboard...')}
+            limit={5}
+            resource={query =>
+              cmdkQueryOptions({
+                ...dashboardsApiOptions(organization, {
+                  query: {query, per_page: 20},
+                }),
+                enabled: query.length >= 1,
+                select: data =>
+                  data.json.map(dashboard => ({
+                    display: {
+                      label: dashboard.title,
+                      icon: dashboard.isFavorited ? <IconStar /> : <IconDashboard />,
+                    },
+                    keywords: [dashboard.title],
+                    to: `${prefix}/dashboard/${dashboard.id}/`,
+                  })),
+              })
+            }
           >
-            {starredDashboards.map(dashboard => (
-              <CMDKAction
-                key={dashboard.id}
-                display={{label: dashboard.title, icon: <IconStar />}}
-                to={`${prefix}/dashboard/${dashboard.id}/`}
-              />
-            ))}
+            {data => data.map((item, i) => renderAsyncResult(item, i))}
           </CMDKAction>
         </CMDKAction>
 
