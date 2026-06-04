@@ -11,7 +11,7 @@ from typing import Any
 import sentry_sdk
 from django.db import router, transaction
 
-from sentry import features, nodestore, options, projectoptions
+from sentry import nodestore, options, projectoptions
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -321,10 +321,7 @@ def get_merged_settings(
         **project_option_settings,
     }
 
-    # If feature flag is disabled, always use LEGACY mode because we can't decide check the feature
-    # flag without a Project.
-    # TODO: WFE config should fall back to DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS without a Project.
-    if not project or not features.has("projects:workflow-engine-performance-detectors", project):
+    if not project:
         settings_mode = SettingsMode.LEGACY
 
     if settings_mode == SettingsMode.LEGACY:
