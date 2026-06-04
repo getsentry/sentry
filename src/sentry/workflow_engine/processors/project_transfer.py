@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from sentry.constants import ObjectStatus
@@ -33,7 +33,7 @@ def clone_workflow_to_organization(
     workflow: Workflow,
     destination_organization: Organization,
     environment_id: int | None,
-    destination_integration_ids_by_provider: Mapping[str, int],
+    destination_integration_ids_by_provider: Mapping[str, Sequence[int]],
 ) -> Workflow:
     """Deep-copy a workflow and its condition graph into the destination organization.
 
@@ -42,9 +42,11 @@ def clone_workflow_to_organization(
     is left intact for the projects that remain. The owner team/user is dropped because it
     won't belong to the new org, and fire history / detector state are not copied.
 
-    destination_integration_ids_by_provider maps an integration provider to an active
-    integration id in the destination org so we can re-connect the Action if possible,
-    and disable the Action if it's not
+    destination_integration_ids_by_provider maps an integration provider to the active
+    integration ids in the destination org so we can re-connect the Action if there's
+    exactly one match, and disable the Action otherwise. If the destination org has
+    multiple active integrations of the same provider (e.g. several Slack workspaces) we
+    can't know which one the Action meant, so we disable it rather than guess.
     """
 
     def clone_condition_group(
@@ -74,14 +76,12 @@ def clone_workflow_to_organization(
             new_integration_id = action.integration_id
             new_status = action.status
             if Action.Type(action.type).is_integration():
-                destination_integration_id = destination_integration_ids_by_provider.get(
-                    action.type
+                destination_integration_ids = destination_integration_ids_by_provider.get(
+                    action.type, []
                 )
-                if destination_integration_id is not None:
-                    new_integration_id = destination_integration_id
+                if len(destination_integration_ids) == 1:
+                    new_integration_id = destination_integration_ids[0]
                 else:
-                    # No matching integration in the destination org; keep the dangling reference
-                    # but disable the action so it can't fire against the old org's integration
                     new_status = ObjectStatus.DISABLED
 
             action_overrides = {

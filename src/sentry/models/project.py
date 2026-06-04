@@ -665,12 +665,11 @@ class Project(Model):
         )
         if detector_ids:
             # grab the destination org's integrations outside of the transaction since it's an RPC call
-            destination_integration_ids_by_provider = {
-                integration.provider: integration.id
-                for integration in integration_service.get_integrations(
-                    organization_id=organization.id, status=ObjectStatus.ACTIVE
-                )
-            }
+            destination_integration_ids_by_provider: dict[str, list[int]] = defaultdict(list)
+            for integration in integration_service.get_integrations(
+                organization_id=organization.id, status=ObjectStatus.ACTIVE
+            ):
+                destination_integration_ids_by_provider[integration.provider].append(integration.id)
             with transaction.atomic(router.db_for_write(Workflow)):
                 # DataSources are 1:1 with their source (e.g. QuerySubscription, Monitor) and are
                 # detector-scoped, so they always transfer.
