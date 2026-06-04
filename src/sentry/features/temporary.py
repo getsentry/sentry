@@ -248,6 +248,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-night-shift", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display nightshift settings
     manager.add("organizations:seer-night-shift-settings", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable context engine for Seer Agent
+    manager.add("organizations:seer-explorer-context-engine", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Roll out structured LLM page context on STRUCTURED_CONTEXT_ROUTES to all orgs
     manager.add("organizations:seer-explorer-structured-context-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable context engine experimental contexts
@@ -266,8 +268,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-slack-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the thinking blocks toggle in the Seer Agent top bar
     manager.add("organizations:seer-explorer-thinking-blocks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable context engine for Seer Agent
-    manager.add("organizations:seer-explorer-context-engine", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable client-side UI tools for Seer Agent
     manager.add("organizations:seer-explorer-ui-tools", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable structured LLM context (JSON snapshot) instead of ASCII DOM snapshot
