@@ -49,15 +49,6 @@ def _is_building_fresh(state: ZipState | None) -> bool:
     return datetime.now(timezone.utc) - datetime.fromisoformat(enqueued_at) < BUILD_STALE_AFTER
 
 
-def _stream_full(file_obj: File) -> Iterator[bytes]:
-    with file_obj.getfile() as fp:
-        while True:
-            chunk = fp.read(DOWNLOAD_CHUNK_SIZE)
-            if not chunk:
-                break
-            yield chunk
-
-
 def _stream_range(file_obj: File, start: int, end: int) -> Iterator[bytes]:
     remaining = end - start + 1
     with file_obj.getfile() as fp:
@@ -184,7 +175,9 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
             except (ValueError, IndexError):
                 return HttpResponse(status=400)
         else:
-            response = StreamingHttpResponse(_stream_full(file_obj), content_type="application/zip")
+            response = StreamingHttpResponse(
+                _stream_range(file_obj, 0, file_size - 1), content_type="application/zip"
+            )
             response["Content-Length"] = file_size
 
         response["Accept-Ranges"] = "bytes"

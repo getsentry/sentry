@@ -34,14 +34,6 @@ class SnapshotZipBuildError(Exception):
     pass
 
 
-def _build_hash_to_filenames(manifest: SnapshotManifest) -> dict[str, list[str]]:
-    result: dict[str, list[str]] = defaultdict(list)
-    for filename, meta in manifest.images.items():
-        if not is_unsafe_path(filename):
-            result[meta.content_hash].append(filename)
-    return result
-
-
 def build_snapshot_zip(
     manifest: SnapshotManifest,
     session: Session,
@@ -60,7 +52,10 @@ def build_snapshot_zip(
     an integer percent (0-100), only when that percent advances, so a caller
     can persist build progress without one write per image.
     """
-    hash_to_filenames = _build_hash_to_filenames(manifest)
+    hash_to_filenames: dict[str, list[str]] = defaultdict(list)
+    for filename, meta in manifest.images.items():
+        if not is_unsafe_path(filename):
+            hash_to_filenames[meta.content_hash].append(filename)
     unique_hashes = list(hash_to_filenames.keys())
     total = len(unique_hashes)
     completed = 0
