@@ -521,14 +521,16 @@ export function Trace({
             </div>
           );
         })}
-        {timeCompression.gaps.map((gap, i) => (
-          <CollapsedGapMarker
-            key={`${gap.start}-${gap.end}`}
-            gap={gap}
-            index={i}
-            manager={manager}
-          />
-        ))}
+        {trace.type === 'trace' &&
+          !isLoading &&
+          timeCompression.gaps.map((gap, i) => (
+            <CollapsedGapMarker
+              key={`${gap.start}-${gap.end}`}
+              gap={gap}
+              index={i}
+              manager={manager}
+            />
+          ))}
         {traceNode && traceStartTimestamp ? (
           <VerticalTimestampIndicators
             viewmanager={manager}
