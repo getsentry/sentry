@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import MutableMapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -25,12 +25,15 @@ class SentryAppInstallationOrganizationResult(TypedDict):
     id: int
 
 
-class SentryAppInstallationResult(TypedDict):
+class SentryAppInstallationOptionalResult(TypedDict, total=False):
+    code: str
+
+
+class SentryAppInstallationResult(SentryAppInstallationOptionalResult):
     app: SentryAppInstallationAppResult
     organization: SentryAppInstallationOrganizationResult
     uuid: str
     status: str
-    code: NotRequired[str]
 
 
 @register(SentryAppInstallation)

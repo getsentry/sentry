@@ -39,7 +39,7 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
 
@@ -55,7 +55,9 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[SentryAppInstallationResult]]:
         """
         Return a list of an organization's installations of custom integrations (Sentry Apps).
         """
