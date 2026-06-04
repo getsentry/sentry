@@ -97,11 +97,12 @@ function formatGroupTiming(totalMs: number, event: EventTransaction): string {
 function summarizeSpanGroup(
   heading: string,
   spans: EvidenceSpan[],
-  event: EventTransaction
-): string[] {
+  event: EventTransaction,
+  sampleBudget: number
+): {lines: string[]; remaining: number} {
   const valid = spans.filter(Boolean);
   if (valid.length === 0) {
-    return [];
+    return {lines: [], remaining: sampleBudget};
   }
 
   const lines = [`**${heading} (${valid.length}):**`];
@@ -114,7 +115,7 @@ function summarizeSpanGroup(
     byOp.set(op, existing);
   });
 
-  let sampleBudget = MAX_SAMPLE_SPANS_PER_SECTION;
+  let remaining = sampleBudget;
 
   byOp.forEach((group, op) => {
     const count = group.length;
@@ -139,11 +140,11 @@ function summarizeSpanGroup(
       const cardinality = op.startsWith('cache') ? 'distinct keys' : 'distinct values';
       lines.push(`- \`${op}\` (${repeat}${distinct.length} ${cardinality}, ${timing})`);
       // Draw samples from the shared section budget so the total stays bounded.
-      const sampleCount = Math.min(MAX_SAMPLE_SPANS, sampleBudget, distinct.length);
+      const sampleCount = Math.min(MAX_SAMPLE_SPANS, remaining, distinct.length);
       distinct.slice(0, sampleCount).forEach(description => {
         lines.push(`  - ${description}`);
       });
-      sampleBudget -= sampleCount;
+      remaining -= sampleCount;
       if (distinct.length > sampleCount) {
         lines.push(`  - …and ${distinct.length - sampleCount} more`);
       }
@@ -155,7 +156,7 @@ function summarizeSpanGroup(
     }
   });
 
-  return lines;
+  return {lines, remaining};
 }
 
 /**
@@ -227,14 +228,29 @@ export function formatSpanEvidenceToMarkdown(
       lines.push(`**Parent Span:** ${getSpanMarkdownValue(spanInfo.parentSpan)}`);
     }
 
+    // One sample budget shared across both span groups so the whole section
+    // stays bounded, not each group independently.
+    let sampleBudget = MAX_SAMPLE_SPANS_PER_SECTION;
+
     const causeSpans: EvidenceSpan[] = spanInfo?.causeSpans?.filter(Boolean) ?? [];
-    lines.push(...summarizeSpanGroup('Preceding Spans', causeSpans, eventTransaction));
+    const preceding = summarizeSpanGroup(
+      'Preceding Spans',
+      causeSpans,
+      eventTransaction,
+      sampleBudget
+    );
+    lines.push(...preceding.lines);
+    sampleBudget = preceding.remaining;
 
     const offendingSpans: EvidenceSpan[] =
       spanInfo?.offendingSpans?.filter(Boolean) ?? [];
-    lines.push(
-      ...summarizeSpanGroup('Offending Spans', offendingSpans, eventTransaction)
+    const offending = summarizeSpanGroup(
+      'Offending Spans',
+      offendingSpans,
+      eventTransaction,
+      sampleBudget
     );
+    lines.push(...offending.lines);
 
     // Surface the cache-miss → DB read shape when both appear (classic N+1).
     const hasCacheMiss = offendingSpans.some(span => span?.op?.startsWith('cache'));

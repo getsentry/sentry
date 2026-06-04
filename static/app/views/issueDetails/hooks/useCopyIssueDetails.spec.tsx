@@ -524,6 +524,53 @@ LIMIT 21`;
       expect(result).toContain('more');
     });
 
+    it('shares the sample budget across preceding and offending spans', () => {
+      // Both span groups have enough distinct values to each exhaust the cap;
+      // the budget is shared across the section, so the total stays bounded
+      // rather than doubling.
+      const makeSpans = (op: string, prefix: string) =>
+        Array.from({length: 6}, (_, i) => ({
+          span_id: `${prefix}${i}`,
+          op,
+          description: `${prefix} ${i}`,
+        }));
+      const precedingSpans = [
+        ...makeSpans('http.client', 'pre-http'),
+        ...makeSpans('cache.get', 'pre-cache'),
+        ...makeSpans('custom.op', 'pre-custom'),
+      ];
+      const offendingSpans = [
+        ...makeSpans('http.client', 'off-http'),
+        ...makeSpans('cache.get', 'off-cache'),
+        ...makeSpans('custom.op', 'off-custom'),
+      ];
+
+      const bothGroupsEvent = EventFixture({
+        ...event,
+        title: '/api/0/things/',
+        startTimestamp: 0,
+        endTimestamp: 1,
+        occurrence: {
+          type: 1006,
+          evidenceData: {
+            causeSpanIds: precedingSpans.map(s => s.span_id),
+            offenderSpanIds: offendingSpans.map(s => s.span_id),
+          },
+          evidenceDisplay: [],
+        },
+        entries: [{type: EntryType.SPANS, data: [...precedingSpans, ...offendingSpans]}],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group: performanceGroup,
+        event: bothGroupsEvent,
+        organization,
+      });
+
+      const sampleLines = (result.match(/^ {2}- (?!…)/gm) ?? []).length;
+      expect(sampleLines).toBeLessThanOrEqual(10);
+    });
+
     it('includes evidence display rows for profiling issues', () => {
       // 2001 is the occurrence type for File I/O on Main Thread
       const profileEvent = EventFixture({
