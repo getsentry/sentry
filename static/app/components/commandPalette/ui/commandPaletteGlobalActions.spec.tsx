@@ -45,6 +45,7 @@ function makeRenderProps(closeModal: jest.Mock) {
 }
 
 import {GlobalCommandPaletteActions} from './commandPaletteGlobalActions';
+import * as userOrgNavConfig from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 function SlotOutlets() {
   return (
@@ -429,5 +430,104 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     await userEvent.type(input, 'test');
 
     expect(await screen.findByRole('option', {name: 'test-project'})).toBeInTheDocument();
+  });
+});
+
+describe('GlobalCommandPaletteActions - org settings show filter', () => {
+  const organization = OrganizationFixture();
+
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/group-search-views/starred/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/starred/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function renderPalette() {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
+  }
+
+  it('excludes org nav items with show: false from the Settings section', async () => {
+    jest
+      .spyOn(userOrgNavConfig, 'getUserOrgNavigationConfiguration')
+      .mockReturnValue([
+        {
+          id: 'test-section',
+          name: 'Test',
+          items: [
+            {path: '/settings/:orgId/visible-item/', title: 'Visible Setting Item'},
+            {
+              path: '/settings/:orgId/hidden-item/',
+              title: 'Hidden Setting Item',
+              show: false,
+            },
+          ],
+        },
+      ]);
+
+    renderPalette();
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+
+    // The item without show: false should appear
+    await userEvent.type(input, 'Visible Setting');
+    expect(
+      await screen.findByRole('option', {name: /Visible Setting Item/})
+    ).toBeInTheDocument();
+
+    // The item with show: false should be filtered out
+    await userEvent.clear(input);
+    await userEvent.type(input, 'Hidden Setting');
+    expect(screen.queryByRole('option', {name: /Hidden Setting Item/})).not.toBeInTheDocument();
+  });
+
+  it('does not surface API Keys as a Settings nav entry (regression)', async () => {
+    renderPalette();
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'API Keys');
+
+    // The API Keys nav item has show: false and must not appear in cmd+k
+    expect(screen.queryByRole('option', {name: 'API Keys'})).not.toBeInTheDocument();
   });
 });
