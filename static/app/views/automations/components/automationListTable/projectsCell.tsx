@@ -9,7 +9,11 @@ import {useDetectorDataContext} from 'sentry/views/automations/components/automa
 export function ProjectsCell({automation}: {automation: Automation}) {
   const detectorData = useDetectorDataContext();
 
-  if (!detectorData || detectorData.isPending || detectorData.isError) {
+  if (automation.detectorIds.length === 0) {
+    return <EmptyCell />;
+  }
+
+  if (!detectorData || detectorData.isPending) {
     return <Placeholder height="20px" />;
   }
 
