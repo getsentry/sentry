@@ -187,7 +187,7 @@ export interface Config {
     release: string;
     tracePropagationTargets: string[];
     environment?: string;
-    profilesSampleRate?: number;
+    profileSessionSampleRate?: number;
   };
   // sentryMode intends to supersede isSelfHosted,
   // so we can differentiate between "SELF_HOSTED", "SINGLE_TENANT", and "SAAS".
