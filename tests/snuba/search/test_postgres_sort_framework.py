@@ -7,7 +7,6 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.group import Group, GroupStatus
@@ -57,9 +56,8 @@ class TestPostgresSortStrategy(TestCase):
     def test_defaults(self):
         s = PostgresSortStrategy(postgres_fields={"ts": "last_seen"})
         assert s.snuba_aggregations == []
-        assert s.field_resolvers is None
+        assert s.signal_resolvers == {}
         assert s.exclude_null_postgres is True
-        assert s.snuba_fallback is None
 
     def test_frozen(self):
         s = PostgresSortStrategy(postgres_fields={"ts": "last_seen"})
@@ -85,28 +83,6 @@ class TestHasSortStrategy(TestCase):
         with _patch_pg_strategies({"custom": _ts_strategy()}):
             assert executor.has_sort_strategy("custom") is True
             assert executor.has_sort_strategy("date") is True
-
-
-class TestResolveFields(TestCase):
-    def test_default_fields(self):
-        executor = PostgresSnubaQueryExecutor()
-        strategy = PostgresSortStrategy(postgres_fields={"ts": "last_seen", "prio": "priority"})
-        org = self.create_organization()
-        assert executor._resolve_pg_sort_fields(strategy, org, None) == {
-            "ts": "last_seen",
-            "prio": "priority",
-        }
-
-    def test_field_resolver_overrides(self):
-        executor = PostgresSnubaQueryExecutor()
-        strategy = PostgresSortStrategy(
-            postgres_fields={"ts": "default_field", "prio": "priority"},
-            field_resolvers={"ts": lambda org, actor: "resolved_field"},
-        )
-        org = self.create_organization()
-        resolved = executor._resolve_pg_sort_fields(strategy, org, None)
-        assert resolved["ts"] == "resolved_field"
-        assert resolved["prio"] == "priority"
 
 
 class PostgresSortTestBase(TestCase, SnubaTestCase):
@@ -206,6 +182,15 @@ class TestPurePostgresSort(PostgresSortTestBase):
                 assert len(results) == 3
                 assert not snuba_spy.called
 
+    def test_numeric_column_ordering(self):
+        for group, score in zip(self.groups, [0.1, 0.9, 0.5]):
+            group.seer_fixability_score = score
+            group.save()
+        strategy = PostgresSortStrategy(postgres_fields={"fix": "seer_fixability_score"})
+        with _patch_pg_strategies({"test_sort": strategy}):
+            results = list(self.make_query("test_sort"))
+        assert results == [self.groups[1], self.groups[2], self.groups[0]]
+
 
 class TestExecutePostgresSort(PostgresSortTestBase):
     def test_snuba_filter_narrows_candidates(self):
@@ -232,6 +217,17 @@ class TestExecutePostgresSort(PostgresSortTestBase):
         with _patch_pg_strategies({"test_sort": strategy}):
             results = list(self.make_query("test_sort", query="issue"))
         assert len(results) == 3
+
+    def test_signal_resolver_influences_score(self):
+        boosted = self.groups[0].id
+        strategy = _ts_strategy(
+            signal_resolvers={"boost": lambda actor, org, gids: {boosted: 1}},
+            score_fn=lambda data: data.get("boost", 0) * 10**15 + _datetime_to_ms(data["ts"]),
+        )
+        with _patch_pg_strategies({"test_sort": strategy}):
+            results = list(self.make_query("test_sort"))
+        # groups[0] is the oldest (normally last) but the boost floats it to the top.
+        assert results == [self.groups[0], self.groups[2], self.groups[1]]
 
     def test_cursor_pagination_with_snuba_filter(self):
         for i in range(5):
@@ -264,51 +260,24 @@ class TestExecutePostgresSort(PostgresSortTestBase):
 
 
 class TestFallbackBehavior(PostgresSortTestBase):
-    def test_fallback_to_snuba_sort(self):
-        """When _execute_postgres_sort returns None, falls through to Snuba path."""
-        strategy = _ts_strategy(snuba_fallback="date")
+    def test_overflow_falls_through_to_snuba(self):
+        """Over the candidate cap, _execute_postgres_sort returns None and query() falls
+        through to the Snuba path rather than erroring."""
         with (
-            _patch_pg_strategies({"test_sort": strategy}),
-            mock.patch.object(
-                PostgresSnubaQueryExecutor, "_execute_postgres_sort", return_value=None
-            ),
+            _patch_pg_strategies({"test_sort": _ts_strategy(snuba_aggregations=["last_seen"])}),
+            mock.patch("sentry.search.snuba.executors.options") as mock_opts,
         ):
+            mock_opts.get.return_value = 0  # force every query over the cap
             results = list(self.make_query("test_sort", query="issue"))
             assert len(results) >= 0
 
-    def test_too_many_candidates_without_fallback_raises(self):
-        strategy = _ts_strategy(snuba_fallback=None)
-        executor = PostgresSnubaQueryExecutor()
-        qs = Group.objects.filter(project=self.project)
-        with mock.patch("sentry.search.snuba.executors.options") as mock_opts:
-            mock_opts.get.return_value = 0
-            with pytest.raises(InvalidSearchQuery, match="requires more specific filters"):
-                executor._execute_postgres_sort(
-                    strategy=strategy,
-                    sort_by="test_sort",
-                    group_queryset=qs,
-                    projects=[self.project],
-                    environments=None,
-                    search_filters=[],
-                    limit=25,
-                    cursor=None,
-                    count_hits=False,
-                    paginator_options={},
-                    max_hits=None,
-                    actor=None,
-                    start=before_now(days=90),
-                    end=timezone.now(),
-                    referrer=Referrer.TESTING_TEST.value,
-                )
-
-    def test_too_many_candidates_with_fallback_returns_none(self):
-        strategy = _ts_strategy(snuba_fallback="date")
+    def test_too_many_candidates_returns_none(self):
         executor = PostgresSnubaQueryExecutor()
         qs = Group.objects.filter(project=self.project)
         with mock.patch("sentry.search.snuba.executors.options") as mock_opts:
             mock_opts.get.return_value = 0
             result = executor._execute_postgres_sort(
-                strategy=strategy,
+                strategy=_ts_strategy(snuba_aggregations=["last_seen"]),
                 sort_by="test_sort",
                 group_queryset=qs,
                 projects=[self.project],

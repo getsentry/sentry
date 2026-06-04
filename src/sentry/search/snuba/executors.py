@@ -87,10 +87,14 @@ class PostgresSortStrategy:
 
     postgres_fields: dict[str, str]
     snuba_aggregations: list[str] = dataclass_field(default_factory=list)
-    score_fn: Callable[[dict[str, Any]], int] = lambda data: 0
-    field_resolvers: dict[str, Callable[[Organization, Any], str]] | None = None
+    # Computed signals that aren't a single Group column (e.g. assignment affinity).
+    # Each resolver is called once in bulk with (actor, organization, group_ids) and
+    # returns {group_id: value}; the value is merged into the score_fn dict under its key.
+    signal_resolvers: dict[str, Callable[[Any, Organization, list[int]], dict[int, Any]]] = (
+        dataclass_field(default_factory=dict)
+    )
+    score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
     exclude_null_postgres: bool = True
-    snuba_fallback: str | None = None
 
 
 def _datetime_to_ms(dt: datetime | None) -> int:
@@ -919,20 +923,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         visible_type_ids = group_types_from(search_filters)
         return group_queryset.filter(type__in=visible_type_ids)
 
-    def _resolve_pg_sort_fields(
-        self,
-        strategy: PostgresSortStrategy,
-        organization: Organization,
-        actor: Any | None,
-    ) -> dict[str, str]:
-        resolved: dict[str, str] = {}
-        for logical_name, default_field in strategy.postgres_fields.items():
-            if strategy.field_resolvers and logical_name in strategy.field_resolvers:
-                resolved[logical_name] = strategy.field_resolvers[logical_name](organization, actor)
-            else:
-                resolved[logical_name] = default_field
-        return resolved
-
     def _pure_postgres_sort(
         self,
         strategy: PostgresSortStrategy,
@@ -949,7 +939,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if strategy.exclude_null_postgres:
             group_queryset = group_queryset.filter(**{f"{field_name}__isnull": False})
         group_queryset = group_queryset.using_replica().order_by(f"-{field_name}")
-        paginator = DateTimePaginator(group_queryset, f"-{field_name}", **paginator_options)
+        # DateTimePaginator encodes the cursor as a millisecond integer, which only works
+        # for datetime columns. Numeric columns carry their value directly via Paginator.
+        is_datetime = Group._meta.get_field(field_name).get_internal_type() == "DateTimeField"
+        paginator_cls = DateTimePaginator if is_datetime else Paginator
+        paginator = paginator_cls(group_queryset, f"-{field_name}", **paginator_options)
         return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
     def _execute_postgres_sort(
@@ -973,12 +967,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ) -> CursorResult[Group] | None:
         """Execute a sort using Postgres data, with optional Snuba filtering/aggregation.
 
-        Returns None to signal the caller should fall back to the Snuba-only path.
+        Returns None to signal the caller should fall back to the Snuba-only path (e.g.
+        when there are too many candidates to score in memory).
         """
-        from sentry.exceptions import InvalidSearchQuery
-
         organization = projects[0].organization
-        resolved_fields = self._resolve_pg_sort_fields(strategy, organization, actor)
+        resolved_fields = strategy.postgres_fields
 
         group_queryset = self._apply_type_visibility_filter(group_queryset, search_filters)
         if strategy.exclude_null_postgres:
@@ -1002,12 +995,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
 
         if len(candidate_ids) > max_candidates:
-            if strategy.snuba_fallback and strategy.snuba_fallback in self.sort_strategies:
-                return None
-            raise InvalidSearchQuery(
-                f"Sort by '{sort_by}' requires more specific filters. "
-                "Try adding 'is:unresolved', 'assigned:me', or project filters."
-            )
+            # Too many candidates to score in memory. Signal the caller to fall through
+            # to the Snuba chunked path, which can paginate without an in-memory bound.
+            return None
 
         snuba_data: dict[int, dict[str, Any]] = {}
 
@@ -1072,12 +1062,21 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             gid = row[0]
             pg_data[gid] = {logical_names[i]: row[i + 1] for i in range(len(logical_names))}
 
-        scored_groups: list[tuple[int, int]] = []
+        # Each signal resolver runs once over all candidates, returning {group_id: value}.
+        signal_data: dict[str, dict[int, Any]] = {
+            name: resolver(actor, organization, candidate_ids)
+            for name, resolver in strategy.signal_resolvers.items()
+        }
+
+        scored_groups: list[tuple[float, int]] = []
         for gid in candidate_ids:
             pg_values = pg_data.get(gid)
             if pg_values is None:
                 continue
             merged = {**pg_values, **snuba_data.get(gid, {})}
+            for name, values in signal_data.items():
+                if gid in values:
+                    merged[name] = values[gid]
             try:
                 score = strategy.score_fn(merged)
             except (TypeError, KeyError):
@@ -1215,12 +1214,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
             if (
                 not pg_strategy.snuba_aggregations
+                and not pg_strategy.signal_resolvers
                 and not has_snuba_filters
                 and len(pg_strategy.postgres_fields) == 1
             ):
-                organization = projects[0].organization
-                resolved = self._resolve_pg_sort_fields(pg_strategy, organization, actor)
-                first_field = next(iter(resolved.values()))
+                first_field = next(iter(pg_strategy.postgres_fields.values()))
                 result = self._pure_postgres_sort(
                     strategy=pg_strategy,
                     field_name=first_field,
@@ -1263,8 +1261,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                     tags={"postgres_only": False, "sort": sort_by},
                 )
                 return pg_result
-            # Fall through to Snuba path with fallback sort
-            sort_by = pg_strategy.snuba_fallback or sort_by
+            # Overflow: too many candidates to score in memory. Fall through to the Snuba
+            # chunked path. If this sort has no Snuba-only equivalent, fall back to `date`.
+            if sort_by not in self.sort_strategies:
+                sort_by = "date"
 
         # If the requested sort is `date` (`last_seen`) and there
         # are no other Snuba-based search predicates, we can simply
