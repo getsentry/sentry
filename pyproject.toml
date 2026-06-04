@@ -398,7 +398,6 @@ disable_error_code = [
     "arg-type",
     "assignment",
     "attr-defined",
-    "call-overload",
     "misc",
     "override",
     "union-attr",
