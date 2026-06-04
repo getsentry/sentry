@@ -58,7 +58,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/token/",
     "/api/0/organizations/{organization_id_or_slug}/searches/{search_id}/",
     "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/",
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/users/",
     "/api/0/api-applications/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/tags/",
     "/api/0/broadcasts/{broadcast_id}/",
