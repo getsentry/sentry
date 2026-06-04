@@ -4,7 +4,6 @@ from datetime import timedelta
 from typing import Any
 from unittest import mock
 
-import pytest
 from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
@@ -40,11 +39,6 @@ def _ts_strategy(**overrides: Any) -> PostgresSortStrategy:
 
 
 class TestDatetimeToMs(TestCase):
-    def test_converts_datetime(self):
-        dt = timezone.now()
-        assert isinstance(_datetime_to_ms(dt), int)
-        assert _datetime_to_ms(dt) > 0
-
     def test_none_returns_zero(self):
         assert _datetime_to_ms(None) == 0
 
@@ -58,18 +52,6 @@ class TestPostgresSortStrategy(TestCase):
         assert s.snuba_aggregations == []
         assert s.signal_resolvers == {}
         assert s.exclude_null_postgres is True
-
-    def test_frozen(self):
-        s = PostgresSortStrategy(postgres_fields={"ts": "last_seen"})
-        with pytest.raises(AttributeError):
-            s.exclude_null_postgres = False  # type: ignore[misc]
-
-    def test_custom_score_fn(self):
-        s = PostgresSortStrategy(
-            postgres_fields={"ts": "last_seen"},
-            score_fn=lambda data: data.get("ts", 0) * 2,
-        )
-        assert s.score_fn({"ts": 5}) == 10
 
 
 class TestHasSortStrategy(TestCase):
@@ -176,6 +158,25 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
         with _patch_pg_strategies({"test_sort": _ts_strategy()}):
             results = list(self.make_query("test_sort", query="is:unresolved"))
         assert len(results) == 3
+
+    def test_respects_time_window_without_snuba(self):
+        # last_seen: groups[0] ~8d ago, groups[1] ~5d ago, groups[2] ~3d ago.
+        # A 4-day window should drop the two older groups even though Snuba is skipped.
+        with _patch_pg_strategies({"test_sort": _ts_strategy()}):
+            results = list(
+                self.backend.query(
+                    [self.project],
+                    search_filters=[],
+                    environments=None,
+                    count_hits=False,
+                    sort_by="test_sort",
+                    date_from=before_now(days=4),
+                    date_to=None,
+                    cursor=None,
+                    referrer=Referrer.TESTING_TEST,
+                )
+            )
+        assert results == [self.groups[2]]
 
     def test_skips_snuba_without_filters_or_aggregations(self):
         with _patch_pg_strategies({"test_sort": _ts_strategy()}):

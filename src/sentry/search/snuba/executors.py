@@ -979,6 +979,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             for model_field in resolved_fields.values():
                 group_queryset = group_queryset.filter(**{f"{model_field}__isnull": False})
 
+        # Apply the lower bound of the search time window using the group's last_seen
+        # (its max event timestamp). When Snuba is involved it enforces the full event
+        # window itself; this keeps Postgres-only candidates from returning issues with
+        # no events in range.
+        group_queryset = group_queryset.filter(last_seen__gte=start)
+
         has_snuba_filters = bool(
             [
                 sf
@@ -1109,14 +1115,19 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         *,
         referrer: str,
     ) -> dict[int, dict[str, Any]]:
-        """Like snuba_search(), but returns raw aggregation values per group."""
+        """Return the requested aggregation's value per group.
+
+        The aggregation is passed as the Snuba sort field so its per-group value
+        comes back as the score. One aggregation is supported.
+        """
+        sort_field = required_aggregations[0] if required_aggregations else "last_seen"
         snuba_groups, _ = self.snuba_search(
             start=start,
             end=end,
             project_ids=project_ids,
             environment_ids=environment_ids,
             organization=organization,
-            sort_field="last_seen",
+            sort_field=sort_field,
             cursor=None,
             group_ids=list(group_ids),
             limit=len(group_ids),
@@ -1128,11 +1139,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if not snuba_groups:
             return {}
 
-        # TODO: Extract shared plumbing from snuba_search() to return all
-        # requested aggregation columns, not just the sort score.
         result: dict[int, dict[str, Any]] = {}
         for gid, score in snuba_groups:
-            result[gid] = {"last_seen": score}
+            result[gid] = {sort_field: score}
         return result
 
     def query(
