@@ -267,7 +267,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert response.data[0]["email"] == "billy@localhost"
 
     def test_list_with_missing_user(self) -> None:
-        # .We can't guarantee that a user will always exist, due to tombstone
+        # We can't guarantee that a user will always exist, due to tombstone
         # deletions, so we need to ensure we can still serialize the org member.
         secondary_user = self.create_user("secondary@localhost", username="dos")
         OrganizationMember.objects.create(
