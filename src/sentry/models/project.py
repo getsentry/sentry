@@ -519,6 +519,7 @@ class Project(Model):
         )
         from sentry.workflow_engine.processors.project_transfer import (
             clone_workflow_to_organization,
+            reconnect_moved_workflow_actions,
         )
 
         old_org_id = self.organization_id
@@ -751,6 +752,12 @@ class Project(Model):
                 )
                 DataConditionGroup.objects.filter(id__in=when_condition_group_ids).update(
                     organization_id=organization.id
+                )
+
+                # update the integration id or disable the action
+                reconnect_moved_workflow_actions(
+                    exclusive_condition_group_ids + list(when_condition_group_ids),
+                    destination_integration_ids_by_provider,
                 )
 
                 # Clone the shared workflows into the new org and re-point only this project's links.

@@ -511,10 +511,23 @@ class TestProjectTransfer(TestCase):
         ).exists()
 
     def test_transfer_to_organization_with_workflow_data_condition_groups(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+            to_integration = self.create_integration(
+                organization=self.to_org, external_id="to-slack", provider="slack"
+            )
+
         condition_group = self.create_data_condition_group(organization=self.from_org)
         self.create_workflow_data_condition_group(
             workflow=self.workflow, condition_group=condition_group
         )
+        action = self.create_action(
+            integration_id=from_integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
 
         self.project.transfer_to(organization=self.to_org)
 
@@ -530,6 +543,12 @@ class TestProjectTransfer(TestCase):
         wdcg = condition_group.workflowdataconditiongroup_set.first()
         assert wdcg is not None
         assert wdcg.workflow_id == self.workflow.id
+
+        # The workflow moved in place; the destination org has a matching active Slack integration,
+        # so the same action is remapped to it and stays active.
+        action.refresh_from_db()
+        assert action.integration_id == to_integration.id
+        assert action.status == ObjectStatus.ACTIVE
 
     def test_transfer_to_organization_clones_shared_workflows(self) -> None:
         project_a = self.create_project(teams=[self.team], name="Project A")

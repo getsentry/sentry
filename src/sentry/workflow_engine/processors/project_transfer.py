@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from sentry.constants import ObjectStatus
@@ -27,6 +27,45 @@ def _simple_shallow_clone[T: DefaultFieldsModel](original: T, **overrides: Any) 
         setattr(new, attr, value)
     new.save()
     return new
+
+
+def resolve_destination_integration(
+    action: Action,
+    destination_integration_ids_by_provider: Mapping[str, Sequence[int]],
+) -> tuple[int | None, int]:
+    """
+    Resolve the (integration_id, status) an Action should use in the destination org.
+       Updates the integration ID on an Action if the same type of integration exists in the
+       destination org - disables it if not or if there are more than 1 of that type of integration
+    """
+    if not Action.Type(action.type).is_integration():
+        return action.integration_id, action.status
+
+    destination_integration_ids = destination_integration_ids_by_provider.get(action.type, [])
+    if len(destination_integration_ids) == 1:
+        return destination_integration_ids[0], action.status
+    return action.integration_id, ObjectStatus.DISABLED
+
+
+def reconnect_moved_workflow_actions(
+    condition_group_ids: Collection[int],
+    destination_integration_ids_by_provider: Mapping[str, Sequence[int]],
+) -> None:
+    """
+    Re-point integration Actions of workflows that were moved into the new org
+    """
+    if not condition_group_ids:
+        return
+
+    actions = Action.objects.filter(
+        dataconditiongroupaction__condition_group_id__in=condition_group_ids
+    ).distinct()
+    for action in actions:
+        new_integration_id, new_status = resolve_destination_integration(
+            action, destination_integration_ids_by_provider
+        )
+        if new_integration_id != action.integration_id or new_status != action.status:
+            action.update(integration_id=new_integration_id, status=new_status)
 
 
 def clone_workflow_to_organization(
@@ -73,16 +112,9 @@ def clone_workflow_to_organization(
         ).select_related("action"):
             action = group_action.action
 
-            new_integration_id = action.integration_id
-            new_status = action.status
-            if Action.Type(action.type).is_integration():
-                destination_integration_ids = destination_integration_ids_by_provider.get(
-                    action.type, []
-                )
-                if len(destination_integration_ids) == 1:
-                    new_integration_id = destination_integration_ids[0]
-                else:
-                    new_status = ObjectStatus.DISABLED
+            new_integration_id, new_status = resolve_destination_integration(
+                action, destination_integration_ids_by_provider
+            )
 
             action_overrides = {
                 "type": action.type,
