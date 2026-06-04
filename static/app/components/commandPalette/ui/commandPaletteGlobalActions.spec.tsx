@@ -44,9 +44,8 @@ function makeRenderProps(closeModal: jest.Mock) {
   };
 }
 
-import * as userOrgNavConfig from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
-
 import {GlobalCommandPaletteActions} from './commandPaletteGlobalActions';
+import * as userOrgNavConfig from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 function SlotOutlets() {
   return (
@@ -490,37 +489,49 @@ describe('GlobalCommandPaletteActions - org settings show filter', () => {
     );
   }
 
-  it('excludes org nav items with show: false from the Settings section', async () => {
-    jest.spyOn(userOrgNavConfig, 'getUserOrgNavigationConfiguration').mockReturnValue([
-      {
-        id: 'test-section',
-        name: 'Test',
-        items: [
-          {path: '/settings/:orgId/visible-item/', title: 'Visible Setting Item'},
-          {
-            path: '/settings/:orgId/hidden-item/',
-            title: 'Hidden Setting Item',
-            show: false,
-          },
-        ],
-      },
-    ]);
+  it('excludes org nav items with show: false or a show function returning false from the Settings section', async () => {
+    jest
+      .spyOn(userOrgNavConfig, 'getUserOrgNavigationConfiguration')
+      .mockReturnValue([
+        {
+          id: 'test-section',
+          name: 'Test',
+          items: [
+            {path: '/settings/:orgId/visible-item/', title: 'Visible Setting Item'},
+            // constant false — the original API Keys case
+            {
+              path: '/settings/:orgId/hidden-constant/',
+              title: 'Hidden Constant Item',
+              show: false,
+            },
+            // function returning false — e.g. feature-flag gated items
+            {
+              path: '/settings/:orgId/hidden-fn/',
+              title: 'Hidden Function Item',
+              show: () => false,
+            },
+          ],
+        },
+      ]);
 
     renderPalette();
     const input = await screen.findByRole('textbox', {name: 'Search commands'});
 
-    // The item without show: false should appear
+    // The item without a show constraint should appear
     await userEvent.type(input, 'Visible Setting');
     expect(
       await screen.findByRole('option', {name: /Visible Setting Item/})
     ).toBeInTheDocument();
 
-    // The item with show: false should be filtered out
+    // show: false (constant) must be excluded
     await userEvent.clear(input);
-    await userEvent.type(input, 'Hidden Setting');
-    expect(
-      screen.queryByRole('option', {name: /Hidden Setting Item/})
-    ).not.toBeInTheDocument();
+    await userEvent.type(input, 'Hidden Constant');
+    expect(screen.queryByRole('option', {name: /Hidden Constant Item/})).not.toBeInTheDocument();
+
+    // show: () => false (function) must also be excluded
+    await userEvent.clear(input);
+    await userEvent.type(input, 'Hidden Function');
+    expect(screen.queryByRole('option', {name: /Hidden Function Item/})).not.toBeInTheDocument();
   });
 
   it('does not surface API Keys as a Settings nav entry (regression)', async () => {
