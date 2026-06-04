@@ -40,9 +40,9 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
     permission_classes = (OrganizationDetectorPermission,)
 
-    def get_group_from_detector_id(
-        self, request: Request, detector_id: str, organization: Organization
-    ) -> Group | None:
+    def get_detector_from_detector_id(
+        self, detector_id: str, organization: Organization
+    ) -> Detector:
         validated_detector_id = to_valid_int_id("detectorId", detector_id)
         try:
             detector = (
@@ -56,18 +56,16 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if detector.project.organization_id != organization.id:
             raise ValidationError({"detectorId": "Detector not found"})
 
-        if not request.access.has_project_access(detector.project):
-            raise ValidationError({"detectorId": "Detector not found"})
+        return detector
 
+    def get_group_from_detector(self, detector: Detector) -> Group | None:
         detector_group = (
             DetectorGroup.objects.filter(detector=detector).order_by("-date_added").first()
         )
 
         return detector_group.group if detector_group else None
 
-    def get_group_from_group_id(
-        self, request: Request, group_id: str, organization: Organization
-    ) -> Group | None:
+    def get_group_from_group_id(self, group_id: str, organization: Organization) -> Group:
         validated_group_id = to_valid_int_id("groupId", group_id)
         try:
             group = Group.objects.select_related("project").get(id=validated_group_id)
@@ -75,9 +73,6 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
             raise ValidationError({"groupId": "Group not found"})
 
         if group.project.organization_id != organization.id:
-            raise ValidationError({"groupId": "Group not found"})
-
-        if not request.access.has_project_access(group.project):
             raise ValidationError({"groupId": "Group not found"})
 
         return group
@@ -141,15 +136,17 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if detector_id_param and group_id_param:
             raise ValidationError({"detail": "Must provide only one of detectorId or groupId"})
 
-        target_group: Group | None = (
-            self.get_group_from_detector_id(request, detector_id_param, organization)
-            if detector_id_param
-            else (
-                self.get_group_from_group_id(request, group_id_param, organization)
-                if group_id_param
-                else None
-            )
-        )
+        target_group: Group | None = None
+        if detector_id_param:
+            detector = self.get_detector_from_detector_id(detector_id_param, organization)
+            if not request.access.has_project_access(detector.project):
+                raise ValidationError({"detectorId": "Detector not found"})
+            target_group = self.get_group_from_detector(detector)
+        elif group_id_param:
+            target_group = self.get_group_from_group_id(group_id_param, organization)
+            if not request.access.has_project_access(target_group.project):
+                raise ValidationError({"groupId": "Group not found"})
+
         if not target_group:
             return self.paginate(request=request, queryset=[])
 
