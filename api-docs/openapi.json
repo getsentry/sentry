@@ -94,9 +94,6 @@
     }
   ],
   "paths": {
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/users/": {
-      "$ref": "paths/projects/users.json"
-    },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/": {
       "$ref": "paths/projects/user-feedback.json"
     },
