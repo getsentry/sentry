@@ -228,6 +228,7 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                 method_info["servers"] = servers
 
     _fix_issue_paths(result)
+    _fix_project_user_feedback_paths(result)
 
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
@@ -322,3 +323,39 @@ def _fix_issue_paths(result: Any) -> Any:
             ]
         result["paths"][updated_path] = endpoint
         del result["paths"][path]
+
+
+def _fix_project_user_feedback_paths(result: Any) -> None:
+    """
+    Project user feedback supports the legacy `user-reports` alias, which
+    drf-spectacular simplifies to `{var}`. Public docs should expose the
+    canonical `user-feedback` path.
+    """
+    path = "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/{var}/"
+    endpoint = result["paths"].get(path)
+    if endpoint is None:
+        return
+
+    operation_ids = {method_info.get("operationId") for method_info in endpoint.values()}
+    if not {
+        "List a Project's User Feedback",
+        "Submit User Feedback",
+    }.issubset(operation_ids):
+        return
+
+    for method_info in endpoint.values():
+        method_info["parameters"] = [
+            param
+            for param in method_info["parameters"]
+            if not (param["in"] == "path" and param["name"] == "var")
+        ]
+
+    post_info = endpoint.get("post")
+    if post_info is not None:
+        security = post_info.setdefault("security", [])
+        if {"dsn": []} not in security:
+            security.append({"dsn": []})
+
+    updated_path = "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-feedback/"
+    result["paths"][updated_path] = endpoint
+    del result["paths"][path]
