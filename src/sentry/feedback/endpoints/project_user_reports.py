@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import NotRequired, TypedDict
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -31,6 +31,28 @@ from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
 from sentry.utils.dates import epoch
+
+USER_FEEDBACK_EXAMPLE = {
+    "comments": "It broke!",
+    "dateCreated": "2018-11-06T21:20:11.468Z",
+    "email": "jane@example.com",
+    "event": {
+        "eventID": "14bad9a2e3774046977a21440ddb39b2",
+        "id": "14bad9a2e3774046977a21440ddb39b2",
+    },
+    "eventID": "14bad9a2e3774046977a21440ddb39b2",
+    "id": "1",
+    "issue": None,
+    "name": "Jane Smith",
+    "user": None,
+}
+
+USER_FEEDBACK_REQUEST_EXAMPLE = {
+    "event_id": "14bad9a2e3774046977a21440ddb39b2",
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "comments": "It broke!",
+}
 
 
 class UserReportSerializer(serializers.ModelSerializer):
@@ -134,6 +156,14 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=[
+            OpenApiExample(
+                "Project user feedback",
+                value=[USER_FEEDBACK_EXAMPLE],
+                response_only=True,
+                status_codes=["200"],
+            )
+        ],
     )
     def get(
         self, request: Request, project
@@ -200,6 +230,19 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
             409: RESPONSE_CONFLICT,
         },
+        examples=[
+            OpenApiExample(
+                "Submit user feedback",
+                value=USER_FEEDBACK_REQUEST_EXAMPLE,
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Submitted user feedback",
+                value=USER_FEEDBACK_EXAMPLE,
+                response_only=True,
+                status_codes=["200"],
+            ),
+        ],
     )
     def post(
         self, request: Request, project
