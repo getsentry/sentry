@@ -128,6 +128,7 @@ class GroupEnvironmentBulkDeletionTask(BulkModelDeletionTask[GroupEnvironment]):
             .values_list("id", flat=True)[: self.ENV_ID_BATCH_SIZE]
         )
         if not env_ids:
+            self._last_env_id = 0
             return False
 
         try:
