@@ -23,9 +23,9 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     enforce_rate_limit = True
