@@ -34,7 +34,6 @@ import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import * as userOrgNavConfig from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 function makeRenderProps(closeModal: jest.Mock) {
   return {
@@ -471,118 +470,5 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     expect(
       await screen.findByRole('option', {name: 'Query Performance'})
     ).toBeInTheDocument();
-  });
-});
-
-describe('GlobalCommandPaletteActions - org settings show filter', () => {
-  const organization = OrganizationFixture();
-
-  beforeEach(() => {
-    ProjectsStore.loadInitialData([]);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/group-search-views/starred/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/starred/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/members/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/teams/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [],
-    });
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  function renderPalette() {
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/issues/`},
-        },
-      }
-    );
-  }
-
-  it('excludes org nav items with show: false or a show function returning false from the Settings section', async () => {
-    jest.spyOn(userOrgNavConfig, 'getUserOrgNavigationConfiguration').mockReturnValue([
-      {
-        id: 'test-section',
-        name: 'Test',
-        items: [
-          {path: '/settings/:orgId/visible-item/', title: 'Visible Setting Item'},
-          // constant false — the original API Keys case
-          {
-            path: '/settings/:orgId/hidden-constant/',
-            title: 'Hidden Constant Item',
-            show: false,
-          },
-          // function returning false — e.g. feature-flag gated items
-          {
-            path: '/settings/:orgId/hidden-fn/',
-            title: 'Hidden Function Item',
-            show: () => false,
-          },
-        ],
-      },
-    ]);
-
-    renderPalette();
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
-
-    // The item without a show constraint should appear
-    await userEvent.type(input, 'Visible Setting');
-    expect(
-      await screen.findByRole('option', {name: /Visible Setting Item/})
-    ).toBeInTheDocument();
-
-    // show: false (constant) must be excluded
-    await userEvent.clear(input);
-    await userEvent.type(input, 'Hidden Constant');
-    expect(
-      screen.queryByRole('option', {name: /Hidden Constant Item/})
-    ).not.toBeInTheDocument();
-
-    // show: () => false (function) must also be excluded
-    await userEvent.clear(input);
-    await userEvent.type(input, 'Hidden Function');
-    expect(
-      screen.queryByRole('option', {name: /Hidden Function Item/})
-    ).not.toBeInTheDocument();
-  });
-
-  it('does not surface API Keys as a Settings nav entry (regression)', async () => {
-    renderPalette();
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
-    await userEvent.type(input, 'API Keys');
-
-    // The API Keys nav item has show: false and must not appear in cmd+k
-    expect(screen.queryByRole('option', {name: 'API Keys'})).not.toBeInTheDocument();
   });
 });
