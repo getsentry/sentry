@@ -1665,18 +1665,18 @@ export class VirtualizedViewManager {
 
     const textLeft = textTransform;
     const textRight = textLeft + textWidth;
-    const viewStart = this.view.to_origin + this.view.trace_view.x;
-    const viewEnd = viewStart + this.view.trace_view.width;
 
-    return this.time_compression.gaps.some(gap => {
-      if (gap.end < viewStart || gap.start > viewEnd) {
-        return false;
+    for (const pos of this._collapsed_gap_marker_positions) {
+      if (!pos) {
+        continue;
       }
 
-      const gapLeft = this.transformXFromTimestamp(gap.start);
-      const gapRight = gapLeft + COLLAPSED_GAP_WIDTH_PX;
-      return textLeft < gapRight && textRight > gapLeft;
-    });
+      if (textLeft < pos.right && textRight > pos.left) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   last_indicator_width = 0;
