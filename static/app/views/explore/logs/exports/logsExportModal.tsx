@@ -2,8 +2,10 @@ import {useMemo} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -79,7 +81,13 @@ export function LogsExportModal({
       trackAnalytics('explore.table_exported', {
         organization,
         traceItemDataset: TraceItemDataset.LOGS,
-        ...queryInfo,
+        query: queryInfo.query,
+        sort: queryInfo.sort,
+        project: queryInfo.project,
+        environment: queryInfo.environment,
+        start: queryInfo.start,
+        end: queryInfo.end,
+        statsPeriod: queryInfo.statsPeriod,
         field: isAllColumns ? undefined : queryInfo.field,
         export_row_limit: value.limit,
         export_file_format: format,
@@ -119,30 +127,11 @@ export function LogsExportModal({
       <Body>
         <Stack gap="xl">
           <Text>
-            {columnsValue === 'all'
-              ? t('Your file will be sent to your email address.')
-              : t(
-                  'If you select more than %s rows your file will be sent to your email address.',
-                  formatNumber(ROW_COUNT_VALUE_SYNC_LIMIT)
-                )}
-          </Text>
-          <form.AppField name="columns">
-            {field => (
-              <field.Radio.Group
-                value={field.state.value}
-                onChange={value =>
-                  field.handleChange(value as ExportModalFormValues['columns'])
-                }
-              >
-                <field.Layout.Stack label={t('Columns')}>
-                  <field.Radio.Item value="selected">
-                    {t('Selected columns')}
-                  </field.Radio.Item>
-                  <field.Radio.Item value="all">{t('All columns')}</field.Radio.Item>
-                </field.Layout.Stack>
-              </field.Radio.Group>
+            {t(
+              'If you select more than %s rows or to export all columns of data your file will be sent to your email address.',
+              formatNumber(ROW_COUNT_VALUE_SYNC_LIMIT)
             )}
-          </form.AppField>
+          </Text>
           {columnsValue === 'all' ? (
             <Stack gap="xs">
               <Text bold size="sm">
@@ -170,12 +159,27 @@ export function LogsExportModal({
           <form.AppField name="limit">
             {field => (
               <field.Layout.Stack label={t('Number of rows')}>
-                <field.Select
+                <CompactSelect
                   disabled={rowCountOptions.length === 1}
                   options={rowCountOptions}
-                  onChange={field.handleChange}
                   value={field.state.value}
-                  defaultValue={rowCountDefault}
+                  onChange={option => field.handleChange(option.value)}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      aria-label={t('Number of rows')}
+                    />
+                  )}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="columns">
+            {field => (
+              <field.Layout.Stack label={t('All Columns?')}>
+                <field.Switch
+                  checked={field.state.value === 'all'}
+                  onChange={checked => field.handleChange(checked ? 'all' : 'selected')}
                 />
               </field.Layout.Stack>
             )}

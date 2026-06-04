@@ -22,6 +22,7 @@ export type ExploreAnalyticsEventParameters = {
     export_file_format?: 'csv' | 'jsonl';
     export_row_limit?: number;
     field?: string[];
+    project?: number[];
     start?: string;
     statsPeriod?: string;
   };

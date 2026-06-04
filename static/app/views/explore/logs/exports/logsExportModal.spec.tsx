@@ -140,20 +140,18 @@ describe('LogsExportModal', () => {
     expect(addSuccessMessage).toHaveBeenCalledWith('Downloading file to your browser.');
   });
 
-  it("hides Format radio buttons and shows email info text when 'All columns' is selected", async () => {
+  it("hides Format radio buttons and forces JSONL when the 'All Columns' switch is on", async () => {
     mockTimeseriesCount();
     renderModal();
 
-    await userEvent.click(await screen.findByRole('radio', {name: 'All columns'}));
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'All Columns?'}));
 
     expect(screen.queryByRole('radio', {name: 'CSV'})).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', {name: 'JSONL'})).not.toBeInTheDocument();
-    expect(
-      screen.getByText('Your file will be sent to your email address.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('JSONL')).toBeInTheDocument();
   });
 
-  it("POSTs with trace_item_full_export query type and jsonl format when 'All columns' is selected", async () => {
+  it("POSTs with trace_item_full_export query type and jsonl format when the 'All Columns' switch is on", async () => {
     mockTimeseriesCount();
     const dataExportMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/`,
@@ -164,7 +162,7 @@ describe('LogsExportModal', () => {
 
     renderModal();
 
-    await userEvent.click(await screen.findByRole('radio', {name: 'All columns'}));
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'All Columns?'}));
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
 
     await waitFor(() => {
@@ -204,9 +202,9 @@ describe('LogsExportModal', () => {
 
     renderModal();
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('button', {name: 'Number of rows'}));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {
+      await screen.findByRole('option', {
         name: /\(All\)$/,
       })
     );
