@@ -9,7 +9,7 @@ import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import type {SelectValue} from '@sentry/scraps/select/types';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import type {
   GroupedOptionsType,
