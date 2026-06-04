@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {isConsoleFrame} from 'sentry/utils/replays/types';
 import {Format} from 'sentry/views/explore/replays/detail/console/format';
@@ -37,7 +36,7 @@ export function MessageFormatter({frame, expandPaths, onExpand}: Props) {
       <Format
         expandPaths={expandPaths}
         onExpand={onExpand}
-        args={[frame.category, frame.message, frame.data].filter(defined)}
+        args={[frame.category, frame.message, frame.data].filter(x => x != null)}
       />
     );
   }

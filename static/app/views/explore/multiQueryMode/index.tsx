@@ -6,7 +6,6 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,7 +45,7 @@ export default function MultiQueryMode() {
         </TopBar.Slot>
         <TopBar.Slot name="actions">
           <StarSavedQueryButton />
-          {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+          {id != null && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
         </TopBar.Slot>
         <TopBar.Slot name="feedback">
           <FeedbackButton

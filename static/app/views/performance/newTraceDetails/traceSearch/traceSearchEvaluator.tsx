@@ -10,7 +10,6 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
@@ -461,7 +460,7 @@ function resolveValueFromKey(node: BaseNode, token: ProcessedTokenResult): any |
     switch (token.key.type) {
       case Token.KEY_SIMPLE: {
         const customValue = node.resolveValueFromSearchKey(token.key.value);
-        if (defined(customValue)) {
+        if (customValue != null) {
           return customValue;
         }
 

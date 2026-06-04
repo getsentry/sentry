@@ -20,7 +20,6 @@ import {t, tct, tn} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -134,7 +133,7 @@ export function KeyRateLimitsForm({
     const {window} = rateLimit ?? {};
 
     // The slider should display other values if they are set via the API, but still offer to select only the predefined values
-    if (defined(window)) {
+    if (window != null) {
       // If the API returns a value not found in the predefined values and the user selects another value through the UI,
       // he will no longer be able to reselect the "custom" value in the slider
       if (currentRateLimit !== window) {

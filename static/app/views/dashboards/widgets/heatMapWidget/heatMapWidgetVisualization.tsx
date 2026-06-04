@@ -17,7 +17,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -183,7 +182,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             if (Array.isArray(param.value) && param.value.length === 3) {
               const [xValue, yValue, zValue] = param.value;
 
-              if (defined(xValue) && typeof xValue === 'number') {
+              if (xValue != null && typeof xValue === 'number') {
                 rawXValue = xValue;
                 // bucket size seems to be in seconds but we need to convert to milliseconds
                 formattedXValue = defaultFormatAxisLabel(
@@ -196,7 +195,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                 ).toString();
               }
 
-              if (defined(yValue) && typeof yValue === 'number') {
+              if (yValue != null && typeof yValue === 'number') {
                 rawYValue = yValue;
                 const yAxisMinValueFormatted = formatTooltipValue(
                   yValue,
@@ -217,7 +216,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                 }
               }
 
-              if (defined(zValue) && typeof zValue === 'number') {
+              if (zValue != null && typeof zValue === 'number') {
                 // when the z-axis is in log scale, the values are log values and don't reflect the actual value
                 // so we need to convert them back to the actual value
                 formattedZValue = formatAbbreviatedNumber(
@@ -229,13 +228,14 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             }
 
             let tracesLink: string | undefined;
-            const metricsQuery = defined(rawYValue)
-              ? yAxisBucketSize === 0
-                ? `value:<=${rawYValue}`
-                : `value:>=${rawYValue} value:<${rawYValue + yAxisBucketSize}`
-              : undefined;
+            const metricsQuery =
+              rawYValue == null
+                ? undefined
+                : yAxisBucketSize === 0
+                  ? `value:<=${rawYValue}`
+                  : `value:>=${rawYValue} value:<${rawYValue + yAxisBucketSize}`;
 
-            if (defined(rawXValue) && defined(rawYValue)) {
+            if (rawXValue != null && rawYValue != null) {
               const xAxisMaxValue = rawXValue + xAxisBucketSize * 1000;
 
               const filteredSelection = {
@@ -261,7 +261,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                   </span>{' '}
                   {formattedZValue}
                 </div>
-                {makeExploreUrl && defined(tracesLink) && (
+                {makeExploreUrl && tracesLink != null && (
                   <div>
                     <span className="tooltip-label tooltip-label-centered">
                       <a data-traces-link={tracesLink} href={tracesLink}>
@@ -270,7 +270,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                     </span>
                   </div>
                 )}
-                {updateLocalFilterQuery && defined(metricsQuery) && (
+                {updateLocalFilterQuery && metricsQuery != null && (
                   <div>
                     <span className="tooltip-label tooltip-label-centered">
                       <a data-local-query={metricsQuery}>{t('Add to filter')}</a>

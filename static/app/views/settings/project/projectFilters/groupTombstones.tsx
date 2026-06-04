@@ -22,7 +22,6 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupTombstone} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useApi} from 'sentry/utils/useApi';
@@ -62,7 +61,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
         )}
       </RightAlignedColumn>
       <RightAlignedColumn>
-        {data.lastSeen && defined(data.timesSeen) && data.timesSeen > 0 ? (
+        {data.lastSeen && data.timesSeen != null && data.timesSeen > 0 ? (
           <TimeSince
             date={data.lastSeen}
             unitStyle="short"
@@ -74,7 +73,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
         )}
       </RightAlignedColumn>
       <RightAlignedColumn>
-        {defined(data.timesSeen) ? <Count value={data.timesSeen} /> : '-'}
+        {data.timesSeen == null ? '-' : <Count value={data.timesSeen} />}
       </RightAlignedColumn>
       <CenteredAlignedColumn>
         {actor ? (

@@ -24,7 +24,6 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -134,7 +133,7 @@ function createReleaseBubbleSeries({
     const [bubbleStartX, bubbleStartY] = api.coord([dataItem.start, 0]);
     const [bubbleEndX] = api.coord([dataItem.end, 0]);
 
-    if (!defined(bubbleStartX) || !defined(bubbleStartY) || !defined(bubbleEndX)) {
+    if (bubbleStartX == null || bubbleStartY == null || bubbleEndX == null) {
       return null;
     }
 
@@ -344,7 +343,7 @@ export function useReleaseBubbles({
   // proper timestamp for releases.
   const endTimeToUse = (datetime || selection.datetime).end;
   const releasesMaxTime =
-    defined(endTimeToUse) && !Array.isArray(endTimeToUse)
+    endTimeToUse != null && !Array.isArray(endTimeToUse)
       ? new Date(endTimeToUse).getTime()
       : Date.now();
   const chartRef = useRef<ReactEchartsRef | null>(null);

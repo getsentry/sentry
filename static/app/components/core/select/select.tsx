@@ -27,7 +27,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {FormSize, Theme} from 'sentry/utils/theme';
@@ -573,7 +572,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       a: OptionType['value'] | null | undefined,
       b: OptionType['value'] | null | undefined
     ) => {
-      if (props.isValueEqual && defined(a) && defined(b)) {
+      if (props.isValueEqual && a && b) {
         return props.isValueEqual(a, b);
       }
       return a === b;

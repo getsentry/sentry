@@ -6,7 +6,6 @@ import {Slider} from '@sentry/scraps/slider';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 
 import {SliderAndInputWrapper} from './sliderAndInputWrapper';
 import {SliderLabel} from './sliderLabel';
@@ -110,7 +109,7 @@ export function RangeSlider({
   }, [value]);
 
   function updateSliderValue() {
-    if (!defined(value)) {
+    if (value == null) {
       return;
     }
 
@@ -173,7 +172,7 @@ export function RangeSlider({
       min: 0,
       max: allowedValues.length - 1,
       actualValue,
-      displayValue: defined(actualValue) ? actualValue : t('Invalid value'),
+      displayValue: actualValue == null ? t('Invalid value') : actualValue,
     };
   }
 

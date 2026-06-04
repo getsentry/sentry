@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export type SeriesSamplingInfo = {
@@ -44,9 +43,9 @@ export function determineSeriesSampleCountAndIsSampled(
       }
 
       const sampleRate = data[i]!.values[j]!.sampleRate;
-      if (defined(sampleRate) && sampleRate >= 1) {
+      if (sampleRate != null && sampleRate >= 1) {
         hasUnsampledInterval = true;
-      } else if (defined(sampleRate) && sampleRate < 1) {
+      } else if (sampleRate != null && sampleRate < 1) {
         hasSampledInterval = true;
       }
     }

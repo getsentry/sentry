@@ -20,7 +20,6 @@ import type {
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -511,7 +510,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
     if (showLoading && loading) {
       return <LoadingPanel data-test-id="events-request-loading" />;
     }
-    if (isMultiSeriesStats(timeseriesData, defined(topEvents))) {
+    if (isMultiSeriesStats(timeseriesData, topEvents != null)) {
       // Convert multi-series results into chartable series. Multi series results
       // are created when multiple yAxis are used or a topEvents request is made.
       // Convert the timeseries data into a multi-series result set.

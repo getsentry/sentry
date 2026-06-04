@@ -17,7 +17,6 @@ import {Flex, Stack, Container} from '@sentry/scraps/layout';
 
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
@@ -120,7 +119,7 @@ function useGuidedStepsContentValue({
     if (totalSteps === 0) {
       return;
     }
-    if (defined(initialStep)) {
+    if (initialStep != null) {
       if (initialStep > totalSteps) {
         handleSetCurrentStep(1);
       }

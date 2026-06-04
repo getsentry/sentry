@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {defined} from 'sentry/utils';
 import {MIN_HEIGHT, MIN_WIDTH} from 'sentry/views/dashboards/widgets/common/settings';
 
 import {WidgetDescription} from './widgetDescription';
@@ -70,7 +69,7 @@ function WidgetLayout(props: Widget) {
       height={props.height}
       borderless={props.borderless}
       revealActions={revealActions}
-      minHeight={defined(props.height) ? Math.min(props.height, MIN_HEIGHT) : MIN_HEIGHT}
+      minHeight={props.height == null ? MIN_HEIGHT : Math.min(props.height, MIN_HEIGHT)}
     >
       <Header noPadding={props.noHeaderPadding}>
         {props.Title && <Fragment>{props.Title}</Fragment>}

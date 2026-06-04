@@ -5,8 +5,6 @@ import type {Key} from '@react-types/shared';
 import {useSearchQueryBuilderState} from 'sentry/components/searchQueryBuilder/context';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils';
-
 type UndoItem = {
   /**
    * If there was a focus override when the query was saved, it should be
@@ -91,7 +89,7 @@ export function useUndoStack(state: ListState<ParseResultToken>) {
   const undo = useCallback(() => {
     const previousItem = getPreviousUndoItem(undoStackRef.current, trimmedQuery);
 
-    if (defined(previousItem) && previousItem.query !== trimmedQuery) {
+    if (previousItem && previousItem.query !== trimmedQuery) {
       const newFocusOverride: FocusOverride | null | undefined =
         previousItem.focusOverride ??
         (previousItem.focusedKey

@@ -16,7 +16,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -98,9 +97,9 @@ function useHandleCopyMarkdown({
     return () => {
       const markdown = getOrderedAutofixSections(aiAutofix.runState)
         .map(getAutofixArtifactFromSection)
-        .filter(defined)
+        .filter(Boolean)
         .map(artifact => artifactToMarkdown(artifact))
-        .filter(defined)
+        .filter(x => x != null)
         .join('\n\n');
       copy(markdown, {successMessage: t('Analysis copied to clipboard.')});
     };
@@ -128,7 +127,7 @@ function useHandleOpenSeerAgent({
   const runId = aiAutofix.runState?.run_id;
 
   return useMemo(() => {
-    if (!defined(runId)) {
+    if (runId == null) {
       return;
     }
     return () => openSeerExplorerDrawer({runId});

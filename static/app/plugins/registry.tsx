@@ -3,8 +3,6 @@ import {DefaultIssuePlugin} from 'sentry/plugins/defaultIssuePlugin';
 import {DefaultPlugin} from 'sentry/plugins/defaultPlugin';
 import type {SessionStackPlugin} from 'sentry/plugins/sessionstack';
 import type {Plugin} from 'sentry/types/integrations';
-import {defined} from 'sentry/utils';
-
 type PluginComponent =
   | typeof DefaultIssuePlugin
   | typeof DefaultPlugin
@@ -15,7 +13,7 @@ export class Registry {
   assetCache: Record<string, HTMLScriptElement> = {};
 
   isLoaded(data: Plugin) {
-    return defined(this.plugins[data.id]);
+    return this.plugins[data.id] != null;
   }
 
   load(
@@ -23,7 +21,7 @@ export class Registry {
     callback: (instance: DefaultIssuePlugin | DefaultPlugin | SessionStackPlugin) => void
   ) {
     // TODO(dcramer): we should probably register all valid plugins
-    if (!defined(this.plugins[data.id])) {
+    if (!this.plugins[data.id]) {
       if (data.type === 'issue-tracking') {
         this.plugins[data.id] = DefaultIssuePlugin;
       } else {
@@ -38,7 +36,7 @@ export class Registry {
 
   get(data: Plugin) {
     const cls = this.plugins[data.id];
-    if (!defined(cls)) {
+    if (!cls) {
       throw new Error('Attempted to ``get`` an unloaded plugin: ' + data.id);
     }
     return new cls(data);

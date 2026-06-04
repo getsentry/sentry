@@ -14,7 +14,6 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -96,7 +95,7 @@ function shouldSkipFrame(
     return true;
   }
 
-  if (!defined(frame.fingerprint) || !frame.name || !frame.image) {
+  if (frame.fingerprint == null || !frame.name || !frame.image) {
     return true;
   }
 
@@ -142,7 +141,7 @@ export function SuspectFunctionsTable({
         for (let i = 0; i < profile.samples.length; i++) {
           const sample = profile.samples[i]!;
           const sampleExamples = profile.samples_examples?.[i];
-          if (!defined(sampleExamples)) {
+          if (!sampleExamples) {
             continue;
           }
           for (const frameIndex of sample) {
@@ -158,7 +157,7 @@ export function SuspectFunctionsTable({
                 break;
               }
               const sampleExample = profileExamples[sampleExampleIndex];
-              if (defined(sampleExample) && typeof sampleExample !== 'string') {
+              if (sampleExample != null && typeof sampleExample !== 'string') {
                 examplesForFrame.push(sampleExample);
               }
             }

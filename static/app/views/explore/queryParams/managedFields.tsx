@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -126,7 +125,7 @@ function findAllFieldRefs(
     writableQueryParams.aggregateFields === null
       ? // null means to clear it so make sure to handle it correctly
         []
-      : defined(writableQueryParams.aggregateFields)
+      : writableQueryParams.aggregateFields
         ? writableQueryParams.aggregateFields
             .filter<GroupBy>(isGroupBy)
             .map(groupBy => groupBy.groupBy)
@@ -153,7 +152,7 @@ function findAllFieldRefs(
     writableQueryParams.aggregateFields === null
       ? // null means to clear it so make sure to handle it correctly
         []
-      : defined(writableQueryParams.aggregateFields)
+      : writableQueryParams.aggregateFields
         ? writableQueryParams.aggregateFields
             .filter<BaseVisualize>(isBaseVisualize)
             .flatMap(visualize => {
@@ -174,7 +173,7 @@ function findAllFieldRefs(
 function getVisualizeFields(visualize: Visualize): string[] {
   if (isVisualizeFunction(visualize)) {
     const field = parseFunction(visualize.yAxis)?.arguments?.[0];
-    return defined(field) ? [field] : [];
+    return field == null ? [] : [field];
   }
 
   return []; // TODO: unsupported
@@ -191,7 +190,7 @@ function findChangedFields(
   const removedFields = new Set<string>();
 
   // TODO: check if we need to distinguish between null and undefined here
-  if (defined(writableQueryParams.fields)) {
+  if (writableQueryParams.fields) {
     function countFields(counter: Counter, field: string) {
       const count = counter.get(field) || 0;
       counter.set(field, count + 1);

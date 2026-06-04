@@ -13,7 +13,6 @@ import {IconSpan} from 'sentry/icons/iconSpan';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
@@ -43,7 +42,7 @@ export function AutofixEvidence({
     });
   };
 
-  if ('to' in rest && defined(rest.to)) {
+  if ('to' in rest) {
     return (
       <LinkButton
         icon={icon}
@@ -58,7 +57,7 @@ export function AutofixEvidence({
     );
   }
 
-  if ('href' in rest && defined(rest.href)) {
+  if ('href' in rest) {
     return (
       <LinkButton
         icon={icon}
@@ -107,12 +106,12 @@ function getTelemetryEvidenceProps({
   toolCall,
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
-  if (!defined(toolLink)) {
+  if (!toolLink) {
     return null;
   }
 
   const target = buildToolLinkUrl(toolLink, organization, projects);
-  if (!defined(target)) {
+  if (target == null) {
     return null;
   }
 
@@ -153,12 +152,12 @@ function getTraceWaterfallEvidenceProps({
   projects,
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
-  if (!defined(toolLink)) {
+  if (!toolLink) {
     return null;
   }
 
   const target = buildToolLinkUrl(toolLink, organization, projects);
-  if (!defined(target)) {
+  if (target == null) {
     return null;
   }
 
@@ -168,13 +167,11 @@ function getTraceWaterfallEvidenceProps({
     return null;
   }
 
-  if (defined(span_id) && typeof span_id !== 'string') {
+  if (span_id != null && typeof span_id !== 'string') {
     return null;
   }
 
-  const label = defined(span_id)
-    ? t('Span: %s', getShortEventId(span_id))
-    : t('Trace: %s', getShortEventId(trace_id));
+  const label = t('Span: %s', getShortEventId(span_id));
 
   return {
     to: target,
@@ -188,12 +185,12 @@ function getIssueDetailsEvidenceProps({
   projects,
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
-  if (!defined(toolLink)) {
+  if (!toolLink) {
     return null;
   }
 
   const target = buildToolLinkUrl(toolLink, organization, projects);
-  if (!defined(target)) {
+  if (target == null) {
     return null;
   }
 
@@ -215,12 +212,12 @@ function getReplayDetailsEvidenceProps({
   projects,
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
-  if (!defined(toolLink)) {
+  if (!toolLink) {
     return null;
   }
 
   const target = buildToolLinkUrl(toolLink, organization, projects);
-  if (!defined(target)) {
+  if (target == null) {
     return null;
   }
 
@@ -242,12 +239,12 @@ function getProfileFlamegraphEvidenceProps({
   projects,
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
-  if (!defined(toolLink)) {
+  if (!toolLink) {
     return null;
   }
 
   const target = buildToolLinkUrl(toolLink, organization, projects);
-  if (!defined(target)) {
+  if (target == null) {
     return null;
   }
 
@@ -277,7 +274,7 @@ function getCodeSearchEvidenceProps({
     const filename = extractFileName(path);
     const {code_url, start_line, end_line} = toolLink?.params ?? {};
 
-    if (!defined(filename) || !defined(code_url)) {
+    if (filename == null || code_url == null) {
       return null;
     }
 
@@ -368,7 +365,7 @@ export const AUTOFIX_EVIDENCE_PROPS_RESOLVER: Record<
 function parseArgs(toolCall: ToolCall): any {
   try {
     const parsed = JSON.parse(toolCall.args);
-    return defined(parsed) && typeof parsed === 'object' ? parsed : {};
+    return parsed != null && typeof parsed === 'object' ? parsed : {};
   } catch {
     return {};
   }

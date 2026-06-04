@@ -21,7 +21,6 @@ import {t} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
-import {defined} from 'sentry/utils';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 /**
@@ -112,13 +111,13 @@ export function DefaultTitle({
 
   // TODO(dcramer): this needs to use a formatted string so it can be
   // localized correctly
-  if (defined(frame.filename || frame.module)) {
+  if ((frame.filename || frame.module) != null) {
     // prioritize module name for Java as filename is often only basename
     const shouldPrioritizeModuleName = framePlatform === 'java';
 
     const pathNameOrModule = getPathNameOrModule(shouldPrioritizeModuleName);
     const enablePathTooltip =
-      defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
+      frame.absPath != null && frame.absPath !== pathNameOrModule?.value;
 
     if (pathNameOrModule) {
       title.push(
@@ -172,10 +171,7 @@ export function DefaultTitle({
       );
     }
 
-    if (
-      (defined(frame.function) || defined(frame.rawFunction)) &&
-      defined(pathNameOrModule)
-    ) {
+    if ((frame.function != null || frame.rawFunction != null) && pathNameOrModule) {
       title.push(
         <InFramePosition className="in-at" key="in">
           {` ${t('in')} `}
@@ -184,7 +180,7 @@ export function DefaultTitle({
     }
   }
 
-  if (defined(frame.function) || defined(frame.rawFunction)) {
+  if (frame.function != null || frame.rawFunction != null) {
     title.push(
       <FunctionName
         frame={frame}
@@ -199,7 +195,7 @@ export function DefaultTitle({
   // we don't want to render out zero line numbers which are used to
   // indicate lack of source information for native setups.  We could
   // TODO(mitsuhiko): only do this for events from native platforms?
-  if (defined(frame.lineNo) && frame.lineNo !== 0) {
+  if (frame.lineNo != null && frame.lineNo !== 0) {
     title.push(
       <InFramePosition className="in-at in-at-line" key="no">
         {` ${t('at line')} `}
@@ -207,12 +203,12 @@ export function DefaultTitle({
     );
     title.push(
       <code key="line" className="lineno">
-        {defined(frame.colNo) ? `${frame.lineNo}:${frame.colNo}` : frame.lineNo}
+        {frame.colNo == null ? frame.lineNo : `${frame.lineNo}:${frame.colNo}`}
       </code>
     );
   }
 
-  if (defined(frame.package) && !isDotnet(framePlatform)) {
+  if (frame.package != null && !isDotnet(framePlatform)) {
     title.push(<InFramePosition key="within">{` ${t('within')} `}</InFramePosition>);
     title.push(
       <code title={frame.package} className="package" key="package">
@@ -221,7 +217,7 @@ export function DefaultTitle({
     );
   }
 
-  if (defined(frame.origAbsPath) && (frame.mapUrl || frame.map)) {
+  if (frame.origAbsPath != null && (frame.mapUrl || frame.map)) {
     const text = (frame.mapUrl ?? frame.map)!;
     title.push(
       <StyledQuestionTooltip

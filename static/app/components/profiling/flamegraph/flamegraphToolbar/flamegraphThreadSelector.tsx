@@ -9,7 +9,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -95,7 +94,7 @@ function FlamegraphThreadSelector({
 
   const handleChange: (opt: SelectOption<any>) => void = useCallback(
     opt => {
-      if (defined(opt) && typeof opt.value === 'number') {
+      if (typeof opt.value === 'number') {
         onThreadIdChange(opt.value);
         trackAnalytics('profiling_views.flamegraph.thread.change', {
           organization,
@@ -148,7 +147,7 @@ type ProfileLight = {
 export function compareProfiles(activeThreadId?: number) {
   return function (a: ProfileLight, b: ProfileLight): number {
     // if one is the active thread id, it should be first
-    if (defined(activeThreadId)) {
+    if (activeThreadId != null) {
       if (a.threadId === activeThreadId) {
         return -1;
       }

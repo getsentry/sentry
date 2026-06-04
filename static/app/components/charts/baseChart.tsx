@@ -47,7 +47,6 @@ import type {
   EChartRestoreHandler,
   Series,
 } from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
 
 import {Grid} from './components/grid';
 import {Legend} from './components/legend';
@@ -485,7 +484,7 @@ export function BaseChart({
    * If true seconds will be added to the time format in the tooltips and chart xAxis
    */
   const addSecondsToTimeFormat =
-    isGroupedByDate && defined(minutesThresholdToDisplaySeconds)
+    isGroupedByDate && minutesThresholdToDisplaySeconds != null
       ? getDiffInMinutes({start, end, period}) <= minutesThresholdToDisplaySeconds
       : false;
 

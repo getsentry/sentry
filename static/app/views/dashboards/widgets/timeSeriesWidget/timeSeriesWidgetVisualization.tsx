@@ -30,7 +30,7 @@ import type {
   EChartHighlightHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import {defined, escape} from 'sentry/utils';
+import {escape} from 'sentry/utils';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -292,7 +292,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         ) {
           // For scatter series, the third point in the `data` array should be the sample's ID
           const sampleId = nameFormatterParams.data.at(2);
-          return defined(sampleId) ? sampleId.toString() : seriesName;
+          return sampleId == null ? seriesName : sampleId.toString();
         }
 
         // seriesName may be HTML-escaped, so we need to unescape it before looking up the alias
@@ -312,7 +312,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
 
-        if (!valueFormatterParams || !defined(valueFormatterParams?.seriesIndex)) {
+        if (valueFormatterParams?.seriesIndex == null) {
           // The series might be missing if this is a formatter for a mark line.
           // We don't currently handle this, so this behaviour is just here for
           // safety. The series index might be missing in unknown circumstances
@@ -350,7 +350,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // `latestTimeStamp`, leaving release bubbles with no `maxTime` to bucket.
   const allBoundaries = props.plottables
     .flatMap(plottable => [plottable.start, plottable.end])
-    .filter(defined)
+    .filter(x => x != null)
     .toSorted((a, b) => a - b);
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
@@ -548,7 +548,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     });
   }
 
-  const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
+  const allSeries = [...seriesFromPlottables, releaseSeries].filter(Boolean);
 
   const runHandler = (
     batch: {dataIndex: number; seriesIndex?: number},
@@ -561,11 +561,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
     const affectedPlottable = affectedRange?.value;
 
-    if (
-      !defined(affectedRange) ||
-      !defined(affectedPlottable) ||
-      !defined(affectedPlottable[handlerName])
-    ) {
+    if (!affectedRange || !affectedPlottable?.[handlerName]) {
       return;
     }
 
@@ -593,7 +589,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       // Downplay events sometimes trigger for the entire series, rather than
       // for individual points. We are ignoring these. It's not clear why or
       // when they are called, but they appear to be redundant.
-      if (defined(batch.dataIndex) && defined(batch.seriesIndex)) {
+      if (batch.dataIndex != null && batch.seriesIndex != null) {
         runHandler(batch, 'onDownplay');
       }
     }

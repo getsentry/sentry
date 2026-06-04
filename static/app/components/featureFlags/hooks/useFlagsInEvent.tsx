@@ -7,7 +7,6 @@ import {
 } from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -136,7 +135,7 @@ export function useFlagsInEvent({
   const event = eventProp ?? eventData;
 
   const eventFlags =
-    event?.contexts?.flags?.values?.map(f => f?.flag).filter(defined) ?? [];
+    event?.contexts?.flags?.values?.map(f => f?.flag).filter(x => x != null) ?? [];
 
   const {
     data: rawFlagData,

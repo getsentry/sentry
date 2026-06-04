@@ -19,7 +19,6 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {EntryType, type EntryRequest, type EventTransaction} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {
   TraceDrawerComponents,
@@ -108,14 +107,14 @@ export function Request({event}: {event: EventTransaction}) {
     >
       {view === 'formatted' ? (
         <TraceDrawerComponents.SectionCardGroup>
-          {defined(data.query) && Object.keys(data.query).length > 0 ? (
+          {data.query != null && Object.keys(data.query).length > 0 ? (
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.query, meta?.query)}
               title={t('Query String')}
               sortAlphabetically
             />
           ) : null}
-          {defined(data.fragment) ? (
+          {data.fragment == null ? null : (
             <TraceDrawerComponents.SectionCard
               items={[
                 {
@@ -130,25 +129,25 @@ export function Request({event}: {event: EventTransaction}) {
               ]}
               title={t('Fragment')}
             />
-          ) : null}
-          {defined(data.data) ? (
+          )}
+          {data.data == null ? null : (
             <RequestBodySection data={data} event={event} meta={meta} />
-          ) : null}
-          {defined(data.cookies) && Object.keys(data.cookies).length > 0 ? (
+          )}
+          {data.cookies && Object.keys(data.cookies).length > 0 ? (
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.cookies, meta)}
               title={t('Cookies')}
               sortAlphabetically
             />
           ) : null}
-          {defined(data.headers) ? (
+          {data.headers ? (
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.headers, meta)}
               title={t('Headers')}
               sortAlphabetically
             />
           ) : null}
-          {defined(data.env) ? (
+          {data.env ? (
             <TraceDrawerComponents.SectionCard
               items={getRequestSectionItems(data.env, meta)}
               title={t('Environment')}
@@ -177,7 +176,7 @@ function RequestBodySection({
   event: EventTransaction;
   meta: any;
 }) {
-  if (!defined(data.data)) {
+  if (data.data == null) {
     return null;
   }
 
@@ -189,7 +188,7 @@ function RequestBodySection({
   const bodyData = data.data;
   const inferredContentType = data.inferredContentType;
 
-  if (!defined(bodyData)) {
+  if (bodyData == null) {
     return null;
   }
 
@@ -276,7 +275,7 @@ function getRequestSectionItems(data: Data, meta: Meta) {
         meta: d.meta,
       };
     })
-    .filter(defined);
+    .filter(Boolean);
 
   return items;
 }

@@ -13,7 +13,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -34,7 +33,7 @@ interface DashboardRevisionsButtonProps {
 export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonProps) {
   const {openModal} = useModal();
 
-  if (!dashboard.id || defined(dashboard.prebuiltId)) {
+  if (!dashboard.id || dashboard.prebuiltId != null) {
     return null;
   }
 

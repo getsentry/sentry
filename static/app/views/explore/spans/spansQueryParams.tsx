@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -108,11 +107,11 @@ export function getTargetWithReadableQueryParams(
   updateNullableLocation(
     target,
     SPANS_EXTRAPOLATE_KEY,
-    defined(writableQueryParams.extrapolate)
+    writableQueryParams.extrapolate == null
       ? writableQueryParams.extrapolate
+      : writableQueryParams.extrapolate
         ? null
         : '0'
-      : writableQueryParams.extrapolate
   );
   updateNullableLocation(target, SPANS_QUERY_KEY, writableQueryParams.query);
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);

@@ -3,7 +3,6 @@ import {skipToken} from '@tanstack/react-query';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
@@ -35,7 +34,7 @@ export function metricHeatmapApiOptions({
 
   const intervalInMilliseconds = intervalToMilliseconds(interval);
   const {start, end, statsPeriod} = normalizeDateTimeParams(selection.datetime);
-  const usesRelativeDateRange = !defined(start) && !defined(end) && defined(statsPeriod);
+  const usesRelativeDateRange = start == null && end == null && statsPeriod != null;
 
   return apiOptions.as<HeatMapSeries>()(
     '/organizations/$organizationIdOrSlug/events-heatmap/',

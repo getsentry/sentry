@@ -1,5 +1,4 @@
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {defined} from 'sentry/utils';
 import {
   isEquation,
   parseFunction,
@@ -49,7 +48,7 @@ export class Visualize {
       const expression = new Expression(stripEquationPrefix(this.yAxis));
       return expression.isValid;
     }
-    return defined(parseFunction(this.yAxis));
+    return parseFunction(this.yAxis) != null;
   }
 
   clone(): Visualize {
@@ -69,7 +68,7 @@ export class Visualize {
       yAxes: [this.yAxis],
     };
 
-    if (defined(this.selectedChartType)) {
+    if (this.selectedChartType != null) {
       json.chartType = this.selectedChartType;
     }
 
@@ -179,7 +178,7 @@ export function determineDefaultChartType(yAxes: readonly string[]): ChartType {
 
   for (const yAxis of yAxes) {
     const func = parseFunction(yAxis);
-    if (!defined(func)) {
+    if (!func) {
       continue;
     }
     const chartType = FUNCTION_TO_CHART_TYPE[func.name] ?? ChartType.LINE;

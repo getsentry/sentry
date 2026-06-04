@@ -13,7 +13,6 @@ import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -91,7 +90,7 @@ export function ConnectedMonitorsList({
 }: Props) {
   const organization = useOrganization();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
-  const emptySelection = defined(detectorIds) && detectorIds.length === 0;
+  const emptySelection = detectorIds?.length === 0;
 
   const {data, isLoading, isError, isSuccess} = useQuery({
     ...detectorListApiOptions(organization, {
@@ -105,7 +104,7 @@ export function ConnectedMonitorsList({
       projects: projectIds ?? [-1],
     }),
     select: selectJsonWithHeaders,
-    enabled: !defined(detectorIds) || !emptySelection,
+    enabled: detectorIds == null || !emptySelection,
   });
 
   const detectors = data?.json;
@@ -142,7 +141,7 @@ export function ConnectedMonitorsList({
           <Skeletons
             canEdit={canEdit}
             numberOfRows={
-              defined(detectorIds)
+              detectorIds
                 ? Math.min(detectorIds.length, DEFAULT_DETECTORS_PER_PAGE)
                 : (limit ?? DEFAULT_DETECTORS_PER_PAGE)
             }

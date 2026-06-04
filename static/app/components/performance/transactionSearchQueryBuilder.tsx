@@ -14,7 +14,6 @@ import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/typ
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
   isAggregateField,
@@ -129,7 +128,7 @@ export function TransactionSearchQueryBuilder({
           endpointParams: normalizeDateTimeParams(datetime ?? selection.datetime),
         });
 
-        return results.filter(({name}) => defined(name)).map(({name}) => name);
+        return results.filter(({name}) => name != null).map(({name}) => name);
       } catch (e) {
         throw new Error(`Unable to fetch event field values: ${e}`);
       }

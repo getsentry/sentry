@@ -3,7 +3,6 @@ import type {Event, Frame} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
@@ -26,7 +25,7 @@ export function isDotnet(platform: string) {
 }
 
 export function hasContextSource(frame: Frame) {
-  return defined(frame.context) && !!frame.context.length;
+  return !!frame.context.length;
 }
 
 export function hasContextVars(frame: Frame) {
@@ -39,7 +38,7 @@ export function hasContextRegisters(registers: StacktraceType['registers']) {
 
 export function hasAssembly(frame: Frame, platform?: string) {
   return (
-    isDotnet(getPlatform(frame.platform, platform ?? 'other')) && defined(frame.package)
+    isDotnet(getPlatform(frame.platform, platform ?? 'other')) && frame.package != null
   );
 }
 

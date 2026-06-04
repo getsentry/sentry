@@ -9,7 +9,6 @@ import {
 } from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -28,7 +27,7 @@ export function EventExtraData({event}: Props) {
     return null;
   }
   let contextBlock: React.ReactNode = null;
-  if (defined(event.context)) {
+  if (event.context) {
     const knownData = getKnownData<TEventExtraData, EventExtraDataType>({
       data: event.context,
       knownDataTypes: Object.keys(event.context),

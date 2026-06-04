@@ -11,7 +11,6 @@ import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEd
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
@@ -208,7 +207,7 @@ export function LogsAggregateTable({
           prependColumnWidths: ['40px'],
           renderPrependColumns: (isHeader, dataRow, rowIndex) => {
             // rowIndex is only defined when `isHeader=false`
-            if (isHeader || !defined(rowIndex)) {
+            if (isHeader || rowIndex == null) {
               return [<span key="header-icon" />];
             }
 

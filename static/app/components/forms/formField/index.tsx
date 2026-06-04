@@ -21,7 +21,6 @@ import {FormState} from 'sentry/components/forms/state';
 import type {FieldValue} from 'sentry/components/forms/types';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import {FormFieldControlState} from './controlState';
@@ -33,7 +32,7 @@ import {FormFieldControlState} from './controlState';
  */
 const getValueFromEvent = (valueOrEvent?: FieldValue | MouseEvent, e?: MouseEvent) => {
   const event = e || valueOrEvent;
-  const value = defined(e) ? valueOrEvent : event?.target?.value;
+  const value = e ? valueOrEvent : event?.target?.value;
 
   return {value, event};
 };

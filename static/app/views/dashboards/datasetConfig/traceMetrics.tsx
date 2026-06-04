@@ -3,7 +3,6 @@ import pickBy from 'lodash/pickBy';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -94,7 +93,7 @@ function TraceMetricsSearchBar({
     useTraceMetricItemAttributes(
       {
         query: attributeQuery,
-        enabled: defined(traceMetrics[0]), // Only enable if there is at least one metric
+        enabled: traceMetrics[0] != null, // Only enable if there is at least one metric
       },
       'string',
       HiddenTraceMetricSearchFields
@@ -103,7 +102,7 @@ function TraceMetricsSearchBar({
     useTraceMetricItemAttributes(
       {
         query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
+        enabled: traceMetrics[0] != null,
       },
       'number',
       HiddenTraceMetricSearchFields
@@ -112,7 +111,7 @@ function TraceMetricsSearchBar({
     useTraceMetricItemAttributes(
       {
         query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
+        enabled: traceMetrics[0] != null,
       },
       'boolean',
       HiddenTraceMetricSearchFields
@@ -151,19 +150,19 @@ function useTraceMetricsSearchBarDataProvider(
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: attributeQuery, enabled: defined(traceMetrics[0])},
+      {query: attributeQuery, enabled: traceMetrics[0] != null},
       'string',
       HiddenTraceMetricSearchFields
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: attributeQuery, enabled: defined(traceMetrics[0])},
+      {query: attributeQuery, enabled: traceMetrics[0] != null},
       'number',
       HiddenTraceMetricSearchFields
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: attributeQuery, enabled: defined(traceMetrics[0])},
+      {query: attributeQuery, enabled: traceMetrics[0] != null},
       'boolean',
       HiddenTraceMetricSearchFields
     );
@@ -201,7 +200,7 @@ function useTraceMetricsSearchScope() {
     widgetBuilderState.fields
   );
   const traceMetrics =
-    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
+    aggregateSource?.map(extractTraceMetricFromColumn).filter(Boolean) ?? [];
   const hasMultipleMetrics = hasMultipleMetricsSelected(
     traceMetrics,
     hasMultiMetricSelection

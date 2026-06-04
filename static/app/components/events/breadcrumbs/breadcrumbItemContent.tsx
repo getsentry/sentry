@@ -13,7 +13,6 @@ import {
   type BreadcrumbTypeNavigation,
   type RawCrumb,
 } from 'sentry/types/breadcrumbs';
-import {defined} from 'sentry/utils';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
@@ -42,15 +41,20 @@ export function BreadcrumbItemContent({
     autoCollapseLimit: fullyExpanded ? 10000 : undefined,
   };
 
-  const defaultMessage = defined(bc.message) ? (
-    <BreadcrumbText>
-      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
-    </BreadcrumbText>
-  ) : null;
+  const defaultMessage =
+    bc.message == null ? null : (
+      <BreadcrumbText>
+        <StructuredData
+          value={bc.message}
+          meta={meta?.message}
+          {...structuredDataProps}
+        />
+      </BreadcrumbText>
+    );
 
   const cleanedBreadcrumbData = cleanBreadcrumbData(bc.data);
 
-  const defaultData = defined(cleanedBreadcrumbData) ? (
+  const defaultData = cleanedBreadcrumbData ? (
     <Timeline.Data>
       <StructuredData
         value={cleanedBreadcrumbData}
@@ -72,11 +76,7 @@ export function BreadcrumbItemContent({
     );
   }
 
-  if (
-    !defined(meta) &&
-    bc?.message &&
-    bc?.messageFormat === BreadcrumbMessageFormat.SQL
-  ) {
+  if (!meta && bc?.message && bc?.messageFormat === BreadcrumbMessageFormat.SQL) {
     return <SQLCrumbContent breadcrumb={bc}>{defaultData}</SQLCrumbContent>;
   }
 
@@ -117,12 +117,12 @@ function HTTPCrumbContent({
     status_code: statusCode,
     ...otherData
   } = cleanBreadcrumbData(breadcrumb?.data) ?? {};
-  const showUrlAsLink = !meta && defined(url) && isValidUrl(url);
+  const showUrlAsLink = !meta && url != null && isValidUrl(url);
   return (
     <Fragment>
       {children}
       <BreadcrumbText>
-        {defined(method) && `${method}: `}
+        {method != null && `${method}: `}
         {showUrlAsLink ? (
           <Link
             role="link"
@@ -133,7 +133,7 @@ function HTTPCrumbContent({
         ) : (
           <AnnotatedText value={url} meta={meta?.data?.url?.['']} />
         )}
-        {defined(statusCode) && ` [${statusCode}]`}
+        {statusCode != null && ` [${statusCode}]`}
       </BreadcrumbText>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>

@@ -10,7 +10,6 @@ import {ContinuousFlamegraphContextMenu} from 'sentry/components/profiling/flame
 import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import type {
   AggregateProfileSource,
   ProfileSource,
@@ -197,7 +196,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
   }, [colorCoding, flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   useEffect(() => {
-    if (defined(profiles.threadId)) {
+    if (profiles.threadId != null) {
       return;
     }
     const threadID =
@@ -206,7 +205,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
         : null;
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
-    if (defined(threadID)) {
+    if (threadID != null) {
       dispatch({
         type: 'set thread id',
         payload: threadID,

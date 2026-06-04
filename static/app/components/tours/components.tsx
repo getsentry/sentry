@@ -19,7 +19,6 @@ import {
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -319,7 +318,7 @@ export function TourElementContent<T extends TourEnumType>({
     <TourGuide
       title={title}
       description={description}
-      actions={defined(actions) ? actions : defaultActions}
+      actions={actions ? actions : defaultActions}
       className={className}
       isOpen={isOpen}
       position={position}
@@ -394,8 +393,8 @@ export function TourGuide({
   const theme = useTheme();
   const invertedTheme = useInvertedTheme();
 
-  const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
-  const isDismissVisible = defined(handleDismiss);
+  const isStepCountVisible = stepCount != null && stepTotal != null && stepTotal !== 1;
+  const isDismissVisible = handleDismiss != null;
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
   const {triggerProps, overlayProps, arrowProps, update} = useOverlay({
@@ -407,7 +406,7 @@ export function TourGuide({
 
   // Update the overlay positioning when the content changes
   useEffectAfterFirstRender(() => {
-    if (isOpen && update && defined(title) && defined(description)) {
+    if (isOpen && update && title && description) {
       update();
     }
   }, [isOpen, update, title, description]);
@@ -426,7 +425,7 @@ export function TourGuide({
           });
         }}
       </ClassNames>
-      {isOpen && defined(title) && defined(description)
+      {isOpen && title && description
         ? createPortal(
             <PositionWrapper zIndex={zIndex.overlay} {...overlayProps}>
               <ThemeProvider theme={invertedTheme}>
@@ -574,7 +573,7 @@ function getTourElementStyles(
       inset: 0;
       border-radius: ${theme.radius.md};
       box-shadow: inset 0 0 0 3px ${theme.tokens.border.accent.vibrant};
-      ${defined(margin) ? `margin: ${margin};` : ''}
+      ${margin == null ? '' : `margin: ${margin};`}
     }
   `;
 }

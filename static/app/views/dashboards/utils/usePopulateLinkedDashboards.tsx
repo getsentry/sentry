@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import type {QueryClient} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -71,7 +70,7 @@ const usePopulatePrebuiltIdsWithActualIds = (
   const {data, isLoading} = useQuery({
     ...dashboardsByPrebuiltIdOptions(
       organization.slug,
-      [...prebuiltIds, prebuiltId].filter(defined)
+      [...prebuiltIds, prebuiltId].filter(x => x != null)
     ),
     enabled: hasLinkedDashboards || Boolean(prebuiltId),
     retry: false,
@@ -106,9 +105,9 @@ const usePopulatePrebuiltIdsWithActualIds = (
 export function getLinkedDashboardPrebuiltIds(widget: Widget): PrebuiltDashboardId[] {
   return widget.queries
     .flatMap(query => query.linkedDashboards ?? [])
-    .filter(defined)
+    .filter(Boolean)
     .map(d => d.staticDashboardId)
-    .filter(defined);
+    .filter(x => x != null);
 }
 
 /**
@@ -136,7 +135,7 @@ export function replacePlaceholderLinkedDashboardIds<T extends {widgets: Widget[
             // yet — sending the placeholder '-1' to the backend would fail.
             return dashboardId ? {...linkedDashboard, dashboardId} : null;
           })
-          .filter(defined),
+          .filter(Boolean),
       })),
     })),
   };

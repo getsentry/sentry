@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 
-import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -49,7 +48,7 @@ export function LogsLocationQueryParamsProvider({
       const toPersist: Partial<PersistedLogsPageParams> = {};
 
       const sortBys = writableQueryParams.sortBys;
-      if (defined(sortBys)) {
+      if (sortBys) {
         toPersist.sortBys = sortBys;
       }
 

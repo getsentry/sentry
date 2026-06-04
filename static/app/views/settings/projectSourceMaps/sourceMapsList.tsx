@@ -28,7 +28,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
-import {defined} from 'sentry/utils';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -199,7 +198,7 @@ export function SourceMapsList({project}: Props) {
     [navigate, location]
   );
 
-  const platformByProject = defined(project.platform)
+  const platformByProject = project.platform
     ? projectPlatformToDocsMap[project.platform]
     : undefined;
   const platform = platformByProject ?? project.platform ?? 'javascript';

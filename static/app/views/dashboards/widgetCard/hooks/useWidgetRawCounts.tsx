@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {explodeFieldString} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
@@ -39,9 +38,9 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
         const traceMetrics = widget.queries?.[0]?.aggregates
           ?.map(aggregate => explodeFieldString(aggregate))
           ?.map(extractTraceMetricFromColumn)
-          ?.filter(defined);
+          ?.filter(Boolean);
 
-        if (!defined(traceMetrics) || traceMetrics.length === 0) {
+        if (!traceMetrics || traceMetrics.length === 0) {
           return {
             supported: true,
             dataset: DiscoverDatasets.TRACEMETRICS,

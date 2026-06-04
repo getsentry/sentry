@@ -23,7 +23,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -63,7 +62,7 @@ export function ProjectDetail() {
   const hasTransactions = hasPerformance && project?.firstTransactionEvent;
   const projectId = project?.id;
   const isProjectStabilized =
-    defined(project?.id) &&
+    project?.id != null &&
     project.id === projectQueryParam &&
     project.id === String(selection.projects[0]);
   const hasSessions = project?.hasSessions ?? null;

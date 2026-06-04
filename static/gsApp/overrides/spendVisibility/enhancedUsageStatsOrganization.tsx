@@ -10,7 +10,6 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project, ProjectSummaryWithOptions} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -356,7 +355,7 @@ function EnhancedUsageStatsOrganization({
         }
 
         const loading = loadingStatuses.some(Boolean);
-        const error = errorStatuses.find(defined) ?? null;
+        const error = errorStatuses.find(x => x != null) ?? null;
 
         const shouldRenderRangeAlert = !loading && isSingleProject && !hasAccurateSpikes;
 

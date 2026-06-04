@@ -5,7 +5,6 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -430,7 +429,7 @@ function useTrackAnalytics({
     getRunIdForAnalytics,
   ]);
 
-  const tracesTableResultDefined = defined(tracesTableResult);
+  const tracesTableResultDefined = tracesTableResult != null;
 
   useEffect(() => {
     if (
@@ -454,7 +453,7 @@ function useTrackAnalytics({
       'timestamp',
     ];
     const resultMissingRoot =
-      tracesTableResult?.result?.data?.json?.data?.filter(trace => !defined(trace.name))
+      tracesTableResult?.result?.data?.json?.data?.filter(trace => trace.name == null)
         .length ?? 0;
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
@@ -891,7 +890,7 @@ function computeConfidence(
   data: ReturnType<typeof useSortedTimeSeries>['data']
 ) {
   return yAxes.map(yAxis => {
-    const series = data[yAxis]?.filter(defined) ?? [];
+    const series = data[yAxis]?.filter(Boolean) ?? [];
     return String(combineConfidenceForSeries(series));
   });
 }
@@ -911,7 +910,7 @@ function computeEmptyBuckets(
   data: ReturnType<typeof useSortedTimeSeries>['data']
 ) {
   return yAxes.flatMap(yAxis => {
-    const series = data?.[yAxis]?.filter(defined) ?? [];
+    const series = data?.[yAxis]?.filter(Boolean) ?? [];
     return series.map(computeEmptyBucketsForSeries);
   });
 }

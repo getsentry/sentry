@@ -11,7 +11,6 @@ import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombo
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
@@ -66,7 +65,7 @@ export default function LogsContent() {
               >
                 <LogsHeader />
                 <LogsPageDataProvider allowHighFidelity>
-                  {defined(onboardingProject) ? (
+                  {onboardingProject ? (
                     <LogsTabOnboarding
                       organization={organization}
                       project={onboardingProject}
@@ -112,7 +111,7 @@ function LogsHeader() {
   const {data: savedQuery} = useGetSavedQuery(pageId);
 
   const hasSavedQueryTitle =
-    defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
+    pageId != null && savedQuery != null && savedQuery.name.length > 0;
 
   const documentTitle = hasSavedQueryTitle ? (
     <SentryDocumentTitle
@@ -131,7 +130,7 @@ function LogsHeader() {
     />
   );
 
-  const hasBreadcrumb = Boolean(title && defined(pageId));
+  const hasBreadcrumb = Boolean(title && pageId != null);
 
   return (
     <Fragment>

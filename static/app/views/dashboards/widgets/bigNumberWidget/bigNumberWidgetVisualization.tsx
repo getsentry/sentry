@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Polarity} from 'sentry/components/percentChange';
-import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -105,8 +104,8 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
   return (
     <Wrapper>
       <NumberAndDifferenceContainer>
-        {defined(props.thresholds?.max_values.max1) &&
-          defined(props.thresholds?.max_values.max2) && (
+        {props.thresholds?.max_values.max1 != null &&
+          props.thresholds?.max_values.max2 != null && (
             <ThresholdsIndicator
               preferredPolarity={props.preferredPolarity}
               thresholds={{
@@ -140,7 +139,7 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
           </Tooltip>
         </NumberContainerOverride>
 
-        {defined(previousPeriodValue) &&
+        {previousPeriodValue != null &&
           typeof previousPeriodValue === 'number' &&
           Number.isFinite(previousPeriodValue) &&
           !Number.isNaN(previousPeriodValue) &&

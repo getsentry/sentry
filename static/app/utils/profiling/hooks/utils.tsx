@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 import type {EventsStatsSeries} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {makeFormatTo} from 'sentry/utils/profiling/units/units';
 
@@ -23,7 +22,7 @@ export function formatSort<F extends string>(
 }
 
 export function formatError(error: any): string | null {
-  if (!defined(error)) {
+  if (error == null) {
     return null;
   }
 
@@ -81,7 +80,7 @@ export function transformStatsResponse<F extends string>(
 
   for (const yAxis of yAxes) {
     const dataForYAxis = rawData[yAxis];
-    if (!defined(dataForYAxis)) {
+    if (dataForYAxis == null) {
       continue;
     }
     const transformed = transformSingleSeries(dataset, yAxis, dataForYAxis);

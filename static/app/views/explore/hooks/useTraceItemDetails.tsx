@@ -6,7 +6,6 @@ import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Meta} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -129,9 +128,10 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
     );
   }
 
-  const timeQueryParams = defined(props.timestamp)
-    ? {timestamp: normalizeTimestampToSeconds(props.timestamp)}
-    : normalizeDateTimeParams(selection.datetime);
+  const timeQueryParams =
+    props.timestamp == null
+      ? normalizeDateTimeParams(selection.datetime)
+      : {timestamp: normalizeTimestampToSeconds(props.timestamp)};
 
   const result = useQuery({
     ...traceItemDetailsApiOptions({
@@ -167,10 +167,10 @@ function traceItemDetailsApiOptions({
   const timeQuery: Partial<TraceItemDetailsApiQuery> =
     timestamp === undefined
       ? {
-          ...(defined(statsPeriod) ? {statsPeriod} : {}),
-          ...(defined(start) ? {start} : {}),
-          ...(defined(end) ? {end} : {}),
-          ...(defined(utc) ? {utc} : {}),
+          ...(statsPeriod == null ? {} : {statsPeriod}),
+          ...(start == null ? {} : {start}),
+          ...(end == null ? {} : {end}),
+          ...(utc == null ? {} : {utc}),
         }
       : {timestamp};
 
@@ -242,9 +242,10 @@ export function usePrefetchTraceItemDetailsOnHover({
         if (!currentProject?.slug) {
           return;
         }
-        const timeQueryParams = defined(timestamp)
-          ? {timestamp: normalizeTimestampToSeconds(timestamp)}
-          : normalizeDateTimeParams(selection.datetime);
+        const timeQueryParams =
+          timestamp == null
+            ? normalizeDateTimeParams(selection.datetime)
+            : {timestamp: normalizeTimestampToSeconds(timestamp)};
         const options = traceItemDetailsApiOptions({
           organizationSlug: organization.slug,
           projectSlug: currentProject.slug,

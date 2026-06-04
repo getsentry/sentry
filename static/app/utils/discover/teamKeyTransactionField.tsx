@@ -8,7 +8,6 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {useProjects} from 'sentry/utils/useProjects';
 
 type BaseProps = {
@@ -95,7 +94,7 @@ export function TeamKeyTransactionFieldWrapper({
   // All these fields need to be defined in order to toggle a team key
   // transaction. Since they are not defined, just render a plain star
   // with no interactions.
-  if (!defined(project) || !defined(transactionName)) {
+  if (!project || transactionName == null) {
     return (
       <Button
         disabled

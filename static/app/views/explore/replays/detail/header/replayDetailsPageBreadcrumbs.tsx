@@ -13,7 +13,6 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useLiveRefresh} from 'sentry/components/replays/replayLiveIndicator';
 import {IconChevron, IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
@@ -186,7 +185,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     ),
   };
 
-  const crumbs = [listPageCrumb, replayRecord ? replayCrumb : null].filter(defined);
+  const crumbs = [listPageCrumb, replayRecord ? replayCrumb : null].filter(Boolean);
 
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }

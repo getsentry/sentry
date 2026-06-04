@@ -1,7 +1,6 @@
 import {createStore} from 'reflux';
 
 import type {Team} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 
 import {ProjectsStore} from './projectsStore';
 import type {StrictStoreDefinition} from './types';
@@ -60,7 +59,7 @@ const teamStoreConfig: TeamStoreDefinition = {
     this.initialized = true;
     this.state = {
       teams,
-      loadedUserTeams: defined(hasMore) ? !hasMore : this.state.loadedUserTeams,
+      loadedUserTeams: hasMore == null ? this.state.loadedUserTeams : !hasMore,
       loading: false,
       hasMore: hasMore ?? this.state.hasMore,
       cursor: cursor ?? this.state.cursor,

@@ -7,7 +7,6 @@ import {motion, useIsPresent} from 'framer-motion';
 import type {OverlayArrowProps} from 'sentry/components/overlayArrow';
 import {OverlayArrow} from 'sentry/components/overlayArrow';
 import {NODE_ENV} from 'sentry/constants';
-import {defined} from 'sentry/utils';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
 type OriginPoint = Partial<{x: number; y: number}>;
@@ -125,7 +124,7 @@ export function Overlay({
       ref={ref}
       placement={placement}
     >
-      {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
+      {arrowProps && <OverlayArrow {...arrowProps} />}
       <PanelProvider>{children}</PanelProvider>
     </OverlayInner>
   );

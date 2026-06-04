@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {IconUser} from 'sentry/icons/iconUser';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
@@ -440,7 +439,7 @@ export function CallTreeTableFixedColumns(props: CallTreeTableColumns) {
       </div>
       <div className={CallTreeTableClassNames.CELL} style={TEXT_ALIGN_RIGHT}>
         {props.showAvg ? (
-          defined(props.avgWeight) ? (
+          props.avgWeight ? (
             props.avgWeight
           ) : (
             <span>{t('Unknown')}</span>

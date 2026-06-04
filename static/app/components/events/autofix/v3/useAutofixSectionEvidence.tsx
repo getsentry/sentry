@@ -5,7 +5,6 @@ import {
   AUTOFIX_EVIDENCE_PROPS_RESOLVER,
   type EvidenceButtonProps,
 } from 'sentry/components/events/autofix/v3/autofixEvidence';
-import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ToolCall, ToolLink, ToolResult} from 'sentry/views/seerExplorer/types';
@@ -33,7 +32,7 @@ export function useAutofixSectionEvidence({section}: UseAutofixSectionEvidence) 
         const index = block.tool_results?.findIndex(
           toolResult => toolResult?.tool_call_id === toolCall.id
         );
-        if (!defined(index)) {
+        if (index == null) {
           continue;
         }
         const toolLink = block.tool_links?.[index] ?? undefined;
@@ -43,7 +42,7 @@ export function useAutofixSectionEvidence({section}: UseAutofixSectionEvidence) 
         const evidenceButtonProps =
           resolver?.({organization, projects, toolCall, toolLink}) ?? null;
 
-        if (!defined(evidenceButtonProps)) {
+        if (!evidenceButtonProps) {
           continue;
         }
 

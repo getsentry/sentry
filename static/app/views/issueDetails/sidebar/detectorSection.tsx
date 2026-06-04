@@ -9,7 +9,6 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -143,7 +142,7 @@ function MetricAlertSection({detectorId}: {detectorId: string | undefined}) {
       })
     : undefined;
 
-  if (!defined(detectorId) || (!isLoading && !metricDetector?.alertRuleId)) {
+  if (detectorId == null || (!isLoading && !metricDetector?.alertRuleId)) {
     return <LoadingError message={t('Corresponding metric alert not found')} />;
   }
 

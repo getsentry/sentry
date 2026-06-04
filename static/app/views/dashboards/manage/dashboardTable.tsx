@@ -30,7 +30,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {withApi} from 'sentry/utils/withApi';
@@ -250,7 +249,7 @@ function DashboardTable({
           dashboard={dataRow}
           onChangeEditAccess={onChangeEditAccess}
           listOnly
-          disabled={defined(dataRow.prebuiltId)} // Prebuilt dashboards cannot be edited
+          disabled={dataRow.prebuiltId != null} // Prebuilt dashboards cannot be edited
         />
       );
     }
@@ -309,13 +308,14 @@ function DashboardTable({
               data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
-              disabled={defined(dataRow.prebuiltId)}
+              disabled={dataRow.prebuiltId != null}
               tooltipProps={{
-                title: defined(dataRow.prebuiltId)
-                  ? tct('[label] dashboards cannot be deleted', {
-                      label: PREBUILT_DASHBOARD_LABEL,
-                    })
-                  : undefined,
+                title:
+                  dataRow.prebuiltId == null
+                    ? undefined
+                    : tct('[label] dashboards cannot be deleted', {
+                        label: PREBUILT_DASHBOARD_LABEL,
+                      }),
               }}
             />
           </Flex>

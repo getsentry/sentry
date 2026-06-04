@@ -8,7 +8,6 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
   fieldAlignment,
@@ -319,7 +318,7 @@ function makeCellActions({
   if (
     column.column.kind === 'function' &&
     column.column.function[0] === 'user_misery' &&
-    defined(dataRow.project_threshold_config)
+    dataRow.project_threshold_config != null
   ) {
     addMenuItem(
       Actions.EDIT_THRESHOLD,

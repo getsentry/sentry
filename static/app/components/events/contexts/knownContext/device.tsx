@@ -7,7 +7,6 @@ import {FileSize} from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
 import {DeviceContextKey, type DeviceContext, type Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 
 function formatMemory(memory_size: number, free_memory: number, usable_memory: number) {
@@ -97,7 +96,7 @@ function getInferredData(data: DeviceContext) {
         : screenResolution,
     };
 
-    if (!defined(screenWidth) && !defined(screenHeight)) {
+    if (screenWidth == null && screenHeight == null) {
       const [width, height] = screenResolution.split('x');
 
       if (width && height) {
@@ -112,7 +111,7 @@ function getInferredData(data: DeviceContext) {
     return commonData;
   }
 
-  if (defined(screenWidth) && defined(screenHeight)) {
+  if (screenWidth != null && screenHeight != null) {
     const displayResolution = `${screenWidth}x${screenHeight}`;
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const displayResolutionDescription = commonDisplayResolutions[displayResolution];
@@ -184,7 +183,7 @@ export function getDeviceContextData({
         return {
           key: ctxKey,
           subject: t('Battery Level'),
-          value: defined(data.battery_level) ? `${data.battery_level}%` : undefined,
+          value: data.battery_level == null ? undefined : `${data.battery_level}%`,
         };
       case DeviceContextKey.BATTERY_STATUS:
         return {

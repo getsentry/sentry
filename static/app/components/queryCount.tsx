@@ -1,5 +1,3 @@
-import {defined} from 'sentry/utils';
-
 type Props = {
   count?: number | null;
   hideIfEmpty?: boolean;
@@ -15,7 +13,7 @@ type Props = {
  */
 
 export function QueryCount({count, max, hideIfEmpty = true, hideParens = false}: Props) {
-  const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
+  const countOrMax = count != null && max != null && count >= max ? `${max}+` : count;
 
   if (hideIfEmpty && !count) {
     return null;

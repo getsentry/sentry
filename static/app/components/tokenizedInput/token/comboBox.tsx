@@ -28,7 +28,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {defined} from 'sentry/utils';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface ComboBoxProps {
@@ -306,7 +305,7 @@ export function ComboBox({
   // [1]: https://github.com/adobe/react-spectrum/blob/main/packages/%40react-aria/combobox/src/useComboBox.ts#L337C3-L341C44
   useEffect(() => {
     if (isOpen) {
-      return ariaHideOutside([inputRef.current, popoverRef.current].filter(defined));
+      return ariaHideOutside([inputRef.current, popoverRef.current].filter(Boolean));
     }
 
     return () => {};

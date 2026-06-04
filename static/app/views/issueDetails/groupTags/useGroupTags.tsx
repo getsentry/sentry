@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
@@ -62,7 +61,7 @@ export function useGroupTags(
     }),
     {
       staleTime: 30000,
-      enabled: defined(parameters.groupId) && enabled,
+      enabled: parameters.groupId != null && enabled,
       ...options,
     }
   );

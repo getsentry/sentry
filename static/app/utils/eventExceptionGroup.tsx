@@ -1,6 +1,4 @@
 import type {EntryException, ExceptionValue} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
-
 type ExceptionGroupTreeItem = {
   children: ExceptionGroupTreeItem[];
   value: ExceptionValue;
@@ -16,7 +14,7 @@ function buildExceptionGroupTreeRecursive(
   values.forEach(value => {
     if (
       value.mechanism?.parent_id === parentId &&
-      defined(value.mechanism?.exception_id) &&
+      value.mechanism?.exception_id != null &&
       !visited.has(value.mechanism.exception_id)
     ) {
       visited.add(value.mechanism.exception_id);

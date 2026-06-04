@@ -22,7 +22,6 @@ import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/f
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -172,8 +171,8 @@ function computeProfileOffset(
     : (transactionResult.data.transactionSpan?.[SpanFields.PRECISE_START_TS] ?? null);
 
   if (
-    defined(transactionStart) &&
-    defined(profileStart) &&
+    transactionStart != null &&
+    profileStart != null &&
     // Android sometimes doesnt report timestamps, which end up being wrongly initialized when the data is ingested.
     profileStart !== '0001-01-01T00:00:00Z'
   ) {
@@ -600,7 +599,7 @@ function Flamegraph(): ReactElement {
         }
       }
 
-      if (defined(highlightFrames)) {
+      if (highlightFrames) {
         let frames = flamegraph.findAllMatchingFrames(
           highlightFrames.name,
           highlightFrames.package
@@ -636,7 +635,7 @@ function Flamegraph(): ReactElement {
       // to have some heuristic when the data is fetched to determine if we should
       // initialize the config view to the full view or a predefined value
       else if (
-        !defined(highlightFrames) &&
+        highlightFrames == null &&
         position.view &&
         !position.view.isEmpty() &&
         previousView?.model === LOADING_OR_FALLBACK_FLAMEGRAPH
@@ -1297,7 +1296,7 @@ function Flamegraph(): ReactElement {
   );
 
   useEffect(() => {
-    if (defined(flamegraphProfiles.threadId)) {
+    if (flamegraphProfiles.threadId != null) {
       return;
     }
     const threadID =
@@ -1324,7 +1323,7 @@ function Flamegraph(): ReactElement {
 
           const frame = findLongestMatchingFrame(graph, highlightFrames);
 
-          if (!defined(frame)) {
+          if (!frame) {
             return prevCandidate;
           }
 
@@ -1350,7 +1349,7 @@ function Flamegraph(): ReactElement {
         null
       );
 
-      if (defined(candidate)) {
+      if (candidate) {
         dispatch({
           type: 'set thread id',
           payload: candidate.threadId,
@@ -1361,7 +1360,7 @@ function Flamegraph(): ReactElement {
 
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
-    if (defined(threadID)) {
+    if (threadID != null) {
       dispatch({
         type: 'set thread id',
         payload: threadID,

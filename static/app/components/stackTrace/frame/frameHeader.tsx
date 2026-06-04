@@ -15,7 +15,6 @@ import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTrace
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
-import {defined} from 'sentry/utils';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 function getFrameDisplayPath(frame: Frame, platform: PlatformKey, event: Event) {
@@ -40,11 +39,11 @@ function formatFrameLocation(
   lineNo: number | null | undefined,
   colNo: number | null | undefined
 ): string {
-  if (!defined(lineNo) || lineNo <= 0) {
+  if (lineNo == null || lineNo <= 0) {
     return path;
   }
 
-  if (!defined(colNo) || colNo <= 0) {
+  if (colNo == null || colNo <= 0) {
     return `${path}:${lineNo}`;
   }
 

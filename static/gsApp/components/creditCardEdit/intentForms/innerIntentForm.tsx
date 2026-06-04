@@ -11,7 +11,6 @@ import {Text} from '@sentry/scraps/text';
 import {Form} from 'sentry/components/forms/form';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 
 import type {InnerIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 
@@ -108,7 +107,7 @@ export function InnerIntentForm({
               })}
             </small>
             {/* location is 0 on the checkout page which is why this isn't location && */}
-            {defined(location) && (
+            {location != null && (
               <Text size="xs" variant="muted">
                 {tct(
                   'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetTerm] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetTerm] fees. You may cancel your subscription at any time [here:here].',

@@ -8,7 +8,6 @@ import {IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {useTeams} from 'sentry/utils/useTeams';
 import {withProjects} from 'sentry/utils/withProjects';
@@ -102,7 +101,7 @@ function TeamKeyTransactionButtonWrapper({
 
   const projectId = String(eventView.project[0]);
   const project = projects.find(proj => proj.id === projectId);
-  if (!defined(project)) {
+  if (!project) {
     return (
       <Button disabled size="sm" icon={<IconStar />}>
         {t('Star for Team')}

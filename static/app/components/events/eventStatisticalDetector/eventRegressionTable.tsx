@@ -11,7 +11,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -127,17 +126,17 @@ function renderCell(
     case 'throughputBefore':
     case 'throughputAfter': {
       const rawValue = row[columnKey];
-      const renderedValue = defined(rawValue)
-        ? formatRate(rawValue, RateUnit.PER_MINUTE)
-        : null;
+      const renderedValue =
+        rawValue == null ? null : formatRate(rawValue, RateUnit.PER_MINUTE);
       return <CellText numeric>{renderedValue}</CellText>;
     }
     case 'durationBefore':
     case 'durationAfter': {
       const rawValue = row[columnKey];
-      const renderedValue = defined(rawValue) ? (
-        <Duration seconds={rawValue} fixedDigits={2} abbreviation />
-      ) : null;
+      const renderedValue =
+        rawValue == null ? null : (
+          <Duration seconds={rawValue} fixedDigits={2} abbreviation />
+        );
       return <CellText numeric>{renderedValue}</CellText>;
     }
     case 'percentageChange': {
@@ -155,9 +154,9 @@ function renderCell(
       );
     }
     case 'description': {
-      const value = defined(row.description) ? row.description : t('(unnamed span)');
+      const value = row.description == null ? t('(unnamed span)') : row.description;
       const link = onDescriptionLink(row);
-      if (defined(link)) {
+      if (link != null) {
         return (
           <CellText>
             <Link to={link}>{value}</Link>

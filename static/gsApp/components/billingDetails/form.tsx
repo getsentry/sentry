@@ -16,7 +16,6 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -164,9 +163,9 @@ function BillingDetailsFormFields({
                 : {
                     mode: 'automatic', // if our key isn't available, see if we can use Stripe's
                   },
-              allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) =>
-                defined(code)
-              ).map(([code]) => code!),
+              allowedCountries: COUNTRY_CODE_CHOICES.filter(([code]) => code != null).map(
+                ([code]) => code!
+              ),
               fields: {phone: 'never'}, // don't show phone number field
               defaultValues: {
                 name: initialData?.companyName,

@@ -36,7 +36,6 @@ import type {Group} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {setActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
@@ -224,7 +223,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         {threadStateDisplay !== undefined && (
           <Pill name={t('state')} value={threadStateDisplay} />
         )}
-        {defined(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
+        {lockReason != null && <Pill name={t('lock reason')} value={lockReason} />}
       </Pills>
     );
   }

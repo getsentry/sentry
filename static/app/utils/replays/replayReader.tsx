@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 import memoize from 'lodash/memoize';
 import {duration, type Duration} from 'moment-timezone';
 
-import {defined} from 'sentry/utils';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';
@@ -466,7 +465,7 @@ export class ReplayReader {
       this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
         ? null
         : 'Missing Meta Frame',
-    ].filter(defined);
+    ].filter(x => x != null);
   });
   hasProcessingErrors = () => {
     return this.processingErrors().length;

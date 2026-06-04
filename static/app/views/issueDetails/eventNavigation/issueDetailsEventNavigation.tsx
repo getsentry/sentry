@@ -10,7 +10,6 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -127,7 +126,7 @@ export function IssueDetailsEventNavigation({
           variant="transparent"
           size="xs"
           icon={<IconChevron direction="left" />}
-          disabled={!defined(event?.previousEventID)}
+          disabled={event?.previousEventID == null}
           analyticsEventKey="issue_details.previous_event_clicked"
           analyticsEventName="Issue Details: Previous Event Clicked"
           to={{
@@ -136,10 +135,7 @@ export function IssueDetailsEventNavigation({
           }}
           preventScrollReset
           css={grayText}
-          onMouseEnter={handleHoverPagination(
-            'previous',
-            defined(event?.previousEventID)
-          )}
+          onMouseEnter={handleHoverPagination('previous', event?.previousEventID != null)}
           onClick={() => {
             // Assume they will continue to paginate
             setShouldPreload({next: true, previous: true});
@@ -151,7 +147,7 @@ export function IssueDetailsEventNavigation({
           variant="transparent"
           size="xs"
           icon={<IconChevron direction="right" />}
-          disabled={!defined(event?.nextEventID)}
+          disabled={event?.nextEventID == null}
           analyticsEventKey="issue_details.next_event_clicked"
           analyticsEventName="Issue Details: Next Event Clicked"
           to={{
@@ -160,7 +156,7 @@ export function IssueDetailsEventNavigation({
           }}
           preventScrollReset
           css={grayText}
-          onMouseEnter={handleHoverPagination('next', defined(event?.nextEventID))}
+          onMouseEnter={handleHoverPagination('next', event?.nextEventID != null)}
           onClick={() => {
             // Assume they will continue to paginate
             setShouldPreload({next: true, previous: true});

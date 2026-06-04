@@ -3,7 +3,6 @@ import {useQuery} from '@tanstack/react-query';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -164,11 +163,8 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           topEvents,
           groupBy,
           sort: sort ? encodeSort(sort) : undefined,
-          disableAggregateExtrapolation: defined(extrapolate)
-            ? extrapolate
-              ? '0'
-              : '1'
-            : undefined,
+          disableAggregateExtrapolation:
+            extrapolate == null ? undefined : extrapolate ? '0' : '1',
           caseInsensitive: caseInsensitive ? 1 : undefined,
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,

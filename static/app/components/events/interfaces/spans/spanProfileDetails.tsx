@@ -16,7 +16,6 @@ import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
@@ -83,7 +82,7 @@ export function useSpanProfileDetails(
   }, [span.thread_id, profileGroup]);
 
   const profile = useMemo(() => {
-    if (!defined(threadId)) {
+    if (threadId == null) {
       return null;
     }
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
@@ -157,10 +156,10 @@ export function useSpanProfileDetails(
   }, [index, maxNodes, event, nodes]);
 
   const profileTarget = useMemo(() => {
-    if (defined(project) && event) {
+    if (project && event) {
       const profileContext = event.contexts.profile ?? {};
 
-      if (defined(profileContext.profile_id)) {
+      if (profileContext.profile_id != null) {
         return generateProfileFlamechartRouteWithQuery({
           organization,
           projectSlug: project.slug,
@@ -171,7 +170,7 @@ export function useSpanProfileDetails(
         });
       }
 
-      if (defined(profileContext.profiler_id)) {
+      if (profileContext.profiler_id != null) {
         return generateContinuousProfileFlamechartRouteWithQuery({
           organization,
           projectSlug: project.slug,
@@ -227,7 +226,7 @@ export function SpanProfileDetails({
     frames,
   } = useSpanProfileDetails(organization, project, event, span);
 
-  if (!defined(profileTarget) || !processedEvent) {
+  if (profileTarget == null || !processedEvent) {
     return null;
   }
 
@@ -363,7 +362,7 @@ function getTopNodes(
       // merge the current node into it if it exists
       let last = tree.children.find(n => n.frame === frame);
 
-      if (!defined(last)) {
+      if (!last) {
         last = new CallTreeNode(frame, tree);
         tree.children.push(last);
       }

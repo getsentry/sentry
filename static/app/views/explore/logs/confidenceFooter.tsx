@@ -3,7 +3,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {Container} from 'sentry/views/explore/components/chart/chartFooter';
 import {
   Placeholder,
@@ -71,17 +70,17 @@ function ConfidenceMessage({
     return <Placeholder width={0} />;
   }
 
-  if (isLoading || !defined(sampleCount)) {
+  if (isLoading || sampleCount == null) {
     return <Placeholder width={180} />;
   }
 
-  const isTopN = defined(topEvents) && topEvents > 1;
-  const noSampling = defined(isSampled) && !isSampled;
+  const isTopN = topEvents != null && topEvents > 1;
+  const noSampling = isSampled != null && !isSampled;
   const usePluralSampleCount = sampleCount !== 1;
   const usePluralNormalLogsCount =
-    defined(rawLogCounts.normal.count) && rawLogCounts.normal.count !== 1;
+    rawLogCounts.normal.count != null && rawLogCounts.normal.count !== 1;
   const usePluralTotalLogsCount =
-    defined(rawLogCounts.total.count) && rawLogCounts.total.count !== 1;
+    rawLogCounts.total.count != null && rawLogCounts.total.count !== 1;
 
   // No sampling happened, so don't mention estimations.
   if (noSampling) {
@@ -104,15 +103,14 @@ function ConfidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-    const totalLogsCount = defined(rawLogCounts.total.count) ? (
-      usePluralTotalLogsCount ? (
+    const totalLogsCount =
+      rawLogCounts.total.count == null ? (
+        <Placeholder width={40} />
+      ) : usePluralTotalLogsCount ? (
         t('%s logs', <Count value={rawLogCounts.total.count} />)
       ) : (
         t('%s log', <Count value={rawLogCounts.total.count} />)
-      )
-    ) : (
-      <Placeholder width={40} />
-    );
+      );
 
     if (isTopN) {
       return tct('[matchingLogsCount] of [totalLogsCount] for top [topEvents] groups', {
@@ -143,15 +141,14 @@ function ConfidenceMessage({
         ? t('%s samples', <Count value={sampleCount} />)
         : t('%s sample', <Count value={sampleCount} />);
 
-      const totalLogsCount = defined(rawLogCounts.total.count) ? (
-        usePluralTotalLogsCount ? (
+      const totalLogsCount =
+        rawLogCounts.total.count == null ? (
+          <Placeholder width={40} />
+        ) : usePluralTotalLogsCount ? (
           t('%s logs', <Count value={rawLogCounts.total.count} />)
         ) : (
           t('%s log', <Count value={rawLogCounts.total.count} />)
-        )
-      ) : (
-        <Placeholder width={40} />
-      );
+        );
 
       if (isTopN) {
         return tct(
@@ -214,25 +211,23 @@ function ConfidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-    const scannedLogsCount = defined(rawLogCounts.normal.count) ? (
-      usePluralNormalLogsCount ? (
+    const scannedLogsCount =
+      rawLogCounts.normal.count == null ? (
+        <Placeholder width={40} />
+      ) : usePluralNormalLogsCount ? (
         t('%s samples', <Count value={rawLogCounts.normal.count} />)
       ) : (
         t('%s sample', <Count value={rawLogCounts.normal.count} />)
-      )
-    ) : (
-      <Placeholder width={40} />
-    );
+      );
 
-    const totalLogsCount = defined(rawLogCounts.total.count) ? (
-      usePluralTotalLogsCount ? (
+    const totalLogsCount =
+      rawLogCounts.total.count == null ? (
+        <Placeholder width={40} />
+      ) : usePluralTotalLogsCount ? (
         t('%s logs', <Count value={rawLogCounts.total.count} />)
       ) : (
         t('%s log', <Count value={rawLogCounts.total.count} />)
-      )
-    ) : (
-      <Placeholder width={40} />
-    );
+      );
 
     if (isTopN) {
       return tct(
@@ -267,15 +262,14 @@ function ConfidenceMessage({
     ? t('%s matches', <Count value={sampleCount} />)
     : t('%s match', <Count value={sampleCount} />);
 
-  const totalLogsCount = defined(rawLogCounts.total.count) ? (
-    usePluralTotalLogsCount ? (
+  const totalLogsCount =
+    rawLogCounts.total.count == null ? (
+      <Placeholder width={40} />
+    ) : usePluralTotalLogsCount ? (
       t('%s logs', <Count value={rawLogCounts.total.count} />)
     ) : (
       t('%s log', <Count value={rawLogCounts.total.count} />)
-    )
-  ) : (
-    <Placeholder width={40} />
-  );
+    );
 
   if (isTopN) {
     return tct(

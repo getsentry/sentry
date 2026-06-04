@@ -4,7 +4,6 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -238,7 +237,7 @@ export function getAlertRuleMetricsUrl({
 }
 
 export function isEapAlertType(alertType?: AlertType) {
-  if (!defined(alertType)) {
+  if (!alertType) {
     return false;
   }
   return [

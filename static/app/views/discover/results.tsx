@@ -50,7 +50,6 @@ import {t, tct, tctCode} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -226,7 +225,7 @@ export class Results extends Component<Props, State> {
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
-    if (!isHomepage && defined(location.query.id)) {
+    if (!isHomepage && location.query.id != null) {
       updateSavedQueryVisit(organization.slug, location.query.id);
     }
   }
@@ -1363,13 +1362,14 @@ function DiscoverPageFilters({
   let alertType: any;
   let buttonEventView = eventView;
   if (hasDatasetSelector(organization)) {
-    alertType = defined(currentDataset)
-      ? // @ts-expect-error TS(2339): Property 'discover' does not exist on type '{ tran...
-        {
-          [DiscoverDatasets.TRANSACTIONS]: 'throughput',
-          [DiscoverDatasets.ERRORS]: 'num_errors',
-        }[currentDataset]
-      : undefined;
+    alertType =
+      currentDataset == null
+        ? undefined
+        : // @ts-expect-error TS(2339): Property 'discover' does not exist on type '{ tran...
+          {
+            [DiscoverDatasets.TRANSACTIONS]: 'throughput',
+            [DiscoverDatasets.ERRORS]: 'num_errors',
+          }[currentDataset];
 
     if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
       buttonEventView = eventView.clone();

@@ -6,7 +6,6 @@ import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {defined} from 'sentry/utils';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
@@ -391,7 +390,7 @@ interface InfiniteScrollPageParam extends BaseLogsPageParams {
 export type LogPageParam = FlexTimePageParam | InfiniteScrollPageParam | null | undefined;
 
 function isFlexTimePageParam(pageParam: LogPageParam): pageParam is FlexTimePageParam {
-  return defined(pageParam) && 'cursor' in pageParam;
+  return pageParam != null && 'cursor' in pageParam;
 }
 
 type LogsInfiniteApiOptions = ReturnType<typeof useLogsApiOptions>['infiniteApiOptions'];
@@ -613,7 +612,7 @@ export function useInfiniteLogsQuery({
     }
 
     const bytesScanned = lastPage.json.meta?.bytesScanned;
-    if (!defined(bytesScanned)) {
+    if (bytesScanned == null) {
       return;
     }
 
@@ -679,7 +678,7 @@ export function useInfiniteLogsQuery({
   );
 
   const dataScannedList = data?.pages?.map(page => page.json.meta?.dataScanned);
-  const dataScanned = defined(dataScannedList)
+  const dataScanned = dataScannedList
     ? dataScannedList.includes('partial')
       ? ('partial' as const)
       : ('full' as const)

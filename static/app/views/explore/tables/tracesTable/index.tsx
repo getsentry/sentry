@@ -18,7 +18,6 @@ import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -180,7 +179,7 @@ function TraceRow({
 
     for (const breakdown of trace.breakdowns) {
       const project = breakdown.project;
-      if (!defined(project) || seenProjects.has(project)) {
+      if (project == null || seenProjects.has(project)) {
         continue;
       }
       seenProjects.add(project);
@@ -258,10 +257,10 @@ function TraceRow({
       </StyledPanelItem>
       <Breakdown trace={trace} />
       <StyledPanelItem align="right">
-        {defined(trace.rootDuration) ? (
-          <PerformanceDuration milliseconds={trace.rootDuration} abbreviation />
-        ) : (
+        {trace.rootDuration == null ? (
           <EmptyValueContainer />
+        ) : (
+          <PerformanceDuration milliseconds={trace.rootDuration} abbreviation />
         )}
       </StyledPanelItem>
       <StyledPanelItem align="right">

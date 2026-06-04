@@ -4,7 +4,6 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {defined} from 'sentry/utils';
 import {useApi} from 'sentry/utils/useApi';
 import {
   SAMPLING_MODE,
@@ -89,7 +88,7 @@ describe('useProgressiveQuery', () => {
           queryOptions: {
             canTriggerHighAccuracy: results => {
               // Simulate checking if there is data and more data is available
-              return defined(results.data) && results.data.meta.dataScanned === 'partial';
+              return results.data?.meta.dataScanned === 'partial';
             },
           },
         })

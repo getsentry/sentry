@@ -22,7 +22,6 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Tag} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -279,7 +278,7 @@ export function useSortedFilterKeyItems({
 
       return filterSectionKeys
         .map(key => allKeysLookup[key])
-        .filter(defined)
+        .filter(Boolean)
         .map(key => createItem(key, getFieldDefinition(key.key)));
     }
 

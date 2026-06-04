@@ -21,7 +21,6 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -345,7 +344,7 @@ export function OnboardingWithoutContext() {
   ]);
 
   const shallProjectBeDeleted =
-    stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
+    stepObj?.id === 'setup-docs' && isProjectActive != null && !isProjectActive;
 
   // Called onExitComplete
   const [containerHasFooter, setContainerHasFooter] = useState(false);

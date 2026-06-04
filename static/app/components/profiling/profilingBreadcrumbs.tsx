@@ -7,7 +7,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {
   generateProfileFlamechartRouteWithQuery,
   generateProfilingRouteWithQuery,
@@ -55,7 +54,7 @@ function trailToCrumb(
     case 'profile summary': {
       const project = projects.find(p => p.slug === trail.payload.projectSlug);
       return {
-        to: defined(project)
+        to: project
           ? profilesRouteWithQuery({
               organization,
               transaction: trail.payload.transaction,

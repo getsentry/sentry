@@ -2,7 +2,6 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {DateString} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 type DoSessionsRequestOptions = {
@@ -64,7 +63,7 @@ export function sessionsApiOptions({
       statsPeriodEnd,
       includeSeries: includeSeries === false ? '0' : '1',
       includeTotals: includeTotals === false ? '0' : '1',
-    }).filter(([, value]) => defined(value) && value !== '')
+    }).filter(([, value]) => value != null && value !== '')
   );
 
   return apiOptions.as<SessionApiResponse>()(

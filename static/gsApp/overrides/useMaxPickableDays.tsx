@@ -3,7 +3,6 @@ import moment from 'moment-timezone';
 
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {
   getBestMaxPickableDays,
   getMaxPickableDays,
@@ -33,7 +32,7 @@ export function useMaxPickableDays({
         dataCategory,
         subscription
       );
-      if (defined(maxPickableDays)) {
+      if (maxPickableDays) {
         return maxPickableDays;
       }
       return getMaxPickableDays(dataCategory, organization);
@@ -62,7 +61,7 @@ function getMaxPickableDaysBySubscription(
             30, // default 30 days retention
             subscription?.effectiveRetentions?.span?.standard,
             subscription?.effectiveRetentions?.span?.downsampled,
-          ].filter<number>(defined)
+          ].filter<number>(x => x != null)
         )
       );
 
@@ -90,7 +89,7 @@ function getMaxPickableDaysBySubscription(
           30, // default 30 day retention
           subscription?.effectiveRetentions?.log?.standard,
           subscription?.effectiveRetentions?.log?.downsampled,
-        ].filter<number>(defined)
+        ].filter<number>(x => x != null)
       );
       return {
         maxPickableDays,

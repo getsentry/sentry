@@ -27,7 +27,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -210,9 +209,8 @@ function IssueListOverviewInner({
     });
   }, [onRealtimePoll, pageLinks]);
 
-  const query = defined(location.query.query)
-    ? (location.query.query as string)
-    : initialQuery;
+  const query =
+    location.query.query == null ? initialQuery : (location.query.query as string);
   const sort = decodeScalar(
     location.query.sort,
     DEFAULT_ISSUE_STREAM_SORT
@@ -260,7 +258,7 @@ function IssueListOverviewInner({
     }
 
     // only include defined values.
-    return pickBy(params, v => defined(v)) as EndpointParams;
+    return pickBy(params, v => v != null) as EndpointParams;
   }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
@@ -803,7 +801,7 @@ function IssueListOverviewInner({
   };
 
   const onActionTaken = (itemIds: string[], data: IssueUpdateData) => {
-    const groupItems = itemIds.map(id => GroupStore.get(id)).filter(defined);
+    const groupItems = itemIds.map(id => GroupStore.get(id)).filter(Boolean);
 
     if ('status' in data) {
       if (data.status === 'resolved') {

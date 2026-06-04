@@ -25,7 +25,6 @@ import {IconBookmark, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -452,13 +451,14 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     let alertType: any;
     let buttonEventView = eventView;
     if (hasDatasetSelector(organization)) {
-      alertType = defined(currentDataset)
-        ? // @ts-expect-error TS(2339): Property 'discover' does not exist on type '{ tran... Remove this comment to see the full error message
-          {
-            [DiscoverDatasets.TRANSACTIONS]: 'throughput',
-            [DiscoverDatasets.ERRORS]: 'num_errors',
-          }[currentDataset]
-        : undefined;
+      alertType =
+        currentDataset == null
+          ? undefined
+          : // @ts-expect-error TS(2339): Property 'discover' does not exist on type '{ tran... Remove this comment to see the full error message
+            {
+              [DiscoverDatasets.TRANSACTIONS]: 'throughput',
+              [DiscoverDatasets.ERRORS]: 'num_errors',
+            }[currentDataset];
 
       if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
         // Inject the event.type:transaction filter for to avoid triggering

@@ -14,7 +14,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GIGABYTE} from 'getsentry/constants';
@@ -152,7 +151,7 @@ function ScheduledChanges({
           )}
           {reservedVolume.map(item => {
             const category = utils.invoiceItemTypeToDataCategory(item.type);
-            if (!defined(category)) {
+            if (category == null) {
               return null;
             }
             const quantity = item.data.quantity ?? 0;
@@ -349,7 +348,7 @@ function Receipt({
                   />
                   {reservedVolume.map(item => {
                     const category = utils.invoiceItemTypeToDataCategory(item.type);
-                    if (!defined(category)) {
+                    if (category == null) {
                       return null;
                     }
                     const quantity = item.data.quantity ?? 0;

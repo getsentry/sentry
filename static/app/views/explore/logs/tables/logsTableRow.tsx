@@ -26,7 +26,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined, escapeDoubleQuotes} from 'sentry/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
@@ -496,7 +496,7 @@ export const LogRowContent = memo(function LogRowContent({
                 })
               : undefined;
 
-          if (!defined(value)) {
+          if (value == null) {
             return (
               <LogTableBodyCell key={field}>
                 {shouldRenderActions ? (

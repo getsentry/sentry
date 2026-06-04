@@ -9,7 +9,6 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -76,7 +75,7 @@ export function useTransactionsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
+  const isMEPEnabled = mepSetting != null && mepSetting !== MEPState.TRANSACTIONS_ONLY;
   const useOnDemandMetrics = shouldUseOnDemandMetrics(
     organization,
     filteredWidget,
@@ -307,7 +306,7 @@ export function useTransactionsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
+  const isMEPEnabled = mepSetting != null && mepSetting !== MEPState.TRANSACTIONS_ONLY;
   const useOnDemandMetrics = shouldUseOnDemandMetrics(
     organization,
     filteredWidget,

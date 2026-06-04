@@ -1,6 +1,5 @@
 import {type RefObject, useMemo, useState} from 'react';
 
-import {defined} from 'sentry/utils';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricQueryRows} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricQueryRows';
@@ -76,7 +75,7 @@ export function MetricsEquationVisualize({
         const parsed = parseAggregateExpression(generateFieldAsString(f));
         return parsed.metricQueries[0];
       })
-      .filter(defined);
+      .filter(Boolean);
     if (metricQueries.length === 0) {
       metricQueries.push(defaultMetricQuery());
     }

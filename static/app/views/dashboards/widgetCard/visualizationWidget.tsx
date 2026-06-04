@@ -10,7 +10,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -266,7 +265,7 @@ function VisualizationWidgetContent({
         TableDataWithTitle['data'] | undefined,
       ];
     })
-    .filter(defined);
+    .filter(Boolean);
 
   const plottableWithNeedsColor = timeSeriesWithPlottable.filter(
     ([_, plottable]) => plottable.needsColor
@@ -410,8 +409,8 @@ function VisualizationWidgetContent({
   );
 
   if (
-    defined(widget.thresholds?.max_values.max1) ||
-    defined(widget.thresholds?.max_values.max2)
+    widget.thresholds?.max_values.max1 != null ||
+    widget.thresholds?.max_values.max2 != null
   ) {
     plottables.push(
       new Thresholds({

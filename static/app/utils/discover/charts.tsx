@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/react';
 import type {LegendComponentOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
@@ -36,7 +35,7 @@ export function tooltipFormatter(
   outputType: AggregationOutputType = 'number',
   unit?: DataUnit
 ): string {
-  if (!defined(value)) {
+  if (value == null) {
     return '\u2014';
   }
   return tooltipFormatterUsingAggregateOutputType(value, outputType, unit);
@@ -50,7 +49,7 @@ export function tooltipFormatterUsingAggregateOutputType(
   type: string,
   unit?: DataUnit
 ): string {
-  if (!defined(value)) {
+  if (value == null) {
     return '\u2014';
   }
   switch (type) {

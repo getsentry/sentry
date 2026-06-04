@@ -21,7 +21,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
-import {defined, percent} from 'sentry/utils';
+import {percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {withApi} from 'sentry/utils/withApi';
 import {getCrashFreePercent} from 'sentry/views/explore/releases/utils';
@@ -358,7 +358,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     const crashedCount = this.getCrashCount(version, project, display);
 
-    return !defined(totalCount) || totalCount === 0
+    return totalCount == null || totalCount === 0
       ? null
       : getCrashFreePercent(100 - percent(crashedCount ?? 0, totalCount ?? 0));
   };
@@ -504,7 +504,7 @@ class ReleasesRequest extends Component<Props, State> {
         : this.get24hCountByProject
     )(project, display);
 
-    return defined(countByRelease) && defined(countByProject)
+    return countByRelease != null && countByProject != null
       ? percent(countByRelease, countByProject)
       : undefined;
   };

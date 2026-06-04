@@ -15,8 +15,6 @@ import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
-
 export type HighlightTags = Required<DetailedProject>['highlightTags'];
 export type HighlightContext = Required<DetailedProject>['highlightContext'];
 
@@ -53,7 +51,7 @@ function getFuzzyHighlightContext(
     highlightKey = title;
   }
 
-  if (!defined(highlightKey)) {
+  if (highlightKey == null) {
     return {
       highlightKey,
       highlightItems: [],

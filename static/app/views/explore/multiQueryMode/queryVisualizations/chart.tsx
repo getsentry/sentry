@@ -12,7 +12,6 @@ import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -103,7 +102,7 @@ export function MultiQueryModeChart({
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-  if (defined(yAxes[0])) {
+  if (yAxes[0] != null) {
     items.push({
       key: 'create-alert',
       textValue: t('Create an Alert'),

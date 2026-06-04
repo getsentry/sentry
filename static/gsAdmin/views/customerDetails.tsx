@@ -19,7 +19,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
@@ -778,7 +777,7 @@ export function CustomerDetails() {
             key: 'confirmMSAUpdatedForDataConsent',
             name: 'Confirm MSA Updated for Data Consent',
             help: "Confirm that customer's MSA has been updated.",
-            visible: defined(subscription.msaUpdatedForDataConsent),
+            visible: subscription.msaUpdatedForDataConsent != null,
             disabled: !isPolicyAdmin,
             disabledReason: 'Requires policies:admin permissions.',
             skipConfirmModal: true,

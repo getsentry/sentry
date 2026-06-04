@@ -12,7 +12,6 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
@@ -112,9 +111,9 @@ export function TotalCrashFreeUsers({
               <InnerRow>
                 <Text>{row.dateLabel}</Text>
                 <Percent right>
-                  {defined(row.crashFreeUsers)
-                    ? displayCrashFreePercent(row.crashFreeUsers)
-                    : '-'}
+                  {row.crashFreeUsers == null
+                    ? '-'
+                    : displayCrashFreePercent(row.crashFreeUsers)}
                 </Percent>
               </InnerRow>
             </Row>

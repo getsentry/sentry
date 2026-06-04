@@ -13,7 +13,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -152,7 +151,7 @@ function BaseExploreFieldRenderer({
 
   const project = projectsMap[data.project];
 
-  if (!defined(column)) {
+  if (!column) {
     return nullableValue(null);
   }
 
@@ -201,9 +200,10 @@ function BaseExploreFieldRenderer({
                           queryString: queryString.formatString(),
                           table: 'trace',
                           organization,
-                          projectIds: defined(project?.id)
-                            ? [parseInt(project.id, 10)]
-                            : selection.projects,
+                          projectIds:
+                            project?.id == null
+                              ? selection.projects
+                              : [parseInt(project.id, 10)],
                           selection,
                         })}
                       >
@@ -264,9 +264,10 @@ function BaseExploreFieldRenderer({
                       to={getSimilarEventsUrl({
                         queryString: queryString.formatString(),
                         organization,
-                        projectIds: defined(project?.id)
-                          ? [parseInt(project.id, 10)]
-                          : selection.projects,
+                        projectIds:
+                          project?.id == null
+                            ? selection.projects
+                            : [parseInt(project.id, 10)],
                         selection,
                       })}
                     >

@@ -16,7 +16,6 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {
@@ -261,7 +260,7 @@ function ColumnEditorRow({
   ]);
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
-    if (defined(option) && typeof option.value === 'string') {
+    if (typeof option.value === 'string') {
       onColumnChange(option.value);
     }
   }
@@ -269,11 +268,11 @@ function ColumnEditorRow({
   // The compact select component uses the option label to render the current
   // selection. This overrides it to render in a trailing item showing the type.
   const label = useMemo(() => {
-    if (defined(column.column)) {
+    if (column.column != null) {
       const tag =
         options.find(option => option.value === column.column) ??
         baseOptions.find(option => option.value === column.column);
-      if (defined(tag)) {
+      if (tag) {
         return (
           <TriggerLabel>
             <TriggerLabelText>{tag.label}</TriggerLabelText>

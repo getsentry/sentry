@@ -20,7 +20,6 @@ import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {
   AggregateProfileSource,
@@ -120,9 +119,9 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
 
     // make a best effort to link to the exact line if we can
     const url =
-      defined(props.hoveredNode) && defined(props.hoveredNode.frame.line)
-        ? `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
-        : sourceCodeLink.data.sourceUrl;
+      props.hoveredNode?.frame.line == null
+        ? sourceCodeLink.data.sourceUrl
+        : `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`;
 
     window.open(url, '_blank', 'noopener,noreferrer');
   }, [props.hoveredNode, sourceCodeLink]);
@@ -398,9 +397,9 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
 
     // make a best effort to link to the exact line if we can
     const url =
-      defined(props.hoveredNode) && defined(props.hoveredNode.frame.line)
-        ? `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
-        : sourceCodeLink.data.sourceUrl;
+      props.hoveredNode?.frame.line == null
+        ? sourceCodeLink.data.sourceUrl
+        : `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`;
 
     window.open(url, '_blank', 'noopener,noreferrer');
   }, [organization, props.profileType, props.hoveredNode, sourceCodeLink]);

@@ -1,7 +1,6 @@
 import type {Location} from 'history';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {defined} from 'sentry/utils';
 import {
   isEquation,
   parseFunction,
@@ -49,7 +48,7 @@ export abstract class Visualize {
       yAxes: [this.yAxis],
     };
 
-    if (defined(this.selectedChartType)) {
+    if (this.selectedChartType != null) {
       json.chartType = this.selectedChartType;
     }
 
@@ -170,7 +169,7 @@ export function parseVisualize(value: any): Visualize[] {
 }
 
 export function isVisualize(value: any): value is Visualize {
-  return defined(value) && typeof value === 'object' && typeof value.yAxis === 'string';
+  return value != null && typeof value === 'object' && typeof value.yAxis === 'string';
 }
 
 export function isVisualizeFunction(
@@ -193,14 +192,14 @@ export interface BaseVisualize {
 
 export function isBaseVisualize(value: any): value is BaseVisualize {
   const hasYAxes =
-    defined(value) &&
+    value != null &&
     typeof value === 'object' &&
     Array.isArray(value.yAxes) &&
     value.yAxes.every((yAxis: any) => typeof yAxis === 'string');
 
   if (hasYAxes) {
     // check for valid chart type
-    if (defined(value.chartType)) {
+    if (value.chartType != null) {
       return Object.values(ChartType).includes(value.chartType);
     }
 

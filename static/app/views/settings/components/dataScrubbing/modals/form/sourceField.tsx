@@ -6,7 +6,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
 import {SourceSuggestionType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
@@ -248,7 +247,7 @@ export class SourceField extends Component<Props, State> {
     const fieldValues = [...this.state.fieldValues];
     const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
-    if (!defined(lastFieldValue)) {
+    if (!lastFieldValue) {
       return [suggestion];
     }
 

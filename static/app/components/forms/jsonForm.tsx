@@ -2,7 +2,6 @@ import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
-import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -79,7 +78,7 @@ function JsonForm({
 
   const shouldDisplayForm = (fieldList: FieldObject[]): boolean => {
     const fieldsWithVisibleProp = fieldList.filter(
-      (field): field is Field => typeof field !== 'function' && defined(field?.visible)
+      (field): field is Field => typeof field !== 'function' && field?.visible != null
     );
 
     if (fieldList.length === fieldsWithVisibleProp.length) {

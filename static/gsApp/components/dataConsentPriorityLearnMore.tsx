@@ -8,7 +8,6 @@ import {Button} from '@sentry/scraps/button';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {getOrganizationAge} from 'sentry/utils/getOrganizationAge';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -34,9 +33,9 @@ function DataConsentPriorityLearnMore({subscription}: {subscription?: Subscripti
     organization.aggregatedDataConsent ||
     !hasBillingAccess ||
     !subscription ||
-    (defined(subscription.msaUpdatedForDataConsent)
-      ? !subscription.msaUpdatedForDataConsent
-      : false) ||
+    (subscription.msaUpdatedForDataConsent == null
+      ? false
+      : !subscription.msaUpdatedForDataConsent) ||
     organizationAge < 60 ||
     organizationAge > 120;
 

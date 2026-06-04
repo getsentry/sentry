@@ -12,7 +12,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {defined, escape} from 'sentry/utils';
+import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
@@ -296,11 +296,7 @@ export function getSeriesSelection(
 function isSingleSeriesStats(
   data: MultiSeriesEventsStats | EventsStats | GroupedMultiSeriesEventsStats
 ): data is EventsStats {
-  return (
-    (defined(data.data) || defined(data.totals)) &&
-    defined(data.start) &&
-    defined(data.end)
-  );
+  return data.start != null && data.end != null;
 }
 
 /**
@@ -316,9 +312,9 @@ export function isMultiSeriesStats(
   isTopN?: boolean
 ): data is MultiSeriesEventsStats {
   return (
-    defined(data) &&
+    data != null &&
     ((data.data === undefined && data.totals === undefined) ||
-      (defined(isTopN) && isTopN && defined(data) && !isSingleSeriesStats(data))) // the isSingleSeriesStats check is for topN queries returning null data
+      (isTopN != null && isTopN && !isSingleSeriesStats(data))) // the isSingleSeriesStats check is for topN queries returning null data
   );
 }
 

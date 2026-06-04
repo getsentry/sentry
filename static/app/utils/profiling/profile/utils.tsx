@@ -1,7 +1,6 @@
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import {defined} from 'sentry/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
@@ -221,7 +220,7 @@ export function wrapWithSpan<T>(
   fn: () => T,
   options: any
 ): T {
-  if (!defined(parentSpan)) {
+  if (!parentSpan) {
     return fn();
   }
 
@@ -333,7 +332,7 @@ export function sortProfileSamples<S extends SortableProfileSample>(
     const frameA = frames[a]!;
     const frameB = frames[b]!;
 
-    if (defined(frameA.function) && defined(frameB.function)) {
+    if (frameA.function != null && frameB.function != null) {
       // sort alphabetically first
       const ret = frameA.function.localeCompare(frameB.function);
       if (ret !== 0) {
@@ -341,21 +340,21 @@ export function sortProfileSamples<S extends SortableProfileSample>(
       }
 
       // break ties using the line number
-      if (defined(frameA.lineno) && defined(frameB.lineno)) {
+      if (frameA.lineno != null && frameB.lineno != null) {
         return frameA.lineno - frameB.lineno;
       }
 
-      if (defined(frameA.lineno)) {
+      if (frameA.lineno != null) {
         return -1;
       }
 
-      if (defined(frameB.lineno)) {
+      if (frameB.lineno != null) {
         return 1;
       }
-    } else if (defined(frameA.function)) {
+    } else if (frameA.function != null) {
       // if only frameA is defined, it goes first
       return -1;
-    } else if (defined(frameB.function)) {
+    } else if (frameB.function != null) {
       // if only frameB is defined, it goes first
       return 1;
     }

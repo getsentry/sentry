@@ -6,7 +6,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {
   Placeholder,
   WarningIcon,
@@ -40,17 +39,17 @@ function confidenceMessage({
   isLoading,
   userQuery,
 }: Props) {
-  if (isLoading || !defined(sampleCount)) {
+  if (isLoading || sampleCount == null) {
     return <Placeholder width={180} />;
   }
 
-  const isTopN = defined(topEvents) && topEvents > 1;
-  const noSampling = defined(isSampled) && !isSampled;
+  const isTopN = topEvents != null && topEvents > 1;
+  const noSampling = isSampled != null && !isSampled;
   const usePluralSampleCount = sampleCount !== 1;
   const usePluralNormalSpansCount =
-    defined(rawSpanCounts?.normal.count) && rawSpanCounts.normal.count !== 1;
+    rawSpanCounts?.normal.count != null && rawSpanCounts.normal.count !== 1;
   const usePluralTotalSpansCount =
-    defined(rawSpanCounts?.total.count) && rawSpanCounts.total.count !== 1;
+    rawSpanCounts?.total.count != null && rawSpanCounts.total.count !== 1;
 
   const maybeWarning =
     confidence === 'low' ? tct('[warning] ', {warning: <WarningIcon />}) : null;
@@ -65,7 +64,7 @@ function confidenceMessage({
 
   // The multi query mode does not fetch the raw span counts
   // so make sure to have a backup when this happens.
-  if (!defined(rawSpanCounts)) {
+  if (!rawSpanCounts) {
     const matchingSpansCount = usePluralSampleCount
       ? t('%s spans', <Count value={sampleCount} />)
       : t('%s span', <Count value={sampleCount} />);
@@ -91,7 +90,7 @@ function confidenceMessage({
 
   if (
     // Extrapolation disabled, so don't mention estimations.
-    (defined(extrapolate) && !extrapolate) ||
+    (extrapolate != null && !extrapolate) ||
     // No sampling happened, so don't mention estimations.
     noSampling
   ) {
@@ -114,15 +113,14 @@ function confidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-    const totalSpansCount = defined(rawSpanCounts.total.count) ? (
-      usePluralTotalSpansCount ? (
+    const totalSpansCount =
+      rawSpanCounts.total.count == null ? (
+        <Placeholder width={40} />
+      ) : usePluralTotalSpansCount ? (
         t('%s spans', <Count value={rawSpanCounts.total.count} />)
       ) : (
         t('%s span', <Count value={rawSpanCounts.total.count} />)
-      )
-    ) : (
-      <Placeholder width={40} />
-    );
+      );
 
     if (isTopN) {
       return tct('[matchingSpansCount] of [totalSpansCount] for top [topEvents] groups', {
@@ -148,15 +146,14 @@ function confidenceMessage({
         ? t('%s samples', <Count value={sampleCount} />)
         : t('%s sample', <Count value={sampleCount} />);
 
-      const totalSpansCount = defined(rawSpanCounts.total.count) ? (
-        usePluralTotalSpansCount ? (
+      const totalSpansCount =
+        rawSpanCounts.total.count == null ? (
+          <Placeholder width={40} />
+        ) : usePluralTotalSpansCount ? (
           t('%s spans', <Count value={rawSpanCounts.total.count} />)
         ) : (
           t('%s span', <Count value={rawSpanCounts.total.count} />)
-        )
-      ) : (
-        <Placeholder width={40} />
-      );
+        );
 
       if (isTopN) {
         return tct(
@@ -219,25 +216,23 @@ function confidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-    const scannedSpansCount = defined(rawSpanCounts.normal.count) ? (
-      usePluralNormalSpansCount ? (
+    const scannedSpansCount =
+      rawSpanCounts.normal.count == null ? (
+        <Placeholder width={40} />
+      ) : usePluralNormalSpansCount ? (
         t('%s samples', <Count value={rawSpanCounts.normal.count} />)
       ) : (
         t('%s sample', <Count value={rawSpanCounts.normal.count} />)
-      )
-    ) : (
-      <Placeholder width={40} />
-    );
+      );
 
-    const totalSpansCount = defined(rawSpanCounts.total.count) ? (
-      usePluralTotalSpansCount ? (
+    const totalSpansCount =
+      rawSpanCounts.total.count == null ? (
+        <Placeholder width={40} />
+      ) : usePluralTotalSpansCount ? (
         t('%s spans', <Count value={rawSpanCounts.total.count} />)
       ) : (
         t('%s span', <Count value={rawSpanCounts.total.count} />)
-      )
-    ) : (
-      <Placeholder width={40} />
-    );
+      );
 
     if (isTopN) {
       return tct(
@@ -272,15 +267,14 @@ function confidenceMessage({
     ? t('%s matches', <Count value={sampleCount} />)
     : t('%s match', <Count value={sampleCount} />);
 
-  const totalSpansCount = defined(rawSpanCounts.total.count) ? (
-    usePluralTotalSpansCount ? (
+  const totalSpansCount =
+    rawSpanCounts.total.count == null ? (
+      <Placeholder width={40} />
+    ) : usePluralTotalSpansCount ? (
       t('%s spans', <Count value={rawSpanCounts.total.count} />)
     ) : (
       t('%s span', <Count value={rawSpanCounts.total.count} />)
-    )
-  ) : (
-    <Placeholder width={40} />
-  );
+    );
 
   if (isTopN) {
     return tct(

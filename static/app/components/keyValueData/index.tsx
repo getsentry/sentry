@@ -12,7 +12,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 
 export interface KeyValueDataContentProps {
   /**
@@ -98,7 +97,7 @@ export function Content({
       {subjectNode === undefined ? <Subject>{subject}</Subject> : subjectNode}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper hasSuffix={hasSuffix}>
-          {!disableLink && defined(action?.link) ? (
+          {!disableLink && action?.link != null ? (
             <ValueLink to={action.link}>{dataComponent}</ValueLink>
           ) : (
             dataComponent

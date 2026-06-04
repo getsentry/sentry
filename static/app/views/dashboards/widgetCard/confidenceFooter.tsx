@@ -2,7 +2,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -54,17 +53,14 @@ export function WidgetCardConfidenceFooter({
         (hasOtherSeries ? 1 : 0)
       : undefined;
 
-  const isTopN =
-    defined(topEventsCountExcludingOther) && topEventsCountExcludingOther > 1;
+  const isTopN = topEventsCountExcludingOther != null && topEventsCountExcludingOther > 1;
   const footerSeries = toFooterTimeSeries(series, dataScanned);
   const samplingMeta = hasSeriesSamplingMetadata(footerSeries)
     ? determineSeriesSampleCountAndIsSampled(footerSeries, isTopN)
     : undefined;
   const footerConfidence = confidence ?? combineConfidenceForSeries(footerSeries);
-  const footerSampleCount = defined(sampleCount)
-    ? sampleCount
-    : samplingMeta?.sampleCount;
-  const footerIsSampled = defined(isSampled) ? isSampled : samplingMeta?.isSampled;
+  const footerSampleCount = sampleCount == null ? samplingMeta?.sampleCount : sampleCount;
+  const footerIsSampled = isSampled == null ? samplingMeta?.isSampled : isSampled;
   const footerDataScanned = dataScanned ?? samplingMeta?.dataScanned;
   const hasUserQuery = widget.queries.some(
     query => (query.conditions ?? '').trim().length > 0
@@ -171,9 +167,9 @@ function toFooterTimeSeries(
 function hasSeriesSamplingMetadata(series: TimeSeries[]) {
   return series.some(
     seriesEntry =>
-      defined(seriesEntry.meta.dataScanned) ||
+      seriesEntry.meta.dataScanned != null ||
       seriesEntry.values.some(
-        value => defined(value.sampleCount) || defined(value.sampleRate)
+        value => value.sampleCount != null || value.sampleRate != null
       )
   );
 }

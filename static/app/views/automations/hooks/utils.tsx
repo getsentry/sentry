@@ -9,7 +9,6 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
 import type {ConflictingConditions} from 'sentry/views/automations/components/automationBuilderConflictContext';
@@ -65,12 +64,12 @@ export function useAutomationProjectSlugs(automation: Automation) {
   });
 
   const projectIds = [
-    ...new Set(detectors?.map(detector => detector.projectId).filter(defined)),
+    ...new Set(detectors?.map(detector => detector.projectId).filter(x => x != null)),
   ];
 
   const projectSlugs = projectIds
     .map(projectId => ProjectsStore.getById(projectId)?.slug)
-    .filter(defined);
+    .filter(x => x != null);
 
   return {projectSlugs, isLoading};
 }

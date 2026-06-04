@@ -16,7 +16,6 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {Projects} from 'sentry/utils/projects';
@@ -425,7 +424,7 @@ export function SpanIdRenderer({
 
   const {projects} = useProjects({slugs: [spanProject]});
   const projectIds = projects
-    .filter(project => defined(project.id))
+    .filter(project => project.id != null)
     .map(project => parseInt(project.id, 10));
 
   if (isPartialSpanOrTraceData(timestamp)) {
@@ -513,7 +512,7 @@ export function TraceIdRenderer({
 
   const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
   const projectIds = projects
-    .filter(project => defined(project.id))
+    .filter(project => project.id != null)
     .map(project => parseInt(project.id, 10));
 
   if (isPartialSpanOrTraceData(timestamp)) {

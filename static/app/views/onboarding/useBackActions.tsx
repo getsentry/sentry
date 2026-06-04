@@ -4,7 +4,6 @@ import {useBlocker} from 'react-router-dom';
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -117,7 +116,7 @@ export function useBackActions({
       // from setup docs to previous step
       if (
         currentStep.id === 'setup-docs' &&
-        defined(isRecentCreatedProjectActive) &&
+        isRecentCreatedProjectActive != null &&
         !isRecentCreatedProjectActive &&
         recentCreatedProject
       ) {
@@ -180,7 +179,7 @@ export function useBackActions({
   const handleGoBack = useCallback(
     (goToStepIndex?: number) => {
       backStepActions({
-        prevStep: onboardingSteps[defined(goToStepIndex) ? goToStepIndex : stepIndex - 1],
+        prevStep: onboardingSteps[goToStepIndex == null ? stepIndex - 1 : goToStepIndex],
         browserBackButton: false,
       });
     },

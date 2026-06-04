@@ -19,7 +19,6 @@ import type {Image} from 'sentry/types/debugImage';
 import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -204,7 +203,7 @@ export const useFetchProguardMappingFiles = ({
   const proGuardImageUuid = proGuardImage?.uuid;
 
   const shouldFetch =
-    defined(proGuardImageUuid) &&
+    proGuardImageUuid != null &&
     event.platform === 'java' &&
     !hasEventErrorsProGuardMissingMapping &&
     !isShare;

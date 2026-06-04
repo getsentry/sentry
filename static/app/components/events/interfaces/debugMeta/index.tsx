@@ -30,7 +30,6 @@ import {ImageStatus} from 'sentry/types/debugImage';
 import type {EntryDebugMeta, Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -49,7 +48,7 @@ function shouldSkipSection(
   if (filteredImages.length) {
     return false;
   }
-  const definedImages = images?.filter(image => defined(image));
+  const definedImages = images?.filter(image => image != null);
   if (!definedImages?.length) {
     return true;
   }
@@ -202,9 +201,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             projSlug={projectSlug}
             event={event}
             onReprocessEvent={
-              defined(groupId)
-                ? () => openReprocessEventModal({organization, groupId})
-                : undefined
+              groupId == null
+                ? undefined
+                : () => openReprocessEventModal({organization, groupId})
             }
           />
         ),

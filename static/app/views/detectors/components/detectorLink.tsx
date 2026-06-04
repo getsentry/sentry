@@ -21,7 +21,6 @@ import type {
   PreprodDetector,
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -134,7 +133,7 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
     case 'static': {
       const text = conditions
         .map(condition => formatCondition({condition, unit}))
-        .filter(defined)
+        .filter(x => x != null)
         .join(', ');
       if (!text) {
         return null;
@@ -146,7 +145,7 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
       const timeRange = getDuration(comparisonDelta);
       const text = conditions
         .map(condition => formatPercentCondition({condition, timeRange, unit}))
-        .filter(defined)
+        .filter(x => x != null)
         .join(', ');
       if (!text) {
         return null;

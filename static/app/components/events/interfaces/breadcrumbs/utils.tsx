@@ -2,7 +2,6 @@ import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 
 /**
  * RawCrumb.type is used for filtering, icons and color. This function converts crumbs
@@ -14,7 +13,7 @@ export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
   }
   const breadcrumbTypeSet = new Set<BreadcrumbType>(Object.values(BreadcrumbType));
 
-  if (breadcrumb.type === BreadcrumbType.DEFAULT && defined(breadcrumb?.category)) {
+  if (breadcrumb.type === BreadcrumbType.DEFAULT && breadcrumb?.category != null) {
     const [category, subcategory] = breadcrumb.category.split('.');
     if (breadcrumbTypeSet.has(category as BreadcrumbType)) {
       // XXX: Type hack, instead of manually adding cases for BreadcrumbType.x when BreadcrumbType.x's

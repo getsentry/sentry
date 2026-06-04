@@ -9,7 +9,6 @@ import {Button} from '@sentry/scraps/button';
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -85,7 +84,7 @@ export function GroupBySelector({
     const newColumns = [...columns];
     if (columns.length === 0) {
       newColumns.push(value);
-    } else if (defined(index)) {
+    } else if (index != null) {
       newColumns[index] = value;
     }
     onChange(newColumns);

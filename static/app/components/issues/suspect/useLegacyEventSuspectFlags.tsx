@@ -11,7 +11,6 @@ import {
 } from 'sentry/components/featureFlags/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 /**
@@ -45,7 +44,7 @@ export function useLegacyEventSuspectFlags({
   const auditLogFlagNames = hydratedFlagData.map(f => f.name);
   const evaluatedFlagNames = event?.contexts?.flags?.values
     ?.map(f => f?.flag)
-    .filter(defined);
+    .filter(x => x != null);
   const intersectionFlags = useMemo(
     () => intersection(auditLogFlagNames, evaluatedFlagNames),
     [auditLogFlagNames, evaluatedFlagNames]

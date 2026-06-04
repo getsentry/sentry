@@ -4,7 +4,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -130,7 +129,7 @@ function Graph({
   });
 
   const chartInfo = useMemo(() => {
-    const isTopEvents = defined(topEventsLimit);
+    const isTopEvents = topEventsLimit != null;
     const yAxes = visualizes.map(v => v.yAxis);
     const rawSeries = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis] ?? []);
 

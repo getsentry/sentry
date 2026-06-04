@@ -59,7 +59,6 @@ import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {
   isJavascriptPlatform,
@@ -160,7 +159,7 @@ export function EventDetailsContent({
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeAssertionsSection event={event} />
       )}
-      {defined(eventEntries[EntryType.MESSAGE]) && (
+      {eventEntries[EntryType.MESSAGE] && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
@@ -177,7 +176,7 @@ export function EventDetailsContent({
               />
             </ErrorBoundary>
           )}
-          {defined(eventEntries[EntryType.EXCEPTION]) && (
+          {eventEntries[EntryType.EXCEPTION] && (
             <EntryErrorBoundary type={EntryType.EXCEPTION}>
               {shouldUseNewStackTrace ? (
                 <IssueStackTrace
@@ -197,27 +196,26 @@ export function EventDetailsContent({
               )}
             </EntryErrorBoundary>
           )}
-          {issueTypeConfig.stacktrace.enabled &&
-            defined(eventEntries[EntryType.STACKTRACE]) && (
-              <EntryErrorBoundary type={EntryType.STACKTRACE}>
-                {shouldUseNewStackTrace ? (
-                  <IssueStackTrace
-                    event={event}
-                    stacktrace={eventEntries[EntryType.STACKTRACE].data}
-                    projectSlug={projectSlug}
-                    group={group}
-                  />
-                ) : (
-                  <StackTrace
-                    event={event}
-                    data={eventEntries[EntryType.STACKTRACE].data}
-                    projectSlug={projectSlug}
-                    groupingCurrentLevel={groupingCurrentLevel}
-                  />
-                )}
-              </EntryErrorBoundary>
-            )}
-          {defined(eventEntries[EntryType.THREADS]) && (
+          {issueTypeConfig.stacktrace.enabled && eventEntries[EntryType.STACKTRACE] && (
+            <EntryErrorBoundary type={EntryType.STACKTRACE}>
+              {shouldUseNewStackTrace ? (
+                <IssueStackTrace
+                  event={event}
+                  stacktrace={eventEntries[EntryType.STACKTRACE].data}
+                  projectSlug={projectSlug}
+                  group={group}
+                />
+              ) : (
+                <StackTrace
+                  event={event}
+                  data={eventEntries[EntryType.STACKTRACE].data}
+                  projectSlug={projectSlug}
+                  groupingCurrentLevel={groupingCurrentLevel}
+                />
+              )}
+            </EntryErrorBoundary>
+          )}
+          {eventEntries[EntryType.THREADS] && (
             <EntryErrorBoundary type={EntryType.THREADS}>
               <Threads
                 event={event}
@@ -293,7 +291,7 @@ export function EventDetailsContent({
       </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
-      {defined(eventEntries[EntryType.HPKP]) && (
+      {eventEntries[EntryType.HPKP] && (
         <EntryErrorBoundary type={EntryType.HPKP}>
           <Generic
             type={EntryType.HPKP}
@@ -302,12 +300,12 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       )}
-      {defined(eventEntries[EntryType.CSP]) && (
+      {eventEntries[EntryType.CSP] && (
         <EntryErrorBoundary type={EntryType.CSP}>
           <Csp event={event} data={eventEntries[EntryType.CSP].data} />
         </EntryErrorBoundary>
       )}
-      {defined(eventEntries[EntryType.EXPECTCT]) && (
+      {eventEntries[EntryType.EXPECTCT] && (
         <EntryErrorBoundary type={EntryType.EXPECTCT}>
           <Generic
             type={EntryType.EXPECTCT}
@@ -315,7 +313,7 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       )}
-      {defined(eventEntries[EntryType.EXPECTSTAPLE]) && (
+      {eventEntries[EntryType.EXPECTSTAPLE] && (
         <EntryErrorBoundary type={EntryType.EXPECTSTAPLE}>
           <Generic
             type={EntryType.EXPECTSTAPLE}
@@ -323,7 +321,7 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       )}
-      {defined(eventEntries[EntryType.TEMPLATE]) && (
+      {eventEntries[EntryType.TEMPLATE] && (
         <EntryErrorBoundary type={EntryType.TEMPLATE}>
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
@@ -343,7 +341,7 @@ export function EventDetailsContent({
         organization.features.includes('performance-view') && (
           <EventTraceView group={group} event={event} organization={organization} />
         )}
-      {defined(eventEntries[EntryType.REQUEST]) && (
+      {eventEntries[EntryType.REQUEST] && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />
         </EntryErrorBoundary>
@@ -366,17 +364,16 @@ export function EventDetailsContent({
       <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       <EventProcessingErrors event={event} project={project} isShare={false} />
-      {defined(eventEntries[EntryType.DEBUGMETA]) &&
-        !isJavascriptPlatform(event.platform) && (
-          <EntryErrorBoundary type={EntryType.DEBUGMETA}>
-            <DebugMeta
-              event={event}
-              projectSlug={projectSlug}
-              groupId={group?.id}
-              data={eventEntries[EntryType.DEBUGMETA].data}
-            />
-          </EntryErrorBoundary>
-        )}
+      {eventEntries[EntryType.DEBUGMETA] && !isJavascriptPlatform(event.platform) && (
+        <EntryErrorBoundary type={EntryType.DEBUGMETA}>
+          <DebugMeta
+            event={event}
+            projectSlug={projectSlug}
+            groupId={group?.id}
+            data={eventEntries[EntryType.DEBUGMETA].data}
+          />
+        </EntryErrorBoundary>
+      )}
       {event.groupID && issueTypeConfig.groupingInfo.enabled && (
         <EventGroupingInfoSection
           projectSlug={project.slug}

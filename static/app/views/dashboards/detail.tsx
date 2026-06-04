@@ -39,7 +39,6 @@ import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -182,9 +181,8 @@ function getDashboardLocation({
     'interval',
   ]);
 
-  const commonPath = defined(dashboardId)
-    ? `/dashboard/${dashboardId}/`
-    : '/dashboards/new/';
+  const commonPath =
+    dashboardId == null ? '/dashboards/new/' : `/dashboard/${dashboardId}/`;
 
   const dashboardUrl = USING_CUSTOMER_DOMAIN
     ? commonPath
@@ -317,7 +315,7 @@ class DashboardDetail extends Component<Props, State> {
           dashboardFilters: getMergedDashboardFilters(dashboard.filters, location),
           dashboardPermissions: dashboard.permissions,
           dashboardCreator: dashboard.createdBy,
-          isPrebuiltDashboard: defined(dashboard.prebuiltId),
+          isPrebuiltDashboard: dashboard.prebuiltId != null,
           widgetInterval: this.props.widgetInterval,
           onClose: () => {
             this.closeFullScreenView();
@@ -325,8 +323,8 @@ class DashboardDetail extends Component<Props, State> {
           onEdit: () => {
             const widgetIndex = dashboard.widgets.findIndex(
               w =>
-                (defined(widget.id) && w.id === widget.id) ||
-                (defined(widget.tempId) && w.tempId === widget.tempId)
+                (widget.id != null && w.id === widget.id) ||
+                (widget.tempId != null && w.tempId === widget.tempId)
             );
             if (widgetIndex === -1) {
               Sentry.setTag('edit_source', 'modal');
@@ -406,7 +404,7 @@ class DashboardDetail extends Component<Props, State> {
     // message for.
     const warnOnSaving = isCommittingChanges || isSavingDashboardFilters;
     if (
-      (defined(modifiedDashboard) &&
+      (modifiedDashboard &&
         !isEqual(modifiedDashboard, dashboard) &&
         this.isEditingDashboard) ||
       warnOnSaving
@@ -496,7 +494,7 @@ class DashboardDetail extends Component<Props, State> {
 
     // If a dashboard has every layout undefined, then ignore the layout field
     // when checking equality because it is a dashboard from before the grid feature
-    const isLegacyLayout = dashboard.widgets.every(({layout}) => !defined(layout));
+    const isLegacyLayout = dashboard.widgets.every(({layout}) => layout == null);
     if (isLegacyLayout) {
       hasDashboardChanged = !isEqual(
         {
@@ -658,7 +656,7 @@ class DashboardDetail extends Component<Props, State> {
           openWidgetTemplates: openWidgetTemplates ?? false,
         });
         let pathname = `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`;
-        if (!defined(dashboardId)) {
+        if (dashboardId == null) {
           pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
         }
 
@@ -697,8 +695,8 @@ class DashboardDetail extends Component<Props, State> {
 
     const widgetIndex = currentDashboard.widgets.findIndex(
       w =>
-        (defined(widget.id) && w.id === widget.id) ||
-        (defined(widget.tempId) && w.tempId === widget.tempId)
+        (widget.id != null && w.id === widget.id) ||
+        (widget.tempId != null && w.tempId === widget.tempId)
     );
     if (widgetIndex === -1) {
       Sentry.setTag('edit_source', 'context-menu');
@@ -715,9 +713,10 @@ class DashboardDetail extends Component<Props, State> {
       isWidgetBuilderOpen: true,
       openWidgetTemplates: false,
     });
-    const path = defined(dashboardId)
-      ? `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`
-      : `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`;
+    const path =
+      dashboardId == null
+        ? `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`
+        : `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`;
 
     addWidgetBuilderSessionStorageParams(widget);
 
@@ -748,20 +747,20 @@ class DashboardDetail extends Component<Props, State> {
     const currentDashboard = this.state.modifiedDashboard ?? this.props.dashboard;
 
     // Get the "base" widget and merge the changes to persist information like tempIds and layout
-    const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
+    const baseWidget = index == null ? {} : currentDashboard.widgets[index];
     const mergedWidget = assignTempId({...baseWidget, ...widget});
 
     // Always ensure added widgets in the save flow have a layout
     // This sets the layout for the request, as well as the optimistic
     // update on save
     const newWidgets = assignDefaultLayout(
-      defined(index)
-        ? [
+      index == null
+        ? [...currentDashboard.widgets, mergedWidget]
+        : [
             ...currentDashboard.widgets.slice(0, index),
             mergedWidget,
             ...currentDashboard.widgets.slice(index + 1),
-          ]
-        : [...currentDashboard.widgets, mergedWidget],
+          ],
       calculateColumnDepths(getDashboardLayout(currentDashboard.widgets))
     );
 
@@ -816,7 +815,7 @@ class DashboardDetail extends Component<Props, State> {
     // This prevents losing data when the component remounts during navigation.
     let navigationState: {dashboard?: DashboardDetails; widgets?: Widget[]} | undefined;
 
-    if (dashboardState === DashboardState.CREATE && defined(newWidgets)) {
+    if (dashboardState === DashboardState.CREATE && newWidgets) {
       // For new dashboards, persist the widgets
       navigationState = {widgets: newWidgets};
     } else if (dashboardState === DashboardState.VIEW && newWidgets) {
@@ -1345,7 +1344,7 @@ class DashboardDetail extends Component<Props, State> {
                                     (modifiedDashboard ?? dashboard).filters,
                                     location
                                   ),
-                                  ...(defined(dashboard.prebuiltId) && {
+                                  ...(dashboard.prebuiltId != null && {
                                     widgets: undefined,
                                   }),
                                 };
@@ -1496,7 +1495,7 @@ class DashboardDetail extends Component<Props, State> {
               (checkDashboardRoute(locationChange.currentLocation.pathname) &&
                 checkDashboardRoute(locationChange.nextLocation.pathname));
             const hasUnsavedChanges =
-              defined(modifiedDashboard) &&
+              modifiedDashboard != null &&
               !isEqual(modifiedDashboard, dashboard) &&
               this.isEditingDashboard;
             return (

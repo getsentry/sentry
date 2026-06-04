@@ -2,7 +2,6 @@ import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import type {Image} from 'sentry/types/debugImage';
-import {defined} from 'sentry/utils';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {
   isEventedProfile,
@@ -525,7 +524,7 @@ function measurementsFromContinuousMeasurements(
   minTimestamp: number | null
 ): Profiling.Measurements {
   // couldn't find any timestamps so there must not be any measurements
-  if (!defined(minTimestamp)) {
+  if (minTimestamp == null) {
     return {};
   }
 

@@ -3,7 +3,6 @@ import type {
   CronDetector,
   CronDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import {
   ScheduleType,
   type MonitorConfig,
@@ -68,7 +67,7 @@ export function useCronDetectorFormField<T extends CronDetectorFormFieldName>(
 ): CronDetectorFormData[T] {
   const value = useFormField(name);
 
-  if (value === '' || !defined(value)) {
+  if (value === '' || value == null) {
     return DEFAULT_CRON_DETECTOR_FORM_DATA_MAP[name];
   }
 

@@ -5,7 +5,6 @@ import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -250,7 +249,7 @@ function formatReservedNumberToString(
   }
 ): string {
   // "null" indicates that there's no quota for it.
-  if (!defined(reservedQuantity)) {
+  if (reservedQuantity == null) {
     return '0';
   }
 
@@ -829,7 +828,7 @@ export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined
         ([key, _]) =>
           key !== 'billingEmail' && key !== 'companyName' && key !== 'taxNumber'
       )
-      .some(([_, value]) => defined(value))
+      .some(([_, value]) => value != null)
   );
 }
 

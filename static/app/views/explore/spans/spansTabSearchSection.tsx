@@ -18,7 +18,6 @@ import {
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
@@ -76,7 +75,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
   const {selection} = usePageFilters();
 
-  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+  const hasCrossEvents = crossEvents != null && crossEvents.length > 0;
   const hasAbsoluteDateSelection = Boolean(
     selection.datetime.start && selection.datetime.end && !selection.datetime.period
   );

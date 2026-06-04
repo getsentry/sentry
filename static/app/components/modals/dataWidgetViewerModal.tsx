@@ -27,7 +27,6 @@ import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import {defined} from 'sentry/utils';
 import {CAN_MARK, trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -149,7 +148,7 @@ const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 const shouldWidgetCardChartMemo = (prevProps: any, props: any) => {
   const selectionMatches = props.selection === prevProps.selection;
   const isNotTopNWidget =
-    props.widget.displayType !== DisplayType.TOP_N && !defined(props.widget.limit);
+    props.widget.displayType !== DisplayType.TOP_N && props.widget.limit == null;
   const legendMatches = isEqual(props.legendOptions, prevProps.legendOptions);
   return selectionMatches && isNotTopNWidget && legendMatches;
 };
@@ -278,7 +277,7 @@ function DataWidgetViewerModal(props: Props) {
   let selectedQueryIndex =
     decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
 
-  if (defined(widget) && !defined(sortedQueries[selectedQueryIndex])) {
+  if (!sortedQueries[selectedQueryIndex]) {
     selectedQueryIndex = 0;
   }
 
@@ -289,9 +288,10 @@ function DataWidgetViewerModal(props: Props) {
 
   // Widgets with limits rely on the sorting of the query
   // Set the orderby of the widget chart to match the location query params
-  const primaryWidget = defined(resolvedWidget.limit)
-    ? {...resolvedWidget, queries: sortedQueries}
-    : resolvedWidget;
+  const primaryWidget =
+    resolvedWidget.limit == null
+      ? resolvedWidget
+      : {...resolvedWidget, queries: sortedQueries};
   const api = useApi();
 
   // Create Table widget
@@ -308,7 +308,7 @@ function DataWidgetViewerModal(props: Props) {
   const rawOrderby = trimStart(orderby, '-');
 
   const fields =
-    widget.displayType === DisplayType.TABLE && defined(tableWidget.queries[0]!.fields)
+    widget.displayType === DisplayType.TABLE && tableWidget.queries[0]!.fields
       ? tableWidget.queries[0]!.fields
       : [...columns, ...aggregates];
 

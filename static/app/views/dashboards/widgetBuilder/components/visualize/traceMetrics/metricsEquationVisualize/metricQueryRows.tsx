@@ -6,7 +6,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {BuilderStateMetricsQueryParamsProvider} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/builderStateMetricsQueryParamsProvider';
 import {MetricToolbar} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricToolbar';
@@ -117,7 +116,7 @@ export function MetricQueryRows({
     () =>
       metricQueries.filter(
         q =>
-          defined(q.queryParams.visualizes[0]) &&
+          q.queryParams.visualizes[0] != null &&
           isVisualizeFunction(q.queryParams.visualizes[0])
       ),
     [metricQueries]
@@ -126,7 +125,7 @@ export function MetricQueryRows({
     () =>
       metricQueries.find(
         q =>
-          defined(q.queryParams.visualizes[0]) &&
+          q.queryParams.visualizes[0] != null &&
           isVisualizeEquation(q.queryParams.visualizes[0])
       ),
     [metricQueries]
@@ -164,7 +163,7 @@ export function MetricQueryRows({
 
       const syncedEquation = synced.find(
         q =>
-          defined(q.queryParams.visualizes[0]) &&
+          q.queryParams.visualizes[0] != null &&
           isVisualizeEquation(q.queryParams.visualizes[0])
       );
       if (syncedEquation) {

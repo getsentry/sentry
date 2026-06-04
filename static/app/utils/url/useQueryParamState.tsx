@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {defined} from 'sentry/utils';
 import {decodeScalar, type decodeList, type decodeSorts} from 'sentry/utils/queryString';
 import {useUrlBatchContext} from 'sentry/utils/url/urlParamBatchContext';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
@@ -67,7 +66,7 @@ export function useQueryParamState<T = string>({
 
   const deserializeValue = useCallback((): T | undefined => {
     const decodedValue = parsedQueryParams[fieldName];
-    if (!defined(decodedValue)) {
+    if (decodedValue == null) {
       return undefined;
     }
 
@@ -98,7 +97,7 @@ export function useQueryParamState<T = string>({
         return;
       }
 
-      if (!defined(newField)) {
+      if (!newField) {
         batchUrlParamUpdates({[fieldName]: undefined});
       } else if (serializer) {
         batchUrlParamUpdates({[fieldName]: serializer(newField)});

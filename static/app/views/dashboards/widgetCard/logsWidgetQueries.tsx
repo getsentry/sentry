@@ -7,7 +7,6 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -80,7 +79,7 @@ export function LogsWidgetQueries(props: LogsWidgetQueriesProps) {
       } else {
         const dedupedYAxes = dedupeArray(props.widget.queries[0]?.aggregates ?? []);
         const seriesMap = transformToSeriesMap(result, dedupedYAxes);
-        const series = dedupedYAxes.flatMap(yAxis => seriesMap[yAxis]).filter(defined);
+        const series = dedupedYAxes.flatMap(yAxis => seriesMap[yAxis]).filter(Boolean);
         const {
           dataScanned: calculatedDataScanned,
           sampleCount: calculatedSampleCount,

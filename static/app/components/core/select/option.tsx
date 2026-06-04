@@ -7,8 +7,6 @@ import {CheckWrap} from '@sentry/scraps/select';
 
 import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
-import {defined} from 'sentry/utils';
-
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
 export function SelectOption(props: Props) {
@@ -26,7 +24,7 @@ export function SelectOption(props: Props) {
   const {showDividers, size} = selectProps;
   const {value, selectionMode, priority, ...itemProps} = data;
 
-  const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;
+  const isMultiple = selectionMode == null ? isMulti : selectionMode === 'multiple';
 
   // Unless the priority prop is explicitly defined, use 'default' for all items.
   const itemPriority = priority ?? 'default';

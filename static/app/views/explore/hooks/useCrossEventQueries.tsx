@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 
-import {defined} from 'sentry/utils';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {
   createTraceMetricEventsFilter,
@@ -19,7 +18,7 @@ export function useCrossEventQueries(
   const crossEvents = useQueryParamsCrossEvents();
 
   return useMemo(() => {
-    if (!defined(crossEvents) || crossEvents.length === 0) {
+    if (!crossEvents || crossEvents.length === 0) {
       return;
     }
 

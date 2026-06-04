@@ -15,7 +15,6 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -490,7 +489,7 @@ function EAPSpanNodeDetailsContent({
     span
   );
   const logsQueryResult = useLogsPageDataQueryResult();
-  const hasProfileDetails = defined(profile) && frames.length > 0;
+  const hasProfileDetails = profile != null && frames.length > 0;
   const hasLogDetails = (logsQueryResult?.data?.length ?? 0) > 0;
 
   useEffect(() => {

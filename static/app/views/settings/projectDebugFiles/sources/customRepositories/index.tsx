@@ -18,7 +18,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {Repository} from './repository';
@@ -56,7 +55,7 @@ export function CustomRepositories({
     }) => {
       let items = updatedItems ?? [];
 
-      if (updatedItem && defined(index)) {
+      if (updatedItem && index != null) {
         items = [...repositories];
         items.splice(index, 1, updatedItem);
       }

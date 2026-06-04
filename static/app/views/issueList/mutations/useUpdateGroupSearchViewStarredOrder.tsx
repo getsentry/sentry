@@ -2,7 +2,6 @@ import {useQueryClient, useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
@@ -34,7 +33,7 @@ export const useUpdateGroupSearchViewStarredOrder = () => {
       }
       const newViewsOrder = parameters.viewIds
         .map(id => groupSearchViews.find(view => parseInt(view.id, 10) === id))
-        .filter(defined);
+        .filter(Boolean);
 
       queryClient.setQueryData(
         starredGroupSearchViewsApiOptions({orgSlug: parameters.orgSlug}).queryKey,

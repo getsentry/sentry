@@ -27,7 +27,6 @@ import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {FieldKind, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 
 interface ArithmeticTokenFunctionProps {
@@ -48,7 +47,7 @@ export function ArithmeticTokenFunction({
     item,
     ref,
     state,
-    focusable: defined(functionArguments) && functionArguments.length > 0, // if there are no arguments, it's not focusable
+    focusable: functionArguments.length > 0, // if there are no arguments, it's not focusable
   });
 
   const isFocused = item.key === state.selectionManager.focusedKey;
@@ -178,7 +177,7 @@ function ArgumentsGridList({
       {[...state.collection].map((item, index) => {
         const attribute = item.value;
 
-        if (!defined(attribute)) {
+        if (!attribute) {
           return null;
         }
 
@@ -396,7 +395,7 @@ function InternalInput({
   const onInputCommit = useCallback(() => {
     let value = inputValue.trim() || argument.label;
 
-    if (defined(getSuggestedKey) && parameterDefinition?.kind === 'column') {
+    if (getSuggestedKey && parameterDefinition?.kind === 'column') {
       value = getSuggestedKey(value) ?? value;
     }
 
@@ -517,7 +516,7 @@ function InternalInput({
         dispatch({
           type: 'DELETE_TOKEN',
           token: functionToken,
-          focusOverride: defined(itemKey) ? {itemKey} : undefined,
+          focusOverride: itemKey == null ? undefined : {itemKey},
         });
       }
 
@@ -531,7 +530,7 @@ function InternalInput({
         dispatch({
           type: 'DELETE_TOKEN',
           token: functionToken,
-          focusOverride: defined(itemKey) ? {itemKey} : undefined,
+          focusOverride: itemKey == null ? undefined : {itemKey},
         });
       }
     },
@@ -582,10 +581,7 @@ function InternalInput({
     // TODO
   }, []);
 
-  if (
-    parameterDefinition?.kind === 'value' &&
-    (!defined(parameterDefinition.options) || !parameterDefinition.options.length)
-  ) {
+  if (parameterDefinition?.kind === 'value' && !parameterDefinition.options?.length) {
     return (
       <ArgumentGridCell {...rowProps} {...gridCellProps} tabIndex={-1} ref={gridCellRef}>
         <InputBox

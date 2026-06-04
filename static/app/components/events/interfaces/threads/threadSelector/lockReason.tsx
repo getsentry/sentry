@@ -1,11 +1,10 @@
 import type {Lock} from 'sentry/types/event';
 import {LockType} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 
 export function getLockReason(
   heldLocks?: Record<string, Lock> | null
 ): string | undefined {
-  if (!defined(heldLocks)) {
+  if (!heldLocks) {
     return undefined;
   }
 
@@ -15,7 +14,7 @@ export function getLockReason(
   }
 
   const firstLock = values[0]!;
-  if (!defined(firstLock)) {
+  if (!firstLock) {
     return undefined;
   }
 
@@ -35,7 +34,7 @@ export function getLockReason(
       break;
     case LockType.BLOCKED:
       reason =
-        `waiting to lock <${address}>` + (defined(tid) ? ` held by thread ${tid}` : '');
+        `waiting to lock <${address}>` + (tid == null ? '' : ` held by thread ${tid}`);
       break;
     default:
       reason = undefined;

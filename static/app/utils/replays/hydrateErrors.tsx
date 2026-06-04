@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react';
 import invariant from 'invariant';
 
-import {defined} from 'sentry/utils';
 import {toArray} from 'sentry/utils/array/toArray';
 import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
@@ -65,7 +64,7 @@ export function hydrateErrors(
           groupShortId: e.issue,
           label:
             (Array.isArray(e['error.type']) ? e['error.type'][0] : e['error.type']) ?? '',
-          labels: toArray(e['error.type']).filter(defined),
+          labels: toArray(e['error.type']).filter(x => x != null),
           level: e.level,
           projectSlug: e['project.name'],
         },

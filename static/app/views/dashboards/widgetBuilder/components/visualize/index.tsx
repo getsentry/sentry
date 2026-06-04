@@ -17,7 +17,6 @@ import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {
@@ -130,7 +129,7 @@ function _sortFn(
   if (typeof a.label !== 'string' || typeof b.label !== 'string') {
     return 0;
   }
-  if (!defined(a.label) || !defined(b.label)) {
+  if (a.label == null || b.label == null) {
     return 0;
   }
 

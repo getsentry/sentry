@@ -8,7 +8,6 @@ import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicato
 import {FormState} from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
@@ -403,7 +402,7 @@ export class FormModel {
       return value;
     }
 
-    return value !== '' && defined(value);
+    return value !== '' && value != null;
   }
 
   isValidField(id: string) {
@@ -598,10 +597,7 @@ export class FormModel {
 
     // Don't save if field hasn't changed
     // Don't need to check for error state since initialData wouldn't have updated since last error
-    if (
-      currentValue === initialValue ||
-      (currentValue === '' && !defined(initialValue))
-    ) {
+    if (currentValue === initialValue || (currentValue === '' && initialValue == null)) {
       return null;
     }
 

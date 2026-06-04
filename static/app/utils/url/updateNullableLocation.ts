@@ -1,7 +1,5 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
-
 /**
  * @deprecated Use nuqs to manage query params instead.
  *
@@ -23,7 +21,7 @@ export function updateNullableLocation(
     }
     return true;
   }
-  if (defined(value) && location.query[key] !== value) {
+  if (value != null && location.query[key] !== value) {
     location.query[key] = value;
     return true;
   }

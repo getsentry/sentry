@@ -1,5 +1,4 @@
 import type {Event, ExceptionType, ExceptionValue, Thread} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 
 function getException(
   exceptionData: ExceptionType,
@@ -57,7 +56,7 @@ export function getThreadException(
 
   if (
     exceptionDataValues.every(
-      exceptionDataValue => !defined(exceptionDataValue.threadId)
+      exceptionDataValue => exceptionDataValue.threadId == null
     ) &&
     thread.crashed
   ) {

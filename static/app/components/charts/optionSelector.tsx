@@ -13,8 +13,6 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Truncate} from 'sentry/components/truncate';
-import {defined} from 'sentry/utils';
-
 type BaseProps = {
   title: string;
   featureType?: 'alpha' | 'beta' | 'new';
@@ -134,7 +132,7 @@ export function OptionSelector({
           prefix={
             <Fragment>
               {title}
-              {defined(featureType) ? <StyledFeatureBadge type={featureType} /> : null}
+              {featureType ? <StyledFeatureBadge type={featureType} /> : null}
             </Fragment>
           }
         />

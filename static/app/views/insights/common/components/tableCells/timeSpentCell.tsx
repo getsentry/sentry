@@ -4,7 +4,6 @@ import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatSpanOperation} from 'sentry/utils/formatters';
@@ -27,7 +26,7 @@ export function TimeSpentCell({percentage, total, op, containerProps}: Props) {
 
   return (
     <NumberContainer {...containerProps}>
-      <InfoText title={tooltip}>{defined(total) ? formattedTotal : '--'}</InfoText>
+      <InfoText title={tooltip}>{total == null ? '--' : formattedTotal}</InfoText>
     </NumberContainer>
   );
 }

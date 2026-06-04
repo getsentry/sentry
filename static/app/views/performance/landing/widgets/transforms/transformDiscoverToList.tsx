@@ -1,5 +1,4 @@
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {defined} from 'sentry/utils';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {GenericChildrenProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
@@ -41,7 +40,7 @@ export function transformDiscoverToList<T extends WidgetDataConstraint>(
   const childData = {
     ...results,
     isErrored: !!results.error,
-    hasData: defined(data) && !!data.length,
+    hasData: !!data.length,
     data,
 
     utc: utc === 'true',

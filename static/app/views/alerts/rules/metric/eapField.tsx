@@ -7,7 +7,6 @@ import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
@@ -182,7 +181,7 @@ export function EAPField({aggregate, onChange, eventTypes, project}: Props) {
           newAggregate = `${option.value}()`;
         } else {
           const argument =
-            aggregateFuncArgs?.[0] && defined(storedNumberTags[aggregateFuncArgs?.[0]])
+            aggregateFuncArgs?.[0] && storedNumberTags[aggregateFuncArgs?.[0]]
               ? aggregateFuncArgs?.[0]
               : (Object.values(storedNumberTags)?.[0]?.key ?? '');
           newAggregate = `${option.value}(${argument})`;
@@ -295,7 +294,7 @@ export function EAPField({aggregate, onChange, eventTypes, project}: Props) {
         );
       })}
       {(aggregateDefinition?.parameters?.length === 0 ||
-        !defined(aggregateDefinition?.parameters)) && ( // for parameterless functions, we want to still show show greyed out spans
+        !aggregateDefinition?.parameters) && ( // for parameterless functions, we want to still show show greyed out spans
         <FlexWrapper>
           <StyledSelectControl
             searchable

@@ -3,7 +3,6 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
 import {decodeList, decodeSorts} from 'sentry/utils/queryString';
@@ -84,12 +83,12 @@ function validateSortBys(
 function parseQuery(raw: string): ReadableExploreQueryParts {
   try {
     const parsed = JSON.parse(raw);
-    if (!defined(parsed) || !Array.isArray(parsed.yAxes)) {
+    if (parsed == null || !Array.isArray(parsed.yAxes)) {
       return DEFAULT_QUERY;
     }
 
     const yAxes = parsed.yAxes;
-    const parsedFunctions = yAxes.map(parseFunction).filter(defined);
+    const parsedFunctions = yAxes.map(parseFunction).filter(Boolean);
     if (parsedFunctions.length <= 0) {
       return DEFAULT_QUERY;
     }
@@ -126,7 +125,7 @@ export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
   const rawQueries = decodeList(location.query.queries);
 
   const parsedQueries = useMemo(() => {
-    if (!defined(rawQueries) || rawQueries.length === 0) {
+    if (rawQueries.length === 0) {
       return [DEFAULT_QUERY];
     }
     return rawQueries.map(parseQuery);
@@ -167,7 +166,7 @@ function getUpdatedLocationWithQueries(
   location: Location,
   queries: WritableExploreQueryParts[] | null | undefined
 ) {
-  const targetQueries = defined(queries) ? getQueriesAsUrlParam(queries) : null;
+  const targetQueries = queries ? getQueriesAsUrlParam(queries) : null;
   return {
     ...location,
     query: {
@@ -234,7 +233,7 @@ export function useDuplicateQueryAtIndex() {
   return useCallback(
     (index: number) => {
       const query = queries[index];
-      if (defined(query)) {
+      if (query) {
         const duplicate = structuredClone(query);
         const newQueries = queries.toSpliced(index + 1, 0, duplicate);
         const target = getUpdatedLocationWithQueries(location, newQueries);

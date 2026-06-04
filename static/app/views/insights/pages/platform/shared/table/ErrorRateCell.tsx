@@ -4,7 +4,6 @@ import type {LocationDescriptor} from 'history';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {defined} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ThresholdCell} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';
@@ -34,7 +33,7 @@ export function ErrorRateCell({
     <ThresholdCell value={errorRate}>
       <Flex align="center" justify="end" gap="xs">
         {formatPercentage(errorRate, 2, {minimumValue: 0.0001})}
-        {defined(errorCount) ? errorCountElement : null}
+        {errorCountElement}
       </Flex>
     </ThresholdCell>
   );

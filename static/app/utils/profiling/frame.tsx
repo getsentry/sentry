@@ -1,8 +1,6 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
-
 const ROOT_KEY = 'sentry root';
 const BROWSER_EXTENSION_REGEXP = /^(@moz-extension:\/\/|chrome-extension:\/\/)/;
 export class Frame {
@@ -66,7 +64,7 @@ export class Frame {
     this.totalCallCount = frame.count;
     this.totalCallDuration = frame.weight;
     this.averageCallDuration =
-      defined(frame.weight) && defined(frame.count)
+      frame.weight != null && frame.count != null
         ? frame.count
           ? frame.weight / frame.count
           : 0

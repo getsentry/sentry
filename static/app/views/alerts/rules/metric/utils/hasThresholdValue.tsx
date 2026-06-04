@@ -1,5 +1,3 @@
-import {defined} from 'sentry/utils';
-
 /**
  * A threshold has a value if it is not one of the following:
  *
@@ -8,5 +6,5 @@ import {defined} from 'sentry/utils';
  *
  */
 export function hasThresholdValue(value: number | '' | null): value is number {
-  return defined(value) && value !== '';
+  return value != null && value !== '';
 }

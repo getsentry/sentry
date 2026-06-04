@@ -18,7 +18,6 @@ import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organizatio
 import type {PlatformKey} from 'sentry/types/platform';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
 import {
   getCountSeries,
   getCrashFreeRateSeries,
@@ -78,7 +77,7 @@ class ReleaseSessionsChart extends Component<Props> {
       case ReleaseComparisonChartType.ERRORED_USERS:
       case ReleaseComparisonChartType.UNHANDLED_USERS:
       case ReleaseComparisonChartType.CRASHED_USERS:
-        return defined(value) ? `${value}%` : '\u2015';
+        return `${value}%`;
       case ReleaseComparisonChartType.SESSION_COUNT:
       case ReleaseComparisonChartType.USER_COUNT:
       default:

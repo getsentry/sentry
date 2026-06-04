@@ -1,7 +1,5 @@
 import {getLeadHint} from 'sentry/components/events/interfaces/frame/utils';
 import type {Event, Frame} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
-
 type Props = {
   event: Event;
   leadsToApp: boolean;
@@ -16,7 +14,7 @@ export function LeadHint({leadsToApp, isExpanded, nextFrame, event}: Props) {
 
   return (
     <div className="leads-to-app-hint">
-      {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+      {getLeadHint({event, hasNextFrame: nextFrame != null})}
       {': '}
     </div>
   );

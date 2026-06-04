@@ -11,7 +11,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -142,7 +141,7 @@ function Graph({
     const withholdData = tableIsEmpty || tableIsPending;
 
     const series = withholdData ? [] : (timeseriesResult.data[aggregate] ?? []);
-    const isTopEvents = defined(topEventsLimit);
+    const isTopEvents = topEventsLimit != null;
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
     return {
       chartType: visualize.chartType,
@@ -365,7 +364,7 @@ function ContextMenu({
                     }
                     return null;
                   })
-                  .filter(defined);
+                  .filter(x => x != null);
 
           const discoverQuery: NewQuery = {
             name: DEFAULT_WIDGET_NAME,

@@ -22,7 +22,6 @@ import {
 import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -61,7 +60,7 @@ export function ProjectCard({
   const {hasHealthData, currentCrashFreeRate, previousCrashFreeRate} = sessionStats || {};
 
   const crashFreeTrend =
-    defined(currentCrashFreeRate) && defined(previousCrashFreeRate)
+    currentCrashFreeRate != null && previousCrashFreeRate != null
       ? round(
           currentCrashFreeRate - previousCrashFreeRate,
           currentCrashFreeRate > CRASH_FREE_DECIMAL_THRESHOLD ? 3 : 0
@@ -82,7 +81,7 @@ export function ProjectCard({
   );
 
   const trendCard =
-    defined(currentCrashFreeRate) && defined(crashFreeTrend) ? (
+    currentCrashFreeRate != null && crashFreeTrend != null ? (
       <div>
         {crashFreeTrend >= 0 ? (
           <IconArrow direction="up" size="xs" />
@@ -173,9 +172,9 @@ export function ProjectCard({
               <ScoreCard
                 title={t('Crash Free Sessions')}
                 score={
-                  defined(currentCrashFreeRate)
-                    ? displayCrashFreePercent(currentCrashFreeRate)
-                    : '\u2014'
+                  currentCrashFreeRate == null
+                    ? '\u2014'
+                    : displayCrashFreePercent(currentCrashFreeRate)
                 }
                 trend={trendCard}
                 trendStatus={

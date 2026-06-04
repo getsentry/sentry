@@ -8,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
-import {defined} from 'sentry/utils';
 
 interface TableProps extends HTMLAttributes<HTMLDivElement> {
   ref?: RefObject<HTMLDivElement | null>;
@@ -39,7 +38,7 @@ function HeaderCell({
   children,
   sort,
   handleSortClick,
-  divider = defined(children) ? true : false,
+  divider = children ? true : false,
   ...props
 }: HTMLAttributes<HTMLDivElement> & {
   children?: React.ReactNode;

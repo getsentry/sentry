@@ -1,7 +1,6 @@
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -41,7 +40,7 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
               projectPlatforms={projects
                 .filter(p => query.projects.map(String).includes(p.id))
                 .map(p => p.platform)
-                .filter(defined)}
+                .filter(Boolean)}
               allProjects={query.projects.length === 1 && query.projects[0] === -1}
             />
           }

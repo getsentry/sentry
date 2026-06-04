@@ -10,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import type {
   CanvasPoolManager,
   CanvasScheduler,
@@ -202,7 +201,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
               : undefined
           }
         />
-        {defined(params.eventId) && defined(params.projectId) && (
+        {params.eventId != null && params.projectId != null && (
           <ProfilingDetailsListItem margin="none">
             <ExportProfileButton
               size="zero"

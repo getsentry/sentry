@@ -11,7 +11,6 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,7 +44,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
   // There should be only one view hierarchy
   const {isPending, data} = useApiQuery<string | ViewHierarchyData>(
     [
-      defined(hierarchyMeta)
+      hierarchyMeta
         ? getAttachmentUrl({
             attachment: hierarchyMeta,
             eventId: hierarchyMeta.event_id,
@@ -62,7 +61,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
         },
       },
     ],
-    {staleTime: Infinity, enabled: defined(hierarchyMeta)}
+    {staleTime: Infinity, enabled: hierarchyMeta != null}
   );
 
   // Memoize the JSON parsing because downstream hooks depend on

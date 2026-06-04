@@ -21,7 +21,6 @@ import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices, SelectValue} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
-import {defined} from 'sentry/utils';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
@@ -144,7 +143,7 @@ export function TicketRuleModal({
 
   // After the first fetch, update this config cache state
   useEffect(() => {
-    if (isPending || !defined(integrationDetails) || hasUpdatedCache) {
+    if (isPending || !integrationDetails || hasUpdatedCache) {
       return;
     }
     const newConfigCache = integrationDetails[getConfigName(action)];

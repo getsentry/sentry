@@ -9,7 +9,6 @@ import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -877,9 +876,7 @@ export function constructAddQueryToDashboardLink({
           widgetTypeUsesDisplayTypeDirectly(widgetType) ||
           displayType === DisplayType.TOP_N ||
           eventView.display === DisplayModes.DAILYTOP5
-            ? eventView
-                .getFields()
-                .filter(column => defined(column) && !isAggregateFieldOrEquation(column))
+            ? eventView.getFields().filter(column => !isAggregateFieldOrEquation(column))
             : [],
       },
     ],

@@ -313,7 +313,7 @@ export default typescript.config([
     // https://eslint.org/docs/latest/rules/
     rules: {
       'block-scoped-var': 'error',
-      eqeqeq: 'error',
+      eqeqeq: ['error', 'always', {null: 'ignore'}],
       'guard-for-in': 'off', // TODO(ryan953): Fix violations and enable this rule
       'multiline-comment-style': ['error', 'separate-lines'],
       'no-alert': 'error',
@@ -687,7 +687,11 @@ export default typescript.config([
     rules: {
       '@typescript-eslint/naming-convention': [
         'error',
-        {selector: 'typeLike', format: ['PascalCase'], leadingUnderscore: 'allow'},
+        {
+          selector: 'typeLike',
+          format: ['PascalCase'],
+          leadingUnderscore: 'allow',
+        },
         {selector: 'enumMember', format: ['UPPER_CASE']},
       ],
 

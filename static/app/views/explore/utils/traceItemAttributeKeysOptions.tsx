@@ -5,7 +5,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -64,7 +63,7 @@ export function traceItemAttributeKeysOptions({
 }: TraceItemAttributeKeysOptions) {
   const projectIds =
     explicitProjectIds ??
-    (defined(projects) ? projects.map(project => project.id) : selection.projects);
+    (projects ? projects.map(project => project.id) : selection.projects);
 
   const substringMatch = search || undefined;
   const options: TraceItemAttributeKeyOptions = {

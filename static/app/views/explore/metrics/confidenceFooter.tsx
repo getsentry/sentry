@@ -3,7 +3,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {Container} from 'sentry/views/explore/components/chart/chartFooter';
 import {
   Placeholder,
@@ -71,17 +70,17 @@ function ConfidenceMessage({
     return <Placeholder width={0} />;
   }
 
-  if (isLoading || !defined(sampleCount)) {
+  if (isLoading || sampleCount == null) {
     return <Placeholder width={180} />;
   }
 
-  const isTopN = defined(topEvents) && topEvents > 1;
-  const noSampling = defined(isSampled) && !isSampled;
+  const isTopN = topEvents != null && topEvents > 1;
+  const noSampling = isSampled != null && !isSampled;
   const usePluralSampleCount = sampleCount !== 1;
   const usePluralNormalMetricsCount =
-    defined(rawMetricCounts.normal.count) && rawMetricCounts.normal.count !== 1;
+    rawMetricCounts.normal.count != null && rawMetricCounts.normal.count !== 1;
   const usePluralTotalMetricsCount =
-    defined(rawMetricCounts.total.count) && rawMetricCounts.total.count !== 1;
+    rawMetricCounts.total.count != null && rawMetricCounts.total.count !== 1;
 
   // No sampling happened, so don't mention estimations.
   if (noSampling) {
@@ -104,15 +103,14 @@ function ConfidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-    const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
-      usePluralTotalMetricsCount ? (
+    const totalMetricsCount =
+      rawMetricCounts.total.count == null ? (
+        <Placeholder width={40} />
+      ) : usePluralTotalMetricsCount ? (
         t('%s data points', <Count value={rawMetricCounts.total.count} />)
       ) : (
         t('%s data point', <Count value={rawMetricCounts.total.count} />)
-      )
-    ) : (
-      <Placeholder width={40} />
-    );
+      );
 
     if (isTopN) {
       return tct(
@@ -148,15 +146,14 @@ function ConfidenceMessage({
         ? t('%s samples', <Count value={sampleCount} />)
         : t('%s sample', <Count value={sampleCount} />);
 
-      const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
-        usePluralTotalMetricsCount ? (
+      const totalMetricsCount =
+        rawMetricCounts.total.count == null ? (
+          <Placeholder width={40} />
+        ) : usePluralTotalMetricsCount ? (
           t('%s data points', <Count value={rawMetricCounts.total.count} />)
         ) : (
           t('%s data point', <Count value={rawMetricCounts.total.count} />)
-        )
-      ) : (
-        <Placeholder width={40} />
-      );
+        );
 
       if (isTopN) {
         return tct(
@@ -219,25 +216,23 @@ function ConfidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-    const scannedMetricsCount = defined(rawMetricCounts.normal.count) ? (
-      usePluralNormalMetricsCount ? (
+    const scannedMetricsCount =
+      rawMetricCounts.normal.count == null ? (
+        <Placeholder width={40} />
+      ) : usePluralNormalMetricsCount ? (
         t('%s samples', <Count value={rawMetricCounts.normal.count} />)
       ) : (
         t('%s sample', <Count value={rawMetricCounts.normal.count} />)
-      )
-    ) : (
-      <Placeholder width={40} />
-    );
+      );
 
-    const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
-      usePluralTotalMetricsCount ? (
+    const totalMetricsCount =
+      rawMetricCounts.total.count == null ? (
+        <Placeholder width={40} />
+      ) : usePluralTotalMetricsCount ? (
         t('%s data points', <Count value={rawMetricCounts.total.count} />)
       ) : (
         t('%s data point', <Count value={rawMetricCounts.total.count} />)
-      )
-    ) : (
-      <Placeholder width={40} />
-    );
+      );
 
     if (isTopN) {
       return tct(
@@ -272,15 +267,14 @@ function ConfidenceMessage({
     ? t('%s matches', <Count value={sampleCount} />)
     : t('%s match', <Count value={sampleCount} />);
 
-  const totalMetricsCount = defined(rawMetricCounts.total.count) ? (
-    usePluralTotalMetricsCount ? (
+  const totalMetricsCount =
+    rawMetricCounts.total.count == null ? (
+      <Placeholder width={40} />
+    ) : usePluralTotalMetricsCount ? (
       t('%s data points', <Count value={rawMetricCounts.total.count} />)
     ) : (
       t('%s data point', <Count value={rawMetricCounts.total.count} />)
-    )
-  ) : (
-    <Placeholder width={40} />
-  );
+    );
 
   if (isTopN) {
     return tct(

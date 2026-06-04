@@ -8,7 +8,6 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/actionableItemsUtils';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -51,7 +50,7 @@ function useActionableItems(props?: UseActionableItemsProps) {
       retry: false,
       refetchOnWindowFocus: false,
       notifyOnChangeProps: ['data'],
-      enabled: defined(props),
+      enabled: props != null,
     }
   );
 }

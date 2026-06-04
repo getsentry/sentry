@@ -15,7 +15,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
 
 import {OmittedFrames} from './omittedFrames';
 
@@ -191,7 +190,7 @@ export function Content({
     })
     .filter((frame): frame is React.ReactElement => !!frame);
 
-  if (defined(maxDepth)) {
+  if (maxDepth != null) {
     convertedFrames = convertedFrames.slice(-maxDepth);
   }
 

@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -41,7 +40,7 @@ export function Projects({projects, logs, tree}: Props) {
             .map(({[OurLogKnownFieldKey.PROJECT_ID]: projectId}) =>
               projectIdToSlug.get(String(projectId))
             )
-            .filter(defined)
+            .filter(x => x != null)
         )
       );
     }

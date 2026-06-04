@@ -16,7 +16,6 @@ import {
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useReplayPageview} from 'sentry/utils/replays/hooks/useReplayPageview';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
@@ -59,7 +58,7 @@ function ReplaysHeader() {
   const {data: savedQuery} = useGetSavedQuery(pageId);
 
   const hasSavedQueryTitle =
-    defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
+    pageId != null && savedQuery != null && savedQuery.name.length > 0;
 
   const titleContent = title ? (
     title
@@ -84,7 +83,7 @@ function ReplaysHeader() {
         />
       ) : null}
       <TopBar.Slot name="title">
-        {title && defined(pageId) ? (
+        {title && pageId != null ? (
           <ExploreBreadcrumb
             traceItemDataset={TraceItemDataset.REPLAYS}
             savedQueryName={savedQuery?.name}

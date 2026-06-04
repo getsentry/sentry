@@ -10,7 +10,6 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -59,7 +58,7 @@ export default function MetricsContent() {
           <Stack flex={1}>
             <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
               <MetricsHeader />
-              {defined(onboardingProject) ? (
+              {onboardingProject ? (
                 <MetricsTabOnboarding
                   organization={organization}
                   project={onboardingProject}
@@ -91,7 +90,7 @@ function MetricsHeader() {
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const hasSavedQueryTitle =
-    defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
+    pageId != null && savedQuery != null && savedQuery.name.length > 0;
 
   const documentTitle = hasSavedQueryTitle ? (
     <SentryDocumentTitle
@@ -110,7 +109,7 @@ function MetricsHeader() {
     />
   );
 
-  const hasBreadcrumb = Boolean(title && defined(pageId));
+  const hasBreadcrumb = Boolean(title && pageId != null);
 
   return (
     <Fragment>

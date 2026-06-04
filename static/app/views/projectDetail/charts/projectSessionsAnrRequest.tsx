@@ -8,7 +8,6 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -95,7 +94,7 @@ export function ProjectSessionsAnrRequest({
   );
 
   useEffect(() => {
-    if (defined(data)) {
+    if (data) {
       const filteredResponse = filterSessionsInTimeWindow(
         data,
         queryParams.start,

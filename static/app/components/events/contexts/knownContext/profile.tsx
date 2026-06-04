@@ -5,7 +5,6 @@ import {EventOrGroupType, ProfileContextKey} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
@@ -43,7 +42,7 @@ export function getProfileContextData({
           };
       }
     })
-    .filter(defined);
+    .filter(Boolean);
 }
 
 function getProfileIdEntry(

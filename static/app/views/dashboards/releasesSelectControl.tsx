@@ -14,7 +14,6 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 
 import {useReleases} from './hooks/useReleases';
 import type {DashboardFilters} from './types';
@@ -162,13 +161,11 @@ function LabelDetails(props: LabelDetailsProps) {
   return (
     <Grid columns="repeat(2, 1fr)" gap="sm" minWidth="200px">
       <Container>
-        {defined(props.eventCount) && tn('%s event', '%s events', props.eventCount)}
+        {props.eventCount != null && tn('%s event', '%s events', props.eventCount)}
       </Container>
 
       <Container justifySelf="right">
-        {defined(props.dateCreated) && (
-          <DateTime dateOnly year date={props.dateCreated} />
-        )}
+        {props.dateCreated != null && <DateTime dateOnly year date={props.dateCreated} />}
       </Container>
     </Grid>
   );

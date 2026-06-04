@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
@@ -70,7 +69,7 @@ export function useLogsExportEstimatedRowCount(tableDataLength: number) {
           return false;
         }
 
-        const series = result.data[DEFAULT_LOGS_TIMESERIES_Y_AXIS]?.filter(defined) ?? [];
+        const series = result.data[DEFAULT_LOGS_TIMESERIES_Y_AXIS]?.filter(Boolean) ?? [];
         const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
         return dataScanned === 'partial';
       },
@@ -78,7 +77,7 @@ export function useLogsExportEstimatedRowCount(tableDataLength: number) {
   });
 
   const series =
-    timeseriesResult.result.data[DEFAULT_LOGS_TIMESERIES_Y_AXIS]?.filter(defined);
+    timeseriesResult.result.data[DEFAULT_LOGS_TIMESERIES_Y_AXIS]?.filter(Boolean);
   const sampleCount = determineSeriesSampleCountAndIsSampled(
     series ?? [],
     isTopN

@@ -2,7 +2,6 @@ import {queryOptions, useQuery} from '@tanstack/react-query';
 
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -65,7 +64,7 @@ export function useEventOpenPeriod(params: {
 
   return useQuery({
     ...openPeriodsApiOptions({organization, limit: 1, ...params}),
-    enabled: defined(params.eventId) && defined(params.groupId),
+    enabled: params.eventId != null,
     select: ({json}) => json[0] ?? null,
   });
 }

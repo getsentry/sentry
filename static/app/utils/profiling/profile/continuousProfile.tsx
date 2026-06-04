@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import type {createContinuousProfileFrameIndex} from 'sentry/utils/profiling/profile/utils';
@@ -202,14 +201,14 @@ export function minTimestampInChunk(
   let timestamp: number | null = null;
 
   for (const sample of chunk.samples) {
-    if (!defined(timestamp) || timestamp > sample.timestamp) {
+    if (timestamp == null || timestamp > sample.timestamp) {
       timestamp = sample.timestamp;
     }
   }
 
   for (const measurement of Object.values(measurements ?? {})) {
     for (const value of measurement.values) {
-      if (!defined(timestamp) || timestamp > value.timestamp) {
+      if (timestamp == null || timestamp > value.timestamp) {
         timestamp = value.timestamp;
       }
     }

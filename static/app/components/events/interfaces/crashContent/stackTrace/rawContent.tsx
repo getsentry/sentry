@@ -1,7 +1,6 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {ExceptionValue, Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
 
 function getJavaScriptFrame(
   frame: Frame,
@@ -9,24 +8,24 @@ function getJavaScriptFrame(
   includeJSContext: boolean
 ): string {
   let result = '';
-  if (defined(frame.function)) {
-    result += '    at ' + frame.function + ' (';
-  } else {
+  if (frame.function == null) {
     result += '    at ? (';
+  } else {
+    result += '    at ' + frame.function + ' (';
   }
-  if (defined(frame.filename)) {
+  if (frame.filename != null) {
     result += frame.filename;
-  } else if (defined(frame.module)) {
+  } else if (frame.module != null) {
     result += frame.module;
   }
-  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+  if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
     result += ':' + frame.lineNo;
   }
-  if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
+  if (frame.colNo != null && frame.colNo >= 0 && includeLocation) {
     result += ':' + frame.colNo;
   }
   result += ')';
-  if (defined(frame.context) && includeJSContext) {
+  if (includeJSContext) {
     frame.context.forEach(item => {
       if (frame.lineNo === item[0]) {
         result += '\n    ' + item[1]?.trim();
@@ -39,17 +38,17 @@ function getJavaScriptFrame(
 
 function getRubyFrame(frame: Frame, includeLocation: boolean): string {
   let result = '    from ';
-  if (defined(frame.filename)) {
+  if (frame.filename != null) {
     result += frame.filename;
-  } else if (defined(frame.module)) {
-    result += '(' + frame.module + ')';
-  } else {
+  } else if (frame.module == null) {
     result += '?';
+  } else {
+    result += '(' + frame.module + ')';
   }
-  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+  if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
     result += ':' + frame.lineNo;
   }
-  if (defined(frame.function)) {
+  if (frame.function != null) {
     result += ":in '" + frame.function + "'";
   }
   return result;
@@ -62,10 +61,10 @@ function getPHPFrame(
 ): string {
   const funcName = frame.function === 'null' ? '{main}' : frame.function;
   let result = `#${frameIdxFromEnd} ${frame.filename || frame.module}`;
-  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+  if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
     result += `(${frame.lineNo})`;
   }
-  if (defined(frame.function)) {
+  if (frame.function != null) {
     result += `: ${funcName}`;
   }
   return result;
@@ -73,20 +72,20 @@ function getPHPFrame(
 
 function getPythonFrame(frame: Frame, includeLocation: boolean): string {
   let result = '';
-  if (defined(frame.filename)) {
+  if (frame.filename != null) {
     result += '  File "' + frame.filename + '"';
-  } else if (defined(frame.module)) {
-    result += '  Module "' + frame.module + '"';
-  } else {
+  } else if (frame.module == null) {
     result += '  ?';
+  } else {
+    result += '  Module "' + frame.module + '"';
   }
-  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+  if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
     result += ', line ' + frame.lineNo;
   }
-  if (defined(frame.function)) {
+  if (frame.function != null) {
     result += ', in ' + frame.function;
   }
-  if (defined(frame.context)) {
+  if (frame.context) {
     frame.context.forEach(item => {
       if (item[0] === frame.lineNo) {
         result += '\n    ' + item[1]?.trim();
@@ -99,19 +98,19 @@ function getPythonFrame(frame: Frame, includeLocation: boolean): string {
 export function getJavaFrame(frame: Frame, includeLocation: boolean): string {
   let result = '    at ';
 
-  if (defined(frame.module)) {
+  if (frame.module != null) {
     result += frame.module + '.';
   }
-  if (defined(frame.function)) {
+  if (frame.function != null) {
     result += frame.function;
   }
-  if (defined(frame.filename)) {
+  if (frame.filename != null) {
     result += '(' + frame.filename;
-    if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
       result += ':' + frame.lineNo;
     }
     result += ')';
-  } else if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+  } else if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
     result += '(:' + frame.lineNo + ')';
   }
   return result;
@@ -119,21 +118,21 @@ export function getJavaFrame(frame: Frame, includeLocation: boolean): string {
 
 function getGoFrame(frame: Frame, includeLocation: boolean): string {
   let result = '';
-  if (defined(frame.function)) {
-    result += frame.function + '()';
-  } else {
+  if (frame.function == null) {
     result += '?()';
+  } else {
+    result += frame.function + '()';
   }
 
   result += '\n    ';
-  if (defined(frame.filename)) {
+  if (frame.filename != null) {
     result += frame.filename;
-  } else if (defined(frame.module)) {
-    result += frame.module;
-  } else {
+  } else if (frame.module == null) {
     result += '?';
+  } else {
+    result += frame.module;
   }
-  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+  if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
     result += ':' + frame.lineNo;
   }
 
@@ -142,19 +141,19 @@ function getGoFrame(frame: Frame, includeLocation: boolean): string {
 
 function getCSharpFrame(frame: Frame, includeLocation: boolean): string {
   let result = '  at ';
-  if (defined(frame.module)) {
+  if (frame.module != null) {
     result += frame.module + '.';
   }
-  if (defined(frame.function)) {
-    result += frame.function + '()';
-  } else {
+  if (frame.function == null) {
     result += '?()';
+  } else {
+    result += frame.function + '()';
   }
 
-  if (defined(frame.filename)) {
+  if (frame.filename != null) {
     result += ' in ' + frame.filename;
   }
-  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+  if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
     result += ':line ' + frame.lineNo;
   }
 
@@ -164,22 +163,22 @@ function getCSharpFrame(frame: Frame, includeLocation: boolean): string {
 function getElixirFrame(frame: Frame, includeLocation: boolean): string {
   let result = '    ';
 
-  if (defined(frame.filename)) {
-    result += frame.filename;
-  } else {
+  if (frame.filename == null) {
     result += '?';
+  } else {
+    result += frame.filename;
   }
-  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+  if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
     result += ':' + frame.lineNo + ': ';
   }
 
-  if (defined(frame.module)) {
+  if (frame.module != null) {
     result += frame.module + '.';
   }
-  if (defined(frame.function)) {
-    result += frame.function;
-  } else {
+  if (frame.function == null) {
     result += '?';
+  } else {
+    result += frame.function;
   }
 
   return result;
@@ -196,17 +195,17 @@ function getDartFrame(
     return `${result}      ${frame.function}`;
   }
 
-  if (defined(frame.function)) {
+  if (frame.function != null) {
     result += '      ' + frame.function;
   }
-  if (defined(frame.absPath)) {
+  if (frame.absPath != null) {
     result += ' (';
 
     result += frame.absPath;
-    if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
       result += ':' + frame.lineNo;
     }
-    if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
+    if (frame.colNo != null && frame.colNo >= 0 && includeLocation) {
       result += ':' + frame.colNo;
     }
 
@@ -222,16 +221,16 @@ function ljust(str: string, len: number) {
 
 function getNativeFrame(frame: Frame, includeLocation: boolean): string {
   let result = '  ';
-  if (defined(frame.package)) {
+  if (frame.package != null) {
     result += ljust(trimPackage(frame.package), 20);
   }
-  if (defined(frame.instructionAddr)) {
+  if (frame.instructionAddr != null) {
     result += ljust(frame.instructionAddr, 12);
   }
   result += ' ' + (frame.function || frame.symbolAddr);
-  if (defined(frame.filename)) {
+  if (frame.filename != null) {
     result += ' (' + frame.filename;
-    if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
       result += ':' + frame.lineNo;
     }
     result += ')';
@@ -241,20 +240,20 @@ function getNativeFrame(frame: Frame, includeLocation: boolean): string {
 
 function getDefaultFrame(frame: Frame, includeLocation: boolean): string {
   let result = '';
-  if (defined(frame.filename)) {
+  if (frame.filename != null) {
     result += '  File "' + frame.filename + '"';
-  } else if (defined(frame.module)) {
-    result += '  Module "' + frame.module + '"';
-  } else {
+  } else if (frame.module == null) {
     result += '  ?';
+  } else {
+    result += '  Module "' + frame.module + '"';
   }
-  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+  if (frame.lineNo != null && frame.lineNo >= 0 && includeLocation) {
     result += ', line ' + frame.lineNo;
   }
-  if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
+  if (frame.colNo != null && frame.colNo >= 0 && includeLocation) {
     result += ', col ' + frame.colNo;
   }
-  if (defined(frame.function)) {
+  if (frame.function != null) {
     result += ', in ' + frame.function;
   }
   return result;

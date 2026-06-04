@@ -6,7 +6,6 @@ import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
 
-import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 
@@ -66,7 +65,7 @@ export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
 export function getDashboardLayout(widgets: Widget[]): Layout[] {
   type WidgetWithDefinedLayout = Omit<Widget, 'layout'> & {layout: WidgetLayout};
   return widgets
-    .filter((widget): widget is WidgetWithDefinedLayout => defined(widget.layout))
+    .filter((widget): widget is WidgetWithDefinedLayout => widget.layout != null)
     .map(({layout, ...widget}) => {
       const clamped = clampWidgetLayout(layout);
       if (clamped.w !== layout.w || clamped.x !== layout.x) {
@@ -85,7 +84,7 @@ export function pickDefinedStoreKeys(layout: Layout): WidgetLayout {
   // TODO(nar): Fix the types here
   return pickBy(
     layout,
-    (value, key) => defined(value) && STORE_KEYS.includes(key)
+    (value, key) => value != null && STORE_KEYS.includes(key)
   ) as WidgetLayout;
 }
 
@@ -174,7 +173,7 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
 ): T[] {
   let columnDepths = [...initialColumnDepths];
   const newWidgets = widgets.map(widget => {
-    if (defined(widget.layout)) {
+    if (widget.layout) {
       return {...widget, layout: clampWidgetLayout(widget.layout)};
     }
     const height = getDefaultWidgetHeight(widget.displayType);

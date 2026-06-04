@@ -22,7 +22,6 @@ import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -93,7 +92,7 @@ function getBodyContent({
 }
 
 function RequestBodySection({data, event, meta}: RequestBodyProps) {
-  if (!defined(data.data)) {
+  if (data.data == null) {
     return null;
   }
 
@@ -210,7 +209,7 @@ function RequestDataCard({
   meta: Record<string, any> | undefined | null;
   title: string;
 }) {
-  if (!defined(data)) {
+  if (data == null) {
     return null;
   }
 

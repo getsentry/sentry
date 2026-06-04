@@ -21,7 +21,6 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
@@ -177,7 +176,7 @@ export function PageLayout(props: Props) {
     navigate(normalizeUrl(getNewRoute(newTab)));
   };
 
-  if (!defined(transactionName)) {
+  if (transactionName == null) {
     redirectToPerformanceHomepage(organization, location, navigate);
     return null;
   }
@@ -189,7 +188,7 @@ export function PageLayout(props: Props) {
     theme,
   });
 
-  if (!defined(projectId)) {
+  if (projectId == null) {
     // Using a discover query to get the projects associated
     // with a transaction name
     const nextView = eventView.clone();
@@ -269,9 +268,9 @@ export function PageLayout(props: Props) {
         <MetricsCardinalityProvider location={location} organization={organization}>
           <PerformanceEventViewContext value={{eventView}}>
             <PageFiltersContainer
-              shouldForceProject={defined(project)}
+              shouldForceProject={project != null}
               forceProject={project}
-              specificProjectSlugs={defined(project) ? [project.slug] : []}
+              specificProjectSlugs={project ? [project.slug] : []}
               maxPickableDays={datePageFilterProps.maxPickableDays}
               defaultSelection={
                 datePageFilterProps.defaultPeriod
@@ -302,10 +301,8 @@ export function PageLayout(props: Props) {
                     }}
                     metricsCardinality={metricsCardinality}
                   />
-                  <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                    {defined(error) && (
-                      <StyledAlert variant="danger">{error}</StyledAlert>
-                    )}
+                  <StyledBody fillSpace={props.fillSpace} hasError={error != null}>
+                    {error != null && <StyledAlert variant="danger">{error}</StyledAlert>}
                     <TransactionSummaryContext
                       value={{
                         eventView,

@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {
@@ -113,7 +112,7 @@ const formattingSupportedMetricUnits = {
 } as const satisfies Record<string, string>;
 
 export function formatMetricUsingUnit(value: number | null, unit: string) {
-  if (!defined(value) || Math.abs(value) === Infinity) {
+  if (value == null || Math.abs(value) === Infinity) {
     return '\u2014';
   }
 

@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useQueryClient, type UseQueryOptions} from '@tanstack/react-query';
 
-import {defined} from 'sentry/utils';
 import {type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {
   type ApiQueryKey,
@@ -110,7 +109,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
         .getQueriesData<ApiResponse<ResponseData>>({
           predicate: ({queryKey}) => isApiQueryKeyForUrl(queryKey),
         })
-        .flatMap(([, val]) => (defined(val) ? [val] : []))
+        .flatMap(([, val]) => (val ? [val] : []))
         .reduce<Data | undefined>(
           (prevValue, val) => responseReducer(prevValue, val, aggregates),
           undefined

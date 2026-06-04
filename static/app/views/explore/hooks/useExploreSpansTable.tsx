@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {
   useProgressiveQuery,
@@ -39,7 +38,7 @@ export function useExploreSpansTable({
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
       const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
-      const hasData = defined(results.data) && results.data.length > 0;
+      const hasData = results.data != null && results.data.length > 0;
       return !hasData && canGoToHigherAccuracyTier;
     },
     []

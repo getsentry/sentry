@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {StackView} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -91,7 +90,7 @@ export function AnrRootCause({event, organization}: Props) {
   });
 
   function renderAnrCulprit() {
-    if (!defined(anrCulprit)) {
+    if (!anrCulprit) {
       return;
     }
 
@@ -100,7 +99,7 @@ export function AnrRootCause({event, organization}: Props) {
     }
 
     const {address, thread_id} = anrCulprit.culprit;
-    if (!defined(thread_id)) {
+    if (thread_id == null) {
       return <Fragment>{anrCulprit.resources}</Fragment>;
     }
 
@@ -112,7 +111,7 @@ export function AnrRootCause({event, organization}: Props) {
       <Fragment>
         {anrCulprit?.resources}
         <StackTraceWrapper>
-          {defined(stackTrace) ? (
+          {stackTrace ? (
             <StackTraceContent
               stacktrace={stackTrace}
               stackView={StackView.FULL}

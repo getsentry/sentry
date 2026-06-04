@@ -26,7 +26,6 @@ import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selec
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {DetectorsTableActions} from 'sentry/views/detectors/components/detectorListTable/actions';
@@ -157,7 +156,7 @@ export function DetectorListTable({
     renderVisualization,
     renderTimelineOverlay,
   } = useMonitorViewContext();
-  const hasVisualization = defined(renderVisualization);
+  const hasVisualization = renderVisualization != null;
 
   return (
     <TableContainer>

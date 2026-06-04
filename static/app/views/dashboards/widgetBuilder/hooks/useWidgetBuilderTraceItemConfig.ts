@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -39,7 +38,7 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
       state.fields
     );
     const traceMetrics =
-      aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
+      aggregateSource?.map(extractTraceMetricFromColumn).filter(Boolean) ?? [];
     const hasMultipleMetrics = hasMultipleMetricsSelected(
       traceMetrics,
       hasMultiMetricSelection
@@ -47,7 +46,7 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
 
     return {
       traceItemType: TraceItemDataset.TRACEMETRICS,
-      enabled: traceMetrics.length > 0 && defined(traceMetrics?.[0]?.name),
+      enabled: traceMetrics.length > 0 && traceMetrics?.[0]?.name != null,
       query:
         !hasMultipleMetrics && traceMetrics[0]
           ? createTraceMetricFilter(traceMetrics[0])

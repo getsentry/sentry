@@ -25,7 +25,6 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -557,7 +556,9 @@ function getNewQueryParams(
 
   // Extract non page filter parameters.
   const cursorParam = keepCursor ? null : 'cursor';
-  const omittedParameters = [...Object.values(URL_PARAM), cursorParam].filter(defined);
+  const omittedParameters = [...Object.values(URL_PARAM), cursorParam].filter(
+    x => x != null
+  );
 
   const extraParams = omit(cleanCurrentQuery, omittedParameters);
 
@@ -580,6 +581,6 @@ function getNewQueryParams(
     ...extraParams,
   };
 
-  const paramEntries = Object.entries(newQuery).filter(([_, value]) => defined(value));
+  const paramEntries = Object.entries(newQuery).filter(([_, value]) => value != null);
   return Object.fromEntries(paramEntries);
 }

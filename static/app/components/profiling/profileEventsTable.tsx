@@ -17,7 +17,6 @@ import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -149,7 +148,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   if (key === 'id' || key === 'profile.id') {
     const project = getProjectForRow(props.baggage, props.dataRow);
 
-    if (!defined(project)) {
+    if (!project) {
       // should never happen but just in case
       return <Container>{getShortEventId(value)}</Container>;
     }
@@ -222,7 +221,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   if (key === 'project.id' || key === 'project' || key === 'project.name') {
     const project = getProjectForRow(props.baggage, props.dataRow);
 
-    if (!defined(project)) {
+    if (!project) {
       // should never happen but just in case
       return <Container>{t('n/a')}</Container>;
     }
@@ -237,7 +236,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   if (key === 'transaction') {
     const project = getProjectForRow(props.baggage, props.dataRow);
 
-    if (defined(project)) {
+    if (project) {
       const linkToSummary = profilesRouteWithQuery({
         query: props.baggage.location.query,
         organization: props.baggage.organization,
@@ -325,13 +324,13 @@ function getProjectForRow<F extends FieldType>(
 ) {
   let project: Project | undefined;
 
-  if (defined(dataRow['project.id'])) {
+  if (dataRow['project.id'] != null) {
     const projectId = dataRow['project.id'].toString();
     project = baggage.projects.find(proj => proj.id === projectId);
-  } else if (defined((dataRow as any).project)) {
+  } else if ((dataRow as any).project != null) {
     const projectSlug = (dataRow as any).project;
     project = baggage.projects.find(proj => proj.slug === projectSlug);
-  } else if (defined(dataRow['project.name'])) {
+  } else if (dataRow['project.name'] != null) {
     const projectSlug = dataRow['project.name'];
     project = baggage.projects.find(proj => proj.slug === projectSlug);
   }

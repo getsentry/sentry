@@ -30,7 +30,6 @@ import {
   type ReleaseProject,
   type ReleaseWithHealth,
 } from 'sentry/types/release';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -308,7 +307,7 @@ export function ReleaseComparisonChart({
     SessionFieldWithOperation.SESSIONS
   );
   const diffCrashFreeSessions =
-    defined(releaseCrashFreeSessions) && defined(allCrashFreeSessions)
+    releaseCrashFreeSessions != null && allCrashFreeSessions != null
       ? releaseCrashFreeSessions - allCrashFreeSessions
       : null;
 
@@ -323,7 +322,7 @@ export function ReleaseComparisonChart({
     SessionStatus.HEALTHY
   );
   const diffHealthySessions =
-    defined(releaseHealthySessions) && defined(allHealthySessions)
+    releaseHealthySessions != null && allHealthySessions != null
       ? releaseHealthySessions - allHealthySessions
       : null;
 
@@ -338,7 +337,7 @@ export function ReleaseComparisonChart({
     SessionStatus.ABNORMAL
   );
   const diffAbnormalSessions =
-    defined(releaseAbnormalSessions) && defined(allAbnormalSessions)
+    releaseAbnormalSessions != null && allAbnormalSessions != null
       ? releaseAbnormalSessions - allAbnormalSessions
       : null;
 
@@ -353,7 +352,7 @@ export function ReleaseComparisonChart({
     SessionStatus.ERRORED
   );
   const diffErroredSessions =
-    defined(releaseErroredSessions) && defined(allErroredSessions)
+    releaseErroredSessions != null && allErroredSessions != null
       ? releaseErroredSessions - allErroredSessions
       : null;
 
@@ -368,7 +367,7 @@ export function ReleaseComparisonChart({
     SessionStatus.UNHANDLED
   );
   const diffUnhandledSessions =
-    defined(releaseUnhandledSessions) && defined(allUnhandledSessions)
+    releaseUnhandledSessions != null && allUnhandledSessions != null
       ? releaseUnhandledSessions - allUnhandledSessions
       : null;
 
@@ -383,7 +382,7 @@ export function ReleaseComparisonChart({
     SessionStatus.CRASHED
   );
   const diffCrashedSessions =
-    defined(releaseCrashedSessions) && defined(allCrashedSessions)
+    releaseCrashedSessions != null && allCrashedSessions != null
       ? releaseCrashedSessions - allCrashedSessions
       : null;
 
@@ -396,7 +395,7 @@ export function ReleaseComparisonChart({
     SessionFieldWithOperation.USERS
   );
   const diffCrashFreeUsers =
-    defined(releaseCrashFreeUsers) && defined(allCrashFreeUsers)
+    releaseCrashFreeUsers != null && allCrashFreeUsers != null
       ? releaseCrashFreeUsers - allCrashFreeUsers
       : null;
 
@@ -411,7 +410,7 @@ export function ReleaseComparisonChart({
     SessionStatus.HEALTHY
   );
   const diffHealthyUsers =
-    defined(releaseHealthyUsers) && defined(allHealthyUsers)
+    releaseHealthyUsers != null && allHealthyUsers != null
       ? releaseHealthyUsers - allHealthyUsers
       : null;
 
@@ -426,7 +425,7 @@ export function ReleaseComparisonChart({
     SessionStatus.ABNORMAL
   );
   const diffAbnormalUsers =
-    defined(releaseAbnormalUsers) && defined(allAbnormalUsers)
+    releaseAbnormalUsers != null && allAbnormalUsers != null
       ? releaseAbnormalUsers - allAbnormalUsers
       : null;
 
@@ -441,7 +440,7 @@ export function ReleaseComparisonChart({
     SessionStatus.ERRORED
   );
   const diffErroredUsers =
-    defined(releaseErroredUsers) && defined(allErroredUsers)
+    releaseErroredUsers != null && allErroredUsers != null
       ? releaseErroredUsers - allErroredUsers
       : null;
 
@@ -456,7 +455,7 @@ export function ReleaseComparisonChart({
     SessionStatus.UNHANDLED
   );
   const diffUnhandledUsers =
-    defined(releaseUnhandledUsers) && defined(allUnhandledUsers)
+    releaseUnhandledUsers != null && allUnhandledUsers != null
       ? releaseUnhandledUsers - allUnhandledUsers
       : null;
 
@@ -471,7 +470,7 @@ export function ReleaseComparisonChart({
     SessionStatus.CRASHED
   );
   const diffCrashedUsers =
-    defined(releaseCrashedUsers) && defined(allCrashedUsers)
+    releaseCrashedUsers != null && allCrashedUsers != null
       ? releaseCrashedUsers - allCrashedUsers
       : null;
 
@@ -501,7 +500,7 @@ export function ReleaseComparisonChart({
       role: 'parent',
       drilldown: (
         <Fragment>
-          {defined(issuesTotals?.handled) ? (
+          {issuesTotals?.handled == null ? null : (
             <Tooltip title={t('Open in Issues')}>
               <Link
                 to={{
@@ -532,8 +531,8 @@ export function ReleaseComparisonChart({
                 })}
               </Link>
             </Tooltip>
-          ) : null}
-          {defined(issuesTotals?.unhandled) ? (
+          )}
+          {issuesTotals?.unhandled == null ? null : (
             <Tooltip title={t('Open in issues')}>
               <Link
                 to={{
@@ -564,18 +563,21 @@ export function ReleaseComparisonChart({
                 })}
               </Link>
             </Tooltip>
-          ) : null}
+          )}
         </Fragment>
       ),
-      thisRelease: defined(releaseCrashFreeSessions)
-        ? displaySessionStatusPercent(releaseCrashFreeSessions)
-        : null,
-      allReleases: defined(allCrashFreeSessions)
-        ? displaySessionStatusPercent(allCrashFreeSessions)
-        : null,
-      diff: defined(diffCrashFreeSessions)
-        ? displaySessionStatusPercent(diffCrashFreeSessions)
-        : null,
+      thisRelease:
+        releaseCrashFreeSessions == null
+          ? null
+          : displaySessionStatusPercent(releaseCrashFreeSessions),
+      allReleases:
+        allCrashFreeSessions == null
+          ? null
+          : displaySessionStatusPercent(allCrashFreeSessions),
+      diff:
+        diffCrashFreeSessions == null
+          ? null
+          : displaySessionStatusPercent(diffCrashFreeSessions),
       diffDirection: diffCrashFreeSessions
         ? diffCrashFreeSessions > 0
           ? 'up'
@@ -593,15 +595,18 @@ export function ReleaseComparisonChart({
           type: ReleaseComparisonChartType.HEALTHY_SESSIONS,
           role: 'children',
           drilldown: null,
-          thisRelease: defined(releaseHealthySessions)
-            ? displaySessionStatusPercent(releaseHealthySessions)
-            : null,
-          allReleases: defined(allHealthySessions)
-            ? displaySessionStatusPercent(allHealthySessions)
-            : null,
-          diff: defined(diffHealthySessions)
-            ? displaySessionStatusPercent(diffHealthySessions)
-            : null,
+          thisRelease:
+            releaseHealthySessions == null
+              ? null
+              : displaySessionStatusPercent(releaseHealthySessions),
+          allReleases:
+            allHealthySessions == null
+              ? null
+              : displaySessionStatusPercent(allHealthySessions),
+          diff:
+            diffHealthySessions == null
+              ? null
+              : displaySessionStatusPercent(diffHealthySessions),
           diffDirection: diffHealthySessions
             ? diffHealthySessions > 0
               ? 'up'
@@ -617,15 +622,18 @@ export function ReleaseComparisonChart({
           type: ReleaseComparisonChartType.ABNORMAL_SESSIONS,
           role: 'children',
           drilldown: null,
-          thisRelease: defined(releaseAbnormalSessions)
-            ? displaySessionStatusPercent(releaseAbnormalSessions)
-            : null,
-          allReleases: defined(allAbnormalSessions)
-            ? displaySessionStatusPercent(allAbnormalSessions)
-            : null,
-          diff: defined(diffAbnormalSessions)
-            ? displaySessionStatusPercent(diffAbnormalSessions)
-            : null,
+          thisRelease:
+            releaseAbnormalSessions == null
+              ? null
+              : displaySessionStatusPercent(releaseAbnormalSessions),
+          allReleases:
+            allAbnormalSessions == null
+              ? null
+              : displaySessionStatusPercent(allAbnormalSessions),
+          diff:
+            diffAbnormalSessions == null
+              ? null
+              : displaySessionStatusPercent(diffAbnormalSessions),
           diffDirection: diffAbnormalSessions
             ? diffAbnormalSessions > 0
               ? 'up'
@@ -644,15 +652,18 @@ export function ReleaseComparisonChart({
           ),
           role: 'children',
           drilldown: null,
-          thisRelease: defined(releaseErroredSessions)
-            ? displaySessionStatusPercent(releaseErroredSessions)
-            : null,
-          allReleases: defined(allErroredSessions)
-            ? displaySessionStatusPercent(allErroredSessions)
-            : null,
-          diff: defined(diffErroredSessions)
-            ? displaySessionStatusPercent(diffErroredSessions)
-            : null,
+          thisRelease:
+            releaseErroredSessions == null
+              ? null
+              : displaySessionStatusPercent(releaseErroredSessions),
+          allReleases:
+            allErroredSessions == null
+              ? null
+              : displaySessionStatusPercent(allErroredSessions),
+          diff:
+            diffErroredSessions == null
+              ? null
+              : displaySessionStatusPercent(diffErroredSessions),
           diffDirection: diffErroredSessions
             ? diffErroredSessions > 0
               ? 'up'
@@ -671,15 +682,18 @@ export function ReleaseComparisonChart({
           ),
           role: 'children',
           drilldown: null,
-          thisRelease: defined(releaseUnhandledSessions)
-            ? displaySessionStatusPercent(releaseUnhandledSessions)
-            : null,
-          allReleases: defined(allUnhandledSessions)
-            ? displaySessionStatusPercent(allUnhandledSessions)
-            : null,
-          diff: defined(diffUnhandledSessions)
-            ? displaySessionStatusPercent(diffUnhandledSessions)
-            : null,
+          thisRelease:
+            releaseUnhandledSessions == null
+              ? null
+              : displaySessionStatusPercent(releaseUnhandledSessions),
+          allReleases:
+            allUnhandledSessions == null
+              ? null
+              : displaySessionStatusPercent(allUnhandledSessions),
+          diff:
+            diffUnhandledSessions == null
+              ? null
+              : displaySessionStatusPercent(diffUnhandledSessions),
           diffDirection: diffUnhandledSessions
             ? diffUnhandledSessions > 0
               ? 'up'
@@ -698,15 +712,18 @@ export function ReleaseComparisonChart({
           ),
           role: 'default',
           drilldown: null,
-          thisRelease: defined(releaseCrashedSessions)
-            ? displaySessionStatusPercent(releaseCrashedSessions)
-            : null,
-          allReleases: defined(allCrashedSessions)
-            ? displaySessionStatusPercent(allCrashedSessions)
-            : null,
-          diff: defined(diffCrashedSessions)
-            ? displaySessionStatusPercent(diffCrashedSessions)
-            : null,
+          thisRelease:
+            releaseCrashedSessions == null
+              ? null
+              : displaySessionStatusPercent(releaseCrashedSessions),
+          allReleases:
+            allCrashedSessions == null
+              ? null
+              : displaySessionStatusPercent(allCrashedSessions),
+          diff:
+            diffCrashedSessions == null
+              ? null
+              : displaySessionStatusPercent(diffCrashedSessions),
           diffDirection: diffCrashedSessions
             ? diffCrashedSessions > 0
               ? 'up'
@@ -728,15 +745,16 @@ export function ReleaseComparisonChart({
       type: ReleaseComparisonChartType.CRASH_FREE_USERS,
       role: 'parent',
       drilldown: null,
-      thisRelease: defined(releaseCrashFreeUsers)
-        ? displaySessionStatusPercent(releaseCrashFreeUsers)
-        : null,
-      allReleases: defined(allCrashFreeUsers)
-        ? displaySessionStatusPercent(allCrashFreeUsers)
-        : null,
-      diff: defined(diffCrashFreeUsers)
-        ? displaySessionStatusPercent(diffCrashFreeUsers)
-        : null,
+      thisRelease:
+        releaseCrashFreeUsers == null
+          ? null
+          : displaySessionStatusPercent(releaseCrashFreeUsers),
+      allReleases:
+        allCrashFreeUsers == null ? null : displaySessionStatusPercent(allCrashFreeUsers),
+      diff:
+        diffCrashFreeUsers == null
+          ? null
+          : displaySessionStatusPercent(diffCrashFreeUsers),
       diffDirection: diffCrashFreeUsers ? (diffCrashFreeUsers > 0 ? 'up' : 'down') : null,
       diffColor: diffCrashFreeUsers
         ? diffCrashFreeUsers > 0
@@ -750,15 +768,16 @@ export function ReleaseComparisonChart({
           type: ReleaseComparisonChartType.HEALTHY_USERS,
           role: 'children',
           drilldown: null,
-          thisRelease: defined(releaseHealthyUsers)
-            ? displaySessionStatusPercent(releaseHealthyUsers)
-            : null,
-          allReleases: defined(allHealthyUsers)
-            ? displaySessionStatusPercent(allHealthyUsers)
-            : null,
-          diff: defined(diffHealthyUsers)
-            ? displaySessionStatusPercent(diffHealthyUsers)
-            : null,
+          thisRelease:
+            releaseHealthyUsers == null
+              ? null
+              : displaySessionStatusPercent(releaseHealthyUsers),
+          allReleases:
+            allHealthyUsers == null ? null : displaySessionStatusPercent(allHealthyUsers),
+          diff:
+            diffHealthyUsers == null
+              ? null
+              : displaySessionStatusPercent(diffHealthyUsers),
           diffDirection: diffHealthyUsers ? (diffHealthyUsers > 0 ? 'up' : 'down') : null,
           diffColor: diffHealthyUsers
             ? diffHealthyUsers > 0
@@ -770,15 +789,18 @@ export function ReleaseComparisonChart({
           type: ReleaseComparisonChartType.ABNORMAL_USERS,
           role: 'children',
           drilldown: null,
-          thisRelease: defined(releaseAbnormalUsers)
-            ? displaySessionStatusPercent(releaseAbnormalUsers)
-            : null,
-          allReleases: defined(allAbnormalUsers)
-            ? displaySessionStatusPercent(allAbnormalUsers)
-            : null,
-          diff: defined(diffAbnormalUsers)
-            ? displaySessionStatusPercent(diffAbnormalUsers)
-            : null,
+          thisRelease:
+            releaseAbnormalUsers == null
+              ? null
+              : displaySessionStatusPercent(releaseAbnormalUsers),
+          allReleases:
+            allAbnormalUsers == null
+              ? null
+              : displaySessionStatusPercent(allAbnormalUsers),
+          diff:
+            diffAbnormalUsers == null
+              ? null
+              : displaySessionStatusPercent(diffAbnormalUsers),
           diffDirection: diffAbnormalUsers
             ? diffAbnormalUsers > 0
               ? 'up'
@@ -794,15 +816,16 @@ export function ReleaseComparisonChart({
           type: ReleaseComparisonChartType.ERRORED_USERS,
           role: 'children',
           drilldown: null,
-          thisRelease: defined(releaseErroredUsers)
-            ? displaySessionStatusPercent(releaseErroredUsers)
-            : null,
-          allReleases: defined(allErroredUsers)
-            ? displaySessionStatusPercent(allErroredUsers)
-            : null,
-          diff: defined(diffErroredUsers)
-            ? displaySessionStatusPercent(diffErroredUsers)
-            : null,
+          thisRelease:
+            releaseErroredUsers == null
+              ? null
+              : displaySessionStatusPercent(releaseErroredUsers),
+          allReleases:
+            allErroredUsers == null ? null : displaySessionStatusPercent(allErroredUsers),
+          diff:
+            diffErroredUsers == null
+              ? null
+              : displaySessionStatusPercent(diffErroredUsers),
           diffDirection: diffErroredUsers ? (diffErroredUsers > 0 ? 'up' : 'down') : null,
           diffColor: diffErroredUsers
             ? diffErroredUsers > 0
@@ -814,15 +837,18 @@ export function ReleaseComparisonChart({
           type: ReleaseComparisonChartType.UNHANDLED_USERS,
           role: 'children',
           drilldown: null,
-          thisRelease: defined(releaseUnhandledUsers)
-            ? displaySessionStatusPercent(releaseUnhandledUsers)
-            : null,
-          allReleases: defined(allUnhandledUsers)
-            ? displaySessionStatusPercent(allUnhandledUsers)
-            : null,
-          diff: defined(diffUnhandledUsers)
-            ? displaySessionStatusPercent(diffUnhandledUsers)
-            : null,
+          thisRelease:
+            releaseUnhandledUsers == null
+              ? null
+              : displaySessionStatusPercent(releaseUnhandledUsers),
+          allReleases:
+            allUnhandledUsers == null
+              ? null
+              : displaySessionStatusPercent(allUnhandledUsers),
+          diff:
+            diffUnhandledUsers == null
+              ? null
+              : displaySessionStatusPercent(diffUnhandledUsers),
           diffDirection: diffUnhandledUsers
             ? diffUnhandledUsers > 0
               ? 'up'
@@ -838,15 +864,16 @@ export function ReleaseComparisonChart({
           type: ReleaseComparisonChartType.CRASHED_USERS,
           role: 'default',
           drilldown: null,
-          thisRelease: defined(releaseCrashedUsers)
-            ? displaySessionStatusPercent(releaseCrashedUsers)
-            : null,
-          allReleases: defined(allCrashedUsers)
-            ? displaySessionStatusPercent(allCrashedUsers)
-            : null,
-          diff: defined(diffCrashedUsers)
-            ? displaySessionStatusPercent(diffCrashedUsers)
-            : null,
+          thisRelease:
+            releaseCrashedUsers == null
+              ? null
+              : displaySessionStatusPercent(releaseCrashedUsers),
+          allReleases:
+            allCrashedUsers == null ? null : displaySessionStatusPercent(allCrashedUsers),
+          diff:
+            diffCrashedUsers == null
+              ? null
+              : displaySessionStatusPercent(diffCrashedUsers),
           diffDirection: diffCrashedUsers ? (diffCrashedUsers > 0 ? 'up' : 'down') : null,
           diffColor: diffCrashedUsers
             ? diffCrashedUsers > 0
@@ -884,10 +911,8 @@ export function ReleaseComparisonChart({
       type: ReleaseComparisonChartType.SESSION_COUNT,
       role: 'default',
       drilldown: null,
-      thisRelease: defined(releaseSessionsCount) ? (
-        <Count value={releaseSessionsCount} />
-      ) : null,
-      allReleases: defined(allSessionsCount) ? <Count value={allSessionsCount} /> : null,
+      thisRelease: <Count value={releaseSessionsCount} />,
+      allReleases: <Count value={allSessionsCount} />,
       diff: null,
       diffDirection: null,
       diffColor: null,
@@ -897,10 +922,8 @@ export function ReleaseComparisonChart({
         type: ReleaseComparisonChartType.USER_COUNT,
         role: 'default',
         drilldown: null,
-        thisRelease: defined(releaseUsersCount) ? (
-          <Count value={releaseUsersCount} />
-        ) : null,
-        allReleases: defined(allUsersCount) ? <Count value={allUsersCount} /> : null,
+        thisRelease: <Count value={releaseUsersCount} />,
+        allReleases: <Count value={allUsersCount} />,
         diff: null,
         diffDirection: null,
         diffColor: null,
@@ -913,12 +936,14 @@ export function ReleaseComparisonChart({
       type: ReleaseComparisonChartType.ERROR_COUNT,
       role: 'default',
       drilldown: null,
-      thisRelease: defined(eventsTotals?.releaseErrorCount) ? (
-        <Count value={eventsTotals?.releaseErrorCount} />
-      ) : null,
-      allReleases: defined(eventsTotals?.allErrorCount) ? (
-        <Count value={eventsTotals?.allErrorCount} />
-      ) : null,
+      thisRelease:
+        eventsTotals?.releaseErrorCount == null ? null : (
+          <Count value={eventsTotals?.releaseErrorCount} />
+        ),
+      allReleases:
+        eventsTotals?.allErrorCount == null ? null : (
+          <Count value={eventsTotals?.allErrorCount} />
+        ),
       diff: null,
       diffDirection: null,
       diffColor: null,
@@ -930,12 +955,14 @@ export function ReleaseComparisonChart({
       type: ReleaseComparisonChartType.TRANSACTION_COUNT,
       role: 'default',
       drilldown: null,
-      thisRelease: defined(eventsTotals?.releaseTransactionCount) ? (
-        <Count value={eventsTotals?.releaseTransactionCount} />
-      ) : null,
-      allReleases: defined(eventsTotals?.allTransactionCount) ? (
-        <Count value={eventsTotals?.allTransactionCount} />
-      ) : null,
+      thisRelease:
+        eventsTotals?.releaseTransactionCount == null ? null : (
+          <Count value={eventsTotals?.releaseTransactionCount} />
+        ),
+      allReleases:
+        eventsTotals?.allTransactionCount == null ? null : (
+          <Count value={eventsTotals?.allTransactionCount} />
+        ),
       diff: null,
       diffDirection: null,
       diffColor: null,
@@ -984,9 +1011,9 @@ export function ReleaseComparisonChart({
     diffDirection: ReleaseComparisonRow['diffDirection']
   ) {
     return diff ? (
-      <Change color={defined(diffColor) ? diffColor : undefined}>
+      <Change color={diffColor == null ? undefined : diffColor}>
         {diff}{' '}
-        {defined(diffDirection) ? (
+        {diffDirection ? (
           <IconArrow direction={diffDirection} size="xs" />
         ) : diff === '0%' ? null : (
           <StyledNotAvailable />

@@ -15,7 +15,6 @@ import {
   GridHeadCell,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
-import {defined} from 'sentry/utils';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {
@@ -72,7 +71,7 @@ export function useTableStyles(
 ) {
   const minimumColumnWidth = options?.minimumColumnWidth ?? MINIMUM_COLUMN_WIDTH;
   const prefixColumnWidth =
-    defined(options?.prefixColumnWidth) && typeof options.prefixColumnWidth === 'number'
+    options?.prefixColumnWidth != null && typeof options.prefixColumnWidth === 'number'
       ? `${options.prefixColumnWidth}px`
       : options?.prefixColumnWidth;
 
@@ -93,7 +92,7 @@ export function useTableStyles(
       }
       return `minmax(${minimumColumnWidth}px, auto)`;
     });
-    if (defined(prefixColumnWidth)) {
+    if (prefixColumnWidth != null) {
       gridTemplateColumns.unshift(prefixColumnWidth);
     }
     return {
@@ -136,7 +135,7 @@ export function useTableStyles(
             ? `${width}px`
             : `minmax(${minimumColumnWidth}px, auto)`;
         });
-        if (defined(prefixColumnWidth)) {
+        if (prefixColumnWidth != null) {
           gridTemplateColumns.unshift(prefixColumnWidth);
         }
         gridElement.style.gridTemplateColumns = gridTemplateColumns.join(' ');

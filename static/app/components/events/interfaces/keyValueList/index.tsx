@@ -7,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {ValueLink} from 'sentry/components/keyValueData';
 import type {KeyValueListData} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 
 import type {ValueProps} from './value';
 import {Value} from './value';
@@ -28,7 +27,7 @@ export function KeyValueList({
   className,
   ...props
 }: Props) {
-  if (!defined(data) || data.length === 0) {
+  if (!data || data.length === 0) {
     return null;
   }
 
