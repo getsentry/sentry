@@ -257,11 +257,11 @@ describe('MetricPanel', () => {
     expect(screen.getAllByText(/ago$/).length).toBeGreaterThan(0);
   });
 
-  it('links embedded metric names to span samples with a metrics cross-event query', async () => {
+  it('adds trace waterfall metric-name actions for connected traces and explore', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     const row = metricFixtures.detailedFixtures[0]!;
 
-    render(<MetricsSamplesTable embedded overrideTableData={[row]} />, {
+    render(<MetricsSamplesTable source="traceWaterfall" overrideTableData={[row]} />, {
       organization,
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
@@ -274,7 +274,7 @@ describe('MetricPanel', () => {
       within(metricNameCell as HTMLElement).getByRole('button', {name: 'Actions'})
     );
 
-    const link = (await screen.findByText('Explore similar spans')).closest('a')!;
+    const link = (await screen.findByText('View connected traces')).closest('a')!;
     for (const label of ['Copy to clipboard', 'Add to filter', 'Exclude from filter']) {
       const menuItem = await screen.findByText(label);
       expect(menuItem.compareDocumentPosition(link)).toBe(
@@ -292,7 +292,7 @@ describe('MetricPanel', () => {
       expect.objectContaining({
         mode: 'samples',
         project: project.id,
-        referrer: 'trace-metrics-samples-table-similar-spans',
+        referrer: 'trace-metrics-samples-table-connected-traces',
         statsPeriod: '24h',
       })
     );
@@ -308,9 +308,37 @@ describe('MetricPanel', () => {
         },
       },
     ]);
+
+    const openInExploreLink = (await screen.findByText('Open in Explore')).closest('a')!;
+    const openInExploreHref = openInExploreLink.getAttribute('href')!;
+    expect(
+      openInExploreHref.startsWith(
+        `/organizations/${organization.slug}/explore/metrics/?`
+      )
+    ).toBe(true);
+
+    const openInExploreQuery = qs.parse(openInExploreHref.split('?')[1]!);
+    expect(openInExploreQuery).toEqual(
+      expect.objectContaining({
+        project: project.id,
+        referrer: 'trace-metrics-samples-table-open-in-explore',
+      })
+    );
+    const aggregate = `sum(value,${row[TraceMetricKnownFieldKey.METRIC_NAME]},${row[TraceMetricKnownFieldKey.METRIC_TYPE]},${row[TraceMetricKnownFieldKey.METRIC_UNIT]})`;
+    expect(JSON.parse(openInExploreQuery.metric as string)).toEqual(
+      expect.objectContaining({
+        metric: {
+          name: row[TraceMetricKnownFieldKey.METRIC_NAME],
+          type: row[TraceMetricKnownFieldKey.METRIC_TYPE],
+          unit: row[TraceMetricKnownFieldKey.METRIC_UNIT],
+        },
+        aggregateFields: [{yAxes: [aggregate]}],
+        aggregateSortBys: [{field: aggregate, kind: 'desc'}],
+      })
+    );
   });
 
-  it('does not add the similar spans action to non-embedded samples', async () => {
+  it('does not add embedded metric-name actions to metrics page samples', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
 
     render(
@@ -322,17 +350,15 @@ describe('MetricPanel', () => {
     await userEvent.click(within(samplesTable).getByRole('button', {name: 'Actions'}));
 
     expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
-    expect(screen.queryByText('Explore similar spans')).not.toBeInTheDocument();
+    expect(screen.queryByText('View connected traces')).not.toBeInTheDocument();
+    expect(screen.queryByText('Open in Explore')).not.toBeInTheDocument();
   });
 
-  it('does not add the similar spans action without a complete metric identity', async () => {
+  it('adds issue details metric-name actions without add filter', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
-    const row = {
-      ...metricFixtures.detailedFixtures[0]!,
-      [TraceMetricKnownFieldKey.METRIC_TYPE]: '',
-    } as TraceMetricEventsResponseItem;
+    const row = metricFixtures.detailedFixtures[0]!;
 
-    render(<MetricsSamplesTable embedded overrideTableData={[row]} />, {
+    render(<MetricsSamplesTable source="issueDetails" overrideTableData={[row]} />, {
       organization,
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
@@ -346,13 +372,54 @@ describe('MetricPanel', () => {
     );
 
     expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
-    expect(screen.queryByText('Explore similar spans')).not.toBeInTheDocument();
+    expect(await screen.findByText('View connected traces')).toBeInTheDocument();
+    expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
+    expect(screen.queryByText('Add to filter')).not.toBeInTheDocument();
+    expect(screen.queryByText('Exclude from filter')).not.toBeInTheDocument();
   });
 
-  it('fetches trace meta for expanded samples with the row timestamp', async () => {
+  it('does not add embedded metric-name actions without a complete metric identity', async () => {
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    const row = {
+      ...metricFixtures.detailedFixtures[0]!,
+      [TraceMetricKnownFieldKey.METRIC_TYPE]: '',
+    } as TraceMetricEventsResponseItem;
+
+    render(<MetricsSamplesTable source="traceWaterfall" overrideTableData={[row]} />, {
+      organization,
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
+    });
+
+    const samplesTable = await screen.findByRole('table');
+    const metricNameCell = within(samplesTable)
+      .getByText(row[TraceMetricKnownFieldKey.METRIC_NAME])
+      .closest('[role="cell"]')!;
+    await userEvent.click(
+      within(metricNameCell as HTMLElement).getByRole('button', {name: 'Actions'})
+    );
+
+    expect(await screen.findByText('Copy to clipboard')).toBeInTheDocument();
+    expect(screen.queryByText('View connected traces')).not.toBeInTheDocument();
+    expect(screen.queryByText('Open in Explore')).not.toBeInTheDocument();
+  });
+
+  it('fetches expanded sample details with the row timestamp', async () => {
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     const row = metricFixtures.detailedFixtures[0]!;
     const timestamp = new Date(row.timestamp).getTime() / 1000;
+    const metricId = row[TraceMetricKnownFieldKey.ID];
+    const traceDetailsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${metricId}/`,
+      match: [MockApiClient.matchQuery({timestamp})],
+      body: {
+        itemId: metricId,
+        links: null,
+        meta: {},
+        timestamp: row.timestamp,
+        attributes: [],
+      },
+    });
     const traceMetaMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
@@ -380,6 +447,7 @@ describe('MetricPanel', () => {
       }
     );
 
+    await waitFor(() => expect(traceDetailsMock).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
     expect(
       await screen.findByText('Errors: 1, Logs: 0, Spans: 2, Metrics: 0')

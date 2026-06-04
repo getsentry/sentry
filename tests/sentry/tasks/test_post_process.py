@@ -58,14 +58,18 @@ from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.tasks import post_process as post_process_module
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
+    GROUP_CATEGORY_POST_PROCESS_PIPELINE,
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     feedback_filter_decorator,
     locks,
     post_process_group,
+    process_siem_security_logging,
     run_post_process_job,
+    set_siem_security_log_hook,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
@@ -154,6 +158,29 @@ class ProcessWorkflowsKwargsMatcher:
             return False
 
         return True
+
+
+class SiemSecurityLoggingTest(TestCase):
+    def test_registered_in_error_pipeline(self) -> None:
+        assert (
+            process_siem_security_logging
+            in GROUP_CATEGORY_POST_PROCESS_PIPELINE[GroupCategory.ERROR]
+        )
+
+    def test_noop(self) -> None:
+        # Default hook is a no-op: the call must complete without touching the job.
+        process_siem_security_logging({})
+
+    def test_hook_swap_takes_effect(self) -> None:
+        original = post_process_module._siem_security_log_hook
+        calls = []
+        try:
+            set_siem_security_log_hook(lambda job: calls.append(job))
+            process_siem_security_logging({})
+        finally:
+            set_siem_security_log_hook(original)
+
+        assert calls == [{}]
 
 
 class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):

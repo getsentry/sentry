@@ -64,7 +64,7 @@ export function MetricsDrawer({event, project, group}: MetricsIssueDrawerProps) 
       </EventNavigator>
       <EventDrawerBody ref={containerRef}>
         <div>
-          <MetricsSamplesTable embedded />
+          <MetricsSamplesTable source="issueDetails" />
         </div>
       </EventDrawerBody>
     </EventDrawerContainer>

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
@@ -431,3 +432,6 @@ class DetectorSettings:
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
     filter: Q | None = None
+
+
+WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity"], None]

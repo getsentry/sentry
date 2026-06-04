@@ -10,6 +10,7 @@ import {
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -693,9 +694,21 @@ const StyledOverlay = styled(Overlay, {
   flex-direction: column;
   overflow: hidden;
 
-  ${p => p.width && `width: ${withUnits(p.width)};`}
-  ${p => p.height && `height: ${withUnits(p.height)};`}
-  ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
+  ${p =>
+    p.width &&
+    css`
+      width: ${withUnits(p.width)};
+    `}
+  ${p =>
+    p.height &&
+    css`
+      height: ${withUnits(p.height)};
+    `}
+  ${p =>
+    p.minWidth &&
+    css`
+      min-width: ${withUnits(p.minWidth)};
+    `}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : '100%')};
   max-height: ${p =>
     p.maxHeight

@@ -184,12 +184,11 @@ describe('LogsTabContent', () => {
   });
 
   it('should call APIs as expected', async () => {
-    render(
-      <ProviderWrapper>
-        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
-    );
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     expect(eventTableMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
@@ -234,12 +233,11 @@ describe('LogsTabContent', () => {
   });
 
   it('should switch between modes', async () => {
-    render(
-      <ProviderWrapper>
-        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
-    );
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     expect(screen.getByRole('tab', {name: 'Logs'})).toHaveAttribute(
       'aria-selected',
@@ -278,12 +276,11 @@ describe('LogsTabContent', () => {
   });
 
   it('should pass caseInsensitive to the query', async () => {
-    render(
-      <ProviderWrapper>
-        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {initialRouterConfig, organization}
-    );
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     expect(eventTableMock).toHaveBeenCalled();
 
@@ -334,15 +331,11 @@ describe('LogsTabContent', () => {
   it('should add a timestamp_precise filter when autorefresh is enabled', async () => {
     const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
     autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
-    render(
-      <ProviderWrapper>
-        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig: autorefreshEnabledRouterConfig,
-        organization,
-      }
-    );
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
 
     await waitFor(() => {
       expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
@@ -354,5 +347,17 @@ describe('LogsTabContent', () => {
         })
       );
     });
+  });
+
+  it('should disable manual refresh button when autorefresh is enabled', async () => {
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+    const refreshButton = await screen.findByRole('button', {name: 'Refresh'});
+    expect(refreshButton).toBeDisabled();
   });
 });

@@ -170,6 +170,7 @@ class TestObserve:
             "has_user_id": "false",
             "has_org_id": "false",
             "expected": "true",
+            "sentry.client_sample_rate": 0.001,
         }
 
     def test_with_context_tags_actor_and_presence_flags(self, patch_metrics):

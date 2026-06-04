@@ -2,6 +2,8 @@ from copy import deepcopy
 from random import randint
 from typing import Any, TypedDict, Unpack
 
+import pytest
+
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
 from sentry.rules import MatchType
@@ -164,6 +166,7 @@ DUPLICATE_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
 
 
 @cell_silo_test
+@pytest.mark.skip("The endpoint is currently disabled")
 class OrganizationDeduplicateWorkflowsTest(APITestCase):
     endpoint = "sentry-api-0-organization-deduplicate-workflows"
     method = "put"
