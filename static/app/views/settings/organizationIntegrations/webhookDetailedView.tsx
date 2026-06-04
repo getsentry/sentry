@@ -1,40 +1,30 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Switch} from '@sentry/scraps/switch';
+import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {
   INSTALLED,
   NOT_INSTALLED,
 } from 'sentry/views/settings/organizationIntegrations/constants';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {WebhookConfigurations} from 'sentry/views/settings/organizationIntegrations/webhookConfigurations';
 
-interface WebhookProject {
+export interface WebhookProject {
   enabled: boolean;
   projectId: number;
   projectName: string;
@@ -67,8 +57,8 @@ const WEBHOOK_RESOURCE_LINKS = [
 
 export function WebhookDetailedView() {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
-  const {projects: allProjects} = useProjects();
+  const navigate = useNavigate();
+  const {openModal} = useModal();
 
   const tabs: IntegrationTab[] = ['overview', 'configurations'];
   const [activeTab, setActiveTab] = useQueryState(
@@ -96,6 +86,24 @@ export function WebhookDetailedView() {
     return 'overview';
   }, []);
 
+  const handleAddToProject = useCallback(() => {
+    openModal(
+      modalProps => (
+        <ContextPickerModal
+          {...modalProps}
+          nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/webhooks/`}
+          needProject
+          needOrg={false}
+          onFinish={to => {
+            modalProps.closeModal();
+            navigate(normalizeUrl(to));
+          }}
+        />
+      ),
+      {closeEvents: 'escape-key'}
+    );
+  }, [navigate, organization.slug, openModal]);
+
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -114,7 +122,15 @@ export function WebhookDetailedView() {
           integrationName={t('Webhooks')}
           installationStatus={installationStatus}
           integrationIcon={<PluginIcon pluginId="webhooks" size={50} />}
-          addInstallButton={null}
+          addInstallButton={
+            <AddButton
+              data-test-id="install-button"
+              onClick={handleAddToProject}
+              size="sm"
+            >
+              {t('Add to Project')}
+            </AddButton>
+          }
           additionalCTA={null}
         />
       }
@@ -137,192 +153,13 @@ export function WebhookDetailedView() {
             permissions={null}
           />
         ) : (
-          <WebhookConfigurations
-            webhookProjects={webhookProjects}
-            allProjects={allProjects}
-            organization={organization}
-            queryClient={queryClient}
-            webhookQueryOptions={webhookQueryOptions}
-          />
+          <WebhookConfigurations webhookProjects={webhookProjects} />
         )
       }
     />
   );
 }
 
-function WebhookConfigurations({
-  webhookProjects,
-  allProjects,
-  organization,
-  queryClient,
-  webhookQueryOptions,
-}: {
-  allProjects: ReturnType<typeof useProjects>['projects'];
-  organization: Organization;
-  queryClient: ReturnType<typeof useQueryClient>;
-  webhookProjects: WebhookProject[];
-  webhookQueryOptions: {queryKey: readonly unknown[]};
-}) {
-  if (!webhookProjects.length) {
-    return (
-      <Panel>
-        <EmptyMessage title={t('No projects have webhooks configured')} />
-      </Panel>
-    );
-  }
-
-  return (
-    <Fragment>
-      {webhookProjects.map(project => (
-        <WebhookProjectRow
-          key={project.projectId}
-          project={project}
-          organization={organization}
-          allProjects={allProjects}
-          queryClient={queryClient}
-          webhookQueryOptions={webhookQueryOptions}
-        />
-      ))}
-    </Fragment>
-  );
-}
-
-function WebhookProjectRow({
-  project,
-  organization,
-  allProjects,
-  queryClient,
-  webhookQueryOptions,
-}: {
-  allProjects: ReturnType<typeof useProjects>['projects'];
-  organization: Organization;
-  project: WebhookProject;
-  queryClient: ReturnType<typeof useQueryClient>;
-  webhookQueryOptions: {queryKey: readonly unknown[]};
-}) {
-  const projectAccess = hasEveryAccess(['project:write'], {
-    organization,
-    project: allProjects.find(p => p.id === String(project.projectId)),
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: (shouldEnable: boolean) => {
-      addLoadingMessage(shouldEnable ? t('Enabling...') : t('Disabling...'));
-      return fetchMutation({
-        method: 'POST',
-        url: `/projects/${organization.slug}/${project.projectSlug}/legacy-webhooks/`,
-        data: {enabled: shouldEnable},
-      });
-    },
-    onSuccess: (_data, shouldEnable) => {
-      addSuccessMessage(
-        shouldEnable ? t('Configuration was enabled.') : t('Configuration was disabled.')
-      );
-      queryClient.invalidateQueries({queryKey: webhookQueryOptions.queryKey});
-    },
-    onError: (_error, shouldEnable) => {
-      addErrorMessage(
-        shouldEnable
-          ? t('Unable to enable configuration.')
-          : t('Unable to disable configuration.')
-      );
-    },
-  });
-
-  const uninstallMutation = useMutation({
-    mutationFn: () => {
-      addLoadingMessage(t('Removing...'));
-      return fetchMutation({
-        method: 'DELETE',
-        url: `/projects/${organization.slug}/${project.projectSlug}/legacy-webhooks/`,
-      });
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Configuration was removed'));
-      queryClient.invalidateQueries({queryKey: webhookQueryOptions.queryKey});
-    },
-    onError: () => {
-      addErrorMessage(t('Unable to remove configuration'));
-    },
-  });
-
-  const confirmMessage = useMemo(
-    () =>
-      t(
-        'Deleting this installation will disable webhooks for this project and remove any configurations.'
-      ),
-    []
-  );
-
-  return (
-    <RowContainer data-test-id="installed-plugin">
-      <RowContent>
-        <ProjectBox>
-          <ProjectBadge
-            project={{
-              slug: project.projectSlug,
-              platform: project.projectPlatform || undefined,
-            }}
-          />
-        </ProjectBox>
-        <LinkButton
-          variant="transparent"
-          icon={<IconSettings />}
-          to={`/settings/${organization.slug}/projects/${project.projectSlug}/plugins/webhooks/`}
-          data-test-id="integration-configure-button"
-        >
-          {projectAccess ? t('Configure') : t('View')}
-        </LinkButton>
-        <Confirm
-          priority="danger"
-          disabled={!projectAccess}
-          confirmText={t('Delete Installation')}
-          onConfirm={() => uninstallMutation.mutate()}
-          message={confirmMessage}
-        >
-          <MutedButton
-            disabled={!projectAccess}
-            variant="transparent"
-            icon={<IconDelete />}
-            data-test-id="integration-remove-button"
-          >
-            {t('Uninstall')}
-          </MutedButton>
-        </Confirm>
-        <Switch
-          checked={project.enabled}
-          onChange={() => toggleMutation.mutate(!project.enabled)}
-          disabled={!projectAccess}
-        />
-      </RowContent>
-    </RowContainer>
-  );
-}
-
-const RowContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-bottom: none;
-  background-color: ${p => p.theme.tokens.background.primary};
-
-  &:last-child {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-const RowContent = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const ProjectBox = styled('div')`
-  flex: 1 0 fit-content;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: row;
-  min-width: 0;
-`;
-
-const MutedButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
+const AddButton = styled(Button)`
+  margin-bottom: ${p => p.theme.space.md};
 `;
