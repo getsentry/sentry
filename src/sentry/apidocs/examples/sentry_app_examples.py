@@ -7,6 +7,7 @@ class SentryAppExamples:
             "Retrieve a custom integration",
             value={
                 "allowedOrigins": [],
+                "webhookHeaders": [],
                 "author": "ACME Corp",
                 "avatars": [
                     {
@@ -47,6 +48,7 @@ class SentryAppExamples:
             "Update a custom integration",
             value={
                 "allowedOrigins": [],
+                "webhookHeaders": [],
                 "author": "ACME Corp",
                 "avatars": [
                     {
@@ -105,6 +107,7 @@ class SentryAppExamples:
             value=[
                 {
                     "allowedOrigins": [],
+                    "webhookHeaders": [],
                     "author": "ACME Corp",
                     "avatars": [
                         {
@@ -137,6 +140,7 @@ class SentryAppExamples:
                 },
                 {
                     "allowedOrigins": [],
+                    "webhookHeaders": [],
                     "author": "ACME Corp",
                     "avatars": [],
                     "events": ["issue", "event"],
