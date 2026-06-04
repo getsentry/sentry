@@ -12,8 +12,13 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.repository import RepositorySerializer
-from sentry.apidocs.parameters import CursorQueryParam
+from sentry.api.serializers.models.repository import (
+    RepositorySerializer,
+    RepositorySerializerResponse,
+)
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -21,11 +26,12 @@ from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 
 
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
@@ -35,7 +41,15 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Repositories",
-        parameters=[CursorQueryParam],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationRepositoriesResponse", list[RepositorySerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
