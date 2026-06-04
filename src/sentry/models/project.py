@@ -499,6 +499,7 @@ class Project(Model):
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
         )
+        from sentry.integrations.services.integration import integration_service
         from sentry.models.environment import Environment, EnvironmentProject
         from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectrepository import ProjectRepository
@@ -663,6 +664,13 @@ class Project(Model):
             Detector.objects.filter(project_id=self.id).values_list("id", flat=True)
         )
         if detector_ids:
+            # grab the destination org's integrations outside of the transaction since it's an RPC call
+            destination_integration_ids_by_provider = {
+                integration.provider: integration.id
+                for integration in integration_service.get_integrations(
+                    organization_id=organization.id, status=ObjectStatus.ACTIVE
+                )
+            }
             with transaction.atomic(router.db_for_write(Workflow)):
                 # DataSources are 1:1 with their source (e.g. QuerySubscription, Monitor) and are
                 # detector-scoped, so they always transfer.
@@ -762,6 +770,7 @@ class Project(Model):
                             workflow,
                             organization,
                             resolve_environment_id(workflow.environment_id),
+                            destination_integration_ids_by_provider,
                         )
                         # Detectors are project-scoped and move with this project, so re-point all
                         # of their workflow links (cron, issue_stream, error, ...) onto the clone.

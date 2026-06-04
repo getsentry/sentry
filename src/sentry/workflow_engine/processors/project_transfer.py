@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel
 from sentry.workflow_engine.models import (
+    Action,
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
@@ -30,6 +33,7 @@ def clone_workflow_to_organization(
     workflow: Workflow,
     destination_organization: Organization,
     environment_id: int | None,
+    destination_integration_ids_by_provider: Mapping[str, int],
 ) -> Workflow:
     """Deep-copy a workflow and its condition graph into the destination organization.
 
@@ -37,10 +41,15 @@ def clone_workflow_to_organization(
     projects: the transferring project gets its own copy in the new org while the original
     is left intact for the projects that remain. The owner team/user is dropped because it
     won't belong to the new org, and fire history / detector state are not copied.
+
+    destination_integration_ids_by_provider maps an integration provider to an active
+    integration id in the destination org so we can re-connect the Action if possible,
+    and disable the Action if it's not
     """
 
     def clone_condition_group(
         condition_group: DataConditionGroup,
+        destination_organization: Organization,
     ) -> DataConditionGroup:
         new_group = DataConditionGroup.objects.create(
             organization_id=destination_organization.id,
@@ -61,11 +70,25 @@ def clone_workflow_to_organization(
             condition_group=condition_group
         ).select_related("action"):
             action = group_action.action
+
+            new_integration_id = action.integration_id
+            new_status = action.status
+            if Action.Type(action.type).is_integration():
+                destination_integration_id = destination_integration_ids_by_provider.get(
+                    action.type
+                )
+                if destination_integration_id is not None:
+                    new_integration_id = destination_integration_id
+                else:
+                    # No matching integration in the destination org; keep the dangling reference
+                    # but disable the action so it can't fire against the old org's integration
+                    new_status = ObjectStatus.DISABLED
+
             action_overrides = {
                 "type": action.type,
                 "data": action.data,
-                "integration_id": action.integration_id,
-                "status": action.status,
+                "integration_id": new_integration_id,
+                "status": new_status,
                 "config": action.config,
             }
             new_action = _simple_shallow_clone(action, **action_overrides)
@@ -84,7 +107,9 @@ def clone_workflow_to_organization(
         # destination org; drop it rather than carry a dangling reference.
         "owner_user_id": None,
         "owner_team_id": None,
-        "when_condition_group": clone_condition_group(when_condition_group)
+        "when_condition_group": clone_condition_group(
+            when_condition_group, destination_organization
+        )
         if when_condition_group is not None
         else None,
         "environment_id": environment_id,
@@ -96,7 +121,9 @@ def clone_workflow_to_organization(
             workflow_dcg,
             **{
                 "workflow": new_workflow,
-                "condition_group": clone_condition_group(workflow_dcg.condition_group),
+                "condition_group": clone_condition_group(
+                    workflow_dcg.condition_group, destination_organization
+                ),
             },
         )
 
