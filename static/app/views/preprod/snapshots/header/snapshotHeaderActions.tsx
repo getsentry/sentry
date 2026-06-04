@@ -238,9 +238,10 @@ export function SnapshotHeaderActions({
   }, [apiUrl, navigate]);
 
   const handleDownloadImages = useCallback(() => {
+    queryClient.removeQueries({queryKey: [downloadStatusUrl]});
     setIsPreparingDownload(true);
     showPreparingMessage(t('Preparing snapshot images… Please be patient.'));
-  }, [showPreparingMessage]);
+  }, [queryClient, downloadStatusUrl, showPreparingMessage]);
 
   return (
     <Flex align="center" gap="md">

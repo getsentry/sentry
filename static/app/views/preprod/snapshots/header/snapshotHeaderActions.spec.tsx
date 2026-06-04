@@ -163,4 +163,40 @@ describe('SnapshotHeaderActions download', () => {
 
     jest.useRealTimers();
   });
+
+  it('re-polls on a second download click instead of reusing cached ready', async () => {
+    let phase: 'ready' | 'building' = 'ready';
+    let calls = 0;
+    MockApiClient.addMockResponse({
+      url: STATUS_URL,
+      method: 'GET',
+      body: () => {
+        calls++;
+        return phase === 'ready' ? {status: 'ready'} : {status: 'building', progress: 5};
+      },
+    });
+
+    render(
+      <SnapshotHeaderActions
+        apiUrl="/api/0/snapshot/"
+        organizationSlug={organization.slug}
+        data={makeData()}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    await userEvent.click(screen.getByText('Download Images'));
+
+    await waitFor(() => expect(downloadFromHref).toHaveBeenCalledTimes(1));
+    const firstCallCount = calls;
+
+    phase = 'building';
+
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    await userEvent.click(screen.getByText('Download Images'));
+
+    await waitFor(() => expect(calls).toBeGreaterThan(firstCallCount));
+    expect(downloadFromHref).toHaveBeenCalledTimes(1);
+  });
 });
