@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 # Actions that set attribution for who authored the PR. The PR author is fixed
 # at creation time and never changes, so app attribution is a one-shot write.
-_APP_ATTRIBUTION_ACTIONS = frozenset({"opened"})
+_AUTHOR_ATTRIBUTION_ACTIONS = frozenset({"opened"})
 
 # Actions that can affect what Sentry issues the PR references. "edited" covers
 # body/title changes; "reopened" may follow a period of changes on the branch.
@@ -37,7 +37,7 @@ def handle_webhook_for_pr_metrics(
     repository_id: int,
     event: Mapping[str, Any],
 ) -> None:
-    if action not in (_APP_ATTRIBUTION_ACTIONS | _REFERENCED_ISSUE_ATTRIBUTION_ACTIONS):
+    if action not in (_AUTHOR_ATTRIBUTION_ACTIONS | _REFERENCED_ISSUE_ATTRIBUTION_ACTIONS):
         return
 
     if not features.has("organizations:pr-metrics-attribution", organization):
@@ -56,8 +56,8 @@ def handle_webhook_for_pr_metrics(
         )
         return
 
-    if action in _APP_ATTRIBUTION_ACTIONS:
-        _write_app_attribution(pr, github_user)
+    if action in _AUTHOR_ATTRIBUTION_ACTIONS:
+        _write_author_attribution(pr, github_user)
 
     if action in _REFERENCED_ISSUE_ATTRIBUTION_ACTIONS:
         if action == "edited" and not _description_changed(event):
@@ -78,7 +78,7 @@ def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType 
     return None
 
 
-def _write_app_attribution(pr: PullRequest, github_user: dict[str, Any]) -> None:
+def _write_author_attribution(pr: PullRequest, github_user: dict[str, Any]) -> None:
     signal_type = _detect_app_signal(github_user["id"])
     if signal_type is None:
         return
