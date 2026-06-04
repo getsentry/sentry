@@ -8,6 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
+import {DateTime} from 'sentry/components/dateTime';
 import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface BlockVariantProps {
@@ -157,6 +158,12 @@ const SEER_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
       {children}
     </Heading>
   ),
+  Tag: function SeerTag({name, attrs, Default, ...rest}) {
+    if (name === 'timestamp') {
+      return <DateTime date={attrs.value} />;
+    }
+    return <Default name={name} attrs={attrs} {...rest} />;
+  },
 };
 
 export function SeerMarkdown(props: Omit<MarkdownProps, 'components'>) {
