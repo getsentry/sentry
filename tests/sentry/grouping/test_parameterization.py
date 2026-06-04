@@ -187,6 +187,15 @@ standard_cases = [
     ("duration - 20-digit decimal s", "9" * 20 + "." + "9" * 20 + "s", "<duration>"),
     ("duration - 21-digit ms not matched", "9" * 21 + "ms", "9" * 21 + "ms"),
     ("duration - 21-digit s not matched", "9" * 21 + "s", "9" * 21 + "s"),
+    ("duration - s glued to preceding word", "retry10s", "retry10s"),
+    ("duration - ms glued to following word", "123msabc", "123msabc"),
+    ("duration - two durations glued together", "5ms10s", "5ms10s"),
+    ("duration - with surrounding spaces", "took 500ms to complete", "took <duration> to complete"),
+    (
+        "duration - with surrounding spaces s",
+        "took 1.5s to complete",
+        "took <duration> to complete",
+    ),
     # OpenStack Swift transaction IDs
     ("swift_txn_id - base", "tx274a77a8975c4a66aeb24-0052d95365", "<swift_txn_id>"),
     (
