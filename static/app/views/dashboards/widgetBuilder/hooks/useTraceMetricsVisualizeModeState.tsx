@@ -148,6 +148,12 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         const vis = q.queryParams.visualizes[0];
         return vis && isVisualizeEquation(vis);
       });
+
+      // Assign the labels to the queries so the state is in sync
+      queries.forEach((q, index) => {
+        q.label = labels[index];
+      });
+
       const selectedLabel = equationIdx >= 0 ? labels[equationIdx] : labels[0];
 
       snapshot = {queries, selectedLabel};
