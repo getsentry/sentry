@@ -96,7 +96,7 @@ class DetectorEvaluationResult:
     event_data: dict[str, Any] | None = None
 
 
-class _WorkflowCache(TypedDict, total=False):
+class _WorkflowEventLocalCache(TypedDict, total=False):
     group_assignees: Sequence[GroupAssignee]
 
 
@@ -108,8 +108,13 @@ class WorkflowEventData:
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
-    _cache: _WorkflowCache = field(
-        default_factory=lambda: _WorkflowCache(), repr=False, compare=False, hash=False
+
+    # The cache field is used to deduplicate repeated work within the context
+    # of a single event. This field violates the "frozen" requirement of the
+    # "WorkflowEventData" type but it enables tightly scoped caching which does
+    # not leak across workflow events.
+    _cache: _WorkflowEventLocalCache = field(
+        default_factory=lambda: _WorkflowEventLocalCache(), repr=False, compare=False, hash=False
     )
 
 
