@@ -1,6 +1,7 @@
 import logging
+from datetime import datetime
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -43,15 +44,58 @@ _FILE_CHECKSUM_PARAM = OpenApiParameter(
     many=True,
     description="If set, only files with these exact checksums will be returned.",
 )
+_RELEASE_FILE_EXAMPLE: ReleaseFileSerializerResponse = {
+    "id": "3",
+    "name": "/demo/goodbye.txt",
+    "dist": None,
+    "headers": {"Content-Type": "text/plain; encoding=utf-8"},
+    "size": 15,
+    "sha1": "94d6b21e962a9fc65889617ec1f17a1e2fe11b65",
+    "dateCreated": datetime.fromisoformat("2018-11-06T21:20:22.894Z"),
+}
+_LIST_RELEASE_FILES_EXAMPLES = [
+    OpenApiExample(
+        "Return a list of files for a release",
+        value=[_RELEASE_FILE_EXAMPLE],
+        response_only=True,
+        status_codes=["200"],
+    )
+]
+_UPLOAD_RELEASE_FILE_EXAMPLES = [
+    OpenApiExample(
+        "Upload a release file",
+        value={
+            "name": "/demo/release.min.js",
+            "file": "release.min.js",
+        },
+        request_only=True,
+        media_type="multipart/form-data",
+    )
+]
+_UPLOAD_ORGANIZATION_RELEASE_FILE_DESCRIPTION = """
+Upload a new file for the given release.
+
+Unlike other API requests, files must be uploaded using the traditional multipart/form-data
+content type.
+
+Requests to this endpoint should use the region-specific domain, e.g. `us.sentry.io` or
+`de.sentry.io`.
+
+The optional `name` attribute should reflect the absolute path that this file will be
+referenced as. For example, in the case of JavaScript you might specify the full web URI.
+""".strip()
 
 
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseFilesMixin):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    method_servers = {
+        "POST": [{"url": "https://{region}.sentry.io"}],
+    }
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
 
     rate_limits = RateLimitConfig(
@@ -70,7 +114,8 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
     )
 
     @extend_schema(
-        operation_id="List an Organization Release's Files",
+        operation_id="List an Organization's Release Files",
+        description="Return a list of files for a given release.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
@@ -86,13 +131,11 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=_LIST_RELEASE_FILES_EXAMPLES,
     )
     def get(
         self, request: Request, organization, version
     ) -> Response[list[ReleaseFileSerializerResponse]]:
-        """
-        Retrieve a list of files for a given release.
-        """
         try:
             release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:
@@ -105,6 +148,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
 
     @extend_schema(
         operation_id="Upload a New Organization Release File",
+        description=_UPLOAD_ORGANIZATION_RELEASE_FILE_DESCRIPTION,
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION],
         request={"multipart/form-data": ReleaseFileUploadSerializer},
         responses={
@@ -117,16 +161,11 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
             404: RESPONSE_NOT_FOUND,
             409: RESPONSE_CONFLICT,
         },
+        examples=_UPLOAD_RELEASE_FILE_EXAMPLES,
     )
     def post(
         self, request: Request, organization, version
     ) -> Response[ReleaseFileSerializerResponse]:
-        """
-        Upload a new file for the given release.
-
-        Files must be uploaded using the `multipart/form-data` content type, against the
-        region-specific domain (e.g. `us.sentry.io` or `de.sentry.io`).
-        """
         try:
             release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:
