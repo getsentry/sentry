@@ -18,7 +18,7 @@ class MutateIssueResponse(TypedDict):
     isSubscribed: NotRequired[bool]
     merge: NotRequired[MergedGroup]
     priority: NotRequired[str]
-    shareId: NotRequired[str]
+    shareId: NotRequired[str | None]
     status: NotRequired[str]
     statusDetails: NotRequired[StatusDetailsResult]
     subscriptionDetails: NotRequired[SubscriptionDetails]

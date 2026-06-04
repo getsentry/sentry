@@ -1,8 +1,10 @@
 import functools
 import logging
+from typing import TypedDict
 
 import sentry_sdk
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiTypes, extend_schema
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,16 +22,26 @@ from sentry.api.helpers.group_index import (
     track_slo_response,
     update_groups_with_search_fn,
 )
+from sentry.api.helpers.group_index.types import MutateIssueResponse
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group_stream import StreamGroupSerializer
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.api.serializers.models.group_stream import (
+    StreamGroupSerializer,
+    StreamGroupSerializerResponse,
+)
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.parameters import (
     CursorQueryParam,
     GlobalParams,
     IssueParams,
-    VisibilityParams,
 )
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
@@ -47,13 +59,169 @@ ERR_HASHES_AND_OTHER_QUERY = "Cannot use 'hashes' with 'query'"
 logger = logging.getLogger(__name__)
 
 
+class ProjectGroupIndexResponseOptional(TypedDict, total=False):
+    matchingEventId: str
+    matchingEventEnvironment: str
+
+
+class ProjectGroupIndexResponse(StreamGroupSerializerResponse, ProjectGroupIndexResponseOptional):
+    pass
+
+
+class ProjectGroupIndexDetailResponse(TypedDict):
+    detail: str | list[str]
+
+
+class ProjectGroupIndexStatusDetailsSerializer(serializers.Serializer):
+    inRelease = serializers.CharField(required=False)
+    inNextRelease = serializers.BooleanField(required=False)
+    inCommit = serializers.CharField(required=False)
+    ignoreDuration = serializers.IntegerField(required=False)
+    ignoreCount = serializers.IntegerField(required=False)
+    ignoreWindow = serializers.IntegerField(required=False)
+    ignoreUserCount = serializers.IntegerField(required=False)
+    ignoreUserWindow = serializers.IntegerField(required=False)
+
+
+class ProjectGroupIndexBulkMutateSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=["resolved", "resolvedInNextRelease", "unresolved", "ignored"],
+        required=False,
+        help_text="The new status for the issues.",
+    )
+    statusDetails = ProjectGroupIndexStatusDetailsSerializer(
+        required=False,
+        help_text="Additional details about the resolution.",
+    )
+    ignoreDuration = serializers.IntegerField(
+        required=False,
+        help_text="The number of minutes to ignore this issue.",
+    )
+    isPublic = serializers.BooleanField(
+        required=False,
+        help_text="If true, publishes the issue.",
+    )
+    merge = serializers.BooleanField(
+        required=False,
+        help_text="If true, merges the issues together.",
+    )
+    assignedTo = serializers.CharField(
+        required=False,
+        help_text="The actor ID, username, user email, or team ID to assign to this issue.",
+    )
+    hasSeen = serializers.BooleanField(
+        required=False,
+        help_text="If true, marks the issue as seen by the requestor.",
+    )
+    isBookmarked = serializers.BooleanField(
+        required=False,
+        help_text="If true, bookmarks the issue for the requestor.",
+    )
+
+
+_PROJECT_ISSUES_STATS_PERIOD_PARAM = OpenApiParameter(
+    name="statsPeriod",
+    location=OpenApiParameter.QUERY,
+    required=False,
+    type=OpenApiTypes.STR,
+    enum=["", "24h", "14d"],
+    description='An optional stats period. Valid values are `"24h"`, `"14d"`, and `""`.',
+)
+_PROJECT_ISSUES_HASHES_PARAM = OpenApiParameter(
+    name="hashes",
+    location=OpenApiParameter.QUERY,
+    required=False,
+    type=OpenApiTypes.STR,
+    many=True,
+    description=(
+        "A list of hashes of groups to return. This is not compatible with `query`. "
+        "The maximum number of hashes that can be sent is 100."
+    ),
+)
+_PROJECT_ISSUES_STATUS_PARAM = OpenApiParameter(
+    name="status",
+    location=OpenApiParameter.QUERY,
+    required=False,
+    type=OpenApiTypes.STR,
+    enum=["resolved", "reprocessing", "unresolved", "ignored"],
+    description="Optionally limits mutations to issues of the specified status.",
+)
+
+_PROJECT_ISSUES_GET_EXAMPLE = OpenApiExample(
+    "List project issues",
+    value=[
+        {
+            "annotations": [],
+            "assignedTo": None,
+            "count": "1",
+            "culprit": "raven.scripts.runner in main",
+            "firstSeen": "2018-11-06T21:19:55Z",
+            "hasSeen": False,
+            "id": "1",
+            "isBookmarked": False,
+            "isPublic": False,
+            "isSubscribed": True,
+            "lastSeen": "2018-11-06T21:19:55Z",
+            "level": "error",
+            "logger": None,
+            "metadata": {"title": "This is an example Python exception"},
+            "numComments": 0,
+            "permalink": "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/",
+            "platform": "python",
+            "priority": "medium",
+            "priorityLockedAt": None,
+            "project": {
+                "id": "2",
+                "name": "Pump Station",
+                "slug": "pump-station",
+                "platform": "python",
+            },
+            "seerAutofixLastTriggered": None,
+            "seerExplorerAutofixLastTriggered": None,
+            "seerFixabilityScore": None,
+            "shareId": None,
+            "shortId": "PUMP-STATION-1",
+            "stats": {
+                "24h": [
+                    [1541455200.0, 473],
+                    [1541458800.0, 914],
+                ]
+            },
+            "status": "unresolved",
+            "statusDetails": {},
+            "substatus": "ongoing",
+            "subscriptionDetails": None,
+            "title": "This is an example Python exception",
+            "type": "default",
+            "issueType": "error",
+            "issueCategory": "error",
+            "userCount": 0,
+        }
+    ],
+    response_only=True,
+    status_codes=["200"],
+)
+_PROJECT_ISSUES_PUT_REQUEST_EXAMPLE = OpenApiExample(
+    "Bulk mutate project issues request",
+    value={"isPublic": False, "status": "unresolved"},
+    request_only=True,
+)
+_PROJECT_ISSUES_PUT_RESPONSE_EXAMPLE = OpenApiExample(
+    "Bulk mutate project issues response",
+    value={"isPublic": False, "status": "unresolved", "statusDetails": {}},
+    response_only=True,
+    status_codes=["200"],
+)
+
+
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class ProjectGroupIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectEventPermission,)
     enforce_rate_limit = True
@@ -70,62 +238,44 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="List a Project's Issues",
+        description=(
+            "**Deprecated**: This endpoint has been replaced with the "
+            "[Organization Issues endpoint](/api/events/list-an-organizations-issues/), "
+            "which supports filtering on project and additional functionality.\n\n"
+            "Return a list of issues bound to a project. A default query of "
+            "`is:unresolved` is applied. To return results with other statuses, "
+            "send a new query value, such as `?query=` for all results.\n\n"
+            "User feedback items from the "
+            "[User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget) "
+            "are built on the issue platform. To return user feedback items for a "
+            "specific project, filter for `issue.category:feedback`."
+        ),
         parameters=[
+            IssueParams.ISSUES_OR_GROUPS,
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
-            GlobalParams.STATS_PERIOD,
+            _PROJECT_ISSUES_STATS_PERIOD_PARAM,
             CursorQueryParam,
-            VisibilityParams.PER_PAGE,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.GROUP_INDEX_COLLAPSE,
             IssueParams.SHORT_ID_LOOKUP,
+            _PROJECT_ISSUES_HASHES_PARAM,
         ],
         responses={
+            200: inline_sentry_response_serializer(
+                "ProjectGroupIndexResponse", list[ProjectGroupIndexResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
         },
+        examples=[_PROJECT_ISSUES_GET_EXAMPLE],
     )
     @track_slo_response("workflow")
-    def get(self, request: Request, project: Project) -> Response:
-        """
-        List a Project's Issues
-        ```````````````````````
-        **Deprecated**: This endpoint has been replaced with the [Organization
-        Issues endpoint](/api/events/list-an-organizations-issues/) which
-        supports filtering on project and additional functionality.
-
-        Return a list of issues (groups) bound to a project.  All parameters are
-        supplied as query string parameters.
-
-        A default query of ``is:unresolved`` is applied. To return results
-        with other statuses send an new query value (i.e. ``?query=`` for all
-        results).
-
-        The ``statsPeriod`` parameter can be used to select the timeline
-        stats which should be present. Possible values are: ``""`` (disable),
-        ``"24h"``, ``"14d"``
-
-        :qparam string statsPeriod: an optional stat period (can be one of
-                                    ``"24h"``, ``"14d"``, and ``""``).
-        :qparam bool shortIdLookup: if this is set to true then short IDs are
-                                    looked up by this function as well.  This
-                                    can cause the return value of the function
-                                    to return an event issue of a different
-                                    project which is why this is an opt-in.
-                                    Set to `1` to enable.
-        :qparam querystring query: an optional Sentry structured search
-                                   query.  If not provided an implied
-                                   ``"is:unresolved"`` is assumed.)
-        :qparam string environment: this restricts the issues to ones containing
-                                    events from this environment
-        :qparam list hashes: hashes of groups to return, overrides 'query' parameter, only returning list of groups found from hashes. The maximum number of hashes that can be sent is 100. If more are sent, only the first 100 will be used.
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          issues belong to.
-        :pparam string project_id_or_slug: the id or slug of the project the issues
-                                     belong to.
-        :auth: required
-        """
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[ProjectGroupIndexResponse]] | Response[ProjectGroupIndexDetailResponse]:
         stats_period = request.GET.get("statsPeriod")
         if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
@@ -242,67 +392,43 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         return response
 
+    @extend_schema(
+        operation_id="Bulk Mutate a List of Issues",
+        description=(
+            "Bulk mutate various attributes on issues. The list of issues to modify "
+            "is given through the repeated `id` query parameter.\n\n"
+            "- For non-status updates, the `id` query parameter is required.\n"
+            "- For status updates, the `id` query parameter may be omitted for a "
+            'batch "update all" query.\n'
+            "- An optional `status` query parameter may restrict mutations to only "
+            "events with the given status.\n\n"
+            "If any IDs are out of scope, this operation succeeds without mutating "
+            "those issues."
+        ),
+        parameters=[
+            IssueParams.ISSUES_OR_GROUPS,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            IssueParams.MUTATE_ISSUE_ID_LIST,
+            _PROJECT_ISSUES_STATUS_PARAM,
+        ],
+        request=ProjectGroupIndexBulkMutateSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectGroupIndexPutResponse", MutateIssueResponse
+            ),
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=[_PROJECT_ISSUES_PUT_REQUEST_EXAMPLE, _PROJECT_ISSUES_PUT_RESPONSE_EXAMPLE],
+    )
     @track_slo_response("workflow")
-    def put(self, request: Request, project: Project) -> Response:
-        """
-        Bulk Mutate a List of Issues
-        ````````````````````````````
-
-        Bulk mutate various attributes on issues.  The list of issues
-        to modify is given through the `id` query parameter.  It is repeated
-        for each issue that should be modified.
-
-        - For non-status updates, the `id` query parameter is required.
-        - For status updates, the `id` query parameter may be omitted
-          for a batch "update all" query.
-        - An optional `status` query parameter may be used to restrict
-          mutations to only events with the given status.
-
-        The following attributes can be modified and are supplied as
-        JSON object in the body:
-
-        If any IDs are out of scope this operation will succeed without
-        any data mutation.
-
-        :qparam int id: a list of IDs of the issues to be mutated.  This
-                        parameter shall be repeated for each issue.  It
-                        is optional only if a status is mutated in which
-                        case an implicit `update all` is assumed.
-        :qparam string status: optionally limits the query to issues of the
-                               specified status.  Valid values are
-                               ``"resolved"``, ``"unresolved"`` and
-                               ``"ignored"``.
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          issues belong to.
-        :pparam string project_id_or_slug: the id or slug of the project the issues
-                                     belong to.
-        :param string status: the new status for the issues.  Valid values
-                              are ``"resolved"``, ``"resolvedInNextRelease"``,
-                              ``"unresolved"``, and ``"ignored"``.
-        :param map statusDetails: additional details about the resolution.
-                                  Valid values are ``"inRelease"``, ``"inNextRelease"``,
-                                  ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
-                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
-                                  ``"ignoreUserWindow"``.
-        :param int ignoreDuration: the number of minutes to ignore this issue.
-        :param boolean isPublic: sets the issue to public or private.
-        :param boolean merge: allows to merge or unmerge different issues.
-        :param string assignedTo: the user or team that should be assigned to
-                                  this issue. Can be of the form ``"<user_id>"``,
-                                  ``"user:<user_id>"``, ``"<username>"``,
-                                  ``"<user_primary_email>"``, or ``"team:<team_id>"``.
-        :param boolean hasSeen: in case this API call is invoked with a user
-                                context this allows changing of the flag
-                                that indicates if the user has seen the
-                                event.
-        :param boolean isBookmarked: in case this API call is invoked with a
-                                     user context this allows changing of
-                                     the bookmark flag.
-        :param string substatus: the new substatus for the issues. Valid values
-                                 defined in GroupSubStatus.
-        :auth: required
-        """
-
+    def put(
+        self, request: Request, project: Project
+    ) -> Response[MutateIssueResponse] | Response[None] | Response[ProjectGroupIndexDetailResponse]:
         search_fn = functools.partial(prep_search, request, project)
         return update_groups_with_search_fn(
             request,
@@ -312,34 +438,32 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             search_fn,
         )
 
+    @extend_schema(
+        operation_id="Bulk Remove a List of Issues",
+        description=(
+            "Permanently remove the given issues. The list of issues to remove is "
+            "given through the repeated `id` query parameter.\n\n"
+            "Only queries by `id` are accepted. If any IDs are out of scope, this "
+            "operation succeeds without mutating those issues."
+        ),
+        parameters=[
+            IssueParams.ISSUES_OR_GROUPS,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            IssueParams.DELETE_ISSUE_ID_LIST,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @track_slo_response("workflow")
-    def delete(self, request: Request, project: Project) -> Response:
-        """
-        Bulk Remove a List of Issues
-        ````````````````````````````
-
-        Permanently remove the given issues. The list of issues to
-        modify is given through the `id` query parameter.  It is repeated
-        for each issue that should be removed.
-
-        Only queries by 'id' are accepted.
-
-        If any IDs are out of scope this operation will succeed without
-        any data mutation.
-
-        :qparam int id: a list of IDs of the issues to be removed.  This
-                        parameter shall be repeated for each issue, e.g.
-                        `?id=1&id=2&id=3`. If this parameter is not provided,
-                        it will attempt to remove the first 1000 issues.
-        :qparam querystring query: an optional Sentry structured search
-                                   query. If not provided an implied
-                                   ``"is:unresolved"`` is assumed.)
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          issues belong to.
-        :pparam string project_id_or_slug: the id or slug of the project the issues
-                                     belong to.
-        :auth: required
-        """
+    def delete(
+        self, request: Request, project: Project
+    ) -> Response[None] | Response[ProjectGroupIndexDetailResponse]:
         search_fn = functools.partial(prep_search, request, project)
         try:
             return schedule_tasks_to_delete_groups(
