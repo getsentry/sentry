@@ -1,8 +1,6 @@
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sentry.models.activity import Activity
-from sentry.models.group import Group
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.types import (
     ActionHandler,
@@ -11,6 +9,11 @@ from sentry.workflow_engine.types import (
     DetectorId,
     WorkflowActivityHandler,
 )
+
+if TYPE_CHECKING:
+    from sentry.models.activity import Activity
+    from sentry.models.group import Group
+
 
 logger = logging.getLogger(__name__)
 
