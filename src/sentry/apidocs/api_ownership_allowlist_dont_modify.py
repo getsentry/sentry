@@ -75,7 +75,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/release-count/",
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/assemble/",
     "/api/0/users/{user_id}/user-identities/",
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/files/",
     "/api/0/organizations/{organization_id_or_slug}/request-project-creation/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/environments/",
     "/api/0/users/{user_id}/",
