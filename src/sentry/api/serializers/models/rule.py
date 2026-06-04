@@ -118,7 +118,7 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
 
 
 @register(Rule)
-class RuleSerializer(Serializer):
+class RuleSerializer(Serializer[RuleSerializerResponse]):
     def __init__(
         self,
         expand: list[str] | None = None,

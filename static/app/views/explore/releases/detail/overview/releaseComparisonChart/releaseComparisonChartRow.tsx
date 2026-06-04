@@ -11,7 +11,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {releaseComparisonChartLabels} from 'sentry/views/explore/releases/detail/utils';
 
 import type {ReleaseComparisonRow} from '.';

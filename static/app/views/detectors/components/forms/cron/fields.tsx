@@ -3,7 +3,7 @@ import type {
   CronDetector,
   CronDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   ScheduleType,
   type MonitorConfig,

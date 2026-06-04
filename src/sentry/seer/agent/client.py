@@ -248,6 +248,7 @@ class SeerAgentClient:
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
             enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
+            code_review_enabled: Expose the review_code_changes tool, which spawns a reviewer agent to check accumulated code edits before finalizing. Only useful alongside enable_coding. Default is False.
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
     """
 
@@ -265,6 +266,7 @@ class SeerAgentClient:
         is_interactive: bool = False,
         enable_coding: bool = False,
         enable_code_mode_tools: str = "off",
+        code_review_enabled: bool = False,
         max_iterations: int | None = None,
     ):
         self.organization = organization
@@ -278,6 +280,7 @@ class SeerAgentClient:
         self.category_value = category_value
         self.is_interactive = is_interactive
         self.enable_code_mode_tools = enable_code_mode_tools
+        self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
@@ -343,6 +346,7 @@ class SeerAgentClient:
         agent_run_options: dict[str, Any] = {
             "enable_coding": self.enable_coding,
             "enable_code_mode_tools": self.enable_code_mode_tools,
+            "code_review_enabled": self.code_review_enabled,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -541,6 +545,7 @@ class SeerAgentClient:
         agent_run_options: dict[str, Any] = {
             "enable_coding": self.enable_coding,
             "enable_code_mode_tools": self.enable_code_mode_tools,
+            "code_review_enabled": self.code_review_enabled,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(

@@ -17,9 +17,9 @@ import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {defined} from 'sentry/utils/defined';
 import {
   DEPRECATED_FIELDS,
   generateFieldAsString,

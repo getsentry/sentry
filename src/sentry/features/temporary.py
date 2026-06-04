@@ -83,8 +83,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-revisions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Defer issue resolution from commit push to release creation
-    manager.add("organizations:defer-commit-resolution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Data Secrecy v2 (with Break the Glass feature)
     manager.add("organizations:data-secrecy-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Intercom support widget (replaces Zendesk when enabled)
@@ -124,9 +122,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:increased-issue-owners-rate-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Starfish: extract metrics from the spans
     manager.add("organizations:indexed-spans-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # These flags follow the pattern expected by IntegrationProvider.requires_feature_flag's usage on the config endpoint
-    manager.add("organizations:integrations-claude-code", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("organizations:integrations-github-copilot-agent", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-github-platform-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GitHub Enterprise to accept github.com as a valid Installation URL
@@ -276,6 +271,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:context-engine-structured-page-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable autofix introspection for early stopping of autofix runs
     manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Run new autofix sessions with high intelligence and reasoning levels
+    manager.add("organizations:seer-autofix-high-intelligence-high-reasoning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Expose the code review tool to autofix coding runs
+    manager.add("organizations:seer-autofix-code-review", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show Seer run ID in Slack notification footers
     manager.add("organizations:seer-run-id-in-slack", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Gate display of Seer action events in the issue activity timeline

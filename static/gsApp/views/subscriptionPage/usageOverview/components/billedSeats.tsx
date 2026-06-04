@@ -13,8 +13,8 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';

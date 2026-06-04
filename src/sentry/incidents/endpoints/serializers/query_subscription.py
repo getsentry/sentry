@@ -12,7 +12,7 @@ from sentry.users.services.user import RpcUser
 
 
 @register(SnubaQuery)
-class SnubaQuerySerializer(Serializer):
+class SnubaQuerySerializer(Serializer[dict[str, Any]]):
     def get_attrs(
         self, item_list: Sequence[SnubaQuery], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[SnubaQuery, dict[str, Any]]:
@@ -43,7 +43,7 @@ class SnubaQuerySerializer(Serializer):
 
 
 @register(QuerySubscription)
-class QuerySubscriptionSerializer(Serializer):
+class QuerySubscriptionSerializer(Serializer[dict[str, Any]]):
     def get_attrs(
         self,
         item_list: Sequence[QuerySubscription],

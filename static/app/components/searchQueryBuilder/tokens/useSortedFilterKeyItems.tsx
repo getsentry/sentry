@@ -22,7 +22,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Tag} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
