@@ -9,7 +9,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDetectorDataContext} from 'sentry/views/automations/components/automationListTable/detectorDataContext';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 

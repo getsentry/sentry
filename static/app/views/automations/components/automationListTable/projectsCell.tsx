@@ -3,7 +3,7 @@ import {ProjectList} from 'sentry/components/projectList';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDetectorDataContext} from 'sentry/views/automations/components/automationListTable/detectorDataContext';
 
 export function ProjectsCell({automation}: {automation: Automation}) {
