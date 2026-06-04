@@ -115,7 +115,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Projects",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam, VisibilityParams.PER_PAGE, OrganizationParams.PROJECT_QUERY],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
+            VisibilityParams.PER_PAGE,
+            OrganizationParams.PROJECT_QUERY,
+        ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
