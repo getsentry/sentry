@@ -291,19 +291,14 @@ export function TraceItemSearchQueryBuilder({
     disallowFreeText,
     disallowLogicalOperators,
     disableRecentSearches,
+    disabled,
     attributeQuery,
     hiddenAttributeKeys,
     allowedAttributeKeys,
     placeholder,
   });
 
-  return (
-    <SearchQueryBuilder
-      autoFocus={autoFocus}
-      disabled={disabled}
-      {...searchQueryBuilderProps}
-    />
-  );
+  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
 }
 
 function useFunctionTags(
