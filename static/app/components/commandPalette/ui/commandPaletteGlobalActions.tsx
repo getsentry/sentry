@@ -118,7 +118,7 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/account/notifications/': <IconSubscribed />,
 };
 
-const helpSearch = new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop']);
+const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 const EVENT_ID_PATTERN =
   /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
 const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
@@ -293,6 +293,27 @@ export function GlobalCommandPaletteActions() {
       )
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [organization]);
+
+  const visibleOrgSettingsNavItems = useMemo(() => {
+    const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
+      access: new Set(organization.access),
+      features: new Set(organization.features),
+      isSelfHosted: sentryConfig.isSelfHosted,
+      organization,
+    };
+    return getUserOrgNavigationConfiguration()
+      .flatMap(section =>
+        section.items.filter(navItem => {
+          if (navItem.show === undefined) {
+            return true;
+          }
+          return typeof navItem.show === 'function'
+            ? navItem.show({...context, ...section})
+            : navItem.show;
+        })
+      )
+      .sort((a, b) => a.title.localeCompare(b.title));
+  }, [organization, sentryConfig.isSelfHosted]);
 
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
@@ -543,17 +564,14 @@ export function GlobalCommandPaletteActions() {
         )}
 
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
-          {getUserOrgNavigationConfiguration()
-            .flatMap(section => section.items)
-            .sort((a, b) => a.title.localeCompare(b.title))
-            .map(item => (
-              <CMDKAction
-                key={item.path}
-                display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
-                keywords={item.keywords}
-                to={item.path}
-              />
-            ))}
+          {visibleOrgSettingsNavItems.map(item => (
+            <CMDKAction
+              key={item.path}
+              display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+              keywords={item.keywords}
+              to={item.path}
+            />
+          ))}
           <Override name="cmdk:global-settings-actions" />
         </CMDKAction>
 
@@ -639,7 +657,14 @@ export function GlobalCommandPaletteActions() {
                 icon: <ProjectAvatar project={project} size={16} />,
                 trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
               }}
-              keywords={[t('dsn'), t('client keys'), t('dsn key'), project.slug]}
+              keywords={[
+                t('dsn'),
+                t('client keys'),
+                t('dsn key'),
+                'SENTRY_DSN',
+                'Sentry DSN',
+                project.slug,
+              ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
             />
           ))}

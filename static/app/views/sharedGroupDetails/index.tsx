@@ -12,9 +12,9 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {SharedEventContent} from './sharedEventContent';
 import {SharedGroupHeader} from './sharedGroupHeader';

@@ -10,7 +10,6 @@ const evidenceData: LowValueSpanEvidenceData = {
   extrapolatedCount: 60_000,
   avgDurationMs: 0.4,
   estimatedCostUsd: 12.34,
-  sdkName: 'sentry.javascript.nextjs',
   spanOrigin: 'auto',
 };
 
@@ -26,7 +25,6 @@ describe('LowValueSpanIssues ProblemSection', () => {
     expect(screen.getByText('Estimated cost')).toBeInTheDocument();
     expect(screen.getByText('$12.34')).toBeInTheDocument();
     expect(screen.getByText('<1ms')).toBeInTheDocument();
-    expect(screen.queryByText('sentry.javascript.nextjs')).not.toBeInTheDocument();
   });
 
   it('falls back to the sampled span count when extrapolated count is unavailable', () => {

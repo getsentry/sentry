@@ -91,6 +91,16 @@ function trackExternalAnalytics({
  *    `/extensions/msteams/configure/`). Drives the pipeline with
  *    `msTeamsParams`.
  *
+ *  - Jira
+ *    `/extensions/jira/link/?signed_params=...` (redirected from
+ *    `/extensions/jira/configure/`). Drives the pipeline with
+ *    `jiraParams`.
+ *
+ *  - Vercel
+ *    `/extensions/vercel/link/...` (redirected from
+ *    `/extensions/vercel/configure/`). Drives the pipeline with
+ *    `vercelParams`.
+ *
  *  - Anything else
  *    falls through to {@link finishLegacyInstallation}, which bounces to the
  *    legacy `/extensions/<slug>/configure/` backend endpoint.
@@ -237,6 +247,35 @@ export default function IntegrationOrganizationLink() {
     return {signedParams};
   }, [integrationSlug, location.query]);
 
+  // Jira Cloud installs arrive here with `signed_params` in the URL query
+  // (forwarded from `/extensions/jira/configure/`). The install button uses it
+  // as `initialData` for the pipeline modal.
+  const jiraParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'jira') {
+      return null;
+    }
+    const signedParams = location.query.signed_params;
+    if (typeof signedParams !== 'string') {
+      return null;
+    }
+    return {signedParams};
+  }, [integrationSlug, location.query]);
+
+  // Vercel marketplace installs arrive here (forwarded from
+  // `/extensions/vercel/configure/`) with the OAuth `code` Vercel already
+  // granted. The install pipeline exchanges that code, so we forward it as
+  // initialData for the modal -- no second authorize round-trip.
+  const vercelParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'vercel') {
+      return null;
+    }
+    const code = location.query.code;
+    if (typeof code !== 'string') {
+      return null;
+    }
+    return {code};
+  }, [integrationSlug, location.query]);
+
   // Legacy install path. Redirects to `/extensions/<slug>/configure/`, which
   // runs the Django-rendered `IntegrationExtensionConfigurationView` to drive
   // the install server-side via the legacy pipeline. Used by every provider
@@ -266,7 +305,11 @@ export default function IntegrationOrganizationLink() {
     // Whichever one is non-null routes through the API pipeline modal;
     // otherwise we fall back to the legacy server-driven install flow.
     const urlParams =
-      gitHubAppListingParams ?? discordAppDirectoryParams ?? msTeamsParams;
+      gitHubAppListingParams ??
+      discordAppDirectoryParams ??
+      msTeamsParams ??
+      jiraParams ??
+      vercelParams;
     if (urlParams) {
       startFlow({provider, organization, onInstall, urlParams});
       return;
@@ -279,6 +322,8 @@ export default function IntegrationOrganizationLink() {
     gitHubAppListingParams,
     discordAppDirectoryParams,
     msTeamsParams,
+    jiraParams,
+    vercelParams,
     startFlow,
     onInstall,
     finishLegacyInstallation,
