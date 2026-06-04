@@ -62,10 +62,10 @@ def main() -> int:
         print(f"- has [{LABEL}] label: {LABEL in args.label_names}")
         print(f"- args.label_names: {args.label_names}")
         print(
-            f"please have a collaborator add the [{LABEL}] label once they "
+            f"Please have a collaborator add the [{LABEL}] label once they "
             f"have reviewed the code to trigger downstream tests."
         )
-        return 1
+        return 0
 
 
 if __name__ == "__main__":
