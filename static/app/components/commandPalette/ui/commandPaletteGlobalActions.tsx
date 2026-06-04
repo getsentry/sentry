@@ -72,6 +72,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
@@ -250,6 +251,7 @@ export function GlobalCommandPaletteActions() {
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const {starredViews} = useStarredIssueViews();
+  const {data: starredDashboards = []} = useGetStarredDashboards();
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
       fetchMutation({
@@ -407,12 +409,12 @@ export function GlobalCommandPaletteActions() {
           display={{label: t('Dashboards'), icon: <IconDashboard />}}
           prompt={t('Search for a dashboard...')}
           limit={5}
-          resource={query =>
+          resource={(query, context) =>
             cmdkQueryOptions({
               ...dashboardsApiOptions(organization, {
                 query: {query, per_page: 20},
               }),
-              enabled: query.length >= 0,
+              enabled: context.state === 'selected',
               select: data =>
                 data.json.map(dashboard => ({
                   display: {
@@ -425,23 +427,42 @@ export function GlobalCommandPaletteActions() {
             })
           }
         >
-          {hasPrebuiltDashboards && (
-            <CMDKAction
-              display={{label: t('All Dashboards')}}
-              to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
-            />
-          )}
-          <CMDKAction
-            display={{
-              label: hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards'),
-            }}
-            to={`${prefix}/dashboards/`}
-          />
-          {hasPrebuiltDashboards && (
-            <CMDKAction
-              display={{label: t('Sentry Built')}}
-              to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
-            />
+          {dashboards => (
+            <>
+              {hasPrebuiltDashboards && (
+                <CMDKAction
+                  display={{label: t('All Dashboards')}}
+                  to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
+                />
+              )}
+              <CMDKAction
+                display={{
+                  label: hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards'),
+                }}
+                to={`${prefix}/dashboards/`}
+              />
+              {hasPrebuiltDashboards && (
+                <CMDKAction
+                  display={{label: t('Sentry Built')}}
+                  to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
+                />
+              )}
+              {starredDashboards.length > 0 && (
+                <CMDKAction
+                  display={{label: t('Starred Dashboards'), icon: <IconStar />}}
+                  keywords={[t('bookmarked'), t('favorites')]}
+                >
+                  {starredDashboards.map(dashboard => (
+                    <CMDKAction
+                      key={dashboard.id}
+                      display={{label: dashboard.title, icon: <IconStar />}}
+                      to={`${prefix}/dashboard/${dashboard.id}/`}
+                    />
+                  ))}
+                </CMDKAction>
+              )}
+              {dashboards.map(renderAsyncResult)}
+            </>
           )}
         </CMDKAction>
 
