@@ -12,7 +12,7 @@ class RepositorySettingsSerializerResponse(TypedDict):
     codeReviewTriggers: list[str]
 
 
-class RepositorySerializerResponseOptional(TypedDict):
+class RepositorySerializerResponse(TypedDict):
     url: NotRequired[str | None]
     provider: NotRequired[dict[str, str]]
     status: NotRequired[str]
@@ -20,9 +20,6 @@ class RepositorySerializerResponseOptional(TypedDict):
     externalSlug: NotRequired[str | None]
     externalId: NotRequired[str | None]
     settings: NotRequired[RepositorySettingsSerializerResponse | None]
-
-
-class RepositorySerializerResponse(RepositorySerializerResponseOptional):
     id: str
     name: str
     dateCreated: datetime
