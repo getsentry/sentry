@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from datetime import datetime, timezone
+from io import BytesIO
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.testutils.cases import APITestCase
+from sentry.utils.locking import UnableToAcquireLock
 
 ENQUEUE_TARGET = (
     "sentry.preprod.api.endpoints.snapshots."
@@ -14,7 +17,7 @@ ENQUEUE_TARGET = (
 )
 
 
-class SnapshotDownloadStatusTest(APITestCase):
+class BaseSnapshotArchiveTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -32,12 +35,15 @@ class SnapshotDownloadStatusTest(APITestCase):
         )
         return artifact
 
-    def _url(self, snapshot_id):
-        return reverse(
+    def _url(self, snapshot_id, download=False):
+        url = reverse(
             "sentry-api-0-organization-preprod-snapshots-archive",
             args=[self.org.slug, snapshot_id],
         )
+        return f"{url}?download=true" if download else url
 
+
+class SnapshotDownloadStatusTest(BaseSnapshotArchiveTest):
     @patch(ENQUEUE_TARGET)
     def test_status_enqueues_build_when_absent(self, mock_task):
         artifact = self._artifact()
@@ -68,8 +74,6 @@ class SnapshotDownloadStatusTest(APITestCase):
 
     @patch(ENQUEUE_TARGET)
     def test_status_surfaces_build_progress(self, mock_task):
-        from datetime import datetime, timezone
-
         enqueued_at = datetime.now(timezone.utc).isoformat()
         artifact = self._artifact(
             extras={
@@ -90,8 +94,6 @@ class SnapshotDownloadStatusTest(APITestCase):
     @patch(ENQUEUE_TARGET)
     def test_status_reports_ready_without_reenqueue(self, mock_task):
         f = self.create_file(name="z.zip", type="preprod_snapshot_images.zip")
-        from io import BytesIO
-
         f.putfile(BytesIO(b"zipbytes"))
         artifact = self._artifact(
             extras={"images_zip": {"status": "ready", "file_id": f.id, "size": f.size}}
@@ -132,10 +134,6 @@ class SnapshotDownloadStatusTest(APITestCase):
 
     @patch(ENQUEUE_TARGET)
     def test_status_lock_contention_does_not_report_stale_ready(self, mock_task):
-        from unittest.mock import MagicMock
-
-        from sentry.utils.locking import UnableToAcquireLock
-
         artifact = self._artifact(
             extras={"images_zip": {"status": "ready", "file_id": 999999, "size": 5}}
         )
@@ -180,43 +178,92 @@ class SnapshotDownloadStatusTest(APITestCase):
             response = self.client.get(self._url(artifact.id))
         assert response.status_code == 404
 
+    @patch(ENQUEUE_TARGET)
+    def test_status_reconciles_to_ready_when_build_finishes_mid_request(self, mock_task):
+        f = self.create_file(name="z.zip", type="preprod_snapshot_images.zip")
+        f.putfile(BytesIO(b"zipbytes"))
+        enqueued_at = datetime.now(timezone.utc).isoformat()
+        artifact = self._artifact(
+            extras={
+                "images_zip": {
+                    "status": "building",
+                    "enqueued_at": enqueued_at,
+                    "progress": 10,
+                }
+            }
+        )
 
-class SnapshotDownloadBytesTest(APITestCase):
+        original_refresh = PreprodSnapshotMetrics.refresh_from_db
+
+        def finish_build(self_metrics, *args, **kwargs):
+            PreprodSnapshotMetrics.objects.filter(pk=self_metrics.pk).update(
+                extras={
+                    "manifest_key": "k",
+                    "images_zip": {"status": "ready", "file_id": f.id, "size": f.size},
+                }
+            )
+            original_refresh(self_metrics, *args, **kwargs)
+
+        with (
+            patch.object(
+                PreprodSnapshotMetrics, "refresh_from_db", autospec=True, side_effect=finish_build
+            ),
+            self.feature("organizations:preprod-snapshots"),
+        ):
+            response = self.client.get(self._url(artifact.id))
+        assert response.status_code == 200
+        assert response.data["status"] == "ready"
+        mock_task.apply_async.assert_not_called()
+
+    @patch(ENQUEUE_TARGET)
+    def test_status_reconciles_to_failed_when_build_fails_mid_request(self, mock_task):
+        enqueued_at = datetime.now(timezone.utc).isoformat()
+        artifact = self._artifact(
+            extras={
+                "images_zip": {
+                    "status": "building",
+                    "enqueued_at": enqueued_at,
+                    "progress": 10,
+                }
+            }
+        )
+
+        original_refresh = PreprodSnapshotMetrics.refresh_from_db
+
+        def fail_build(self_metrics, *args, **kwargs):
+            PreprodSnapshotMetrics.objects.filter(pk=self_metrics.pk).update(
+                extras={"manifest_key": "k", "images_zip": {"status": "failed"}}
+            )
+            original_refresh(self_metrics, *args, **kwargs)
+
+        with (
+            patch.object(
+                PreprodSnapshotMetrics, "refresh_from_db", autospec=True, side_effect=fail_build
+            ),
+            self.feature("organizations:preprod-snapshots"),
+        ):
+            response = self.client.get(self._url(artifact.id))
+        assert response.status_code == 200
+        assert response.data["status"] == "failed"
+        assert "progress" not in response.data
+
+
+class SnapshotDownloadBytesTest(BaseSnapshotArchiveTest):
     def setUp(self):
         super().setUp()
-        self.login_as(user=self.user)
-        self.org = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.org)
         self.content = b"0123456789" * 100  # 1000 bytes
 
     def _ready_artifact(self):
-        from io import BytesIO
-
         f = self.create_file(
             name="snapshot_images.zip",
             type="preprod_snapshot_images.zip",
             headers={"Content-Type": "application/zip"},
         )
         f.putfile(BytesIO(self.content))
-        artifact = self.create_preprod_artifact(
-            project=self.project, state=PreprodArtifact.ArtifactState.PROCESSED
-        )
-        PreprodSnapshotMetrics.objects.create(
-            preprod_artifact=artifact,
-            image_count=1,
-            extras={
-                "manifest_key": "k",
-                "images_zip": {"status": "ready", "file_id": f.id, "size": f.size},
-            },
+        artifact = self._artifact(
+            extras={"images_zip": {"status": "ready", "file_id": f.id, "size": f.size}}
         )
         return artifact, f
-
-    def _url(self, snapshot_id, download=False):
-        url = reverse(
-            "sentry-api-0-organization-preprod-snapshots-archive",
-            args=[self.org.slug, snapshot_id],
-        )
-        return f"{url}?download=true" if download else url
 
     def _read(self, response):
         return b"".join(response.streaming_content)
@@ -275,24 +322,15 @@ class SnapshotDownloadBytesTest(APITestCase):
         assert response.status_code == 416
 
     def test_download_not_ready_409(self):
-        artifact = self.create_preprod_artifact(
-            project=self.project, state=PreprodArtifact.ArtifactState.PROCESSED
-        )
-        PreprodSnapshotMetrics.objects.create(
-            preprod_artifact=artifact, image_count=1, extras={"manifest_key": "k"}
-        )
+        artifact = self._artifact()
         with self.feature("organizations:preprod-snapshots"):
             response = self.client.get(self._url(artifact.id, download=True))
         assert response.status_code == 409
 
     def test_head_advertises_accept_ranges(self):
         artifact, f = self._ready_artifact()
-        url = reverse(
-            "sentry-api-0-organization-preprod-snapshots-archive",
-            args=[self.org.slug, artifact.id],
-        )
         with self.feature("organizations:preprod-snapshots"):
-            response = self.client.head(url)
+            response = self.client.head(self._url(artifact.id))
         assert response.status_code == 200
         assert response["Content-Length"] == str(len(self.content))
         assert response["Accept-Ranges"] == "bytes"
@@ -300,16 +338,7 @@ class SnapshotDownloadBytesTest(APITestCase):
         assert response["ETag"] == f'"{f.checksum}"'
 
     def test_head_not_ready_409(self):
-        artifact = self.create_preprod_artifact(
-            project=self.project, state=PreprodArtifact.ArtifactState.PROCESSED
-        )
-        PreprodSnapshotMetrics.objects.create(
-            preprod_artifact=artifact, image_count=1, extras={"manifest_key": "k"}
-        )
-        url = reverse(
-            "sentry-api-0-organization-preprod-snapshots-archive",
-            args=[self.org.slug, artifact.id],
-        )
+        artifact = self._artifact()
         with self.feature("organizations:preprod-snapshots"):
-            response = self.client.head(url)
+            response = self.client.head(self._url(artifact.id))
         assert response.status_code == 409
