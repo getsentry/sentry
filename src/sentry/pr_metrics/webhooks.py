@@ -58,11 +58,8 @@ def handle_attribution(
 ) -> None:
     """Record PR attribution signals (GH-App author + referenced issues) from the payload."""
     pull_request = event.get("pull_request")
-    if not pull_request:
-        return
-
     action = event.get("action")
-    github_user = pull_request.get("user")
+    github_user = (pull_request or {}).get("user")
     if not (action and github_user):
         return
 
@@ -99,16 +96,13 @@ def handle_emission(
     GitHub fires a single ``closed`` action for both merges and plain closes; the
     ``merged`` flag disambiguates. All non-terminal actions are ignored.
     """
-    pull_request = event.get("pull_request")
-    if not pull_request:
-        return
-
     if event.get("action") != "closed":
         return
 
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
+    pull_request = event.get("pull_request")
     pr = _get_pull_request(organization, repo, pull_request)
     if pr is None:
         return
@@ -128,13 +122,16 @@ def handle_emission(
 
 
 def _get_pull_request(
-    organization: Organization, repo: Repository, pull_request: dict[str, Any]
+    organization: Organization, repo: Repository, pull_request: dict[str, Any] | None
 ) -> PullRequest | None:
     """Resolve the canonical PullRequest row for a webhook payload, or None.
 
-    The row is upserted by ``PullRequestEventWebhook._handle`` before processors
-    run, so a miss is unexpected — log it and let the caller bail.
+    Returns None when the event carries no pull_request. Otherwise the row is
+    upserted by ``PullRequestEventWebhook._handle`` before processors run, so a
+    miss is unexpected — log it and let the caller bail.
     """
+    if not pull_request:
+        return None
     try:
         return PullRequest.objects.get(
             organization_id=organization.id,
