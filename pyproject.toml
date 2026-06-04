@@ -392,7 +392,6 @@ module = [
     "sentry.api.endpoints.organization_releases",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",
-    "sentry.snuba.metrics.query_builder",
     "sentry.testutils.cases",
 ]
 disable_error_code = [
