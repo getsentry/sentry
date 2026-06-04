@@ -1052,7 +1052,7 @@ export class VirtualizedViewManager {
     return {
       left,
       right,
-      width: Math.max(right - left, this.view.MAX_ZOOM_PRECISION_MS),
+      width: Math.max(right - left, Number.EPSILON),
     };
   }
 

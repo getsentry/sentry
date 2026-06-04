@@ -356,6 +356,45 @@ describe('VirtualizedViewManger', () => {
   });
 
   describe('horizontal scrolling', () => {
+    it('uses compressed viewport width when the real viewport is at max zoom', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0.5},
+          span_list: {width: 0.5},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.time_compression = TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [0, 1000],
+        physicalWidth: 1000,
+        nodes: [
+          {type: 'span', space: [0, 10]},
+          {type: 'span', space: [990, 10]},
+        ] as any,
+        indicators: [],
+      });
+      manager.view.setTraceView({x: 500, width: manager.view.MAX_ZOOM_PRECISION_MS});
+
+      const compressedView = manager.getCompressedView();
+      expect(compressedView.width).toBeCloseTo(
+        compressedView.right - compressedView.left
+      );
+      expect(compressedView.width).toBeLessThan(manager.view.MAX_ZOOM_PRECISION_MS);
+
+      const realTimestampAtRightEdge =
+        manager.getConfigSpaceCursor({
+          x: manager.view.trace_physical_space.width,
+          y: 0,
+        })[0] + manager.view.to_origin;
+      expect(realTimestampAtRightEdge).toBeCloseTo(501);
+    });
+
     describe('onWheel (timeline/span durations)', () => {
       it('keeps the cursor anchored when zooming a compressed timeline', () => {
         const scheduler = new TraceScheduler();
