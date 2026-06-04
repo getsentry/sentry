@@ -1354,34 +1354,47 @@ export class VirtualizedViewManager {
       span_start,
       span_end
     );
-    const icon_width_config_space = iconWidthPx * this.getConfigSpacePerPx();
+    const bounds = this.computeTraceIconBounds(anchorTimestamp, iconWidthPx, edge);
+
+    return {edge, anchorTimestamp, bounds};
+  }
+
+  private computeTraceIconBounds(
+    anchorTimestamp: number,
+    iconWidthPx: number,
+    edge: TraceIconEdge
+  ): [number, number] {
+    if (!this.time_compression.enabled) {
+      const iconWidth = iconWidthPx * this.getConfigSpacePerPx();
+      if (edge === 'start') {
+        return [anchorTimestamp, anchorTimestamp + iconWidth];
+      }
+      if (edge === 'end') {
+        return [anchorTimestamp - iconWidth, anchorTimestamp];
+      }
+      return [anchorTimestamp - iconWidth / 2, anchorTimestamp + iconWidth / 2];
+    }
+
+    const compressedAnchor = this.time_compression.toCompressedOffset(anchorTimestamp);
+    const iconWidthCompressed = iconWidthPx * this.span_to_px[0];
 
     if (edge === 'start') {
-      return {
-        edge,
+      return [
         anchorTimestamp,
-        bounds: [anchorTimestamp, anchorTimestamp + icon_width_config_space],
-      };
+        this.time_compression.toRealTimestamp(compressedAnchor + iconWidthCompressed),
+      ];
     }
-
     if (edge === 'end') {
-      return {
-        edge,
+      return [
+        this.time_compression.toRealTimestamp(compressedAnchor - iconWidthCompressed),
         anchorTimestamp,
-        bounds: [anchorTimestamp - icon_width_config_space, anchorTimestamp],
-      };
+      ];
     }
-
-    const half_icon_width_config_space = icon_width_config_space / 2;
-
-    return {
-      edge,
-      anchorTimestamp,
-      bounds: [
-        anchorTimestamp - half_icon_width_config_space,
-        anchorTimestamp + half_icon_width_config_space,
-      ],
-    };
+    const half = iconWidthCompressed / 2;
+    return [
+      this.time_compression.toRealTimestamp(compressedAnchor - half),
+      this.time_compression.toRealTimestamp(compressedAnchor + half),
+    ];
   }
 
   private computeTraceIconEdge(timestamp: number, iconWidthPx: number): TraceIconEdge {
