@@ -114,6 +114,7 @@ class SentryAppUpdater:
     schema: Schema | None = None
     overview: str | None = None
     allowed_origins: list[str] | None = None
+    webhook_headers: list[str] | None = None
     popularity: int | None = None
     features: list[int] | None = None
     is_disabled: bool | None = None
@@ -137,6 +138,7 @@ class SentryAppUpdater:
                 self._update_verify_install()
                 self._update_overview()
                 self._update_allowed_origins()
+                self._update_webhook_headers()
                 new_schema_elements = self._update_schema()
                 self._update_popularity(user=user)
                 self.sentry_app.save()
@@ -286,6 +288,10 @@ class SentryAppUpdater:
             self.sentry_app.application.allowed_origins = "\n".join(self.allowed_origins)
             self.sentry_app.application.save()
 
+    def _update_webhook_headers(self) -> None:
+        if self.webhook_headers is not None:
+            self.sentry_app.webhook_headers = self.webhook_headers
+
     def _update_popularity(self, user: User | RpcUser) -> None:
         if self.popularity is not None:
             if _is_elevated_user(user):
@@ -343,6 +349,7 @@ class SentryAppCreator:
     schema: Schema = dataclasses.field(default_factory=dict)
     overview: str | None = None
     allowed_origins: list[str] = dataclasses.field(default_factory=list)
+    webhook_headers: list[str] = dataclasses.field(default_factory=list)
     popularity: int | None = None
     metadata: dict | None = field(default_factory=dict)
 
@@ -426,6 +433,7 @@ class SentryAppCreator:
             "events": expand_events(self.events),
             "schema": self.schema or {},
             "webhook_url": self.webhook_url,
+            "webhook_headers": self.webhook_headers,
             "redirect_url": self.redirect_url,
             "is_alertable": self.is_alertable,
             "verify_install": self.verify_install,
