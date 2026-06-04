@@ -19,7 +19,6 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import (
     CursorQueryParam,
     GlobalParams,
-    OrganizationParams,
     TeamParams,
     VisibilityParams,
 )
@@ -92,7 +91,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             TeamParams.DETAILED,
             CursorQueryParam,
             VisibilityParams.PER_PAGE,
-            OrganizationParams.QUERY,
+            TeamParams.QUERY,
         ],
         request=None,
         responses={
