@@ -1,4 +1,11 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Literal
+
 from sentry import analytics
+
+if TYPE_CHECKING:
+    from sentry.models.pullrequest import PullRequestVerdict
 
 
 @analytics.eventclass("pr_metrics.row")
@@ -14,10 +21,9 @@ class PrCloseMetricsEvent(analytics.Event):
     pull_request_id: int
     # The PR number as stored on ``PullRequest.key`` (e.g. "5131" on GitHub).
     pr_key: str
-    # "closed" (unmerged) or "merged".
-    close_action: str
+    close_action: Literal["closed", "merged"]
     # Set once a judge has scored the PR; None when no judge ran.
-    verdict: str | None = None
+    verdict: PullRequestVerdict | None = None
     head_commit_sha: str | None = None
     merge_commit_sha: str | None = None
     opened_at: str | None = None

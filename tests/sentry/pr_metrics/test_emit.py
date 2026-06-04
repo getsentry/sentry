@@ -15,6 +15,7 @@ from sentry.pr_metrics.emit import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.silo import cell_silo_test
 from sentry.utils import json
 
 SENTRY_APP_ATTRIBUTION = {
@@ -27,6 +28,7 @@ HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
 
 
+@cell_silo_test
 class PrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
