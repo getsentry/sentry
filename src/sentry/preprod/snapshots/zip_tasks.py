@@ -40,8 +40,12 @@ def build_snapshot_images_zip(
         # Each enqueue stamps a fresh ``enqueued_at`` token. After the staleness
         # re-enqueue an older worker can still finish; if the stored token no
         # longer matches ours, a newer build owns the state and we must not touch
-        # it (otherwise we'd clobber its progress/result or delete its File).
-        snapshot_metrics.refresh_from_db()
+        # it (otherwise we'd clobber its progress/result or delete its File). A
+        # deleted metrics row (artifact removed mid-build) also counts as superseded.
+        try:
+            snapshot_metrics.refresh_from_db()
+        except PreprodSnapshotMetrics.DoesNotExist:
+            return True
         return (get_zip_state(snapshot_metrics) or {}).get("enqueued_at") != build_token
 
     manifest_key = (snapshot_metrics.extras or {}).get("manifest_key")
@@ -95,7 +99,13 @@ def build_snapshot_images_zip(
         return
 
     assert file_obj is not None
-    snapshot_metrics.refresh_from_db()
+    try:
+        snapshot_metrics.refresh_from_db()
+    except PreprodSnapshotMetrics.DoesNotExist:
+        # The artifact (and its metrics row) was deleted while the ZIP was
+        # building; discard the now-orphaned archive.
+        file_obj.delete()
+        return
     old = get_zip_state(snapshot_metrics) or {}
     if old.get("enqueued_at") != build_token:
         # A newer build superseded us; discard our archive and leave its state intact.

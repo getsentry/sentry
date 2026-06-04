@@ -101,9 +101,10 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
 
     def _ready_file(self, metrics: PreprodSnapshotMetrics) -> File | None:
         state = get_zip_state(metrics)
-        if not state or state.get("status") != "ready" or not state.get("file_id"):
+        file_id = state.get("file_id") if state else None
+        if not state or state.get("status") != "ready" or not file_id:
             return None
-        return File.objects.filter(id=state["file_id"]).first()
+        return File.objects.filter(id=file_id).first()
 
     def _ensure_build(
         self, artifact: PreprodArtifact, metrics: PreprodSnapshotMetrics, retry: bool

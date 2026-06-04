@@ -45,7 +45,9 @@ class SnapshotDownloadStatusTest(APITestCase):
             response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
         assert response.data["status"] == "building"
-        state = PreprodSnapshotMetrics.objects.get(preprod_artifact=artifact).extras["images_zip"]
+        extras = PreprodSnapshotMetrics.objects.get(preprod_artifact=artifact).extras
+        assert extras is not None
+        state = extras["images_zip"]
         mock_task.apply_async.assert_called_once_with(
             kwargs={
                 "org_id": self.org.id,
@@ -126,7 +128,6 @@ class SnapshotDownloadStatusTest(APITestCase):
             response = self.client.get(self._url(artifact.id) + "?retry=true")
         assert response.status_code == 200
         assert response.data["status"] == "building"
-        mock_task.apply_async.assert_called_once()
         mock_task.apply_async.assert_called_once()
 
 

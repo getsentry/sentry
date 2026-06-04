@@ -272,6 +272,22 @@ class BuildSnapshotImagesZipTaskTest(TestCase):
         assert not File.objects.filter(name=f"snapshot_images_{artifact.id}.zip").exists()
 
     @patch(BUILD_TASK_SESSION)
+    def test_cleans_up_file_when_metrics_deleted_mid_build(self, mock_get_session):
+        project, artifact, manifest_key = self._setup()
+        # empty manifest -> no progress callbacks, so the only refresh_from_db is
+        # the post-build one we patch to simulate the metrics row being deleted.
+        mock_get_session.return_value = _session({manifest_key: orjson.dumps({"images": {}})})
+
+        with patch.object(
+            PreprodSnapshotMetrics,
+            "refresh_from_db",
+            side_effect=PreprodSnapshotMetrics.DoesNotExist,
+        ):
+            self._run(project, artifact)
+
+        assert not File.objects.filter(name=f"snapshot_images_{artifact.id}.zip").exists()
+
+    @patch(BUILD_TASK_SESSION)
     def test_stale_build_does_not_mark_failed_when_superseded(self, mock_get_session):
         project, artifact, manifest_key = self._setup(
             zip_state={"status": "ready", "file_id": 999, "enqueued_at": "newer-token"}
