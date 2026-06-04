@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import NotRequired, TypedDict
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,7 +16,16 @@ from sentry.api.helpers.environments import get_environment, get_environment_fun
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import UserReportWithGroupSerializer, serialize
-from sentry.apidocs.parameters import CursorQueryParam
+from sentry.api.serializers.models.userreport import UserReportWithGroupSerializerResponse
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
@@ -25,6 +34,14 @@ from sentry.utils.dates import epoch
 
 
 class UserReportSerializer(serializers.ModelSerializer):
+    event_id = serializers.CharField(
+        max_length=32,
+        help_text="The event ID. This can be retrieved from the beforeSend callback.",
+    )
+    name = serializers.CharField(max_length=128, help_text="The user's name.")
+    email = serializers.EmailField(max_length=75, help_text="The user's email address.")
+    comments = serializers.CharField(max_length=4096, help_text="The user's comments.")
+
     class Meta:
         model = UserReport
         fields = ("name", "email", "comments", "event_id")
@@ -34,31 +51,95 @@ class _PaginateKwargs(TypedDict):
     post_query_filter: NotRequired[object]
 
 
+_GET_DESCRIPTION = (
+    "Return a list of user report feedback items within this project.\n\n"
+    "This list does not include submissions from the "
+    "[User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget). "
+    "Those submissions use the newer feedback format. To return widget feedback, use the "
+    "[issue API](https://docs.sentry.io/api/events/list-a-projects-issues/) with the "
+    "`issue.category:feedback` filter."
+)
+
+_POST_DESCRIPTION = (
+    "Submit user report feedback and associate it with an issue.\n\n"
+    "This endpoint is deprecated. Prefer the "
+    "[User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget) "
+    "or the supported SDK feedback APIs for new integrations.\n\n"
+    "Feedback must be received no more than 30 minutes after the event was saved. Within "
+    "5 minutes of submission, feedback for the same event may be overwritten. If feedback is "
+    "rejected due to the mutability threshold, a 409 response is returned.\n\n"
+    "Feedback may be submitted with DSN authentication. DSN-authenticated requests return "
+    "success without a response body."
+)
+
+_STATUS_QUERY_PARAM = OpenApiParameter(
+    name="status",
+    location="query",
+    required=False,
+    type=str,
+    description=(
+        "Filter reports by status. Defaults to `unresolved`; pass an empty value to "
+        "return reports in any status."
+    ),
+)
+
+_ENVIRONMENT_QUERY_PARAM = OpenApiParameter(
+    name="environment",
+    location="query",
+    required=False,
+    type=str,
+    description="The name of the environment to filter by.",
+)
+
+_USER_REPORTS_ALIAS_PARAM = OpenApiParameter(
+    name="var",
+    location="path",
+    required=False,
+    type=str,
+    description=(
+        "Compatibility route segment for `user-feedback` or `user-reports`. "
+        "This parameter is removed from the generated public API docs."
+    ),
+)
+
+
+@extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectUserReportsEndpoint(ProjectEndpoint):
     owner = ApiOwner.FEEDBACK
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,  # TODO: deprecate
-        "POST": ApiPublishStatus.PRIVATE,  # TODO: deprecate
+        "GET": ApiPublishStatus.PUBLIC,  # TODO: deprecate
+        "POST": ApiPublishStatus.PUBLIC,  # TODO: deprecate
     }
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
     @extend_schema(
         operation_id="List a Project's User Feedback",
-        parameters=[CursorQueryParam],
+        description=_GET_DESCRIPTION,
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            _USER_REPORTS_ALIAS_PARAM,
+            _ENVIRONMENT_QUERY_PARAM,
+            _STATUS_QUERY_PARAM,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListProjectUserFeedbackResponse",
+                list[UserReportWithGroupSerializerResponse],
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
     )
-    def get(self, request: Request, project) -> Response:
+    def get(
+        self, request: Request, project
+    ) -> Response[list[UserReportWithGroupSerializerResponse]]:
         """
-        List a Project's User Feedback
-        ``````````````````````````````
-
-        Return a list of user feedback items within this project.
-
-        *This list does not include submissions from the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget). This is because it is based on an older format called User Reports - read more [here](https://develop.sentry.dev/application/feedback-architecture/#user-reports). To return a list of user feedback items from the widget, please use the [issue API](https://docs.sentry.io/api/events/list-a-projects-issues/) with the filter `issue.category:feedback`.*
-
-        :pparam string organization_id_or_slug: the id or slug of the organization.
-        :pparam string project_id_or_slug: the id or slug of the project.
-        :auth: required
+        Return a list of user report feedback items within this project.
         """
         # we don't allow read permission with DSNs
         if request.auth is not None and request.auth.kind == "project_key":
@@ -99,31 +180,32 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             **paginate_kwargs,
         )
 
-    def post(self, request: Request, project) -> Response:
+    @extend_schema(
+        operation_id="Submit User Feedback",
+        description=_POST_DESCRIPTION,
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            _USER_REPORTS_ALIAS_PARAM,
+        ],
+        request=UserReportSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectUserFeedbackResponse",
+                UserReportWithGroupSerializerResponse,
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+        },
+    )
+    def post(
+        self, request: Request, project
+    ) -> Response[UserReportWithGroupSerializerResponse] | Response[None]:
         """
-        Submit User Feedback
-        ````````````````````
-
-        *We only recommend this endpoint if your Sentry SDK does not support the User Feedback API. See the [list of supported platforms](https://docs.sentry.io/product/user-feedback/setup/#supported-sdks-for-user-feedback-api).*
-
-        Submit and associate user feedback with an issue.
-
-        Feedback must be received by the server no more than 30 minutes after the event was saved.
-
-        Additionally, within 5 minutes of submitting feedback it may also be overwritten. This is useful
-        in situations where you may need to retry sending a request due to network failures.
-
-        If feedback is rejected due to a mutability threshold, a 409 status code will be returned.
-
-        Note: Feedback may be submitted with DSN authentication (see auth documentation).
-
-        :pparam string organization_id_or_slug: the id or slug of the organization.
-        :pparam string project_id_or_slug: the id or slug of the project.
-        :auth: required
-        :param string event_id: the event ID
-        :param string name: user's name
-        :param string email: user's email address
-        :param string comments: comments supplied by user
+        Submit user report feedback and associate it with an issue.
         """
         if (
             request.auth is not None

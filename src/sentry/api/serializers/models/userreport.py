@@ -32,7 +32,7 @@ class UserReportSerializerResponse(TypedDict):
 
 
 class UserReportWithGroupSerializerResponse(UserReportSerializerResponse):
-    issue: dict[str, Any]
+    issue: dict[str, Any] | None
 
 
 class _EventUser(TypedDict):
