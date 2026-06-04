@@ -12,7 +12,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.discoversavedquery import DiscoverSavedQueryModelSerializer
+from sentry.api.serializers.models.discoversavedquery import (
+    DiscoverSavedQueryModelSerializer,
+    DiscoverSavedQueryResponse,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -21,6 +24,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.discover_saved_query_examples import DiscoverExamples
 from sentry.apidocs.parameters import DiscoverSavedQueryParams, GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
@@ -72,7 +76,9 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         },
         examples=DiscoverExamples.DISCOVER_SAVED_QUERY_GET_RESPONSE,
     )
-    def get(self, request: Request, organization, query) -> Response:
+    def get(
+        self, request: Request, organization, query: DiscoverSavedQuery
+    ) -> Response[DiscoverSavedQueryResponse]:
         """
         Retrieve a saved query.
         """
@@ -81,7 +87,9 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
-        return Response(serialize(query), status=200)
+        return Response(
+            serialize(query, serializer=DiscoverSavedQueryModelSerializer()), status=200
+        )
 
     @extend_schema(
         operation_id="Edit an Organization's Discover Saved Query",
@@ -95,7 +103,9 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         },
         examples=DiscoverExamples.DISCOVER_SAVED_QUERY_GET_RESPONSE,
     )
-    def put(self, request: Request, organization: Organization, query) -> Response:
+    def put(
+        self, request: Request, organization: Organization, query: DiscoverSavedQuery
+    ) -> Response[DiscoverSavedQueryResponse] | Response[ValidationErrorResponse]:
         """
         Modify a saved query.
         """
@@ -116,7 +126,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
             context={"params": params, "organization": organization, "user": request.user},
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
         user_selected_dataset = data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
@@ -136,7 +146,9 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
 
         query.set_projects(data["project_ids"])
 
-        return Response(serialize(query), status=200)
+        return Response(
+            serialize(query, serializer=DiscoverSavedQueryModelSerializer()), status=200
+        )
 
     @extend_schema(
         operation_id="Delete an Organization's Discover Saved Query",

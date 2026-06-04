@@ -8,6 +8,7 @@ from django.db.models import F
 from taskbroker_client.retry import Retry
 
 from sentry import eventstream, similarity, tsdb
+from sentry.db.models.base import Model
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
@@ -32,7 +33,7 @@ def merge_groups(
     transaction_id: int | None = None,
     recursed: bool = False,
     eventstream_state: Mapping[str, Any] | None = None,
-):
+) -> bool:
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models.activity import Activity
     from sentry.models.environment import Environment
@@ -206,15 +207,17 @@ def merge_groups(
         # All `from_object_ids` have been merged!
         eventstream.backend.end_merge(eventstream_state)
 
+    return True
+
 
 def merge_objects(
-    models,
+    models: tuple[type[Model], ...],
     group: Group,
     new_group: Group,
     limit: int = 1000,
     logger: logging.Logger | None = None,
     transaction_id: int | None = None,
-):
+) -> bool:
     has_more = False
     for model in models:
         all_fields = [f.name for f in model._meta.get_fields()]
@@ -227,23 +230,22 @@ def merge_objects(
         has_project = "project_id" in all_fields or "project" in all_fields
 
         if has_project:
-            project_qs = model.objects.filter(project_id=group.project_id)
+            project_qs = model.objects.filter(project_id=group.project_id)  # type: ignore[misc]
         else:
             project_qs = model.objects.all()
 
-        has_group = "group" in all_fields
-        if has_group:
-            queryset = project_qs.filter(group=group)
+        update_kwargs: dict[str, Any] = {}
+        if "group" in all_fields:
+            queryset = project_qs.filter(group=group)  # type: ignore[misc]
+            update_kwargs["group"] = new_group
         else:
-            queryset = project_qs.filter(group_id=group.id)
+            queryset = project_qs.filter(group_id=group.id)  # type: ignore[misc]
+            update_kwargs["group_id"] = new_group.id
 
         for obj in queryset[:limit]:
             try:
                 with transaction.atomic(using=router.db_for_write(model)):
-                    if has_group:
-                        project_qs.filter(id=obj.id).update(group=new_group)
-                    else:
-                        project_qs.filter(id=obj.id).update(group_id=new_group.id)
+                    project_qs.filter(id=obj.id).update(**update_kwargs)
             except IntegrityError:
                 delete = True
             else:
@@ -251,8 +253,7 @@ def merge_objects(
 
             if delete:
                 # Before deleting, we want to merge in counts
-                if hasattr(model, "merge_counts"):
-                    obj.merge_counts(new_group)
+                getattr(obj, "merge_counts", lambda _: None)(new_group)
 
                 obj_id = obj.id
                 obj.delete()

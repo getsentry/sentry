@@ -7,7 +7,7 @@ import {UsageTotalFixture} from 'getsentry-test/fixtures/usageTotal';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';

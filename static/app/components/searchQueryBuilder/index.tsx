@@ -277,7 +277,7 @@ function SearchQueryBuilderUI({
 
   useOnChange({onChange});
   useLayoutEffect(() => {
-    dispatch({type: 'UPDATE_QUERY', query: initialQuery});
+    dispatch({type: 'UPDATE_QUERY', query: initialQuery, ignoreDisabled: true});
   }, [dispatch, initialQuery]);
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});

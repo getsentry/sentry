@@ -892,6 +892,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.data_forwarding.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.github.tasks.query_commit_author_public_emails",
     "sentry.integrations.github.tasks.sync_repos",
     "sentry.integrations.github.tasks.sync_repos_on_install_change",
     "sentry.integrations.source_code_management.sync_repos",
@@ -922,6 +923,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
     "sentry.preprod.snapshots.tasks",
+    "sentry.preprod.snapshots.zip_tasks",
     "sentry.preprod.tasks",
     "sentry.preprod.vcs.pr_comments.snapshot_tasks",
     "sentry.preprod.vcs.pr_comments.tasks",
@@ -1337,6 +1339,8 @@ LOGGING: LoggingConfig = {
         },
         "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
         "taskbroker_client": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        # Configure grpc explicitly so its errors aren't dropped by disable_existing_loggers.
+        "grpc": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
         "django.request": {
             "level": "WARNING",
@@ -2233,7 +2237,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.5.1"
+SELF_HOSTED_STABLE_VERSION = "26.5.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2639,6 +2643,12 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 
 # Mapping of default Kafka topic name to custom names
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
+
+
+# Per-topic Kafka consumer client config, keyed by Topic enum value (region-stable,
+# unlike cluster names). Merged onto the consumer config after the cluster config and
+# before any explicit override_params, so explicit params still win.
+KAFKA_TOPIC_CONSUMER_CONFIG: dict[str, dict[str, Any]] = {}
 
 
 # Mapping of default Kafka topic name to cluster name
@@ -3237,11 +3247,6 @@ MARKETO_BASE_URL = os.getenv("MARKETO_BASE_URL")
 MARKETO_CLIENT_ID = os.getenv("MARKETO_CLIENT_ID")
 MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
 MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
-
-# Base URL for Codecov API. Override if developing against a local instance
-# of Codecov.
-# Stage: "https://stage-api.codecov.dev/"
-CODECOV_API_BASE_URL = "https://api.codecov.io"
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

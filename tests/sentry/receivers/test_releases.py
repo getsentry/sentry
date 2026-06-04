@@ -224,17 +224,25 @@ class ResolvedInCommitTest(TestCase):
         )
         author.preload_users()
 
-        commit = Commit.objects.create(
-            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
-            organization_id=group.organization.id,
-            repository_id=repo.id,
-            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
-            author=author,
-        )
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            commit = Commit.objects.create(
+                key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+                organization_id=group.organization.id,
+                repository_id=repo.id,
+                message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+                author=author,
+            )
 
         self.assertLinkedFromCommitDeferred(group, commit)
 
         assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
+
+        # The self-assign is attributed to the commit author, not logged as a system action.
+        assign_records = [r for r in logs.records if r.__dict__.get("action") == "assign"]
+        assert len(assign_records) == 1
+        assert assign_records[0].__dict__["actor_id"] == user.id
+        assert assign_records[0].__dict__["actor_type"] == "user"
+        assert assign_records[0].__dict__["source"] == "system"
 
         assert Activity.objects.filter(
             project=group.project, group=group, type=ActivityType.ASSIGNED.value, user_id=user.id

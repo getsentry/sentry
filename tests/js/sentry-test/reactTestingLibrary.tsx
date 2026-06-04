@@ -28,10 +28,10 @@ import {GlobalModal} from '@sentry/scraps/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import type {Organization} from 'sentry/types/organization';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';

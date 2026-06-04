@@ -39,21 +39,6 @@ mdx_typecheckable: &mdx_typecheckable
   - added|deleted|modified: 'static/app/components/core/**/*.{ts,tsx}'
   - added|deleted|modified: 'static/**/__stories__/**/*.{ts,tsx}'
 
-lintable_modified: &lintable_modified
-  - *sentry_frontend_workflow_file
-  - *sentry_frontend_snapshots_workflow_file
-  - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
-  - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
-  - added|modified: '{vercel,tsconfig,biome,package}.json'
-
-lintable_rules_changed: &lintable_rules_changed
-  - *sentry_frontend_workflow_file
-  - *sentry_frontend_snapshots_workflow_file
-  - added|modified: 'package.json'
-  - added|modified: '.github/file-filters.yml'
-  - added|modified: '*.config.ts'
-  - added|modified: 'static/eslint/**/*.{ts,tsx,js,jsx,mjs}'
-
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all
   - *sentry_frontend_workflow_file

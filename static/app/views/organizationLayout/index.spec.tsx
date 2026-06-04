@@ -8,8 +8,8 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {type GlobalAlert, useGlobalAlerts} from 'sentry/views/app/globalAlerts';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {OrganizationLayout} from 'sentry/views/organizationLayout';
 
 function AlertSeeder({alert}: {alert: GlobalAlert}) {

@@ -150,7 +150,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         },
         examples=SourceMapDebugExamples.GET_SOURCE_MAP_DEBUG,
     )
-    def get(self, request: Request, project: Project, event_id: str) -> Response:
+    def get(
+        self, request: Request, project: Project, event_id: str
+    ) -> Response[SourceMapDebugResponse]:
         """
         Return a list of source map errors for a given event.
         """
@@ -240,11 +242,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         scraping_attempt_map = get_scraping_attempt_map(event_data)
 
         # build information about individual exceptions and their stack traces
-        processed_exceptions = []
+        processed_exceptions: list[SourceMapDebugException] = []
         exception_values = get_path(event_data, "exception", "values")
         if exception_values is not None:
             for exception_value in exception_values:
-                processed_frames = []
+                processed_frames: list[SourceMapDebugFrame] = []
                 frames = get_path(exception_value, "raw_stacktrace", "frames")
                 stacktrace_frames = get_path(exception_value, "stacktrace", "frames")
                 if frames is not None:

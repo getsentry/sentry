@@ -6,8 +6,10 @@ from sentry.models.group import Group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.processors.detector import get_preferred_detector
 from sentry.workflow_engine.registry import workflow_activity_registry
 from sentry.workflow_engine.tasks.workflows import process_workflow_activity
+from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +49,16 @@ def seer_activity_handler(group: Group, activity: Activity) -> None:
     ):
         return
 
+    event_data = WorkflowEventData(event=activity, group=group)
     try:
-        detector = Detector.get_issue_stream_detector_for_project(group.project_id)
+        detector = get_preferred_detector(event_data=event_data)
     except Detector.DoesNotExist:
         logger.exception(
             "workflow_engine.seer_activity_handler.missing_detector", extra=logging_ctx
         )
         return
+    logging_ctx["detector_id"] = detector.id
+    logging_ctx["detector_type"] = detector.type
 
     process_workflow_activity.delay(
         activity_id=activity.id,

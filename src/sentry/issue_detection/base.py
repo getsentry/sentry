@@ -9,7 +9,6 @@ from typing import Any, ClassVar
 from sentry import options
 from sentry.issue_detection.detectors.utils import get_span_duration
 from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 from .types import Span
@@ -62,13 +61,11 @@ class PerformanceDetector(ABC):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
         self.settings = settings
         self._event = event
         self.stored_problems: dict[str, PerformanceProblem] = {}
-        self.organization = organization
         self.detector_id = detector_id
 
     def find_span_prefix(self, settings: dict[str, Any], span_op: str) -> str | bool:
@@ -128,19 +125,10 @@ class PerformanceDetector(ABC):
         except options.UnknownOption:
             return False
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+    def is_creation_allowed(self) -> bool:
         """
         After running the detector, this method determines whether the found problems should be
-        passed to the issue platform for a given organization.
-
-        See `_detect_performance_problems` in `performance_detection.py` for more context.
-        """
-        return False
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
-        """
-        After running the detector, this method determines whether the found problems should be
-        passed to the issue platform for a given project.
+        passed to the issue platform.
 
         See `_detect_performance_problems` in `performance_detection.py` for more context.
         """

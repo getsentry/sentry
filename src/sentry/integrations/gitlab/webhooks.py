@@ -38,7 +38,13 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
+from sentry.seer.code_review.webhooks.merge_request import (
+    handle_merge_request_event,
+    handle_merge_request_note_event,
+)
+from sentry.seer.code_review.webhooks.seat_tracking import (
+    track_gitlab_contributor_seat_processor,
+)
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -348,7 +354,13 @@ class MergeEventWebhook(GitlabWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = (handle_merge_request_event,)
+    # Order matters: seed OrganizationContributors before the code-review
+    # handler runs preflight, otherwise the first MR open from a new
+    # contributor would be denied with ORG_CONTRIBUTOR_NOT_FOUND.
+    WEBHOOK_EVENT_PROCESSORS = (
+        track_gitlab_contributor_seat_processor,
+        handle_merge_request_event,
+    )
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (
@@ -410,6 +422,41 @@ class MergeEventWebhook(GitlabWebhook):
             )
         except IntegrityError:
             pass
+
+        self._handle(
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+        )
+
+
+class NoteEventWebhook(GitlabWebhook):
+    """
+    Handle Note Hook events (comments on MRs, issues, etc.).
+
+    Only MR notes containing the "@sentry review" command phrase are forwarded
+    to Seer; all other notes are silently dropped by ``handle_merge_request_note_event``.
+
+    See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#comment-events
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
+    WEBHOOK_EVENT_PROCESSORS = (handle_merge_request_note_event,)
+
+    def __call__(self, event: Mapping[str, Any], **kwargs):
+        if not (
+            (organization := kwargs.get("organization"))
+            and (integration := kwargs.get("integration"))
+        ):
+            raise ValueError("Organization and integration must be provided")
+
+        repo = self.get_repo(integration, organization, event)
+        if repo is None:
+            return
+
+        # Keep repo metadata fresh (url and path_with_namespace).
+        self.update_repo_data(repo, event)
 
         self._handle(
             integration=integration,
@@ -501,6 +548,7 @@ class GitlabWebhookEndpoint(Endpoint):
     _handlers: dict[str, type[GitlabWebhook]] = {
         "Push Hook": PushEventWebhook,
         "Merge Request Hook": MergeEventWebhook,
+        "Note Hook": NoteEventWebhook,
         "Issue Hook": IssuesEventWebhook,
     }
 
