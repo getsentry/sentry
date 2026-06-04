@@ -51,7 +51,9 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[RepositorySerializerResponse]]:
         """
         List an Organization's Repositories
         ```````````````````````````````````
