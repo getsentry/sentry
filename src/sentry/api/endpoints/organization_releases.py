@@ -20,7 +20,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import ConflictError, InvalidRepository
+from sentry.api.exceptions import BadRequest, ConflictError, InvalidRepository
 from sentry.api.paginator import (
     MAX_LIMIT,
     BadPaginationError,
@@ -988,10 +988,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
             try:
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
             except InvalidSearchQuery as e:
-                return Response(
-                    {"detail": str(e)},
-                    status=400,
-                )
+                raise BadRequest(detail=str(e))
 
         return self.paginate(
             request=request,
