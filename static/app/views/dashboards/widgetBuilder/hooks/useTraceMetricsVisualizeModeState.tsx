@@ -1,6 +1,5 @@
 import {type RefObject, useCallback, useEffect, useRef, useState} from 'react';
 
-import {defined} from 'sentry/utils';
 import {
   explodeFieldString,
   generateFieldAsString,
@@ -135,9 +134,9 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         .filter(f => f.kind === FieldValueKind.FUNCTION)
         .map(f => {
           const parsed = parseAggregateExpression(generateFieldAsString(f));
-          return parsed.metricQueries[0];
+          return parsed.metricQueries[0] ?? defaultMetricQuery();
         })
-        .filter(defined);
+        .filter(Boolean);
       if (queries.length === 0) {
         queries.push(defaultMetricQuery());
       }
