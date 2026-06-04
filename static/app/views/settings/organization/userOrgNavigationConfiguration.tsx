@@ -76,7 +76,12 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug')],
+          keywords: [
+            t('slug'),
+            t('org slug'),
+            t('organization slug'),
+            t('sentry_org'),
+          ],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -304,6 +309,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            t('sentry_auth_token'),
           ],
           description: t('Manage organization tokens'),
           id: 'auth-tokens',
@@ -319,6 +325,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            t('sentry_auth_token'),
           ],
           description: t(
             "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."

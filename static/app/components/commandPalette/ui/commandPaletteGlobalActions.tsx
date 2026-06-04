@@ -393,6 +393,7 @@ export function GlobalCommandPaletteActions() {
           )}
           <CMDKAction
             display={{label: t('All Queries')}}
+            keywords={[t('query'), t('saved queries')]}
             to={`${prefix}/explore/saved-queries/`}
           />
           {starredSavedQueries.map(query => (
@@ -404,7 +405,11 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}} limit={4}>
+        <CMDKAction
+          display={{label: t('Dashboards'), icon: <IconDashboard />}}
+          keywords={[t('insights')]}
+          limit={4}
+        >
           {hasPrebuiltDashboards && (
             <CMDKAction
               display={{label: t('All Dashboards')}}
@@ -491,7 +496,7 @@ export function GlobalCommandPaletteActions() {
               {organization.features.includes('uptime') && !hasWorkflowEngineUI && (
                 <CMDKAction
                   display={{label: t('Uptime')}}
-                  keywords={[t('uptime monitors')]}
+                  keywords={[t('uptime monitors'), t('downtime')]}
                   to={`${prefix}/insights/uptime/`}
                 />
               )}
@@ -524,7 +529,7 @@ export function GlobalCommandPaletteActions() {
             {organization.features.includes('uptime') && (
               <CMDKAction
                 display={{label: t('Uptime')}}
-                keywords={[t('uptime monitors'), t('monitors')]}
+                keywords={[t('uptime monitors'), t('monitors'), t('downtime')]}
                 to={`${prefix}/monitors/uptime/`}
               />
             )}
@@ -639,7 +644,16 @@ export function GlobalCommandPaletteActions() {
                 icon: <ProjectAvatar project={project} size={16} />,
                 trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
               }}
-              keywords={[t('dsn'), t('client keys'), t('dsn key'), project.slug]}
+              keywords={[
+                t('dsn'),
+                t('client keys'),
+                t('dsn key'),
+                t('sentry_dsn'),
+                t('next_public_sentry_dsn'),
+                t('expo_public_sentry_dsn'),
+                t('environment variables'),
+                project.slug,
+              ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
             />
           ))}
@@ -779,7 +793,7 @@ export function GlobalCommandPaletteActions() {
         />
         <CMDKAction
           display={{label: t('Create Project'), icon: <IconAdd />}}
-          keywords={[t('add project')]}
+          keywords={[t('add project'), t('new project')]}
           to={`${prefix}/projects/new/`}
         />
         <CMDKAction

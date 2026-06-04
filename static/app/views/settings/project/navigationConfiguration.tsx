@@ -187,6 +187,12 @@ export function getNavigationConfiguration({
             t('client key'),
             t('dsn key'),
             t('allowed domains'),
+            t('sentry_dsn'),
+            t('next_public_sentry_dsn'),
+            t('expo_public_sentry_dsn'),
+            t('environment variables'),
+            t('rate limit'),
+            t('rate limits'),
           ],
         },
         {
