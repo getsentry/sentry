@@ -1,24 +1,26 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers.release_details_types import Author, LastDeploy, Project, VersionInfo
 
 
 # Reponse type for OrganizationReleaseDetailsEndpoint
-class ReleaseSerializerResponseOptional(TypedDict, total=False):
-    ref: str | None
-    url: str | None
-    dateReleased: datetime | None
-    dateCreated: datetime | None
-    dateStarted: datetime | None
-    owner: dict[str, Any] | None
-    lastCommit: dict[str, Any] | None
-    lastDeploy: LastDeploy | None
-    firstEvent: datetime | None
-    lastEvent: datetime | None
-    currentProjectMeta: dict[str, Any] | None
-    userAgent: str | None
-    adoptionStages: dict[str, Any] | None  # Only included if with_adoption_stages is True
+class ReleaseSerializerResponseOptional(TypedDict):
+    ref: NotRequired[str | None]
+    url: NotRequired[str | None]
+    dateReleased: NotRequired[datetime | None]
+    dateCreated: NotRequired[datetime | None]
+    dateStarted: NotRequired[datetime | None]
+    owner: NotRequired[dict[str, Any] | None]
+    lastCommit: NotRequired[dict[str, Any] | None]
+    lastDeploy: NotRequired[LastDeploy | None]
+    firstEvent: NotRequired[datetime | None]
+    lastEvent: NotRequired[datetime | None]
+    currentProjectMeta: NotRequired[dict[str, Any] | None]
+    userAgent: NotRequired[str | None]
+    adoptionStages: NotRequired[
+        dict[str, Any] | None
+    ]  # Only included if with_adoption_stages is True
 
 
 class ReleaseSerializerResponse(ReleaseSerializerResponseOptional):
@@ -40,18 +42,18 @@ class ReleaseSerializerResponse(ReleaseSerializerResponseOptional):
     projects: list[Project]
 
 
-class GroupEventReleaseSerializerResponse(TypedDict, total=False):
-    id: int
-    commitCount: int
-    data: dict[str, Any]
-    dateCreated: datetime
-    dateReleased: datetime | None
-    deployCount: int
-    ref: str | None
-    lastCommit: dict[str, Any] | None
-    lastDeploy: LastDeploy | None
-    status: str
-    url: str | None
-    userAgent: str | None
-    version: str | None
-    versionInfo: VersionInfo | None
+class GroupEventReleaseSerializerResponse(TypedDict):
+    id: NotRequired[int]
+    commitCount: NotRequired[int]
+    data: NotRequired[dict[str, Any]]
+    dateCreated: NotRequired[datetime]
+    dateReleased: NotRequired[datetime | None]
+    deployCount: NotRequired[int]
+    ref: NotRequired[str | None]
+    lastCommit: NotRequired[dict[str, Any] | None]
+    lastDeploy: NotRequired[LastDeploy | None]
+    status: NotRequired[str]
+    url: NotRequired[str | None]
+    userAgent: NotRequired[str | None]
+    version: NotRequired[str | None]
+    versionInfo: NotRequired[VersionInfo | None]

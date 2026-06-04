@@ -1,6 +1,6 @@
 from copy import deepcopy
 from random import randint
-from typing import Any, TypedDict, Unpack
+from typing import Any, NotRequired, TypedDict, Unpack
 
 import pytest
 
@@ -21,15 +21,15 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 
 
-class MockWorkflowConfig(TypedDict, total=False):
-    actions: list[Action] | None
-    action_filters: list[DataCondition] | None
-    enabled: bool | None
-    triggers: list[DataCondition] | None
-    config: dict[str, Any] | None
-    mock_actions: bool
-    mock_action_filters: bool
-    mock_triggers: bool
+class MockWorkflowConfig(TypedDict):
+    actions: NotRequired[list[Action] | None]
+    action_filters: NotRequired[list[DataCondition] | None]
+    enabled: NotRequired[bool | None]
+    triggers: NotRequired[list[DataCondition] | None]
+    config: NotRequired[dict[str, Any] | None]
+    mock_actions: NotRequired[bool]
+    mock_action_filters: NotRequired[bool]
+    mock_triggers: NotRequired[bool]
 
 
 # This is a list of workflows to create for every test case.

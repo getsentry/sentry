@@ -1,6 +1,6 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
-class BgTaskConfig(TypedDict, total=False):
-    roles: list[str]
-    interval: int
+class BgTaskConfig(TypedDict):
+    roles: NotRequired[list[str]]
+    interval: NotRequired[int]

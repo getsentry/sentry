@@ -1,6 +1,6 @@
 import ast
 import json  # noqa: S003
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 FILTERED = "[Filtered]"
 FILE_CONTENT_PARTS = ("blob", "uri", "file")
@@ -18,11 +18,11 @@ class AIOutputResult(TypedDict):
     tool_calls: str | None
 
 
-class RawMessage(TypedDict, total=False):
-    role: str
-    content: Any
-    parts: list[Any]
-    role_explicit: bool
+class RawMessage(TypedDict):
+    role: NotRequired[str]
+    content: NotRequired[Any]
+    parts: NotRequired[list[Any]]
+    role_explicit: NotRequired[bool]
 
 
 class PartBuckets(TypedDict):

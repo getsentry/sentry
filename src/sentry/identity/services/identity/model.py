@@ -2,7 +2,7 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from pydantic import Field
 
@@ -36,11 +36,11 @@ class RpcIdentity(RpcModel):
         return get(identity_provider.type)
 
 
-class IdentityFilterArgs(TypedDict, total=False):
-    id: int
-    user_id: int
-    identity_ext_id: str
-    identity_ext_ids: list[str]
-    provider_id: int
-    provider_ext_id: str
-    provider_type: str
+class IdentityFilterArgs(TypedDict):
+    id: NotRequired[int]
+    user_id: NotRequired[int]
+    identity_ext_id: NotRequired[str]
+    identity_ext_ids: NotRequired[list[str]]
+    provider_id: NotRequired[int]
+    provider_ext_id: NotRequired[str]
+    provider_type: NotRequired[str]

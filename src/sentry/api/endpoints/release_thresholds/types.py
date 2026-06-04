@@ -1,17 +1,17 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 
-class SerializedThreshold(TypedDict, total=False):
-    id: str
-    date: datetime
-    environment: dict[str, Any] | None
-    project: dict[str, Any]
-    release: str
-    threshold_type: int
-    trigger_type: str
-    value: int
-    window_in_seconds: int
+class SerializedThreshold(TypedDict):
+    id: NotRequired[str]
+    date: NotRequired[datetime]
+    environment: NotRequired[dict[str, Any] | None]
+    project: NotRequired[dict[str, Any]]
+    release: NotRequired[str]
+    threshold_type: NotRequired[int]
+    trigger_type: NotRequired[str]
+    value: NotRequired[int]
+    window_in_seconds: NotRequired[int]
 
 
 class EnrichedThreshold(SerializedThreshold):

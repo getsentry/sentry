@@ -1,3 +1,5 @@
+from typing import NotRequired
+
 __all__ = ("User",)
 
 
@@ -9,14 +11,14 @@ from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
 
 
-class EventUserApiContext(TypedDict, total=False):
-    id: str | None
-    email: str | None
-    username: str | None
-    ip_address: str | None
-    name: str | None
-    geo: dict[str, str] | None
-    data: dict[str, Any] | None
+class EventUserApiContext(TypedDict):
+    id: NotRequired[str | None]
+    email: NotRequired[str | None]
+    username: NotRequired[str | None]
+    ip_address: NotRequired[str | None]
+    name: NotRequired[str | None]
+    geo: NotRequired[dict[str, str] | None]
+    data: NotRequired[dict[str, Any] | None]
 
 
 class User(Interface):

@@ -1,10 +1,10 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from sentry.search.events.types import SnubaData
 
 
-class OrganizationTraceMetaResponseOptional(TypedDict, total=False):
-    uptimeCount: int
+class OrganizationTraceMetaResponseOptional(TypedDict):
+    uptimeCount: NotRequired[int]
 
 
 class OrganizationTraceMetaResponse(OrganizationTraceMetaResponseOptional):

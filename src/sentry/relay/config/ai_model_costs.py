@@ -1,5 +1,5 @@
 import logging
-from typing import Required, TypedDict
+from typing import NotRequired, Required, TypedDict
 
 from django.conf import settings
 
@@ -25,9 +25,9 @@ class AIModelCost(TypedDict):
     inputCacheWritePerToken: float
 
 
-class AIModelMetadata(TypedDict, total=False):
-    costs: Required[AIModelCost]
-    contextSize: int
+class AIModelMetadata(TypedDict):
+    costs: AIModelCost
+    contextSize: NotRequired[int]
 
 
 class AIModelMetadataConfig(TypedDict):

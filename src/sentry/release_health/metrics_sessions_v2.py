@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequenc
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from enum import Enum
-from typing import Any, Optional, TypedDict, Union, cast
+from typing import Any, NotRequired, Optional, TypedDict, Union, cast
 
 from snuba_sdk import (
     BooleanCondition,
@@ -62,10 +62,10 @@ Scalar = Union[int, float, None]
 
 
 #: Group key as featured in metrics format
-class MetricsGroupKeyDict(TypedDict, total=False):
-    project_id: int
-    release: str
-    environment: str
+class MetricsGroupKeyDict(TypedDict):
+    project_id: NotRequired[int]
+    release: NotRequired[str]
+    environment: NotRequired[str]
 
 
 class SessionStatus(Enum):

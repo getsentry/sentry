@@ -1,11 +1,11 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.users.api.serializers.user import UserSerializerResponse
 
 
-class VersionInfoOptional(TypedDict, total=False):
-    description: str
+class VersionInfoOptional(TypedDict):
+    description: NotRequired[str]
 
 
 class VersionInfo(VersionInfoOptional):
@@ -14,9 +14,9 @@ class VersionInfo(VersionInfoOptional):
     buildHash: str | None
 
 
-class LastDeployOptional(TypedDict, total=False):
-    dateStarted: str | None
-    url: str | None
+class LastDeployOptional(TypedDict):
+    dateStarted: NotRequired[str | None]
+    url: NotRequired[str | None]
 
 
 class LastDeploy(LastDeployOptional):
@@ -34,19 +34,19 @@ class NonMappableUser(TypedDict):
 Author = UserSerializerResponse | NonMappableUser
 
 
-class HealthDataOptional(TypedDict, total=False):
-    durationP50: float | None
-    durationP90: float | None
-    crashFreeUsers: float | None
-    crashFreeSessions: float | None
-    totalUsers: int | None
-    totalUsers24h: int | None
-    totalProjectUsers24h: int | None
-    totalSessions: int | None
-    totalSessions24h: int | None
-    totalProjectSessions24h: int | None
-    adoption: float | None
-    sessionsAdoption: float | None
+class HealthDataOptional(TypedDict):
+    durationP50: NotRequired[float | None]
+    durationP90: NotRequired[float | None]
+    crashFreeUsers: NotRequired[float | None]
+    crashFreeSessions: NotRequired[float | None]
+    totalUsers: NotRequired[int | None]
+    totalUsers24h: NotRequired[int | None]
+    totalProjectUsers24h: NotRequired[int | None]
+    totalSessions: NotRequired[int | None]
+    totalSessions24h: NotRequired[int | None]
+    totalProjectSessions24h: NotRequired[int | None]
+    adoption: NotRequired[float | None]
+    sessionsAdoption: NotRequired[float | None]
 
 
 class HealthData(HealthDataOptional):
@@ -56,11 +56,11 @@ class HealthData(HealthDataOptional):
     stats: dict[str, Any]
 
 
-class ProjectOptional(TypedDict, total=False):
-    healthData: HealthData | None
-    dateReleased: datetime | None
-    dateCreated: datetime | None
-    dateStarted: datetime | None
+class ProjectOptional(TypedDict):
+    healthData: NotRequired[HealthData | None]
+    dateReleased: NotRequired[datetime | None]
+    dateCreated: NotRequired[datetime | None]
+    dateStarted: NotRequired[datetime | None]
 
 
 class BaseProject(ProjectOptional):

@@ -18,7 +18,7 @@ normalize it first.
 
 from collections.abc import MutableMapping, Sequence
 from datetime import date, datetime
-from typing import Any, NotRequired, Required, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 from typing import Literal as TLiteral
 
 import urllib3
@@ -280,7 +280,7 @@ class RequestMeta(TypedDict):
     trace_item_type: TRACE_ITEM_TYPES
 
 
-class Settings(TypedDict, total=False):
+class Settings(TypedDict):
     """
     Query settings are extra metadata items which are not representable within a Snuba query. They
     are not sent to EAP in the form they are supplied. Instead they are used as helper metadata in
@@ -335,10 +335,10 @@ class Settings(TypedDict, total=False):
         ... }
     """
 
-    attribute_types: Required[dict[str, type[bool | float | int | str]]]
-    default_limit: int
-    default_offset: int
-    extrapolation_modes: MutableMapping[str, TLiteral["weighted", "none"]]  # noqa
+    attribute_types: dict[str, type[bool | float | int | str]]
+    default_limit: NotRequired[int]
+    default_offset: NotRequired[int]
+    extrapolation_modes: NotRequired[MutableMapping[str, TLiteral["weighted", "none"]]]  # noqa
 
 
 VirtualColumn = TypedDict(

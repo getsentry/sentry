@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from rest_framework.response import Response
@@ -11,9 +11,9 @@ class SentryAppErrorType(Enum):
     SENTRY = "sentry"
 
 
-class SentryAppPublicErrorBody(TypedDict, total=False):
-    detail: str
-    context: dict[str, Any]
+class SentryAppPublicErrorBody(TypedDict):
+    detail: NotRequired[str]
+    context: NotRequired[dict[str, Any]]
 
 
 class SentryAppBaseError(Exception):

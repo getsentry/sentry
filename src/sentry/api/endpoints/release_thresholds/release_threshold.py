@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from django.http import HttpResponse
 from rest_framework import serializers
@@ -21,12 +21,12 @@ from sentry.models.release_threshold.constants import TriggerType as ReleaseThre
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
-class ReleaseThresholdPOSTData(TypedDict, total=False):
-    threshold_type: int
-    trigger_type: int
-    value: int
-    window_in_seconds: int
-    environment: object
+class ReleaseThresholdPOSTData(TypedDict):
+    threshold_type: NotRequired[int]
+    trigger_type: NotRequired[int]
+    value: NotRequired[int]
+    window_in_seconds: NotRequired[int]
+    environment: NotRequired[object]
 
 
 class ReleaseThresholdPOSTSerializer(serializers.Serializer[ReleaseThresholdPOSTData]):

@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
 from functools import cached_property
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.dispatch import Signal
 from django.utils import timezone
@@ -419,7 +419,7 @@ class RpcAuditLogEntryActor(RpcModel):
     ip_address: str | None
 
 
-class OrganizationMemberUpdateArgs(TypedDict, total=False):
-    flags: RpcOrganizationMemberFlags | None
-    role: str
-    invite_status: int
+class OrganizationMemberUpdateArgs(TypedDict):
+    flags: NotRequired[RpcOrganizationMemberFlags | None]
+    role: NotRequired[str]
+    invite_status: NotRequired[int]

@@ -1,5 +1,5 @@
 from collections.abc import Callable, MutableMapping
-from typing import Any, TypedDict, TypeVar
+from typing import Any, NotRequired, TypedDict, TypeVar
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -25,9 +25,9 @@ from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_
 ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
 
 
-class _Query(TypedDict, total=False):
-    triggerType: str
-    project: int
+class _Query(TypedDict):
+    triggerType: NotRequired[str]
+    project: NotRequired[int]
 
 
 class _QueryResult(TypedDict):

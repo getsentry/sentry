@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import IntEnum
-from typing import Any, Literal, Required, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     Assertion,
@@ -66,68 +66,68 @@ The HTTP method to use for the request.
 """
 
 
-class CheckConfig(TypedDict, total=False):
+class CheckConfig(TypedDict):
     """
     A message containing the configuration for a check to scheduled and
     executed by the uptime-checker.
     """
 
-    subscription_id: Required[str]
+    subscription_id: str
     """
     UUID of the subscription that this check config represents.
     """
 
-    interval_seconds: Required[CheckInterval]
+    interval_seconds: CheckInterval
     """
     The interval between each check run in seconds.
     """
 
-    timeout_ms: Required[int | float]
+    timeout_ms: int | float
     """
     The total time we will allow to make the request in milliseconds.
     """
 
-    url: Required[str]
+    url: str
     """
     The actual HTTP URL to check.
     """
 
-    request_method: RequestMethod
+    request_method: NotRequired[RequestMethod]
     """
     The HTTP method to use for the request.
     """
 
-    request_headers: Sequence[RequestHeader]
+    request_headers: NotRequired[Sequence[RequestHeader]]
     """
     Additional HTTP headers to send with the request.
     """
 
-    request_body: str
+    request_body: NotRequired[str]
     """
     Additional HTTP headers to send with the request.
     """
 
-    trace_sampling: bool
+    trace_sampling: NotRequired[bool]
     """
     Whether to allow for sampled trace spans for the request.
     """
 
-    active_regions: Sequence[str]
+    active_regions: NotRequired[Sequence[str]]
     """
     A list of region slugs the uptime check is configured to run in.
     """
 
-    region_schedule_mode: "RegionScheduleMode"
+    region_schedule_mode: NotRequired["RegionScheduleMode"]
     """
     Defines how we'll schedule checks based on other active regions.
     """
 
-    assertion: Any | None
+    assertion: NotRequired[Any | None]
     """
     The runtime assertion to execute, or null.
     """
 
-    capture_response_on_failure: bool
+    capture_response_on_failure: NotRequired[bool]
     """
     Whether to capture response body and headers on check failures.
     """

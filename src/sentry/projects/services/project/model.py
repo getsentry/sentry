@@ -5,7 +5,7 @@
 
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from pydantic.fields import Field
 
@@ -17,15 +17,15 @@ def _project_status_visible() -> int:
     return int(ObjectStatus.ACTIVE)
 
 
-class ProjectFilterArgs(TypedDict, total=False):
-    project_ids: list[int]
+class ProjectFilterArgs(TypedDict):
+    project_ids: NotRequired[list[int]]
 
 
-class ProjectUpdateArgs(TypedDict, total=False):
-    name: str
-    slug: str
-    platform: str | None
-    external_id: str | None
+class ProjectUpdateArgs(TypedDict):
+    name: NotRequired[str]
+    slug: NotRequired[str]
+    platform: NotRequired[str | None]
+    external_id: NotRequired[str | None]
 
 
 class RpcProjectFlags(RpcModel):
