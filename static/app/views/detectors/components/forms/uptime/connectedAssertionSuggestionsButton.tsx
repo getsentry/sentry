@@ -3,7 +3,7 @@ import {useContext, useRef} from 'react';
 import type {ButtonProps} from '@sentry/scraps/button';
 
 import {FormContext} from 'sentry/components/forms/formContext';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {AssertionSuggestionsButton} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsButton';
 import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
 import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from 'sentry/views/detectors/components/forms/uptime/fields';

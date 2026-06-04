@@ -362,7 +362,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         },
         examples=ReleaseExamples.LIST_ORGANIZATION_RELEASES,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[ReleaseSerializerResponse]]:
         """
         Return a list of releases for a given organization, sorted by most recent.
         """
@@ -934,7 +936,9 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
         },
         examples=ReleaseExamples.LIST_RELEASE_TIMESERIES,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[OrganizationReleaseTimeseriesData]]:
         """
         Return a minimal list of an organization's releases (version and date only),
         sorted by most recent. Intended for building release timeseries, such as

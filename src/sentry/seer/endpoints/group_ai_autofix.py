@@ -248,7 +248,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=run_id,
-                intelligence_level="medium",
                 user_context=data.get("user_context"),
                 insert_index=data.get("insert_index"),
             )

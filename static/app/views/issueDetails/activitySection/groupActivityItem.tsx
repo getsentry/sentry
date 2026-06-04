@@ -467,7 +467,6 @@ export function getGroupActivityItem(
             author,
             pullRequest: pullRequest ? (
               <PullRequestLink
-                inline
                 pullRequest={pullRequest}
                 repository={pullRequest.repository}
               />

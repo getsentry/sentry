@@ -19,7 +19,7 @@ import {tct, tn} from 'sentry/locale';
 import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/context';

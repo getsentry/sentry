@@ -6,9 +6,9 @@ import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Meta} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -228,6 +228,9 @@ export function usePrefetchTraceItemDetailsOnHover({
   projectRef.current = project;
   const queryClient = useQueryClient();
   const [traceItemMeta, setTraceItemMeta] = useState<TraceItemDetailsMeta | undefined>();
+  const [traceItemAttributes, setTraceItemAttributes] = useState<
+    TraceItemResponseAttribute[] | undefined
+  >();
 
   const {hoverProps} = useHover({
     onHoverStart: () => {
@@ -254,6 +257,7 @@ export function usePrefetchTraceItemDetailsOnHover({
         queryClient.fetchQuery(options).then(
           response => {
             setTraceItemMeta(response?.json?.meta);
+            setTraceItemAttributes(response?.json?.attributes);
           },
           () => {}
         );
@@ -267,5 +271,5 @@ export function usePrefetchTraceItemDetailsOnHover({
     isDisabled: hoverPrefetchDisabled,
   });
 
-  return {hoverProps, traceItemMeta};
+  return {hoverProps, traceItemMeta, traceItemAttributes};
 }

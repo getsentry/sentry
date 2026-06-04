@@ -888,6 +888,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.data_forwarding.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.github.tasks.query_commit_author_public_emails",
     "sentry.integrations.github.tasks.sync_repos",
     "sentry.integrations.github.tasks.sync_repos_on_install_change",
     "sentry.integrations.source_code_management.sync_repos",
@@ -918,6 +919,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
     "sentry.preprod.snapshots.tasks",
+    "sentry.preprod.snapshots.zip_tasks",
     "sentry.preprod.tasks",
     "sentry.preprod.vcs.pr_comments.snapshot_tasks",
     "sentry.preprod.vcs.pr_comments.tasks",
@@ -1199,7 +1201,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
-        "schedule": crontab("0", "*", "*", "*", "*"),
+        "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
     "web-vitals-issue-detection": {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
@@ -1333,6 +1335,8 @@ LOGGING: LoggingConfig = {
         },
         "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
         "taskbroker_client": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        # Configure grpc explicitly so its errors aren't dropped by disable_existing_loggers.
+        "grpc": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
         "django.request": {
             "level": "WARNING",

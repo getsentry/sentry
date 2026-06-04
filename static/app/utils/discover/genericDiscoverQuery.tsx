@@ -108,7 +108,7 @@ type BaseDiscoverQueryProps = {
   skipAbort?: boolean;
 };
 
-export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
+type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
 export type DiscoverQueryProps = BaseDiscoverQueryProps & {
   eventView: EventView | ImmutableEventView;
   orgSlug: string;

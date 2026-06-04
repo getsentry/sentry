@@ -27,8 +27,8 @@ import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {defined} from 'sentry/utils/defined';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   TableBodyCell,

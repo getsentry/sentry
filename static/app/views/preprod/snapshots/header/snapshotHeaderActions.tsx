@@ -167,32 +167,10 @@ export function SnapshotHeaderActions({
     });
   }, [apiUrl, navigate]);
 
-  const handleDownloadImages = useCallback(async () => {
+  const handleDownloadImages = useCallback(() => {
     const downloadUrl = `/api/0/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/download/`;
 
-    try {
-      const response = await fetch(downloadUrl, {credentials: 'include'});
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          const detail = await response.json().catch(() => ({}));
-          handleStaffPermissionError(detail?.detail);
-        } else if (response.status === 404) {
-          addErrorMessage(t('Snapshot images not found.'));
-        } else {
-          addErrorMessage(t('Download failed (status: %s)', response.status));
-        }
-        return;
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      downloadFromHref(`snapshot_images_${data.head_artifact_id}.zip`, blobUrl);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-      addSuccessMessage(t('Snapshot images download started'));
-    } catch (error) {
-      addErrorMessage(t('Download failed: %s', String(error)));
-    }
+    downloadFromHref(`snapshot_images_${data.head_artifact_id}.zip`, downloadUrl);
   }, [organizationSlug, data.head_artifact_id]);
 
   return (

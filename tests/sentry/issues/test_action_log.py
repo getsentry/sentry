@@ -1,6 +1,8 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 import sentry.api.helpers.group_index.update
 import sentry.issues.endpoints.group_details
 import sentry.issues.priority
@@ -8,14 +10,30 @@ import sentry.issues.status_change
 import sentry.models.groupassignee
 import sentry.models.groupinbox
 from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
     ActionContext,
-    ActionSource,
-    ActionType,
+    DuplicateActionError,
+    GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
     resolve_action_source,
 )
+from sentry.issues.action_log.base import ActionSource
+from sentry.issues.action_log.types import (
+    ArchiveAction,
+    AssignAction,
+    GroupActionType,
+    GroupActorType,
+    MarkReviewedAction,
+    MergeFromOtherAction,
+    MergeIntoOtherAction,
+    ResolveAction,
+    SetPriorityAction,
+    UnassignAction,
+    ViewAction,
+)
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
@@ -118,39 +136,42 @@ class TestActionContext(TestCase):
         assert get_action_context() is None
 
     def test_scope_sets_and_resets(self) -> None:
-        with action_context_scope(source="web", actor_id=42):
+        actor = GroupActionActor.user(42)
+        with action_context_scope(source="web", actor=actor):
             ctx = get_action_context()
             assert ctx is not None
             assert ctx.source == "web"
-            assert ctx.actor_id == 42
+            assert ctx.actor == actor
         assert get_action_context() is None
 
     def test_scope_without_actor(self) -> None:
-        with action_context_scope(source="system", actor_id=None):
+        with action_context_scope(source="system", actor=SYSTEM_ACTOR):
             ctx = get_action_context()
             assert ctx is not None
             assert ctx.source == "system"
-            assert ctx.actor_id is None
+            assert ctx.actor == SYSTEM_ACTOR
 
     def test_nested_scopes(self) -> None:
-        with action_context_scope(source="web", actor_id=1):
-            with action_context_scope(source="api", actor_id=2):
+        actor1 = GroupActionActor.user(1)
+        actor2 = GroupActionActor.user(2)
+        with action_context_scope(source="web", actor=actor1):
+            with action_context_scope(source="api", actor=actor2):
                 ctx = get_action_context()
-                assert ctx == ActionContext(source="api", actor_id=2)
+                assert ctx == ActionContext(source="api", actor=actor2)
             ctx = get_action_context()
-            assert ctx == ActionContext(source="web", actor_id=1)
+            assert ctx == ActionContext(source="web", actor=actor1)
 
 
 class TestPublishAction(TestCase):
     def test_emits_structured_log(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
-                action=ActionType.RESOLVE,
+                ResolveAction(),
                 source="mcp:claude-code",
                 group_id=1,
                 organization_id=2,
                 project_id=3,
-                actor_id=4,
+                actor=GroupActionActor.user(4),
             )
         assert len(logs.records) == 1
         record = logs.records[0]
@@ -160,21 +181,21 @@ class TestPublishAction(TestCase):
         assert extra["source"] == "mcp:claude-code"
         assert extra["actor_id"] == 4
 
-    def test_actor_type_derived_from_actor_id(self) -> None:
+    def test_actor_type_derived_from_actor(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
-                action=ActionType.RESOLVE,
+                ResolveAction(),
                 source="web",
                 group_id=1,
                 organization_id=2,
                 project_id=3,
-                actor_id=99,
+                actor=GroupActionActor.user(99),
             )
         assert logs.records[0].__dict__["actor_type"] == "user"
 
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
-                action=ActionType.RESOLVE,
+                ResolveAction(),
                 source="system",
                 group_id=1,
                 organization_id=2,
@@ -189,7 +210,7 @@ class TestPublishActionFromContext(TestCase):
 
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action_from_context(
-                action=ActionType.RESOLVE,
+                ResolveAction(),
                 group_id=1,
                 organization_id=2,
                 project_id=3,
@@ -218,7 +239,9 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(self.url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200
         resolve_calls = [
-            c for c in mock_publish.call_args_list if c.kwargs.get("action") == ActionType.RESOLVE
+            c
+            for c in mock_publish.call_args_list
+            if c.args[0].get_type() == GroupActionType.RESOLVE
         ]
         assert len(resolve_calls) == 1
         assert resolve_calls[0].kwargs["group_id"] == self.group.id
@@ -231,7 +254,9 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(self.url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200
         resolve_calls = [
-            c for c in mock_publish.call_args_list if c.kwargs.get("action") == ActionType.RESOLVE
+            c
+            for c in mock_publish.call_args_list
+            if c.args[0].get_type() == GroupActionType.RESOLVE
         ]
         assert len(resolve_calls) == 0
 
@@ -244,7 +269,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         mock_publish.assert_called_once()
-        assert mock_publish.call_args.kwargs["action"] == ActionType.ARCHIVE
+        assert isinstance(mock_publish.call_args.args[0], ArchiveAction)
 
     @patch.object(sentry.issues.status_change, "publish_action_from_context", autospec=True)
     def test_archive_already_archived_skips(self, mock_publish: MagicMock) -> None:
@@ -262,7 +287,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(self.url, data={"priority": "high"}, format="json")
         assert response.status_code == 200
         mock_publish.assert_called_once()
-        assert mock_publish.call_args.kwargs["action"] == ActionType.SET_PRIORITY
+        assert isinstance(mock_publish.call_args.args[0], SetPriorityAction)
 
     @patch.object(sentry.issues.priority, "publish_action_from_context", autospec=True)
     def test_priority_same_value_skips(self, mock_publish: MagicMock) -> None:
@@ -277,7 +302,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         mock_publish.assert_called_once()
-        assert mock_publish.call_args.kwargs["action"] == ActionType.ASSIGN
+        assert isinstance(mock_publish.call_args.args[0], AssignAction)
 
     @patch.object(sentry.models.groupassignee, "publish_action_from_context", autospec=True)
     def test_assign_same_user_skips(self, mock_publish: MagicMock) -> None:
@@ -293,7 +318,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(self.url, data={"assignedTo": ""}, format="json")
         assert response.status_code == 200
         unassign_calls = [
-            c for c in mock_publish.call_args_list if c.kwargs.get("action") == ActionType.UNASSIGN
+            c for c in mock_publish.call_args_list if isinstance(c.args[0], UnassignAction)
         ]
         assert len(unassign_calls) == 1
 
@@ -308,7 +333,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.get(self.url, format="json")
         assert response.status_code == 200
         mock_publish.assert_called_once()
-        assert mock_publish.call_args.kwargs["action"] == ActionType.VIEW
+        assert isinstance(mock_publish.call_args.args[0], ViewAction)
 
     @patch.object(sentry.models.groupinbox, "publish_action_from_context", autospec=True)
     def test_mark_reviewed_emits_for_inbox_groups(self, mock_publish: MagicMock) -> None:
@@ -328,9 +353,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(url, data={"inbox": False}, format="json")
         assert response.status_code == 200
         reviewed_calls = [
-            c
-            for c in mock_publish.call_args_list
-            if c.kwargs.get("action") == ActionType.MARK_REVIEWED
+            c for c in mock_publish.call_args_list if isinstance(c.args[0], MarkReviewedAction)
         ]
         assert len(reviewed_calls) == 1
         assert reviewed_calls[0].kwargs["group_id"] == group_in_inbox.id
@@ -342,14 +365,10 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         response = self.client.put(url, data={"merge": 1}, format="json")
         assert response.status_code == 200
         merge_from = [
-            c
-            for c in mock_publish.call_args_list
-            if c.kwargs.get("action") == ActionType.MERGE_FROM_OTHER
+            c for c in mock_publish.call_args_list if isinstance(c.args[0], MergeFromOtherAction)
         ]
         merge_into = [
-            c
-            for c in mock_publish.call_args_list
-            if c.kwargs.get("action") == ActionType.MERGE_INTO_OTHER
+            c for c in mock_publish.call_args_list if isinstance(c.args[0], MergeIntoOtherAction)
         ]
         assert len(merge_from) == 1
         assert len(merge_into) == 1
@@ -359,7 +378,9 @@ class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
     def test_resolve_emits_action_with_context_source(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
-            with action_context_scope(source=ActionSource.SLACK, actor_id=self.user.id):
+            with action_context_scope(
+                source=ActionSource.SLACK, actor=GroupActionActor.user(self.user.id)
+            ):
                 Group.objects.update_group_status(
                     groups=[group],
                     status=GroupStatus.RESOLVED,
@@ -368,7 +389,7 @@ class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
                 )
         records = [r for r in logs.records if r.message == "issue.action_log"]
         assert len(records) == 1
-        assert records[0].__dict__["action"] == ActionType.RESOLVE
+        assert records[0].__dict__["action"] == "resolve"
         assert records[0].__dict__["source"] == ActionSource.SLACK
         assert records[0].__dict__["group_id"] == group.id
         assert records[0].__dict__["actor_id"] == self.user.id
@@ -376,7 +397,7 @@ class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
     def test_ignore_emits_archive_action(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
-            with action_context_scope(source=ActionSource.SYSTEM, actor_id=None):
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
                 Group.objects.update_group_status(
                     groups=[group],
                     status=GroupStatus.IGNORED,
@@ -385,5 +406,94 @@ class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
                 )
         records = [r for r in logs.records if r.message == "issue.action_log"]
         assert len(records) == 1
-        assert records[0].__dict__["action"] == ActionType.ARCHIVE
+        assert records[0].__dict__["action"] == "archive"
         assert records[0].__dict__["source"] == ActionSource.SYSTEM
+
+
+class TestPublishActionWrite(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+
+    def test_creates_log_entry(self) -> None:
+        with self.options({"issues.action-log.write-to-db": True}):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                actor=GroupActionActor.user(self.user.id),
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.type == GroupActionType.VIEW
+        assert entry.actor_id == self.user.id
+        assert entry.actor_type == GroupActorType.USER
+        assert entry.source == ActionSource.API
+        assert entry.data == {}
+        assert entry.date_added is not None
+
+    def test_system_action(self) -> None:
+        with self.options({"issues.action-log.write-to-db": True}):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.SYSTEM,
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                actor=SYSTEM_ACTOR,
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.actor_type == GroupActorType.SYSTEM
+        assert entry.actor_id == 0
+
+    def test_multiple_entries_ordered(self) -> None:
+        with self.options({"issues.action-log.write-to-db": True}):
+            for _ in range(3):
+                publish_action(
+                    ViewAction(),
+                    source=ActionSource.API,
+                    group_id=self.group.id,
+                    organization_id=self.group.project.organization_id,
+                    project_id=self.group.project_id,
+                    actor=GroupActionActor.user(self.user.id),
+                )
+
+        entries = list(
+            GroupActionLogEntry.objects.filter(group_id=self.group.id).order_by("date_added", "id")
+        )
+        assert len(entries) == 3
+        assert entries[0].id < entries[1].id < entries[2].id
+
+    def test_duplicate_idempotency_key_raises(self) -> None:
+        kwargs = dict(
+            source=ActionSource.API,
+            group_id=self.group.id,
+            organization_id=self.group.project.organization_id,
+            project_id=self.group.project_id,
+            actor=GroupActionActor.user(self.user.id),
+            idempotency_key="view-123",
+        )
+
+        with self.options({"issues.action-log.write-to-db": True}):
+            publish_action(ViewAction(), **kwargs)
+
+            with pytest.raises(DuplicateActionError):
+                publish_action(ViewAction(), **kwargs)
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    def test_option_disabled_skips_write(self) -> None:
+        with self.options({"issues.action-log.write-to-db": False}):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                actor=GroupActionActor.user(self.user.id),
+            )
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
