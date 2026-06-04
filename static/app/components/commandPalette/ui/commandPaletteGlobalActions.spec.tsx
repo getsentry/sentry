@@ -44,8 +44,9 @@ function makeRenderProps(closeModal: jest.Mock) {
   };
 }
 
-import {GlobalCommandPaletteActions} from './commandPaletteGlobalActions';
 import * as userOrgNavConfig from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
+
+import {GlobalCommandPaletteActions} from './commandPaletteGlobalActions';
 
 function SlotOutlets() {
   return (
@@ -490,29 +491,27 @@ describe('GlobalCommandPaletteActions - org settings show filter', () => {
   }
 
   it('excludes org nav items with show: false or a show function returning false from the Settings section', async () => {
-    jest
-      .spyOn(userOrgNavConfig, 'getUserOrgNavigationConfiguration')
-      .mockReturnValue([
-        {
-          id: 'test-section',
-          name: 'Test',
-          items: [
-            {path: '/settings/:orgId/visible-item/', title: 'Visible Setting Item'},
-            // constant false — the original API Keys case
-            {
-              path: '/settings/:orgId/hidden-constant/',
-              title: 'Hidden Constant Item',
-              show: false,
-            },
-            // function returning false — e.g. feature-flag gated items
-            {
-              path: '/settings/:orgId/hidden-fn/',
-              title: 'Hidden Function Item',
-              show: () => false,
-            },
-          ],
-        },
-      ]);
+    jest.spyOn(userOrgNavConfig, 'getUserOrgNavigationConfiguration').mockReturnValue([
+      {
+        id: 'test-section',
+        name: 'Test',
+        items: [
+          {path: '/settings/:orgId/visible-item/', title: 'Visible Setting Item'},
+          // constant false — the original API Keys case
+          {
+            path: '/settings/:orgId/hidden-constant/',
+            title: 'Hidden Constant Item',
+            show: false,
+          },
+          // function returning false — e.g. feature-flag gated items
+          {
+            path: '/settings/:orgId/hidden-fn/',
+            title: 'Hidden Function Item',
+            show: () => false,
+          },
+        ],
+      },
+    ]);
 
     renderPalette();
     const input = await screen.findByRole('textbox', {name: 'Search commands'});
@@ -526,12 +525,16 @@ describe('GlobalCommandPaletteActions - org settings show filter', () => {
     // show: false (constant) must be excluded
     await userEvent.clear(input);
     await userEvent.type(input, 'Hidden Constant');
-    expect(screen.queryByRole('option', {name: /Hidden Constant Item/})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Hidden Constant Item/})
+    ).not.toBeInTheDocument();
 
     // show: () => false (function) must also be excluded
     await userEvent.clear(input);
     await userEvent.type(input, 'Hidden Function');
-    expect(screen.queryByRole('option', {name: /Hidden Function Item/})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Hidden Function Item/})
+    ).not.toBeInTheDocument();
   });
 
   it('does not surface API Keys as a Settings nav entry (regression)', async () => {
