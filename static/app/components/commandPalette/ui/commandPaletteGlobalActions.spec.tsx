@@ -454,11 +454,8 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     await userEvent.type(input, 'Dashboards');
     await userEvent.click(await screen.findByRole('option', {name: /Dashboards/}));
 
-    // Click on the "All Dashboards" search action (last option with that name)
-    const allDashboardsOptions = await screen.findAllByRole('option', {
-      name: /All Dashboards/,
-    });
-    await userEvent.click(allDashboardsOptions[allDashboardsOptions.length - 1]);
+    // Click on the "All Dashboards" search action
+    await userEvent.click(await screen.findByRole('option', {name: /All Dashboards/}));
 
     // Type the search query in the sub-prompt
     await userEvent.type(input, 'quer');

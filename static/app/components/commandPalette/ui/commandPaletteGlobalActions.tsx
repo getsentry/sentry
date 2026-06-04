@@ -408,7 +408,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
           {hasPrebuiltDashboards && (
             <CMDKAction
-              display={{label: t('All Dashboards')}}
+              display={{label: t('Dashboards')}}
               to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
             />
           )}
