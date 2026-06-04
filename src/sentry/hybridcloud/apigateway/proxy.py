@@ -160,7 +160,11 @@ def proxy_error_embed_request(
 def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
 
-    metric_tags = {"destination_cell": cell.name, "url_name": url_name}
+    host = cell.address
+    if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
+        host = cell.api_gateway_address
+
+    metric_tags = {"destination_cell": cell.name, "url_name": url_name, "destination_host": host}
     circuit_breaker: CircuitBreaker | None = None
     use_pooling = in_random_rollout("hybridcloud.apigateway.use_pooling.rate")
 
@@ -187,9 +191,6 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
                 }
                 return JsonResponse(body, status=503)
 
-    host = cell.address
-    if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
-        host = cell.api_gateway_address
     target_url = urljoin(host, request.path)
 
     if settings.APIGW_WARN_REQS:

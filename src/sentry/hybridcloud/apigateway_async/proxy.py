@@ -152,11 +152,15 @@ async def proxy_cell_request(
     url_name: str,
 ) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
-    metric_tags = {"destination_cell": cell.name, "url_name": url_name}
     host = cell.address
     if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
         host = cell.api_gateway_address
 
+    metric_tags = {
+        "destination_cell": cell.name,
+        "url_name": url_name,
+        "destination_host": host,
+    }
     target_url = urljoin(host, request.path)
 
     content_encoding = request.headers.get("Content-Encoding")
