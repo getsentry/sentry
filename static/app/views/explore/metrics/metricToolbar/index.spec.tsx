@@ -152,6 +152,53 @@ describe('MetricToolbar', () => {
 
     expect(await screen.findByRole('button', {name: /Group by/})).toBeInTheDocument();
   });
+
+  it('disables group by selector while trace item attributes are loading', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+      asyncDelay: 50,
+    });
+
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-enabled'],
+    });
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [
+        new VisualizeFunction('sum(value,loading_group_metric,distribution,none)'),
+      ],
+      aggregateSortBys: [
+        {field: 'sum(value,loading_group_metric,distribution,none)', kind: 'desc'},
+      ],
+    });
+
+    render(
+      <MetricToolbar
+        traceMetric={{name: 'loading_group_metric', type: 'distribution'}}
+        queryLabel="A"
+      />,
+      {
+        organization,
+        additionalWrapper: ({children}: {children: ReactNode}) => (
+          <Wrapper queryParams={queryParams}>{children}</Wrapper>
+        ),
+      }
+    );
+
+    expect(screen.getByRole('button', {name: /Group by/})).toBeDisabled();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: /Group by/})).toBeEnabled();
+    });
+  });
 });
 
 describe('Filter', () => {

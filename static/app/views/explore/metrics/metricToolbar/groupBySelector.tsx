@@ -140,7 +140,7 @@ export function GroupBySelector({
       options={enabledOptions}
       value={[...groupBys]}
       loading={isLoading}
-      disabled={isDisabled || (!skipTraceMetricFilter && !traceMetricFilter)}
+      disabled={isDisabled || isLoading || (!skipTraceMetricFilter && !traceMetricFilter)}
       onChange={handleChange}
       style={{width: '100%'}}
     />
