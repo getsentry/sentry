@@ -11,6 +11,7 @@ import {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {
   useGroupSummaryData,
@@ -19,7 +20,12 @@ import {
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
-import {getIssueTypeFromOccurrenceType, type Group} from 'sentry/types/group';
+import {
+  getIssueTypeFromOccurrenceType,
+  type Group,
+  type KeyValueListDataItem,
+} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -157,13 +163,26 @@ function getSpanMarkdownValue(
   return `${span.op} - ${span.description}`;
 }
 
+function getKeyValueListMarkdownValue(value: KeyValueListDataItem['value']): string | null {
+  if (value === null || value === undefined || typeof value === 'boolean') {
+    return null;
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return String(value);
+  }
+  if (typeof value === 'object' && !Array.isArray(value) && !('type' in value)) {
+    return JSON.stringify(value);
+  }
+  return null;
+}
+
 /**
  * Builds a Markdown representation of the "Span Evidence" section shown on the
  * issue details page for performance, profiling, and other occurrence-based
  * issues. Returns an empty string for issues that don't expose span evidence
  * (e.g. errors).
  */
-function formatSpanEvidenceToMarkdown(event: Event): string {
+function formatSpanEvidenceToMarkdown(event: Event, organization?: Organization): string {
   const eventTransaction = event as EventTransaction;
   const issueType =
     eventTransaction.perfProblem?.issueType ??
@@ -187,6 +206,20 @@ function formatSpanEvidenceToMarkdown(event: Event): string {
 
   if (event.title) {
     lines.push(`**Transaction:** ${event.title}`);
+  }
+
+  if (organization) {
+    const regressionData = getRegressionIssueKeyValueList(
+      organization,
+      issueType,
+      event
+    );
+    regressionData?.forEach(item => {
+      const value = getKeyValueListMarkdownValue(item.value);
+      if (item.subject && value) {
+        lines.push(`**${item.subject}:** ${value}`);
+      }
+    });
   }
 
   if (spanInfo?.parentSpan) {
@@ -235,7 +268,8 @@ export const issueAndEventToMarkdown = (
   event: Event | null | undefined,
   groupSummaryData: GroupSummaryData | null | undefined,
   autofixData: ExplorerAutofixState | null | undefined,
-  activeThreadId: number | undefined
+  activeThreadId: number | undefined,
+  organization?: Organization
 ): string => {
   // Format the basic issue information
   let markdownText = `# ${group.title}\n\n`;
@@ -288,7 +322,7 @@ export const issueAndEventToMarkdown = (
   }
 
   if (event) {
-    markdownText += formatSpanEvidenceToMarkdown(event);
+    markdownText += formatSpanEvidenceToMarkdown(event, organization);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
@@ -308,7 +342,8 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
       event,
       groupSummaryData,
       autofixData,
-      activeThreadId
+      activeThreadId,
+      organization
     );
   }, [group, event, groupSummaryData, autofixData, activeThreadId]);
 
