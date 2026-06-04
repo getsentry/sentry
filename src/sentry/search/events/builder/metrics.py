@@ -81,6 +81,7 @@ from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 
 class MetricsQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = True
+    organization_id: int
 
     duration_fields = {"transaction.duration"}
     organization_column: str = "organization_id"
@@ -167,7 +168,6 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         return super().are_columns_resolved()
 
     def _is_on_demand_extraction_disabled(self, query_hash: str) -> bool:
-        assert self.organization_id is not None
         spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
         on_demand_entries = DashboardWidgetQueryOnDemand.objects.filter(
             spec_hashes__contains=[query_hash],
@@ -189,7 +189,6 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         if not field:
             return None
 
-        assert self.organization_id is not None
         groupby_columns = self._get_group_bys()
 
         if not should_use_on_demand_metrics_for_querying(
@@ -635,10 +634,12 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         alias: str,
         resolve_only: bool,
     ) -> SelectType | None:
-        assert isinstance(snql_function, fields.MetricsFunction)
+        if not isinstance(snql_function, fields.MetricsFunction):
+            return super().resolve_snql_function(snql_function, arguments, alias, resolve_only)
         column_arg = arguments.get("column")
-        assert column_arg is None or isinstance(column_arg, str)
-        prefix = self._get_metric_prefix(snql_function, column_arg)
+        prefix = self._get_metric_prefix(
+            snql_function, column_arg if isinstance(column_arg, str) else None
+        )
         # If the metric_id is 0 that means this is a function that won't return but we don't want to error the query
         nullable = arguments.get("metric_id") == 0
         if nullable:
@@ -683,7 +684,6 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     def resolve_metric_index(self, value: str) -> int | None:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
-        assert self.organization_id is not None
         if value not in self._indexer_cache:
             result = indexer.resolve(
                 self.use_case_id,
@@ -1520,9 +1520,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
     def resolve_granularity(self) -> Granularity:
         """Find the largest granularity that is smaller than the interval"""
-        if self.start is None or self.end is None:
-            raise ValueError("skip_time_conditions must be False when calling this method")
-
         for available_granularity in constants.METRICS_GRANULARITIES:
             if available_granularity <= self.interval:
                 max_granularity = available_granularity
@@ -1534,7 +1531,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             self.interval = constants.METRICS_GRANULARITIES[-1]
             max_granularity = self.interval
 
-        optimal_granularity = optimal_granularity_for_date_range(self.start, self.end)
+        start = self.start or self.params.start_date
+        end = self.end or self.params.end_date
+        optimal_granularity = optimal_granularity_for_date_range(start, end)
 
         # get the minimum granularity between the optimal granularity and the max granularity
         granularity = min(optimal_granularity, max_granularity)
