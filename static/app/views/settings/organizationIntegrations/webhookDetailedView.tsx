@@ -3,16 +3,20 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {PlatformKey} from 'sentry/types/platform';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -95,6 +99,17 @@ export function WebhookDetailedView() {
           needProject
           needOrg={false}
           onFinish={to => {
+            const path = typeof to === 'string' ? to : (to.pathname ?? '');
+            const projectSlug = path.split('/projects/')[1]?.split('/')[0];
+            if (projectSlug) {
+              fetchMutation({
+                method: 'POST',
+                url: `/projects/${organization.slug}/${projectSlug}/legacy-webhooks/`,
+                data: {enabled: true},
+              }).catch(() => {
+                addErrorMessage(t('Failed to enable webhooks for project.'));
+              });
+            }
             modalProps.closeModal();
             navigate(normalizeUrl(to));
           }}
@@ -114,12 +129,25 @@ export function WebhookDetailedView() {
 
   return (
     <IntegrationLayout.Body
-      integrationName={t('Webhooks')}
-      alert={null}
+      integrationName={t('Webhooks (Legacy)')}
+      alert={
+        <Alert.Container>
+          <Alert variant="warning">
+            {tct(
+              'We strongly recommend using an [link:internal integration] instead of legacy webhooks.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/organization/integrations/integration-platform/internal-integration/" />
+                ),
+              }
+            )}
+          </Alert>
+        </Alert.Container>
+      }
       topSection={
         <IntegrationLayout.TopSection
           featureData={WEBHOOK_FEATURE_DATA}
-          integrationName={t('Webhooks')}
+          integrationName={t('Webhooks (Legacy)')}
           installationStatus={installationStatus}
           integrationIcon={<PluginIcon pluginId="webhooks" size={50} />}
           addInstallButton={
