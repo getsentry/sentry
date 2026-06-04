@@ -1,5 +1,5 @@
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {
   useApiQuery,
   type ApiQueryKey,
