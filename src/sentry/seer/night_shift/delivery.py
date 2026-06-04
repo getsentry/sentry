@@ -14,9 +14,8 @@ from sentry.models.organization import Organization
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
-from sentry.seer.night_shift.models import TriageResponse
-from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
-from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
+from sentry.seer.night_shift.models import TriageAction, TriageResponse, TriageResult
+from sentry.seer.night_shift.skip_cache import mark_skipped
 
 logger = logging.getLogger(__name__)
 

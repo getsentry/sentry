@@ -2275,7 +2275,6 @@ module = [
     "tests.sentry.tasks.conftest",
     "tests.sentry.tasks.scim.*",
     "tests.sentry.tasks.seer",
-    "tests.sentry.tasks.seer.night_shift.*",
     "tests.sentry.tasks.seer.test_autofix",
     "tests.sentry.tasks.seer.test_backfill_supergroups_lightweight",
     "tests.sentry.tasks.seer.test_context_engine_index",

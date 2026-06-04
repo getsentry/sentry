@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from sentry import options
-from sentry.tasks.seer.night_shift.tweaks import NightShiftTweaks, get_night_shift_tweaks
+from sentry.seer.night_shift.tweaks import NightShiftTweaks, get_night_shift_tweaks
 from sentry.testutils.cases import TestCase
 
 
@@ -59,9 +59,7 @@ class GetNightShiftTweaksTest(TestCase):
             [{"enabled": True}],
         )
 
-        with patch(
-            "sentry.tasks.seer.night_shift.tweaks.sentry_sdk.capture_exception"
-        ) as mock_capture:
+        with patch("sentry.seer.night_shift.tweaks.sentry_sdk.capture_exception") as mock_capture:
             tweaks = get_night_shift_tweaks(self.project)
 
         mock_capture.assert_called_once()
@@ -74,9 +72,7 @@ class GetNightShiftTweaksTest(TestCase):
             {"max_candidates": "not-an-int"},
         )
 
-        with patch(
-            "sentry.tasks.seer.night_shift.tweaks.sentry_sdk.capture_exception"
-        ) as mock_capture:
+        with patch("sentry.seer.night_shift.tweaks.sentry_sdk.capture_exception") as mock_capture:
             tweaks = get_night_shift_tweaks(self.project)
 
         mock_capture.assert_called_once()

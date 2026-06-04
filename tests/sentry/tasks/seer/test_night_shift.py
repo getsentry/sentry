@@ -10,15 +10,15 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
 from sentry.seer.models.workflow import SeerWorkflowStrategy
+from sentry.seer.night_shift.models import TriageAction
+from sentry.seer.night_shift.simple_triage import fixability_score_strategy
+from sentry.seer.night_shift.skip_cache import key as skip_cache_key
+from sentry.seer.night_shift.skip_cache import mark_skipped
 from sentry.tasks.seer.night_shift.cron import (
     _get_eligible_projects,
     run_night_shift_for_org,
     schedule_night_shift,
 )
-from sentry.tasks.seer.night_shift.models import TriageAction
-from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy
-from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
-from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -281,7 +281,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         fake_client = FakeExplorerClient(verdicts)
         with (
             patch(
-                "sentry.tasks.seer.night_shift.agentic_triage.SeerAgentClient",
+                "sentry.seer.night_shift.agentic_triage.SeerAgentClient",
                 return_value=fake_client,
             ),
             patch(
@@ -394,7 +394,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
         mock_client.start_run.side_effect = RuntimeError("explorer down")
         with (
             patch(
-                "sentry.tasks.seer.night_shift.agentic_triage.SeerAgentClient",
+                "sentry.seer.night_shift.agentic_triage.SeerAgentClient",
                 return_value=mock_client,
             ),
         ):
@@ -490,7 +490,7 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
 
         with (
             self._patched_night_shift([(group.id, "skip")]) as (mock_trigger, mock_logger),
-            patch("sentry.tasks.seer.night_shift.agentic_triage.mark_skipped") as mock_mark_skipped,
+            patch("sentry.seer.night_shift.agentic_triage.mark_skipped") as mock_mark_skipped,
         ):
             run_night_shift_for_org(org.id)
 

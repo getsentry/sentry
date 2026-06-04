@@ -14,18 +14,18 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.models.night_shift import SeerNightShiftRun
 from sentry.seer.models.run import SeerRun
-from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
-from sentry.tasks.seer.night_shift.simple_triage import (
+from sentry.seer.night_shift.models import TriageAction, TriageResult
+from sentry.seer.night_shift.simple_triage import (
     ScoredCandidate,
     fixability_score_strategy,
     priority_label,
 )
-from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
-from sentry.tasks.seer.night_shift.triage_tools import (
+from sentry.seer.night_shift.skip_cache import mark_skipped
+from sentry.seer.night_shift.triage_tools import (
     get_event_details_agentic_triage,
     get_issue_details_agentic_triage,
 )
-from sentry.tasks.seer.night_shift.tweaks import (
+from sentry.seer.night_shift.tweaks import (
     DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
     DEFAULT_INTELLIGENCE_LEVEL,
     DEFAULT_REASONING_EFFORT,

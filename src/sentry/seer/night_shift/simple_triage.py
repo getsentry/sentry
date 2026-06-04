@@ -12,9 +12,9 @@ from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.autofix.utils import is_issue_category_eligible
+from sentry.seer.night_shift.models import TriageAction, TriageResult
+from sentry.seer.night_shift.skip_cache import recently_skipped
 from sentry.snuba.referrer import Referrer
-from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
-from sentry.tasks.seer.night_shift.skip_cache import recently_skipped
 from sentry.types.group import PriorityLevel
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")

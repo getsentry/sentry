@@ -1,7 +1,7 @@
 from datetime import timedelta
 from unittest.mock import patch
 
-from sentry.tasks.seer.night_shift.skip_cache import (
+from sentry.seer.night_shift.skip_cache import (
     SKIP_TTL_SECONDS,
     key,
     mark_skipped,
@@ -51,7 +51,7 @@ def test_deleted_key_no_longer_recently_skipped() -> None:
 
 def test_mark_skipped_swallows_redis_errors() -> None:
     with patch(
-        "sentry.tasks.seer.night_shift.skip_cache._client",
+        "sentry.seer.night_shift.skip_cache._client",
         side_effect=ConnectionError("redis down"),
     ):
         mark_skipped(501)
@@ -59,7 +59,7 @@ def test_mark_skipped_swallows_redis_errors() -> None:
 
 def test_recently_skipped_returns_empty_on_redis_errors() -> None:
     with patch(
-        "sentry.tasks.seer.night_shift.skip_cache._client",
+        "sentry.seer.night_shift.skip_cache._client",
         side_effect=ConnectionError("redis down"),
     ):
         assert recently_skipped([601, 602]) == set()

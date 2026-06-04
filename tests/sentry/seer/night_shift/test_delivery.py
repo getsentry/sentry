@@ -5,8 +5,8 @@ from sentry.models.organization import Organization
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunResult
 from sentry.seer.night_shift.delivery import deliver_night_shift_result
-from sentry.tasks.seer.night_shift.models import TriageAction
-from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
+from sentry.seer.night_shift.models import TriageAction
+from sentry.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.redis import redis_clusters

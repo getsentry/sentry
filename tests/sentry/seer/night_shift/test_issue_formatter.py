@@ -1,6 +1,6 @@
 import textwrap
 
-from sentry.tasks.seer.night_shift.issue_formatter import format_issue_output
+from sentry.seer.night_shift.issue_formatter import format_issue_output
 
 
 def test_full_output_comprehensive() -> None:

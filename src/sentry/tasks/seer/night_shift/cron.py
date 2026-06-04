@@ -34,12 +34,10 @@ from sentry.seer.models.night_shift import (
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
-from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.tasks.base import instrumented_task
-from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
-from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
-from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy, priority_label
-from sentry.tasks.seer.night_shift.tweaks import (
+from sentry.seer.night_shift.agentic_triage import agentic_triage_strategy
+from sentry.seer.night_shift.models import TriageAction, TriageResult
+from sentry.seer.night_shift.simple_triage import fixability_score_strategy, priority_label
+from sentry.seer.night_shift.tweaks import (
     DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
     DEFAULT_INTELLIGENCE_LEVEL,
     DEFAULT_REASONING_EFFORT,
@@ -49,6 +47,8 @@ from sentry.tasks.seer.night_shift.tweaks import (
     default_max_candidates,
     get_night_shift_tweaks,
 )
+from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.hashlib import md5_text
 from sentry.utils.iterators import chunked

@@ -1,6 +1,6 @@
 import textwrap
 
-from sentry.tasks.seer.night_shift.event_formatter import format_event_output
+from sentry.seer.night_shift.event_formatter import format_event_output
 
 
 def test_error_event_comprehensive() -> None:

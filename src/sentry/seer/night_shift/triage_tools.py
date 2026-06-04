@@ -10,8 +10,8 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.custom_tool_utils import AgentTool
 from sentry.seer.agent.tools import get_event_details, get_issue_details
-from sentry.tasks.seer.night_shift.event_formatter import format_event_output
-from sentry.tasks.seer.night_shift.issue_formatter import format_issue_output
+from sentry.seer.night_shift.event_formatter import format_event_output
+from sentry.seer.night_shift.issue_formatter import format_issue_output
 
 
 class GetEventDetailsAgenticTriageParams(BaseModel):
