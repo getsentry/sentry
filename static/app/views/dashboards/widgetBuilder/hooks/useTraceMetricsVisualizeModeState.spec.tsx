@@ -348,7 +348,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
   });
 
-  it('falls back to first query when selectedLabel does not match', async () => {
+  it('falls back to equation row when selectedLabel does not match', async () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
@@ -379,12 +379,9 @@ describe('useTraceMetricsVisualizeModeState', () => {
       expect(mockNavigate).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
-              },
-            ]),
+            yAxis: [
+              'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
+            ],
           }),
         }),
         expect.anything()
@@ -534,7 +531,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
   });
 
-  it('does not dispatch when equation snapshot is empty', () => {
+  it('seeds snapshot and dispatches equation yAxis when toggling to equation mode without a cached snapshot', async () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
@@ -556,13 +553,18 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
 
     expect(result.current.isEquationMode).toBe(true);
-    expect(mockNavigate).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          yAxis: expect.anything(),
+    expect(result.current.equationSnapshot.current).not.toBeNull();
+    expect(result.current.equationSnapshot.current?.selectedLabel).toBe('ƒ1');
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: ['equation|'],
+          }),
         }),
-      }),
-      expect.anything()
-    );
+        expect.anything()
+      );
+    });
   });
 });
