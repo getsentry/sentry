@@ -71,29 +71,26 @@ export function GroupBySelector({
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
   });
 
-  const visibleNumberTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(data?.numberAttributes ?? {}).filter(
-        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-      )
-    );
-  }, [data?.numberAttributes]);
-
-  const visibleStringTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(data?.stringAttributes ?? {}).filter(
-        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-      )
-    );
-  }, [data?.stringAttributes]);
-
-  const visibleBooleanTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(data?.booleanAttributes ?? {}).filter(
-        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-      )
-    );
-  }, [data?.booleanAttributes]);
+  const {visibleBooleanTags, visibleNumberTags, visibleStringTags} = useMemo(
+    () => ({
+      visibleBooleanTags: Object.fromEntries(
+        Object.entries(data?.booleanAttributes ?? {}).filter(
+          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+        )
+      ),
+      visibleNumberTags: Object.fromEntries(
+        Object.entries(data?.numberAttributes ?? {}).filter(
+          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+        )
+      ),
+      visibleStringTags: Object.fromEntries(
+        Object.entries(data?.stringAttributes ?? {}).filter(
+          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+        )
+      ),
+    }),
+    [data?.booleanAttributes, data?.numberAttributes, data?.stringAttributes]
+  );
 
   const enabledOptions = useGroupByFields({
     groupBys,
