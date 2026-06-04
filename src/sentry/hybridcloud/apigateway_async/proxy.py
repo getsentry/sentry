@@ -18,6 +18,7 @@ from django.http.response import HttpResponseBase
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
 from sentry.objectstore.endpoints.organization import get_raw_body_async
+from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
@@ -152,7 +153,11 @@ async def proxy_cell_request(
 ) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
     metric_tags = {"destination_cell": cell.name, "url_name": url_name}
-    target_url = urljoin(cell.address, request.path)
+    host = cell.address
+    if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
+        host = cell.api_gateway_address
+
+    target_url = urljoin(host, request.path)
 
     content_encoding = request.headers.get("Content-Encoding")
     content_length = request.headers.get("Content-Length")

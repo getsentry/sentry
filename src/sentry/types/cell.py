@@ -99,6 +99,9 @@ class Cell:
     # TODO(cells): drop once category is fully moved to Locality
     category: RegionCategory
 
+    api_gateway_address: str | None = None
+    """optional address for API gateway traffic."""
+
     visible: bool = True
     """Whether the cell is visible in API responses"""
 
