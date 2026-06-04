@@ -644,6 +644,7 @@ export function GlobalCommandPaletteActions() {
                 t('client keys'),
                 t('dsn key'),
                 'SENTRY_DSN',
+                'Sentry DSN',
                 project.slug,
               ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
