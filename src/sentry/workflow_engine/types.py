@@ -43,9 +43,10 @@ T = TypeVar("T")
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
 
-GroupId: TypeAlias = int
-DataConditionGroupId: TypeAlias = int
 ActionId: TypeAlias = int
+DataConditionGroupId: TypeAlias = int
+DetectorId: TypeAlias = int
+GroupId: TypeAlias = int
 WorkflowId: TypeAlias = int
 
 
