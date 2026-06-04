@@ -33,6 +33,7 @@ import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import * as userOrgNavConfig from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 function makeRenderProps(closeModal: jest.Mock) {
   return {
@@ -43,8 +44,6 @@ function makeRenderProps(closeModal: jest.Mock) {
     CloseButton: makeCloseButton(closeModal),
   };
 }
-
-import * as userOrgNavConfig from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 import {GlobalCommandPaletteActions} from './commandPaletteGlobalActions';
 
