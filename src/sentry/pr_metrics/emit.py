@@ -59,12 +59,15 @@ def build_pr_metrics_row(
     pull_request: PullRequest,
     close_action: str,
     payload: Mapping[str, Any],
+    attributions: list[dict[str, Any]],
 ) -> PrCloseMetricsEvent:
     """Assemble the provisional close/merge row from stored + payload data.
 
     ``payload`` is the GitHub ``pull_request`` object from the webhook; we read
     lifecycle facts from it directly rather than from the ``PullRequest`` row,
-    which isn't updated with close/merge state on this path.
+    which isn't updated with close/merge state on this path. ``attributions`` is
+    the active-attribution snapshot (see ``_active_attributions``), passed in so
+    the caller's tracking gate and the emitted row read the same query.
     """
     head_commit_sha = (payload.get("head") or {}).get("sha")
     merge_commit_sha = payload.get("merge_commit_sha") if payload.get("merged") else None
@@ -92,7 +95,7 @@ def build_pr_metrics_row(
         comments_count=payload.get("comments") or 0,
         review_comments_count=payload.get("review_comments") or 0,
         is_assigned=bool(payload.get("assignees") or payload.get("assignee")),
-        attributions=json.dumps(_active_attributions(pull_request)),
+        attributions=json.dumps(attributions),
     )
 
 
@@ -104,22 +107,25 @@ def emit_pr_metrics_row(
 ) -> bool:
     """Emit one BigQuery row for a tracked PR's terminal event.
 
-    The tracking gate is the existence of ≥1 valid ``PullRequestAttribution`` row.
-    Untracked PRs are skipped — we don't pay to record PRs that no Sentry feature
-    can be attributed to. Returns whether a row was emitted, for callers/tests.
+    The tracking gate is ≥1 valid ``PullRequestAttribution`` row. Untracked PRs
+    are skipped — we don't pay to record PRs that no Sentry feature can be
+    attributed to. Returns whether a row was emitted, for callers/tests.
 
     This is the seam the judge path can also call once it has the canonical
     ``PullRequest`` and the close action.
     """
-    is_tracked = PullRequestAttribution.objects.filter(
-        pull_request=pull_request, is_valid=True
-    ).exists()
-    if not is_tracked:
+    # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
+    # and rides along on the emitted row, so the two can't diverge.
+    attributions = _active_attributions(pull_request)
+    if not attributions:
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return False
 
     row = build_pr_metrics_row(
-        pull_request=pull_request, close_action=close_action, payload=payload
+        pull_request=pull_request,
+        close_action=close_action,
+        payload=payload,
+        attributions=attributions,
     )
     analytics.record(row)
     metrics.incr("pr_metrics.emit.recorded", tags={"close_action": close_action})

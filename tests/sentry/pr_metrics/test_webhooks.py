@@ -384,3 +384,19 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         self._call(merged=True)
         self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 2
+
+    @patch(f"{MODULE}.logger")
+    @patch("sentry.analytics.record")
+    def test_missing_pr_logs_warning_and_does_not_emit(self, mock_record, mock_logger) -> None:
+        # A close webhook can arrive before the PR row exists (race).
+        handle_emission(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": "closed", "pull_request": {"number": 9999, "merged": True}},
+            organization=self.organization,
+            repo=self.repo,
+        )
+        mock_logger.warning.assert_called_once_with(
+            "github.pr_metrics.pr_not_found",
+            extra={"repository_id": self.repo.id, "pr_number": 9999},
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0

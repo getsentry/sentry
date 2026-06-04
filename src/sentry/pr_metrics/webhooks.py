@@ -79,7 +79,8 @@ def handle_attribution(
     if action in _REFERENCED_ISSUE_ATTRIBUTION_ACTIONS:
         if action == "edited" and not _description_changed(event):
             return
-        _refresh_referenced_issue_attribution(pr, pull_request, organization)
+        # pr is set, so the payload is present and non-null (subscript narrows it).
+        _refresh_referenced_issue_attribution(pr, event["pull_request"], organization)
 
 
 def handle_emission(
@@ -102,11 +103,12 @@ def handle_emission(
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
-    pull_request = event.get("pull_request")
-    pr = _get_pull_request(organization, repo, pull_request)
+    pr = _get_pull_request(organization, repo, event.get("pull_request"))
     if pr is None:
         return
 
+    # pr is set, so the payload is present and non-null (subscript narrows it).
+    pull_request = event["pull_request"]
     close_action = CLOSE_ACTION_MERGED if pull_request.get("merged") else CLOSE_ACTION_CLOSED
 
     if needs_judge(pr):

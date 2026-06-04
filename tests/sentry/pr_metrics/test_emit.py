@@ -7,7 +7,12 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
 )
-from sentry.pr_metrics.emit import build_pr_metrics_row, emit_pr_metrics_row, needs_judge
+from sentry.pr_metrics.emit import (
+    _active_attributions,
+    build_pr_metrics_row,
+    emit_pr_metrics_row,
+    needs_judge,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.utils import json
@@ -70,11 +75,11 @@ class PrMetricsEmissionTest(TestCase):
         assert needs_judge(self.pull_request) is False
 
     def test_build_row_for_merge(self) -> None:
-        self._track()
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
             payload=self._payload(merged=True),
+            attributions=[SENTRY_APP_ATTRIBUTION],
         )
         assert row.close_action == "merged"
         assert row.verdict is None
@@ -83,11 +88,11 @@ class PrMetricsEmissionTest(TestCase):
         assert json.loads(row.attributions) == [SENTRY_APP_ATTRIBUTION]
 
     def test_build_row_carries_payload_counters(self) -> None:
-        self._track()
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
             payload=self._payload(merged=True),
+            attributions=[],
         )
         assert row.opened_at == "2026-06-04T09:00:00Z"
         assert row.draft is False
@@ -100,54 +105,44 @@ class PrMetricsEmissionTest(TestCase):
         assert row.is_assigned is True
 
     def test_build_row_counters_default_to_zero_when_absent(self) -> None:
-        self._track()
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="closed",
             payload={"number": 42, "merged": False, "head": {"sha": HEAD_SHA}},
+            attributions=[],
         )
         assert row.additions == 0
         assert row.commits_count == 0
         assert row.is_assigned is False
 
     def test_build_row_for_close_omits_merge_commit_sha(self) -> None:
-        self._track()
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="closed",
             payload=self._payload(merged=False),
+            attributions=[],
         )
         assert row.merge_commit_sha is None
         assert row.head_commit_sha == HEAD_SHA
 
-    def test_attributions_only_includes_valid_signals(self) -> None:
+    def test_active_attributions_only_includes_valid_signals(self) -> None:
         self._track(PullRequestAttributionSignalType.SENTRY_APP)
         self._track(
             PullRequestAttributionSignalType.REFERENCED_ISSUE,
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             is_valid=False,
         )
-        row = build_pr_metrics_row(
-            pull_request=self.pull_request,
-            close_action="merged",
-            payload=self._payload(merged=True),
-        )
-        assert json.loads(row.attributions) == [SENTRY_APP_ATTRIBUTION]
+        assert _active_attributions(self.pull_request) == [SENTRY_APP_ATTRIBUTION]
 
-    def test_attributions_ordered_by_priority_with_source_and_details(self) -> None:
-        # Lower-confidence signal recorded first, but emitted second.
+    def test_active_attributions_ordered_by_priority_with_source_and_details(self) -> None:
+        # Lower-confidence signal recorded first, but ordered second.
         self._track(
             PullRequestAttributionSignalType.REFERENCED_ISSUE,
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             signal_details={"group_ids": [7]},
         )
         self._track(PullRequestAttributionSignalType.SENTRY_APP)
-        row = build_pr_metrics_row(
-            pull_request=self.pull_request,
-            close_action="merged",
-            payload=self._payload(merged=True),
-        )
-        assert json.loads(row.attributions) == [
+        assert _active_attributions(self.pull_request) == [
             SENTRY_APP_ATTRIBUTION,
             {
                 "signal_type": "referenced_issue",
