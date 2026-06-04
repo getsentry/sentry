@@ -49,6 +49,7 @@ class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Service Hook",
+        description="Return a service hook bound to a project.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -71,6 +72,7 @@ class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
 
     @extend_schema(
         operation_id="Update a Service Hook",
+        description="Update a service hook bound to a project.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -89,7 +91,7 @@ class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
         self, request: Request, project: Project, hook: ServiceHook, **kwargs
     ) -> Response[ServiceHookSerializerResponse]:
         """
-        Update a Service Hook
+        Update a service hook bound to a project.
         """
         if not request.user.is_authenticated:
             return self.respond(status=401)
@@ -127,6 +129,7 @@ class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
 
     @extend_schema(
         operation_id="Remove a Service Hook",
+        description="Remove a service hook from a project.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -141,7 +144,7 @@ class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
     )
     def delete(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
         """
-        Remove a Service Hook
+        Remove a service hook from a project.
         """
         if not request.user.is_authenticated:
             return self.respond(status=401)
