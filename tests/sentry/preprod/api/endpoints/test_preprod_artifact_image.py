@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
-from objectstore_client.client import RequestError
+from objectstore_client import RequestError
 
 from sentry.testutils.cases import APITestCase
 
