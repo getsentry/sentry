@@ -5,7 +5,7 @@ from typing import Literal
 from sentry import analytics
 
 
-@analytics.eventclass("pr_metrics.recorded")
+@analytics.eventclass("scm.pr.closed")
 class PrCloseMetricsEvent(analytics.Event):
     """Analytics row emitted when a tracked PR is closed or merged.
 
