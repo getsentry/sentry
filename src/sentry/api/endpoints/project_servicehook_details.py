@@ -1,5 +1,5 @@
 from django.db import router, transaction
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -27,6 +27,20 @@ from sentry.sentry_apps.api.serializers.servicehook import (
     ServiceHookSerializerResponse,
 )
 from sentry.sentry_apps.models.servicehook import ServiceHook
+
+SERVICE_HOOK_EXAMPLE = {
+    "dateCreated": "2018-11-06T21:20:08.143Z",
+    "events": ["event.alert", "event.created"],
+    "id": "4f9d73e63b7144ecb8944c41620a090b",
+    "secret": "8fcac28aaa4c4f5fa572b61d40a8e084364db25fd37449c299e5a41c0504cbc2",
+    "status": "active",
+    "url": "https://empowerplant.io/sentry-hook",
+}
+
+SERVICE_HOOK_REQUEST_EXAMPLE = {
+    "url": "https://empowerplant.io/sentry-hook",
+    "events": ["event.alert", "event.created"],
+}
 
 SERVICE_HOOK_GUID = OpenApiParameter(
     name="hook_id",
@@ -61,6 +75,14 @@ class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=[
+            OpenApiExample(
+                "Service hook",
+                value=SERVICE_HOOK_EXAMPLE,
+                response_only=True,
+                status_codes=["200"],
+            )
+        ],
     )
     def get(
         self, request: Request, project: Project, hook: ServiceHook, **kwargs
@@ -86,6 +108,19 @@ class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=[
+            OpenApiExample(
+                "Update a service hook",
+                value=SERVICE_HOOK_REQUEST_EXAMPLE,
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Updated service hook",
+                value=SERVICE_HOOK_EXAMPLE,
+                response_only=True,
+                status_codes=["200"],
+            ),
+        ],
     )
     def put(
         self, request: Request, project: Project, hook: ServiceHook, **kwargs
