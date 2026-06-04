@@ -101,6 +101,11 @@ function trackExternalAnalytics({
  *    `/extensions/vercel/configure/`). Drives the pipeline with
  *    `vercelParams`.
  *
+ *  - Azure DevOps (VSTS Marketplace)
+ *    `/extensions/vsts/link/?targetId=...&targetName=...` (redirected from
+ *    `/extensions/vsts/configure/`). Drives the `vsts-extension` pipeline with
+ *    `vstsExtensionParams`.
+ *
  *  - Anything else
  *    falls through to {@link finishLegacyInstallation}, which bounces to the
  *    legacy `/extensions/<slug>/configure/` backend endpoint.
@@ -276,6 +281,23 @@ export default function IntegrationOrganizationLink() {
     return {code};
   }, [integrationSlug, location.query]);
 
+  // Azure DevOps Marketplace installs arrive here with `targetId` / `targetName`
+  // in the URL query (forwarded from `/extensions/vsts/configure/`). These
+  // identify the Azure DevOps organization the install started from; the
+  // `vsts-extension` pipeline binds them as the account and finishes with just
+  // OAuth (no account-selection step).
+  const vstsExtensionParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'vsts') {
+      return null;
+    }
+    const targetId = location.query.targetId;
+    const targetName = location.query.targetName;
+    if (typeof targetId !== 'string' || typeof targetName !== 'string') {
+      return null;
+    }
+    return {targetId, targetName};
+  }, [integrationSlug, location.query]);
+
   // Legacy install path. Redirects to `/extensions/<slug>/configure/`, which
   // runs the Django-rendered `IntegrationExtensionConfigurationView` to drive
   // the install server-side via the legacy pipeline. Used by every provider
@@ -298,6 +320,21 @@ export default function IntegrationOrganizationLink() {
 
   const handleInstallClick = useCallback(() => {
     if (!provider || !organization) {
+      return;
+    }
+
+    // The Azure DevOps Marketplace install drives the OAuth-only
+    // `vsts-extension` pipeline rather than the in-app `vsts` pipeline (which
+    // has an account-selection step). The account is already known from the
+    // Marketplace params, so open the modal with the extension provider while
+    // keeping the resolved `vsts` provider for display and analytics.
+    if (vstsExtensionParams) {
+      startFlow({
+        provider: {...provider, key: 'vsts-extension'},
+        organization,
+        onInstall,
+        urlParams: vstsExtensionParams,
+      });
       return;
     }
 
@@ -324,6 +361,7 @@ export default function IntegrationOrganizationLink() {
     msTeamsParams,
     jiraParams,
     vercelParams,
+    vstsExtensionParams,
     startFlow,
     onInstall,
     finishLegacyInstallation,

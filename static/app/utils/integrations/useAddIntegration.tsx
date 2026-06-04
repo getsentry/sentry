@@ -62,6 +62,7 @@ const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'slack_staging',
   'vercel',
   'vsts',
+  'vsts-extension',
 ] as const satisfies ReadonlyArray<ProvidersByType['integration']>;
 
 type UnconditionalApiPipelineProvider =

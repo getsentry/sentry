@@ -19,6 +19,7 @@ import {
 } from './integrationSlack';
 import {vercelIntegrationPipeline} from './integrationVercel';
 import {vstsIntegrationPipeline} from './integrationVsts';
+import {vstsExtensionIntegrationPipeline} from './integrationVstsExtension';
 
 /**
  * All registered pipeline definitions.
@@ -42,6 +43,7 @@ export const PIPELINE_REGISTRY = [
   slackIntegrationPipeline,
   slackStagingIntegrationPipeline,
   vstsIntegrationPipeline,
+  vstsExtensionIntegrationPipeline,
   vercelIntegrationPipeline,
 ] as const;
 
