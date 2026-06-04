@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from collections.abc import Collection
+from typing import Any, TypedDict
 
 from django.http import QueryDict
 from rest_framework.request import Request
@@ -79,7 +80,7 @@ def set_top_tags(
         logger.exception("We failed to set a tag.")
 
 
-def set_tags(scope: Scope, result: StacktraceLinkOutcome, integrations: list[None]) -> None:
+def set_tags(scope: Scope, result: StacktraceLinkOutcome, integrations: Collection[Any]) -> None:
     scope.set_tag("stacktrace_link.found", result["source_url"] is not None)
     scope.set_tag("stacktrace_link.source_url", result["source_url"])
     scope.set_tag("stacktrace_link.error", result["error"])
