@@ -639,7 +639,13 @@ export function GlobalCommandPaletteActions() {
                 icon: <ProjectAvatar project={project} size={16} />,
                 trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
               }}
-              keywords={[t('dsn'), t('client keys'), t('dsn key'), project.slug]}
+              keywords={[
+                t('dsn'),
+                t('client keys'),
+                t('dsn key'),
+                'SENTRY_DSN',
+                project.slug,
+              ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
             />
           ))}

@@ -331,6 +331,8 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     ['codeowners', /Project Settings.*Ownership Rules/],
     ['inbound', /Project Settings.*Inbound Filters/],
     ['size', /Project Settings.*Mobile Builds/],
+    // The SDK env var name should surface Client Keys (DSN), just like "dsn".
+    ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 
