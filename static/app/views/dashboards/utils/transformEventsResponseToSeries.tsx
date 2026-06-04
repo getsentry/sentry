@@ -24,7 +24,10 @@ export function transformEventsResponseToSeries(
   const queryAlias = widgetQuery.name;
 
   if (isEventsStats(data)) {
-    const field = widgetQuery.aggregates[0]!;
+    const field = widgetQuery.aggregates[0];
+    if (!field) {
+      return [];
+    }
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
 
     seriesWithOrdering.push([0, transformEventsStatsToSeries(data, prefixedName, field)]);

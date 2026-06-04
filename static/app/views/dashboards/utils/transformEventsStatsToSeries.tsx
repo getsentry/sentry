@@ -6,8 +6,11 @@ import {getAggregateAlias} from 'sentry/utils/discover/fields';
 export function transformEventsStatsToSeries(
   stats: EventsStats,
   seriesName: string,
-  field: string
+  field: string | undefined
 ): Series {
+  if (!field) {
+    return {seriesName, data: []};
+  }
   const unit = stats.meta?.units?.[getAggregateAlias(field)];
   // Scale series values to milliseconds or bytes depending on units from meta
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
