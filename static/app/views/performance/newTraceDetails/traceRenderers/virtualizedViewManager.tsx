@@ -104,6 +104,9 @@ export class VirtualizedViewManager {
   collapsed_gap_markers: Array<
     {gap: TraceTimeCompressionGap; ref: HTMLElement} | undefined
   > = [];
+  private _collapsed_gap_marker_positions: Array<
+    {left: number; placement: number; right: number} | undefined
+  > = [];
   span_bars: Array<
     {color: string; ref: HTMLElement; space: [number, number]} | undefined
   > = [];
@@ -1979,17 +1982,12 @@ export class VirtualizedViewManager {
     const indicatorLeft = indicatorPlacement;
     const indicatorRight = indicatorPlacement + label.offsetWidth;
 
-    for (const marker of this.collapsed_gap_markers) {
-      if (!marker || marker.ref.style.opacity === '0') {
+    for (const pos of this._collapsed_gap_marker_positions) {
+      if (!pos) {
         continue;
       }
 
-      const markerWidth = marker.ref.offsetWidth;
-      const gapPlacement = this.transformXFromTimestamp(marker.gap.start);
-      const markerLeft = gapPlacement + COLLAPSED_GAP_WIDTH_PX / 2 - markerWidth / 2;
-      const markerRight = markerLeft + markerWidth;
-
-      if (indicatorLeft < markerRight && indicatorRight > markerLeft) {
+      if (indicatorLeft < pos.right && indicatorRight > pos.left) {
         return true;
       }
     }
@@ -2025,8 +2023,46 @@ export class VirtualizedViewManager {
   }
 
   drawCollapsedGapMarkers() {
-    for (const marker of this.collapsed_gap_markers) {
-      this.drawCollapsedGapMarker(marker);
+    const viewStart = this.view.to_origin + this.view.trace_view.x;
+    const viewEnd = viewStart + this.view.trace_view.width;
+
+    // Batch-read all marker widths before writing any styles to avoid layout thrashing
+    const widths: Array<number | undefined> = [];
+    for (let i = 0; i < this.collapsed_gap_markers.length; i++) {
+      const marker = this.collapsed_gap_markers[i];
+      widths[i] = marker ? marker.ref.offsetWidth : undefined;
+    }
+
+    // Now write styles and cache positions for timelineIndicatorOverlapsCollapsedGapMarker
+    for (let i = 0; i < this.collapsed_gap_markers.length; i++) {
+      const marker = this.collapsed_gap_markers[i];
+      if (!marker) {
+        this._collapsed_gap_marker_positions[i] = undefined;
+        continue;
+      }
+
+      if (
+        !this.time_compression.enabled ||
+        marker.gap.end < viewStart ||
+        marker.gap.start > viewEnd
+      ) {
+        marker.ref.style.opacity = '0';
+        this._collapsed_gap_marker_positions[i] = undefined;
+        continue;
+      }
+
+      const placement = this.transformXFromTimestamp(marker.gap.start);
+      const markerWidth = widths[i] ?? 0;
+      const halfWidth = markerWidth / 2;
+      const left = placement + COLLAPSED_GAP_WIDTH_PX / 2 - halfWidth;
+
+      marker.ref.style.opacity = '1';
+      marker.ref.style.transform = `translateX(${left}px)`;
+      this._collapsed_gap_marker_positions[i] = {
+        left,
+        right: left + markerWidth,
+        placement,
+      };
     }
   }
 
