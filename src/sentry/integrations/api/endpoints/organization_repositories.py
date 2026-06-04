@@ -1,5 +1,5 @@
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -71,6 +71,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
                 location="query",
                 required=False,
                 type=str,
+                many=True,
                 description="Optional repository fields to expand, such as `settings`.",
             ),
             CursorQueryParam,
@@ -83,13 +84,24 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=[
+            OpenApiExample(
+                "Organization Repositories",
+                value=[
+                    {
+                        "dateCreated": "2018-11-06T21:19:58.536Z",
+                        "id": "3",
+                        "name": "sentry/sentry",
+                    }
+                ],
+                status_codes=["200"],
+                response_only=True,
+            ),
+        ],
     )
     def get(
         self, request: Request, organization: Organization
     ) -> Response[list[RepositorySerializerResponse]]:
-        """
-        Return a list of version control repositories for a given organization.
-        """
         queryset = Repository.objects.filter(organization_id=organization.id)
 
         integration_id = request.GET.get("integration_id", None)
