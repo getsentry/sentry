@@ -11,7 +11,10 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
+from sentry.api.serializers.models.tagvalue import (
+    UserTagValueSerializer,
+    UserTagValueSerializerResponse,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -48,8 +51,11 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Tag's Values for an Issue",
-        description="Returns a list of values associated with this key for an issue.\nReturns at most 1000 values when paginated.",
+        operation_id="List a Tag's Values Related to an Issue",
+        description=(
+            "Return the values associated with a tag key for an issue.\n\n"
+            "This endpoint returns at most 1000 values when paginated."
+        ),
         parameters=[
             IssueParams.ISSUE_ID,
             IssueParams.ISSUES_OR_GROUPS,
@@ -60,7 +66,8 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "TagKeyValuesDict", list[TagValueSerializerResponse]
+                "TagKeyValuesDict",
+                list[TagValueSerializerResponse | UserTagValueSerializerResponse],
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -70,10 +77,9 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         examples=[TagsExamples.GROUP_TAGKEY_VALUES],
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-tag-key-values"])
-    def get(self, request: Request, group, key) -> Response[list[TagValueSerializerResponse]]:
-        """
-        List a Tag's Values
-        """
+    def get(
+        self, request: Request, group, key
+    ) -> Response[list[TagValueSerializerResponse | UserTagValueSerializerResponse]]:
         analytics.record(
             EventUserEndpointRequest(
                 project_id=group.project_id,
