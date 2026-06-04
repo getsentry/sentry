@@ -140,10 +140,8 @@ class TestLaunchCodingAgents(TestCase):
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
     @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
-    @patch("sentry.seer.agent.coding_agent_handoff.features.has")
     def test_copilot_not_licensed_403_returns_github_copilot_not_licensed_failure_type(
         self,
-        mock_features,
         mock_identity_service,
         mock_copilot_client_class,
         mock_store,
@@ -154,7 +152,6 @@ class TestLaunchCodingAgents(TestCase):
         account lacks an active Copilot subscription. This is distinct from a GitHub App
         permissions issue, so we should NOT show the permissions modal.
         """
-        mock_features.return_value = True
         mock_identity_service.get_access_token_for_user.return_value = "test-token"
 
         mock_client_instance = MagicMock()
@@ -251,9 +248,8 @@ class TestResolveClient(TestCase):
         assert client is None
         assert installation is mock_installation
 
-    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
     @patch(f"{MOCK_HANDOFF_PATH}.github_copilot_identity_service")
-    def test_returns_client_for_github_copilot(self, mock_identity_service, mock_features):
+    def test_returns_client_for_github_copilot(self, mock_identity_service):
         mock_identity_service.get_access_token_for_user.return_value = "test-token"
 
         client, installation = _resolve_client(
@@ -264,18 +260,8 @@ class TestResolveClient(TestCase):
         assert installation is None
         mock_identity_service.get_access_token_for_user.assert_called_once_with(user_id=1)
 
-    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=False)
-    def test_raises_permission_denied_when_copilot_not_enabled(self, mock_features):
-        with pytest.raises(PermissionDenied):
-            _resolve_client(
-                self.organization, integration_id=None, provider="github_copilot", user_id=1
-            )
-
-    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
     @patch(f"{MOCK_HANDOFF_PATH}.github_copilot_identity_service")
-    def test_raises_permission_denied_when_no_copilot_token(
-        self, mock_identity_service, mock_features
-    ):
+    def test_raises_permission_denied_when_no_copilot_token(self, mock_identity_service):
         mock_identity_service.get_access_token_for_user.return_value = None
 
         with pytest.raises(PermissionDenied):
@@ -283,8 +269,7 @@ class TestResolveClient(TestCase):
                 self.organization, integration_id=None, provider="github_copilot", user_id=1
             )
 
-    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
-    def test_raises_permission_denied_when_copilot_no_user_id(self, mock_features):
+    def test_raises_permission_denied_when_copilot_no_user_id(self):
         with pytest.raises(PermissionDenied):
             _resolve_client(
                 self.organization, integration_id=None, provider="github_copilot", user_id=None

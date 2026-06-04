@@ -104,7 +104,6 @@ def track_gitlab_contributor_seat_processor(
     debug_log(logger, organization, "processor_started", base_extra)
 
     if not features.has("organizations:seer-code-review-gitlab", organization):
-        debug_log(logger, organization, "feature_disabled", base_extra)
         return
 
     if object_attributes.get("action") != "open":

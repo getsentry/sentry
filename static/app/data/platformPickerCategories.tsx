@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 const popularPlatformCategories = new Set<PlatformKey>([
   'javascript-nextjs',
