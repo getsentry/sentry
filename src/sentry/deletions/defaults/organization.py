@@ -8,6 +8,7 @@ from sentry.deletions.base import (
     ModelDeletionTask,
     ModelRelation,
 )
+from sentry.models.environment import Environment
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization_actions.impl import (
@@ -36,7 +37,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.models.artifactbundle import ArtifactBundle
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.dashboard import Dashboard
-        from sentry.models.environment import Environment
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.project import Project
         from sentry.models.promptsactivity import PromptsActivity
@@ -112,21 +112,27 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
 class GroupEnvironmentBulkDeletionTask(BulkModelDeletionTask[GroupEnvironment]):
     """
     Deletes GroupEnvironment rows by resolving environment IDs first to avoid
-    a cross-table JOIN that times out for large orgs.
+    a cross-table JOIN that times out for large orgs. Pages through environment
+    IDs in batches to stay under PostgreSQL's 32k placeholder limit.
     """
 
-    def _delete_instance_bulk(self) -> bool:
-        from sentry.models.environment import Environment
+    ENV_ID_BATCH_SIZE = 10_000
+    _last_env_id = 0
 
+    def _delete_instance_bulk(self) -> bool:
         org_id = self.query["environment__organization_id"]
+
         env_ids = list(
-            Environment.objects.filter(organization_id=org_id).values_list("id", flat=True)
+            Environment.objects.filter(organization_id=org_id, id__gt=self._last_env_id)
+            .order_by("id")
+            .values_list("id", flat=True)[: self.ENV_ID_BATCH_SIZE]
         )
         if not env_ids:
             return False
+
         try:
             with unguarded_write(using=router.db_for_write(self.model)):
-                return bulk_delete_objects(
+                has_more_rows = bulk_delete_objects(
                     model=self.model,
                     limit=self.chunk_size,
                     transaction_id=self.transaction_id,
@@ -143,3 +149,8 @@ class GroupEnvironmentBulkDeletionTask(BulkModelDeletionTask[GroupEnvironment]):
                     **self.query,
                 },
             )
+
+        if not has_more_rows:
+            self._last_env_id = env_ids[-1]
+
+        return True

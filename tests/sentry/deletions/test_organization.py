@@ -1,6 +1,8 @@
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.db import connection
+
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.grouptype import MetricIssue
@@ -383,7 +385,6 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         # OrganizationDeletionTask, Django's ORM cascade from environment.delete() fires a
         # post_delete signal per GroupEnvironment row, which causes timeouts at scale.
         # Uses multiple environments to exercise the environment_id__in query.
-        from django.db import connection
 
         org = self.create_organization(name="test")
         project = self.create_project(organization=org)
@@ -422,6 +423,37 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not GroupEnvironment.objects.filter(
             id__in=[group_env1.id, group_env2.id, group_env3.id, group_env4.id]
         ).exists()
+
+    def test_orphan_group_environment_batched_cleanup(self) -> None:
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        envs = [
+            Environment.objects.create(organization_id=org.id, name=f"env-{i}") for i in range(5)
+        ]
+        group = Group.objects.create(project=project)
+        group_envs = [GroupEnvironment.objects.create(group=group, environment=env) for env in envs]
+
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM sentry_groupedmessage WHERE id = %s", [group.id])
+
+        group_env_ids = [ge.id for ge in group_envs]
+        assert GroupEnvironment.objects.filter(id__in=group_env_ids).count() == 5
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
+
+        with (
+            patch(
+                "sentry.deletions.defaults.organization.GroupEnvironmentBulkDeletionTask.ENV_ID_BATCH_SIZE",
+                2,
+            ),
+            self.tasks(),
+        ):
+            run_scheduled_deletions()
+
+        assert not Organization.objects.filter(id=org.id).exists()
+        assert not Environment.objects.filter(organization_id=org.id).exists()
+        assert not GroupEnvironment.objects.filter(id__in=group_env_ids).exists()
 
     def test_workflow_engine_cleanup(self) -> None:
         org = self.create_organization(name="test")
