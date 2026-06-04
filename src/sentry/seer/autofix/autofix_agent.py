@@ -189,6 +189,7 @@ def get_autofix_agent_client(
     intelligence_level: Literal["low", "medium", "high"] = "medium",
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
+    code_review_enabled: bool = False,
 ) -> SeerAgentClient:
     from sentry.seer.autofix.on_completion_hook import (
         AutofixOnCompletionHook,  # nested to avoid circular import
@@ -204,6 +205,7 @@ def get_autofix_agent_client(
         reasoning_effort=reasoning_effort,
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
+        code_review_enabled=code_review_enabled,
     )
 
 
@@ -236,6 +238,12 @@ def _default_reasoning_effort(
     if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
         return "high"
     return step_default
+
+
+def _code_review_enabled(organization: Organization, enable_coding: bool) -> bool:
+    # The review_code_changes tool only operates on accumulated patches, so it is
+    # only useful on coding-enabled steps.
+    return enable_coding and features.has("organizations:seer-autofix-code-review", organization)
 
 
 def trigger_autofix_agent(
@@ -288,6 +296,7 @@ def trigger_autofix_agent(
         intelligence_level=resolved_intelligence_level,
         reasoning_effort=resolved_reasoning_effort,
         enable_coding=config.enable_coding,
+        code_review_enabled=_code_review_enabled(group.organization, config.enable_coding),
     )
     if run_id is not None:
         _get_group_run_state(client, group, run_id)
