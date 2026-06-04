@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from django.conf import settings
+from django.utils import timezone
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -378,12 +379,63 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch("sentry.analytics.record")
-    def test_redelivery_emits_each_time(self, mock_record) -> None:
-        # Emission is stateless — it does not dedupe webhook redeliveries; that
-        # guard lives at the terminal-event/PR-status check, not here.
+    def test_redelivery_dropped_after_first_terminal_event(self, mock_record) -> None:
+        # The DB-side guard claims the PR's terminal transition on the first
+        # close/merge; a redelivered webhook finds it already closed and is
+        # dropped before emit.
         self._call(merged=True)
         self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 2
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch(f"{MODULE}.needs_judge", return_value=True)
+    @patch("sentry.analytics.record")
+    def test_redelivery_dropped_before_judge_fork(self, mock_record, _needs_judge) -> None:
+        # The guard sits *before* the needs_judge() fork, so a redelivery never
+        # re-launches the (pricey) judge path either — the whole point of the
+        # guard landing before the judge path is wired.
+        self._call(merged=True)
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_records_merge_lifecycle_state(self, mock_record) -> None:
+        handle_emission(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={
+                "action": "closed",
+                "pull_request": {
+                    "number": 42,
+                    "merged": True,
+                    "merge_commit_sha": MERGE_SHA,
+                    "head": {"sha": HEAD_SHA},
+                    "closed_at": "2024-01-02T03:04:05Z",
+                    "merged_at": "2024-01-02T03:04:05Z",
+                },
+            },
+            organization=self.organization,
+            repo=self.repo,
+        )
+        self.pull_request.refresh_from_db()
+        assert self.pull_request.state == "merged"
+        assert self.pull_request.closed_at is not None
+        assert self.pull_request.merged_at is not None
+
+    @patch("sentry.analytics.record")
+    def test_records_closed_unmerged_lifecycle_state(self, mock_record) -> None:
+        self._call(merged=False)
+        self.pull_request.refresh_from_db()
+        assert self.pull_request.state == "closed"
+        assert self.pull_request.closed_at is not None
+        # An unmerged close leaves merged_at null.
+        assert self.pull_request.merged_at is None
+
+    @patch("sentry.analytics.record")
+    def test_already_closed_pr_is_dropped(self, mock_record) -> None:
+        # A PR whose terminal event was recorded before this webhook arrives
+        # (e.g. a much-delayed redelivery) is dropped: closed_at is already set.
+        self.pull_request.update(closed_at=timezone.now(), state="closed")
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
     @patch(f"{MODULE}.logger")
     @patch("sentry.analytics.record")

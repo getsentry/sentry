@@ -11,9 +11,12 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 from django.conf import settings
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -24,6 +27,7 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestLifecycleState,
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.attribution import record_attribution_signal
@@ -34,6 +38,7 @@ from sentry.pr_metrics.emit import (
     needs_judge,
 )
 from sentry.pr_metrics.types import ReferencedIssueSignalDetails
+from sentry.utils import metrics
 from sentry.utils.groupreference import find_referenced_groups
 
 logger = logging.getLogger(__name__)
@@ -111,6 +116,18 @@ def handle_emission(
     pull_request = event["pull_request"]
     close_action = CLOSE_ACTION_MERGED if pull_request.get("merged") else CLOSE_ACTION_CLOSED
 
+    # DB-side redelivery guard, *before* the needs_judge() fork: atomically claim
+    # the PR's terminal transition. A redelivered close/merge finds the PR
+    # already closed/merged and claims nothing, so it's dropped before any emit
+    # *or* judge forward — a retry must never re-launch the pricey judge work.
+    if not _claim_terminal_transition(pr, pull_request):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
+        logger.info(
+            "pr_metrics.emit.redelivery_dropped",
+            extra={"organization_id": organization.id, "pull_request_id": pr.id},
+        )
+        return
+
     if needs_judge(pr):
         # The judge path (forward to Seer, emit on the judge result) isn't wired
         # yet, so fall through to immediate emit — a judge-eligible PR still
@@ -145,6 +162,41 @@ def _get_pull_request(
             "github.pr_metrics.pr_not_found",
             extra={"repository_id": repo.id, "pr_number": pull_request["number"]},
         )
+        return None
+
+
+def _claim_terminal_transition(pr: PullRequest, payload: dict[str, Any]) -> bool:
+    """Atomically record the PR's close/merge; return False if already recorded.
+
+    This is the redelivery guard. A conditional ``UPDATE`` flips the PR to a
+    terminal lifecycle state only while ``closed_at`` is still null, so
+    concurrent or redelivered close/merge events race for the one row and exactly
+    one wins. Losers update zero rows and return False.
+
+    ``closed_at`` is the claim marker: GitHub stamps it on both plain closes and
+    merges, so "has this PR been closed/merged before" is exactly "is
+    ``closed_at`` already set". Checking it in the ``UPDATE``'s ``WHERE`` clause
+    (rather than a separate read) keeps the check-and-set a single atomic
+    statement, immune to the race two redeliveries would otherwise open.
+    """
+    merged = bool(payload.get("merged"))
+    updated = PullRequest.objects.filter(id=pr.id, closed_at__isnull=True).update(
+        state=PullRequestLifecycleState.MERGED if merged else PullRequestLifecycleState.CLOSED,
+        # GitHub always sends closed_at on a terminal event; fall back to now()
+        # so the claim marker is never left null if a provider omits it.
+        closed_at=_parse_timestamp(payload.get("closed_at")) or timezone.now(),
+        merged_at=_parse_timestamp(payload.get("merged_at")) if merged else None,
+    )
+    return updated > 0
+
+
+def _parse_timestamp(value: Any) -> datetime | None:
+    """Parse a GitHub ISO-8601 timestamp, tolerating missing/malformed values."""
+    if not value:
+        return None
+    try:
+        return parse_datetime(value)
+    except ValueError:
         return None
 
 
