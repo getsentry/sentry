@@ -72,17 +72,8 @@ def handle_attribution(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    try:
-        pr = PullRequest.objects.get(
-            organization_id=organization.id,
-            repository_id=repo.id,
-            key=str(pull_request["number"]),
-        )
-    except PullRequest.DoesNotExist:
-        logger.warning(
-            "github.pr_metrics.attribution.pr_not_found",
-            extra={"repository_id": repo.id, "pr_number": pull_request["number"]},
-        )
+    pr = _get_pull_request(organization, repo, pull_request)
+    if pr is None:
         return
 
     if action in _AUTHOR_ATTRIBUTION_ACTIONS:
@@ -118,17 +109,8 @@ def handle_emission(
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
-    try:
-        pr = PullRequest.objects.get(
-            organization_id=organization.id,
-            repository_id=repo.id,
-            key=str(pull_request["number"]),
-        )
-    except PullRequest.DoesNotExist:
-        logger.warning(
-            "github.pr_metrics.emission.pr_not_found",
-            extra={"repository_id": repo.id, "pr_number": pull_request["number"]},
-        )
+    pr = _get_pull_request(organization, repo, pull_request)
+    if pr is None:
         return
 
     close_action = CLOSE_ACTION_MERGED if pull_request.get("merged") else CLOSE_ACTION_CLOSED
@@ -143,6 +125,28 @@ def handle_emission(
         )
 
     emit_pr_metrics_row(pull_request=pr, close_action=close_action, payload=pull_request)
+
+
+def _get_pull_request(
+    organization: Organization, repo: Repository, pull_request: dict[str, Any]
+) -> PullRequest | None:
+    """Resolve the canonical PullRequest row for a webhook payload, or None.
+
+    The row is upserted by ``PullRequestEventWebhook._handle`` before processors
+    run, so a miss is unexpected — log it and let the caller bail.
+    """
+    try:
+        return PullRequest.objects.get(
+            organization_id=organization.id,
+            repository_id=repo.id,
+            key=str(pull_request["number"]),
+        )
+    except PullRequest.DoesNotExist:
+        logger.warning(
+            "github.pr_metrics.pr_not_found",
+            extra={"repository_id": repo.id, "pr_number": pull_request["number"]},
+        )
+        return None
 
 
 def _description_changed(event: Mapping[str, Any]) -> bool:

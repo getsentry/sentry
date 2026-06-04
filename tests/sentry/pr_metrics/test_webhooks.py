@@ -294,7 +294,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.attribution.pr_not_found",
+            "github.pr_metrics.pr_not_found",
             extra={"repository_id": self.repo.id, "pr_number": 9999},
         )
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
