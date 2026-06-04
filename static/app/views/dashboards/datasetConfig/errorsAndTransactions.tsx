@@ -5,9 +5,9 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {

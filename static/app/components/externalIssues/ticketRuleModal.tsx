@@ -9,7 +9,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {RequestOptions, ResponseMeta} from 'sentry/api';
+import type {RequestOptions} from 'sentry/api';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
@@ -19,6 +19,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {Choices, SelectValue} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
