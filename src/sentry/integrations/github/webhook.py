@@ -157,7 +157,7 @@ def _handle_pr_metrics_attribution_processor(
     user = pull_request.get("user")
 
     if organization and action and user:
-        handle_webhook_for_pr_metrics(organization, action, pull_request, user, repo.id)
+        handle_webhook_for_pr_metrics(organization, action, pull_request, user, repo.id, event)
 
 
 class GitHubWebhook(SCMWebhook, ABC):

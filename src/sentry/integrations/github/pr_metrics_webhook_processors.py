@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from django.conf import settings
@@ -9,6 +10,7 @@ from sentry import features
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
+    PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
 )
@@ -18,6 +20,14 @@ from sentry.utils.groupreference import find_referenced_groups
 
 logger = logging.getLogger(__name__)
 
+# Actions that set attribution for who authored the PR. The PR author is fixed
+# at creation time and never changes, so app attribution is a one-shot write.
+_APP_ATTRIBUTION_ACTIONS = frozenset({"opened"})
+
+# Actions that can affect what Sentry issues the PR references. "edited" covers
+# body/title changes; "reopened" may follow a period of changes on the branch.
+_REFERENCED_ISSUE_ATTRIBUTION_ACTIONS = frozenset({"opened", "reopened", "edited"})
+
 
 def handle_webhook_for_pr_metrics(
     organization: Organization,
@@ -25,8 +35,9 @@ def handle_webhook_for_pr_metrics(
     pull_request: dict[str, Any],
     github_user: dict[str, Any],
     repository_id: int,
+    event: Mapping[str, Any],
 ) -> None:
-    if action != "opened":
+    if action not in (_APP_ATTRIBUTION_ACTIONS | _REFERENCED_ISSUE_ATTRIBUTION_ACTIONS):
         return
 
     if not features.has("organizations:pr-metrics-attribution", organization):
@@ -45,8 +56,18 @@ def handle_webhook_for_pr_metrics(
         )
         return
 
-    _write_app_attribution(pr, github_user)
-    _write_referenced_issue_attribution(pr, pull_request, organization)
+    if action in _APP_ATTRIBUTION_ACTIONS:
+        _write_app_attribution(pr, github_user)
+
+    if action in _REFERENCED_ISSUE_ATTRIBUTION_ACTIONS:
+        if action == "edited" and not _description_changed(event):
+            return
+        _refresh_referenced_issue_attribution(pr, pull_request, organization)
+
+
+def _description_changed(event: Mapping[str, Any]) -> bool:
+    changes = event.get("changes") or {}
+    return "body" in changes or "title" in changes
 
 
 def _detect_app_signal(github_user_id: int) -> PullRequestAttributionSignalType | None:
@@ -68,7 +89,7 @@ def _write_app_attribution(pr: PullRequest, github_user: dict[str, Any]) -> None
     )
 
 
-def _write_referenced_issue_attribution(
+def _refresh_referenced_issue_attribution(
     pr: PullRequest,
     pull_request: dict[str, Any],
     organization: Organization,
@@ -78,7 +99,14 @@ def _write_referenced_issue_attribution(
     text = f"{title} {body}".strip()
 
     groups = find_referenced_groups(text, organization.id)
+
     if not groups:
+        # Issue references were removed from the description — invalidate.
+        PullRequestAttribution.objects.filter(
+            pull_request=pr,
+            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+        ).update(is_valid=False)
         return
 
     details = ReferencedIssueSignalDetails(group_ids=sorted(g.id for g in groups))
