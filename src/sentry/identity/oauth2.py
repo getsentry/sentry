@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import logging
 import secrets
 from time import time
@@ -41,7 +43,13 @@ from sentry.utils.http import absolute_uri
 
 from .base import Provider
 
-__all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView", "OAuth2ApiStep"]
+__all__ = [
+    "OAuth2Provider",
+    "OAuth2CallbackView",
+    "OAuth2LoginView",
+    "OAuth2ApiStep",
+    "PkceOAuth2ApiStep",
+]
 
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
@@ -324,7 +332,7 @@ class OAuth2ApiStep:
         code = self.extract_code(validated_data, pipeline)
 
         try:
-            data = self._exchange_token(code)
+            data = self._exchange_token(code, pipeline)
         except OAuth2ApiStepError as e:
             logger.info("identity.token-exchange-error", extra={"error": str(e)})
             return PipelineStepResult.error(str(e))
@@ -332,7 +340,7 @@ class OAuth2ApiStep:
         pipeline.bind_state(self.bind_key, data)
         return PipelineStepResult.advance()
 
-    def _exchange_token(self, code: str) -> dict[str, Any]:
+    def _exchange_token(self, code: str, pipeline: Pipeline[Any, Any]) -> dict[str, Any]:
         """Exchange an authorization code for an access token.
 
         Raises OAuth2ApiStepError on failure.
@@ -344,8 +352,24 @@ class OAuth2ApiStep:
             "client_id": self.client_id,
             "client_secret": self.client_secret,
         }
+        return self._do_token_request(token_params)
+
+    def _do_token_request(
+        self,
+        token_params: dict[str, str],
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Send a token request and parse the response.
+
+        Raises OAuth2ApiStepError on failure.
+        """
         try:
-            req = safe_urlopen(self.access_token_url, data=token_params, verify_ssl=self.verify_ssl)
+            req = safe_urlopen(
+                self.access_token_url,
+                data=token_params,
+                headers=headers,
+                verify_ssl=self.verify_ssl,
+            )
             req.raise_for_status()
         except HTTPError as e:
             error_resp = e.response
@@ -369,6 +393,62 @@ class OAuth2ApiStep:
             return orjson.loads(body)
         except orjson.JSONDecodeError as e:
             raise OAuth2ApiStepError("Could not decode a JSON response, please try again.") from e
+
+
+def _generate_pkce_code_verifier() -> str:
+    return secrets.token_urlsafe(96)
+
+
+def _generate_pkce_code_challenge(verifier: str) -> str:
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
+class PkceOAuth2ApiStep(OAuth2ApiStep):
+    """OAuth2ApiStep with PKCE (RFC 7636).
+
+    Generates a code_verifier/code_challenge pair per authorization flow and
+    includes them in the authorize redirect and token exchange respectively.
+    """
+
+    def get_step_data(self, pipeline: Pipeline[Any, Any], request: HttpRequest) -> dict[str, str]:
+        code_verifier = _generate_pkce_code_verifier()
+        pipeline.bind_state("pkce_code_verifier", code_verifier)
+
+        params: dict[str, str] = {
+            "client_id": self.client_id,
+            "response_type": "code",
+            "scope": self.scope,
+            "state": pipeline.signature,
+            "redirect_uri": absolute_uri(self.redirect_url),
+            "code_challenge": _generate_pkce_code_challenge(code_verifier),
+            "code_challenge_method": "S256",
+            **self.extra_authorize_params,
+        }
+
+        return {"oauthUrl": f"{self.authorize_url}?{urlencode(params)}"}
+
+    def _exchange_token(self, code: str, pipeline: Pipeline[Any, Any]) -> dict[str, Any]:
+        code_verifier = pipeline.fetch_state("pkce_code_verifier")
+        if not code_verifier:
+            raise OAuth2ApiStepError("PKCE code_verifier is missing — was get_step_data() called?")
+
+        token_params: dict[str, str] = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": absolute_uri(self.redirect_url),
+            "client_id": self.client_id,
+            "code_verifier": code_verifier,
+        }
+
+        headers: dict[str, str] | None = None
+        if self.client_secret:
+            basic = base64.b64encode(f"{self.client_id}:{self.client_secret}".encode()).decode(
+                "ascii"
+            )
+            headers = {"Authorization": f"Basic {basic}"}
+
+        return self._do_token_request(token_params, headers)
 
 
 class OAuth2LoginView:

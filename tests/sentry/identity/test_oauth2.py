@@ -12,7 +12,12 @@ from django.test import Client, RequestFactory
 from requests.exceptions import ConnectionError, SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2ApiStep, OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import (
+    OAuth2ApiStep,
+    OAuth2CallbackView,
+    OAuth2LoginView,
+    PkceOAuth2ApiStep,
+)
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -382,3 +387,162 @@ class OAuth2ApiStepHandlePostTest(TestCase):
 
         assert result.action == PipelineStepAction.ERROR
         assert "401" in result.data["detail"]
+
+
+@control_silo_test
+class PkceOAuth2ApiStepGetStepDataTest(TestCase):
+    def _make_step(self, **kwargs: Any) -> PkceOAuth2ApiStep:
+        defaults: dict[str, Any] = {
+            "authorize_url": "https://example.org/oauth2/authorize",
+            "client_id": "pkce-client",
+            "client_secret": "pkce-secret",
+            "access_token_url": "https://example.org/oauth/token",
+            "scope": "read",
+            "redirect_url": "/extensions/default/setup/",
+        }
+        defaults.update(kwargs)
+        return PkceOAuth2ApiStep(**defaults)
+
+    def test_includes_pkce_params(self) -> None:
+        ctx = cast(Pipeline, _FakePipelineContext(signature="sig123"))
+        request = RequestFactory().get("/")
+        data = self._make_step().get_step_data(ctx, request)
+
+        url = urlparse(data["oauthUrl"])
+        query = parse_qs(url.query)
+
+        assert query["code_challenge_method"] == ["S256"]
+        assert "code_challenge" in query
+        assert len(query["code_challenge"][0]) > 0
+
+    def test_code_verifier_stored_in_pipeline_state(self) -> None:
+        ctx = _FakePipelineContext(signature="sig123")
+        request = RequestFactory().get("/")
+        self._make_step().get_step_data(cast(Pipeline, ctx), request)
+
+        assert ctx.fetch_state("pkce_code_verifier") is not None
+        assert len(ctx.fetch_state("pkce_code_verifier")) > 0
+
+    def test_standard_oauth_params_preserved(self) -> None:
+        ctx = cast(Pipeline, _FakePipelineContext(signature="sig123"))
+        request = RequestFactory().get("/")
+        data = self._make_step().get_step_data(ctx, request)
+
+        query = parse_qs(urlparse(data["oauthUrl"]).query)
+        assert query["client_id"] == ["pkce-client"]
+        assert query["response_type"] == ["code"]
+        assert query["scope"] == ["read"]
+        assert query["state"] == ["sig123"]
+
+
+@control_silo_test
+class PkceOAuth2ApiStepHandlePostTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.request = RequestFactory().get("/")
+
+    def _make_step(self, **kwargs: Any) -> PkceOAuth2ApiStep:
+        defaults: dict[str, Any] = {
+            "authorize_url": "https://example.org/oauth2/authorize",
+            "client_id": "pkce-client",
+            "client_secret": "pkce-secret",
+            "access_token_url": "https://example.org/oauth/token",
+            "scope": "read",
+            "redirect_url": "/extensions/default/setup/",
+        }
+        defaults.update(kwargs)
+        return PkceOAuth2ApiStep(**defaults)
+
+    @responses.activate
+    def test_sends_code_verifier(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://example.org/oauth/token",
+            json={"access_token": "pkce-token"},
+        )
+        ctx = _FakePipelineContext(signature="valid-state")
+
+        step = self._make_step()
+        step.get_step_data(cast(Pipeline, ctx), self.request)
+        result = step.handle_post(
+            {"code": "auth-code", "state": "valid-state"}, cast(Pipeline, ctx), self.request
+        )
+
+        assert result.action == PipelineStepAction.ADVANCE
+
+        assert len(responses.calls) == 1
+        data = dict(parse_qsl(responses.calls[0].request.body))
+        assert "code_verifier" in data
+        assert data["code_verifier"] == ctx.fetch_state("pkce_code_verifier")
+        assert data["client_id"] == "pkce-client"
+        assert "client_secret" not in data
+
+    @responses.activate
+    def test_uses_basic_auth_for_secret(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://example.org/oauth/token",
+            json={"access_token": "pkce-token"},
+        )
+        step = self._make_step()
+        ctx = _FakePipelineContext(signature="valid-state")
+
+        step.get_step_data(cast(Pipeline, ctx), self.request)
+        step.handle_post(
+            {"code": "auth-code", "state": "valid-state"}, cast(Pipeline, ctx), self.request
+        )
+
+        auth_header = responses.calls[0].request.headers.get("Authorization", "")
+        assert auth_header.startswith("Basic ")
+        import base64
+
+        decoded = base64.b64decode(auth_header.split(" ")[1]).decode()
+        assert decoded == "pkce-client:pkce-secret"
+
+    @responses.activate
+    def test_no_auth_header_without_secret(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://example.org/oauth/token",
+            json={"access_token": "public-token"},
+        )
+        step = self._make_step(client_secret="")
+        ctx = _FakePipelineContext(signature="valid-state")
+
+        step.get_step_data(cast(Pipeline, ctx), self.request)
+        step.handle_post(
+            {"code": "auth-code", "state": "valid-state"}, cast(Pipeline, ctx), self.request
+        )
+
+        assert "Authorization" not in responses.calls[0].request.headers
+
+    @responses.activate
+    def test_code_verifier_preserved_across_separate_instances(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://example.org/oauth/token",
+            json={"access_token": "pkce-token"},
+        )
+        ctx = _FakePipelineContext(signature="valid-state")
+
+        step1 = self._make_step()
+        step1.get_step_data(cast(Pipeline, ctx), self.request)
+
+        step2 = self._make_step()
+        result = step2.handle_post(
+            {"code": "auth-code", "state": "valid-state"}, cast(Pipeline, ctx), self.request
+        )
+
+        assert result.action == PipelineStepAction.ADVANCE
+        data = dict(parse_qsl(responses.calls[0].request.body))
+        assert data["code_verifier"] == ctx.fetch_state("pkce_code_verifier")
+
+    def test_exchange_token_fails_without_get_step_data(self) -> None:
+        ctx = _FakePipelineContext(signature="valid-state")
+        step = self._make_step()
+        result = step.handle_post(
+            {"code": "auth-code", "state": "valid-state"}, cast(Pipeline, ctx), self.request
+        )
+
+        assert result.action == PipelineStepAction.ERROR
+        assert "code_verifier" in result.data["detail"]
