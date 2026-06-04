@@ -1,25 +1,23 @@
 ---
 name: notification-platform
-description: Guide for adding notifications, custom renderers, or new providers to Sentry's NotificationPlatform. Use when asked to "add notification", "new notification", "notification platform", "send notification", "notification template", "notification renderer", "notification provider", "NotificationPlatform", "notify user", "send email notification", "send slack notification".
+description: "Guide for adding notifications, custom renderers, or new providers to Sentry's NotificationPlatform. Define notification data classes and rendering templates, configure tiered rollout stages, register custom provider-specific renderers, and implement new delivery providers for Email, Slack, Discord, or MS Teams. Use when asked to \"add notification\", \"new notification\", \"notification platform\", \"send notification\", \"notification template\", \"notification renderer\", \"notification provider\", \"NotificationPlatform\", \"notify user\", \"send email notification\", \"send slack notification\"."
 ---
 
 # NotificationPlatform Guide
 
 Sentry's NotificationPlatform is a provider-based system for sending notifications across Email, Slack, Discord, and MS Teams. You define data + template, register it, and the platform handles rendering and delivery per provider.
 
-## Glossary
-
-| Concept                        | Role                                                                                                                                                                                                 | Location      |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| `NotificationData`             | Protocol. Frozen dataclass carrying the payload for a single notification. Must declare a `source` class variable.                                                                                   | `types.py`    |
-| `NotificationTemplate`         | Abstract class. Converts `NotificationData` into a `NotificationRenderedTemplate`. Registered per `NotificationSource`.                                                                              | `types.py`    |
-| `NotificationRenderedTemplate` | Dataclass. Provider-agnostic output: subject, body blocks, actions, chart, footer, optional email paths.                                                                                             | `types.py`    |
-| `NotificationProvider`         | Protocol. Knows how to validate a target, pick a renderer, and send the final renderable (Email, Slack, etc.).                                                                                       | `provider.py` |
-| `NotificationRenderer`         | Protocol. Converts a `NotificationRenderedTemplate` into a provider-specific renderable (HTML email, Slack blocks, etc.).                                                                            | `renderer.py` |
-| `NotificationTarget`           | Protocol. Identifies the recipient: email address, channel ID, or DM user ID. Two concrete classes: `GenericNotificationTarget` (email) and `IntegrationNotificationTarget` (Slack/Discord/MSTeams). | `target.py`   |
-| `NotificationService`          | Entry point. Orchestrates lookup, rendering, and delivery. Provides `has_access()`, `notify_target()`, `notify_async()`, `notify_sync()`.                                                            | `service.py`  |
+## Key Types
 
 All paths below are relative to `src/sentry/notifications/platform/`.
+
+| Type | Location |
+|------|----------|
+| `NotificationData`, `NotificationTemplate`, `NotificationRenderedTemplate`, `NotificationSource`, `NotificationCategory` | `types.py` |
+| `NotificationProvider` | `provider.py` |
+| `NotificationRenderer` | `renderer.py` |
+| `NotificationTarget` (`GenericNotificationTarget`, `IntegrationNotificationTarget`) | `target.py` |
+| `NotificationService` (`has_access`, `notify_target`, `notify_async`, `notify_sync`) | `service.py` |
 
 ## Step 1: Determine Your Operation
 
@@ -61,8 +59,6 @@ All `NotificationCategory` options are defined in the `src/sentry/notifications/
 
 ## Step 3: Create the Notification Data
 
-The data class is a frozen dataclass implementing the `NotificationData` protocol. It carries everything the template needs to render.
-
 **File:** `templates/<your_notification>.py` (new file)
 
 ```python
@@ -79,15 +75,12 @@ class MyNotificationData(NotificationData):
 Rules:
 
 - `source` is a **class variable** (no type annotation), not a dataclass field
-- Use `frozen=True` for serialization safety
 - Only include fields needed by the template's `render()` method
-- Avoid Django model instances; use primitive types or simple dataclasses for async serialization
+- Avoid Django model instances; use primitives or simple dataclasses for async serialization
 
 > For full examples (DataExportSuccess, DataExportFailure), load `references/data-and-templates.md`.
 
 ## Step 4: Create the Notification Template
-
-The template converts your data into a provider-agnostic `NotificationRenderedTemplate`.
 
 **Same file as Step 3:** `templates/<your_notification>.py`
 
@@ -122,17 +115,11 @@ class MyNotificationTemplate(NotificationTemplate[MyNotificationData]):
         )
 ```
 
-**Available body block types:**
-
-Refer to `src/sentry/notifications/platform/types.py` for the latest available block types.
-
 **Register the import** in `templates/__init__.py`:
 
 ```python
 from .my_notification import MyNotificationTemplate
 ```
-
-This import is required so the `@template_registry.register` decorator executes at startup (via `sentry/notifications/apps.py`).
 
 > For the full rendered template field reference and more examples, load `references/data-and-templates.md`.
 
@@ -140,9 +127,7 @@ This import is required so the `@template_registry.register` decorator executes 
 
 ### Rollout registration
 
-The platform uses a tiered rollout system. Each notification source must be added to the appropriate rollout option before it will be delivered.
-
-Rollout options are configured externally in `sentry-options-automator` (not this repo). The option keys are:
+Rollout options are configured externally in `sentry-options-automator` (not this repo):
 
 | Rollout stage    | Option key                                        |
 | ---------------- | ------------------------------------------------- |
@@ -151,13 +136,7 @@ Rollout options are configured externally in `sentry-options-automator` (not thi
 | Early adopter    | `notifications.platform-rollout.early-adopter`    |
 | General access   | `notifications.platform-rollout.general-access`   |
 
-Each option is a `Dict` mapping source string to rollout rate (0.0-1.0). Example:
-
-```python
-{"my-new-source": 1.0}
-```
-
-These options are registered in `src/sentry/options/defaults.py` (already done for the four stages above).
+Each option is a `Dict` mapping source string to rollout rate (0.0-1.0), e.g. `{"my-new-source": 1.0}`. Options are registered in `src/sentry/options/defaults.py`.
 
 ### Sending pattern
 
@@ -186,15 +165,9 @@ if NotificationService.has_access(organization, data.source):
 
 ## Step 6: Add a Custom Renderer
 
-Custom renderers bypass the default template-to-renderable conversion for a specific provider + category combination. Use when the default block-based rendering is too limiting (e.g., interactive Slack buttons, rich card layouts).
+Custom renderers bypass the default template-to-renderable conversion for a specific provider + category combination (e.g., interactive Slack buttons, rich card layouts).
 
-**When to use:**
-
-- The notification needs provider-specific interactive elements (buttons with action IDs, rich text blocks)
-- The rendered output structure differs significantly from subject + body + actions
-- You need to render different data types differently within the same provider
-
-**How it works:** Override `get_renderer()` on the provider to return your custom renderer class for the relevant category:
+Override `get_renderer()` on the provider to return your custom renderer class for the relevant category:
 
 ```python
 # In the provider class
@@ -213,9 +186,7 @@ def get_renderer(
 
 ## Step 7: Add a New Provider
 
-Adding a new provider requires implementing the `NotificationProvider` protocol, a default `NotificationRenderer`, and registering both. This should only be done when onboarding a new integration provider.
-
-High-level steps:
+Implement the `NotificationProvider` protocol, a default `NotificationRenderer`, and register both:
 
 1. Create `{provider_name}/provider.py` with provider + default renderer classes
 2. Register with `@provider_registry.register(NotificationProviderKey.MY_PROVIDER)`
