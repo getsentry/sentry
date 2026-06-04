@@ -153,6 +153,20 @@ class SnapshotDownloadStatusTest(APITestCase):
         assert response.status_code == 200
         assert response.data["status"] == "building"
 
+    @patch(ENQUEUE_TARGET)
+    def test_status_returns_404_when_metrics_deleted_mid_request(self, mock_task):
+        artifact = self._artifact()
+        with (
+            patch.object(
+                PreprodSnapshotMetrics,
+                "refresh_from_db",
+                side_effect=PreprodSnapshotMetrics.DoesNotExist,
+            ),
+            self.feature("organizations:preprod-snapshots"),
+        ):
+            response = self.client.get(self._url(artifact.id))
+        assert response.status_code == 404
+
 
 class SnapshotDownloadBytesTest(APITestCase):
     def setUp(self):
