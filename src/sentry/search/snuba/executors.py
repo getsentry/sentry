@@ -6,6 +6,7 @@ import time
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from datetime import datetime, timedelta
 from enum import Enum, auto
 from hashlib import md5
@@ -78,6 +79,28 @@ DEFAULT_TRENDS_WEIGHTS: TrendsSortWeights = {
 class Clauses(Enum):
     HAVING = auto()
     WHERE = auto()
+
+
+@dataclass(frozen=True)
+class PostgresSortStrategy:
+    """A sort strategy that uses Postgres Group model data, optionally combined with Snuba."""
+
+    postgres_fields: dict[str, str]
+    snuba_aggregations: list[str] = dataclass_field(default_factory=list)
+    # Computed signals that aren't a single Group column (e.g. assignment affinity).
+    # Each resolver is called once in bulk with (actor, organization, group_ids) and
+    # returns {group_id: value}; the value is merged into the score_fn dict under its key.
+    signal_resolvers: dict[str, Callable[[Any, Organization, list[int]], dict[int, Any]]] = (
+        dataclass_field(default_factory=dict)
+    )
+    score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
+    exclude_null_postgres: bool = True
+
+
+def _datetime_to_ms(dt: datetime | None) -> int:
+    if dt is None:
+        return 0
+    return int(float(dt.strftime("%s.%f")) * 1000)
 
 
 # we cannot use snuba for these fields because they require a join with tables that don't exist there
@@ -583,7 +606,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         return _run_snuba_query()
 
     def has_sort_strategy(self, sort_by: str) -> bool:
-        return sort_by in self.sort_strategies.keys()
+        return sort_by in self.sort_strategies or sort_by in getattr(
+            self, "postgres_sort_strategies", {}
+        )
 
 
 def trends_aggregation(
@@ -908,6 +933,208 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     def dataset(self) -> Dataset:
         return Dataset.Events
 
+    @property
+    def postgres_sort_strategies(self) -> dict[str, PostgresSortStrategy]:
+        return {}
+
+    def _apply_type_visibility_filter(
+        self,
+        group_queryset: BaseQuerySet,
+        search_filters: Sequence[SearchFilter] | None,
+    ) -> BaseQuerySet:
+        from sentry.issues.search import group_types_from
+
+        visible_type_ids = group_types_from(search_filters)
+        return group_queryset.filter(type__in=visible_type_ids)
+
+    def _execute_postgres_sort(
+        self,
+        strategy: PostgresSortStrategy,
+        sort_by: str,
+        group_queryset: BaseQuerySet,
+        projects: Sequence[Project],
+        environments: Sequence[Environment] | None,
+        search_filters: Sequence[SearchFilter] | None,
+        limit: int,
+        cursor: Cursor | None,
+        count_hits: bool,
+        paginator_options: Mapping[str, Any],
+        max_hits: int | None,
+        actor: Any | None,
+        start: datetime,
+        end: datetime,
+        *,
+        referrer: str,
+    ) -> CursorResult[Group] | None:
+        """Execute a sort using Postgres data, with optional Snuba filtering/aggregation.
+
+        Returns None to signal the caller should fall back to the Snuba-only path (e.g.
+        when there are too many candidates to score in memory).
+        """
+        organization = projects[0].organization
+        resolved_fields = strategy.postgres_fields
+
+        group_queryset = self._apply_type_visibility_filter(group_queryset, search_filters)
+        if strategy.exclude_null_postgres:
+            for model_field in resolved_fields.values():
+                group_queryset = group_queryset.filter(**{f"{model_field}__isnull": False})
+
+        has_snuba_filters = bool(
+            [
+                sf
+                for sf in (search_filters or ())
+                if sf.key.name not in self.postgres_only_fields.union({"date", "timestamp"})
+            ]
+        )
+
+        max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
+        candidate_ids = list(
+            group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
+        )
+
+        if not candidate_ids:
+            return self.empty_result
+
+        if len(candidate_ids) > max_candidates:
+            # Too many candidates to score in memory. Signal the caller to fall through
+            # to the Snuba chunked path, which can paginate without an in-memory bound.
+            return None
+
+        snuba_data: dict[int, dict[str, Any]] = {}
+
+        if has_snuba_filters and strategy.snuba_aggregations:
+            snuba_data = self._snuba_search_raw(
+                start=start,
+                end=end,
+                project_ids=[p.id for p in projects],
+                environment_ids=[env.id for env in environments] if environments else None,
+                organization=organization,
+                required_aggregations=strategy.snuba_aggregations,
+                group_ids=candidate_ids,
+                search_filters=search_filters,
+                actor=actor,
+                referrer=referrer,
+            )
+            candidate_ids = list(snuba_data.keys())
+        elif has_snuba_filters:
+            snuba_groups, _ = self.snuba_search(
+                start=start,
+                end=end,
+                project_ids=[p.id for p in projects],
+                environment_ids=[env.id for env in environments] if environments else None,
+                organization=organization,
+                sort_field="last_seen",
+                cursor=None,
+                group_ids=candidate_ids,
+                limit=len(candidate_ids),
+                offset=0,
+                search_filters=search_filters,
+                referrer=referrer,
+                actor=actor,
+            )
+            candidate_ids = [gid for gid, _ in snuba_groups]
+        elif strategy.snuba_aggregations:
+            snuba_data = self._snuba_search_raw(
+                start=start,
+                end=end,
+                project_ids=[p.id for p in projects],
+                environment_ids=[env.id for env in environments] if environments else None,
+                organization=organization,
+                required_aggregations=strategy.snuba_aggregations,
+                group_ids=candidate_ids,
+                search_filters=search_filters,
+                actor=actor,
+                referrer=referrer,
+            )
+            candidate_ids = list(snuba_data.keys())
+
+        if not candidate_ids:
+            return self.empty_result
+
+        pg_value_fields = list(resolved_fields.values())
+        logical_names = list(resolved_fields.keys())
+        pg_rows = (
+            group_queryset.filter(id__in=candidate_ids)
+            .using_replica()
+            .values_list("id", *pg_value_fields)
+        )
+        pg_data: dict[int, dict[str, Any]] = {}
+        for row in pg_rows:
+            gid = row[0]
+            pg_data[gid] = {logical_names[i]: row[i + 1] for i in range(len(logical_names))}
+
+        # Each signal resolver runs once over all candidates, returning {group_id: value}.
+        signal_data: dict[str, dict[int, Any]] = {
+            name: resolver(actor, organization, candidate_ids)
+            for name, resolver in strategy.signal_resolvers.items()
+        }
+
+        scored_groups: list[tuple[Any, int]] = []
+        for gid in candidate_ids:
+            pg_values = pg_data.get(gid)
+            if pg_values is None:
+                continue
+            merged = {**pg_values, **snuba_data.get(gid, {})}
+            for name, values in signal_data.items():
+                if gid in values:
+                    merged[name] = values[gid]
+            try:
+                score = strategy.score_fn(merged)
+            except (TypeError, KeyError):
+                continue
+            scored_groups.append((score, gid))
+
+        if not scored_groups:
+            return self.empty_result
+
+        paginator_results = SequencePaginator(
+            scored_groups, reverse=True, **paginator_options
+        ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+
+        groups = Group.objects.in_bulk(paginator_results.results)
+        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
+        return paginator_results
+
+    def _snuba_search_raw(
+        self,
+        start: datetime,
+        end: datetime,
+        project_ids: Sequence[int],
+        environment_ids: Sequence[int] | None,
+        organization: Organization,
+        required_aggregations: list[str],
+        group_ids: Sequence[int],
+        search_filters: Sequence[SearchFilter] | None = None,
+        actor: Any | None = None,
+        *,
+        referrer: str,
+    ) -> dict[int, dict[str, Any]]:
+        """Like snuba_search(), but returns raw aggregation values per group."""
+        snuba_groups, _ = self.snuba_search(
+            start=start,
+            end=end,
+            project_ids=project_ids,
+            environment_ids=environment_ids,
+            organization=organization,
+            sort_field="last_seen",
+            cursor=None,
+            group_ids=list(group_ids),
+            limit=len(group_ids),
+            offset=0,
+            search_filters=search_filters,
+            referrer=referrer,
+            actor=actor,
+        )
+        if not snuba_groups:
+            return {}
+
+        # TODO: Extract shared plumbing from snuba_search() to return all
+        # requested aggregation columns, not just the sort score.
+        result: dict[int, dict[str, Any]] = {}
+        for gid, score in snuba_groups:
+            result[gid] = {"last_seen": score}
+        return result
+
     def query(
         self,
         projects: Sequence[Project],
@@ -975,6 +1202,37 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # in the future we should find a way to notify the user that their search
             # is invalid.
             return self.empty_result
+
+        pg_strategy = self.postgres_sort_strategies.get(sort_by)
+        if pg_strategy is not None:
+            pg_result = self._execute_postgres_sort(
+                strategy=pg_strategy,
+                sort_by=sort_by,
+                group_queryset=group_queryset,
+                projects=projects,
+                environments=environments,
+                search_filters=search_filters,
+                limit=limit,
+                cursor=cursor,
+                count_hits=count_hits,
+                paginator_options=paginator_options,
+                max_hits=max_hits,
+                actor=actor,
+                start=start,
+                end=end,
+                referrer=referrer,
+            )
+            if pg_result is not None:
+                metrics.timing(
+                    "snuba.search.query",
+                    (timezone.now() - now).total_seconds(),
+                    tags={"postgres_only": False, "sort": sort_by},
+                )
+                return pg_result
+            # Overflow: too many candidates to score in memory. Fall through to the Snuba
+            # chunked path. If this sort has no Snuba-only equivalent, fall back to `date`.
+            if sort_by not in self.sort_strategies:
+                sort_by = "date"
 
         # If the requested sort is `date` (`last_seen`) and there
         # are no other Snuba-based search predicates, we can simply
