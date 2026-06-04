@@ -660,7 +660,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         organization: Organization | RpcOrganization,
         *,
         force_global_perms: bool = False,
-        include_all_accessible: bool = False,
+        include_all_accessible: bool = True,
         project_ids: set[int] | None = None,
         project_slugs: set[str] | None = None,
     ) -> list[Project]:
