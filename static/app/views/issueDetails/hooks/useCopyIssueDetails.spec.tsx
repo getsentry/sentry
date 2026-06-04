@@ -378,37 +378,72 @@ describe('useCopyIssueDetails', () => {
       expect(result).not.toContain('mainFunction');
     });
 
-    it('includes span evidence for performance issues', () => {
-      // 1006 is the occurrence type for N+1 DB Queries
-      const performanceEvent = EventFixture({
-        ...event,
-        title: '/api/0/users/',
-        occurrence: {
-          type: 1006,
-          evidenceData: {
-            parentSpanIds: ['parent'],
-            causeSpanIds: ['cause'],
-            offenderSpanIds: ['offender1', 'offender2'],
-            patternSize: 5,
-          },
-          evidenceDisplay: [],
-        },
-        entries: [
-          {
-            type: EntryType.SPANS,
-            data: [
-              {span_id: 'parent', op: 'http.server', description: 'GET /api/0/users/'},
-              {span_id: 'cause', op: 'db', description: 'SELECT * FROM users'},
-              {span_id: 'offender1', op: 'db', description: 'SELECT * FROM orders'},
-              {span_id: 'offender2', op: 'db', description: 'SELECT * FROM items'},
-            ],
-          },
-        ],
-      });
+    // 1006 is the occurrence type for N+1 DB Queries. Spans mirror the classic
+    // cache-miss → DB-read shape: each offender is a cache.get with a distinct
+    // key followed by an identical parameterized query.
+    const SENTRY_OPTION_SQL = `SELECT sentry_option.id, sentry_option.key, sentry_option.value
+FROM sentry_option
+WHERE sentry_option.key = %s
+LIMIT 21`;
 
+    const nPlusOneEvent = EventFixture({
+      ...event,
+      title: '/api/0/relays/projectconfigs/',
+      startTimestamp: 0,
+      endTimestamp: 1,
+      occurrence: {
+        type: 1006,
+        evidenceData: {
+          parentSpanIds: ['parent'],
+          causeSpanIds: ['cause1', 'cause2'],
+          offenderSpanIds: ['cache1', 'db1', 'cache2', 'db2'],
+          patternSize: 4,
+        },
+        evidenceDisplay: [],
+      },
+      entries: [
+        {
+          type: EntryType.SPANS,
+          data: [
+            {
+              span_id: 'parent',
+              op: 'base.dispatch.execute',
+              description: 'RelayProjectConfigsEndpoint.post',
+              start_timestamp: 0,
+              timestamp: 1,
+            },
+            {span_id: 'cause1', op: 'db', description: SENTRY_OPTION_SQL},
+            {span_id: 'cause2', op: 'db', description: SENTRY_OPTION_SQL},
+            {span_id: 'cache1', op: 'cache.get', description: 'o:abc'},
+            {
+              span_id: 'db1',
+              op: 'db',
+              description: SENTRY_OPTION_SQL,
+              start_timestamp: 0,
+              timestamp: 0.011,
+              data: {
+                'code.filepath': 'src/sentry/relay/config/__init__.py',
+                'code.lineno': 212,
+                'code.function': 'get_project_config',
+              },
+            },
+            {span_id: 'cache2', op: 'cache.get', description: 'o:def'},
+            {
+              span_id: 'db2',
+              op: 'db',
+              description: SENTRY_OPTION_SQL,
+              start_timestamp: 0.011,
+              timestamp: 0.02,
+            },
+          ],
+        },
+      ],
+    });
+
+    it('summarizes N+1 span evidence with dedup, cardinality, code and timing', () => {
       const result = issueAndEventToMarkdown(
         group,
-        performanceEvent,
+        nPlusOneEvent,
         null,
         null,
         undefined,
@@ -416,13 +451,91 @@ describe('useCopyIssueDetails', () => {
       );
 
       expect(result).toContain('## Span Evidence');
-      expect(result).toContain('**Transaction:** /api/0/users/');
-      expect(result).toContain('**Parent Span:** http.server - GET /api/0/users/');
-      expect(result).toContain('**Preceding Span:** db - SELECT * FROM users');
-      expect(result).toContain('**Offending Spans (2):**');
-      expect(result).toContain('- db - SELECT * FROM orders');
-      expect(result).toContain('- db - SELECT * FROM items');
-      expect(result).toContain('**Pattern Size:** 5');
+      expect(result).toContain('**Transaction:** /api/0/relays/projectconfigs/');
+      expect(result).toContain(
+        '**Parent Span:** base.dispatch.execute - RelayProjectConfigsEndpoint.post'
+      );
+      expect(result).toContain('**Offending Spans (4):**');
+
+      // Distinct cache keys are reported as cardinality, not listed per-span.
+      expect(result).toContain('distinct keys');
+
+      // The cache-miss → DB-read pattern note is surfaced.
+      expect(result).toContain('cache miss → DB read');
+
+      // Code location from span data is included.
+      expect(result).toContain(
+        'code: src/sentry/relay/config/__init__.py:212 get_project_config'
+      );
+
+      // Duration Impact (% of transaction) is shown.
+      expect(result).toContain('of txn');
+
+      expect(result).toContain('**Pattern Size:** 4');
+    });
+
+    it('dedupes repeated queries instead of printing every span', () => {
+      const result = issueAndEventToMarkdown(
+        group,
+        nPlusOneEvent,
+        null,
+        null,
+        undefined,
+        organization
+      );
+
+      // The identical query collapses to one fenced block per group (preceding +
+      // offending) rather than once per span.
+      expect(result.match(/```sql/g) ?? []).toHaveLength(2);
+
+      // Regression guard against the previous double-print bug: a single
+      // Offending heading and a single Pattern Size line.
+      expect(result.match(/Offending Spans/g) ?? []).toHaveLength(1);
+      expect(result.match(/Pattern Size/g) ?? []).toHaveLength(1);
+    });
+
+    it('caps sample lines across the section for many distinct offenders', () => {
+      // Three ops, each with 6 distinct (non-DB) descriptions = 18 distinct
+      // values. The per-section budget should hold total samples to 10.
+      const makeSpans = (op: string, prefix: string) =>
+        Array.from({length: 6}, (_, i) => ({
+          span_id: `${prefix}${i}`,
+          op,
+          description: `${prefix} request ${i}`,
+        }));
+      const offenders = [
+        ...makeSpans('http.client', 'http'),
+        ...makeSpans('cache.get', 'cache'),
+        ...makeSpans('custom.op', 'custom'),
+      ];
+
+      const manyOffenderEvent = EventFixture({
+        ...event,
+        title: '/api/0/widgets/',
+        startTimestamp: 0,
+        endTimestamp: 1,
+        occurrence: {
+          type: 1010, // N+1 API Calls
+          evidenceData: {offenderSpanIds: offenders.map(s => s.span_id)},
+          evidenceDisplay: [],
+        },
+        entries: [{type: EntryType.SPANS, data: offenders}],
+      });
+
+      const result = issueAndEventToMarkdown(
+        group,
+        manyOffenderEvent,
+        null,
+        null,
+        undefined,
+        organization
+      );
+
+      // Count indented sample bullets that are actual values (exclude "…and more").
+      const sampleLines = (result.match(/^ {2}- (?!…)/gm) ?? []).length;
+      expect(sampleLines).toBeLessThanOrEqual(10);
+      // Omission is still communicated.
+      expect(result).toContain('more');
     });
 
     it('includes evidence display rows for profiling issues', () => {

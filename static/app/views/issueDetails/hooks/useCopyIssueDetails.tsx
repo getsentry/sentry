@@ -33,8 +33,11 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
+import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 // Simple store for active thread ID from the UI with subscription support
 let _activeThreadId: number | undefined;
@@ -153,14 +156,145 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
   return markdownText;
 }
 
-function getSpanMarkdownValue(
-  span: {description?: string; op?: string} | null | undefined
-): string {
+type EvidenceSpan = {
+  data?: Record<string, any>;
+  description?: string;
+  op?: string;
+  start_timestamp?: number;
+  timestamp?: number;
+} | null;
+
+const sqlFormatter = new SQLishFormatter();
+
+// Show at most this many distinct sample values for a single repeated span
+// group so large N+1s don't produce a wall of near-identical lines.
+const MAX_SAMPLE_SPANS = 5;
+
+// Overall budget for sample detail lines across one section (mirrors the
+// sentry-mcp MAX_SPANS_IN_TREE bound). Op-group summary lines always render
+// since they're compact and high-signal; only the per-value samples draw from
+// this budget, guaranteeing bounded output even for many distinct offenders.
+const MAX_SAMPLE_SPANS_PER_SECTION = 10;
+
+function getSpanMarkdownValue(span: EvidenceSpan): string {
   const {op, description} = span ?? {};
   if (op && description) {
     return `${op} - ${description}`;
   }
   return description || op || t('(no value)');
+}
+
+/**
+ * Collapses whitespace; SQL descriptions are run through the same formatter the
+ * Span Evidence UI uses so multi-line queries become a single readable line.
+ */
+function normalizeSpanDescription(span: EvidenceSpan): string {
+  const description = span?.description ?? '';
+  if (!description) {
+    return '';
+  }
+  if (span?.op?.startsWith('db')) {
+    return sqlFormatter.toString(description);
+  }
+  return description.replace(/\s+/g, ' ').trim();
+}
+
+/** Mirrors the `code.*` span data the UI's SlowDBQueryEvidence renders. */
+function getSpanCodeLocation(span: EvidenceSpan): string | null {
+  const data = span?.data;
+  const filepath = data?.['code.filepath'];
+  if (!filepath) {
+    return null;
+  }
+  const lineno = data?.['code.lineno'];
+  const fn = data?.['code.function'];
+  const location = lineno === undefined ? filepath : `${filepath}:${lineno}`;
+  return fn ? `${location} ${fn}` : location;
+}
+
+function getSpanDurationMs(span: EvidenceSpan): number {
+  return ((span?.timestamp ?? 0) - (span?.start_timestamp ?? 0)) * 1000;
+}
+
+/**
+ * Formats total time for a span group, plus its share of the transaction
+ * (Duration Impact) when the transaction duration is known. Same math as
+ * spanEvidenceKeyValueList.
+ */
+function formatGroupTiming(totalMs: number, event: EventTransaction): string {
+  const duration = getPerformanceDuration(totalMs);
+  const transactionMs = (event.endTimestamp - event.startTimestamp) * 1000;
+  if (!transactionMs || Number.isNaN(transactionMs)) {
+    return duration;
+  }
+  return `${duration}, ${toRoundedPercent(totalMs / transactionMs)} of txn`;
+}
+
+/**
+ * Summarizes a list of spans grouped by `op`, deduping repeated descriptions
+ * and surfacing cardinality (e.g. distinct cache keys), timing, and code
+ * location. Keeps the markdown compact for large N+1s.
+ */
+function summarizeSpanGroup(
+  heading: string,
+  spans: EvidenceSpan[],
+  event: EventTransaction
+): string[] {
+  const valid = spans.filter(Boolean);
+  if (valid.length === 0) {
+    return [];
+  }
+
+  const lines = [`**${heading} (${valid.length}):**`];
+
+  const byOp = new Map<string, EvidenceSpan[]>();
+  valid.forEach(span => {
+    const op = span?.op || '(no op)';
+    byOp.set(op, [...(byOp.get(op) ?? []), span]);
+  });
+
+  let sampleBudget = MAX_SAMPLE_SPANS_PER_SECTION;
+
+  byOp.forEach((group, op) => {
+    const count = group.length;
+    const distinct = Array.from(
+      new Set(group.map(normalizeSpanDescription).filter(Boolean))
+    );
+    const totalMs = group.reduce((sum, span) => sum + getSpanDurationMs(span), 0);
+    const timing = formatGroupTiming(totalMs, event);
+    const repeat = count > 1 ? `${count}×, ` : '';
+
+    if (distinct.length <= 1) {
+      const description = distinct[0];
+      if (op.startsWith('db') && description) {
+        lines.push(`- \`${op}\` (${repeat}${timing}):`);
+        lines.push('```sql', description, '```');
+      } else {
+        lines.push(
+          `- \`${op}\`${description ? ` — ${description}` : ''} (${repeat}${timing})`
+        );
+      }
+    } else {
+      const cardinality = op.startsWith('cache') ? 'distinct keys' : 'distinct values';
+      lines.push(`- \`${op}\` (${repeat}${distinct.length} ${cardinality}, ${timing})`);
+      // Draw samples from the shared section budget so the total stays bounded.
+      const sampleCount = Math.min(MAX_SAMPLE_SPANS, sampleBudget, distinct.length);
+      distinct.slice(0, sampleCount).forEach(description => {
+        lines.push(`  - ${description}`);
+      });
+      sampleBudget -= sampleCount;
+      if (distinct.length > sampleCount) {
+        lines.push(`  - …and ${distinct.length - sampleCount} more`);
+      }
+    }
+
+    const codeLocation = group.map(getSpanCodeLocation).find(Boolean);
+    if (codeLocation) {
+      lines.push(`  code: ${codeLocation}`);
+    }
+  });
+
+  return lines;
 }
 
 /**
@@ -207,55 +341,58 @@ function formatSpanEvidenceToMarkdown(event: Event, organization: Organization):
       ? getSpanInfoFromTransactionEvent(eventTransaction)
       : null;
 
-  type EvidenceSpan = {description?: string; op?: string} | null | undefined;
   const lines: string[] = [];
   const typeId = event.occurrence?.type;
+  const transactionBased = isTransactionBased(typeId);
 
-  // Match spanEvidenceKeyValueList: transaction events use event.title; profiling
-  // and other non-transaction issues use evidenceData or evidenceDisplay instead.
-  if (isTransactionBased(typeId) && event.title) {
+  // Transaction name: transaction events use event.title; profiling/AI and other
+  // non-transaction issues fall back to evidenceData.
+  if (transactionBased && event.title) {
     lines.push(`**Transaction:** ${event.title}`);
   } else if (evidenceData.transactionName) {
     lines.push(`**Transaction:** ${evidenceData.transactionName}`);
   } else if (evidenceData.transaction) {
     lines.push(`**Transaction:** ${evidenceData.transaction}`);
-  } else if (issueType && AI_DETECTED_ISSUE_TYPES.has(issueType) && event.title) {
+  } else if (AI_DETECTED_ISSUE_TYPES.has(issueType) && event.title) {
     lines.push(`**Transaction:** ${event.title}`);
   }
 
-  if (spanInfo?.parentSpan) {
-    lines.push(`**Parent Span:** ${getSpanMarkdownValue(spanInfo.parentSpan)}`);
-  }
-
-  const causeSpans: EvidenceSpan[] = spanInfo?.causeSpans?.filter(Boolean) ?? [];
-  if (causeSpans.length === 1) {
-    lines.push(`**Preceding Span:** ${getSpanMarkdownValue(causeSpans[0])}`);
-  } else if (causeSpans.length > 1) {
-    lines.push('**Preceding Spans:**');
-    causeSpans.forEach(span => {
-      lines.push(`- ${getSpanMarkdownValue(span)}`);
-    });
-  }
-
-  const offendingSpans: EvidenceSpan[] = spanInfo?.offendingSpans?.filter(Boolean) ?? [];
-  if (offendingSpans.length > 0) {
-    lines.push(`**Offending Spans (${offendingSpans.length}):**`);
-    offendingSpans.forEach(span => {
-      lines.push(`- ${getSpanMarkdownValue(span)}`);
-    });
-  }
-
-  if (evidenceData.patternSize > 0) {
-    lines.push(`**Pattern Size:** ${evidenceData.patternSize}`);
-  }
-
-  // Evidence display rows are pre-formatted name/value pairs used by profiling
-  // and several other issue types.
-  evidenceDisplay.forEach(item => {
-    if (item?.name) {
-      lines.push(`**${item.name}:** ${item.value}`);
+  if (transactionBased) {
+    // Transaction-based issues (N+1, slow query, consecutive, etc.) carry the
+    // offending spans in the event. Summarize them with dedup, cardinality,
+    // timing and code location instead of dumping every span.
+    if (spanInfo?.parentSpan) {
+      lines.push(`**Parent Span:** ${getSpanMarkdownValue(spanInfo.parentSpan)}`);
     }
-  });
+
+    const causeSpans: EvidenceSpan[] = spanInfo?.causeSpans?.filter(Boolean) ?? [];
+    lines.push(...summarizeSpanGroup('Preceding Spans', causeSpans, eventTransaction));
+
+    const offendingSpans: EvidenceSpan[] =
+      spanInfo?.offendingSpans?.filter(Boolean) ?? [];
+    lines.push(
+      ...summarizeSpanGroup('Offending Spans', offendingSpans, eventTransaction)
+    );
+
+    // Surface the cache-miss → DB read shape when both appear (classic N+1).
+    const hasCacheMiss = offendingSpans.some(span => span?.op?.startsWith('cache'));
+    const hasDbRead = offendingSpans.some(span => span?.op?.startsWith('db'));
+    if (hasCacheMiss && hasDbRead) {
+      lines.push('_Pattern: cache miss → DB read, repeated per entity._');
+    }
+
+    if (evidenceData.patternSize > 0) {
+      lines.push(`**Pattern Size:** ${evidenceData.patternSize}`);
+    }
+  } else {
+    // Profiling / AI-detected and other non-transaction issues expose
+    // pre-formatted name/value rows instead of computed spans.
+    evidenceDisplay.forEach(item => {
+      if (item?.name) {
+        lines.push(`**${item.name}:** ${item.value}`);
+      }
+    });
+  }
 
   if (lines.length === 0) {
     return '';
