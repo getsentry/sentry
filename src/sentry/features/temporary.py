@@ -207,8 +207,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-snapshots", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Add a random trace ID to events that lack one in Relay.
-    manager.add("organizations:relay-default-trace-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:processing-errors-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:sourcemap-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable profiling
@@ -267,6 +265,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-thinking-blocks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable client-side UI tools for Seer Agent
     manager.add("organizations:seer-explorer-ui-tools", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable Seer Explorer to generate rich component embeds from an adjusted prompt
+    manager.add("organizations:seer-explorer-embeds", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable structured LLM context (JSON snapshot) instead of ASCII DOM snapshot
     manager.add("organizations:context-engine-structured-page-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable autofix introspection for early stopping of autofix runs

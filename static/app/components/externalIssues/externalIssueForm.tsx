@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 
@@ -19,7 +20,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {Choice, Choices, SelectValue} from 'sentry/types/core';
+import type {Choice, Choices} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,

@@ -6,10 +6,13 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
 
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 
+from sentry import options
+from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupAction, GroupActionActor
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.middleware import is_frontend_request
 from sentry.utils import metrics
 
@@ -105,48 +108,22 @@ def resolve_action_source(request: Request) -> str:
     return ActionSource.API
 
 
-class ActorType(StrEnum):
-    USER = "user"
-    SYSTEM = "system"
-
-
-class ActionType(StrEnum):
-    VIEW = "view"
-    RESOLVE = "resolve"
-    UNRESOLVE = "unresolve"
-    ARCHIVE = "archive"
-    ASSIGN = "assign"
-    UNASSIGN = "unassign"
-    SET_PRIORITY = "set_priority"
-    MERGE_INTO_OTHER = "merge_into_other"
-    MERGE_FROM_OTHER = "merge_from_other"
-    DELETE = "delete"
-    BOOKMARK = "bookmark"
-    COMMENT = "comment"
-    COMMENT_EDIT = "comment_edit"
-    COMMENT_DELETE = "comment_delete"
-    SUBSCRIBE = "subscribe"
-    UNSUBSCRIBE = "unsubscribe"
-    MARK_REVIEWED = "mark_reviewed"
-    TRIGGER_AUTOFIX = "trigger_autofix"
-
-
 @dataclass(frozen=True)
 class ActionContext:
     source: str
-    actor_id: int | None = None
+    actor: GroupActionActor = SYSTEM_ACTOR
 
 
 _action_context: ContextVar[ActionContext | None] = ContextVar("action_context", default=None)
 
 
 @contextmanager
-def action_context_scope(source: str, actor_id: int | None) -> Generator[None]:
+def action_context_scope(source: str, actor: GroupActionActor) -> Generator[None]:
     """
     Set action attribution context for the duration of a block. Must be set before
     any code path that calls publish_action_from_context().
     """
-    token = _action_context.set(ActionContext(source=source, actor_id=actor_id))
+    token = _action_context.set(ActionContext(source=source, actor=actor))
     try:
         yield
     finally:
@@ -157,47 +134,84 @@ def get_action_context() -> ActionContext | None:
     return _action_context.get()
 
 
+class DuplicateActionError(Exception):
+    """Raised when an idempotency_key conflicts with an existing entry."""
+
+
 def publish_action(
+    action: GroupAction,
     *,
-    action: ActionType,
     source: str,
     group_id: int,
     organization_id: int,
     project_id: int,
-    actor_id: int | None = None,
-    metadata: dict[str, Any] | None = None,
+    actor: GroupActionActor = SYSTEM_ACTOR,
     idempotency_key: str | None = None,
 ) -> None:
     """
-    Record an issue action directly. Use this for shallow endpoint-level actions
-    where the request is in scope (VIEW, COMMENT, TRIGGER_AUTOFIX). For mutation
-    sites deeper in the stack, prefer publish_action_from_context().
+    Record an issue action. Raises DuplicateActionError if an idempotency_key
+    conflicts with an existing entry.
+
+    Use this for shallow endpoint-level actions where the request is in scope
+    (VIEW, COMMENT, TRIGGER_AUTOFIX). For mutation sites deeper in the stack,
+    prefer publish_action_from_context().
     """
-    actor_type = ActorType.USER if actor_id is not None else ActorType.SYSTEM
-    metrics.incr("issue.action_log", tags={"action": action, "source": source})
+    action_name = action.get_type().name.lower()
+    metrics.incr("issue.action_log", tags={"action": action_name, "source": source})
     logger.info(
         "issue.action_log",
         extra={
-            "action": action,
+            "action": action_name,
             "source": source,
             "group_id": group_id,
             "organization_id": organization_id,
             "project_id": project_id,
-            "actor_type": actor_type,
-            "actor_id": actor_id,
-            "metadata": metadata or {},
+            "actor_type": actor.actor_type.name.lower(),
+            "actor_id": actor.actor_id,
+            "metadata": action.dict(),
             "idempotency_key": idempotency_key,
         },
     )
 
+    # Don't write to the database until we're confident in the action schemas.
+    if not options.get("issues.action-log.write-to-db"):
+        return
+
+    kwargs = dict(
+        group_id=group_id,
+        project_id=project_id,
+        type=action.get_type().value,
+        actor_type=actor.actor_type.value,
+        actor_id=actor.actor_id,
+        source=source,
+        data=action.dict(),
+        idempotency_key=idempotency_key,
+    )
+
+    if idempotency_key is None:
+        GroupActionLogEntry.objects.create(**kwargs)
+        return
+
+    try:
+        with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
+            GroupActionLogEntry.objects.create(**kwargs)
+    except IntegrityError as e:
+        cause = e.__cause__
+        constraint = getattr(getattr(cause, "diag", None), "constraint_name", None)
+        if constraint == "uniq_groupactionlogentry_group_idempotency_key":
+            raise DuplicateActionError(
+                f"Action already recorded for group {group_id} "
+                f"with idempotency_key={idempotency_key!r}"
+            ) from e
+        raise
+
 
 def publish_action_from_context(
+    action: GroupAction,
     *,
-    action: ActionType,
     group_id: int,
     organization_id: int,
     project_id: int,
-    metadata: dict[str, Any] | None = None,
 ) -> None:
     """
     Record an issue action using the current ActionContext. This is the primary API
@@ -209,19 +223,18 @@ def publish_action_from_context(
     if ctx is None:
         logger.error(
             "publish_action_from_context called without ActionContext",
-            extra={"action": action, "group_id": group_id},
+            extra={"action": action.get_type().name.lower(), "group_id": group_id},
         )
         source: str = ActionSource.UNKNOWN
-        actor_id = None
+        actor = SYSTEM_ACTOR
     else:
         source = ctx.source
-        actor_id = ctx.actor_id
+        actor = ctx.actor
     publish_action(
-        action=action,
+        action,
         source=source,
         group_id=group_id,
         organization_id=organization_id,
         project_id=project_id,
-        actor_id=actor_id,
-        metadata=metadata,
+        actor=actor,
     )

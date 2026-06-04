@@ -101,11 +101,9 @@ def _trigger_explorer_indexes_if_needed(
 def _has_context_engine(
     organization: Organization, user: User | RpcUser | AnonymousUser | None
 ) -> bool:
-    return (
-        features.has("organizations:seer-explorer-context-engine", organization, actor=user)
-        or features.has("organizations:seat-based-seer-enabled", organization, actor=user)
-        or features.has("organizations:seer-added", organization, actor=user)
-    )
+    return features.has(
+        "organizations:seat-based-seer-enabled", organization, actor=user
+    ) or features.has("organizations:seer-added", organization, actor=user)
 
 
 class SeerAgentClient:

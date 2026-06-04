@@ -5,6 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -20,7 +21,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {Choices, SelectValue} from 'sentry/types/core';
+import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

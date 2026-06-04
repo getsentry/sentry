@@ -143,6 +143,12 @@ def build_proxied_request(
     )
 
 
+def get_cell_address(cell: Cell) -> str:
+    if app.config.endpoints.use_cell_gw and cell.api_gateway_address:
+        return cell.api_gateway_address
+    return cell.address
+
+
 def get_timeout(path: str) -> float | None:
     for segments, timeout in TIMEOUT_OVERRIDES:
         if all(segment in path for segment in segments):
@@ -160,7 +166,7 @@ def adapt_response(presp: httpx.Response) -> Any:
 
 
 async def proxy_cell_request(cell: Cell, request: Any) -> Any:
-    target_url = urljoin(cell.address, request.path)
+    target_url = urljoin(get_cell_address(cell), request.path)
     headers = build_proxied_cell_headers(request, cell.address)
     timeout = get_timeout(request.path)
 
