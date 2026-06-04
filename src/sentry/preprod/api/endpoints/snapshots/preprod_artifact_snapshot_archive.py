@@ -160,10 +160,11 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                 return "building"
         except UnableToAcquireLock:
             # Another request holds the lock to start a build; report the latest
-            # committed status rather than assuming "building".
+            # settled status (which re-verifies a ready File still exists) rather
+            # than the raw stored status, falling back to "building" since a build
+            # is in the process of starting.
             metrics.refresh_from_db()
-            state = get_zip_state(metrics)
-            return state.get("status", "building") if state else "building"
+            return _settled_status() or "building"
 
     def _download(
         self, request: Request, artifact: PreprodArtifact, file_obj: File

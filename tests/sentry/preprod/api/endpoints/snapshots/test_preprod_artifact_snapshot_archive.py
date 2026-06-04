@@ -130,6 +130,29 @@ class SnapshotDownloadStatusTest(APITestCase):
         assert response.data["status"] == "building"
         mock_task.apply_async.assert_called_once()
 
+    @patch(ENQUEUE_TARGET)
+    def test_status_lock_contention_does_not_report_stale_ready(self, mock_task):
+        from unittest.mock import MagicMock
+
+        from sentry.utils.locking import UnableToAcquireLock
+
+        artifact = self._artifact(
+            extras={"images_zip": {"status": "ready", "file_id": 999999, "size": 5}}
+        )
+        lock = MagicMock()
+        lock.acquire.side_effect = UnableToAcquireLock
+        with (
+            patch(
+                "sentry.preprod.api.endpoints.snapshots."
+                "preprod_artifact_snapshot_archive.locks.get",
+                return_value=lock,
+            ),
+            self.feature("organizations:preprod-snapshots"),
+        ):
+            response = self.client.get(self._url(artifact.id))
+        assert response.status_code == 200
+        assert response.data["status"] == "building"
+
 
 class SnapshotDownloadBytesTest(APITestCase):
     def setUp(self):
