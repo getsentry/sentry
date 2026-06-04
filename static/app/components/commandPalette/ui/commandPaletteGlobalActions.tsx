@@ -428,7 +428,7 @@ export function GlobalCommandPaletteActions() {
           }
         >
           {dashboards => (
-            <>
+            <React.Fragment>
               {hasPrebuiltDashboards && (
                 <CMDKAction
                   display={{label: t('All Dashboards')}}
@@ -437,7 +437,9 @@ export function GlobalCommandPaletteActions() {
               )}
               <CMDKAction
                 display={{
-                  label: hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards'),
+                  label: hasPrebuiltDashboards
+                    ? t('Custom Dashboards')
+                    : t('All Dashboards'),
                 }}
                 to={`${prefix}/dashboards/`}
               />
@@ -462,7 +464,7 @@ export function GlobalCommandPaletteActions() {
                 </CMDKAction>
               )}
               {dashboards.map(renderAsyncResult)}
-            </>
+            </React.Fragment>
           )}
         </CMDKAction>
 

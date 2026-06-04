@@ -461,7 +461,11 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     await userEvent.type(input, 'quer');
 
     // Wait for the dashboard results to appear
-    expect(await screen.findByRole('option', {name: 'Queries Dashboard'})).toBeInTheDocument();
-    expect(await screen.findByRole('option', {name: 'Query Performance'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('option', {name: 'Queries Dashboard'})
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('option', {name: 'Query Performance'})
+    ).toBeInTheDocument();
   });
 });
