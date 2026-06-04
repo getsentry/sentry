@@ -171,7 +171,13 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
               }
 
               if (defined(zValue) && typeof zValue === 'number') {
-                formattedZValue = formatAbbreviatedNumber(zValue, 4, false);
+                // when the z-axis is in log scale, the values are log values and don't reflect the actual value
+                // so we need to convert them back to the actual value
+                formattedZValue = formatAbbreviatedNumber(
+                  scale === 'log' ? Math.expm1(zValue) : zValue,
+                  4,
+                  false
+                );
               }
             }
 
