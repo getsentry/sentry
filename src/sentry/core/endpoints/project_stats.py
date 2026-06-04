@@ -15,6 +15,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tsdb.base import TSDBModel
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -81,7 +82,7 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response[list[tuple[int, int]]]:
         """
         Return a set of points representing a normalized timestamp and the number of
         events seen in the period.
