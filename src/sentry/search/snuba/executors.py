@@ -14,6 +14,7 @@ from math import floor
 from typing import Any, TypedDict, cast
 
 import sentry_sdk
+from django.db.models import DateTimeField
 from django.utils import timezone
 from snuba_sdk.query import Query
 
@@ -941,7 +942,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         group_queryset = group_queryset.using_replica().order_by(f"-{field_name}")
         # DateTimePaginator encodes the cursor as a millisecond integer, which only works
         # for datetime columns. Numeric columns carry their value directly via Paginator.
-        is_datetime = Group._meta.get_field(field_name).get_internal_type() == "DateTimeField"
+        is_datetime = isinstance(Group._meta.get_field(field_name), DateTimeField)
         paginator_cls = DateTimePaginator if is_datetime else Paginator
         paginator = paginator_cls(group_queryset, f"-{field_name}", **paginator_options)
         return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
@@ -1068,7 +1069,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             for name, resolver in strategy.signal_resolvers.items()
         }
 
-        scored_groups: list[tuple[float, int]] = []
+        scored_groups: list[tuple[Any, int]] = []
         for gid in candidate_ids:
             pg_values = pg_data.get(gid)
             if pg_values is None:
