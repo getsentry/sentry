@@ -480,7 +480,9 @@
   <div style="padding: 16px; margin: 16px 0; background-color: #f5f3f7; border-radius: 4px; font-size: 14px;">
     Details about specific issues and transactions are not shown in this report since enhanced privacy
     controls are enabled. For more details,
-    <a href="{% absolute_uri '/organizations/' %}{{ organization.slug }}/issues/?referrer=weekly_report&notification_uuid={{ notification_uuid }}">view your issues on Sentry</a>.
+    {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
+    {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
+    <a href="{% org_url organization issue_list query=query %}">view your issues on Sentry</a>.
   </div>
   {% endif %}
 
