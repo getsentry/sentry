@@ -34,13 +34,15 @@ url_name = "sentry-api-0-projets"
 
 @pytest.fixture(autouse=True)
 def close_sync_proxy_connection() -> Generator[None]:
-    # The proxy reuses a thread-local requests.Session for connection pooling.
-    # Reset it between tests so pooled connections and cookie state don't leak.
+    # The proxy reuses thread-local requests.Sessions for connection pooling, keyed
+    # by retry count. Reset them between tests so pooled connections and cookie
+    # state don't leak.
     yield
-    connection = sync_proxy._connection
-    if hasattr(connection, "session"):
-        connection.session.close()
-        del connection.session
+    connections = sync_proxy._connections
+    if hasattr(connections, "session"):
+        for session in connections.session.values():
+            session.close()
+        del connections.session
 
 
 def test_sync_response_closes_upstream_after_streaming() -> None:

@@ -18,8 +18,9 @@ from django.http.response import HttpResponseBase
 from requests import Response as ExternalResponse
 from requests import Session
 from requests import request as external_request
+from requests.adapters import HTTPAdapter, Retry
 from requests.cookies import RequestsCookieJar
-from requests.exceptions import ConnectionError, Timeout
+from requests.exceptions import ConnectionError, RetryError, Timeout
 
 from sentry import options
 from sentry.api.exceptions import RequestTimeout
@@ -62,7 +63,7 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
 # stream 0.5 MB at a time
 PROXY_CHUNK_SIZE = 512 * 1024
 
-_connection = local()
+_connections = local()
 
 
 class _StatelessCookieJar(RequestsCookieJar):
@@ -73,12 +74,37 @@ class _StatelessCookieJar(RequestsCookieJar):
         return None
 
 
-def _get_connection() -> Session:
-    if not hasattr(_connection, "session"):
-        session = Session()
-        session.cookies = _StatelessCookieJar()
-        _connection.session = session
-    return _connection.session
+def _create_request_session(retry_count: int) -> Session:
+    retry_adapter = HTTPAdapter(
+        max_retries=Retry(
+            total=retry_count,
+            backoff_factor=0.1,
+            status_forcelist=[502, 503, 504],
+            allowed_methods=["GET", "POST", "PUT", "DELETE"],
+        )
+    )
+    http = Session()
+    http.cookies = _StatelessCookieJar()
+    http.mount("http://", retry_adapter)
+    http.mount("https://", retry_adapter)
+    return http
+
+
+def _get_connection(retry_count: int) -> Session:
+    """
+    Get a shared requests.Session.
+
+    Because retry limits are part of the session definition,
+    each unique retry value creates a different connection pool.
+    """
+    if not hasattr(_connections, "session"):
+        _connections.session = {}
+
+    if not _connections.session.get(retry_count, None):
+        http = _create_request_session(retry_count)
+        _connections.session[retry_count] = http
+
+    return _connections.session[retry_count]
 
 
 def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHttpResponse:
@@ -155,6 +181,9 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     metric_tags = {"destination_cell": cell.name, "url_name": url_name}
     circuit_breaker: CircuitBreaker | None = None
     use_pooling = in_random_rollout("hybridcloud.apigateway.use_pooling.rate")
+    retry_enabled = (
+        options.get("apigateway.proxy.retry.enabled") and url_name not in ENDPOINT_TIMEOUT_OVERRIDE
+    )
 
     # TODO(mark) remove rollout options
     if options.get("apigateway.proxy.circuit-breaker.enabled"):
@@ -209,10 +238,9 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     else:
         data = BodyWithLength(request)
 
-    # When pooling is enabled, reuse the thread-local session to keep connections
-    # alive across requests; otherwise issue a one-off request.
+    max_retries = options.get("apigateway.proxy.retry.max_count") if retry_enabled else 0
     requester: Callable[..., ExternalResponse] = (
-        _get_connection().request if use_pooling else external_request
+        _get_connection(max_retries).request if use_pooling else external_request
     )
 
     try:
@@ -236,6 +264,12 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
 
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
+    except RetryError:
+        metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
+
+        raise
     except ConnectionError:
         metrics.incr("apigateway.proxy.connection_error", tags=metric_tags)
         if circuit_breaker is not None:
@@ -243,6 +277,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
 
         raise
 
+    # This block can be removed after migration too pool with retry
     if resp.status_code >= 502:
         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
         if circuit_breaker is not None:
