@@ -106,15 +106,6 @@ class UserEmailsEndpoint(UserEndpoint):
 
         try:
             add_email_signed(email, user)
-            logger.info(
-                "user.email.add",
-                extra={
-                    "user_id": user.id,
-                    "ip_address": request.META["REMOTE_ADDR"],
-                    "used_signed_url": True,
-                    "email": email,
-                },
-            )
             return self.respond(
                 {"detail": _("A verification email has been sent. Please check your inbox.")},
                 status=201,
