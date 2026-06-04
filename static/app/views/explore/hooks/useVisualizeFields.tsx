@@ -4,7 +4,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
@@ -64,7 +64,9 @@ export function useVisualizeFields({
       .filter(option => {
         // Filtering by value here, so it's based off of explicit tags i.e. `key`
         // or `tags[<key>, <boolean | number | string>]
-        if (seen.has(option.value)) return false;
+        if (seen.has(option.value)) {
+          return false;
+        }
         seen.add(option.value);
         return true;
       })

@@ -67,7 +67,7 @@ interface SelectRowProps {
 }
 
 function validateParameter(
-  columnOptions: Array<SelectValue<string>>,
+  columnOptions: Array<{value: string}>,
   parameter: AggregateParameter,
   value: string | undefined
 ) {

@@ -34,7 +34,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
-import type {DetailedProject, PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {DetailedProject} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
@@ -321,7 +322,9 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     ...fields.platform,
     options: fields.platform.options.filter(({value}) => {
       // Always include the current project's platform to display its icon and label
-      if (project.platform === value) return true;
+      if (project.platform === value) {
+        return true;
+      }
       return isPlatformAllowed({isSelfHosted, organization, platform: value});
     }),
     isOptionDisabled: (option: SelectOptionWithKey<string>) => {

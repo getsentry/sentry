@@ -572,6 +572,17 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             lambda _: hashed_refresh_token,
         )
 
+    def normalize_before_relocation_export(self) -> None:
+        """
+        Trim ApiToken scopes to eliminate scopes that are no longer valid.
+
+        We have historical ApiToken records with the `project:distribution` scope
+        which is no longer valid for ApiTokens.
+        """
+        from sentry.receivers.tokens import enforce_scope_hierarchy
+
+        enforce_scope_hierarchy(self)
+
     @property
     def organization_id(self) -> int | None:
         from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation

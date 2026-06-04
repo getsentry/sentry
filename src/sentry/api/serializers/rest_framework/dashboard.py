@@ -28,6 +28,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
     DatasetSourcesTypes,
+    get_max_widget_limit,
 )
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
@@ -103,6 +104,77 @@ def is_table_display_type(display_type):
 
 
 MAX_WIDGET_COLS = 6
+
+
+_DEFAULT_CHART_AND_TABLE_TYPES: frozenset[int] = frozenset(
+    {
+        DashboardWidgetDisplayTypes.LINE_CHART,
+        DashboardWidgetDisplayTypes.AREA_CHART,
+        DashboardWidgetDisplayTypes.BAR_CHART,
+        DashboardWidgetDisplayTypes.TABLE,
+        DashboardWidgetDisplayTypes.BIG_NUMBER,
+        DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART,
+    }
+)
+
+
+class DatasetConfig(TypedDict):
+    supported_display_types: frozenset[int]
+
+
+# Per-dataset config mirroring the frontend dataset configs
+# (``static/app/views/dashboards/datasetConfig/*.tsx``). A display type is
+# allowed for a widget_type iff it appears in ``supported_display_types`` here.
+DATASET_CONFIG: dict[int, DatasetConfig] = {
+    DashboardWidgetTypes.DISCOVER: {"supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES},
+    # ERROR_EVENTS is intentionally omitted: it's the ``create_widget`` default
+    # when a request omits widget_type, so any system display type a prebuilt
+    # config doesn't tag will land here. Without a config entry the validation
+    # falls through and lets the request pass.
+    DashboardWidgetTypes.TRANSACTION_LIKE: {
+        "supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES
+    },
+    DashboardWidgetTypes.RELEASE_HEALTH: {
+        "supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES
+    },
+    DashboardWidgetTypes.METRICS: {"supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES},
+    DashboardWidgetTypes.LOGS: {"supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES},
+    DashboardWidgetTypes.ISSUE: {
+        "supported_display_types": frozenset(
+            {
+                DashboardWidgetDisplayTypes.TABLE,
+                DashboardWidgetDisplayTypes.LINE_CHART,
+                DashboardWidgetDisplayTypes.AREA_CHART,
+                DashboardWidgetDisplayTypes.BAR_CHART,
+            }
+        )
+    },
+    DashboardWidgetTypes.SPANS: {
+        "supported_display_types": _DEFAULT_CHART_AND_TABLE_TYPES
+        | frozenset(
+            {
+                DashboardWidgetDisplayTypes.DETAILS,
+                DashboardWidgetDisplayTypes.SERVER_TREE,
+                # WHEEL is used by built-in performance-score widgets.
+                DashboardWidgetDisplayTypes.WHEEL,
+            }
+        )
+    },
+    DashboardWidgetTypes.TRACEMETRICS: {
+        "supported_display_types": frozenset(
+            {
+                DashboardWidgetDisplayTypes.LINE_CHART,
+                DashboardWidgetDisplayTypes.AREA_CHART,
+                DashboardWidgetDisplayTypes.BAR_CHART,
+                DashboardWidgetDisplayTypes.BIG_NUMBER,
+                DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART,
+            }
+        )
+    },
+    DashboardWidgetTypes.PREPROD_APP_SIZE: {
+        "supported_display_types": frozenset({DashboardWidgetDisplayTypes.LINE_CHART})
+    },
+}
 
 
 class WidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
@@ -326,7 +398,24 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     )
 
     def validate_display_type(self, display_type):
-        return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
+        display_type_id = DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
+
+        widget_type_name = self.context.get("widget_type")
+        if widget_type_name is not None and display_type_id is not None:
+            widget_type_id = DashboardWidgetTypes.get_id_for_type_name(widget_type_name)
+            config = DATASET_CONFIG.get(widget_type_id)
+            if config is not None and display_type_id not in config["supported_display_types"]:
+                supported_names = sorted(
+                    DashboardWidgetDisplayTypes.get_type_name(d) or str(d)
+                    for d in config["supported_display_types"]
+                )
+                raise serializers.ValidationError(
+                    f"Display type '{display_type}' is not supported for the "
+                    f"'{widget_type_name}' dataset. Supported display types: "
+                    f"{', '.join(supported_names)}."
+                )
+
+        return display_type_id
 
     def _validate_widget_type(self, data):
         widget_type = DashboardWidgetTypes.get_id_for_type_name(data.get("widget_type"))
@@ -358,6 +447,11 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         queries_serializer = self.fields["queries"]
         additional_context = {}
 
+        # Always reset; with ``many=True`` DRF reuses one child serializer
+        # instance across items, so stale values would otherwise leak between
+        # widgets in the same request.
+        self.context["widget_type"] = data.get("widget_type")
+
         if data.get("display_type"):
             additional_context["display_type"] = data.get("display_type")
         if data.get("widget_type"):
@@ -369,13 +463,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         return super().to_internal_value(data)
 
     def _validate_text_widget(self, data):
-        if not features.has(
-            "organizations:dashboards-text-widgets",
-            organization=self.context["organization"],
-            actor=self.context["request"].user,
-        ):
-            raise serializers.ValidationError({"display_type": "Text widgets are not enabled"})
-
         if data.get("widget_type"):
             raise serializers.ValidationError(
                 {"widget_type": "Text widgets don't have a widget type or dataset"}
@@ -446,9 +533,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         description = data.get("description")
         description_length = len(description) if description else 0
-        if description_length > 255:
+        if description_length > 350:
             raise serializers.ValidationError(
-                {"description": "Ensure description has no more than 255 characters."}
+                {"description": "Ensure description has no more than 350 characters."}
             )
 
         if data.get("queries"):
@@ -560,16 +647,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 {"limit": f"limit is required. The maximum limit is {limit}."}
             )
         # Validate limit based on display type: categorical bar charts allow up to 25,
-        # all other chart types allow up to 10.
+        # tables up to 20, all other chart types up to 10.
         widget_limit = data.get("limit")
         if widget_limit is not None:
-            display_type = data.get("display_type")
-            if display_type == DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART:
-                max_allowed = 25
-            elif display_type == DashboardWidgetDisplayTypes.TABLE:
-                max_allowed = 20
-            else:
-                max_allowed = 10
+            max_allowed = get_max_widget_limit(data.get("display_type"))
             if widget_limit > max_allowed:
                 raise serializers.ValidationError(
                     {"limit": f"The maximum limit for this display type is {max_allowed}."}

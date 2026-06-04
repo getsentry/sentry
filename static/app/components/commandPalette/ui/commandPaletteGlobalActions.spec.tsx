@@ -114,58 +114,52 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     await screen.findByRole('textbox', {name: 'Search commands'});
   }
 
-  it.isKnownFlake(
-    'shows a "Current Project" tag on the active project entry',
-    async () => {
-      render(
-        <CommandPaletteProvider>
-          <GlobalCommandPaletteActions />
-          <SlotOutlets />
-          <CommandPalette {...makeRenderProps(jest.fn())} />
-        </CommandPaletteProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
-            route: '/settings/:orgId/projects/:projectId/',
-          },
-        }
-      );
+  it('shows a "Current Project" tag on the active project entry', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      }
+    );
 
-      await drillIntoGeneralSettings();
+    await drillIntoGeneralSettings();
 
-      expect(await screen.findByText('Current')).toBeInTheDocument();
-    }
-  );
+    expect(await screen.findByText('Current')).toBeInTheDocument();
+  });
 
-  it.isKnownFlake(
-    'places the current route project first when on a :projectId route',
-    async () => {
-      render(
-        <CommandPaletteProvider>
-          <GlobalCommandPaletteActions />
-          <SlotOutlets />
-          <CommandPalette {...makeRenderProps(jest.fn())} />
-        </CommandPaletteProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
-            route: '/settings/:orgId/projects/:projectId/',
-          },
-        }
-      );
+  it('places the current route project first when on a :projectId route', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      }
+    );
 
-      await drillIntoGeneralSettings();
+    await drillIntoGeneralSettings();
 
-      const option = (await screen.findAllByRole('option')).find(
-        el => !el.hasAttribute('aria-disabled')
-      );
-      expect(option).toHaveAccessibleName('project-b');
-    }
-  );
+    const option = (await screen.findAllByRole('option')).find(
+      el => !el.hasAttribute('aria-disabled')
+    );
+    expect(option).toHaveAccessibleName('project-b');
+  });
 
-  it.isKnownFlake('does not duplicate the current project in the list', async () => {
+  it('does not duplicate the current project in the list', async () => {
     render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
@@ -187,35 +181,8 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getAllByRole('option', {name: 'project-b'})).toHaveLength(1);
   });
 
-  it('places the project first when identified by a single ?project= query param', async () => {
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {project: projectB.id},
-          },
-        },
-      }
-    );
-
-    await drillIntoGeneralSettings();
-
-    const option = (await screen.findAllByRole('option')).find(
-      el => !el.hasAttribute('aria-disabled')
-    );
-    expect(option).toHaveAccessibleName('project-b');
-    expect(screen.getByText('Current')).toBeInTheDocument();
-  });
-
   it.isKnownFlake(
-    'highlights all projects when multiple ?project= params are set',
+    'places the project first when identified by a single ?project= query param',
     async () => {
       render(
         <CommandPaletteProvider>
@@ -228,7 +195,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
           initialRouterConfig: {
             location: {
               pathname: `/organizations/${organization.slug}/issues/`,
-              query: {project: [projectA.id, projectB.id]},
+              query: {project: projectB.id},
             },
           },
         }
@@ -236,39 +203,63 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
 
       await drillIntoGeneralSettings();
 
-      // Both selected projects should appear with the Current tag
-      expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
-      expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
-      expect(screen.getAllByText('Current')).toHaveLength(2);
-      // Unselected project should still be present but without a tag
-      expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
-    }
-  );
-
-  it.isKnownFlake(
-    'shows all projects without priority when not on a :projectId route',
-    async () => {
-      render(
-        <CommandPaletteProvider>
-          <GlobalCommandPaletteActions />
-          <SlotOutlets />
-          <CommandPalette {...makeRenderProps(jest.fn())} />
-        </CommandPaletteProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {pathname: `/organizations/${organization.slug}/issues/`},
-          },
-        }
+      const option = (await screen.findAllByRole('option')).find(
+        el => !el.hasAttribute('aria-disabled')
       );
-
-      await drillIntoGeneralSettings();
-
-      expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
-      expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
-      expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
+      expect(option).toHaveAccessibleName('project-b');
+      expect(screen.getByText('Current')).toBeInTheDocument();
     }
   );
+
+  it('highlights all projects when multiple ?project= params are set', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: [projectA.id, projectB.id]},
+          },
+        },
+      }
+    );
+
+    await drillIntoGeneralSettings();
+
+    // Both selected projects should appear with the Current tag
+    expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
+    expect(screen.getAllByText('Current')).toHaveLength(2);
+    // Unselected project should still be present but without a tag
+    expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
+  });
+
+  it('shows all projects without priority when not on a :projectId route', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
+
+    await drillIntoGeneralSettings();
+
+    expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
+  });
 });
 
 describe('GlobalCommandPaletteActions - search recall', () => {
@@ -340,6 +331,10 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     ['codeowners', /Project Settings.*Ownership Rules/],
     ['inbound', /Project Settings.*Inbound Filters/],
     ['size', /Project Settings.*Mobile Builds/],
+    // The SDK env var name (and its spaced form) should surface Client Keys
+    // (DSN), just like "dsn".
+    ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 

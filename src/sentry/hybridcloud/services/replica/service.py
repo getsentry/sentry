@@ -144,6 +144,7 @@ class CellReplicaService(RpcService):
         slug_reservation: RpcOrganizationSlugReservation,
         cell_name: str,
     ) -> None:
+        """Deprecated will be removed in an upcoming change"""
         pass
 
     @cell_rpc_method(resolve=ByCellName())
@@ -154,6 +155,7 @@ class CellReplicaService(RpcService):
         organization_slug_reservation_id: int,
         cell_name: str,
     ) -> None:
+        """Deprecated will be removed in an upcoming change"""
         pass
 
     @cell_rpc_method(resolve=ByCellName())

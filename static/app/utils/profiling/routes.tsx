@@ -9,7 +9,7 @@ import {
   isTransactionProfileReference,
 } from 'sentry/utils/profiling/guards/profile';
 
-const PROFILING_BASE_PATHNAME = 'explore/profiling';
+const PROFILING_BASE_PATHNAME = 'explore/profiles';
 
 function generateProfilingRoute({organization}: {organization: Organization}): Path {
   return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/`;

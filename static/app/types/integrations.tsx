@@ -12,25 +12,16 @@ import type {
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
-import type {ParsedOwnershipRule} from './group';
-import type {PlatformKey} from './project';
+import type {ParsedOwnershipRule} from './ownership';
+import type {PlatformKey} from './platform';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
-export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
-
-export type Permissions = {
-  Event: PermissionValue;
-  Member: PermissionValue;
-  Organization: PermissionValue;
-  Project: PermissionValue;
-  Release: PermissionValue;
-  Team: PermissionValue;
-  Alerts?: PermissionValue;
-  Distribution?: PermissionValue;
-};
-
-export type PermissionResource = keyof Permissions;
+export type {
+  PermissionValue,
+  Permissions,
+  PermissionResource,
+} from 'sentry/types/permissions';
 
 export type ExternalActorMapping = {
   externalName: string;
@@ -204,27 +195,6 @@ type SentryAppSchemaAlertRuleActionSettings = {
   uri: string;
   optional_fields?: any[];
 };
-
-export enum Coverage {
-  NOT_APPLICABLE = -1,
-  COVERED = 0,
-  NOT_COVERED = 1,
-  PARTIAL = 2,
-}
-export type LineCoverage = [lineNo: number, coverage: Coverage];
-
-export enum CodecovStatusCode {
-  COVERAGE_EXISTS = 200,
-  NO_INTEGRATION = 404,
-  NO_COVERAGE_DATA = 400,
-}
-
-export interface CodecovResponse {
-  status: CodecovStatusCode;
-  attemptedUrl?: string;
-  coverageUrl?: string;
-  lineCoverage?: LineCoverage[];
-}
 
 export interface StacktraceLinkResult {
   integrations: Integration[];
@@ -574,19 +544,7 @@ export type AppOrProviderOrPlugin =
   | PluginWithProjectList
   | DocIntegration;
 
-/**
- * Webhooks and servicehooks
- */
 export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
-
-export type ServiceHook = {
-  dateCreated: string;
-  events: string[];
-  id: string;
-  secret: string;
-  status: string;
-  url: string;
-};
 
 /**
  * Codeowners and repository path mappings.

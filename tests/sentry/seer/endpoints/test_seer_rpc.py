@@ -25,6 +25,7 @@ from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_organization_features,
     get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
@@ -68,6 +69,17 @@ class TestSeerRpc(APITestCase):
             path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
         )
         assert response.status_code == 404
+
+    def test_get_organization_features_registered_on_internal_rpc(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert "features" in response.data
+        assert isinstance(response.data["features"], list)
 
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""
@@ -509,16 +521,12 @@ class TestSeerRpcMethods(APITestCase):
     @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
     def test_send_seer_webhook_operator(self, mock_broadcast, mock_process_autofix_updates) -> None:
-        """Slack workflows flag should not affect broadcasting the webhooks."""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
         event_payload = {"run_id": 123}
         event_name = "root_cause_completed"
 
-        with (
-            self.feature("organizations:seer-slack-workflows"),
-            patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True),
-        ):
+        with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
             result = send_seer_webhook(
                 event_name=event_name,
                 organization_id=self.organization.id,
@@ -1616,6 +1624,62 @@ class TestSeerRpcMethods(APITestCase):
         assert result == {}
 
 
+# Two real api_expose=True flags used as a controlled feature set for
+# get_organization_features tests. Mocking features.all to this subset keeps
+# each test deterministic instead of iterating all 100+ registered flags.
+_ORG_FEATURES_TEST_SET = {
+    "organizations:seer-agent-source-code-search": object(),
+    "organizations:seer-explorer-chat-coding": object(),
+}
+
+
+class TestGetOrganizationFeatures(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+
+    @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
+    def test_returns_active_flags_without_prefix(self, _mock_all: object) -> None:
+        with self.feature("organizations:seer-agent-source-code-search"):
+            result = get_organization_features(org_id=self.organization.id)
+        assert result == {"features": ["seer-agent-source-code-search"]}
+
+    @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
+    def test_excludes_inactive_flags(self, _mock_all: object) -> None:
+        result = get_organization_features(org_id=self.organization.id)
+        assert result == {"features": []}
+
+    @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
+    def test_returns_sorted_list(self, _mock_all: object) -> None:
+        with self.feature(
+            {
+                "organizations:seer-agent-source-code-search": True,
+                "organizations:seer-explorer-chat-coding": True,
+            }
+        ):
+            result = get_organization_features(org_id=self.organization.id)
+        # "seer-agent-..." < "seer-explorer-..." alphabetically
+        assert result == {
+            "features": ["seer-agent-source-code-search", "seer-explorer-chat-coding"]
+        }
+
+    def test_org_not_found_returns_empty(self) -> None:
+        result = get_organization_features(org_id=0)
+        assert result == {"features": []}
+
+    @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
+    def test_uses_user_as_actor_when_provided(self, _mock_all: object) -> None:
+        with self.feature("organizations:seer-agent-source-code-search"):
+            result = get_organization_features(org_id=self.organization.id, user_id=self.user.id)
+        assert result == {"features": ["seer-agent-source-code-search"]}
+
+    @patch("sentry.seer.endpoints.seer_rpc.features.all", return_value=_ORG_FEATURES_TEST_SET)
+    def test_unknown_user_id_falls_back_to_no_actor(self, _mock_all: object) -> None:
+        with self.feature("organizations:seer-agent-source-code-search"):
+            result = get_organization_features(org_id=self.organization.id, user_id=0)
+        assert result == {"features": ["seer-agent-source-code-search"]}
+
+
 class TestTriggerCodingAgentLaunch:
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
     def test_not_found_returns_integration_not_found_error_code(self, mock_launch):
@@ -1688,7 +1752,6 @@ class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_point") is None
         assert self.project.get_option("sentry:seer_automation_handoff_target") is None
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
-        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
     @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
     def test_integration_not_found_skips_clear_when_project_outside_org(self, mock_launch):

@@ -88,8 +88,8 @@ def create_client() -> Client:
         timeout_ms=options.get("timeout_ms", None),
         connection_kwargs=options.get(
             "connection_kwargs",
-            # Workaround for 0.0.14's default read timeout. Can be removed with 0.0.15
-            {"timeout": urllib3.Timeout(connect=0.1)},
+            # timeout is a workaround for 0.0.14's default read timeout, can be removed with 0.0.15
+            {"timeout": urllib3.Timeout(connect=0.1), "maxsize": 32},
         ),
         token=token_generator,
     )

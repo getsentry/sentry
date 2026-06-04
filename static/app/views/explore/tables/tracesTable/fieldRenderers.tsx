@@ -16,7 +16,7 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {Projects} from 'sentry/utils/projects';

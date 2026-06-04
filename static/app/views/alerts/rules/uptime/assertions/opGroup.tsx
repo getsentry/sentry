@@ -333,7 +333,7 @@ const TopBorder = styled('div')<{rightBorder?: boolean}>`
         border-right: 1px dashed var(--border-color);
         border-top-right-radius: var(--border-radius);
         margin-right: var(--margin-right-align);
-      `};
+      `}
   }
 `;
 

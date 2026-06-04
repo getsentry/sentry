@@ -47,7 +47,7 @@ import type {
   EChartRestoreHandler,
   Series,
 } from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {Grid} from './components/grid';
 import {Legend} from './components/legend';
@@ -763,6 +763,11 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     display: flex;
     justify-content: flex-start;
     align-items: baseline;
+  }
+  .tooltip-label-centered {
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   .tooltip-code-no-margin {
     padding-left: 0;

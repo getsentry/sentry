@@ -22,6 +22,7 @@ import {
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
+import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {
   IconAdd,
   IconAllProjects,
@@ -117,7 +118,7 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/account/notifications/': <IconSubscribed />,
 };
 
-const helpSearch = new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop']);
+const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 const EVENT_ID_PATTERN =
   /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
 const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
@@ -282,7 +283,9 @@ export function GlobalCommandPaletteActions() {
     })
       .flatMap(section =>
         section.items.filter(navItem => {
-          if (navItem.show === undefined) return true;
+          if (navItem.show === undefined) {
+            return true;
+          }
           return typeof navItem.show === 'function'
             ? navItem.show({...context, ...section})
             : navItem.show;
@@ -333,18 +336,20 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/issues/views/${starredView.id}/`}
             />
           ))}
-          {organization.features.includes('autofix-on-explorer') && (
-            <CMDKAction display={{label: t('Autofix')}}>
-              <CMDKAction
-                display={{label: t('Recently Run')}}
-                to={`${prefix}/issues/autofix/recent/`}
-              />
-            </CMDKAction>
-          )}
+          <CMDKAction display={{label: t('Autofix')}}>
+            <CMDKAction
+              display={{label: t('Recently Run')}}
+              to={`${prefix}/issues/autofix/recent/`}
+            />
+          </CMDKAction>
         </CMDKAction>
 
         <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
-          <CMDKAction display={{label: t('Traces')}} to={`${prefix}/explore/traces/`} />
+          <CMDKAction
+            display={{label: t('Traces')}}
+            keywords={[t('spans'), t('trace explorer')]}
+            to={`${prefix}/explore/traces/`}
+          />
           {organization.features.includes('ourlogs-enabled') && (
             <CMDKAction display={{label: t('Logs')}} to={`${prefix}/explore/logs/`} />
           )}
@@ -364,17 +369,20 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('profiling') && (
             <CMDKAction
               display={{label: t('Profiles')}}
-              to={`${prefix}/explore/profiling/`}
+              keywords={[t('profiling')]}
+              to={`${prefix}/explore/profiles/`}
             />
           )}
           {organization.features.includes('session-replay-ui') && (
             <CMDKAction
               display={{label: t('Replays')}}
+              keywords={[t('rum'), t('session replay')]}
               to={`${prefix}/explore/replays/`}
             />
           )}
           <CMDKAction
             display={{label: t('Releases')}}
+            keywords={[t('release health')]}
             to={`${prefix}/explore/releases/`}
           />
           {organization.features.includes('gen-ai-conversations') && (
@@ -528,6 +536,7 @@ export function GlobalCommandPaletteActions() {
             )}
             <CMDKAction
               display={{label: t('Alerts')}}
+              keywords={[t('alert rules'), t('issue alert')]}
               to={`${prefix}/monitors/alerts/`}
             />
           </CMDKAction>
@@ -630,7 +639,14 @@ export function GlobalCommandPaletteActions() {
                 icon: <ProjectAvatar project={project} size={16} />,
                 trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
               }}
-              keywords={[t('dsn'), t('client keys'), t('dsn key'), project.slug]}
+              keywords={[
+                t('dsn'),
+                t('client keys'),
+                t('dsn key'),
+                'SENTRY_DSN',
+                'Sentry DSN',
+                project.slug,
+              ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
             />
           ))}
@@ -765,7 +781,7 @@ export function GlobalCommandPaletteActions() {
         />
         <CMDKAction
           display={{label: t('Create Alert'), icon: <IconAdd />}}
-          keywords={[t('add alert')]}
+          keywords={[t('add alert'), t('alert rules'), t('issue alert')]}
           to={`${prefix}/issues/alerts/wizard/`}
         />
         <CMDKAction
@@ -786,7 +802,10 @@ export function GlobalCommandPaletteActions() {
         />
       </CMDKAction>
 
-      <CMDKAction display={{label: t('DSN')}} keywords={[t('client keys')]}>
+      <CMDKAction
+        display={{label: t('DSN')}}
+        keywords={[t('client keys'), t('sentry dsn')]}
+      >
         <CMDKAction
           display={{
             label: t('Reverse DSN lookup'),
@@ -1053,6 +1072,34 @@ export function GlobalCommandPaletteActions() {
           />
         </CMDKAction>
       </CMDKAction>
+
+      {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (
+        <CMDKAction
+          display={{label: t('Open in Production'), icon: <IconOpen />}}
+          keywords={['production', 'prod', 'live']}
+          onAction={() => {
+            window.open(
+              `https://${organization.slug}.sentry.io${location.pathname}${location.search}`,
+              '_blank',
+              'noreferrer'
+            );
+          }}
+        />
+      )}
+
+      {NODE_ENV === 'production' && user.isStaff && (
+        <CMDKAction
+          display={{label: t('Open in Development'), icon: <IconOpen />}}
+          keywords={['development', 'dev', 'dev-ui', 'localhost', 'local']}
+          onAction={() => {
+            window.open(
+              `https://${organization.slug}.dev.getsentry.net:7999${location.pathname}${location.search}`,
+              '_blank',
+              'noreferrer'
+            );
+          }}
+        />
+      )}
     </CommandPaletteSlot>
   );
 }

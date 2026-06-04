@@ -12,7 +12,7 @@ import {
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
-import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -27,8 +27,8 @@ import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {defined} from 'sentry/utils/defined';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   TableBodyCell,
@@ -48,7 +48,7 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayTotalPayloadBytes';
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
-import {LogsPinningProvider} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -104,7 +104,6 @@ type LogsTableProps = {
     showVerticalScrollbar?: boolean;
   };
   emptyRenderer?: () => React.ReactNode;
-  expanded?: boolean;
   localOnlyItemFilters?: {
     filterText: string;
     filteredItems: OurLogsResponseItem[];
@@ -121,7 +120,6 @@ const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; 
 
 export function LogsInfiniteTable({
   embedded = false,
-  expanded,
   localOnlyItemFilters,
   emptyRenderer,
   analyticsPageSource,
@@ -276,29 +274,17 @@ export function LogsInfiniteTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 
-  const isContainedVirtualizer = expanded !== undefined;
-
-  const windowVirtualizer = useWindowVirtualizer({
-    count: isContainedVirtualizer ? 0 : (data?.length ?? 0),
+  const virtualizer = useVirtualizer<HTMLElement, Element>({
+    count: data?.length ?? 0,
     estimateSize,
-    overscan: 50,
-    getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
-    scrollMargin: tableBodyRef.current?.offsetTop ?? 0,
-  });
-
-  const containerVirtualizer = useVirtualizer<HTMLElement, Element>({
-    count: isContainedVirtualizer ? (data?.length ?? 0) : 0,
-    estimateSize,
-    overscan: expanded ? 50 : 25,
+    overscan: 35,
     getScrollElement: () => tableBodyRef?.current,
     getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
   });
 
-  const virtualizer = isContainedVirtualizer ? containerVirtualizer : windowVirtualizer;
-
   useLayoutEffect(() => {
     virtualizer.measure();
-  }, [expanded, virtualizer]);
+  }, [virtualizer]);
 
   const virtualItems = virtualizer.getVirtualItems();
 
@@ -459,10 +445,12 @@ export function LogsInfiniteTable({
     };
   }, []);
 
+  const logsPinning = useLogsPinning();
+
   const renderRow = useCallback(
     (dataRow: LogTableRowItem) => {
-      const pinnedId = dataRow[OurLogKnownFieldKey.ID];
-      const pinnedExpandKey = `pinned-${pinnedId}`;
+      const rowId = dataRow[OurLogKnownFieldKey.ID];
+      const pinnedExpandKey = `pinned-${rowId}`;
       return (
         <LogRowContent
           dataRow={dataRow}
@@ -477,6 +465,8 @@ export function LogsInfiniteTable({
           onExpandHeight={handleExpandHeight}
           logStart={logStart}
           logEnd={logEnd}
+          isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+          togglePinnedRow={logsPinning?.togglePinnedRow}
         />
       );
     },
@@ -488,6 +478,7 @@ export function LogsInfiniteTable({
       highlightTerms,
       logEnd,
       logStart,
+      logsPinning,
       meta,
     ]
   );
@@ -519,7 +510,7 @@ export function LogsInfiniteTable({
   }
 
   return (
-    <LogsPinningProvider>
+    <Fragment>
       <LogTable
         ref={tableRef}
         style={initialTableStyles}
@@ -539,12 +530,13 @@ export function LogsInfiniteTable({
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
-        {!isPending && <PinnedLogs allRows={data} renderRow={renderRow} />}
+        {!isPending && logsPinning && (
+          <PinnedLogs allRows={data} logsPinning={logsPinning} renderRow={renderRow} />
+        )}
         <LogTableBody
           showHeader={!embedded}
           ref={tableBodyRef}
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
-          expanded={expanded}
         >
           {paddingTop > 0 && (
             <TableRow>
@@ -608,6 +600,8 @@ export function LogsInfiniteTable({
                   onExpandHeight={handleExpandHeight}
                   showCellActions={showCellActions}
                   showExploreSimilarSpansLink={showExploreSimilarSpansLink}
+                  isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                  togglePinnedRow={logsPinning?.togglePinnedRow}
                 />
               </Fragment>
             );
@@ -625,7 +619,7 @@ export function LogsInfiniteTable({
         </LogTableBody>
       </LogTable>
       <FloatingBackToTopContainer
-        position={expanded === undefined ? 'fixed' : 'absolute'}
+        position="absolute"
         inReplay={!!embeddedOptions?.replay}
         tableWidth={tableWidth}
       >
@@ -647,7 +641,7 @@ export function LogsInfiniteTable({
           <JumpButtons jump="down" onClick={onClickToJump} tableHeaderHeight={0} />
         ) : null}
       </FloatingBottomContainer>
-    </LogsPinningProvider>
+    </Fragment>
   );
 }
 

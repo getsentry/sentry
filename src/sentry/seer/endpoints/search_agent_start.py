@@ -168,7 +168,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
 

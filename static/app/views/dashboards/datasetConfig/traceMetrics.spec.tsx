@@ -698,6 +698,59 @@ describe('TraceMetricsConfig', () => {
     });
   });
 
+  describe('getTableSortOptions', () => {
+    it('returns equation aliases with ƒ labels', () => {
+      const widgetQuery: WidgetQuery = {
+        name: '',
+        fields: [
+          'avg(value,test_metric,millisecond,none)',
+          'equation|avg(value,test_metric,millisecond,none) / 2',
+        ],
+        columns: [],
+        fieldAliases: [],
+        aggregates: [
+          'avg(value,test_metric,millisecond,none)',
+          'equation|avg(value,test_metric,millisecond,none) / 2',
+        ],
+        conditions: '',
+        orderby: '',
+      };
+
+      const options = TraceMetricsConfig.getTableSortOptions!(organization, widgetQuery);
+
+      expect(options).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({value: 'equation[0]', label: 'ƒ1'}),
+        ])
+      );
+    });
+
+    it('returns regular aggregates alongside equation aliases', () => {
+      const widgetQuery: WidgetQuery = {
+        name: '',
+        fields: [
+          'avg(value,test_metric,millisecond,none)',
+          'equation|avg(value,test_metric,millisecond,none) / 2',
+        ],
+        columns: [],
+        fieldAliases: [],
+        aggregates: [
+          'avg(value,test_metric,millisecond,none)',
+          'equation|avg(value,test_metric,millisecond,none) / 2',
+        ],
+        conditions: '',
+        orderby: '',
+      };
+
+      const options = TraceMetricsConfig.getTableSortOptions!(organization, widgetQuery);
+
+      const labels = options.map(o => o.label);
+      expect(labels).toHaveLength(2);
+      expect(labels[0]).toBe('avg(test_metric)');
+      expect(labels[1]).toBe('ƒ1');
+    });
+  });
+
   describe('TraceMetricsSearchBar', () => {
     const SearchBar = TraceMetricsConfig.SearchBar;
 

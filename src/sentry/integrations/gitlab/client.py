@@ -537,6 +537,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             "merge_requests_events": True,
             "push_events": True,
             "issues_events": True,
+            "note_events": True,
             "enable_ssl_verification": model.metadata["verify_ssl"],
         }
         resp = self.post(path, data=data)
@@ -567,6 +568,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             "merge_requests_events": True,
             "push_events": True,
             "issues_events": True,
+            "note_events": True,
             "enable_ssl_verification": model.metadata["verify_ssl"],
         }
         return self.put(path, data=data)

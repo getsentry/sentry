@@ -6,7 +6,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {fzf} from 'sentry/utils/search/fzf';
 
 import type {SelectProps} from './compactSelect';
@@ -30,8 +30,12 @@ import type {
 export function getSearchConfig<Value extends SelectKey>(
   search: boolean | SearchConfig<Value> | undefined
 ): SearchConfig<Value> | undefined {
-  if (!search) return undefined;
-  if (search === true) return {};
+  if (!search) {
+    return undefined;
+  }
+  if (search === true) {
+    return {};
+  }
   return search;
 }
 
@@ -466,7 +470,9 @@ export function getDuplicateOptionKeysInfo<Value extends SelectKey>(
 
       optionCount += 1;
       const key = String(item.key);
-      if (duplicates.has(key)) continue;
+      if (duplicates.has(key)) {
+        continue;
+      }
 
       if (seen.has(key)) {
         duplicates.add(key);

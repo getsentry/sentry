@@ -10,7 +10,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -1203,7 +1203,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             assert total_count == 15
 
     def test_eap_read_path(self) -> None:
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+        with self.options({EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True}):
             gk = self.ts.get_group_tag_key(
                 self.proj1group1,
                 None,
@@ -1215,6 +1215,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
             assert gk.key == "foo"
             assert gk.values_seen == 1
+            assert gk.top_values is not None
             assert gk.top_values[0].value == "bar"
 
 

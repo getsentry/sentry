@@ -5,7 +5,11 @@ from typing import Any, Literal, TypeAlias
 from pydantic import BaseModel, Field, root_validator, validator
 
 from sentry.models.dashboard import Dashboard
-from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
+from sentry.models.dashboard_widget import (
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetTypes,
+    get_max_widget_limit,
+)
 
 GRID_WIDTH = 6
 
@@ -54,20 +58,25 @@ class GeneratedWidgetQuery(BaseModel):
             "values; for table widgets they become data columns alongside columns[]. Valid "
             "aggregate function values vary by dataset type. Do not make up functions or use "
             "unsupported functions.\n\n"
-            "For the 'tracemetrics' widget_type, aggregates have a SPECIAL multi-argument form: "
-            "`func(attribute, metric_name, metric_type)` where attribute must be `value` "
-            "(the numeric value of the metric; no other attributes are supported at this time), "
-            "metric_name is the metric's name as ingested, and "
-            "metric_type is one of 'counter', 'gauge', or 'distribution'. Examples: "
-            "`count(value, my.app.requests, counter)`, "
-            "`avg(value, my.app.cpu, gauge)`, "
-            "`p95(value, my.app.latency, distribution)`. "
-            "Allowed functions for tracemetrics: count, count_unique, sum, avg, max, min, "
-            "p50, p75, p90, p95, p99. The single-argument form like `p50(my.metric)` is INVALID "
-            "for tracemetrics — the metric_name and metric_type MUST be passed as separate "
-            "positional arguments. You MUST NOT guess the metric_name or metric_type; look them "
-            "up first using the available tools (e.g. by querying the tracemetrics dataset for "
-            "distinct `metric.name` and `metric.type` values, or fetching trace-item attributes)."
+            "For the 'tracemetrics' widget_type, aggregates use a required 4-argument form: "
+            "`func(attribute, metric_name, metric_type, metric_unit)` where attribute must be "
+            "`value` (the numeric value of the metric; no other attributes are supported at this "
+            "time), metric_name is the metric's name as ingested, metric_type is one of "
+            "'counter', 'gauge', or 'distribution', and metric_unit is the metric's unit as "
+            "ingested (e.g. 'milliseconds', 'bytes'); use 'none' only when the metric has no "
+            "unit. Examples: `sum(value, my.app.requests, counter, none)`, "
+            "`avg(value, my.app.cpu, gauge, percent)`, "
+            "`p95(value, my.app.latency, distribution, milliseconds)`. "
+            "Each metric_type only accepts a specific set of aggregate functions, and using a "
+            "function outside that set will fail:\n"
+            "- counter: sum, per_second, per_minute.\n"
+            "- gauge: avg, min, max, per_second, per_minute.\n"
+            "- distribution: p50, p75, p90, p95, p99, avg, min, max, sum, count, per_second, "
+            "per_minute.\n"
+            "You MUST NOT guess metric_name, metric_type, or metric_unit; look them up first "
+            "using the available tools (e.g. by querying the tracemetrics dataset for distinct "
+            "`metric.name`, `metric.type`, and `metric.unit` values, or fetching trace-item "
+            "attributes)."
         ),
     )
     columns: list[str] = Field(
@@ -222,6 +231,25 @@ class GeneratedWidget(BaseModel):
         if is_text and widget_type is not None:
             raise ValueError("widget_type is not allowed for text widgets")
 
+        queries = values.get("queries") or []
+        if not is_text and not queries:
+            raise ValueError("Non-text widgets must have at least one query")
+
+        return values
+
+    @root_validator
+    def check_limit_by_display_type(cls, values: dict[str, Any]) -> dict[str, Any]:
+        display_type = values.get("display_type")
+        limit = values.get("limit")
+        if display_type is None or limit is None or display_type == "text":
+            return values
+        max_limit = get_max_widget_limit(
+            DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
+        )
+        if limit > max_limit:
+            raise ValueError(
+                f"limit={limit} exceeds the maximum of {max_limit} for display_type '{display_type}'"
+            )
         return values
 
     @root_validator

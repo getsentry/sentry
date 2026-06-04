@@ -6,13 +6,11 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
-import type {InstallationInfo} from 'sentry/components/pipeline/pipelineIntegrationGitHub';
+import type {InstallationInfo} from 'sentry/components/pipeline/integrationGitHub';
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
 import type {DataCategory} from 'sentry/types/core';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import type {UseReplayForCriticalFlowOptions} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
@@ -21,7 +19,7 @@ import type {
   useMaxPickableDays,
 } from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
-import type {AutofixContentProps} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSection';
 import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -69,12 +67,6 @@ type RouteOverrides = {
   'routes:org-settings': RouteObjectOverride;
   'routes:root': RouteObjectOverride;
   'routes:subscription-settings': RouteObjectOverride;
-};
-
-type AiSetupConfigrationProps = {
-  event: Event;
-  group: Group;
-  project: Project;
 };
 
 type AiSetupDataConsentProps = {
@@ -155,10 +147,6 @@ type AttemptCloseAttemptProps = {
   organizationSlugs: string[];
 };
 
-type CodecovLinkProps = {
-  organization: Organization;
-};
-
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
 type MonitorCreatedCallback = (organization: Organization) => void;
@@ -194,9 +182,7 @@ type DashboardLimitProviderProps = {
  */
 type ComponentOverrides = {
   'component:ai-configure-seer-quota-sidebar': () => React.ComponentType<AutofixContentProps>;
-  'component:ai-setup-configuration': () => React.ComponentType<AiSetupConfigrationProps>;
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
-  'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
@@ -268,7 +254,6 @@ type AnalyticsOverrides = {
 export type FeatureDisabledOverrides = {
   'feature-disabled:alert-wizard-performance': FeatureDisabledOverride;
   'feature-disabled:alerts-page': FeatureDisabledOverride;
-  'feature-disabled:codecov-integration-setting': FeatureDisabledOverride;
   'feature-disabled:custom-inbound-filters': FeatureDisabledOverride;
   'feature-disabled:dashboards-edit': FeatureDisabledOverride;
   'feature-disabled:dashboards-page': FeatureDisabledOverride;

@@ -100,11 +100,11 @@ def _sentry_metric_attrs(
     return attrs
 
 
-def _page_token_b64_from_processor(
+def _page_token_from_processor(
     processor: IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor,
-) -> str | None:
+) -> bytes | None:
     if isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is not None:
-        return base64.b64encode(processor.page_token).decode("ascii")
+        return processor.page_token
     return None
 
 
@@ -162,7 +162,7 @@ def export_chunk_to_stored_blobs(
     export_limit: int,
     environment_id: int | None,
     first_page: bool = True,
-    page_token: str | None = None,
+    page_token: bytes | str | None = None,
     offset: int = 0,
     bytes_written: int = 0,
     batch_size: int = SNUBA_MAX_RESULTS,
@@ -174,7 +174,7 @@ def export_chunk_to_stored_blobs(
             data_export,
             environment_id,
             output_mode,
-            page_token_b64=page_token,
+            page_token=page_token,
         )
 
         with tempfile.TemporaryFile(mode="w+b") as tf:
@@ -240,7 +240,7 @@ def _schedule_retry(
     base_bytes_written: int,
     environment_id: int | None,
     export_retries: int,
-    page_token: str | None,
+    page_token: bytes | str | None,
     delay_retry: bool = False,
 ) -> None:
     assemble_download.apply_async(
@@ -280,7 +280,7 @@ def _schedule_next_task(
         "bytes_written": bytes_written,
         "environment_id": environment_id,
         "export_retries": export_retries,
-        "page_token": _page_token_b64_from_processor(processor),
+        "page_token": _page_token_from_processor(processor),
     }
     should_continue = next_offset < export_limit and (
         (isinstance(processor, TraceItemFullExportProcessor) and processor.page_token is not None)
@@ -325,7 +325,7 @@ def assemble_download(
     environment_id: int | None = None,
     export_retries: int = DEFAULT_EXPORT_RETRIES,
     *,
-    page_token: str | None = None,
+    page_token: bytes | str | None = None,
     **kwargs: Any,
 ) -> None:
     # The API response to export the data contains the ID which you can use
@@ -573,7 +573,7 @@ def get_processor(
     environment_id: int | None,
     output_mode: OutputMode,
     *,
-    page_token_b64: str | None = None,
+    page_token: bytes | str | None = None,
 ) -> IssuesByTagProcessor | DiscoverProcessor | ExploreProcessor | TraceItemFullExportProcessor:
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
@@ -597,17 +597,21 @@ def get_processor(
                 output_mode=output_mode,
             )
         elif data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT:
-            page_token: bytes | None = None
-            if page_token_b64:
-                try:
-                    page_token = base64.b64decode(page_token_b64)
-                except (ValueError, TypeError) as e:
-                    raise ExportError("Invalid export trace item pagination state.") from e
+            page_token_bytes: bytes | None = None
+            if page_token is not None:
+                # Handle both bytes (new) and base64 string (legacy) page tokens
+                if isinstance(page_token, str):
+                    try:
+                        page_token_bytes = base64.b64decode(page_token)
+                    except (ValueError, TypeError) as e:
+                        raise ExportError("Invalid export trace item pagination state.") from e
+                else:
+                    page_token_bytes = page_token
             return TraceItemFullExportProcessor(
                 explore_query=data_export.query_info,
                 organization=data_export.organization,
                 output_mode=output_mode,
-                page_token=page_token,
+                page_token=page_token_bytes,
             )
 
         else:

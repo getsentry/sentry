@@ -174,6 +174,135 @@ describe('ActivitySection', () => {
     expect(screen.queryByText('Test Note')).not.toBeInTheDocument();
   });
 
+  it('renders note markdown', async () => {
+    const activityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: '**Bold Note** and [docs](https://docs.sentry.io/)'},
+          dateCreated: '2020-01-01T00:00:00',
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={activityGroup} />);
+
+    expect(await screen.findByTestId('activity-note-body')).toContainElement(
+      screen.getByText('Bold Note').closest('strong')
+    );
+    expect(screen.getByRole('link', {name: 'docs'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/'
+    );
+  });
+
+  it('renders activity actor markers', async () => {
+    const activityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'User note'},
+          dateCreated: '2020-01-01T00:00:00',
+          user,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: 'resolved-1',
+          data: {},
+          dateCreated: '2020-01-02T00:00:00',
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={activityGroup} />, {
+      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+    });
+
+    expect(await screen.findByText('User note')).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-marker')).toBeInTheDocument();
+    expect(screen.getByTestId('sentry-activity-marker')).toBeInTheDocument();
+  });
+
+  it('does not render activity actor markers when the feature is disabled', async () => {
+    const activityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'User note'},
+          dateCreated: '2020-01-01T00:00:00',
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={activityGroup} />);
+
+    expect(await screen.findByText('User note')).toBeInTheDocument();
+    expect(screen.queryByTestId('user-activity-marker')).not.toBeInTheDocument();
+  });
+
+  it('does not render user avatar as icon for notes in two-column layout', async () => {
+    const activityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'User note'},
+          dateCreated: '2020-01-01T00:00:00',
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={activityGroup} />, {
+      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+    });
+
+    expect(await screen.findByText('User note')).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-marker')).toBeInTheDocument();
+    expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
+  });
+
+  it('renders provider-specific icon for create issue in two-column layout', async () => {
+    const createIssueGroup = GroupFixture({
+      id: '1345',
+      activity: [
+        {
+          type: GroupActivityType.CREATE_ISSUE,
+          id: 'create-issue-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            provider: 'GitHub',
+            location: 'https://github.com/org/repo/issues/1',
+            title: 'Test Issue',
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={createIssueGroup} />, {
+      organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+    });
+
+    expect(await screen.findByText('Test Issue')).toBeInTheDocument();
+    expect(screen.queryByTestId('icon-add')).not.toBeInTheDocument();
+  });
+
   it('renders note and allows for edit', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 
@@ -465,7 +594,9 @@ describe('ActivitySection', () => {
       project,
     });
 
-    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+    const org = OrganizationFixture({
+      features: ['display-seer-actions-as-issue-activities'],
+    });
 
     render(<ActivitySection group={seerGroup} />, {organization: org});
     expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
@@ -494,7 +625,7 @@ describe('ActivitySection', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders Seer PR created activity with link', async () => {
+  it('does not render Seer PR created activity in timeline', () => {
     const seerPrGroup = GroupFixture({
       id: '1344',
       activity: [
@@ -521,14 +652,11 @@ describe('ActivitySection', () => {
       project,
     });
 
-    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+    const org = OrganizationFixture({
+      features: ['display-seer-actions-as-issue-activities'],
+    });
 
     render(<ActivitySection group={seerPrGroup} />, {organization: org});
-    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
-      'href',
-      'https://github.com/org/repo/pull/42'
-    );
-    expect(screen.getByText(/org\/repo/)).toBeInTheDocument();
+    expect(screen.queryByText('Pull Request Created')).not.toBeInTheDocument();
   });
 });

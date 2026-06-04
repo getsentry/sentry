@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
@@ -274,7 +274,9 @@ function VisualizeDropdown({
           .filter(option => {
             // Filtering by value here, so it's based off of explicit tags i.e. `key`
             // or `tags[<key>, <boolean | number | string>]
-            if (seen.has(option.value)) return false;
+            if (seen.has(option.value)) {
+              return false;
+            }
             seen.add(option.value);
             return true;
           })

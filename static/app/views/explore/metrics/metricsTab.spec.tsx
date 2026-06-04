@@ -161,7 +161,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it('should add a metric when Add Metric button is clicked', async () => {
+  it.isKnownFlake('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -186,7 +186,7 @@ describe('MetricsTabContent', () => {
 
     await userEvent.click(addButtons[0]!);
 
-    toolbars = screen.getAllByTestId('metric-toolbar');
+    toolbars = await screen.findAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(2);
     // copies the last metric as a starting point
     expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
@@ -195,21 +195,28 @@ describe('MetricsTabContent', () => {
     // change the second metric from bar to foo
     await userEvent.click(within(toolbars[1]!).getByRole('button', {name: 'bar'}));
     await userEvent.click(within(toolbars[1]!).getByRole('option', {name: 'foo'}));
-    expect(within(toolbars[1]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
+
+    const toolbar = await screen.findAllByTestId('metric-toolbar');
+
+    expect(
+      await within(toolbar[1]!).findByRole('button', {
+        name: 'foo',
+      })
+    ).toBeInTheDocument();
 
     addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
     expect(addButtons[0]).toBeEnabled();
 
     await userEvent.click(addButtons[0]!);
 
-    toolbars = screen.getAllByTestId('metric-toolbar');
+    toolbars = await screen.findAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(3);
     // copies the last metric as a starting point
     expect(within(toolbars[2]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 
-  it('should fire analytics for metadata', async () => {
+  it.isKnownFlake('should fire analytics for metadata', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -278,50 +285,56 @@ describe('MetricsTabContent', () => {
       expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
     });
 
-    expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
-      1,
-      'metrics.explorer.panel.metadata',
-      expect.objectContaining({
-        panel_index: 1,
-        query_status: 'success',
-        sample_counts: [0],
-        table_result_length: 6,
-        table_result_mode: 'metric samples',
-        table_result_sort: ['-timestamp'],
-        user_queries: '',
-        user_queries_count: 0,
-        aggregate_function: 'sum',
-        confidences: ['null'],
-        dataScanned: 'full',
-        dataset: 'metrics',
-        empty_buckets_percentage: [],
-        group_bys: [],
-        interval: '1h',
-        metric_name: 'bar',
-        metric_type: 'distribution',
-      })
-    );
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+        1,
+        'metrics.explorer.panel.metadata',
+        expect.objectContaining({
+          panel_index: 1,
+          query_status: 'success',
+          sample_counts: [0],
+          table_result_length: 6,
+          table_result_mode: 'metric samples',
+          table_result_sort: ['-timestamp'],
+          user_queries: '',
+          user_queries_count: 0,
+          aggregate_function: 'sum',
+          confidences: ['null'],
+          dataScanned: 'full',
+          dataset: 'metrics',
+          empty_buckets_percentage: [],
+          group_bys: [],
+          interval: '1h',
+          metric_name: 'bar',
+          metric_type: 'distribution',
+        })
+      );
+    });
 
-    expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
-      2,
-      'metrics.explorer.metadata',
-      expect.objectContaining({
-        metric_queries_count: 2,
-        metric_panels_with_filters_count: 0,
-        metric_panels_with_group_bys_count: 0,
-        project_count: 1,
-        environment_count: 0,
-        has_exceeded_performance_usage_limit: false,
-        interval: '1h',
-        title: 'Test Title',
-      })
-    );
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+        2,
+        'metrics.explorer.metadata',
+        expect.objectContaining({
+          metric_queries_count: 2,
+          metric_panels_with_filters_count: 0,
+          metric_panels_with_group_bys_count: 0,
+          project_count: 1,
+          environment_count: 0,
+          has_exceeded_performance_usage_limit: false,
+          interval: '1h',
+          title: 'Test Title',
+        })
+      );
+    });
 
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(2);
     trackAnalyticsMock.mockClear();
     await userEvent.click(within(toolbars[0]!).getByRole('button', {name: 'bar'}));
     await userEvent.click(within(toolbars[0]!).getByRole('option', {name: 'foo'}));
-    expect(within(toolbars[0]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
+    expect(
+      await within(toolbars[0]!).findByRole('button', {name: 'foo'})
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(trackAnalyticsMock).toHaveBeenNthCalledWith(

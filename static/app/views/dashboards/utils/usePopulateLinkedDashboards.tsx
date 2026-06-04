@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 import type {QueryClient} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DashboardFilter,

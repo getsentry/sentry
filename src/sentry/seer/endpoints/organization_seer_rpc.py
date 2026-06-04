@@ -64,6 +64,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_attributes_and_values,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_organization_features,
     get_organization_project_ids,
     get_organization_slug,
     has_repo_code_mappings,
@@ -87,6 +88,7 @@ public_org_seer_method_registry: dict[str, Callable] = {
     # Common to Seer features
     "get_organization_project_ids": map_org_id_param(get_organization_project_ids),
     "get_organization_slug": map_org_id_param(get_organization_slug),
+    "get_organization_features": map_org_id_param(get_organization_features),
     "validate_repo": validate_repo,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     #
@@ -176,7 +178,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = False
