@@ -197,13 +197,17 @@ export function Trace({
     visibleTraceItems,
   ]);
 
+  const [physicalWidth, setPhysicalWidth] = useState(
+    () => manager.view.trace_physical_space.width
+  );
+
   const timeCompression = useMemo(
     () =>
       TraceTimeCompression.FromVisibleItems({
         ...timeCompressionOptions,
-        physicalWidth: manager.view.trace_physical_space.width,
+        physicalWidth,
       }),
-    [manager.view.trace_physical_space.width, timeCompressionOptions]
+    [physicalWidth, timeCompressionOptions]
   );
 
   useLayoutEffect(() => {
@@ -227,6 +231,7 @@ export function Trace({
       manager.draw();
     };
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] = () => {
+      setPhysicalWidth(manager.view.trace_physical_space.width);
       manager.recomputeTimeCompression();
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
@@ -239,6 +244,7 @@ export function Trace({
       manager.draw();
     };
     const onDividerResize: TraceEvents['divider resize'] = view => {
+      setPhysicalWidth(manager.view.trace_physical_space.width);
       manager.recomputeTimeCompression();
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
