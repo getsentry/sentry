@@ -100,6 +100,11 @@ export function ScmPlatformFeaturesCore({
   // viewer's actual plan (free-plan baseline for new/trialing/free orgs, the
   // org's own limits once they're on a paid plan).
   const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
+
+  useEffect(() => {
+    console.dir({featureMeta});
+  }, [featureMeta]);
+
   // Whether to surface the "unlimited volume" trial banner, and the real days
   // left. Always present for new-org onboarding (fresh trial); only present in
   // project creation when the existing org is mid-trial.

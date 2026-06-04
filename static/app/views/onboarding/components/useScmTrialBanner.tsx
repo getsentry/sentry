@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import {getOverride} from 'sentry/overrideRegistry';
 
 export type UseScmTrialBannerResult = {
@@ -20,7 +22,7 @@ export type UseScmTrialBannerResult = {
 const FALLBACK_TRIAL_DAYS = 14;
 
 function useFallbackScmTrialBanner(): UseScmTrialBannerResult {
-  return {showTrialBanner: true, trialDaysLeft: FALLBACK_TRIAL_DAYS};
+  return {showTrialBanner: false, trialDaysLeft: FALLBACK_TRIAL_DAYS};
 }
 
 /**
@@ -35,7 +37,16 @@ function useFallbackScmTrialBanner(): UseScmTrialBannerResult {
  * preserves the historical always-on 14-day banner.
  */
 export function useScmTrialBanner(): UseScmTrialBannerResult {
-  const hook =
-    getOverride('react-hook:use-scm-trial-banner') ?? useFallbackScmTrialBanner;
+  const override = getOverride('react-hook:use-scm-trial-banner');
+
+  const hasOverride = override ?? false;
+
+  useEffect(() => {
+    console.log(
+      `useScmTrialBanner, ${hasOverride ? 'using real hook' : 'using fallback'}`
+    );
+  }, [hasOverride]);
+
+  const hook = override ?? useFallbackScmTrialBanner;
   return hook();
 }

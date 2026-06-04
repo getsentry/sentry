@@ -28,6 +28,10 @@ export function useScmTrialBanner(): UseScmTrialBannerResult {
     SubscriptionStore.get(organization.slug, () => {});
   }, [organization.slug]);
 
+  useEffect(() => {
+    console.dir({subscription});
+  }, [subscription]);
+
   const isTrial = !!subscription?.isTrial;
 
   return {

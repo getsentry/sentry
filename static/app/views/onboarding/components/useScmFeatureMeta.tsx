@@ -1,4 +1,4 @@
-import type {ComponentType} from 'react';
+import {useEffect, type ComponentType} from 'react';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -102,7 +102,15 @@ function useFallbackScmFeatureMeta(): UseScmFeatureMetaResult {
  * returned with isLoading=false.
  */
 export function useScmFeatureMeta(): UseScmFeatureMetaResult {
-  const hook =
-    getOverride('react-hook:use-scm-feature-meta') ?? useFallbackScmFeatureMeta;
+  const override = getOverride('react-hook:use-scm-feature-meta');
+  const hasOverride = override ?? false;
+
+  useEffect(() => {
+    console.log(
+      `useScmFeatureMeta, ${hasOverride ? 'using real hook' : 'using fallback'}`
+    );
+  }, [hasOverride]);
+
+  const hook = override ?? useFallbackScmFeatureMeta;
   return hook();
 }
