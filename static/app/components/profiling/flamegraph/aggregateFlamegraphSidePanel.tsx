@@ -9,7 +9,7 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';

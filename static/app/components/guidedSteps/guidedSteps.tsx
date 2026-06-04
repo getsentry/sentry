@@ -17,7 +17,7 @@ import {Flex, Stack, Container} from '@sentry/scraps/layout';
 
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {

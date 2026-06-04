@@ -73,7 +73,9 @@ class ProjectServiceHookStatsEndpoint(ServiceHookEndpoint, StatsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
+    def get(
+        self, request: Request, project: Project, hook: ServiceHook, **kwargs
+    ) -> Response[list[ServiceHookStatsResponse]]:
         """
         Return the number of times a service hook has fired over a time series range.
         """

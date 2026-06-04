@@ -251,8 +251,6 @@ type GetsentryEventParameters = {
     has_price_change: undefined | boolean;
   };
   'usage_exceeded_modal.seen': HasSub;
-  'zendesk_link.clicked': {source?: string};
-  'zendesk_link.viewed': {source?: string};
 };
 
 export type AM2UpdateSurfaces =
@@ -373,8 +371,6 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'intercom_link.clicked': 'Intercom Link Clicked',
   'intercom_link.viewed': 'Intercom Link Viewed',
   'learn_more_link.clicked': 'Learn More Link Clicked',
-  'zendesk_link.clicked': 'Zendesk Link Clicked',
-  'zendesk_link.viewed': 'Zendesk Link Viewed',
   'spend_allocations.open_form': 'Spend Allocations: Form Opened',
   'spend_allocations.submit': 'Spend Allocations: Form Submitted',
   'data_consent_modal.learn_more': 'Data Consent Modal: Learn More',

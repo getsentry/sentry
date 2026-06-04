@@ -1,4 +1,6 @@
-import type {Choices, SelectValue} from 'sentry/types/core';
+import type {SelectValue} from '@sentry/scraps/select';
+
+import type {Choices} from 'sentry/types/core';
 
 function isStringList(maybe: string[] | Choices): maybe is string[] {
   return typeof maybe[0] === 'string';
