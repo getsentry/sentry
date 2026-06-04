@@ -550,6 +550,50 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('**Approx. Start Time:**');
     });
 
+    it('omits span evidence when regression issues lack evidenceData', () => {
+      const endpointRegressionEvent = EventFixture({
+        ...event,
+        title: 'ApiException',
+        occurrence: {
+          type: 1018,
+          evidenceDisplay: [],
+        },
+      });
+
+      const endpointResult = issueAndEventToMarkdown(
+        group,
+        endpointRegressionEvent,
+        null,
+        null,
+        undefined,
+        organization
+      );
+
+      expect(endpointResult).not.toContain('## Span Evidence');
+      expect(endpointResult).not.toContain('**Transaction:** ApiException');
+
+      const functionRegressionEvent = EventFixture({
+        ...event,
+        title: 'ApiException',
+        occurrence: {
+          type: 2010,
+          evidenceDisplay: [],
+        },
+      });
+
+      const functionResult = issueAndEventToMarkdown(
+        group,
+        functionRegressionEvent,
+        null,
+        null,
+        undefined,
+        organization
+      );
+
+      expect(functionResult).not.toContain('## Span Evidence');
+      expect(functionResult).not.toContain('**Transaction:** ApiException');
+    });
+
     it('does not include span evidence for non-performance issues', () => {
       const result = issueAndEventToMarkdown(
         group,

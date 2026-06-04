@@ -27,6 +27,7 @@ import {
   AI_DETECTED_ISSUE_TYPES,
   getIssueTypeFromOccurrenceType,
   isTransactionBased,
+  IssueType,
   type Group,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -185,6 +186,16 @@ function formatSpanEvidenceToMarkdown(event: Event, organization: Organization):
       return '';
     }
     return `\n## Span Evidence\n\n${regressionLines.join('\n')}\n`;
+  }
+
+  // Regression issues only use getKeyValueListData (see RegressionEvidence in
+  // spanEvidenceKeyValueList). Without evidenceData, omit the section rather than
+  // falling through to generic span evidence (which can show event.title as Transaction).
+  if (
+    issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION ||
+    issueType === IssueType.PROFILE_FUNCTION_REGRESSION
+  ) {
+    return '';
   }
 
   const evidenceData = event.occurrence?.evidenceData ?? {};
