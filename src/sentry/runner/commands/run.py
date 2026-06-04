@@ -9,6 +9,7 @@ from typing import Any
 
 import click
 import taskbroker_client.constants as taskworker_constants
+from django.conf import settings
 
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
@@ -207,6 +208,7 @@ def taskworker(**options: Any) -> None:
     Run a taskworker worker
     """
     os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
+    settings.TASKWORKER_USE_TASK_PRODUCER = True
     # TODO(mark) restore autoreload
     run_taskworker(**options)
 
