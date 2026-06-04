@@ -6,7 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group, KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
+import type {Group, KeyValueListData} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -51,23 +51,15 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
 export function keyValueListDataToMarkdownLines(data: KeyValueListData): string[] {
   return data
     .map(item => {
-      const value = keyValueListItemValueToMarkdown(item.value);
+      const raw = item.value;
+      const value =
+        typeof raw === 'string' ? raw : typeof raw === 'number' ? String(raw) : '';
       if (!item.subject || value === '') {
         return null;
       }
       return `**${item.subject}:** ${value}`;
     })
     .filter((line): line is string => line !== null);
-}
-
-function keyValueListItemValueToMarkdown(value: KeyValueListDataItem['value']): string {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  if (typeof value === 'string' || typeof value === 'number') {
-    return String(value);
-  }
-  return '';
 }
 
 export function getKeyValueListData(

@@ -155,16 +155,11 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
 function getSpanMarkdownValue(
   span: {description?: string; op?: string} | null | undefined
 ): string {
-  if (!span || (!span.op && !span.description)) {
-    return t('(no value)');
+  const {op, description} = span ?? {};
+  if (op && description) {
+    return `${op} - ${description}`;
   }
-  if (!span.op && span.description) {
-    return span.description;
-  }
-  if (span.op && !span.description) {
-    return span.op;
-  }
-  return `${span.op} - ${span.description}`;
+  return description || op || t('(no value)');
 }
 
 /**
