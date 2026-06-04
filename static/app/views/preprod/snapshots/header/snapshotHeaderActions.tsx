@@ -8,7 +8,11 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -31,7 +35,9 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -62,6 +68,70 @@ export function SnapshotHeaderActions({
   const project = ProjectsStore.getById(data.project_id);
   const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPreparingDownload, setIsPreparingDownload] = useState(false);
+  const preparingMessageRef = useRef<string | null>(null);
+
+  const showPreparingMessage = useCallback((message: string) => {
+    if (preparingMessageRef.current === message) {
+      return;
+    }
+    preparingMessageRef.current = message;
+    addLoadingMessage(message);
+  }, []);
+
+  const downloadStatusUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/archive/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        snapshotId: String(data.head_artifact_id),
+      },
+    }
+  );
+
+  const {data: downloadStatus} = useApiQuery<{
+    status: 'building' | 'ready' | 'failed';
+    progress?: number | null;
+  }>([downloadStatusUrl], {
+    staleTime: 0,
+    enabled: isPreparingDownload,
+    refetchInterval: query => {
+      const status = query.state.data?.json?.status;
+      return status === 'building' ? 1_500 : false;
+    },
+  });
+
+  useEffect(() => {
+    if (!isPreparingDownload || !downloadStatus) {
+      return;
+    }
+    if (downloadStatus.status === 'ready') {
+      preparingMessageRef.current = null;
+      setIsPreparingDownload(false);
+      addSuccessMessage(t('Downloading snapshot images to your browser.'));
+      downloadFromHref(
+        `snapshot_images_${data.head_artifact_id}.zip`,
+        `/api/0${downloadStatusUrl}?download=true`
+      );
+    } else if (downloadStatus.status === 'failed') {
+      preparingMessageRef.current = null;
+      setIsPreparingDownload(false);
+      addErrorMessage(t('Failed to prepare snapshot images for download.'));
+    } else {
+      const pct = downloadStatus.progress;
+      showPreparingMessage(
+        typeof pct === 'number'
+          ? t('Preparing snapshot images… %s%%. Please be patient.', pct)
+          : t('Preparing snapshot images… Please be patient.')
+      );
+    }
+  }, [
+    isPreparingDownload,
+    downloadStatus,
+    downloadStatusUrl,
+    data.head_artifact_id,
+    showPreparingMessage,
+  ]);
 
   const comparisonState = data.comparison_state;
   const approvalStatus = data.approval_status;
@@ -168,10 +238,9 @@ export function SnapshotHeaderActions({
   }, [apiUrl, navigate]);
 
   const handleDownloadImages = useCallback(() => {
-    const downloadUrl = `/api/0/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/download/`;
-
-    downloadFromHref(`snapshot_images_${data.head_artifact_id}.zip`, downloadUrl);
-  }, [organizationSlug, data.head_artifact_id]);
+    setIsPreparingDownload(true);
+    showPreparingMessage(t('Preparing snapshot images… Please be patient.'));
+  }, [showPreparingMessage]);
 
   return (
     <Flex align="center" gap="md">
@@ -272,10 +341,11 @@ export function SnapshotHeaderActions({
               label: (
                 <Flex align="center" gap="sm">
                   <IconDownload size="sm" />
-                  {t('Download Images')}
+                  {isPreparingDownload ? t('Preparing…') : t('Download Images')}
                 </Flex>
               ),
               onAction: handleDownloadImages,
+              disabled: isPreparingDownload,
               textValue: t('Download Images'),
             },
             {
