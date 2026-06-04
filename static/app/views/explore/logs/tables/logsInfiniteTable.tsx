@@ -33,7 +33,6 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   TableBodyCell,
   TableHead,
-  TableHeadCell,
   TableHeadCellContent,
   TableRow,
   TableStatus,
@@ -57,6 +56,7 @@ import {
   LOGS_GRID_BODY_ROW_HEIGHT,
   LogTable,
   LogTableBody,
+  LogTableHeadCell,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
 import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
@@ -660,6 +660,7 @@ function LogsTableHeader({
   const setSortBys = useSetQueryParamsSortBys();
 
   const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const pinningEnabled = !!useLogsPinning();
   return (
     <TableHead>
       <LogTableRow>
@@ -679,13 +680,20 @@ function LogsTableHeader({
           );
 
           if (isPending) {
-            return <TableHeadCell key={index} isFirst={index === 0} />;
+            return (
+              <LogTableHeadCell
+                key={index}
+                isFirst={index === 0}
+                reservePinGutter={pinningEnabled && index === fields.length - 1}
+              />
+            );
           }
           return (
-            <TableHeadCell
+            <LogTableHeadCell
               align={index === 0 ? 'left' : align}
               key={index}
               isFirst={index === 0}
+              reservePinGutter={pinningEnabled && index === fields.length - 1}
             >
               <TableHeadCellContent
                 onClick={
@@ -728,7 +736,7 @@ function LogsTableHeader({
                   onMouseDown={e => onResizeMouseDown(e, index)}
                 />
               )}
-            </TableHeadCell>
+            </LogTableHeadCell>
           );
         })}
       </LogTableRow>
