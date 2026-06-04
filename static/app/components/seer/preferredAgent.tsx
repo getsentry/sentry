@@ -2,14 +2,14 @@ import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
 import {useKnownAgents} from 'sentry/utils/seer/preferredAgent';
-import type {SeerProjectSettingsResponse} from 'sentry/utils/seer/types';
+import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
 
 /**
  * Render a known agent to their human-readable names.
  *
  * If the integrationId is not found, return the agent name and the integrationId as a fallback.
  */
-export function PreferredAgentLabel({settings}: {settings: SeerProjectSettingsResponse}) {
+export function PreferredAgentLabel({settings}: {settings: SeerProjectSettingResponse}) {
   const integrations = useKnownAgents();
   return (
     <Fragment>

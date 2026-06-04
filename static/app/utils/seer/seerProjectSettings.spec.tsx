@@ -10,7 +10,7 @@ import {
   getMutateSeerProjectSettingsOptions,
   getSeerProjectSettingsQueryOptions,
 } from 'sentry/utils/seer/seerProjectSettings';
-import type {SeerProjectSettingsResponse} from 'sentry/utils/seer/types';
+import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 const project = {slug: 'project-slug'};
@@ -21,8 +21,8 @@ const knownAgents: CodingAgentIntegration[] = [
 ];
 
 function makeResponseFixture(
-  overrides?: Partial<SeerProjectSettingsResponse>
-): SeerProjectSettingsResponse {
+  overrides?: Partial<SeerProjectSettingResponse>
+): SeerProjectSettingResponse {
   return {
     agent: 'seer',
     autoCreatePr: null,
@@ -185,14 +185,14 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({stopping_point: 'off'});
+        await result.current.mutateAsync({stoppingPoint: 'off'});
       });
 
       expect(mock).toHaveBeenCalledWith(
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {automation_tuning: 'off'},
+          data: {automationTuning: 'off'},
         })
       );
     });
@@ -207,14 +207,14 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({stopping_point: 'root_cause'});
+        await result.current.mutateAsync({stoppingPoint: 'root_cause'});
       });
 
       expect(mock).toHaveBeenCalledWith(
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {stopping_point: 'root_cause', automation_tuning: 'medium'},
+          data: {stoppingPoint: 'root_cause', automationTuning: 'medium'},
         })
       );
     });
@@ -229,14 +229,14 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({stopping_point: 'plan'});
+        await result.current.mutateAsync({stoppingPoint: 'plan'});
       });
 
       expect(mock).toHaveBeenCalledWith(
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {stopping_point: 'plan', automation_tuning: 'medium'},
+          data: {stoppingPoint: 'plan', automationTuning: 'medium'},
         })
       );
     });
@@ -251,14 +251,14 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({stopping_point: 'create_pr'});
+        await result.current.mutateAsync({stoppingPoint: 'create_pr'});
       });
 
       expect(mock).toHaveBeenCalledWith(
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {stopping_point: 'create_pr', automation_tuning: 'medium'},
+          data: {stoppingPoint: 'create_pr', automationTuning: 'medium'},
         })
       );
     });
@@ -376,13 +376,13 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result, queryClient, queryKey} = renderMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({stopping_point: 'off'});
+        await result.current.mutateAsync({stoppingPoint: 'off'});
       });
 
       await waitFor(() => {
         const cached = queryClient.getQueryData(queryKey);
         expect(cached?.json).toMatchObject({
-          stoppingPoint: 'off',
+          stoppingPoint: 'root_cause',
           automationTuning: 'off',
         });
       });

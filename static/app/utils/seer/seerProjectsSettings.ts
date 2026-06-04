@@ -6,8 +6,8 @@ import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {
-  SeerProjectSettings,
-  SeerProjectSettingsResponse,
+  SeerProjectSetting,
+  SeerProjectSettingResponse,
 } from 'sentry/utils/seer/types';
 
 export function getInfiniteSeerProjectsSettingsQueryOptions({
@@ -23,7 +23,7 @@ export function getInfiniteSeerProjectsSettingsQueryOptions({
 }) {
   const {cursor, per_page = 100, sort} = query;
   const sortQuery = sort ? encodeSort(sort) : undefined;
-  return apiOptions.asInfinite<SeerProjectSettingsResponse[]>()(
+  return apiOptions.asInfinite<SeerProjectSettingResponse[]>()(
     '/organizations/$organizationIdOrSlug/seer/projects/',
     {
       path: {organizationIdOrSlug: organization.slug},
@@ -47,7 +47,7 @@ export function getMutateSeerProjectsSettingsOptions({
   const [url] = queryKey;
 
   return mutationOptions({
-    mutationFn: (data: Partial<SeerProjectSettings>) => {
+    mutationFn: (data: Partial<SeerProjectSetting>) => {
       return fetchMutation({
         method: 'PUT',
         url,

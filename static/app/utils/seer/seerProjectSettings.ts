@@ -5,13 +5,14 @@ import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getInternalStoppingPoint} from 'sentry/utils/seer/stoppingPoint';
 import type {
   SeerAgent,
-  SeerProjectSettings,
-  SeerProjectSettingsResponse,
+  SeerProjectSettingResponse,
+  SeerProjectSettingUpdate,
 } from 'sentry/utils/seer/types';
 
 export const seerProjectSettingsSchema = z.object({
@@ -25,7 +26,7 @@ export const seerProjectSettingsSchema = z.object({
   }),
   repos_count: z.number(),
   scanner_automation: z.boolean(),
-  stopping_point: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
+  stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
 });
 
 export function getSeerProjectSettingsQueryOptions({
@@ -35,7 +36,7 @@ export function getSeerProjectSettingsQueryOptions({
   organization: Organization;
   project: AvatarProject;
 }) {
-  return apiOptions.as<SeerProjectSettingsResponse>()(
+  return apiOptions.as<SeerProjectSettingResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/settings/',
     {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
@@ -47,9 +48,9 @@ export function getSeerProjectSettingsQueryOptions({
 function resolveIntegrationId(
   agent: SeerAgent,
   knownAgents: CodingAgentIntegration[] | undefined
-): string | null | undefined {
+) {
   if (!knownAgents) {
-    return undefined;
+    return;
   }
   if (agent === 'seer') {
     return null;
@@ -74,30 +75,33 @@ export function getMutateSeerProjectSettingsOptions({
   const [url] = queryKey;
 
   return mutationOptions({
-    mutationFn: (data: Partial<SeerProjectSettings>) => {
+    mutationFn: (data: SeerProjectSettingUpdate) => {
       const integrationId =
         data.agent && data.agent !== 'seer'
           ? resolveIntegrationId(data.agent, knownAgents)
           : undefined;
 
-      const isOff = data.stopping_point === 'off';
+      const isOff = data.stoppingPoint === 'off';
       const tuning =
-        data.stopping_point === undefined
+        data.stoppingPoint === undefined
           ? undefined
           : isOff
             ? ('off' as const)
             : ('medium' as const);
 
-      const {stopping_point: _sp, ...rest} = data;
-      const payload = isOff ? rest : data;
+      const {stoppingPoint, ...rest} = data;
 
-      return fetchMutation<SeerProjectSettingsResponse>({
+      return fetchMutation<SeerProjectSettingResponse>({
         method: 'PUT',
         url,
         data: {
-          ...payload,
+          ...rest,
+          ...(!isOff &&
+            stoppingPoint !== undefined && {
+              stoppingPoint: getInternalStoppingPoint(stoppingPoint, true),
+            }),
           ...(integrationId !== undefined && {integrationId}),
-          ...(tuning !== undefined && {automation_tuning: tuning}),
+          ...(tuning !== undefined && {automationTuning: tuning}),
         },
       });
     },
@@ -105,24 +109,34 @@ export function getMutateSeerProjectSettingsOptions({
       await queryClient.cancelQueries({queryKey});
       const previousData = queryClient.getQueryData(queryKey);
 
-      queryClient.setQueryData(queryKey, prev => {
-        if (!prev) {
-          return prev;
-        }
-        const jsonUpdates: Partial<SeerProjectSettingsResponse> = {};
-        if (data.agent !== undefined) {
-          jsonUpdates.agent = data.agent;
-          const resolved = resolveIntegrationId(data.agent, knownAgents);
-          if (resolved !== undefined) {
-            jsonUpdates.integrationId = resolved;
+      queryClient.setQueryData(
+        queryKey,
+        (prev: ApiResponse<SeerProjectSettingResponse> | undefined) => {
+          if (!prev) {
+            return prev;
           }
+          const jsonUpdates: Partial<SeerProjectSettingResponse> = {};
+          if (data.agent !== undefined) {
+            jsonUpdates.agent = data.agent;
+            const resolved = resolveIntegrationId(data.agent, knownAgents);
+            if (resolved !== undefined) {
+              jsonUpdates.integrationId = resolved;
+            }
+          }
+          if (data.stoppingPoint !== undefined) {
+            if (data.stoppingPoint === 'off') {
+              jsonUpdates.automationTuning = 'off';
+            } else {
+              jsonUpdates.stoppingPoint = getInternalStoppingPoint(
+                data.stoppingPoint,
+                true
+              );
+              jsonUpdates.automationTuning = 'medium';
+            }
+          }
+          return {...prev, json: {...prev.json, ...jsonUpdates}};
         }
-        if (data.stopping_point !== undefined) {
-          jsonUpdates.stoppingPoint = getInternalStoppingPoint(data.stopping_point);
-          jsonUpdates.automationTuning = data.stopping_point === 'off' ? 'off' : 'medium';
-        }
-        return {...prev, json: {...prev.json, ...jsonUpdates}};
-      });
+      );
 
       return {previousData};
     },

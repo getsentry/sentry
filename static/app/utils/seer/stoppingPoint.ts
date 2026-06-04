@@ -79,21 +79,32 @@ export function getInternalStoppingPoint(
 
 /**
  * Return a list of user-facing stopping point options for a select component.
+ *
+ * Aligned with `SEAT_BASED_STOPPING_POINTS`
+ * https://github.com/getsentry/sentry/blob/master/src/sentry/seer/autofix/utils.py#L71-L81
  */
 export function useStoppingPointSelectOptions() {
+  const organization = useOrganization();
   return useMemo<
     Array<{
       label: string;
       value: UserFacingStoppingPoint;
     }>
   >(() => {
+    if (organization.features.includes('seer-added')) {
+      return [
+        {value: 'off', label: t('No Automation')},
+        {value: 'root_cause', label: t('Stop after Root Cause')},
+        {value: 'plan', label: t('Stop after Plan')},
+        {value: 'create_pr', label: t('Stop after PR drafted')},
+      ];
+    }
     return [
       {value: 'off', label: t('No Automation')},
       {value: 'root_cause', label: t('Stop after Root Cause')},
-      {value: 'plan', label: t('Stop after Plan')},
       {value: 'create_pr', label: t('Stop after PR drafted')},
     ];
-  }, []);
+  }, [organization.features]);
 }
 
 export function useOrgDefaultStoppingPoint(): UserFacingStoppingPoint {

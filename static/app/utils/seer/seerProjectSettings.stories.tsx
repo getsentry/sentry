@@ -1,10 +1,11 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryState, type inferParserType} from 'nuqs';
 
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -63,6 +64,8 @@ function PickProject({children}: {children: (projectSlug: string) => React.React
 export default Storybook.story('SeerProjectSettings', story => {
   story('Autofix Project Settings', () => {
     function Example({projectSlug}: {projectSlug: string}) {
+      const [showFormatted, setShowFormatted] = useState(false);
+
       const organization = useOrganization();
 
       const {data, isLoading, isError, error} = useQuery({
@@ -97,42 +100,50 @@ export default Storybook.story('SeerProjectSettings', story => {
       }
 
       return (
-        <SimpleTable style={{gridTemplateColumns: '2fr max-content repeat(4, 1fr)'}}>
-          <SimpleTable.Header>
-            <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Repos')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Agent')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Agent (fmt)')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Stopping Point')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Stopping Point (fmt)')}</SimpleTable.HeaderCell>
-          </SimpleTable.Header>
-          <SimpleTable.Row>
-            <SimpleTable.RowCell>
-              <Text bold>{data.projectSlug}</Text>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Text>{data.reposCount}</Text>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Text>{data.agent}</Text>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Text>
-                <PreferredAgentLabel settings={data} />
-              </Text>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Text>{data.stoppingPoint}</Text>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Text>
-                <StoppingPointLabel
-                  stoppingPoint={getUserFacingStoppingPoint(data.stoppingPoint)}
-                />
-              </Text>
-            </SimpleTable.RowCell>
-          </SimpleTable.Row>
-        </SimpleTable>
+        <Stack gap="xl">
+          <Flex as="label" gap="md" htmlFor="showFormatted">
+            <Text>{t('Format Column Values')}</Text>
+            <Checkbox
+              id="showFormatted"
+              checked={showFormatted}
+              onChange={() => setShowFormatted(!showFormatted)}
+            />
+          </Flex>
+
+          <SimpleTable style={{gridTemplateColumns: '2fr max-content repeat(2, 1fr)'}}>
+            <SimpleTable.Header>
+              <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Repos')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Agent')}</SimpleTable.HeaderCell>
+
+              <SimpleTable.HeaderCell>{t('Stopping Point')}</SimpleTable.HeaderCell>
+            </SimpleTable.Header>
+            <SimpleTable.Row>
+              <SimpleTable.RowCell>
+                <Text bold>{data.projectSlug}</Text>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <Text>{data.reposCount}</Text>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <Text>
+                  {showFormatted ? <PreferredAgentLabel settings={data} /> : data.agent}
+                </Text>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <Text>
+                  {showFormatted ? (
+                    <StoppingPointLabel
+                      stoppingPoint={getUserFacingStoppingPoint(data.stoppingPoint)}
+                    />
+                  ) : (
+                    data.stoppingPoint
+                  )}
+                </Text>
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          </SimpleTable>
+        </Stack>
       );
     }
 
@@ -223,7 +234,6 @@ export default Storybook.story('SeerProjectSettings', story => {
   story('Edit Stopping Point', () => {
     function Example({projectSlug}: {projectSlug: string}) {
       const organization = useOrganization();
-
       const queryClient = useQueryClient();
 
       const stoppingPointOptions = useStoppingPointSelectOptions();
@@ -262,7 +272,7 @@ export default Storybook.story('SeerProjectSettings', story => {
       return (
         <FieldGroup>
           <AutoSaveForm
-            name="stopping_point"
+            name="stoppingPoint"
             schema={seerProjectSettingsSchema}
             initialValue={getUserFacingStoppingPoint(data.stoppingPoint)}
             mutationOptions={getMutateSeerProjectSettingsOptions({

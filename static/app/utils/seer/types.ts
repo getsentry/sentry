@@ -1,4 +1,10 @@
-export type InternalAutomationTuning = 'off' | 'low' | 'medium' | 'high';
+export type InternalAutomationTuning =
+  | 'off'
+  | 'super_low'
+  | 'low'
+  | 'medium'
+  | 'high'
+  | 'always';
 
 export type UserFacingAutomationTuning = 'off' | 'medium';
 
@@ -20,7 +26,7 @@ type SeerAutomationHandoffConfiguration = {
   target: 'cursor_background_agent' | 'claude_code_agent';
 };
 
-export type SeerProjectSettings = {
+export type SeerProjectSetting = {
   agent: SeerAgent;
   automation_tuning: InternalAutomationTuning;
   handoff: SeerAutomationHandoffConfiguration | null;
@@ -29,7 +35,13 @@ export type SeerProjectSettings = {
   stopping_point: UserFacingStoppingPoint;
 };
 
-export type SeerProjectSettingsResponse = {
+export type SeerProjectSettingUpdate = {
+  agent?: SeerAgent;
+  scannerAutomation?: boolean;
+  stoppingPoint?: UserFacingStoppingPoint;
+};
+
+export type SeerProjectSettingResponse = {
   agent: SeerAgent;
   autoCreatePr: boolean | null;
   automationTuning: InternalAutomationTuning;
