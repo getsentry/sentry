@@ -68,7 +68,7 @@ export default Storybook.story('SeerProjectSettings', story => {
 
       const organization = useOrganization();
 
-      const {data, isLoading, isError, error} = useQuery({
+      const {data, isPending, isError, error} = useQuery({
         ...getSeerProjectSettingsQueryOptions({
           organization,
           project: {slug: projectSlug ?? ''},
@@ -76,7 +76,7 @@ export default Storybook.story('SeerProjectSettings', story => {
         enabled: !!projectSlug,
       });
 
-      if (isLoading) {
+      if (isPending) {
         return (
           <Flex justify="center" padding="xl">
             <LoadingIndicator />
@@ -159,7 +159,7 @@ export default Storybook.story('SeerProjectSettings', story => {
       const knownAgents = useKnownAgents();
 
       const agentSelectOptions = useAgentSelectOptions();
-      const {data, isLoading, isError, error} = useQuery({
+      const {data, isPending, isError, error} = useQuery({
         ...getSeerProjectSettingsQueryOptions({
           organization,
           project: {slug: projectSlug ?? ''},
@@ -167,7 +167,7 @@ export default Storybook.story('SeerProjectSettings', story => {
         enabled: !!projectSlug,
       });
 
-      if (isLoading) {
+      if (isPending) {
         return (
           <Flex justify="center" padding="xl">
             <LoadingIndicator />
@@ -237,7 +237,7 @@ export default Storybook.story('SeerProjectSettings', story => {
       const queryClient = useQueryClient();
 
       const stoppingPointOptions = useStoppingPointSelectOptions();
-      const {data, isLoading, isError, error} = useQuery({
+      const {data, isPending, isError, error} = useQuery({
         ...getSeerProjectSettingsQueryOptions({
           organization,
           project: {slug: projectSlug ?? ''},
@@ -245,7 +245,7 @@ export default Storybook.story('SeerProjectSettings', story => {
         enabled: !!projectSlug,
       });
 
-      if (isLoading) {
+      if (isPending) {
         return (
           <Flex justify="center" padding="xl">
             <LoadingIndicator />
