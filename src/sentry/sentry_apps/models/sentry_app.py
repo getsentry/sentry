@@ -126,6 +126,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     verify_install = models.BooleanField(default=True)
 
     events = ArrayField(models.TextField(), default=list)
+    webhook_headers = ArrayField(models.TextField(), default=list)
 
     overview = models.TextField(null=True)
     schema = models.JSONField(default=dict)
