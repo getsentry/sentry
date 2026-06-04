@@ -102,8 +102,8 @@ class OrganizationMemberSerializer(Serializer):
             # `email` on the OrganizationMember will be null, so we need to pull
             # the email address from the user's actual account. When the
             # control-silo User cannot be resolved (deleted, replication lag),
-            # fall back to the outbox-denormalized `user_email` and finally to
-            # an empty string so the response still serializes.
+            # fall back to the org member's email, or empty string if none
+            # exists to ensure serialization still succeeds.
             email = serialized_user["email"] if serialized_user else obj.email or ""
         else:
             # when there is no user_id, the OrganizationMember is an invited user
