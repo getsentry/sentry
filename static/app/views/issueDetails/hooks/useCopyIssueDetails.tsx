@@ -11,6 +11,10 @@ import {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {
+  getKeyValueListData,
+  keyValueListDataToMarkdownLines,
+} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {
   useGroupSummaryData,
@@ -19,7 +23,13 @@ import {
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
-import {getIssueTypeFromOccurrenceType, type Group} from 'sentry/types/group';
+import {
+  AI_DETECTED_ISSUE_TYPES,
+  getIssueTypeFromOccurrenceType,
+  isTransactionBased,
+  type Group,
+} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -163,7 +173,7 @@ function getSpanMarkdownValue(
  * issues. Returns an empty string for issues that don't expose span evidence
  * (e.g. errors).
  */
-function formatSpanEvidenceToMarkdown(event: Event): string {
+function formatSpanEvidenceToMarkdown(event: Event, organization: Organization): string {
   const eventTransaction = event as EventTransaction;
   const issueType =
     eventTransaction.perfProblem?.issueType ??
@@ -171,6 +181,15 @@ function formatSpanEvidenceToMarkdown(event: Event): string {
 
   if (!issueType) {
     return '';
+  }
+
+  const regressionData = getKeyValueListData(organization, issueType, event);
+  if (regressionData) {
+    const regressionLines = keyValueListDataToMarkdownLines(regressionData);
+    if (regressionLines.length === 0) {
+      return '';
+    }
+    return `\n## Span Evidence\n\n${regressionLines.join('\n')}\n`;
   }
 
   const evidenceData = event.occurrence?.evidenceData ?? {};
@@ -184,8 +203,17 @@ function formatSpanEvidenceToMarkdown(event: Event): string {
 
   type EvidenceSpan = {description?: string; op?: string} | null | undefined;
   const lines: string[] = [];
+  const typeId = event.occurrence?.type;
 
-  if (event.title) {
+  // Match spanEvidenceKeyValueList: transaction events use event.title; profiling
+  // and other non-transaction issues use evidenceData or evidenceDisplay instead.
+  if (isTransactionBased(typeId) && event.title) {
+    lines.push(`**Transaction:** ${event.title}`);
+  } else if (evidenceData.transactionName) {
+    lines.push(`**Transaction:** ${evidenceData.transactionName}`);
+  } else if (evidenceData.transaction) {
+    lines.push(`**Transaction:** ${evidenceData.transaction}`);
+  } else if (issueType && AI_DETECTED_ISSUE_TYPES.has(issueType) && event.title) {
     lines.push(`**Transaction:** ${event.title}`);
   }
 
@@ -235,7 +263,8 @@ export const issueAndEventToMarkdown = (
   event: Event | null | undefined,
   groupSummaryData: GroupSummaryData | null | undefined,
   autofixData: ExplorerAutofixState | null | undefined,
-  activeThreadId: number | undefined
+  activeThreadId: number | undefined,
+  organization: Organization
 ): string => {
   // Format the basic issue information
   let markdownText = `# ${group.title}\n\n`;
@@ -288,7 +317,7 @@ export const issueAndEventToMarkdown = (
   }
 
   if (event) {
-    markdownText += formatSpanEvidenceToMarkdown(event);
+    markdownText += formatSpanEvidenceToMarkdown(event, organization);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
@@ -308,9 +337,10 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
       event,
       groupSummaryData,
       autofixData,
-      activeThreadId
+      activeThreadId,
+      organization
     );
-  }, [group, event, groupSummaryData, autofixData, activeThreadId]);
+  }, [group, event, groupSummaryData, autofixData, activeThreadId, organization]);
 
   const {copy} = useCopyToClipboard();
 
