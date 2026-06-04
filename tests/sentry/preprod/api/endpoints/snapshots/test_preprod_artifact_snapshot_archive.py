@@ -218,6 +218,8 @@ class SnapshotDownloadBytesTest(APITestCase):
         assert response["Accept-Ranges"] == "bytes"
         assert response["ETag"] == f'"{f.checksum}"'
         assert "attachment" in response["Content-Disposition"]
+        # nginx buffering disabled so >1GB control-silo downloads aren't truncated
+        assert response["X-Accel-Buffering"] == "no"
 
     def test_bounded_range(self):
         artifact, _ = self._ready_artifact()
@@ -229,6 +231,7 @@ class SnapshotDownloadBytesTest(APITestCase):
         assert self._read(response) == self.content[5:15]
         assert response["Content-Length"] == "10"
         assert response["Content-Range"] == f"bytes 5-14/{len(self.content)}"
+        assert response["X-Accel-Buffering"] == "no"
 
     def test_suffix_range(self):
         artifact, _ = self._ready_artifact()

@@ -205,6 +205,11 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         if etag:
             response["ETag"] = etag
+        # Superuser/cross-org downloads traverse the control-silo nginx path,
+        # which buffers the response to a temp file capped at 1GB
+        # (proxy_max_temp_file_size default) and truncates anything larger.
+        # Disable nginx buffering so the zip streams straight to the client.
+        response["X-Accel-Buffering"] = "no"
         return response
 
     def head(
