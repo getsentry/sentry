@@ -80,6 +80,7 @@ export function LogsExportModal({
         organization,
         traceItemDataset: TraceItemDataset.LOGS,
         ...queryInfo,
+        field: isAllColumns ? undefined : queryInfo.field,
         export_row_limit: value.limit,
         export_file_format: format,
         export_type: isAllColumns || passedSyncLimit ? 'export_download' : 'browser_sync',

@@ -13,7 +13,6 @@ export type ExploreAnalyticsEventParameters = {
   };
   'explore.table_exported': {
     export_type: 'browser_sync' | 'export_download';
-    field: string[];
     organization: Organization;
     query: string;
     sort: string[];
@@ -22,6 +21,7 @@ export type ExploreAnalyticsEventParameters = {
     environment?: string[];
     export_file_format?: 'csv' | 'jsonl';
     export_row_limit?: number;
+    field?: string[];
     start?: string;
     statsPeriod?: string;
   };
