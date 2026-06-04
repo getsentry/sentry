@@ -20,12 +20,7 @@ import {ScoreCard} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {
-  DataCategory,
-  DataCategoryExact,
-  DataCategoryInfo,
-  IntervalPeriod,
-} from 'sentry/types/core';
+import type {DataCategory, DataCategoryExact, DataCategoryInfo} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -45,7 +40,7 @@ import {
   getTooltipFormatter,
 } from './usageChart/utils';
 import {mapSeriesToChart} from './mapSeriesToChart';
-import type {UsageSeries} from './types';
+import type {IntervalPeriod, UsageSeries} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
 import {
   CHART_OPTIONS_DATA_TRANSFORM,

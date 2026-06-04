@@ -14,10 +14,11 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types/core';
+import type {DataCategory, SelectValue} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {Theme} from 'sentry/utils/theme';
+import type {IntervalPeriod} from 'sentry/views/organizationStats/types';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';

@@ -1,4 +1,7 @@
+import type {getInterval} from 'sentry/components/charts/utils';
 import type {SeriesApi} from 'sentry/types/organization';
+
+export type IntervalPeriod = ReturnType<typeof getInterval>;
 
 /**
  * Raw response from API endpoint

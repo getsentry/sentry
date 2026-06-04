@@ -77,8 +77,6 @@ export enum Outcome {
   DROPPED = 'dropped', // this is not a real outcome coming from the server
 }
 
-export type IntervalPeriod = string;
-
 /**
  * Represents a pinned page filter sentinel value
  */
