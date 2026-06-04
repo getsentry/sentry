@@ -80,6 +80,7 @@ from ..metrics import (
 )
 from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, _common_codegen_request_payload
+from .logging import debug_log
 from .task import process_github_webhook_event
 
 logger = logging.getLogger(__name__)
@@ -296,8 +297,21 @@ def handle_merge_request_event(
     **kwargs: Any,
 ) -> None:
     """Handle GitLab merge request webhook events for code review."""
+    mr_iid = (event.get("object_attributes") or {}).get("iid")
+    base_log = {
+        "organization_id": organization.id,
+        "organization_slug": organization.slug,
+        "repo_id": repo.id,
+        "mr_iid": mr_iid,
+    }
+
     if integration is None:
+        debug_log(logger, organization, "missing_integration", base_log)
         return
+
+    base_log["integration_id"] = integration.id
+
+    debug_log(logger, organization, "handler_started", base_log)
 
     if not features.has("organizations:seer-code-review-gitlab", organization):
         return
@@ -305,19 +319,23 @@ def handle_merge_request_event(
     object_attributes = event.get("object_attributes", {})
     action_value = object_attributes.get("action")
     if not action_value or not isinstance(action_value, str):
+        debug_log(logger, organization, "missing_action", base_log)
         return
 
+    base_log["action"] = action_value
     record_webhook_received(GITLAB_WEBHOOK_EVENT, action_value)
 
     try:
         action = MergeRequestAction(action_value)
     except ValueError:
+        debug_log(logger, organization, "unsupported_action", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
 
     if action not in WHITELISTED_ACTIONS:
+        debug_log(logger, organization, "action_not_whitelisted", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
@@ -330,6 +348,7 @@ def handle_merge_request_event(
     if action not in CLOSE_ACTIONS:
         review_trigger = _resolve_review_trigger(action, event)
         if review_trigger is None:
+            debug_log(logger, organization, "no_review_trigger", base_log)
             record_webhook_filtered(
                 GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
             )
@@ -338,6 +357,7 @@ def handle_merge_request_event(
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:
+        debug_log(logger, organization, "organization_not_found", base_log)
         return
 
     author_id = object_attributes.get("author_id")
@@ -349,15 +369,30 @@ def handle_merge_request_event(
     ).check()
 
     if not preflight.allowed:
+        denial = preflight.denial_reason.value if preflight.denial_reason else None
+        debug_log(
+            logger,
+            organization,
+            "preflight_denied",
+            {**base_log, "denial_reason": denial},
+        )
         if preflight.denial_reason:
             record_webhook_filtered(GITLAB_WEBHOOK_EVENT, action_value, preflight.denial_reason)
         return
+
+    debug_log(logger, organization, "preflight_passed", base_log)
 
     org_code_review_settings = preflight.settings
 
     if review_trigger is not None and (
         org_code_review_settings is None or review_trigger not in org_code_review_settings.triggers
     ):
+        debug_log(
+            logger,
+            organization,
+            "trigger_disabled",
+            {**base_log, "review_trigger": review_trigger.value},
+        )
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.TRIGGER_DISABLED
         )
@@ -366,6 +401,7 @@ def handle_merge_request_event(
     if action in CLOSE_ACTIONS and (
         org_code_review_settings is None or not org_code_review_settings.triggers
     ):
+        debug_log(logger, organization, "close_trigger_disabled", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.TRIGGER_DISABLED
         )
@@ -376,19 +412,31 @@ def handle_merge_request_event(
             object_attributes.get("draft") is True
             or object_attributes.get("work_in_progress") is True
         ):
+            debug_log(logger, organization, "draft_skipped", base_log)
             return
 
     last_commit = object_attributes.get("last_commit") or {}
     target_commit_sha = last_commit.get("id")
     if not target_commit_sha:
+        debug_log(logger, organization, "missing_target_commit_sha", base_log)
         return
+
+    base_log["target_commit_sha"] = target_commit_sha
+    if review_trigger is not None:
+        base_log["review_trigger"] = review_trigger.value
 
     seen_key = (
         f"{WEBHOOK_SEEN_KEY_PREFIX}{org.id}:{repo.id}:"
         f"{object_attributes.get('iid')}:{action_value}:{target_commit_sha}"
     )
     if _is_duplicate_delivery(seen_key):
-        logger.warning("gitlab.webhook.merge_request.duplicate_delivery_skipped")
+        debug_log(
+            logger,
+            organization,
+            "duplicate_delivery_skipped",
+            base_log,
+            level=logging.WARNING,
+        )
         return
 
     # Mirror the GitHub pull_request handler: add :eyes: to the MR description to
@@ -407,6 +455,7 @@ def handle_merge_request_event(
                 reaction_to_add="eyes",
             )
 
+    debug_log(logger, organization, "scheduling_seer_task", base_log)
     _schedule_task(
         action=action,
         action_value=action_value,
@@ -415,6 +464,7 @@ def handle_merge_request_event(
         repo=repo,
         target_commit_sha=target_commit_sha,
         review_trigger=review_trigger,
+        log_context=base_log,
     )
 
 
@@ -482,6 +532,7 @@ def _schedule_task(
     repo: Repository,
     target_commit_sha: str,
     review_trigger: CodeReviewTrigger | None,
+    log_context: dict[str, object] | None = None,
 ) -> None:
     payload = _build_payload(action, event, organization, repo, target_commit_sha, review_trigger)
 
@@ -501,13 +552,29 @@ def _schedule_task(
         else:
             validated = SeerCodeReviewTaskRequestForPrReview.parse_obj(payload)
         serialized_payload = json.loads(validated.json())
-    except ValidationError:
-        logger.warning("gitlab.webhook.merge_request.validation_failed")
+    except ValidationError as e:
+        debug_log(
+            logger,
+            organization,
+            "validation_failed",
+            {
+                **(log_context or {}),
+                "seer_path": seer_path,
+                "validation_errors": e.errors(),
+            },
+            level=logging.WARNING,
+        )
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.INVALID_PAYLOAD
         )
         return
 
+    debug_log(
+        logger,
+        organization,
+        "seer_task_enqueued",
+        {**(log_context or {}), "seer_path": seer_path},
+    )
     process_github_webhook_event.delay(
         seer_path=seer_path,
         event_payload=serialized_payload,
