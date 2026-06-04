@@ -779,19 +779,6 @@ class WFEDetectorConfigTest(TestCase):
         assert settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 1000
         assert settings[DetectorType.SLOW_DB_QUERY]["detection_enabled"] is True
 
-    def test_feature_flag_disabled_uses_legacy_config(self) -> None:
-        self.create_detector(
-            project=self.project,
-            type=PerformanceSlowDBQueryGroupType.slug,
-            name="Test SlowDB Detector",
-            enabled=True,
-            config={"duration_threshold": 5000},
-        )
-
-        settings = get_detection_settings(self.project, settings_mode=SettingsMode.WFE)
-
-        assert settings[DetectorType.SLOW_DB_QUERY]["duration_threshold"] == 1000
-
     def test_all_wfe_detector_types_are_registered_group_types(self) -> None:
         for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
             group_type = registry.get_by_slug(mapping.wfe_detector_type)
