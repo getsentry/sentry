@@ -671,7 +671,7 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         self._make_eligible(project)
 
         group = self._store_event_and_update_group(
-            project, "fixable", seer_fixability_score=0.9, times_seen=5
+            project, "fixable", seer_fixability_score=0.9, times_seen=5, priority=75
         )
 
         with (
@@ -693,6 +693,8 @@ class TestRunNightShiftFeatureDelivery(TestCase, SnubaTestCase):
         request = mock_trigger.call_args.args[0]
         assert request["feature_id"] == "night_shift"
         assert [c["group_id"] for c in request["payload"]["candidates"]] == [group.id]
+        # Priority is sent as a label ("high"), matching the in-process path.
+        assert request["payload"]["candidates"][0]["priority"] == "high"
         assert mock_trigger.call_args.kwargs["viewer_context"] == {"organization_id": org.id}
 
         run = SeerNightShiftRun.objects.get(organization=org)

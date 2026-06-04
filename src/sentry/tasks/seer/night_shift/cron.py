@@ -38,7 +38,7 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
-from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy
+from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy, priority_label
 from sentry.tasks.seer.night_shift.tweaks import (
     DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
     DEFAULT_INTELLIGENCE_LEVEL,
@@ -471,7 +471,7 @@ def _dispatch_to_seer_feature(
                     "fixability": c.fixability,
                     "times_seen": c.group.times_seen,
                     "first_seen": c.group.first_seen,
-                    "priority": str(c.group.priority) if c.group.priority is not None else None,
+                    "priority": priority_label(c.group.priority),
                 }
                 for c in scored
             ],
