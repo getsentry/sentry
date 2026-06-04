@@ -140,15 +140,15 @@ describe('LogsExportModal', () => {
     expect(addSuccessMessage).toHaveBeenCalledWith('Downloading file to your browser.');
   });
 
-  it("hides Format radio buttons and forces JSONL when the 'All Columns' switch is on", async () => {
+  it("disables the Format radios and selects JSONL when the 'All Columns' switch is on", async () => {
     mockTimeseriesCount();
     renderModal();
 
     await userEvent.click(await screen.findByRole('checkbox', {name: 'All Columns?'}));
 
-    expect(screen.queryByRole('radio', {name: 'CSV'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('radio', {name: 'JSONL'})).not.toBeInTheDocument();
-    expect(screen.getByText('JSONL')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'CSV'})).toBeDisabled();
+    expect(screen.getByRole('radio', {name: 'JSONL'})).toBeDisabled();
+    expect(screen.getByRole('radio', {name: 'JSONL'})).toBeChecked();
   });
 
   it("POSTs with trace_item_full_export query type and jsonl format when the 'All Columns' switch is on", async () => {

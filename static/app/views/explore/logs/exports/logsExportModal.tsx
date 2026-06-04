@@ -132,30 +132,22 @@ export function LogsExportModal({
               formatNumber(ROW_COUNT_VALUE_SYNC_LIMIT)
             )}
           </Text>
-          {columnsValue === 'all' ? (
-            <Stack gap="xs">
-              <Text bold size="sm">
-                {t('Format')}
-              </Text>
-              <Text>{t('JSONL')}</Text>
-            </Stack>
-          ) : (
-            <form.AppField name="format">
-              {field => (
-                <field.Radio.Group
-                  value={field.state.value}
-                  onChange={value =>
-                    field.handleChange(value as ExportModalFormValues['format'])
-                  }
-                >
-                  <field.Layout.Stack label={t('Format')}>
-                    <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
-                    <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
-              )}
-            </form.AppField>
-          )}
+          <form.AppField name="format">
+            {field => (
+              <field.Radio.Group
+                value={columnsValue === 'all' ? 'jsonl' : field.state.value}
+                onChange={value =>
+                  field.handleChange(value as ExportModalFormValues['format'])
+                }
+                disabled={columnsValue === 'all'}
+              >
+                <field.Layout.Stack label={t('Format')}>
+                  <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
+                  <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
+                </field.Layout.Stack>
+              </field.Radio.Group>
+            )}
+          </form.AppField>
           <form.AppField name="limit">
             {field => (
               <field.Layout.Stack label={t('Number of rows')}>
