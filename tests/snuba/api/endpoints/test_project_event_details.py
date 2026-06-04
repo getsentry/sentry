@@ -164,6 +164,20 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["id"] == str(self.next_event.event_id)
         assert response.data["nextEventID"] is None
 
+    def test_non_numeric_group_id(self) -> None:
+        url = reverse(
+            "sentry-api-0-project-event-details",
+            kwargs={
+                "event_id": self.cur_event.event_id,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+        )
+        response = self.client.get(url, format="json", data={"group_id": "not-a-number"})
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Invalid group_id: must be a numeric value"}
+
 
 class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTest):
     def setup_data(self):
