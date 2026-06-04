@@ -30,7 +30,7 @@ describe('tracePreferences', () => {
     ).toBe(true);
   });
 
-  it('loads legacy snake case compressed timeline preferences', () => {
+  it('loads stored compressed timeline preferences', () => {
     localStorage.setItem(
       'trace-waterfall-preferences',
       JSON.stringify({
@@ -38,6 +38,24 @@ describe('tracePreferences', () => {
         missing_instrumentation: false,
         autogroup: {parent: true, sibling: true},
         compressed_timeline: false,
+      })
+    );
+
+    expect(
+      getInitialTracePreferences('trace-waterfall-preferences', {
+        ...DEFAULT_TRACE_VIEW_PREFERENCES,
+      }).compressedTimeline
+    ).toBe(false);
+  });
+
+  it('loads legacy camelCase compressed timeline preferences', () => {
+    localStorage.setItem(
+      'trace-waterfall-preferences',
+      JSON.stringify({
+        drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
+        missing_instrumentation: false,
+        autogroup: {parent: true, sibling: true},
+        compressedTimeline: false,
       })
     );
 

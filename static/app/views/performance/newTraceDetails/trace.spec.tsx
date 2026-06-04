@@ -73,7 +73,7 @@ function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {
     drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
     missing_instrumentation: DEFAULT_TRACE_VIEW_PREFERENCES.missing_instrumentation,
     autogroup: DEFAULT_TRACE_VIEW_PREFERENCES.autogroup,
-    compressedTimeline: DEFAULT_TRACE_VIEW_PREFERENCES.compressedTimeline,
+    compressed_timeline: DEFAULT_TRACE_VIEW_PREFERENCES.compressedTimeline,
     ...preferences,
   };
   localStorage.setItem('trace-waterfall-preferences', JSON.stringify(storedPreferences));
@@ -1236,7 +1236,7 @@ describe('trace view', () => {
       });
 
       it('redraws the trace when compressed timeline changes', async () => {
-        mockTracePreferences({compressedTimeline: true});
+        mockTracePreferences({compressed_timeline: true});
         mockQueryString('?node=span-span0&node=txn-1');
 
         const drawSpy = jest.spyOn(VirtualizedViewManager.prototype, 'draw');
@@ -1262,7 +1262,7 @@ describe('trace view', () => {
       });
 
       it('recomputes compressed timeline when expanding or collapsing rows changes visible nodes', async () => {
-        mockTracePreferences({compressedTimeline: true});
+        mockTracePreferences({compressed_timeline: true});
         mockQueryString('?node=span-span0&node=txn-1');
 
         const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
