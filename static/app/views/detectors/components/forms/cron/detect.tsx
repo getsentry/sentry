@@ -3,6 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
@@ -16,7 +17,6 @@ import {
 } from 'sentry/components/workflowEngine/ui/formSection';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {
   CRON_DEFAULT_CHECKIN_MARGIN,
   CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD,

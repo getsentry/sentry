@@ -1,4 +1,4 @@
-import type {SelectValue} from 'sentry/types/core';
+import type {SelectValue} from '@sentry/scraps/select/types';
 
 // explicitly using object here because Record<PropertyKey, unknown> requires an index signature
 // eslint-disable-next-line @typescript-eslint/no-restricted-types
