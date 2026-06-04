@@ -396,6 +396,7 @@ describe('useCopyIssueDetails', () => {
       // 2001 is the occurrence type for File I/O on Main Thread
       const profileEvent = EventFixture({
         ...event,
+        title: 'TypeError: Cannot read properties of undefined',
         occurrence: {
           type: 2001,
           evidenceData: {},
@@ -409,7 +410,34 @@ describe('useCopyIssueDetails', () => {
       const result = issueAndEventToMarkdown(group, profileEvent, null, null, undefined);
 
       expect(result).toContain('## Span Evidence');
+      expect(result).not.toContain(
+        '**Transaction:** TypeError: Cannot read properties of undefined'
+      );
       expect(result).toContain('**Transaction Name:** app.start');
+      expect(result).toContain('**File Path:** /data/cache.db');
+    });
+
+    it('uses evidence data for profiling issue transaction names', () => {
+      // 2001 is the occurrence type for File I/O on Main Thread
+      const profileEvent = EventFixture({
+        ...event,
+        title: 'TypeError: Cannot read properties of undefined',
+        occurrence: {
+          type: 2001,
+          evidenceData: {
+            transactionName: 'app.start',
+          },
+          evidenceDisplay: [{name: 'File Path', value: '/data/cache.db', important: false}],
+        },
+      });
+
+      const result = issueAndEventToMarkdown(group, profileEvent, null, null, undefined);
+
+      expect(result).toContain('## Span Evidence');
+      expect(result).toContain('**Transaction Name:** app.start');
+      expect(result).not.toContain(
+        '**Transaction:** TypeError: Cannot read properties of undefined'
+      );
       expect(result).toContain('**File Path:** /data/cache.db');
     });
 
