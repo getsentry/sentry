@@ -373,8 +373,10 @@ class MergeEventWebhook(GitlabWebhook):
                 logger,
                 organization,
                 "gitlab.merge_request.repo_not_found",
-                integration_id=integration.id,
-                project_id=(event.get("project") or {}).get("id"),
+                {
+                    "integration_id": integration.id,
+                    "project_id": (event.get("project") or {}).get("id"),
+                },
             )
             return
 
@@ -383,11 +385,13 @@ class MergeEventWebhook(GitlabWebhook):
             logger,
             organization,
             "gitlab.merge_request.received",
-            organization_slug=organization.slug,
-            integration_id=integration.id,
-            repo_id=repo.id,
-            pr_number=object_attributes.get("iid"),
-            action=object_attributes.get("action"),
+            {
+                "organization_slug": organization.slug,
+                "integration_id": integration.id,
+                "repo_id": repo.id,
+                "pr_number": object_attributes.get("iid"),
+                "action": object_attributes.get("action"),
+            },
         )
 
         # while we're here, make sure repo data is up to date
@@ -421,9 +425,11 @@ class MergeEventWebhook(GitlabWebhook):
                 logger,
                 organization,
                 "gitlab.merge_request.missing_author_email",
-                integration_id=integration.id,
-                repo_id=repo.id,
-                pr_number=number,
+                {
+                    "integration_id": integration.id,
+                    "repo_id": repo.id,
+                    "pr_number": number,
+                },
             )
             raise Http404()
 
@@ -452,10 +458,12 @@ class MergeEventWebhook(GitlabWebhook):
             logger,
             organization,
             "gitlab.merge_request.dispatching_processors",
-            integration_id=integration.id,
-            repo_id=repo.id,
-            pr_number=number,
-            processor_count=len(self.WEBHOOK_EVENT_PROCESSORS),
+            {
+                "integration_id": integration.id,
+                "repo_id": repo.id,
+                "pr_number": number,
+                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
+            },
         )
         self._handle(
             integration=integration,

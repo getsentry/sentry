@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 from sentry import features
@@ -16,10 +17,10 @@ def debug_log(
     logger: logging.Logger,
     organization: Organization | RpcOrganization | int,
     message: str,
+    extra: Mapping[str, object] | None = None,
     *,
     level: int = logging.INFO,
     exc_info: bool = False,
-    **extra: object,
 ) -> None:
     from sentry.models.organization import Organization as Org
 
@@ -32,4 +33,4 @@ def debug_log(
     if not features.has(_FLAG, organization):
         return
 
-    logger.log(level, message, extra=extra, exc_info=exc_info)
+    logger.log(level, message, extra=dict(extra or {}), exc_info=exc_info)

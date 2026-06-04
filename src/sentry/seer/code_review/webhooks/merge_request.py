@@ -290,21 +290,20 @@ def handle_merge_request_event(
     }
 
     if integration is None:
-        debug_log(logger, organization, "missing_integration", **base_log)
+        debug_log(logger, organization, "missing_integration", base_log)
         return
 
     base_log["integration_id"] = integration.id
 
-    debug_log(logger, organization, "handler_started", **base_log)
+    debug_log(logger, organization, "handler_started", base_log)
 
     if not features.has("organizations:seer-code-review-gitlab", organization):
-        debug_log(logger, organization, "feature_disabled", **base_log)
         return
 
     object_attributes = event.get("object_attributes", {})
     action_value = object_attributes.get("action")
     if not action_value or not isinstance(action_value, str):
-        debug_log(logger, organization, "missing_action", **base_log)
+        debug_log(logger, organization, "missing_action", base_log)
         return
 
     base_log["action"] = action_value
@@ -313,14 +312,14 @@ def handle_merge_request_event(
     try:
         action = MergeRequestAction(action_value)
     except ValueError:
-        debug_log(logger, organization, "unsupported_action", **base_log)
+        debug_log(logger, organization, "unsupported_action", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
 
     if action not in WHITELISTED_ACTIONS:
-        debug_log(logger, organization, "action_not_whitelisted", **base_log)
+        debug_log(logger, organization, "action_not_whitelisted", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
@@ -333,7 +332,7 @@ def handle_merge_request_event(
     if action not in CLOSE_ACTIONS:
         review_trigger = _resolve_review_trigger(action, event)
         if review_trigger is None:
-            debug_log(logger, organization, "no_review_trigger", **base_log)
+            debug_log(logger, organization, "no_review_trigger", base_log)
             record_webhook_filtered(
                 GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
             )
@@ -342,7 +341,7 @@ def handle_merge_request_event(
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:
-        debug_log(logger, organization, "organization_not_found", **base_log)
+        debug_log(logger, organization, "organization_not_found", base_log)
         return
 
     author_id = object_attributes.get("author_id")
@@ -359,14 +358,13 @@ def handle_merge_request_event(
             logger,
             organization,
             "preflight_denied",
-            denial_reason=denial,
-            **base_log,
+            {**base_log, "denial_reason": denial},
         )
         if preflight.denial_reason:
             record_webhook_filtered(GITLAB_WEBHOOK_EVENT, action_value, preflight.denial_reason)
         return
 
-    debug_log(logger, organization, "preflight_passed", **base_log)
+    debug_log(logger, organization, "preflight_passed", base_log)
 
     org_code_review_settings = preflight.settings
 
@@ -377,8 +375,7 @@ def handle_merge_request_event(
             logger,
             organization,
             "trigger_disabled",
-            review_trigger=review_trigger.value,
-            **base_log,
+            {**base_log, "review_trigger": review_trigger.value},
         )
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.TRIGGER_DISABLED
@@ -388,7 +385,7 @@ def handle_merge_request_event(
     if action in CLOSE_ACTIONS and (
         org_code_review_settings is None or not org_code_review_settings.triggers
     ):
-        debug_log(logger, organization, "close_trigger_disabled", **base_log)
+        debug_log(logger, organization, "close_trigger_disabled", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.TRIGGER_DISABLED
         )
@@ -399,13 +396,13 @@ def handle_merge_request_event(
             object_attributes.get("draft") is True
             or object_attributes.get("work_in_progress") is True
         ):
-            debug_log(logger, organization, "draft_skipped", **base_log)
+            debug_log(logger, organization, "draft_skipped", base_log)
             return
 
     last_commit = object_attributes.get("last_commit") or {}
     target_commit_sha = last_commit.get("id")
     if not target_commit_sha:
-        debug_log(logger, organization, "missing_target_commit_sha", **base_log)
+        debug_log(logger, organization, "missing_target_commit_sha", base_log)
         return
 
     base_log["target_commit_sha"] = target_commit_sha
@@ -421,8 +418,8 @@ def handle_merge_request_event(
             logger,
             organization,
             "duplicate_delivery_skipped",
+            base_log,
             level=logging.WARNING,
-            **base_log,
         )
         return
 
@@ -442,7 +439,7 @@ def handle_merge_request_event(
                 reaction_to_add="eyes",
             )
 
-    debug_log(logger, organization, "scheduling_seer_task", **base_log)
+    debug_log(logger, organization, "scheduling_seer_task", base_log)
     _schedule_task(
         action=action,
         action_value=action_value,
@@ -544,10 +541,12 @@ def _schedule_task(
             logger,
             organization,
             "validation_failed",
+            {
+                **(log_context or {}),
+                "seer_path": seer_path,
+                "validation_errors": e.errors(),
+            },
             level=logging.WARNING,
-            seer_path=seer_path,
-            validation_errors=e.errors(),
-            **(log_context or {}),
         )
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.INVALID_PAYLOAD
@@ -558,8 +557,7 @@ def _schedule_task(
         logger,
         organization,
         "seer_task_enqueued",
-        seer_path=seer_path,
-        **(log_context or {}),
+        {**(log_context or {}), "seer_path": seer_path},
     )
     process_github_webhook_event.delay(
         seer_path=seer_path,
