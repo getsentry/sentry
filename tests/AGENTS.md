@@ -1,16 +1,6 @@
 # Python Testing Guide
 
-> For critical test commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
-
-## Running Tests Locally
-
-For backend-scoped changes, prefer `make test-selective` over running the full suite — it detects tests affected by your local diff and runs only those:
-
-```bash
-make test-selective
-```
-
-Fall back to `pytest -svv --reuse-db <path>` when you need to target a specific file or `test-selective` doesn't cover your case.
+> For test commands (`make test-selective`, `pytest`), see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
 ## How to Determine Where to Add New Test Cases
 
