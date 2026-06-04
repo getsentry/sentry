@@ -85,6 +85,7 @@ class RpcSentryApp(RpcModel):
     uuid: str = ""
     events: list[str] = Field(default_factory=list)
     webhook_url: str | None = None
+    webhook_headers: list[str] = Field(default_factory=list)
     is_alertable: bool = False
     is_disabled: bool = False
     is_published: bool = False
