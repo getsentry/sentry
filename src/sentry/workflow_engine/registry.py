@@ -8,6 +8,7 @@ from sentry.workflow_engine.types import (
     ActionHandler,
     DataConditionHandler,
     DataSourceTypeHandler,
+    DetectorId,
     WorkflowActivityHandler,
 )
 
@@ -19,10 +20,14 @@ action_handler_registry = Registry[type[ActionHandler]](enable_reverse_lookup=Fa
 workflow_activity_registry = Registry[WorkflowActivityHandler](enable_reverse_lookup=False)
 
 
-def invoke_workflow_activity_handlers(group: Group, activity: Activity) -> None:
+def invoke_workflow_activity_handlers(
+    group: Group,
+    activity: Activity,
+    detector_id: DetectorId | None = None,
+) -> None:
     for handler_key, handler in workflow_activity_registry.registrations.items():
         try:
-            handler(group, activity)
+            handler(group, activity, detector_id)
         except Exception:
             logger.exception(
                 "workflow_engine.invoke_workflow_activity_handlers.error",
