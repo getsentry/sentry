@@ -14,33 +14,16 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 
-class MetricResponseTypeOptional(TypedDict):
+class MetricResponseType(TypedDict):
     unit: NotRequired[str | None]
-
-
-class MetricResponseType(MetricResponseTypeOptional):
     name: str
     type: str
 
 
-class CrossEventResponseTypeOptional(TypedDict):
+class CrossEventResponseType(TypedDict):
     metric: NotRequired[MetricResponseType]
-
-
-class CrossEventResponseType(CrossEventResponseTypeOptional):
     query: str
     type: str
-
-
-class ExploreSavedQueryResponseOptional(TypedDict):
-    environment: NotRequired[list[str]]
-    query: NotRequired[str]
-    range: NotRequired[str]
-    start: NotRequired[str]
-    end: NotRequired[str]
-    interval: NotRequired[str]
-    mode: NotRequired[str]
-    crossEvents: NotRequired[list[CrossEventResponseType]]
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
@@ -49,7 +32,15 @@ class ExploreSavedQueryChangedReasonType(TypedDict):
     columns: list[str]
 
 
-class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
+class ExploreSavedQueryResponse(TypedDict):
+    environment: NotRequired[list[str]]
+    query: NotRequired[str]
+    range: NotRequired[str]
+    start: NotRequired[str]
+    end: NotRequired[str]
+    interval: NotRequired[str]
+    mode: NotRequired[str]
+    crossEvents: NotRequired[list[CrossEventResponseType]]
     id: str
     name: str
     projects: list[int]

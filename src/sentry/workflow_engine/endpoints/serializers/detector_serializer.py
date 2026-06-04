@@ -24,17 +24,14 @@ from sentry.workflow_engine.models import (
 )
 
 
-class DetectorSerializerResponseOptional(TypedDict):
+@extend_schema_serializer(exclude_fields=["alertRuleId", "ruleId"])
+class DetectorSerializerResponse(TypedDict):
     owner: NotRequired[ActorSerializerResponse | None]
     createdBy: NotRequired[str | None]
     alertRuleId: NotRequired[int | None]
     ruleId: NotRequired[int | None]
     latestGroup: NotRequired[dict[str, Any] | None]
     description: NotRequired[str | None]
-
-
-@extend_schema_serializer(exclude_fields=["alertRuleId", "ruleId"])
-class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     id: str
     projectId: str
     name: str
