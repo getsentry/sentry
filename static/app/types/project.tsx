@@ -225,8 +225,6 @@ export interface TeamWithProjects extends Team {
   projects: Project[];
 }
 
-export type {PlatformKey};
-
 export type PlatformIntegration = {
   id: PlatformKey;
   language: string;

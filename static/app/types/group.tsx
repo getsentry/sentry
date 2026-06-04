@@ -17,7 +17,8 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
-import type {AvatarProject, PlatformKey, Project} from './project';
+import type {PlatformKey} from './platform';
+import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
