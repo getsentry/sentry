@@ -1,15 +1,10 @@
 """PR attribution resolver for the PR Merge Live Metrics project.
 
 This module owns the Sentry-side bookkeeping for *which* agent or feature a pull
-request can be attributed to. A PR can match more than one signal over its
+request can be attributed to. A PR can have multiple attributions over its
 lifetime (a Seer-authored PR may also reference a Sentry issue, etc.), so every
 detected signal is preserved as its own ``PullRequestAttribution`` row rather
 than collapsed into a single field.
-
-See the architecture doc ("PR Metrics — Architecture Overview", §Attribution
-resolver) for the full design. This file currently implements only the
-``seer_app`` source, driven by the existing ``seer.pr_created`` event; the
-GitHub-webhook sources (issue reference, MCP marker, GH-App id) land separately.
 """
 
 from __future__ import annotations
@@ -178,6 +173,12 @@ def attribute_seer_created_pull_requests(
                 repository_id=repository.id,
                 key=str(pr_number),
             )
+            # Always SEER_APP for now: Seer chooses between the Sentry and Seer
+            # GitHub apps at push time (its write client falls back to the Seer
+            # app only when the Sentry app lacks write access), but the
+            # seer.pr_created payload doesn't carry which one it used. A faithful
+            # SEER_APP vs SENTRY_APP split needs that app kind threaded into the
+            # payload — tracked as follow-up.
             record_attribution_signal(
                 pull_request=pull_request,
                 signal_type=PullRequestAttributionSignalType.SEER_APP,
