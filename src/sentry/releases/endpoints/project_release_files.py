@@ -27,6 +27,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
@@ -44,6 +45,19 @@ _filename_re = re.compile(r"[\n\t\r\f\v\\]")
 
 
 logger = logging.getLogger(__name__)
+
+_UPLOAD_PROJECT_RELEASE_FILE_DESCRIPTION = """
+Upload a new file for the given release.
+
+Unlike other API requests, files must be uploaded using the traditional multipart/form-data
+content type.
+
+Requests to this endpoint should use the region-specific domain, e.g. `us.sentry.io` or
+`de.sentry.io`.
+
+The optional `name` attribute should reflect the absolute path that this file will be
+referenced as. For example, in the case of JavaScript you might specify the full web URI.
+""".strip()
 
 
 class ReleaseFileUploadSerializer(serializers.Serializer):
@@ -277,9 +291,12 @@ def pseudo_releasefile(url, info, dist):
 @cell_silo_endpoint
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    method_servers = {
+        "POST": [{"url": "https://{region}.sentry.io"}],
+    }
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
@@ -288,6 +305,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
 
     @extend_schema(
         operation_id="List a Project Release's Files",
+        description="Return a list of files for a given release.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -318,13 +336,11 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ReleaseExamples.LIST_RELEASE_FILES,
     )
     def get(
         self, request: Request, project, version
     ) -> Response[list[ReleaseFileSerializerResponse]]:
-        """
-        Retrieve a list of files for a given release.
-        """
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
@@ -336,6 +352,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
 
     @extend_schema(
         operation_id="Upload a New Project Release File",
+        description=_UPLOAD_PROJECT_RELEASE_FILE_DESCRIPTION,
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -352,14 +369,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
             404: RESPONSE_NOT_FOUND,
             409: RESPONSE_CONFLICT,
         },
+        examples=ReleaseExamples.UPLOAD_RELEASE_FILE,
     )
     def post(self, request: Request, project, version) -> Response[ReleaseFileSerializerResponse]:
-        """
-        Upload a new file for the given release.
-
-        Files must be uploaded using the `multipart/form-data` content type, against the
-        region-specific domain (e.g. `us.sentry.io` or `de.sentry.io`).
-        """
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version

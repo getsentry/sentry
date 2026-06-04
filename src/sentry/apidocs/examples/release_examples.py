@@ -3,6 +3,7 @@ from datetime import datetime
 from drf_spectacular.utils import OpenApiExample
 
 from sentry.api.serializers.models.commit import CommitSerializerResponse
+from sentry.api.serializers.models.release_file import ReleaseFileSerializerResponse
 from sentry.api.serializers.types import ReleaseSerializerResponse
 
 RELEASE: ReleaseSerializerResponse = {
@@ -62,6 +63,21 @@ COMMIT: CommitSerializerResponse = {
     "suspectCommitType": "",
 }
 
+RELEASE_FILE: ReleaseFileSerializerResponse = {
+    "id": "3",
+    "name": "/demo/goodbye.txt",
+    "dist": None,
+    "headers": {"Content-Type": "text/plain; encoding=utf-8"},
+    "size": 15,
+    "sha1": "94d6b21e962a9fc65889617ec1f17a1e2fe11b65",
+    "dateCreated": datetime.fromisoformat("2018-11-06T21:20:22.894Z"),
+}
+
+RELEASE_FILE_UPLOAD = {
+    "name": "/demo/hello.min.js.map",
+    "file": "@hello.min.js.map",
+}
+
 RELEASE_TIMESERIES = {
     "version": "frontend@1.0.0",
     "date": datetime.fromisoformat("2024-01-01T00:00:00Z"),
@@ -103,6 +119,30 @@ class ReleaseExamples:
             response_only=True,
             status_codes=["201"],
         )
+    ]
+
+    LIST_RELEASE_FILES = [
+        OpenApiExample(
+            "Return a list of files for a release",
+            value=[RELEASE_FILE],
+            response_only=True,
+            status_codes=["200"],
+        )
+    ]
+
+    UPLOAD_RELEASE_FILE = [
+        OpenApiExample(
+            "Upload a release file",
+            value=RELEASE_FILE_UPLOAD,
+            request_only=True,
+            media_type="multipart/form-data",
+        ),
+        OpenApiExample(
+            "Return an uploaded release file",
+            value=RELEASE_FILE,
+            response_only=True,
+            status_codes=["201"],
+        ),
     ]
 
     LIST_RELEASE_COMMITS = [
