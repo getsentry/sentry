@@ -17,6 +17,7 @@ jest.mock('@tanstack/react-virtual', () => ({
   },
 }));
 
+import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -425,5 +426,42 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     await userEvent.type(input, 'test');
 
     expect(await screen.findByRole('option', {name: 'test-project'})).toBeInTheDocument();
+  });
+
+  it('searches for dashboards and displays results', async () => {
+    const dashboard1 = DashboardListItemFixture({
+      id: '1',
+      title: 'Queries Dashboard',
+      isFavorited: false,
+    });
+    const dashboard2 = DashboardListItemFixture({
+      id: '2',
+      title: 'Performance Dashboard',
+      isFavorited: true,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      body: [dashboard1, dashboard2],
+      match: [MockApiClient.matchQuery({query: 'queries'})],
+    });
+
+    renderPalette();
+
+    // Open the Dashboards section by clicking on it
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'Dashboards');
+
+    // Click on the Dashboards option to drill in
+    const dashboardsOption = await screen.findByRole('option', {name: /Dashboards/});
+    await userEvent.click(dashboardsOption);
+
+    // Now type in the search query
+    await userEvent.clear(input);
+    await userEvent.type(input, 'queries');
+
+    // Wait for the dashboard results to appear
+    expect(await screen.findByRole('option', {name: 'Queries Dashboard'})).toBeInTheDocument();
+    expect(await screen.findByRole('option', {name: 'Performance Dashboard'})).toBeInTheDocument();
   });
 });
