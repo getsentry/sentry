@@ -364,8 +364,11 @@ class OrganizationReportBatch:
             )
 
             message.add_users((user_id,))
-            message.send_async()
-            metrics.incr("weekly_report.email.sent")
+            if message._send_to:
+                message.send_async()
+                metrics.incr("weekly_report.email.sent")
+            else:
+                metrics.incr("weekly_report.email.skipped", tags={"reason": "no_email"})
 
 
 class _DuplicateDeliveryCheck:
