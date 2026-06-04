@@ -2779,12 +2779,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-event-source-map-debug",
     ),
     re_path(
-        # Legacy alias the frontend still hardcodes; remove once it migrates to source-map-debug/.
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/source-map-debug-blue-thunder-edition/$",
-        SourceMapDebugEndpoint.as_view(),
-        name="sentry-api-0-event-source-map-debug-blue-thunder-edition",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/actionable-items/$",
         ActionableItemsEndpoint.as_view(),
         name="sentry-api-0-event-actionable-items",

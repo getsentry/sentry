@@ -196,6 +196,13 @@ def deduplicate_workflows(organization: Organization) -> None:
 
 @cell_silo_endpoint
 class OrganizationDeduplicateWorkflowsEndpoint(OrganizationEndpoint):
+    """
+    TODO, there are issues with running this script for a few reasons right now;
+    - Breaks the legacy APIs due to missing connections on AlertRuleWorkflow tables
+    - Needs to fix the DetectorWorkflow mappings, it's not currently working as expected
+    - Need to have a `dry-run` version of this, so we can return the impacted workflows before executing
+    """
+
     permission_classes = (OrganizationDeduplicateWorkflowsPermission,)
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
