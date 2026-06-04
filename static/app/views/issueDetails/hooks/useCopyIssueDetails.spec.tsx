@@ -346,6 +346,79 @@ describe('useCopyIssueDetails', () => {
       expect(result).not.toContain('mainFunction');
     });
 
+    it('includes span evidence for performance issues', () => {
+      // 1006 is the occurrence type for N+1 DB Queries
+      const performanceEvent = EventFixture({
+        ...event,
+        title: '/api/0/users/',
+        occurrence: {
+          type: 1006,
+          evidenceData: {
+            parentSpanIds: ['parent'],
+            causeSpanIds: ['cause'],
+            offenderSpanIds: ['offender1', 'offender2'],
+            patternSize: 5,
+          },
+          evidenceDisplay: [],
+        },
+        entries: [
+          {
+            type: EntryType.SPANS,
+            data: [
+              {span_id: 'parent', op: 'http.server', description: 'GET /api/0/users/'},
+              {span_id: 'cause', op: 'db', description: 'SELECT * FROM users'},
+              {span_id: 'offender1', op: 'db', description: 'SELECT * FROM orders'},
+              {span_id: 'offender2', op: 'db', description: 'SELECT * FROM items'},
+            ],
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown(
+        group,
+        performanceEvent,
+        null,
+        null,
+        undefined
+      );
+
+      expect(result).toContain('## Span Evidence');
+      expect(result).toContain('**Transaction:** /api/0/users/');
+      expect(result).toContain('**Parent Span:** http.server - GET /api/0/users/');
+      expect(result).toContain('**Preceding Span:** db - SELECT * FROM users');
+      expect(result).toContain('**Offending Spans (2):**');
+      expect(result).toContain('- db - SELECT * FROM orders');
+      expect(result).toContain('- db - SELECT * FROM items');
+      expect(result).toContain('**Pattern Size:** 5');
+    });
+
+    it('includes evidence display rows for profiling issues', () => {
+      // 2001 is the occurrence type for File I/O on Main Thread
+      const profileEvent = EventFixture({
+        ...event,
+        occurrence: {
+          type: 2001,
+          evidenceData: {},
+          evidenceDisplay: [
+            {name: 'Transaction Name', value: 'app.start', important: true},
+            {name: 'File Path', value: '/data/cache.db', important: false},
+          ],
+        },
+      });
+
+      const result = issueAndEventToMarkdown(group, profileEvent, null, null, undefined);
+
+      expect(result).toContain('## Span Evidence');
+      expect(result).toContain('**Transaction Name:** app.start');
+      expect(result).toContain('**File Path:** /data/cache.db');
+    });
+
+    it('does not include span evidence for non-performance issues', () => {
+      const result = issueAndEventToMarkdown(group, event, null, null, undefined);
+
+      expect(result).not.toContain('## Span Evidence');
+    });
+
     it('prefers autofix rootCause over groupSummary possibleCause', () => {
       const result = issueAndEventToMarkdown(
         group,

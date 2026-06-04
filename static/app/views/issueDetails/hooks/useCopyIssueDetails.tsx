@@ -11,14 +11,15 @@ import {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {
   useGroupSummaryData,
   type GroupSummaryData,
 } from 'sentry/components/group/groupSummary';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {EntryType, type Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
+import {getIssueTypeFromOccurrenceType, type Group} from 'sentry/types/group';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -141,6 +142,94 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
   return markdownText;
 }
 
+function getSpanMarkdownValue(
+  span: {description?: string; op?: string} | null | undefined
+): string {
+  if (!span || (!span.op && !span.description)) {
+    return t('(no value)');
+  }
+  if (!span.op && span.description) {
+    return span.description;
+  }
+  if (span.op && !span.description) {
+    return span.op;
+  }
+  return `${span.op} - ${span.description}`;
+}
+
+/**
+ * Builds a Markdown representation of the "Span Evidence" section shown on the
+ * issue details page for performance, profiling, and other occurrence-based
+ * issues. Returns an empty string for issues that don't expose span evidence
+ * (e.g. errors).
+ */
+function formatSpanEvidenceToMarkdown(event: Event): string {
+  const eventTransaction = event as EventTransaction;
+  const issueType =
+    eventTransaction.perfProblem?.issueType ??
+    getIssueTypeFromOccurrenceType(event.occurrence?.type);
+
+  if (!issueType) {
+    return '';
+  }
+
+  const evidenceData = event.occurrence?.evidenceData ?? {};
+  const evidenceDisplay = event.occurrence?.evidenceDisplay ?? [];
+  // Only attempt to resolve span info when the event actually carries the
+  // evidence payload, to avoid the error capture inside the helper.
+  const spanInfo =
+    eventTransaction.perfProblem || event.occurrence?.evidenceData
+      ? getSpanInfoFromTransactionEvent(eventTransaction)
+      : null;
+
+  type EvidenceSpan = {description?: string; op?: string} | null | undefined;
+  const lines: string[] = [];
+
+  if (event.title) {
+    lines.push(`**Transaction:** ${event.title}`);
+  }
+
+  if (spanInfo?.parentSpan) {
+    lines.push(`**Parent Span:** ${getSpanMarkdownValue(spanInfo.parentSpan)}`);
+  }
+
+  const causeSpans: EvidenceSpan[] = spanInfo?.causeSpans?.filter(Boolean) ?? [];
+  if (causeSpans.length === 1) {
+    lines.push(`**Preceding Span:** ${getSpanMarkdownValue(causeSpans[0])}`);
+  } else if (causeSpans.length > 1) {
+    lines.push('**Preceding Spans:**');
+    causeSpans.forEach(span => {
+      lines.push(`- ${getSpanMarkdownValue(span)}`);
+    });
+  }
+
+  const offendingSpans: EvidenceSpan[] = spanInfo?.offendingSpans?.filter(Boolean) ?? [];
+  if (offendingSpans.length > 0) {
+    lines.push(`**Offending Spans (${offendingSpans.length}):**`);
+    offendingSpans.forEach(span => {
+      lines.push(`- ${getSpanMarkdownValue(span)}`);
+    });
+  }
+
+  if (evidenceData.patternSize > 0) {
+    lines.push(`**Pattern Size:** ${evidenceData.patternSize}`);
+  }
+
+  // Evidence display rows are pre-formatted name/value pairs used by profiling
+  // and several other issue types.
+  evidenceDisplay.forEach(item => {
+    if (item?.name) {
+      lines.push(`**${item.name}:** ${item.value}`);
+    }
+  });
+
+  if (lines.length === 0) {
+    return '';
+  }
+
+  return `\n## Span Evidence\n\n${lines.join('\n')}\n`;
+}
+
 export const issueAndEventToMarkdown = (
   group: Group,
   event: Event | null | undefined,
@@ -199,6 +288,7 @@ export const issueAndEventToMarkdown = (
   }
 
   if (event) {
+    markdownText += formatSpanEvidenceToMarkdown(event);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
