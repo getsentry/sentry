@@ -7,7 +7,6 @@ from typing import TypedDict
 
 from django.db import IntegrityError, router
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
@@ -230,10 +229,6 @@ def update_group_resolutions(release, commit_author_by_commit):
     user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
 
     commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
-    create_resolution_activities = features.has(
-        "organizations:defer-commit-resolution", release.organization
-    )
-
     group_project_lookup = dict(
         Group.objects.filter(id__in=[group_id for group_id, _ in commits_and_prs]).values_list(
             "id", "project_id"
@@ -267,9 +262,7 @@ def update_group_resolutions(release, commit_author_by_commit):
                 },
             )
             group = Group.objects.get(id=group_id)
-            should_create_resolution_activity = (
-                create_resolution_activities and group.status != GroupStatus.RESOLVED
-            )
+            should_create_resolution_activity = group.status != GroupStatus.RESOLVED
             group.update(status=GroupStatus.RESOLVED, substatus=None)
             remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
             if should_create_resolution_activity:

@@ -43,7 +43,7 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
 import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';

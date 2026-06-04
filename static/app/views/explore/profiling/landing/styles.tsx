@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels/panel';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export const WidgetContainer = styled(Panel)<{height?: string}>`
   ${p =>

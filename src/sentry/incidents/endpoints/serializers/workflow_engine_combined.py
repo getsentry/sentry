@@ -19,7 +19,7 @@ from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import Detector, Workflow
 
 
-class WorkflowEngineCombinedRuleSerializer(Serializer):
+class WorkflowEngineCombinedRuleSerializer(Serializer[MutableMapping[Any, Any]]):
     """
     Serializer for combined rules endpoint when using workflow engine.
     Dispatches to appropriate serializers based on object type.

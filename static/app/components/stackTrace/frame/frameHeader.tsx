@@ -15,7 +15,7 @@ import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTrace
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 function getFrameDisplayPath(frame: Frame, platform: PlatformKey, event: Event) {

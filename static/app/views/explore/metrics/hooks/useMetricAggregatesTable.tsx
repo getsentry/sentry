@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
