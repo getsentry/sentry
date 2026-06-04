@@ -1,5 +1,5 @@
 import type {StructedEventDataConfig} from 'sentry/components/structuredEventData';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 const PYTHON_STRING_REGEX = /^['"](.*)['"]$/;
 const NUMERIC_STRING_REGEX = /^-?\d+(\.\d+)?$/;
