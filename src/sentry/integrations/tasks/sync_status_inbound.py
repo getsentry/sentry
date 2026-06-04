@@ -14,7 +14,7 @@ from sentry.api.helpers.group_index.update import get_current_release_version_of
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
-from sentry.issues.action_log import action_context_scope
+from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
@@ -260,7 +260,7 @@ def sync_status_inbound(
         ) = get_resolutions_and_activity_data_for_groups(
             affected_groups, config.get("resolution_strategy"), activity_data, organization_id
         )
-        with action_context_scope(source=provider.key, actor_id=None):
+        with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
             Group.objects.update_group_status(
                 groups=resolvable_groups,
                 status=GroupStatus.RESOLVED,
@@ -313,7 +313,7 @@ def sync_status_inbound(
                 sentry_sdk.capture_exception(e)
 
     elif action == ResolveSyncAction.UNRESOLVE:
-        with action_context_scope(source=provider.key, actor_id=None):
+        with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
             Group.objects.update_group_status(
                 groups=affected_groups,
                 status=GroupStatus.UNRESOLVED,

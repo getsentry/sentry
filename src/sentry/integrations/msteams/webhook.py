@@ -46,7 +46,7 @@ from sentry.integrations.types import (
     IntegrationResponse,
 )
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
-from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
@@ -524,7 +524,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
             interaction_type, MsTeamsMessagingSpec()
         ).capture() as lifecycle:
             try:
-                with action_context_scope(source=ActionSource.MSTEAMS, actor_id=identity.user_id):
+                with action_context_scope(
+                    source=ActionSource.MSTEAMS, actor=GroupActionActor.user(identity.user_id)
+                ):
                     response = client.put(
                         path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
                         params={"id": group.id},

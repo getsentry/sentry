@@ -28,7 +28,7 @@ from sentry.api.helpers.group_index.update import (
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.issues.action_log import ActionSource, ActionType, action_context_scope
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.issues.issue_search import parse_search_query
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -152,13 +152,15 @@ class UpdateGroupsTest(TestCase):
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
 
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
-            with action_context_scope(source=ActionSource.SLACK, actor_id=self.user.id):
+            with action_context_scope(
+                source=ActionSource.SLACK, actor=GroupActionActor.user(self.user.id)
+            ):
                 update_groups(request, group_list)
 
         resolve_records = [
             r
             for r in logs.records
-            if r.message == "issue.action_log" and r.__dict__["action"] == ActionType.RESOLVE
+            if r.message == "issue.action_log" and r.__dict__["action"] == "resolve"
         ]
         assert len(resolve_records) == 1
         assert resolve_records[0].__dict__["source"] == ActionSource.SLACK

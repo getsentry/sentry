@@ -9,7 +9,7 @@ import sentry_sdk
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
@@ -302,7 +302,7 @@ def process_status_change_message(
             "occurrence_consumer._process_message.status_change.update_group_status",
             tags={"occurrence_type": group.issue_type.type_id},
         ),
-        action_context_scope(source=ActionSource.SYSTEM, actor_id=None),
+        action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR),
     ):
         update_status(group, status_change_data)
 
