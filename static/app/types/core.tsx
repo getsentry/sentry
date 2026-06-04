@@ -6,8 +6,6 @@
  */
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 
-import type {getInterval} from 'sentry/components/charts/utils';
-
 export type {Scope} from 'sentry/constants/scopes';
 export {DataCategory, DataCategoryExact} from 'sentry/types/dataCategory';
 export type {DataCategoryInfo} from 'sentry/types/dataCategory';
@@ -79,7 +77,7 @@ export enum Outcome {
   DROPPED = 'dropped', // this is not a real outcome coming from the server
 }
 
-export type IntervalPeriod = ReturnType<typeof getInterval>;
+export type IntervalPeriod = string;
 
 /**
  * Represents a pinned page filter sentinel value
