@@ -146,6 +146,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "clientSecret": self.published_app.application.client_secret,
             "overview": self.published_app.overview,
             "allowedOrigins": [],
+            "webhookHeaders": [],
             "schema": {},
             "owner": {"id": self.organization.id, "slug": self.organization.slug},
             "featureData": [
@@ -743,6 +744,37 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=400,
         )
         assert response.data == {"allowedOrigins": ["'*' not allowed in origin"]}
+
+    @override_options({"staff.ga-rollout": True})
+    def test_set_webhook_headers(self) -> None:
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=["X-Custom-Header: value1", "Authorization: Bearer token"],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == [
+            "X-Custom-Header: value1",
+            "Authorization: Bearer token",
+        ]
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_invalid_format(self) -> None:
+        response = self.get_error_response(
+            self.published_app.slug,
+            webhookHeaders=["InvalidHeaderWithoutColon"],
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_reserved_header(self) -> None:
+        response = self.get_error_response(
+            self.published_app.slug,
+            webhookHeaders=["Sentry-Hook-Signature: fake"],
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
 
     @override_options({"staff.ga-rollout": True})
     def test_members_cant_update(self) -> None:
