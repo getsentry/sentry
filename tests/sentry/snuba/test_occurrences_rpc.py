@@ -371,8 +371,8 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         result = self._query_stats()
         assert len(result) == 1
-        assert "attribute_distributions" in result[0]
-        data = result[0]["attribute_distributions"]["data"]
+        assert "attributeDistributions" in result[0]
+        data = result[0]["attributeDistributions"]["data"]
         assert "level" in data
         level_buckets = data["level"]
         labels = {bucket["label"] for bucket in level_buckets}
@@ -391,7 +391,7 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         result = self._query_stats(query_string="level:error")
         assert len(result) == 1
-        data = result[0]["attribute_distributions"]["data"]
+        data = result[0]["attributeDistributions"]["data"]
         # With the filter, only error occurrences are included
         assert "level" in data
         labels = {bucket["label"] for bucket in data["level"]}
@@ -411,7 +411,7 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
             attributes=[AttributeKey(name="level", type=AttributeKey.TYPE_STRING)],
         )
         assert len(result) == 1
-        data = result[0]["attribute_distributions"]["data"]
+        data = result[0]["attributeDistributions"]["data"]
         assert "level" in data
 
     def test_stats_excludes_private_attributes(self) -> None:
@@ -425,7 +425,7 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         result = self._query_stats()
         assert len(result) == 1
-        data = result[0]["attribute_distributions"]["data"]
+        data = result[0]["attributeDistributions"]["data"]
         # Private attributes should not appear
         assert "sentry.item_type" not in data
         assert "sentry.organization_id" not in data
@@ -452,7 +452,7 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         # Filter to only error category
         result = self._query_stats(occurrence_category=OccurrenceCategory.ERROR)
         assert len(result) == 1
-        data = result[0]["attribute_distributions"]["data"]
+        data = result[0]["attributeDistributions"]["data"]
         assert "level" in data
         labels = {bucket["label"] for bucket in data["level"]}
         assert "error" in labels
@@ -465,5 +465,5 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
     def test_stats_empty_results(self) -> None:
         result = self._query_stats(query_string="level:nonexistent")
         assert len(result) == 1
-        data = result[0]["attribute_distributions"]["data"]
+        data = result[0]["attributeDistributions"]["data"]
         assert len(data) == 0
