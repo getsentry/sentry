@@ -120,3 +120,12 @@ class OrganizationOption(Model):
         unique_together = (("organization", "key"),)
 
     __repr__ = sane_repr("organization_id", "key", "value")
+
+
+def get_option(
+    organization: int | Organization,
+    key: str,
+    default: Any | None = None,
+    validate: Callable[[object], bool] | None = None,
+) -> Any:
+    return OrganizationOption.objects.get_value(organization, key, default, validate)

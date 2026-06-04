@@ -15,8 +15,8 @@ import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {Timeline} from 'sentry/components/timeline';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
+import {defined} from 'sentry/utils/defined';
 
 function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
   const currentTimezone = useTimezone();

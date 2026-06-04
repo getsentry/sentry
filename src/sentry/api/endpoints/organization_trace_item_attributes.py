@@ -680,7 +680,12 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
             with handle_query_errors():
                 tag_values = executor.execute()
-            tag_values.sort(key=lambda tag: tag.value or "")
+            tag_values.sort(
+                key=lambda tag: (
+                    -tag.times_seen if tag.times_seen is not None else 0,
+                    tag.value or "",
+                )
+            )
             return tag_values
 
         return self.paginate(
@@ -936,6 +941,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
 
         values: Sequence[str] = rpc_response.values
+        counts: Sequence[int] = rpc_response.counts
         if self.context_definition:
             context = self.context_definition.constructor(self.snuba_params, self.resolver)
             values = [context.value_map.get(value, value) for value in values]
@@ -944,11 +950,11 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             TagValue(
                 key=self.key,
                 value=value,
-                times_seen=None,
+                times_seen=counts[index] if len(counts) == len(values) else None,
                 first_seen=None,
                 last_seen=None,
             )
-            for value in values
+            for index, value in enumerate(values)
             if value
         ]
 
