@@ -50,14 +50,14 @@ class AttributeSeerCreatedPullRequestsTest(TestCase):
             group_id=self.group.id,
         )
 
-    def test_creates_pull_request_and_seer_app_attribution(self) -> None:
+    def test_creates_pull_request_and_sentry_app_attribution(self) -> None:
         self._attribute(self._payload())
 
         pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
         assert pull_request.organization_id == self.organization.id
 
         attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
-        assert attribution.signal_type == PullRequestAttributionSignalType.SEER_APP
+        assert attribution.signal_type == PullRequestAttributionSignalType.SENTRY_APP
         assert attribution.source == PullRequestAttributionSource.SEER_DATA
         assert attribution.is_valid is True
         assert attribution.signal_details == {

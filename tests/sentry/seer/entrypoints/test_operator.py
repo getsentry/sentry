@@ -383,7 +383,7 @@ class SeerOperatorTest(TestCase):
 
         pull_request = PullRequest.objects.get(repository_id=repo.id, key="99")
         attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
-        assert attribution.signal_type == PullRequestAttributionSignalType.SEER_APP
+        assert attribution.signal_type == PullRequestAttributionSignalType.SENTRY_APP
         assert attribution.signal_details is not None
         assert attribution.signal_details["run_id"] == MOCK_RUN_ID
 

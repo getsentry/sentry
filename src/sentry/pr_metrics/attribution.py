@@ -173,15 +173,15 @@ def attribute_seer_created_pull_requests(
                 repository_id=repository.id,
                 key=str(pr_number),
             )
-            # Always SEER_APP for now: Seer chooses between the Sentry and Seer
+            # Always SENTRY_APP for now: Seer chooses between the Sentry and Seer
             # GitHub apps at push time (its write client falls back to the Seer
             # app only when the Sentry app lacks write access), but the
-            # seer.pr_created payload doesn't carry which one it used. A faithful
-            # SEER_APP vs SENTRY_APP split needs that app kind threaded into the
-            # payload — tracked as follow-up.
+            # seer.pr_created payload doesn't carry which one it used. We default
+            # to SENTRY_APP until Seer threads that app kind through the payload;
+            # a faithful SEER_APP vs SENTRY_APP split is tracked as follow-up.
             record_attribution_signal(
                 pull_request=pull_request,
-                signal_type=PullRequestAttributionSignalType.SEER_APP,
+                signal_type=PullRequestAttributionSignalType.SENTRY_APP,
                 source=PullRequestAttributionSource.SEER_DATA,
                 signal_details={"run_id": run_id, "group_id": group_id, "pr_url": pr_url},
             )
