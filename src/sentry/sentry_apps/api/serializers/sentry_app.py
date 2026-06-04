@@ -46,6 +46,8 @@ class SentryAppSerializerResponse(TypedDict):
     uuid: str
     verifyInstall: bool
 
+    webhookHeaders: list[str]
+
     # Optional fields
     isDisabled: NotRequired[bool]
     author: NotRequired[str | None]
@@ -145,6 +147,7 @@ class SentryAppSerializer(Serializer):
             uuid=obj.uuid,
             verifyInstall=obj.verify_install,
             webhookUrl=obj.webhook_url,
+            webhookHeaders=obj.webhook_headers,
         )
 
         if obj.status != SentryAppStatus.INTERNAL:
