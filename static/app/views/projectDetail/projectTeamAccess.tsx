@@ -1,0 +1,102 @@
+import styled from '@emotion/styled';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {Collapsible} from 'sentry/components/collapsible';
+import {IdBadge} from 'sentry/components/idBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {Placeholder} from 'sentry/components/placeholder';
+import {IconOpen} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
+
+import {SectionHeadingWrapper, SidebarSection} from './styles';
+
+type Props = {
+  organization: Organization;
+  project?: Project;
+};
+
+export function ProjectTeamAccess({organization, project}: Props) {
+  const location = useLocation();
+  const hasEditPermissions = organization.access.includes('project:write');
+  const settingsLink = {
+    pathname: `/settings/${organization.slug}/projects/${project?.slug}/teams/`,
+    query: extractSelectionParameters(location.query),
+  };
+
+  function renderInnerBody() {
+    if (!project) {
+      return <Placeholder height="23px" />;
+    }
+
+    if (project.teams.length === 0) {
+      return (
+        <LinkButton
+          to={settingsLink}
+          disabled={!hasEditPermissions}
+          tooltipProps={{
+            title: hasEditPermissions
+              ? undefined
+              : t('You do not have permission to do this'),
+          }}
+          variant="primary"
+          size="sm"
+        >
+          {t('Assign Team')}
+        </LinkButton>
+      );
+    }
+
+    return (
+      <Collapsible
+        expandButton={({onExpand, numberOfHiddenItems}) => (
+          <Button variant="link" onClick={onExpand}>
+            {tn('Show %s collapsed team', 'Show %s collapsed teams', numberOfHiddenItems)}
+          </Button>
+        )}
+      >
+        {project.teams
+          .sort((a, b) => a.slug.localeCompare(b.slug))
+          .map(team => (
+            <StyledLink
+              to={`/settings/${organization.slug}/teams/${team.slug}/`}
+              key={team.slug}
+            >
+              <IdBadge team={team} hideAvatar />
+            </StyledLink>
+          ))}
+      </Collapsible>
+    );
+  }
+
+  return (
+    <StyledSidebarSection>
+      <SectionHeadingWrapper>
+        <SectionHeading>{t('Team Access')}</SectionHeading>
+        <StyledIconLink to={settingsLink}>
+          <IconOpen />
+        </StyledIconLink>
+      </SectionHeadingWrapper>
+
+      <div>{renderInnerBody()}</div>
+    </StyledSidebarSection>
+  );
+}
+
+const StyledIconLink = styled(Link)`
+  display: flex;
+`;
+
+const StyledSidebarSection = styled(SidebarSection)`
+  font-size: ${p => p.theme.font.size.md};
+`;
+
+const StyledLink = styled(Link)`
+  display: block;
+  margin-bottom: ${p => p.theme.space.xs};
+`;

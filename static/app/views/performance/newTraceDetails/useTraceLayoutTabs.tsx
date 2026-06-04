@@ -1,0 +1,211 @@
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import * as qs from 'query-string';
+
+import {t} from 'sentry/locale';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {
+  getTraceMetaLogsCount,
+  getTraceMetaMetricsCount,
+  type TraceMetaQueryResults,
+} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
+
+export enum TraceLayoutTabKeys {
+  WATERFALL = 'waterfall',
+  PROFILES = 'profiles',
+  LOGS = 'logs',
+  METRICS = 'metrics',
+  AI_SPANS = 'ai-spans',
+}
+
+interface Tab {
+  label: string;
+  slug: TraceLayoutTabKeys;
+}
+
+export interface TraceLayoutTabsConfig {
+  currentTab: TraceLayoutTabKeys;
+  onTabChange: (slug: TraceLayoutTabKeys) => void;
+  tabOptions: Tab[];
+}
+
+const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
+  [TraceLayoutTabKeys.WATERFALL]: {
+    slug: TraceLayoutTabKeys.WATERFALL,
+    label: t('Waterfall'),
+  },
+  [TraceLayoutTabKeys.PROFILES]: {
+    slug: TraceLayoutTabKeys.PROFILES,
+    label: t('Profiles'),
+  },
+  [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
+  [TraceLayoutTabKeys.METRICS]: {
+    slug: TraceLayoutTabKeys.METRICS,
+    label: t('Application Metrics'),
+  },
+  [TraceLayoutTabKeys.AI_SPANS]: {
+    slug: TraceLayoutTabKeys.AI_SPANS,
+    label: t('AI'),
+  },
+};
+
+function getTabOptions({
+  sections,
+}: {
+  sections: ReturnType<typeof useTraceContextSections>;
+}): Tab[] {
+  const tabOptions: Tab[] = [];
+
+  if (sections.hasTraceEvents) {
+    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL]);
+  }
+
+  if (sections.hasProfiles) {
+    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.PROFILES]);
+  }
+
+  if (sections.hasLogs) {
+    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
+  }
+
+  if (sections.hasMetrics) {
+    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS]);
+  }
+
+  if (sections.hasAiSpans) {
+    tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.AI_SPANS]);
+  }
+
+  return tabOptions;
+}
+
+export function getInitialTab({
+  isLoading,
+  logsEnabled = true,
+  metricsEnabled = true,
+  meta,
+  sections,
+  tabOptions,
+  tabSlugFromUrl,
+}: {
+  isLoading: boolean;
+  sections: ReturnType<typeof useTraceContextSections>;
+  tabOptions: Tab[];
+  tabSlugFromUrl: string | undefined;
+  logsEnabled?: boolean;
+  meta?: TraceMetaQueryResults['data'];
+  metricsEnabled?: boolean;
+}): Tab {
+  const hasNoLogs = logsEnabled && getTraceMetaLogsCount(meta) === 0 && !sections.hasLogs;
+  const hasNoMetrics =
+    metricsEnabled && getTraceMetaMetricsCount(meta) === 0 && !sections.hasMetrics;
+
+  const shouldKeepLogsTabWhileLoading =
+    logsEnabled && !hasNoLogs && tabSlugFromUrl === TraceLayoutTabKeys.LOGS;
+
+  const shouldKeepMetricsTabWhileLoading =
+    metricsEnabled && !hasNoMetrics && tabSlugFromUrl === TraceLayoutTabKeys.METRICS;
+
+  if (isLoading) {
+    if (shouldKeepLogsTabWhileLoading) {
+      return TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS];
+    }
+
+    if (shouldKeepMetricsTabWhileLoading) {
+      return TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS];
+    }
+
+    if (tabSlugFromUrl === TraceLayoutTabKeys.AI_SPANS) {
+      return TAB_DEFINITIONS[TraceLayoutTabKeys.AI_SPANS];
+    }
+  }
+
+  const tabFromUrl = tabOptions.find(tab => tab.slug === tabSlugFromUrl);
+  if (tabFromUrl) {
+    return tabFromUrl;
+  }
+
+  if (sections.hasTraceEvents) {
+    return TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL];
+  }
+
+  return TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS];
+}
+
+interface UseTraceLayoutTabsProps {
+  isLoading: boolean;
+  logs: OurLogsResponseItem[] | undefined;
+  logsEnabled: boolean;
+  metrics: {count: number} | undefined;
+  metricsEnabled: boolean;
+  tree: TraceTree;
+  meta?: TraceMetaQueryResults['data'];
+}
+
+export function useTraceLayoutTabs({
+  isLoading,
+  tree,
+  logs,
+  meta,
+  metrics,
+  logsEnabled,
+  metricsEnabled,
+}: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
+  const navigate = useNavigate();
+  const sections = useTraceContextSections({
+    tree,
+    logs,
+    meta,
+    metrics,
+    logsEnabled,
+    metricsEnabled,
+  });
+  const tabOptions = getTabOptions({sections: {...sections}});
+
+  const queryParams = qs.parse(window.location.search);
+
+  const initialTab = getInitialTab({
+    isLoading,
+    logsEnabled,
+    metricsEnabled,
+    meta,
+    sections,
+    tabOptions,
+    tabSlugFromUrl: typeof queryParams.tab === 'string' ? queryParams.tab : undefined,
+  });
+
+  const [currentTab, setCurrentTab] = useState(initialTab.slug);
+
+  const onTabChange = useCallback(
+    (slug: Tab['slug']) => {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...queryParams,
+            tab: slug,
+          },
+        },
+        {replace: true}
+      );
+      setCurrentTab(slug);
+    },
+    [navigate, queryParams]
+  );
+
+  // Update the tab when the tabOptions change
+  useEffect(() => {
+    setCurrentTab(initialTab.slug);
+  }, [tabOptions, initialTab]);
+
+  return useMemo(
+    () => ({
+      tabOptions,
+      currentTab,
+      onTabChange,
+    }),
+    [tabOptions, currentTab, onTabChange]
+  );
+}

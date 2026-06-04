@@ -1,0 +1,302 @@
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
+import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
+import {
+  WIDGET_COLUMN_LABELS,
+  TABLE_MIN_HEIGHT,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
+import {
+  OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS,
+  WEB_VITALS_OPS,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
+import {SpanFields} from 'sentry/views/insights/types';
+
+const disallowedOps = [
+  ...new Set([
+    ...FRONTEND_OVERVIEW_PAGE_OPS,
+    ...MOBILE_OVERVIEW_PAGE_OPS,
+    ...WEB_VITALS_OPS,
+  ]),
+];
+
+const TABLE_QUERY = new MutableSearch('');
+TABLE_QUERY.addOp('(');
+TABLE_QUERY.addOp('(');
+TABLE_QUERY.addFilterValues('!span.op', disallowedOps);
+TABLE_QUERY.addOp(')');
+TABLE_QUERY.addOp('OR');
+TABLE_QUERY.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+TABLE_QUERY.addOp(')');
+TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
+
+export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
+  [
+    {
+      id: 'requests-widget',
+      title: t('Requests'),
+      description: '',
+      displayType: DisplayType.LINE,
+      thresholds: null,
+      interval: '1h',
+      queries: [
+        {
+          name: 'Requests',
+          fields: [
+            `count(${SpanFields.SPAN_DURATION})`,
+            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+          ],
+          aggregates: [
+            `count(${SpanFields.SPAN_DURATION})`,
+            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+          ],
+          columns: [],
+          fieldAliases: [],
+          conditions: `${SpanFields.SPAN_OP}:http.server`,
+          orderby: `count(${SpanFields.SPAN_DURATION})`,
+        },
+      ],
+      limit: 5,
+      widgetType: WidgetType.SPANS,
+    },
+    {
+      id: 'api-latency-widget',
+      title: t('API Latency'),
+      description: '',
+      displayType: DisplayType.LINE,
+      interval: '1h',
+      queries: [
+        {
+          name: '',
+          fields: [
+            `avg(${SpanFields.SPAN_DURATION})`,
+            `p95(${SpanFields.SPAN_DURATION})`,
+          ],
+          aggregates: [
+            `avg(${SpanFields.SPAN_DURATION})`,
+            `p95(${SpanFields.SPAN_DURATION})`,
+          ],
+          columns: [],
+          fieldAliases: [],
+          conditions: `${SpanFields.SPAN_OP}:http.server`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
+        },
+      ],
+      widgetType: WidgetType.SPANS,
+    },
+    {
+      id: 'issue-counts',
+      title: t('Issue Counts'),
+      displayType: DisplayType.BAR,
+      widgetType: WidgetType.ISSUE,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count(new_issues)', 'count(resolved_issues)'],
+          aggregates: ['count(new_issues)', 'count(resolved_issues)'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    },
+  ],
+  0
+);
+
+export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
+  [
+    {
+      id: 'jobs-chart',
+      title: t('Jobs'),
+      description: '',
+      legendType: 'breakdown',
+      displayType: DisplayType.LINE,
+      thresholds: null,
+      interval: '1h',
+      queries: [
+        {
+          name: '',
+          fields: [
+            `count(${SpanFields.SPAN_DURATION})`,
+            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+          ],
+          aggregates: [
+            `count(${SpanFields.SPAN_DURATION})`,
+            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+          ],
+          columns: [],
+          fieldAliases: [],
+          conditions: `${SpanFields.SPAN_OP}:queue.process`,
+          orderby: `count(${SpanFields.SPAN_DURATION})`,
+        },
+      ],
+      limit: 3,
+      widgetType: WidgetType.SPANS,
+    },
+    {
+      id: 'queries-by-time-spent-chart',
+      title: t('Queries by Time Spent'),
+      legendType: 'breakdown',
+      description: '',
+      displayType: DisplayType.LINE,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          fields: [SpanFields.NORMALIZED_DESCRIPTION, `p75(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`p75(${SpanFields.SPAN_DURATION})`],
+          columns: [SpanFields.NORMALIZED_DESCRIPTION],
+          fieldAliases: [''],
+          conditions: BASE_FILTER_STRING,
+          orderby: `-sum(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.NORMALIZED_DESCRIPTION,
+              staticDashboardId: 3,
+            },
+          ],
+        },
+      ],
+      limit: 3,
+      widgetType: WidgetType.SPANS,
+    },
+    {
+      id: 'cache-miss-rates-chart',
+      title: t('Cache Miss Rates'),
+      description: '',
+      legendType: 'breakdown',
+      displayType: DisplayType.LINE,
+      thresholds: null,
+      interval: '1h',
+      queries: [
+        {
+          name: '',
+          fields: [
+            `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+          ],
+          aggregates: [
+            `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+          ],
+          columns: [SpanFields.TRANSACTION],
+          fieldAliases: [''],
+          conditions: `${SpanFields.SPAN_OP}:[cache.get,cache.get_item]`,
+          orderby: `-equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+        },
+      ],
+      limit: 3,
+      widgetType: WidgetType.SPANS,
+    },
+  ],
+  2,
+  {h: 3, minH: 3}
+);
+
+const TABLE_FIELDS = [
+  SpanFields.IS_STARRED_TRANSACTION,
+  SpanFields.REQUEST_METHOD,
+  SpanFields.TRANSACTION,
+  SpanFields.SPAN_OP,
+  SpanFields.PROJECT,
+  'epm()',
+  `p50(${SpanFields.SPAN_DURATION})`,
+  `p95(${SpanFields.SPAN_DURATION})`,
+  `equation|failure_count() / count(${SpanFields.SPAN_DURATION})`,
+  `count_unique(${SpanFields.USER})`,
+  `sum(${SpanFields.SPAN_DURATION})`,
+];
+
+const TRANSACTIONS_TABLE: PrebuiltWidget = {
+  id: 'backend-overview-transactions-table',
+  title: t('Transactions'),
+  description: '',
+  displayType: DisplayType.TABLE,
+  interval: '5m',
+  tableWidths: TABLE_FIELDS.map(() => COL_WIDTH_UNDEFINED),
+  queries: [
+    {
+      name: '',
+      fields: TABLE_FIELDS,
+      aggregates: [
+        'epm()',
+        `p50(${SpanFields.SPAN_DURATION})`,
+        `p95(${SpanFields.SPAN_DURATION})`,
+        `equation|failure_count() / count(${SpanFields.SPAN_DURATION})`,
+        `count_unique(${SpanFields.USER})`,
+        `sum(${SpanFields.SPAN_DURATION})`,
+      ],
+      columns: [
+        SpanFields.IS_STARRED_TRANSACTION,
+        SpanFields.REQUEST_METHOD,
+        SpanFields.TRANSACTION,
+        SpanFields.SPAN_OP,
+        SpanFields.PROJECT,
+      ],
+      fieldAliases: [
+        '',
+        t('HTTP Method'),
+        t('Transaction'),
+        t('Operation'),
+        t('Project'),
+        t('TPM'),
+        WIDGET_COLUMN_LABELS.p50,
+        WIDGET_COLUMN_LABELS.p95,
+        t('Failure rate'),
+        t('Users'),
+        WIDGET_COLUMN_LABELS.timeSpent,
+      ],
+      conditions: TABLE_QUERY.formatString(),
+      orderby: '-sum(span.duration)',
+      linkedDashboards: [],
+    },
+  ],
+  widgetType: WidgetType.SPANS,
+  layout: {
+    x: 0,
+    w: 6,
+    h: 6,
+    minH: TABLE_MIN_HEIGHT,
+    y: 7,
+  },
+};
+
+export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
+  dateCreated: '',
+  projects: [],
+  title: DASHBOARD_TITLE,
+  filters: {
+    globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: SpanFields.TRANSACTION,
+          name: SpanFields.TRANSACTION,
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+    ],
+  },
+  widgets: [
+    ...BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
+    ...BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
+    TRANSACTIONS_TABLE,
+  ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['firstTransactionEvent'],
+    description: 'Get started with backend tracing',
+  },
+};

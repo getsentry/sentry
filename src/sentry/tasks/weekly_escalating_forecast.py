@@ -1,0 +1,74 @@
+import logging
+from datetime import UTC, datetime, timedelta
+from typing import TypedDict
+
+from taskbroker_client.retry import Retry
+
+from sentry.constants import ObjectStatus
+from sentry.issues.escalating.forecasts import generate_and_save_forecasts
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.types.group import GroupSubStatus
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapper
+
+
+class GroupCount(TypedDict):
+    intervals: list[str]
+    data: list[int]
+
+
+ParsedGroupsCount = dict[int, GroupCount]
+
+logger = logging.getLogger(__name__)
+
+ITERATOR_CHUNK = 500
+
+
+@instrumented_task(
+    name="sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
+    namespace=issues_tasks,
+    processing_deadline_duration=60 * 2,
+    silo_mode=SiloMode.CELL,
+)
+def run_escalating_forecast() -> None:
+    """
+    Run the escalating forecast algorithm on archived until escalating issues.
+    """
+    logger.info("Starting task for sentry.tasks.weekly_escalating_forecast.run_escalating_forecast")
+
+    for project_ids in chunked(
+        RangeQuerySetWrapper(
+            Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", flat=True),
+            result_value_getter=lambda item: item,
+            step=ITERATOR_CHUNK,
+        ),
+        ITERATOR_CHUNK,
+    ):
+        generate_forecasts_for_projects.delay(project_ids=project_ids)
+
+
+@instrumented_task(
+    name="sentry.tasks.weekly_escalating_forecast.generate_forecasts_for_projects",
+    namespace=issues_tasks,
+    processing_deadline_duration=60 * 2,
+    retry=Retry(times=3, delay=60, on=(Exception,)),
+    silo_mode=SiloMode.CELL,
+)
+def generate_forecasts_for_projects(project_ids: list[int]) -> None:
+    for until_escalating_groups in chunked(
+        RangeQuerySetWrapper(
+            Group.objects.filter(
+                status=GroupStatus.IGNORED,
+                substatus=GroupSubStatus.UNTIL_ESCALATING,
+                project_id__in=project_ids,
+                last_seen__gte=datetime.now(UTC) - timedelta(days=7),
+            ),
+            step=ITERATOR_CHUNK,
+        ),
+        ITERATOR_CHUNK,
+    ):
+        generate_and_save_forecasts(groups=until_escalating_groups)

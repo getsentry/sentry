@@ -1,0 +1,41 @@
+---
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - in-main
+    matchers:
+    - - function
+      - main
+    text: function:"main" -> "in-main"
+  version: 1
+fingerprint:
+- in-main
+title: <unlabeled event>
+variants:
+  app:
+    component:
+      contributes: false
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: app_thread_stacktrace
+    type: component
+  custom_server_fingerprint:
+    contributes: true
+    hint: null
+    key: custom_server_fingerprint
+    matched_rule: function:"main" -> "in-main"
+    type: custom_fingerprint
+    values:
+    - in-main
+  system:
+    component:
+      contributes: false
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: system_thread_stacktrace
+    type: component

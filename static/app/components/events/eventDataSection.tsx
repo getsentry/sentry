@@ -1,0 +1,182 @@
+import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {DataSection} from 'sentry/components/events/styles';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {IconLink} from 'sentry/icons';
+
+interface EventDataSectionProps {
+  children: React.ReactNode;
+  /**
+   * The title of the section
+   */
+  title: React.ReactNode;
+  /**
+   * Used as the `id` of the section. This powers the permalink
+   */
+  type: string;
+  /**
+   * Actions that appear to the far right of the title
+   */
+  actions?: React.ReactNode;
+  className?: string;
+  /**
+   * A description shown in a QuestionTooltip
+   */
+  help?: React.ReactNode;
+  /**
+   * If true, user is able to hover overlay without it disappearing. (nice if
+   * you want the overlay to be interactive)
+   */
+  isHelpHoverable?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
+  /**
+   * Should the permalink be enabled for this section?
+   *
+   * @default true
+   */
+  showPermalink?: boolean;
+  /**
+   * Should the title be wrapped in a h3?
+   */
+  wrapTitle?: boolean;
+}
+
+function scrollToSection(element: HTMLDivElement) {
+  if (window.location.hash && element) {
+    const [, hash] = window.location.hash.split('#');
+
+    try {
+      const anchorElement = hash && element.querySelector('div#' + hash);
+      if (anchorElement) {
+        anchorElement.scrollIntoView();
+      }
+    } catch {
+      // Since we're blindly taking the hash from the url and shoving
+      // it into a querySelector, it's possible that this may
+      // raise an exception if the input is invalid. So let's just ignore
+      // this instead of blowing up.
+      // e.g. `document.querySelector('div#=')`
+      // > Uncaught DOMException: Failed to execute 'querySelector' on 'Document': 'div#=' is not a valid selector.
+    }
+  }
+}
+
+export function EventDataSection({
+  children,
+  className,
+  type,
+  title,
+  help,
+  actions,
+  wrapTitle = true,
+  showPermalink = true,
+  isHelpHoverable = false,
+  ...props
+}: EventDataSectionProps) {
+  const titleNode = wrapTitle ? <h3>{title}</h3> : title;
+
+  return (
+    <DataSection ref={scrollToSection} className={className || ''} {...props}>
+      <SectionHeader id={type} data-test-id={`event-section-${type}`}>
+        {title && (
+          <Title>
+            {showPermalink ? (
+              <Container as="span" width="100%" position="relative" className="permalink">
+                <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
+                  <StyledIconLink size="xs" variant="muted" />
+                </PermalinkAnchor>
+                {titleNode}
+              </Container>
+            ) : (
+              titleNode
+            )}
+            {help && (
+              <QuestionTooltip size="xs" title={help} isHoverable={isHelpHoverable} />
+            )}
+          </Title>
+        )}
+        {actions && (
+          <Container flexShrink={0} maxWidth="100%">
+            {actions}
+          </Container>
+        )}
+      </SectionHeader>
+      <Container position="relative">{children}</Container>
+    </DataSection>
+  );
+}
+
+const Title = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const StyledIconLink = styled(IconLink)`
+  opacity: 0;
+  transform: translateY(-1px);
+  transition: opacity 100ms;
+`;
+
+const PermalinkAnchor = styled(ExternalLink)`
+  display: flex;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% + ${p => p.theme.space['2xl']});
+  height: 100%;
+  padding-left: ${p => p.theme.space.xs};
+  transform: translateX(-${p => p.theme.space['2xl']});
+
+  :hover ${StyledIconLink}, :focus ${StyledIconLink} {
+    opacity: 1;
+  }
+`;
+
+const SectionHeader = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  margin-bottom: ${p => p.theme.space.md};
+
+  & h3,
+  & h3 a {
+    color: ${p => p.theme.tokens.content.secondary};
+    font-size: ${p => p.theme.font.size.md};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
+  }
+
+  & h3 {
+    padding: ${p => p.theme.space.sm} 0;
+    margin-bottom: 0;
+  }
+
+  & small {
+    color: ${p => p.theme.tokens.content.primary};
+    font-size: ${p => p.theme.font.size.md};
+    margin-right: ${p => p.theme.space.xs};
+    margin-left: ${p => p.theme.space.xs};
+  }
+  & small > span {
+    color: ${p => p.theme.tokens.content.primary};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    & > small {
+      margin-left: ${p => p.theme.space.md};
+      display: inline-block;
+    }
+  }
+
+  > *:first-child {
+    position: relative;
+    flex-grow: 1;
+  }
+`;

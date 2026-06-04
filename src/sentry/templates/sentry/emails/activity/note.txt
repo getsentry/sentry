@@ -1,0 +1,19 @@
+{% spaceless %}
+{% autoescape off %}
+# New Comment
+
+{{ title }}:
+
+{{ data.text }}
+
+
+## Details
+
+{{ group.title }}
+
+{{ activity_link }}
+{% include "sentry/emails/_suspect_commits.txt" %}
+Unsubscribe: {{ unsubscribe_link }}
+
+{% endautoescape %}
+{% endspaceless %}

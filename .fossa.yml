@@ -1,0 +1,14 @@
+version: 3
+project:
+  # This defaults to the git origin, which varies between ssh/https, resulting
+  # in duplicate projects.
+
+  id: sentry
+
+# ignore a noisy warning produced by this file, it's a schema not a package.json
+targets:
+  exclude:
+    - type: projectjson
+      path: api-docs/components/schemas
+    - type: setuptools
+      path: src/sentry/templates/sentry/emails

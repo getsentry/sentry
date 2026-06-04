@@ -1,0 +1,331 @@
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from itertools import chain
+from typing import Any
+
+from django.http.request import HttpRequest
+from django.urls import reverse
+from django.utils.datastructures import OrderedSet
+from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import CharField
+from rest_framework.serializers import Serializer
+
+from sentry.integrations.base import (
+    FeatureDescription,
+    IntegrationData,
+    IntegrationFeatures,
+    IntegrationMetadata,
+    IntegrationProvider,
+)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
+    RepositoryIntegration,
+)
+from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_jwt,
+)
+from sentry.models.apitoken import generate_token
+from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.http import absolute_uri
+
+from .client import BitbucketApiClient
+from .issues import BitbucketIssuesSpec
+from .repository import BitbucketRepositoryProvider
+from .utils import parse_bitbucket_src_url
+
+DESCRIPTION = """
+Connect your Sentry organization to Bitbucket, enabling the following features:
+"""
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Track commits and releases (learn more
+        [here](https://docs.sentry.io/learn/releases/))
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Resolve Sentry issues via Bitbucket commits by
+        including `Fixes PROJ-ID` in the message
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Create Bitbucket issues from Sentry
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Link Sentry issues to existing Bitbucket issues
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Bitbucket source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
+    FeatureDescription(
+        """
+        Import your Bitbucket [CODEOWNERS file](https://support.atlassian.com/bitbucket-cloud/docs/set-up-and-use-code-owners/) and use it alongside your ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
+    ),
+]
+
+metadata = IntegrationMetadata(
+    description=DESCRIPTION.strip(),
+    features=FEATURES,
+    author="The Sentry Team",
+    noun=_("Installation"),
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Bitbucket%20Integration%20Problem",
+    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket",
+    aspects={},
+)
+# see https://developer.atlassian.com/bitbucket/api/2/reference/meta/authentication#scopes-bbc
+scopes = ("issue:write", "pullrequest", "webhook", "repository")
+
+
+class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketIssuesSpec):
+    codeowners_locations = [".bitbucket/CODEOWNERS"]
+
+    @property
+    def integration_name(self) -> str:
+        return IntegrationProviderSlug.BITBUCKET.value
+
+    def get_client(self) -> BitbucketApiClient:
+        return BitbucketApiClient(integration=self.model)
+
+    # IntegrationInstallation methods
+
+    def error_message_from_json(self, data):
+        return data.get("error", {}).get("message", "unknown error")
+
+    # RepositoryIntegration methods
+
+    def get_repo_external_id(self, repo: Mapping[str, Any]) -> str:
+        return str(repo["uuid"])
+
+    def get_repositories(
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
+        use_cache: bool = False,
+        raise_on_page_limit: bool = False,
+    ) -> list[RepositoryInfo]:
+        username = self.model.metadata.get("uuid", self.username)
+        if not query:
+            all_repos = self.get_client().get_repos(username, page_number_limit=page_number_limit)
+            return [
+                {
+                    "identifier": repo["full_name"],
+                    "name": repo["full_name"],
+                    "external_id": self.get_repo_external_id(repo),
+                }
+                for repo in all_repos
+            ]
+
+        client = self.get_client()
+        exact_query = f'name="{query}"'
+        fuzzy_query = f'name~"{query}"'
+        exact_search_resp = client.search_repositories(username, exact_query)
+        fuzzy_search_resp = client.search_repositories(username, fuzzy_query)
+
+        seen: OrderedSet[str] = OrderedSet()
+        repos: list[RepositoryInfo] = []
+        for repo in chain(
+            exact_search_resp.get("values", []),
+            fuzzy_search_resp.get("values", []),
+        ):
+            if repo["full_name"] not in seen:
+                seen.add(repo["full_name"])
+                repos.append(
+                    {
+                        "identifier": repo["full_name"],
+                        "name": repo["full_name"],
+                        "external_id": self.get_repo_external_id(repo),
+                    }
+                )
+
+        return repos
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        client = self.get_client()
+        try:
+            client.get_hooks(repo.config["name"])
+        except ApiError:
+            return False
+        return True
+
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith(f"https://{self.model.metadata['domain_name']}") or url.startswith(
+            "https://bitbucket.org",
+        )
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        if not repo.url:
+            return ""
+        branch, _ = parse_bitbucket_src_url(repo.url, url)
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        if not repo.url:
+            return ""
+        _, source_path = parse_bitbucket_src_url(repo.url, url)
+        return source_path
+
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["base_url", "domain_name", "scopes", "uuid", "type"]
+
+    # Bitbucket only methods
+
+    @property
+    def username(self) -> str:
+        return self.model.name
+
+
+class BitbucketVerifySerializer(Serializer):
+    jwt = CharField(required=True)
+
+
+class BitbucketAuthorizeApiStep:
+    step_name = "authorize"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        descriptor_uri = absolute_uri("/extensions/bitbucket/descriptor/")
+        authorize_url = (
+            f"https://bitbucket.org/site/addons/authorize?descriptor_uri={descriptor_uri}"
+        )
+        return {"authorizeUrl": authorize_url}
+
+    def get_serializer_cls(self) -> type:
+        return BitbucketVerifySerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, Any],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        callback_path = reverse(
+            "sentry-extension-setup",
+            kwargs={"provider_id": IntegrationProviderSlug.BITBUCKET.value},
+        )
+        try:
+            integration = get_integration_from_jwt(
+                token=validated_data["jwt"],
+                path=callback_path,
+                provider=IntegrationProviderSlug.BITBUCKET.value,
+                query_params=None,
+            )
+        except AtlassianConnectValidationError:
+            return PipelineStepResult.error("Unable to verify installation.")
+        pipeline.bind_state("external_id", integration.external_id)
+        return PipelineStepResult.advance()
+
+
+class BitbucketIntegrationProvider(IntegrationProvider):
+    key = IntegrationProviderSlug.BITBUCKET.value
+    name = "Bitbucket"
+    metadata = metadata
+    scopes = scopes
+    integration_cls = BitbucketIntegration
+    features = frozenset(
+        [
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
+        ]
+    )
+
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
+        return []
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [BitbucketAuthorizeApiStep()]
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        repos = repository_service.get_repositories(
+            organization_id=organization.id,
+            providers=[IntegrationProviderSlug.BITBUCKET.value, "integrations:bitbucket"],
+            has_integration=False,
+        )
+
+        for repo in repos:
+            migrate_repo.apply_async(
+                kwargs={
+                    "repo_id": repo.id,
+                    "integration_id": integration.id,
+                    "organization_id": organization.id,
+                }
+            )
+
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
+        if state.get("publicKey"):
+            principal_data = state["principal"]
+            base_url = state["baseUrl"].replace("https://", "")
+            # fall back to display name, user installations will use this primarily
+            username = principal_data.get("username", principal_data["display_name"])
+            account_type = principal_data["type"]
+            domain = f"{base_url}/{username}" if account_type == "team" else username
+            secret = generate_token()
+
+            return {
+                "provider": self.key,
+                "external_id": state["clientKey"],
+                "name": username,
+                "metadata": {
+                    "public_key": state["publicKey"],
+                    "shared_secret": state["sharedSecret"],
+                    "webhook_secret": secret,
+                    "base_url": state["baseApiUrl"],
+                    "domain_name": domain,
+                    "icon": principal_data["links"]["avatar"]["href"],
+                    "scopes": self.scopes,
+                    "uuid": principal_data["uuid"],
+                    "type": account_type,  # team or user account
+                },
+            }
+        else:
+            return {
+                "provider": self.key,
+                "external_id": state["external_id"],
+                "expect_exists": True,
+            }
+
+    def setup(self):
+        from sentry.plugins.base import bindings
+
+        bindings.add(
+            "integration-repository.provider",
+            BitbucketRepositoryProvider,
+            id=f"integrations:{self.key}",
+        )

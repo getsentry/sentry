@@ -1,0 +1,355 @@
+import {Fragment, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
+import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
+import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
+import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {PanelTable} from 'sentry/components/panels/panelTable';
+import {RoleSelectControl} from 'sentry/components/roleSelectControl';
+import {TeamSelector} from 'sentry/components/teamSelector';
+import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApi} from 'sentry/utils/useApi';
+import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
+
+export interface InviteMissingMembersModalProps extends ModalRenderProps {
+  allowedRoles: OrgRole[];
+  // the API response returns {integration: "github", users: []}
+  // but we only ever return Github missing members at the moment
+  // so we can simplify the props and state to only store the users (missingMembers)
+  missingMembers: MissingMember[];
+  organization: Organization;
+}
+
+export function InviteMissingMembersModal({
+  missingMembers,
+  organization,
+  allowedRoles,
+  closeModal,
+  modalContainerRef,
+}: InviteMissingMembersModalProps) {
+  const initialMemberInvites = (missingMembers || []).map(member => ({
+    email: member.email,
+    commitCount: member.commitCount,
+    role: organization.defaultRole,
+    teamSlugs: new Set<string>(),
+    externalId: member.externalId,
+    selected: true,
+  }));
+  const [memberInvites, setMemberInvites] = useState(initialMemberInvites);
+  const referrer = 'github_nudge_invite';
+  const [inviteStatus, setInviteStatus] = useState<InviteStatus>({});
+  const [sendingInvites, setSendingInvites] = useState(false);
+  const [complete, setComplete] = useState(false);
+
+  const api = useApi();
+
+  const allowedRolesMap = useMemo<Record<string, OrgRole>>(
+    () => allowedRoles.reduce((rolesMap, role) => ({...rolesMap, [role.id]: role}), {}),
+    [allowedRoles]
+  );
+
+  const setRole = (role: string, index: number) => {
+    setMemberInvites(prevInvites => {
+      const invites = prevInvites.map(i => ({...i}));
+      invites[index]!.role = role;
+      if (!allowedRolesMap[role]!.isTeamRolesAllowed) {
+        invites[index]!.teamSlugs = new Set();
+      }
+      return invites;
+    });
+  };
+
+  const setTeams = (teamSlugs: string[], index: number) => {
+    setMemberInvites(prevInvites => {
+      const invites = prevInvites.map(i => ({...i}));
+      invites[index]!.teamSlugs = new Set(teamSlugs);
+      return invites;
+    });
+  };
+
+  const selectAll = (checked: boolean) => {
+    const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
+    setMemberInvites(selectedMembers);
+  };
+
+  const toggleCheckbox = (checked: boolean, index: number) => {
+    const selectedMembers = [...memberInvites];
+    selectedMembers[index]!.selected = checked;
+    setMemberInvites(selectedMembers);
+  };
+
+  if (memberInvites.length === 0 || !organization.access.includes('org:write')) {
+    return null;
+  }
+
+  const renderStatusMessage = () => {
+    if (sendingInvites) {
+      return (
+        <Flex gap="md" align="center">
+          <LoadingIndicator mini relative size={16} />
+          {t('Sending organization invitations\u2026')}
+        </Flex>
+      );
+    }
+
+    if (complete) {
+      const statuses = Object.values(inviteStatus);
+      const sentCount = statuses.filter(i => i.sent).length;
+      const errorCount = statuses.filter(i => i.error).length;
+
+      const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
+      const tctComponents = {
+        invites,
+        failed: errorCount,
+      };
+
+      return (
+        <Flex gap="md" align="center">
+          <IconCheckmark size="sm" />
+          <span>
+            {errorCount > 0
+              ? tct('Sent [invites], [failed] failed to send.', tctComponents)
+              : tct('Sent [invites]', tctComponents)}
+          </span>
+        </Flex>
+      );
+    }
+
+    return null;
+  };
+
+  const sendMemberInvite = async (invite: MissingMemberInvite) => {
+    const data = {
+      email: invite.email,
+      teams: [...invite.teamSlugs],
+      role: invite.role,
+    };
+
+    try {
+      await api.requestPromise(
+        `/organizations/${organization?.slug}/members/?referrer=${referrer}`,
+        {
+          method: 'POST',
+          data,
+        }
+      );
+    } catch (err: any) {
+      const errorResponse = err.responseJSON;
+
+      // Use the email error message if available. This inconsistently is
+      // returned as either a list of errors for the field, or a single error.
+      const emailError = errorResponse?.email
+        ? Array.isArray(errorResponse.email)
+          ? errorResponse.email[0]
+          : errorResponse.email
+        : false;
+
+      const error = emailError || t('Could not invite user');
+
+      setInviteStatus(prevInviteStatus => {
+        return {...prevInviteStatus, [invite.email]: {sent: false, error}};
+      });
+    }
+
+    setInviteStatus(prevInviteStatus => {
+      return {...prevInviteStatus, [invite.email]: {sent: true}};
+    });
+  };
+
+  const sendMemberInvites = async () => {
+    setSendingInvites(true);
+    await Promise.all(memberInvites.filter(i => i.selected).map(sendMemberInvite));
+    setSendingInvites(false);
+    setComplete(true);
+
+    if (organization) {
+      trackAnalytics(
+        'missing_members_invite_modal.requests_sent',
+        {
+          organization,
+        },
+        {startSession: true}
+      );
+    }
+  };
+
+  const selectedCount = memberInvites.filter(i => i.selected).length;
+  const selectedAll = memberInvites.length === selectedCount;
+
+  const inviteButtonLabel = () => {
+    return tct('Invite [prefix][memberCount] missing member[isPlural]', {
+      prefix: memberInvites.length === selectedCount ? 'all ' : '',
+      memberCount: selectedCount === 0 ? '' : selectedCount,
+      isPlural: selectedCount === 1 ? '' : 's',
+    });
+  };
+
+  const overrideRenderer: InviteModalRenderFunc = ({
+    sendInvites,
+    canSend,
+    headerInfo,
+  }) => (
+    <Fragment>
+      <h4>{t('Invite Your Dev Team')}</h4>
+      {headerInfo}
+      <StyledPanelTable
+        headers={[
+          <Checkbox
+            key={0}
+            aria-label={selectedAll ? t('Deselect All') : t('Select All')}
+            onChange={() => selectAll(!selectedAll)}
+            checked={selectedAll}
+          />,
+          t('User Information'),
+          <Flex gap="xs" key={1}>
+            {t('Recent Commits')}
+            <Tooltip title={t('Based on the last 30 days of commit data')}>
+              <IconInfo size="xs" />
+            </Tooltip>
+          </Flex>,
+          t('Role'),
+          t('Team'),
+        ]}
+        stickyHeaders
+      >
+        {memberInvites?.map((member, i) => {
+          const checked = memberInvites[i]!.selected;
+          const username = member.externalId.split(':').pop();
+          const isTeamRolesAllowed =
+            allowedRolesMap[member.role]?.isTeamRolesAllowed ?? true;
+          return (
+            <Fragment key={i}>
+              <div>
+                <Checkbox
+                  aria-label={t('Select %s', member.email)}
+                  checked={checked}
+                  onChange={() => toggleCheckbox(!checked, i)}
+                />
+              </div>
+              <StyledPanelItem>
+                <ContentRow>
+                  <IconGithub size="sm" />
+                  <StyledExternalLink href={`https://github.com/${username}`}>
+                    @{username}
+                  </StyledExternalLink>
+                </ContentRow>
+                <MemberEmail>{member.email}</MemberEmail>
+              </StyledPanelItem>
+              <ContentRow>
+                <IconCommit size="sm" />
+                {member.commitCount}
+              </ContentRow>
+              <RoleSelectControl
+                aria-label={t('Role')}
+                data-test-id="select-role"
+                disabled={false}
+                value={member.role}
+                roles={allowedRoles}
+                disableUnallowed
+                onChange={value => setRole(value?.value, i)}
+                menuPortalTarget={modalContainerRef?.current}
+                isInsideModal
+              />
+              <TeamSelector
+                aria-label={t('Add to Team')}
+                data-test-id="select-teams"
+                disabled={!isTeamRolesAllowed}
+                placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
+                onChange={(opts: any) =>
+                  setTeams(opts ? opts.map((v: any) => v.value) : [], i)
+                }
+                multiple
+                clearable
+                menuPortalTarget={modalContainerRef?.current}
+                isInsideModal
+              />
+            </Fragment>
+          );
+        })}
+      </StyledPanelTable>
+      <Flex justify="between">
+        <div>{renderStatusMessage()}</div>
+        <Grid flow="column" align="center" gap="md">
+          <Button
+            size="sm"
+            onClick={() => {
+              closeModal();
+            }}
+          >
+            {t('Cancel')}
+          </Button>
+          <Button
+            size="sm"
+            variant="primary"
+            aria-label={t('Send Invites')}
+            onClick={sendInvites}
+            disabled={!canSend || selectedCount === 0}
+            analyticsEventName="Github Invite Modal: Invite"
+            analyticsEventKey="github_invite_modal.invite"
+            analyticsParams={{
+              invited_all: memberInvites.length === selectedCount,
+              invited_count: selectedCount,
+            }}
+          >
+            {inviteButtonLabel()}
+          </Button>
+        </Grid>
+      </Flex>
+    </Fragment>
+  );
+
+  return (
+    <InviteModalHook
+      organization={organization}
+      willInvite
+      onSendInvites={sendMemberInvites}
+    >
+      {overrideRenderer}
+    </InviteModalHook>
+  );
+}
+
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: max-content 1fr max-content 1fr 1fr;
+  overflow: scroll;
+  max-height: 475px;
+`;
+
+const StyledPanelItem = styled(PanelItem)`
+  flex-direction: column;
+`;
+
+const ContentRow = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.font.size.md};
+  gap: ${p => p.theme.space.sm};
+`;
+
+const MemberEmail = styled('div')`
+  display: block;
+  max-width: 150px;
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
+  text-overflow: ellipsis;
+  overflow: hidden;
+`;
+
+export const modalCss = css`
+  width: 80%;
+  max-width: 870px;
+`;

@@ -1,0 +1,150 @@
+import {Fragment} from 'react';
+import {useMatches} from 'react-router-dom';
+import styled from '@emotion/styled';
+
+import {Link} from '@sentry/scraps/link';
+
+import {Placeholder} from 'sentry/components/placeholder';
+import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
+import {ReplayViewers} from 'sentry/components/replays/header/replayViewers';
+import {IconCursorArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import type {RawReplayError} from 'sentry/utils/replays/types';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+
+interface Props {
+  replayErrors: RawReplayError[];
+  replayRecord: ReplayRecord;
+  showDeadRageClicks?: boolean;
+}
+
+export function ReplayMetaData({
+  replayErrors,
+  replayRecord,
+  showDeadRageClicks = true,
+}: Props) {
+  const nonFeedbackErrors = replayErrors.filter(e => !e.title.includes('User Feedback'));
+
+  const location = useLocation();
+  const matches = useMatches();
+  const referrer = getRouteStringFromRoutes({matches});
+  const eventView = EventView.fromLocation(location);
+
+  const breadcrumbTab = {
+    ...location,
+    query: {
+      referrer,
+      ...eventView.generateQueryStringObject(),
+      t_main: TabKey.BREADCRUMBS,
+      f_b_type: 'rageOrDead',
+    },
+  };
+
+  return (
+    <KeyMetrics>
+      {showDeadRageClicks && (
+        <Fragment>
+          <KeyMetricLabel>{t('Dead Clicks')}</KeyMetricLabel>
+          <KeyMetricData>
+            {replayRecord?.count_dead_clicks ? (
+              <Link to={breadcrumbTab}>
+                <ClickCount>
+                  <IconCursorArrow size="sm" variant="warning" />
+                  {replayRecord.count_dead_clicks}
+                </ClickCount>
+              </Link>
+            ) : (
+              <Count>0</Count>
+            )}
+          </KeyMetricData>
+        </Fragment>
+      )}
+
+      {showDeadRageClicks && (
+        <Fragment>
+          <KeyMetricLabel>{t('Rage Clicks')}</KeyMetricLabel>
+          <KeyMetricData>
+            {replayRecord?.count_rage_clicks ? (
+              <Link to={breadcrumbTab}>
+                <ClickCount>
+                  <IconCursorArrow size="sm" variant="danger" />
+                  {replayRecord.count_rage_clicks}
+                </ClickCount>
+              </Link>
+            ) : (
+              <Count>0</Count>
+            )}
+          </KeyMetricData>
+        </Fragment>
+      )}
+
+      <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
+      <KeyMetricData>
+        {replayRecord ? (
+          replayRecord.is_archived ? null : (
+            <ErrorCounts replayErrors={nonFeedbackErrors} />
+          )
+        ) : (
+          <Placeholder width="20px" height="16px" />
+        )}
+      </KeyMetricData>
+      <KeyMetricLabel>{t('Seen By')}</KeyMetricLabel>
+      <KeyMetricData>
+        {replayRecord ? (
+          replayRecord.is_archived ? null : (
+            <ReplayViewers
+              projectId={replayRecord.project_id}
+              replayId={replayRecord.id}
+            />
+          )
+        ) : (
+          <Placeholder width="55px" height="27px" />
+        )}
+      </KeyMetricData>
+    </KeyMetrics>
+  );
+}
+
+const KeyMetrics = styled('dl')`
+  display: grid;
+  grid-template-rows: max-content 1fr;
+  grid-template-columns: repeat(4, max-content);
+  grid-auto-flow: column;
+  height: 42px;
+  gap: 0 ${p => p.theme.space['2xl']};
+  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+  margin: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    justify-self: flex-end;
+  }
+`;
+
+const KeyMetricLabel = styled('dt')`
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+const KeyMetricData = styled('dd')`
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
+`;
+
+const Count = styled('span')`
+  font-variant-numeric: tabular-nums;
+`;
+
+const ClickCount = styled(Count)`
+  color: ${p => p.theme.tokens.content.secondary};
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  align-items: center;
+`;

@@ -1,0 +1,12 @@
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import type {TrendFunctionField} from 'sentry/views/performance/trends/types';
+
+export function generateTrendFunctionAsString(
+  trendFunction: TrendFunctionField,
+  trendParameter: string
+): string {
+  return generateFieldAsString({
+    kind: 'function',
+    function: [trendFunction, trendParameter, undefined, undefined],
+  });
+}

@@ -1,0 +1,132 @@
+{
+  "event_id": "217ca2f98a504e0d862d7cb30637e7eb",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x0000000000000024"
+          },
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 1,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS",
+              "subcode": 0
+            },
+            "signal": {
+              "code": 0,
+              "code_name": "BUS_NOOP",
+              "name": "SIGBUS",
+              "number": 10
+            }
+          },
+          "synthetic": null,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKit"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunInMode",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoSource1",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFMachPortPerform",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "IODispatchCalloutFromCFMessage",
+              "package": "IOKit"
+            },
+            {
+              "function": "IOMobileFramebufferVsyncNotifyFunc",
+              "package": "IOMobileFramebuffer"
+            },
+            {
+              "function": "CA::Display::DisplayLink::dispatch_items",
+              "package": "QuartzCore"
+            },
+            {
+              "function": "CA::Display::DisplayLinkItem::dispatch",
+              "package": "QuartzCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS",
+        "value": "treebranch_cny2021 >\nAttempted to dereference garbage pointer 0x24."
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

@@ -1,0 +1,10 @@
+---
+created: '2019-03-14T17:12:35.599294Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_geo.py
+---
+errors: null
+to_json:
+  city: San Francisco
+  country_code: US
+  region: CA

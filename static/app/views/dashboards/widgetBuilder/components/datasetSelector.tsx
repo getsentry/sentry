@@ -1,0 +1,138 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
+import {ExternalLink} from 'sentry/components/links/externalLink';
+import {t, tct, tctCode} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
+
+export function WidgetBuilderDatasetSelector() {
+  const organization = useOrganization();
+  const {state} = useWidgetBuilderContext();
+  const source = useDashboardWidgetSource();
+  const isEditing = useIsEditingWidget();
+  const {cacheBuilderState, restoreOrSetBuilderState} = useCacheBuilderState();
+
+  const datasetOptions = [];
+  datasetOptions.push({
+    value: WidgetType.ERRORS,
+    label: t('Errors'),
+    details: t('Errors from your application'),
+  });
+
+  const isTransactionsDeprecated = organization.features.includes(
+    'discover-saved-queries-deprecation'
+  );
+
+  const transactionsOption = {
+    value: WidgetType.TRANSACTIONS,
+    label: t('Transactions'),
+    disabled: isTransactionsDeprecated,
+    details: isTransactionsDeprecated
+      ? tctCode(
+          'No longer supported. Use the spans dataset with the [code:is_transaction:true] filter.'
+        )
+      : t('Transactions from your application'),
+  };
+
+  if (organization.features.includes('visibility-explore-view')) {
+    datasetOptions.push({
+      value: WidgetType.SPANS,
+      label: t('Spans'),
+      details: t('Spans from distributed traces'),
+    });
+  }
+
+  if (isLogsEnabled(organization)) {
+    datasetOptions.push({
+      value: WidgetType.LOGS,
+      label: t('Logs'),
+      details: t('Structured application logs'),
+    });
+  }
+
+  if (organization.features.includes('tracemetrics-enabled')) {
+    datasetOptions.push({
+      value: WidgetType.TRACEMETRICS,
+      label: t('Application Metrics'),
+      details: t('Counters, gauges, and distributions'),
+    });
+  }
+  datasetOptions.push({
+    value: WidgetType.ISSUE,
+    label: t('Issues'),
+    details: t('Grouped events from the Issues Feed'),
+  });
+
+  datasetOptions.push({
+    value: WidgetType.RELEASE,
+    label: t('Releases'),
+    details: t('Session data from releases'),
+  });
+
+  datasetOptions.push({
+    value: WidgetType.PREPROD_APP_SIZE,
+    label: t('Mobile Builds'),
+    details: t('Mobile app size metrics'),
+  });
+
+  datasetOptions.push(transactionsOption);
+
+  return (
+    <Fragment>
+      <StyledSectionHeader
+        title={t('Dataset')}
+        tooltipText={tct(
+          'This reflects the type of information you want to use. To learn more, [link: read the docs].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#choose-your-dataset" />
+            ),
+          }
+        )}
+      />
+      <CompactSelect
+        value={state.dataset ?? WidgetType.ERRORS}
+        options={datasetOptions}
+        menuWidth={300}
+        onChange={selection => {
+          const newDataset = selection.value;
+
+          // Set the current dataset state in local storage for recovery
+          // when the user navigates back to this dataset
+          cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
+
+          // Restore the builder state for the new dataset
+          // or set the dataset if there is no cached state
+          restoreOrSetBuilderState(newDataset);
+
+          Sentry.setTag('widget_builder.dataset', newDataset);
+          trackAnalytics('dashboards_views.widget_builder.change', {
+            from: source,
+            widget_type: state.dataset ?? '',
+            builder_version: WidgetBuilderVersion.SLIDEOUT,
+            field: 'dataSet',
+            value: newDataset,
+            new_widget: !isEditing,
+            organization,
+          });
+        }}
+      />
+    </Fragment>
+  );
+}
+
+const StyledSectionHeader = styled(SectionHeader)`
+  margin-bottom: ${p => p.theme.space.md};
+`;

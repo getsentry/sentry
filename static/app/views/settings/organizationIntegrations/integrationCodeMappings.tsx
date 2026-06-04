@@ -1,0 +1,363 @@
+import {Fragment, useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useInfiniteQuery, useMutation} from '@tanstack/react-query';
+import sortBy from 'lodash/sortBy';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
+import {Pagination} from '@sentry/scraps/pagination';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {IconAdd} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {Integration, RepositoryProjectPathConfig} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
+import {RepositoryProjectPathConfigModal} from './repositoryProjectPathConfigForm';
+import {
+  ButtonWrapper,
+  InputPathColumn,
+  NameRepoColumn,
+  OutputPathColumn,
+  RepositoryProjectPathConfigRow,
+} from './repositoryProjectPathConfigRow';
+
+function getDocsLink(integration: Integration): string {
+  /** Accounts for some asymmetry between docs links and provider keys */
+  let docsKey = integration.provider.key;
+  switch (integration.provider.key) {
+    case 'vsts':
+      docsKey = 'azure-devops';
+      break;
+    case 'github_enterprise':
+      docsKey = 'github';
+      break;
+    default:
+      docsKey = integration.provider.key;
+      break;
+  }
+  return `https://docs.sentry.io/product/integrations/source-code-mgmt/${docsKey}/#stack-trace-linking`;
+}
+
+function codeMappingsApiOptions({
+  orgSlug,
+  integrationId,
+  cursor,
+}: {
+  orgSlug: string;
+  cursor?: string | string[] | null;
+  integrationId?: string;
+}) {
+  return apiOptions.as<RepositoryProjectPathConfig[]>()(
+    '/organizations/$organizationIdOrSlug/code-mappings/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      query: {integrationId, cursor},
+      staleTime: 10_000,
+    }
+  );
+}
+
+function useDeletePathConfig({
+  queryKey,
+}: {
+  queryKey: ReturnType<typeof codeMappingsApiOptions>['queryKey'];
+}) {
+  const api = useApi({persistInFlight: false});
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  return useMutation<
+    RepositoryProjectPathConfig,
+    RequestError,
+    RepositoryProjectPathConfig
+  >({
+    mutationFn: pathConfig => {
+      return api.requestPromise(
+        `/organizations/${organization.slug}/code-mappings/${pathConfig.id}/`,
+        {
+          method: 'DELETE',
+        }
+      );
+    },
+    onMutate: pathConfig => {
+      if (pathConfig.integrationId) {
+        queryClient.setQueryData(queryKey, prevData =>
+          prevData
+            ? {
+                ...prevData,
+                json: prevData.json.filter(config => config.id !== pathConfig.id),
+              }
+            : prevData
+        );
+      }
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Successfully deleted code mapping'));
+    },
+    onError: error => {
+      addErrorMessage(`${error.statusText}: ${error.responseText}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: codeMappingsApiOptions({
+          orgSlug: organization.slug,
+        }).queryKey,
+      });
+    },
+  });
+}
+
+export function IntegrationCodeMappings({integration}: {integration: Integration}) {
+  const {openModal} = useModal();
+
+  const queryClient = useQueryClient();
+  useRouteAnalyticsEventNames(
+    'integrations.code_mappings_viewed',
+    'Integrations: Code Mappings Viewed'
+  );
+  useRouteAnalyticsParams({
+    integration: integration.provider.key,
+    integration_type: 'first_party',
+  });
+
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const location = useLocation();
+  const integrationId = integration.id;
+
+  const pathConfigsQueryOptions = codeMappingsApiOptions({
+    orgSlug: organization.slug,
+    integrationId,
+    cursor: location.query.cursor,
+  });
+
+  const {
+    data: pathConfigsResponse,
+    isPending: isPendingPathConfigs,
+    isError: isErrorPathConfigs,
+  } = useQuery({
+    ...pathConfigsQueryOptions,
+    select: selectJsonWithHeaders,
+  });
+
+  const repositoriesQuery = useInfiniteQuery({
+    ...organizationRepositoriesInfiniteOptions({
+      organization,
+      query: {status: 'active', per_page: 100},
+      staleTime: 10_000,
+    }),
+    select: data => data.pages.flatMap(page => page.json),
+  });
+  useFetchAllPages({result: repositoriesQuery});
+
+  const {
+    data: fetchedRepos = [],
+    isPending: isPendingReposQuery,
+    isError: isErrorRepos,
+    hasNextPage: hasNextReposPage,
+    isFetchingNextPage: isFetchingNextReposPage,
+  } = repositoriesQuery;
+
+  const isPendingRepos =
+    isPendingReposQuery ||
+    isFetchingNextReposPage ||
+    (!!hasNextReposPage && !isErrorRepos);
+
+  const pathConfigs = useMemo(() => {
+    return sortBy(pathConfigsResponse?.json ?? [], [
+      ({projectSlug}) => projectSlug,
+      ({id}) => parseInt(id, 10),
+    ]);
+  }, [pathConfigsResponse?.json]);
+
+  const repos = useMemo(
+    () => fetchedRepos.filter(repo => repo.integrationId === integrationId),
+    [fetchedRepos, integrationId]
+  );
+
+  const getMatchingProject = useCallback(
+    (pathConfig: RepositoryProjectPathConfig) => {
+      return projects.find(project => project.id === pathConfig.projectId);
+    },
+    [projects]
+  );
+
+  const {mutate: deletePathConfig} = useDeletePathConfig({
+    queryKey: pathConfigsQueryOptions.queryKey,
+  });
+
+  const openCodeMappingModal = (pathConfig?: RepositoryProjectPathConfig) => {
+    trackAnalytics('integrations.stacktrace_start_setup', {
+      setup_type: 'manual',
+      view: 'integration_configuration_detail',
+      provider: integration.provider.key,
+      organization,
+    });
+
+    openModal(
+      modalProps => (
+        <RepositoryProjectPathConfigModal
+          {...modalProps}
+          organization={organization}
+          integration={integration}
+          projects={projects}
+          repos={repos}
+          existingConfig={pathConfig}
+        />
+      ),
+      {
+        onClose: () => {
+          queryClient.invalidateQueries({
+            queryKey: codeMappingsApiOptions({
+              orgSlug: organization.slug,
+            }).queryKey,
+          });
+        },
+      }
+    );
+  };
+
+  const isLoading = isPendingPathConfigs || isPendingRepos;
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isErrorPathConfigs) {
+    return <LoadingError message={t('Error loading code mappings')} />;
+  }
+
+  if (isErrorRepos) {
+    return <LoadingError message={t('Error loading repositories')} />;
+  }
+
+  const pathConfigsPageLinks = pathConfigsResponse?.headers.Link;
+  const docsLink = getDocsLink(integration);
+
+  return (
+    <Fragment>
+      <TextBlock>
+        {tct(
+          'Code Mappings are used to map stack trace file paths to source code file paths. These mappings are the basis for features like Stack Trace Linking. To learn more, [link: read the docs].',
+          {
+            link: (
+              <ExternalLink
+                href={docsLink}
+                onClick={() => {
+                  trackAnalytics('integrations.stacktrace_docs_clicked', {
+                    view: 'integration_configuration_detail',
+                    provider: integration.provider.key,
+                    organization,
+                  });
+                }}
+              />
+            ),
+          }
+        )}
+      </TextBlock>
+
+      <Panel>
+        <PanelHeader disablePadding hasButtons>
+          <HeaderLayout>
+            <NameRepoColumn>{t('Code Mappings')}</NameRepoColumn>
+            <InputPathColumn>{t('Stack Trace Root')}</InputPathColumn>
+            <OutputPathColumn>{t('Source Code Root')}</OutputPathColumn>
+            <ButtonWrapper>
+              <Button
+                data-test-id="add-mapping-button"
+                onClick={() => openCodeMappingModal()}
+                size="xs"
+                icon={<IconAdd />}
+              >
+                {t('Add Code Mapping')}
+              </Button>
+            </ButtonWrapper>
+          </HeaderLayout>
+        </PanelHeader>
+        <PanelBody>
+          {pathConfigs.length === 0 && (
+            <EmptyMessage
+              icon={getIntegrationIcon(integration.provider.key, 'lg')}
+              action={
+                <LinkButton
+                  href={docsLink}
+                  size="sm"
+                  external
+                  onClick={() => {
+                    trackAnalytics('integrations.stacktrace_docs_clicked', {
+                      view: 'integration_configuration_detail',
+                      provider: integration.provider.key,
+                      organization,
+                    });
+                  }}
+                >
+                  {t('View Documentation')}
+                </LinkButton>
+              }
+            >
+              {t('Set up stack trace linking by adding a code mapping.')}
+            </EmptyMessage>
+          )}
+          {pathConfigs
+            .map(pathConfig => {
+              const project = getMatchingProject(pathConfig);
+              // this should never happen since our pathConfig would be deleted
+              // if project was deleted
+              if (!project) {
+                return null;
+              }
+              return (
+                <PanelItem key={pathConfig.id}>
+                  <Layout>
+                    <RepositoryProjectPathConfigRow
+                      pathConfig={pathConfig}
+                      project={project}
+                      onEdit={openCodeMappingModal}
+                      onDelete={() => deletePathConfig(pathConfig)}
+                    />
+                  </Layout>
+                </PanelItem>
+              );
+            })
+            .filter(item => !!item)}
+        </PanelBody>
+      </Panel>
+      {pathConfigsPageLinks && <Pagination pageLinks={pathConfigsPageLinks} />}
+    </Fragment>
+  );
+}
+
+const Layout = styled('div')`
+  display: grid;
+  grid-column-gap: ${p => p.theme.space.md};
+  width: 100%;
+  align-items: center;
+  grid-template-columns: 4.5fr 2.5fr 2.5fr max-content;
+  grid-template-areas: 'name-repo input-path output-path button';
+`;
+
+const HeaderLayout = styled(Layout)`
+  align-items: center;
+  margin: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.xl};
+`;

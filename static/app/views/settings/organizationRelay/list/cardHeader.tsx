@@ -1,0 +1,121 @@
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
+import {DateTime} from 'sentry/components/dateTime';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {Relay} from 'sentry/types/relay';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+type Props = Relay & {
+  disabled: boolean;
+  onDelete: (publicKey: Relay['publicKey']) => () => void;
+  onEdit: (publicKey: Relay['publicKey']) => () => void;
+  extraAction?: React.ReactNode;
+};
+
+export function CardHeader({
+  publicKey,
+  name,
+  description,
+  created,
+  disabled,
+  extraAction,
+  onEdit,
+  onDelete,
+}: Props) {
+  const {copy} = useCopyToClipboard();
+
+  const deleteButton = (
+    <Button
+      size="sm"
+      icon={<IconDelete />}
+      aria-label={t('Delete Key')}
+      disabled={disabled}
+      tooltipProps={{
+        title: disabled ? t('You do not have permission to delete keys') : undefined,
+      }}
+    />
+  );
+  return (
+    <Header>
+      <KeyName>
+        {name}
+        {description && <QuestionTooltip position="top" size="sm" title={description} />}
+      </KeyName>
+      <DateCreated>
+        {tct('Created on [date]', {date: <DateTime date={created} />})}
+      </DateCreated>
+      <StyledButtonBar>
+        <Button
+          size="sm"
+          icon={<IconCopy />}
+          onClick={() => copy(publicKey, {successMessage: t('Copied key to clipboard')})}
+        >
+          {t('Copy Key')}
+        </Button>
+        <Button
+          size="sm"
+          onClick={onEdit(publicKey)}
+          icon={<IconEdit />}
+          aria-label={t('Edit Key')}
+          disabled={disabled}
+          tooltipProps={{
+            title: disabled ? t('You do not have permission to edit keys') : undefined,
+          }}
+        />
+        {disabled ? (
+          deleteButton
+        ) : (
+          <ConfirmDelete
+            message={t(
+              'After removing this Public Key, your Relay will no longer be able to communicate with Sentry and events will be dropped.'
+            )}
+            onConfirm={onDelete(publicKey)}
+            confirmInput={name}
+          >
+            {deleteButton}
+          </ConfirmDelete>
+        )}
+        {extraAction}
+      </StyledButtonBar>
+    </Header>
+  );
+}
+
+const KeyName = styled('div')`
+  grid-row: 1/2;
+  grid-template-columns: repeat(2, max-content);
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+`;
+
+const DateCreated = styled('div')`
+  grid-row: 2/3;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
+`;
+
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-row: 1/3;
+  }
+`;
+
+const Header = styled('div')`
+  display: grid;
+  grid-row-gap: ${p => p.theme.space['2xs']};
+  margin-bottom: ${p => p.theme.space.md};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: 1fr max-content;
+    grid-template-rows: repeat(2, max-content);
+  }
+`;

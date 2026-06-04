@@ -1,0 +1,23 @@
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {InputGroup, type InputProps} from '@sentry/scraps/input';
+
+export function PercentInput({ref, ...props}: InputProps) {
+  return (
+    <InputGroup
+      css={css`
+        width: 120px;
+      `}
+    >
+      <InputGroup.Input ref={ref} type="number" step="any" min={0} max={100} {...props} />
+      <InputGroup.TrailingItems>
+        <TrailingPercent>%</TrailingPercent>
+      </InputGroup.TrailingItems>
+    </InputGroup>
+  );
+}
+
+const TrailingPercent = styled('strong')`
+  padding: 0 ${p => p.theme.space['2xs']};
+`;

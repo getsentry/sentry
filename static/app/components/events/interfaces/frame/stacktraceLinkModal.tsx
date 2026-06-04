@@ -1,0 +1,368 @@
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {List} from 'sentry/components/list';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {t, tct} from 'sentry/locale';
+import type {Integration} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {uniq} from 'sentry/utils/array/uniq';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
+
+type DerivedCodeMapping = {
+  filename: string;
+  repo_branch: string;
+  repo_name: string;
+  source_path: string;
+  stacktrace_root: string;
+};
+
+interface StacktraceLinkModalProps extends ModalRenderProps {
+  filename: string;
+  integrations: Integration[];
+  onSubmit: () => void;
+  organization: Organization;
+  project: Project;
+  absPath?: string;
+  module?: string;
+  platform?: string;
+}
+
+export function StacktraceLinkModal({
+  closeModal,
+  onSubmit,
+  organization,
+  integrations,
+  filename,
+  absPath,
+  module,
+  platform,
+  project,
+  Header,
+  Body,
+  Footer,
+}: StacktraceLinkModalProps) {
+  const api = useApi();
+  const [error, setError] = useState<null | string>(null);
+  const [sourceCodeInput, setSourceCodeInput] = useState('');
+
+  const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[] | null>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/derive-code-mappings/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {
+        query: {
+          projectId: project.id,
+          stacktraceFilename: filename,
+          module,
+          absPath,
+          platform,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+      retry: false,
+      notifyOnChangeProps: ['data'],
+    }
+  );
+
+  const sourceCodeProviders = integrations.filter(integration =>
+    ['github', 'gitlab', 'bitbucket'].includes(integration.provider?.key)
+  );
+
+  // If they have more than one, they'll have to navigate themselves
+  const hasOneSourceCodeIntegration = sourceCodeProviders.length === 1;
+  const sourceUrl = hasOneSourceCodeIntegration
+    ? `https://${sourceCodeProviders[0]!.domainName}`
+    : undefined;
+  const providerName = hasOneSourceCodeIntegration
+    ? sourceCodeProviders[0]!.name
+    : t('source code');
+
+  const suggestions = uniq(
+    Array.isArray(suggestedCodeMappings)
+      ? suggestedCodeMappings.map(suggestion => {
+          if (hasOneSourceCodeIntegration) {
+            const provider = sourceCodeProviders[0];
+            if (provider?.provider?.key === 'bitbucket') {
+              return `https://bitbucket.org/${suggestion.repo_name}/src/${suggestion.repo_branch}/${suggestion.filename}`;
+            }
+            if (provider?.provider?.key === 'gitlab') {
+              return `https://gitlab.com/${suggestion.repo_name}/-/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+            }
+          }
+          return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+        })
+      : []
+  ).slice(0, 2);
+
+  const getPlaceholderUrl = () => {
+    if (hasOneSourceCodeIntegration) {
+      const provider = sourceCodeProviders[0];
+      if (provider?.provider?.key === 'bitbucket') {
+        return `https://bitbucket.org/workspace/repo/src/branch${
+          filename.startsWith('/') ? '' : '/'
+        }${filename}`;
+      }
+      if (provider?.provider?.key === 'gitlab') {
+        return `https://gitlab.com/group/project/-/blob/branch${
+          filename.startsWith('/') ? '' : '/'
+        }${filename}`;
+      }
+    }
+    return `https://github.com/helloworld/Hello-World/blob/master${
+      filename.startsWith('/') ? '' : '/'
+    }${filename}`;
+  };
+
+  const onHandleChange = (input: string) => {
+    setSourceCodeInput(input);
+  };
+
+  const onManualSetup = () => {
+    trackAnalytics('integrations.stacktrace_manual_option_clicked', {
+      view: 'stacktrace_issue_details',
+      setup_type: 'manual',
+      provider:
+        sourceCodeProviders.length === 1
+          ? sourceCodeProviders[0]!.provider.name
+          : 'unknown',
+      organization,
+    });
+  };
+
+  const handleSubmit = async () => {
+    trackAnalytics('integrations.stacktrace_submit_config', {
+      setup_type: 'automatic',
+      view: 'stacktrace_issue_details',
+      provider: sourceCodeProviders[0]?.provider.name ?? 'unknown',
+      organization,
+    });
+    const parsingEndpoint = getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+        },
+      }
+    );
+    try {
+      const configData = await api.requestPromise(parsingEndpoint, {
+        method: 'POST',
+        data: {
+          sourceUrl: sourceCodeInput,
+          stackPath: filename,
+          module,
+          absPath,
+          platform,
+        },
+      });
+
+      const configEndpoint = getApiUrl(
+        '/organizations/$organizationIdOrSlug/code-mappings/',
+        {
+          path: {organizationIdOrSlug: organization.slug},
+        }
+      );
+      await api.requestPromise(configEndpoint, {
+        method: 'POST',
+        data: {
+          ...configData,
+          projectId: project.id,
+          integrationId: configData.integrationId,
+        },
+      });
+
+      addSuccessMessage(t('Stack trace configuration saved.'));
+      trackAnalytics('integrations.stacktrace_complete_setup', {
+        setup_type: 'automatic',
+        provider: configData.config?.provider.key,
+        view: 'stacktrace_issue_details',
+        organization,
+        is_suggestion: suggestions.includes(sourceCodeInput),
+      });
+      closeModal();
+      onSubmit();
+    } catch (err: any) {
+      const errorJson = err?.responseJSON || {};
+      setError(
+        errorJson.sourceUrl?.[0] ??
+          errorJson.nonFieldErrors?.[0] ??
+          t('Unable to save configuration')
+      );
+    }
+  };
+
+  return (
+    <Fragment>
+      <Header closeButton>
+        <h4>{t('Set up Code Mapping')}</h4>
+      </Header>
+      <Body>
+        <Stack gap="xl">
+          {error && (
+            <Alert variant="danger">
+              {error === 'Could not find repo'
+                ? tct(
+                    'We don’t have access to that [provider] repo. To fix this, [link:add your repo.]',
+                    {
+                      provider: providerName,
+                      link: (
+                        <Link
+                          onClick={onManualSetup}
+                          to={
+                            hasOneSourceCodeIntegration
+                              ? `/settings/${organization.slug}/integrations/${sourceCodeProviders[0]!.provider.key}/${sourceCodeProviders[0]!.id}/`
+                              : `/settings/${organization.slug}/integrations/`
+                          }
+                        />
+                      ),
+                    }
+                  )
+                : error.includes('blank')
+                  ? t('URL is required.')
+                  : error}
+            </Alert>
+          )}
+          <div>
+            {tct(
+              'We can’t find the file path for [filename] in your [provider] repo. Add the correct link below to enable git blame and suspect commits for this project.',
+              {
+                provider: providerName,
+                filename: <StyledCode>{filename}</StyledCode>,
+              }
+            )}
+          </div>
+          <StyledList symbol="colored-numeric">
+            <li>
+              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
+                <div>
+                  {hasOneSourceCodeIntegration
+                    ? tct('Go to [link]', {
+                        link: (
+                          <ExternalLink href={sourceUrl}>
+                            {sourceCodeProviders[0]!.provider.name}
+                          </ExternalLink>
+                        ),
+                      })
+                    : t('Go to your source code provider')}
+                </div>
+              </Stack>
+            </li>
+            <li>
+              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
+                <div>{t('Find the correct repo and path for the file')}</div>
+                <TextCopyInput>{filename}</TextCopyInput>
+              </Stack>
+            </li>
+            <li>
+              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
+                <div>
+                  {suggestions.length
+                    ? t('Select from one of these suggestions or paste your URL below')
+                    : t('Copy the URL and paste it below')}
+                </div>
+                {suggestions.length ? (
+                  <Suggestions>
+                    {suggestions.map((suggestion, i) => {
+                      return (
+                        <div key={i} style={{display: 'flex', alignItems: 'center'}}>
+                          <SuggestionOverflow>{suggestion}</SuggestionOverflow>
+                          <CopyToClipboardButton
+                            variant="transparent"
+                            text={suggestion}
+                            size="xs"
+                            aria-label={t('Copy suggestion to clipboard')}
+                          />
+                        </div>
+                      );
+                    })}
+                  </Suggestions>
+                ) : null}
+
+                <StyledTextField
+                  inline={false}
+                  aria-label={t('Repository URL')}
+                  hideLabel
+                  name="source-code-input"
+                  value={sourceCodeInput}
+                  onChange={onHandleChange}
+                  placeholder={getPlaceholderUrl()}
+                />
+              </Stack>
+            </li>
+          </StyledList>
+        </Stack>
+      </Body>
+      <Footer>
+        <Grid flow="column" align="center" gap="md">
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button variant="primary" onClick={handleSubmit}>
+            {t('Save')}
+          </Button>
+        </Grid>
+      </Footer>
+    </Fragment>
+  );
+}
+
+const StyledList = styled(List)`
+  gap: ${p => p.theme.space.xl};
+
+  & > li {
+    display: flex;
+    padding-left: 0;
+    gap: ${p => p.theme.space.md};
+  }
+
+  & > li:before {
+    position: relative;
+    min-width: 25px;
+  }
+`;
+
+const Suggestions = styled('div')`
+  background-color: ${p => p.theme.colors.surface200};
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md}
+    ${p => p.theme.space.xl};
+`;
+
+const SuggestionOverflow = styled('div')`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+`;
+
+const StyledCode = styled('code')`
+  word-break: break-word;
+`;
+
+const StyledTextField = styled(TextField)`
+  padding: 0px;
+  flex-grow: 1;
+
+  div {
+    margin-left: 0px;
+  }
+`;

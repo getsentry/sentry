@@ -1,0 +1,148 @@
+import type React from 'react';
+import {css, type Theme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
+import {IconChevron} from 'sentry/icons';
+
+interface BaseAlertLinkProps extends Pick<
+  AlertProps,
+  'system' | 'children' | 'trailingItems' | 'variant'
+> {}
+
+interface ExternalAlertLinkProps extends BaseAlertLinkProps {
+  href: string;
+  // @TODO(jonasbadalic): type definition used ot indicated this prop for all types, but it never actually worked for anything except external links
+  // @TODO(jonasbadalic): this type should not be optional because it has a default initializer inside ExternalLink!!
+  openInNewTab: boolean;
+  onClick?: never;
+  // Disable other props that are not applicable for this type
+  to?: never;
+}
+
+interface InternalAlertLinkProps extends BaseAlertLinkProps {
+  to: string;
+  // Disable other props that are not applicable for this type
+  href?: never;
+  onClick?: never;
+  openInNewTab?: never;
+}
+
+interface ManualAlertLinkProps extends BaseAlertLinkProps {
+  onClick: React.MouseEventHandler<HTMLAnchorElement>;
+  // Disable other props that are not applicable for this type
+  href?: never;
+  openInNewTab?: never;
+  to?: never;
+}
+
+type AlertLinkProps =
+  | ExternalAlertLinkProps
+  | InternalAlertLinkProps
+  | ManualAlertLinkProps;
+
+export function AlertLink(props: AlertLinkProps): React.ReactNode {
+  const alertProps: AlertProps = {
+    variant: props.variant ?? 'info',
+    system: props.system,
+    trailingItems: props.trailingItems ?? <IconChevron direction="right" />,
+  };
+
+  // @TODO(jonasbadalic): we should check for empty href and report to sentry
+  if ('href' in props) {
+    // @TODO(jonasbadalic): Should we validate that the href is a valid URL?
+    return (
+      <ExternalLinkWithTextDecoration
+        variant={alertProps.variant}
+        href={props.href}
+        openInNewTab={props.openInNewTab}
+      >
+        <Alert {...alertProps}>{props.children}</Alert>
+      </ExternalLinkWithTextDecoration>
+    );
+  }
+
+  if ('onClick' in props) {
+    return (
+      // @TODO(jonasbadalic): fix this hacky way of making the link work. It seems that doing this
+      // causes the link to render a path to / which probably means that even though a manual link is specified,
+      // the user might still be redirected to a path that they dont want to be redirected to?. Should this
+      // be a button in this case?
+      <LinkWithTextDecoration variant={alertProps.variant} to="" onClick={props.onClick}>
+        <Alert {...alertProps}>{props.children}</Alert>
+      </LinkWithTextDecoration>
+    );
+  }
+
+  // @TODO(jonasbadalic): we should check for empty to value and report to sentry
+  return (
+    <LinkWithTextDecoration variant={alertProps.variant} to={props.to}>
+      <Alert {...alertProps}>{props.children}</Alert>
+    </LinkWithTextDecoration>
+  );
+}
+
+// @TODO(jonasbadalic): the styles here are duplicated...
+const ExternalLinkWithTextDecoration = styled(ExternalLink)<{
+  variant: AlertProps['variant'];
+}>`
+  display: block;
+  cursor: pointer;
+  ${p => textDecorationStyles({type: p.variant, theme: p.theme})}
+`;
+
+const LinkWithTextDecoration = styled(Link)<{variant: AlertProps['variant']}>`
+  display: block;
+  cursor: pointer;
+  ${p => textDecorationStyles({type: p.variant, theme: p.theme})}
+`;
+
+function textDecorationStyles({
+  type,
+  theme,
+}: {
+  theme: Theme;
+  type: AlertProps['variant'];
+}) {
+  const borderColors = {
+    info: theme.colors.blue200,
+    success: theme.colors.green200,
+    muted: theme.tokens.border.primary,
+    warning: theme.colors.yellow200,
+    danger: theme.colors.red200,
+  };
+
+  const hoverColors = {
+    info: theme.colors.blue500,
+    success: theme.colors.green500,
+    muted: 'inherit',
+    warning: theme.colors.yellow500,
+    danger: theme.colors.red500,
+  };
+
+  return css`
+    text-decoration-color: ${borderColors[type]};
+    text-decoration-style: solid;
+    text-decoration-line: underline;
+    transition: border-color ${theme.motion.smooth.moderate};
+
+    &:hover {
+      text-decoration-color: ${hoverColors[type]};
+      text-decoration-style: solid;
+      text-decoration-line: underline;
+    }
+  `;
+}
+
+/**
+ * Manages margins of AlertLink components
+ */
+const Container = styled('div')`
+  > a {
+    margin-bottom: ${p => p.theme.space.xl};
+  }
+`;
+
+AlertLink.Container = Container;

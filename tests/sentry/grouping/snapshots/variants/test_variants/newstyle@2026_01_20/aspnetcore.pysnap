@@ -1,0 +1,351 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "85f90327d3b9ef257838f2664b9915e6"
+  contributing component: exception
+  hint: None
+  root_component:
+    app*
+      exception*
+        type*
+          "System.Exception"
+        value (ignored because stacktrace takes precedence)
+          "sync exception"
+        stacktrace*
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware"
+            function*
+              "Invoke"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"
+            function*
+              "Invoke"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Routing.EndpointMiddleware"
+            function*
+              "Invoke"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+            function*
+              "InvokeAsync"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+            function*
+              "InvokeFilterPipelineAsync"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+            function*
+              "Next"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+            function*
+              "Rethrow"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+            function*
+              "InvokeNextResourceFilter"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+            function*
+              "InvokeInnerFilterAsync"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+            function*
+              "Next"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+            function*
+              "Rethrow"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+            function*
+              "InvokeNextActionFilterAsync"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame (marked out of app by the client)
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+            function*
+              "InvokeActionMethodAsync"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"
+            function*
+              "Execute"
+          frame (marked out of app by the client)
+            module*
+              "Microsoft.Extensions.Internal.ObjectMethodExecutor"
+            function*
+              "Execute"
+          frame* (marked in-app by the client)
+            module*
+              "(unknown)"
+            function*
+              "lambda_method"
+          frame* (marked in-app by the client)
+            module*
+              "SentryTest2.Controllers.ValuesController"
+            filename (ignored because module takes precedence)
+              "valuescontroller.cs"
+            function*
+              "Get"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  contributing component: null
+  hint: ignored because app/system exception takes precedence
+  root_component:
+    default (ignored because app/system exception takes precedence)
+      message (ignored because app/system exception takes precedence)
+        "An unhandled exception has occurred while executing the request."
+--------------------------------------------------------------------------
+system:
+  hash: "97dff72812f7f33f6fd01179d7963d07"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type*
+          "System.Exception"
+        value (ignored because stacktrace takes precedence)
+          "sync exception"
+        stacktrace*
+          frame*
+            module*
+              "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware"
+            function*
+              "Invoke"
+          frame*
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame*
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"
+            function*
+              "Invoke"
+          frame*
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame*
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Routing.EndpointMiddleware"
+            function*
+              "Invoke"
+          frame*
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame*
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+            function*
+              "InvokeAsync"
+          frame*
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame*
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+            function*
+              "InvokeFilterPipelineAsync"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+            function*
+              "Next"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+            function*
+              "Rethrow"
+          frame*
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"
+            function*
+              "InvokeNextResourceFilter"
+          frame*
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame*
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+            function*
+              "InvokeInnerFilterAsync"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+            function*
+              "Next"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+            function*
+              "Rethrow"
+          frame*
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+            function*
+              "InvokeNextActionFilterAsync"
+          frame*
+            module*
+              "System.Runtime.CompilerServices.TaskAwaiter"
+            function*
+              "HandleNonSuccessAndDebuggerNotification"
+          frame*
+            module*
+              "System.Runtime.ExceptionServices.ExceptionDispatchInfo"
+            function*
+              "Throw"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"
+            function*
+              "InvokeActionMethodAsync"
+          frame*
+            module*
+              "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"
+            function*
+              "Execute"
+          frame*
+            module*
+              "Microsoft.Extensions.Internal.ObjectMethodExecutor"
+            function*
+              "Execute"
+          frame*
+            module*
+              "(unknown)"
+            function*
+              "lambda_method"
+          frame*
+            module*
+              "SentryTest2.Controllers.ValuesController"
+            filename (ignored because module takes precedence)
+              "valuescontroller.cs"
+            function*
+              "Get"

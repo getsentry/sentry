@@ -1,0 +1,146 @@
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
+
+import {AreaChart} from 'sentry/components/charts/areaChart';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {Placeholder} from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import type {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
+import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {RouteError} from 'sentry/views/routeError';
+
+interface IssueAlertDetailsProps extends DateTimeObject {
+  project: Project;
+  rule: IssueAlertRule;
+}
+
+export function IssueAlertDetailsChart({
+  project,
+  period,
+  start,
+  end,
+  utc,
+  rule,
+}: IssueAlertDetailsProps) {
+  const theme = useTheme();
+  const organization = useOrganization();
+  const {
+    data: ruleFireHistory,
+    isPending,
+    isError,
+    error,
+  } = useApiQuery<ProjectAlertRuleStats[]>(
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/stats/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+          ruleId: rule.id,
+        },
+      }),
+      {
+        query: {
+          ...(period && {statsPeriod: period}),
+          start,
+          end,
+          utc,
+        },
+      },
+    ],
+    {staleTime: 30000}
+  );
+
+  const totalAlertsTriggered =
+    ruleFireHistory?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
+
+  if (isError) {
+    return <RouteError error={error} />;
+  }
+
+  return (
+    <Panel>
+      <StyledPanelBody withPadding>
+        <ChartHeader>
+          <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
+        </ChartHeader>
+        {isPending ? (
+          <Placeholder height="200px" />
+        ) : (
+          <ChartZoom period={period} start={start} end={end} utc={utc} usePageDate>
+            {zoomRenderProps => (
+              <AreaChart
+                {...zoomRenderProps}
+                isGroupedByDate
+                showTimeInTooltip
+                grid={{
+                  left: theme.space['2xs'],
+                  right: theme.space.xl,
+                  top: theme.space['2xl'],
+                  bottom: 0,
+                }}
+                yAxis={{
+                  minInterval: 1,
+                }}
+                series={[
+                  {
+                    seriesName: 'Alerts Triggered',
+                    data:
+                      ruleFireHistory?.map(alert => ({
+                        name: alert.date,
+                        value: alert.count,
+                      })) ?? [],
+                    emphasis: {
+                      disabled: true,
+                    },
+                  },
+                ]}
+              />
+            )}
+          </ChartZoom>
+        )}
+      </StyledPanelBody>
+      <ChartFooter>
+        <FooterHeader>{t('Total Alerts')}</FooterHeader>
+        <Flex align="center" margin="0 md">
+          {isPending ? (
+            <Placeholder height="16px" width="50px" />
+          ) : (
+            totalAlertsTriggered.toLocaleString()
+          )}
+        </Flex>
+      </ChartFooter>
+    </Panel>
+  );
+}
+
+const ChartHeader = styled('div')`
+  margin-bottom: ${p => p.theme.space['2xl']};
+`;
+
+const ChartFooter = styled(PanelFooter)`
+  display: flex;
+  align-items: center;
+  padding: ${p => p.theme.space.md} 20px;
+`;
+
+const FooterHeader = styled('h4')`
+  margin: 0;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.md};
+  line-height: 1;
+`;
+
+/* Override padding to make chart appear centered */
+const StyledPanelBody = styled(PanelBody)`
+  padding-right: 6px;
+`;

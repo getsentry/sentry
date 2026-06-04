@@ -1,0 +1,16 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=827846
+  // for the documentation about the extensions.json format
+  "recommendations": [
+    "charliermarsh.ruff",
+    "dbaeumer.vscode-eslint",
+    "lextudio.restructuredtext",
+    "mkhl.direnv",
+    "ms-python.python",
+    "oxc.oxc-vscode",
+    "timonwong.shellcheck",
+    "tyriar.sort-lines",
+    "webpro.vscode-knip",
+    "ziyasal.vscode-open-in-github",
+  ]
+}

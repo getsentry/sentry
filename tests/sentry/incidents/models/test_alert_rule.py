@@ -1,0 +1,278 @@
+import pytest
+from django.core.cache import cache
+
+from sentry.incidents.logic import delete_alert_rule, update_alert_rule
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleActivity,
+    AlertRuleActivityType,
+    AlertRuleStatus,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
+)
+from sentry.testutils.cases import TestCase
+
+
+class IncidentGetForSubscriptionTest(TestCase):
+    def test(self) -> None:
+        alert_rule = self.create_alert_rule()
+        subscription = alert_rule.snuba_query.subscriptions.get()
+        # First test fetching from database
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % subscription.id) is None
+        assert AlertRule.objects.get_for_subscription(subscription) == alert_rule
+
+        # Now test fetching from cache
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % subscription.id) == alert_rule
+        assert AlertRule.objects.get_for_subscription(subscription) == alert_rule
+
+
+class IncidentClearSubscriptionCacheTest(TestCase):
+    def setUp(self) -> None:
+        self.alert_rule = self.create_alert_rule()
+        self.subscription = self.alert_rule.snuba_query.subscriptions.get()
+
+    def test_updated_subscription(self) -> None:
+        AlertRule.objects.get_for_subscription(self.subscription)
+        assert (
+            cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
+            == self.alert_rule
+        )
+        self.subscription.save()
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id) is None
+
+    def test_deleted_subscription(self) -> None:
+        AlertRule.objects.get_for_subscription(self.subscription)
+        assert (
+            cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
+            == self.alert_rule
+        )
+        subscription_id = self.subscription.id
+        self.subscription.delete()
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id) is None
+
+        # Add the subscription id back in so we don't use `None` in the lookup check.
+        self.subscription.id = subscription_id
+        with pytest.raises(AlertRule.DoesNotExist):
+            AlertRule.objects.get_for_subscription(self.subscription)
+
+    def test_deleted_alert_rule(self) -> None:
+        AlertRule.objects.get_for_subscription(self.subscription)
+        assert (
+            cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
+            == self.alert_rule
+        )
+        delete_alert_rule(self.alert_rule)
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id) is None
+        with pytest.raises(AlertRule.DoesNotExist):
+            AlertRule.objects.get_for_subscription(self.subscription)
+
+
+class AlertRuleTriggerClearCacheTest(TestCase):
+    def setUp(self) -> None:
+        self.alert_rule = self.create_alert_rule()
+        self.trigger = self.create_alert_rule_trigger(self.alert_rule)
+
+    def test_updated_alert_rule(self) -> None:
+        AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
+            self.trigger
+        ]
+        self.alert_rule.save()
+        assert (
+            cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id))
+        ) is None
+
+    def test_deleted_alert_rule(self) -> None:
+        AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
+            self.trigger
+        ]
+        alert_rule_id = self.alert_rule.id
+        self.alert_rule.delete()
+        assert (cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(alert_rule_id))) is None
+
+    def test_updated_alert_rule_trigger(self) -> None:
+        AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
+            self.trigger
+        ]
+        self.trigger.save()
+        assert (
+            cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id))
+        ) is None
+
+    def test_deleted_alert_rule_trigger(self) -> None:
+        AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
+            self.trigger
+        ]
+        self.trigger.delete()
+        assert (
+            cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id))
+        ) is None
+
+
+class IncidentAlertRuleRelationTest(TestCase):
+    def test(self) -> None:
+        self.alert_rule = self.create_alert_rule()
+        self.trigger = self.create_alert_rule_trigger(self.alert_rule)
+        self.incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+
+        assert self.incident.alert_rule.id == self.alert_rule.id
+        all_alert_rules = list(AlertRule.objects.all())
+        assert self.alert_rule in all_alert_rules
+
+        self.alert_rule.status = AlertRuleStatus.SNAPSHOT.value
+        self.alert_rule.save()
+
+        all_alert_rules = list(AlertRule.objects.all())
+        assert self.alert_rule not in all_alert_rules
+        assert self.incident.alert_rule.id == self.alert_rule.id
+
+
+class AlertRuleFetchForOrganizationTest(TestCase):
+    def test_empty(self) -> None:
+        alert_rule = AlertRule.objects.fetch_for_organization(self.organization)
+        assert [] == list(alert_rule)
+
+    def test_simple(self) -> None:
+        alert_rule = self.create_alert_rule()
+
+        assert [alert_rule] == list(AlertRule.objects.fetch_for_organization(self.organization))
+
+    def test_with_projects(self) -> None:
+        project = self.create_project()
+        alert_rule = self.create_alert_rule(projects=[project])
+
+        assert [] == list(
+            AlertRule.objects.fetch_for_organization(self.organization, [self.project])
+        )
+        assert [alert_rule] == list(
+            AlertRule.objects.fetch_for_organization(self.organization, [project])
+        )
+
+    def test_multi_project(self) -> None:
+        project = self.create_project()
+        alert_rule1 = self.create_alert_rule(projects=[project, self.project])
+        alert_rule2 = self.create_alert_rule(projects=[project])
+
+        assert [alert_rule1] == list(
+            AlertRule.objects.fetch_for_organization(self.organization, [self.project])
+        )
+        assert {alert_rule1, alert_rule2} == set(
+            AlertRule.objects.fetch_for_organization(self.organization, [project])
+        )
+
+    def test_project_on_alert(self) -> None:
+        project = self.create_project()
+        alert_rule = self.create_alert_rule()
+        alert_rule.projects.add(project)
+
+        assert [alert_rule] == list(AlertRule.objects.fetch_for_organization(self.organization))
+
+    def test_project_on_alert_and_snuba(self) -> None:
+        project1 = self.create_project()
+        alert_rule1 = self.create_alert_rule(projects=[project1])
+        alert_rule1.projects.add(project1)
+
+        # will fetch if there's 1 project in snuba
+        assert [alert_rule1] == list(AlertRule.objects.fetch_for_organization(self.organization))
+
+        project2 = self.create_project()
+        alert_rule2 = self.create_alert_rule(projects=[project2, self.project])
+        alert_rule2.projects.add(project1)
+
+        # Will fetch if there's 1 project in snuba and 1 in alert rule
+        assert {alert_rule1, alert_rule2} == set(
+            AlertRule.objects.fetch_for_organization(self.organization, [project1])
+        )
+
+
+class AlertRuleTriggerActionTargetTest(TestCase):
+    def setUp(self) -> None:
+        self.metric_alert = self.create_alert_rule()
+        self.alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=self.metric_alert)
+
+    def test_user(self) -> None:
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=str(self.user.id),
+        )
+        assert trigger.target.user_id == self.user.id
+
+    def test_invalid_user(self) -> None:
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="10000000",
+        )
+        assert trigger.target is None
+
+    def test_team(self) -> None:
+        trigger = AlertRuleTriggerAction(
+            target_type=AlertRuleTriggerAction.TargetType.TEAM.value,
+            target_identifier=str(self.team.id),
+        )
+        assert trigger.target == self.team
+
+    def test_invalid_team(self) -> None:
+        trigger = AlertRuleTriggerAction(
+            target_type=AlertRuleTriggerAction.TargetType.TEAM.value, target_identifier="10000000"
+        )
+        assert trigger.target is None
+
+    def test_specific(self) -> None:
+        email = "test@test.com"
+        trigger = AlertRuleTriggerAction(
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value, target_identifier=email
+        )
+        assert trigger.target == email
+
+
+class AlertRuleActivityTest(TestCase):
+    def test_simple(self) -> None:
+        assert AlertRuleActivity.objects.all().count() == 0
+        self.alert_rule = self.create_alert_rule()
+        assert AlertRuleActivity.objects.filter(
+            alert_rule=self.alert_rule, type=AlertRuleActivityType.CREATED.value
+        ).exists()
+
+    def test_delete(self) -> None:
+        assert AlertRuleActivity.objects.all().count() == 0
+        self.alert_rule = self.create_alert_rule()
+        self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        delete_alert_rule(self.alert_rule)
+        assert AlertRuleActivity.objects.filter(
+            alert_rule=self.alert_rule, type=AlertRuleActivityType.DELETED.value
+        ).exists()
+
+    def test_update(self) -> None:
+        assert AlertRuleActivity.objects.all().count() == 0
+        self.alert_rule = self.create_alert_rule()
+        self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        update_alert_rule(self.alert_rule, name="updated_name")
+        assert AlertRuleActivity.objects.filter(
+            previous_alert_rule=self.alert_rule, type=AlertRuleActivityType.SNAPSHOT.value
+        ).exists()
+        assert AlertRuleActivity.objects.filter(
+            alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
+        ).exists()
+
+
+class AlertRuleFetchForProjectTest(TestCase):
+    def test_simple(self) -> None:
+        project = self.create_project()
+        alert_rule = self.create_alert_rule(projects=[project])
+
+        assert [alert_rule] == list(AlertRule.objects.fetch_for_project(project))
+
+    def test_projects_on_snuba_and_alert(self) -> None:
+        project1 = self.create_project()
+        alert_rule1 = self.create_alert_rule(projects=[project1, self.project])
+
+        project2 = self.create_project()
+        alert_rule2 = self.create_alert_rule(projects=[project2, self.project])
+        alert_rule2.projects.add(project2)
+
+        assert {alert_rule1, alert_rule2} == set(AlertRule.objects.fetch_for_project(self.project))

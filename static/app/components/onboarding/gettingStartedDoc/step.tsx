@@ -1,0 +1,113 @@
+import type React from 'react';
+import {useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
+
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {StepIndexProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {
+  StepType,
+  type OnboardingStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+
+export const StepTitles: Record<StepType, string> = {
+  [StepType.INSTALL]: t('Install'),
+  [StepType.CONFIGURE]: t('Configure SDK'),
+  [StepType.VERIFY]: t('Verify'),
+};
+
+export function Step({
+  title,
+  type,
+  content,
+  onOptionalToggleClick,
+  collapsible = false,
+  trailingItems,
+  stepIndex,
+  ...props
+}: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> &
+  // stepIndex is required so StepIndexProvider can disambiguate tab
+  // selection keys across steps (used by the Copy as Markdown feature).
+  OnboardingStep & {stepIndex: number}) {
+  const [showOptionalConfig, setShowOptionalConfig] = useState(false);
+
+  const config = (
+    <Container marginTop="xl">
+      <StepIndexProvider index={stepIndex}>
+        <ContentBlocksRenderer contentBlocks={content} />
+      </StepIndexProvider>
+    </Container>
+  );
+
+  const stepTitle = <StepTitle>{title ?? StepTitles[type]}</StepTitle>;
+  const trailingItemsContent = trailingItems ? (
+    <Grid flow="column" align="center" gap="md" onClick={e => e.stopPropagation()}>
+      {trailingItems}
+    </Grid>
+  ) : null;
+
+  return collapsible ? (
+    <div {...props}>
+      <OptionalConfigWrapper
+        expanded={showOptionalConfig}
+        onClick={() => {
+          onOptionalToggleClick?.(!showOptionalConfig);
+          setShowOptionalConfig(!showOptionalConfig);
+        }}
+      >
+        {stepTitle}
+        <ToggleButton
+          variant="link"
+          size="zero"
+          icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
+          aria-label={t('Toggle optional configuration')}
+        />
+        {trailingItemsContent}
+      </OptionalConfigWrapper>
+      {showOptionalConfig ? config : null}
+    </div>
+  ) : (
+    <div {...props}>
+      {trailingItems ? (
+        <Flex justify="between" align="center" gap="sm">
+          {stepTitle}
+          {trailingItemsContent}
+        </Flex>
+      ) : (
+        stepTitle
+      )}
+      {config}
+    </div>
+  );
+}
+
+// NOTE: We intentionally avoid using flex or grid here
+// as it leads to weird text selection behavior in Safari
+// see https://github.com/getsentry/sentry/issues/79958
+const StepTitle = styled('h4')`
+  margin-bottom: 0 !important;
+`;
+
+const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => (p.expanded ? p.theme.space.xl : 0)};
+  cursor: pointer;
+`;
+
+const ToggleButton = styled(Button)`
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+  padding: 0;
+  &,
+  :hover {
+    color: ${p => p.theme.colors.gray800};
+  }
+`;

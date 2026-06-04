@@ -1,0 +1,19 @@
+---
+created: '2019-05-22T14:45:12.475131Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_template.py
+---
+api_context:
+  context: []
+  filename: null
+  lineNo: null
+errors: null
+to_json: {}
+to_string: 'Stacktrace (most recent call last):
+
+
+
+
+  File "None", line None
+
+  '

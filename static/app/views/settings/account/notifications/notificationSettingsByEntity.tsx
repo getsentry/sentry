@@ -1,0 +1,336 @@
+import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {skipToken, useQuery} from '@tanstack/react-query';
+import keyBy from 'lodash/keyBy';
+
+import {Button} from '@sentry/scraps/button';
+import {Select} from '@sentry/scraps/select';
+
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {IconAdd, IconDelete} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+
+import type {NotificationOptionsObject, NotificationSettingsType} from './constants';
+import {NOTIFICATION_SETTING_FIELDS} from './fields';
+import {OrganizationSelectHeader} from './organizationSelectHeader';
+
+type Value = 'always' | 'never' | 'subscribe_only' | 'committed_only';
+
+interface NotificationSettingsByEntityProps {
+  entityType: 'project' | 'organization';
+  handleAddNotificationOption: (
+    notificationOption: Omit<NotificationOptionsObject, 'id'>
+  ) => void;
+  handleEditNotificationOption: (notificationOption: NotificationOptionsObject) => void;
+  handleRemoveNotificationOption: (id: string) => void;
+  notificationOptions: NotificationOptionsObject[];
+  notificationType: string;
+  organizations: OrganizationSummary[];
+}
+
+export function NotificationSettingsByEntity({
+  entityType,
+  handleAddNotificationOption,
+  handleEditNotificationOption,
+  handleRemoveNotificationOption,
+  notificationOptions,
+  notificationType,
+  organizations,
+}: NotificationSettingsByEntityProps) {
+  const theme = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [selectedValue, setSelectedValue] = useState<Value | null>(null);
+
+  const customerDomain = ConfigStore.get('customerDomain');
+  const orgFromSubdomain = organizations.find(
+    ({slug}) => slug === customerDomain?.subdomain
+  )?.id;
+
+  const orgId =
+    (location.query?.organizationId as string | undefined) ??
+    orgFromSubdomain ??
+    (organizations.length === 1 ? organizations[0]?.id : undefined);
+  let organization = organizations.find(({id}) => id === orgId);
+
+  if (!organization && organizations.length === 1) {
+    organization = organizations[0];
+  }
+  // loads all the projects for an org
+  const {
+    data: projects,
+    isPending,
+    isSuccess,
+    isError,
+    refetch,
+  } = useQuery({
+    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
+      host: organization?.links?.regionUrl,
+      query: {
+        all_projects: '1',
+        collapse: ['latestDeploys', 'unusedFeatures'],
+      },
+      staleTime: Infinity,
+    }),
+  });
+
+  // always loading all projects even though we only need it sometimes
+  const entities = entityType === 'project' ? projects || [] : organizations;
+  // create maps by the project id for constant time lookups
+  const entityById = keyBy<OrganizationSummary | Project>(entities, 'id');
+
+  const handleOrgChange = (organizationId: string) => {
+    navigate(
+      {
+        ...location,
+        query: {organizationId},
+      },
+      {replace: true}
+    );
+  };
+
+  const handleAdd = () => {
+    // should never happen
+    if (!selectedEntityId || !selectedValue) {
+      return;
+    }
+    const data = {
+      type: notificationType,
+      scopeType: entityType,
+      scopeIdentifier: selectedEntityId,
+      value: selectedValue,
+    };
+    setSelectedEntityId(null);
+    setSelectedValue(null);
+    handleAddNotificationOption(data);
+  };
+
+  const valueOptions =
+    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType].choices;
+
+  const renderOverrides = () => {
+    const matchedOptions = notificationOptions.filter(
+      option => option.type === notificationType && option.scopeType === entityType
+    );
+    return matchedOptions.map(option => {
+      const entity = entityById[option.scopeIdentifier];
+      if (!entity) {
+        return null;
+      }
+
+      const idBadgeProps =
+        entityType === 'project'
+          ? {project: entity as Project}
+          : {organization: entity as OrganizationSummary};
+
+      return (
+        <Item key={entity.id}>
+          <div style={{marginLeft: theme.space.xl}}>
+            <IdBadge
+              {...idBadgeProps}
+              avatarSize={20}
+              displayName={entity.slug}
+              avatarProps={{consistentWidth: true}}
+              disableLink
+            />
+          </div>
+          <Select
+            placeholder={t('Value\u2026')}
+            value={option.value}
+            name={`${entity.id}-value`}
+            choices={valueOptions}
+            onChange={({value}: {value: string}) => {
+              handleEditNotificationOption({
+                ...option,
+                value: value as Value,
+              });
+            }}
+          />
+          <RemoveButtonWrapper>
+            <Button
+              aria-label={t('Delete')}
+              size="sm"
+              variant="secondary"
+              icon={<IconDelete />}
+              onClick={() => handleRemoveNotificationOption(option.id)}
+            />
+          </RemoveButtonWrapper>
+        </Item>
+      );
+    });
+  };
+
+  const entityOptions = entities
+    .filter(({id}: any) => {
+      const match = notificationOptions.find(
+        option =>
+          option.scopeType === entityType &&
+          option.scopeIdentifier.toString() === id.toString() &&
+          option.type === notificationType
+      );
+      return !match;
+    })
+    .map((obj: any) => {
+      const entity = entityById[obj.id];
+      const idBadgeProps =
+        entityType === 'project'
+          ? {project: entity as Project}
+          : {organization: entity as OrganizationSummary};
+
+      return {
+        label: entityType === 'project' ? obj.slug : obj.name,
+        value: obj.id,
+        leadingItems: (
+          <IdBadge
+            {...idBadgeProps}
+            avatarSize={20}
+            avatarProps={{consistentWidth: true}}
+            disableLink
+            hideName
+          />
+        ),
+      };
+    })
+    .sort((a: any, b: any) => a.label.localeCompare(b.label));
+
+  // Group options when displaying projects
+  const groupedEntityOptions =
+    entityType === 'project'
+      ? [
+          {
+            label: t('My Projects'),
+            options: entityOptions.filter(
+              (project: any) => (entityById[project.value] as Project).isMember
+            ),
+          },
+          {
+            label: t('All Projects'),
+            options: entityOptions.filter(
+              (project: any) => !(entityById[project.value] as Project).isMember
+            ),
+          },
+        ]
+      : entityOptions;
+
+  return (
+    <MinHeight>
+      <Panel>
+        <StyledPanelHeader>
+          {entityType === 'project' ? (
+            <OrganizationSelectHeader
+              organizations={organizations}
+              organizationId={orgId}
+              handleOrgChange={handleOrgChange}
+            />
+          ) : (
+            t('Settings for Organizations')
+          )}
+        </StyledPanelHeader>
+        {!organization && entityType === 'project' ? (
+          <PanelBody>
+            <EmptyStateWarning withIcon={false}>
+              {t('Select an organization to continue')}
+            </EmptyStateWarning>
+          </PanelBody>
+        ) : (
+          <Fragment>
+            <ControlItem>
+              {/* TODO: enable search for sentry projects */}
+              <Select
+                placeholder={
+                  entityType === 'project'
+                    ? t('Project\u2026')
+                    : t('Sentry Organization\u2026')
+                }
+                name={entityType}
+                options={groupedEntityOptions}
+                onChange={({value}: {value: string}) => {
+                  setSelectedEntityId(value);
+                }}
+                value={selectedEntityId}
+              />
+              <Select
+                placeholder={t('Value\u2026')}
+                value={selectedValue}
+                name="value"
+                choices={valueOptions}
+                onChange={({value}: {value: string}) => {
+                  setSelectedValue(value as Value);
+                }}
+              />
+              <Button
+                disabled={!selectedEntityId || !selectedValue}
+                variant="primary"
+                onClick={handleAdd}
+                icon={<IconAdd />}
+                aria-label={t('Add override')}
+              />
+            </ControlItem>
+            {isPending && entityType === 'project' && (
+              <PanelBody>
+                <LoadingIndicator />
+              </PanelBody>
+            )}
+            {isError && entityType === 'project' && (
+              <PanelBody>
+                <LoadingError onRetry={refetch} />
+              </PanelBody>
+            )}
+            {(isSuccess || entityType === 'organization') && (
+              <StyledPanelBody>{renderOverrides()}</StyledPanelBody>
+            )}
+          </Fragment>
+        )}
+      </Panel>
+    </MinHeight>
+  );
+}
+
+const MinHeight = styled('div')`
+  min-height: 400px;
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  flex-wrap: wrap;
+  gap: ${p => p.theme.space.md};
+  & > form:last-child {
+    flex-grow: 1;
+  }
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  & > div:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+`;
+
+const Item = styled('div')`
+  display: grid;
+  grid-column-gap: ${p => p.theme.space.md};
+  grid-template-columns: 2.5fr 1fr min-content;
+  align-items: center;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+`;
+
+const ControlItem = styled(Item)`
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+`;
+
+const RemoveButtonWrapper = styled('div')`
+  margin: 0 ${p => p.theme.space.xs};
+`;

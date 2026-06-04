@@ -1,0 +1,78 @@
+import {Fragment, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import moment from 'moment-timezone';
+
+import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
+import {DateTime} from 'sentry/components/dateTime';
+import {t} from 'sentry/locale';
+import type {GroupOpenPeriod} from 'sentry/types/group';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {useIssueDetails} from 'sentry/views/issueDetails/context';
+import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
+
+export function useMetricIssueAlertId({groupId}: {groupId: string}): string | undefined {
+  /**
+   * This should be removed once the metric alert rule ID is set on the issue.
+   * This will fetch an event from the max range if the detector details
+   * are not available (e.g. time range has changed and page refreshed)
+   */
+  const user = useUser();
+  const organization = useOrganization();
+  const {detectorDetails} = useIssueDetails();
+  const {detectorId, detectorType} = detectorDetails;
+
+  const hasMetricDetector = detectorId && detectorType === 'metric_alert';
+
+  const {data: event} = useQuery({
+    ...groupEventApiOptions({
+      orgSlug: organization.slug,
+      groupId,
+      eventId: user.options.defaultIssueEvent,
+      environments: [],
+    }),
+    staleTime: Infinity,
+    enabled: !hasMetricDetector,
+    retry: false,
+  });
+
+  // Fall back to the fetched event in case the provider doesn't have the detector details
+  const fallback =
+    event?.occurrence?.evidenceData?.alertId ||
+    event?.contexts?.metric_alert?.alert_rule_id;
+  return hasMetricDetector ? detectorId : fallback;
+}
+
+interface UseMetricTimePeriodParams {
+  openPeriod?: GroupOpenPeriod;
+}
+
+export function useMetricTimePeriod({
+  openPeriod,
+}: UseMetricTimePeriodParams = {}): TimePeriodType {
+  const {since, until} = usePageFilterDates();
+  return useMemo(() => {
+    const start = openPeriod?.start ?? since.toISOString();
+    let end = openPeriod?.end ?? until.toISOString();
+    if (!end) {
+      end = new Date().toISOString();
+    }
+    return {
+      start,
+      end,
+      period: TimePeriod.SEVEN_DAYS,
+      usingPeriod: false,
+      label: t('Custom time'),
+      display: (
+        <Fragment>
+          <DateTime date={moment.utc(start)} />
+          {' — '}
+          <DateTime date={moment.utc(end)} />
+        </Fragment>
+      ),
+      custom: true,
+    };
+  }, [openPeriod, since, until]);
+}

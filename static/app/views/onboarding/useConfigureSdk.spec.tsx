@@ -1,0 +1,140 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+
+import {useModal} from '@sentry/scraps/modal';
+
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+
+import {useConfigureSdk} from './useConfigureSdk';
+
+jest.mock('@sentry/scraps/modal');
+jest.mock('sentry/actionCreators/modal');
+jest.mock('sentry/components/onboarding/useCreateProject');
+
+const mockCreateProject = jest.fn();
+const mockOpenModal = jest.fn();
+
+function mockCreateProjectHook() {
+  let isPending = false;
+
+  const mutateAsync = async (...args: any[]) => {
+    isPending = true;
+    try {
+      const result = await mockCreateProject(...args);
+      return result;
+    } finally {
+      isPending = false;
+    }
+  };
+
+  return {
+    mutateAsync,
+    get isPending() {
+      return isPending;
+    },
+  };
+}
+
+const mockUseCreateProject = jest.mocked(useCreateProject);
+
+describe('useConfigureSdk', () => {
+  const onComplete = jest.fn();
+
+  let createProjectInstance: ReturnType<typeof mockCreateProjectHook>;
+
+  const frameworkModalSupportedPlatform: OnboardingSelectedSDK = {
+    key: 'javascript',
+    type: 'language',
+    language: 'javascript',
+    name: 'JavaScript',
+    category: 'popular',
+    link: 'https://docs.sentry.io/platforms/javascript/',
+  };
+
+  const notFrameworkModalSupportedPlatform: OnboardingSelectedSDK = {
+    key: 'other',
+    type: 'language',
+    language: 'other',
+    name: 'Other',
+    category: 'other',
+    link: 'https://docs.sentry.io/platforms/other/',
+  };
+
+  beforeEach(() => {
+    sessionStorageWrapper.clear();
+    ProjectsStore.loadInitialData([ProjectFixture()]);
+
+    createProjectInstance = mockCreateProjectHook();
+    mockUseCreateProject.mockReturnValue(
+      createProjectInstance as unknown as ReturnType<typeof useCreateProject>
+    );
+    jest.mocked(useModal).mockReturnValue({
+      openModal: mockOpenModal,
+      closeModal: jest.fn(),
+      isOpen: false,
+      visible: false,
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns loading state correctly', () => {
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
+
+    expect(result.current.isLoadingData).toBe(true);
+  });
+
+  it('opens the framework suggestion modal if platform is supported', async () => {
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
+
+    await act(async () => {
+      await result.current.configureSdk(frameworkModalSupportedPlatform);
+    });
+
+    expect(mockOpenModal).toHaveBeenCalled();
+  });
+
+  it('does not open the framework suggestion modal if platform is not supported', async () => {
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
+
+    await act(async () => {
+      await result.current.configureSdk(notFrameworkModalSupportedPlatform);
+    });
+
+    expect(mockOpenModal).not.toHaveBeenCalled();
+    expect(mockCreateProject).toHaveBeenCalled();
+  });
+
+  it('creates project only once even if called multiple times', async () => {
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
+
+    mockCreateProject.mockImplementation(
+      () => new Promise(resolve => setTimeout(resolve, 10))
+    );
+
+    await act(async () => {
+      const promise1 = result.current.configureSdk(notFrameworkModalSupportedPlatform);
+      const promise2 = result.current.configureSdk(notFrameworkModalSupportedPlatform);
+      const promise3 = result.current.configureSdk(notFrameworkModalSupportedPlatform);
+
+      await Promise.all([promise1, promise2, promise3]);
+    });
+
+    expect(mockCreateProject).toHaveBeenCalledTimes(1);
+  });
+});

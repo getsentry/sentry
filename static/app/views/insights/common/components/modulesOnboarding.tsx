@@ -1,0 +1,450 @@
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
+import {PlatformIcon} from 'platformicons';
+
+import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
+import assetsPreviewImg from 'sentry-images/insights/module-upsells/insights-assets-module-charts.svg';
+import cachesPreviewImg from 'sentry-images/insights/module-upsells/insights-caches-module-charts.svg';
+import queriesPreviewImg from 'sentry-images/insights/module-upsells/insights-queries-module-charts.svg';
+import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-queues-module-charts.svg';
+import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
+import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-charts.svg';
+import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
+import sessionHealthPreviewImg from 'sentry-images/insights/module-upsells/insights-session-health-module-charts.svg';
+import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
+import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
+import {t, tct} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types/platform';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {
+  MODULE_DATA_TYPES,
+  MODULE_DATA_TYPES_PLURAL,
+  MODULE_PRODUCT_DOC_LINKS,
+  MODULE_TITLES,
+} from 'sentry/views/insights/settings';
+import {ModuleName} from 'sentry/views/insights/types';
+
+export type ModulesWithOnboarding = Exclude<
+  ModuleName,
+  | ModuleName.AGENT_MODELS
+  | ModuleName.AGENT_TOOLS
+  | ModuleName.MCP_TOOLS
+  | ModuleName.MCP_RESOURCES
+  | ModuleName.MCP_PROMPTS
+  | ModuleName.OTHER
+>;
+
+export function ModulesOnboardingPanel({
+  moduleName,
+}: {
+  moduleName: ModulesWithOnboarding;
+}) {
+  const {view} = useDomainViewFilters();
+  const docLink =
+    typeof MODULE_PRODUCT_DOC_LINKS[moduleName] === 'string'
+      ? MODULE_PRODUCT_DOC_LINKS[moduleName]
+      : view && MODULE_PRODUCT_DOC_LINKS[moduleName][view]
+        ? MODULE_PRODUCT_DOC_LINKS[moduleName][view]
+        : '';
+  const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
+  return (
+    <Panel>
+      <Container>
+        <Flex align="stretch" wrap="wrap-reverse" gap="3xl">
+          <ModuleInfo>
+            <Fragment>
+              <Header>{emptyStateContent.heading}</Header>
+              <p>{emptyStateContent.description}</p>
+            </Fragment>
+            <SplitContainer>
+              <ModulePreview moduleName={moduleName} />
+              <ValueProp>
+                {emptyStateContent.valuePropDescription}
+                <ul>
+                  {emptyStateContent.valuePropPoints.map((point: any) => (
+                    <li key={point?.toString()}>{point}</li>
+                  ))}
+                </ul>
+              </ValueProp>
+            </SplitContainer>
+          </ModuleInfo>
+          <Sidebar>
+            <PerfImage src={emptyStateImg} />
+          </Sidebar>
+        </Flex>
+        <LinkButton variant="primary" external href={docLink}>
+          {t('Read the docs')}
+        </LinkButton>
+      </Container>
+    </Panel>
+  );
+}
+
+type ModulePreviewProps = {moduleName: ModulesWithOnboarding};
+
+function getSDKName(sdk: PlatformKey) {
+  const currentPlatform = platforms.find(p => p.id === sdk);
+  return currentPlatform?.name;
+}
+
+function ModulePreview({moduleName}: ModulePreviewProps) {
+  const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
+  const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
+
+  return (
+    <ModulePreviewContainer>
+      <ModulePreviewImage src={emptyStateContent.imageSrc} />
+      {emptyStateContent.supportedSdks && (
+        <SupportedSdkContainer>
+          <div>{t('Supported Today: ')}</div>
+          <Flex justify="center" wrap="wrap" gap="xs">
+            {emptyStateContent.supportedSdks.map((sdk: PlatformKey) => (
+              <Tooltip title={getSDKName(sdk) ?? startCase(sdk)} key={sdk} position="top">
+                <SupportedSdkIconContainer
+                  onMouseOver={() => setHoveredIcon(sdk)}
+                  onMouseOut={() => setHoveredIcon(null)}
+                >
+                  <PlatformIcon
+                    platform={sdk}
+                    size={hoveredIcon === sdk ? '30px' : '25px'}
+                  />
+                </SupportedSdkIconContainer>
+              </Tooltip>
+            ))}
+          </Flex>
+        </SupportedSdkContainer>
+      )}
+    </ModulePreviewContainer>
+  );
+}
+
+const Sidebar = styled('div')`
+  position: relative;
+  flex: 3;
+`;
+
+const PerfImage = styled('img')`
+  max-width: 100%;
+  min-width: 200px;
+`;
+
+const Container = styled('div')`
+  position: relative;
+  overflow: hidden;
+  min-height: 160px;
+  padding: ${p => p.theme.space['3xl']};
+`;
+
+const Header = styled('h3')`
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const SplitContainer = styled(Panel)`
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+`;
+
+const ModuleInfo = styled('div')`
+  flex: 5;
+  width: 100%;
+`;
+
+const ModulePreviewImage = styled('img')`
+  max-width: 100%;
+  display: block;
+  margin: auto;
+  margin-bottom: ${p => p.theme.space.xl};
+  object-fit: contain;
+`;
+
+const ModulePreviewContainer = styled('div')`
+  flex: 2;
+  width: 100%;
+  padding: ${p => p.theme.space['2xl']};
+  background-color: ${p => p.theme.tokens.background.secondary};
+`;
+
+const SupportedSdkContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const SupportedSdkIconContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: ${p => p.theme.colors.gray100};
+  width: 42px;
+  height: 42px;
+  border-radius: 3px;
+  &:hover {
+    box-shadow: 0 0 0 1px ${p => p.theme.colors.gray200};
+  }
+`;
+
+const ValueProp = styled('div')`
+  flex: 1;
+  padding: ${p => p.theme.space['2xl']};
+  ul {
+    margin-top: ${p => p.theme.space.md};
+  }
+`;
+
+type EmptyStateContent = {
+  description: React.ReactNode;
+  heading: React.ReactNode;
+  imageSrc: any;
+  valuePropDescription: React.ReactNode;
+  valuePropPoints: React.ReactNode[];
+  supportedSdks?: PlatformKey[];
+};
+
+const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
+  [ModuleName.APP_START]: {
+    heading: t("Don't lose your user's attention before your app loads"),
+    description: tct(
+      'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing to regressions.',
+      {
+        dataTypePlural:
+          MODULE_DATA_TYPES_PLURAL[ModuleName.APP_START].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('Mobile [dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.APP_START],
+    }),
+    valuePropPoints: [
+      t('Application start duration broken down by release.'),
+      t('Performance by device class.'),
+      t('Real user performance metrics.'),
+    ],
+    imageSrc: appStartPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  [ModuleName.MOBILE_VITALS]: {
+    heading: t('Mobile Vitals'),
+    description: t(
+      'Key metrics for for mobile development that help you ensure a great mobile user experience.'
+    ),
+    valuePropDescription: t('With Mobile Vitals:'),
+    valuePropPoints: [
+      t('Get recommendations to improve key mobile metrics.'),
+      t('Track the performance of your application on real user devices.'),
+      t('Understand the full lifecycle of an app, from startup to user interactions.'),
+    ],
+    imageSrc: screenLoadsPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  [ModuleName.CACHE]: {
+    heading: t('Bringing you one less hard problem in computer science'),
+    description: t(
+      'We’ll tell you if the parts of your application that interact with caches are hitting cache as often as intended, and whether caching is providing the performance improvements expected.'
+    ),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.CACHE],
+    }),
+    valuePropPoints: [
+      t('Throughput of your cached endpoints.'),
+      tct('Average [dataType] hit and miss duration.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.CACHE].toLocaleLowerCase(),
+      }),
+      t('Hit / miss ratio of keys accessed by your application.'),
+    ],
+    imageSrc: cachesPreviewImg,
+    supportedSdks: ['python', 'javascript', 'php', 'java', 'ruby', 'dotnet'],
+  },
+  [ModuleName.DB]: {
+    heading: tct(
+      'Fix the slow [dataTypePlural] you honestly intended to get back to later',
+      {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase()}
+    ),
+    description: tct(
+      'Investigate the performance of database [dataTypePlural] and get the information necessary to improve them.',
+      {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase()}
+    ),
+    valuePropDescription: tct('[dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.DB],
+    }),
+    valuePropPoints: [
+      tct('Slow [dataTypePlural].', {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase(),
+      }),
+      tct('High volume [dataTypePlural].', {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase(),
+      }),
+      t('One off slow queries, vs. trends'),
+    ],
+    imageSrc: queriesPreviewImg,
+  },
+  [ModuleName.HTTP]: {
+    heading: t(
+      'Are your API dependencies working as well as their landing page promised? '
+    ),
+    description: t(
+      'See the outbound HTTP requests being made to internal and external APIs, allowing you to understand trends in status codes, latency, and throughput.'
+    ),
+    valuePropDescription: tct('[dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.HTTP],
+    }),
+    valuePropPoints: [
+      t('Anomalies in status codes by domain.'),
+      t('Request throughput by domain.'),
+      t('Average duration of requests.'),
+    ],
+    imageSrc: requestPreviewImg,
+  },
+  [ModuleName.RESOURCE]: {
+    heading: t('Is your favorite animated gif worth the time it takes to load?'),
+    description: tct(
+      'Find large and slow-to-load [dataTypePlurl] used by your application and understand their impact on page performance.',
+      {dataTypePlurl: MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase()}
+    ),
+    valuePropDescription: tct('[dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
+    }),
+    valuePropPoints: [
+      tct('[dataType] performance broken down by category and domain.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
+      }),
+      tct('Whether [dataTypePlural] are blocking page rendering.', {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase(),
+      }),
+      tct('[dataType] size and whether it’s growing over time.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
+      }),
+    ],
+    imageSrc: assetsPreviewImg,
+    // TODO - this is a lot of manual work, and its duplicated between here and our docs, it would great if there's a single source of truth
+    supportedSdks: [
+      'javascript',
+      'javascript-angular',
+      'javascript-astro',
+      'javascript-ember',
+      'javascript-gatsby',
+      'javascript-nextjs',
+      'javascript-react',
+      'javascript-remix',
+      'javascript-solid',
+      'javascript-svelte',
+      'javascript-sveltekit',
+      'javascript-vue',
+    ],
+  },
+  [ModuleName.VITAL]: {
+    heading: t('Finally answer, is this page slow for everyone or just me?'),
+    description: t(
+      'Get industry standard metrics telling you the quality of user experience on a web page and see what needs improving.'
+    ),
+    valuePropDescription: tct('[dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.VITAL],
+    }),
+    valuePropPoints: [
+      t('Performance scores broken down by page.'),
+      t('Performance metrics for individual operations that affect page performance.'),
+      t('Drill down to real user sessions.'),
+    ],
+    imageSrc: webVitalsPreviewImg,
+  },
+  [ModuleName.QUEUE]: {
+    heading: t('Ensure your background jobs aren’t being sent to /dev/null'),
+    description: tct(
+      'Understand the health and performance impact that [dataTypePlural] have on your application and diagnose errors tied to jobs.',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.QUEUE].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('[dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.QUEUE],
+    }),
+    valuePropPoints: [
+      t('Metrics for how long jobs spend processing and waiting in queue.'),
+      t('Job error rates and retry counts.'),
+      t('Published vs., processed job volume.'),
+    ],
+    imageSrc: queuesPreviewImg,
+    supportedSdks: ['python', 'javascript', 'php', 'java', 'ruby', 'dotnet'],
+  },
+  [ModuleName.SCREEN_LOAD]: {
+    heading: t("Don’t lose your user's attention once your app loads"),
+    description: tct(
+      'View the most active [dataTypePlural] in your mobile application and monitor your releases for screen load performance.',
+      {
+        dataTypePlural:
+          MODULE_DATA_TYPES_PLURAL[ModuleName.SCREEN_LOAD].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_LOAD],
+    }),
+    valuePropPoints: [
+      t('Compare metrics across releases, root causing performance degradations.'),
+      t('See performance by device class.'),
+      t('Drill down to real user sessions.'),
+    ],
+    imageSrc: screenLoadsPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  [ModuleName.SCREEN_RENDERING]: {
+    description: t(
+      'Screen Rendering identifies slow and frozen interactions, helping you find and fix problems that might cause users to complain, or uninstall.'
+    ),
+    heading: t('Fast-loading apps can still be janky'),
+    imageSrc: screenRenderingPreviewImg,
+    valuePropDescription: tct('With [moduleTitle]:', {
+      moduleTitle: MODULE_TITLES[ModuleName.SCREEN_RENDERING],
+    }),
+    valuePropPoints: [
+      tct('Find and debug slow rendering interactions.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
+      }),
+      t('Compare render performance between releases.'),
+      tct('Correlate [dataType] performance with real-user metrics.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
+      }),
+    ],
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  [ModuleName.SESSIONS]: {
+    heading: t("Get insights about your application's session health"),
+    description: tct(
+      'Understand the frequency of handled errors and crashes compared to healthy sessions.',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.SESSIONS],
+    }),
+    valuePropPoints: [
+      t('Understanding the rate of errored sessions across active releases.'),
+      t('Comparing adoption rates across different releases.'),
+      t('Visualizing user adoption over time.'),
+    ],
+    imageSrc: sessionHealthPreviewImg,
+    supportedSdks: [
+      'android',
+      'flutter',
+      'apple-ios',
+      'javascript',
+      'electron',
+      'native',
+      'php',
+      'python',
+      'react-native',
+      'dotnet',
+      'rust',
+      'unity',
+    ], // this techncially isn't the full list - we support JS browser & node but it seems like too many SDKs to list here
+  },
+};

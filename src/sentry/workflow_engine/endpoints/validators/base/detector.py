@@ -1,0 +1,351 @@
+import builtins
+from dataclasses import dataclass
+from typing import Any, NotRequired, TypedDict
+
+from django.db import router, transaction
+from jsonschema import ValidationError as JSONSchemaValidationError
+from rest_framework import serializers
+
+from sentry import audit_log
+from sentry.api.fields.actor import OwnerActorField
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.issues import grouptype
+from sentry.issues.grouptype import GroupType
+from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
+    CONDITION_GROUP_HELP_TEXT,
+    DATA_SOURCES_HELP_TEXT,
+    DETECTOR_CONFIG_HELP_TEXT,
+    OWNER_HELP_TEXT,
+)
+from sentry.workflow_engine.endpoints.validators.base import (
+    BaseDataConditionGroupValidator,
+    BaseDataConditionValidator,
+)
+from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
+    DataConditionGroupInput,
+)
+from sentry.workflow_engine.endpoints.validators.base.data_source import DataSourceInput
+from sentry.workflow_engine.endpoints.validators.utils import (
+    connect_detectors_to_workflows,
+    get_unknown_detector_type_error,
+    log_alerting_quota_hit,
+    update_owner,
+)
+from sentry.workflow_engine.models import (
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+)
+from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.types import DataConditionType, DetectorPriorityLevel
+
+
+@dataclass(frozen=True)
+class DetectorQuota:
+    has_exceeded: bool
+    limit: int
+    count: int
+
+
+class DetectorInput(TypedDict):
+    name: str
+    type: str
+    data_sources: NotRequired[list[DataSourceInput]]
+    config: NotRequired[dict[str, Any]]
+    condition_group: NotRequired[DataConditionGroupInput]
+    owner: NotRequired[str | int | None]
+    description: NotRequired[str]
+    enabled: NotRequired[bool]
+
+
+class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
+    enforce_single_datasource = False
+    """
+    Set to True in subclasses to enforce that only a single data source can be configured.
+    This prevents invalid configurations for detector types that don't support multiple data sources.
+    """
+
+    data_source_required = True
+    """
+    Set to False in subclasses if data sources are not required for this detector type.
+    By default, data sources are required when creating a new detector.
+    """
+
+    name = serializers.CharField(
+        required=True,
+        max_length=200,
+        help_text="Name of the monitor.",
+    )
+    type = serializers.CharField(help_text="The type of monitor - `metric_issue`.")
+    workflow_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="The IDs of the alerts to connect this monitor to. Use the 'Fetch Alerts' endpoint to find the IDs.",
+    )
+    data_sources = serializers.ListField(
+        required=False,
+        help_text=DATA_SOURCES_HELP_TEXT,
+    )
+    config = serializers.JSONField(
+        default=dict,
+        help_text=DETECTOR_CONFIG_HELP_TEXT,
+    )
+    condition_group = BaseDataConditionGroupValidator(
+        required=False,
+        help_text=CONDITION_GROUP_HELP_TEXT,
+    )
+    owner = OwnerActorField(
+        required=False,
+        allow_null=True,
+        help_text=OWNER_HELP_TEXT,
+    )
+    description = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="A description of the monitor. Will be used in the resulting issue.",
+    )
+    enabled = serializers.BooleanField(
+        required=False, help_text="Set to False if you want to disable the monitor."
+    )
+
+    def validate_type(self, value: str) -> builtins.type[GroupType]:
+        type = grouptype.registry.get_by_slug(value)
+        if type is None:
+            organization = self.context.get("organization")
+            if organization:
+                error_message = get_unknown_detector_type_error(value, organization)
+            else:
+                error_message = f"Unknown detector type '{value}'"
+            raise serializers.ValidationError(error_message)
+        if type.detector_settings is None or type.detector_settings.validator is None:
+            raise serializers.ValidationError("Detector type not compatible with detectors")
+        # TODO: Probably need to check a feature flag to decide if a given
+        # org/user is allowed to add a detector
+        return type
+
+    @property
+    def data_conditions(self) -> BaseDataConditionValidator:
+        raise NotImplementedError
+
+    def validate_data_sources(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """
+        Validate data sources, enforcing single data source if configured.
+        """
+        if self.enforce_single_datasource and len(value) > 1:
+            raise serializers.ValidationError(
+                "Only one data source is allowed for this detector type."
+            )
+        return value
+
+    def validate_condition_group(self, value: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate that all conditions have valid detector priority levels as their condition_result.
+        """
+        conditions = value.get("conditions", [])
+        for condition in conditions:
+            condition_result = condition.get("condition_result")
+
+            if not isinstance(condition_result, int):
+                raise serializers.ValidationError(
+                    "condition_result must be an integer corresponding to a valid detector priority level"
+                )
+
+            try:
+                DetectorPriorityLevel(condition_result)
+            except ValueError:
+                raise serializers.ValidationError(
+                    f"Invalid detector priority level: {condition_result}"
+                )
+
+        return value
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate detector data, enforcing data source requirements if configured.
+        """
+        # Check if data sources are missing when creating a new detector
+        if self.data_source_required and not self.instance and not attrs.get("data_sources"):
+            raise serializers.ValidationError(
+                {"data_sources": ["This field is required when creating a detector."]}
+            )
+        return attrs
+
+    def get_quota(self) -> DetectorQuota:
+        return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
+
+    def enforce_quota(self, validated_data: dict[str, Any]) -> None:
+        """
+        Enforce quota limits for detector creation.
+        Raise ValidationError if quota limits are exceeded.
+
+        Only Metric Issues Detector has quota limits.
+        """
+        detector_quota = self.get_quota()
+        if detector_quota.has_exceeded:
+            request = self.context["request"]
+            log_alerting_quota_hit(
+                object_type=f"detector:{validated_data['type'].slug}",
+                organization=self.context["organization"],
+                actor=request.user if request.user.is_authenticated else None,
+            )
+            raise serializers.ValidationError(
+                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type'].slug} monitors."
+            )
+
+    def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        organization = self.context["organization"]
+        request = self.context["request"]
+
+        with transaction.atomic(router.db_for_write(Detector)):
+            if "name" in validated_data:
+                instance.name = validated_data.get("name", instance.name)
+
+            # Handle description field update
+            if "description" in validated_data:
+                instance.description = validated_data.get("description", instance.description)
+
+            # Handle enable/disable detector
+            if "enabled" in validated_data:
+                enabled = validated_data.get("enabled")
+                assert isinstance(enabled, bool)
+                instance.enabled = enabled
+
+            # Handle owner field update
+            if "owner" in validated_data:
+                instance.owner_user_id, instance.owner_team_id = update_owner(
+                    validated_data.pop("owner")
+                )
+
+            if "condition_group" in validated_data and validated_data.get("condition_group"):
+                condition_group = validated_data.pop("condition_group")
+                data_conditions: list[DataConditionType] = condition_group.get("conditions")
+
+                if data_conditions and instance.workflow_condition_group:
+                    # Pass context for organization validation of condition IDs
+                    group_validator = BaseDataConditionGroupValidator(context=self.context)
+                    group_validator.update(instance.workflow_condition_group, condition_group)
+
+            # Handle config field update
+            if "config" in validated_data:
+                instance.config = validated_data.get("config", instance.config)
+                try:
+                    instance.enforce_config_schema()
+                except JSONSchemaValidationError as error:
+                    raise serializers.ValidationError({"config": [str(error)]})
+
+            # Update detector connections
+            workflow_ids = None
+            if "workflow_ids" in validated_data:
+                workflow_ids = validated_data.pop("workflow_ids")
+            connect_detectors_to_workflows(
+                request,
+                organization,
+                instance.id,
+                workflow_ids,
+                update=True,
+            )
+
+            instance.save()
+
+            create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=instance.id,
+                event=audit_log.get_event_id("DETECTOR_EDIT"),
+                data=instance.get_audit_log_data(),
+            )
+
+        return instance
+
+    def delete(self) -> None:
+        """
+        Delete the detector by scheduling it for deletion.
+
+        Subclasses can override this to perform detector-specific cleanup before
+        deletion (e.g., removing billing seats, cleaning up external resources).
+        They should call super().delete() to perform the actual deletion.
+        """
+        assert self.instance is not None
+        CellScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
+        self.instance.update(status=ObjectStatus.PENDING_DELETION)
+
+    def _create_data_source(
+        self, validated_data_source: dict[str, Any], detector: Detector
+    ) -> None:
+        data_source_creator = validated_data_source["_creator"]
+        data_source = data_source_creator.create()
+
+        detector_data_source = DataSource.objects.create(
+            organization_id=self.context["project"].organization_id,
+            source_id=data_source.id,
+            type=validated_data_source["data_source_type"],
+        )
+        DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
+
+    def create(self, validated_data: dict[str, Any]) -> Detector:
+        # If quotas are exceeded, we will prevent creation of new detectors.
+        # Do not disable or prevent the users from updating existing detectors.
+        self.enforce_quota(validated_data)
+
+        organization = self.context["organization"]
+        request = self.context["request"]
+
+        with transaction.atomic(router.db_for_write(Detector)):
+            condition_group = DataConditionGroup.objects.create(
+                logic_type=DataConditionGroup.Type.ANY,
+                organization_id=organization.id,
+            )
+
+            if "condition_group" in validated_data:
+                for condition in validated_data["condition_group"]["conditions"]:
+                    DataCondition.objects.create(
+                        comparison=condition["comparison"],
+                        condition_result=condition["condition_result"],
+                        type=condition["type"],
+                        condition_group=condition_group,
+                    )
+
+            owner_user_id, owner_team_id = update_owner(validated_data.get("owner"))
+
+            detector = Detector(
+                project_id=self.context["project"].id,
+                name=validated_data["name"],
+                description=validated_data.get("description"),
+                workflow_condition_group=condition_group,
+                type=validated_data["type"].slug,
+                config=validated_data.get("config", {}),
+                owner_user_id=owner_user_id,
+                owner_team_id=owner_team_id,
+                created_by_id=request.user.id,
+            )
+
+            try:
+                detector.enforce_config_schema()
+            except JSONSchemaValidationError as error:
+                # Surface schema errors as a user-facing validation error
+                raise serializers.ValidationError({"config": [str(error)]})
+
+            detector.save()
+
+            if "data_sources" in validated_data:
+                for validated_data_source in validated_data["data_sources"]:
+                    self._create_data_source(validated_data_source, detector)
+
+            # connect workflows
+            workflow_ids = validated_data.get("workflow_ids")
+            connect_detectors_to_workflows(request, organization, detector.id, workflow_ids)
+
+            create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=detector.id,
+                event=audit_log.get_event_id("DETECTOR_ADD"),
+                data=detector.get_audit_log_data(),
+            )
+
+        return detector

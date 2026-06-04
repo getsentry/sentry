@@ -1,0 +1,56 @@
+{
+  "event_id": "643b8ffdf6e54b0c8607537155b3a698",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "pthread_create",
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "function": "__thread_entry",
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "package": "/system/lib/libutils.so"
+            },
+            {
+              "function": "android::Thread::_threadLoop",
+              "package": "/system/lib/libutils.so"
+            },
+            {
+              "function": "android::AudioTrack::AudioTrackThread::threadLoop",
+              "package": "/system/lib/libmedia.so"
+            },
+            {
+              "function": "android::AudioTrack::processAudioBuffer",
+              "package": "/system/lib/libmedia.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

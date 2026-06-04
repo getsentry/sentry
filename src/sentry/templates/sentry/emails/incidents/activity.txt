@@ -1,0 +1,22 @@
+{% spaceless %}
+{% autoescape off %}
+# New Alert Activity
+
+{{ user_name }} {{ action }}:
+{% if enhanced_privacy %}
+Details about this activity are not shown in this email since enhanced privacy
+controls are enabled. For more details about this activity, view on Sentry:
+{{ link }}.
+{% else %}
+Alert: {{ link }}
+{% if comment %}
+Comment Details:
+{{ comment }}
+{% endif %}
+
+{% endif %}
+
+Unsubscribe: {{ unsubscribe_link }}
+
+{% endautoescape %}
+{% endspaceless %}

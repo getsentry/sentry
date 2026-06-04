@@ -1,0 +1,44 @@
+import styled from '@emotion/styled';
+
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+
+type Props = {
+  speed: number;
+  className?: string;
+};
+
+export function FastForwardBadge({speed, className}: Props) {
+  return (
+    <Badge className={className}>
+      <FastForwardTooltip title={t('Fast forwarding at %sx', speed)}>
+        {t('Fast forwarding through inactivity')}
+        <StyledIconArrow size="sm" direction="right" />
+      </FastForwardTooltip>
+    </Badge>
+  );
+}
+
+/* Position the badge in the corner */
+const Badge = styled('div')`
+  user-select: none;
+  display: grid;
+  align-items: end;
+  justify-items: start;
+`;
+
+/* Badge layout and style */
+const FastForwardTooltip = styled(Tooltip)`
+  background: ${p => p.theme.colors.gray400};
+  color: ${p => p.theme.colors.white};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  border-top-right-radius: ${p => p.theme.radius.md};
+  z-index: ${p => p.theme.zIndex.initial};
+`;
+
+const StyledIconArrow = styled(IconArrow)`
+  margin-left: ${p => p.theme.space.sm};
+  vertical-align: text-top;
+`;

@@ -1,0 +1,186 @@
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import HeroImg from 'getsentry-images/features/replay-modal-hero.jpg';
+
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {closeModal} from 'sentry/actionCreators/modal';
+import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import type {Plan, Subscription} from 'getsentry/types';
+import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+
+import type {Reservations} from './types';
+import {useLogUpgradeNowViewed} from './useLogUpgradeNowViewed';
+
+type Props = ModalRenderProps & {
+  organization: Organization;
+  plan: Plan;
+  reservations: Reservations;
+  subscription: Subscription;
+  surface: AM2UpdateSurfaces;
+  onComplete?: () => void;
+};
+
+function UpgradeNowModal({
+  onComplete,
+  organization,
+  plan,
+  reservations,
+  subscription,
+  surface,
+}: Props) {
+  useLogUpgradeNowViewed({organization, subscription, surface, hasPriceChange: false});
+
+  const api = useApi();
+  const navigate = useNavigate();
+
+  const onUpdatePlan = async () => {
+    try {
+      await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
+        method: 'PUT',
+        data: {
+          ...reservations,
+          plan: plan.id,
+          referrer: 'replay-am2-update-modal',
+        },
+      });
+
+      SubscriptionStore.loadData(organization.slug, () => {
+        if (onComplete) {
+          onComplete();
+        }
+
+        closeModal();
+        addSuccessMessage(t('Subscription Updated!'));
+
+        trackGetsentryAnalytics('upgrade_now.modal.update_now', {
+          organization,
+          planTier: subscription.planTier,
+          canSelfServe: subscription.canSelfServe,
+          channel: subscription.channel,
+          has_billing_scope: organization.access?.includes('org:billing'),
+          surface,
+          has_price_change: false,
+        });
+      });
+    } catch (err) {
+      Sentry.captureException(err);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'replay_same_price_modal-update_plan-error'},
+        }),
+        {replace: true}
+      );
+      addErrorMessage(
+        t(
+          'Oops! Unable to update Subscription automatically. Click through to update manually.'
+        )
+      );
+    }
+  };
+
+  return (
+    <UpsellContent>
+      <Subheader>{t('Enable Session Replays Now')}</Subheader>
+      <Header>{t('Get to the root cause of an error faster')}</Header>
+      <p>
+        {t(
+          'Enable video-like reproduction of your user sessions so you can see what happened before, during and after an error or performance issue occurred.'
+        )}
+      </p>
+      <CTAPanel>
+        <div>
+          <CTAPrimary>{t('500 replays')}</CTAPrimary>
+          <CTASecondary>{t('at no additional cost')}</CTASecondary>
+        </div>
+        <Button variant="primary" onClick={onUpdatePlan}>
+          {t('Enable Now')}
+        </Button>
+      </CTAPanel>
+      <Note>
+        {tct(
+          'Enabling Session Replay also unlocks [perfAtScale:Performance at Scale] and [profiling:Profiling] at no additional charge. Your existing features will remain unchanged.',
+          {
+            perfAtScale: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/performance-at-scale/" />
+            ),
+            profiling: <ExternalLink href="https://docs.sentry.io/product/profiling/" />,
+          }
+        )}
+      </Note>
+    </UpsellContent>
+  );
+}
+
+const UpsellContent = styled('div')`
+  background: top no-repeat url('${HeroImg}');
+  background-size: contain;
+  background-position-y: -20px;
+  padding-top: 190px;
+  margin-inline: -45px;
+  padding-inline: 45px;
+  font-size: ${p => p.theme.font.size.lg};
+`;
+
+const Subheader = styled('h2')`
+  color: ${p => p.theme.tokens.content.accent};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: bold;
+  margin-bottom: ${p => p.theme.space.lg};
+  text-transform: uppercase;
+`;
+
+const Header = styled('h1')`
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: bold;
+  margin: ${p => p.theme.space.lg} 0;
+`;
+
+const CTAPanel = styled('div')`
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md};
+  display: flex;
+  justify-content: space-between;
+  padding: ${p => p.theme.space.xl};
+  margin-block: ${p => p.theme.space.xl};
+`;
+
+const CTAPrimary = styled('div')`
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: bold;
+`;
+const CTASecondary = styled('div')`
+  font-size: ${p => p.theme.font.size.md};
+`;
+
+const Note = styled('p')`
+  text-align: center;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
+  margin-block: ${p => p.theme.space['3xl']};
+`;
+
+export const modalCss = css`
+  width: 100%;
+  max-width: 532px;
+
+  [role='document'] {
+    position: relative;
+    padding: 0 45px;
+    overflow: hidden;
+  }
+`;
+
+export default UpgradeNowModal;

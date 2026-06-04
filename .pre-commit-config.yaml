@@ -1,0 +1,170 @@
+default_install_hook_types: ['pre-commit', 'pre-push']
+default_stages: [pre-commit]
+
+exclude: >
+  (?x)(
+      LICENSE.md$|
+      \.snap$|
+      \.map$|
+      \.map\.js$|
+      ^src/sentry/static/sentry/vendor/|
+      ^src/.*/locale/|
+      ^src/sentry/data/
+  )
+
+repos:
+  # Many of these hooks are local because people use a variety of IDEs
+  # with autoformatters that need to call out to things like `ruff` directly.
+  # pre-commit run is not the same, and something like pre-commit exec does
+  # not exist yet.
+  - repo: local
+    hooks:
+      # Configuration for ruff exists in pyproject.toml.
+      - id: ruff-check
+        name: ruff check
+        entry: .venv/bin/ruff check --force-exclude --fix --quiet
+        language: system
+        types: [python]
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: .venv/bin/ruff format --force-exclude --quiet
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      # Keep flake8 ONLY for custom Sentry S* rules.
+      # Ruff doesn't support custom AST-based plugins.
+      # Configuration for flake8 S* rules exists in setup.cfg.
+      - id: flake8-sentry
+        name: flake8 (sentry rules)
+        entry: .venv/bin/flake8 --select=S
+        language: system
+        types: [python]
+        log_file: '.artifacts/flake8.pycodestyle.log'
+        require_serial: true
+      - id: mypy
+        name: mypy
+        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec .venv/bin/mypy "$@"; fi' --
+        language: system
+        stages: [pre-push]
+        types: [python]
+        require_serial: true
+      - id: lint-requirements
+        name: lint-requirements
+        entry: python -m tools.lint_requirements
+        language: python
+        files: (^|/)uv\.lock$
+      - id: check-mypy-bypass
+        name: do not bypass the type checker
+        entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b|ignore\[import-untyped\])'
+        language: pygrep
+        types: [python]
+      - id: check-response-annotation-matches-schema
+        name: check @extend_schema response T matches Response[T] annotation
+        entry: .venv/bin/python src/sentry/apidocs/_check_response_annotation_matches_schema.py
+        language: system
+        pass_filenames: true
+        files: ^src/sentry/.*endpoints/.*\.py$
+        require_serial: false
+      - id: sort-mypy-weaklist
+        name: sort mypy weaklist
+        entry: python3 -m tools.mypy_helpers.sort_weaklist
+        files: ^pyproject\.toml$
+        language: python
+      - id: check-mypy-weaklist
+        name: check mypy weaklist
+        entry: python3 -m tools.mypy_helpers.check_stronglist pyproject.toml
+        files: (^pyproject\.toml$|\.py$)
+        pass_filenames: false
+        language: python
+      - id: prevent-mypy-weaklist-additions
+        name: prevent mypy weaklist additions
+        entry: python3 -m tools.mypy_helpers.prevent_weaklist_additions
+        files: ^pyproject\.toml$
+        language: python
+      - id: prevent-push
+        name: prevent pushing master
+        stages: [pre-push]
+        entry: bash -c 'test "$PRE_COMMIT_REMOTE_BRANCH" != "refs/heads/master"'
+        always_run: true
+        pass_filenames: false
+        language: system
+
+      # Javascript linting, formatting.
+      # We're using the local node_modules to simplify things, otherwise would
+      # need an easy way to keep versions in sync. Furthermore some repositories
+      # are either not on pre-commit mirrors or are missing some tagged versions.
+      # pre-commit-managed nodeenv environments also do not work out of the box because
+      # additional_dependencies does not install a flattened dependency tree which is needed by,
+      # for example, our eslint setup.
+
+      - id: eslint
+        name: eslint
+        language: system
+        files: \.(ts|js|tsx|jsx|mjs)$
+        entry: env SENTRY_PRECOMMIT=true ./node_modules/.bin/eslint --quiet --fix
+
+      - id: stylelint
+        name: stylelint
+        language: system
+        files: \.[jt]sx?$
+        entry: ./node_modules/.bin/stylelint --quiet
+
+      - id: format
+        name: format
+        language: system
+        types_or: [yaml, ts, tsx, javascript, jsx, css, mdx, markdown, json]
+        # Mirror ignorePatterns from .oxfmtrc.json; oxfmt errors with
+        # "Expected at least one target file" when its config drops every
+        # input file, so skip them at the hook level instead.
+        exclude: ^(api-docs|fixtures)/.*\.json$
+        entry: ./node_modules/.bin/oxfmt
+
+      - id: knip
+        name: knip
+        language: system
+        files: \.(ts|js|tsx|jsx|mjs)$
+        pass_filenames: false
+        stages: [pre-push]
+        entry: bash -c 'if [ -n "${SENTRY_KNIP_PRE_PUSH:-}" ]; then exec ./node_modules/.bin/knip; fi' --
+
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-use-type-annotations
+      - id: python-check-blanket-type-ignore
+
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.29.3
+    hooks:
+      - id: check-github-actions
+      - id: check-github-workflows
+        args: []
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+      - id: end-of-file-fixer
+        exclude_types: [svg]
+        exclude: ^fixtures/
+      - id: trailing-whitespace
+        exclude_types: [svg]
+        exclude: ^(fixtures/|scripts/patches/)
+      - id: debug-statements
+      - id: name-tests-test
+        args: [--pytest-test-first]
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        types: [file]
+        files: ^\.envrc$
+        args: [--external-sources]

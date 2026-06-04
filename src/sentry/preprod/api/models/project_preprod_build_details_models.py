@@ -1,0 +1,492 @@
+from __future__ import annotations
+
+import logging
+from typing import Annotated, Any, Literal
+
+from django.utils import timezone
+from pydantic import BaseModel, Field
+
+from sentry.preprod.api.models.snapshots.snapshot_status import (
+    ApprovalStatusLiteral,
+    ComparisonStateLiteral,
+    SnapshotStatusInput,
+    derive_snapshot_status,
+)
+from sentry.preprod.build_distribution_utils import (
+    get_download_count_for_artifact,
+    is_installable_artifact,
+)
+from sentry.preprod.models import (
+    Platform,
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
+from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
+from sentry.preprod.vcs.status_checks.utils import StatusCheckErrorType
+
+logger = logging.getLogger(__name__)
+
+
+class AppleAppInfo(BaseModel):
+    has_missing_dsym_binaries: bool = False
+
+
+class AndroidAppInfo(BaseModel):
+    has_proguard_mapping: bool = True
+
+
+class BuildDetailsAppInfo(BaseModel):
+    app_id: str | None
+    name: str | None
+    version: str | None
+    build_number: int | None = None
+    date_added: str | None = None
+    date_built: str | None = None
+    artifact_type: PreprodArtifact.ArtifactType | None = None
+    platform: Platform | None = None
+    build_configuration: str | None = None
+    app_icon_id: str | None = None
+    apple_app_info: AppleAppInfo | None = None
+    android_app_info: AndroidAppInfo | None = None
+
+
+class BuildDetailsVcsInfo(BaseModel):
+    head_sha: str | None = None
+    base_sha: str | None = None
+    provider: str | None = None
+    head_repo_name: str | None = None
+    base_repo_name: str | None = None
+    head_ref: str | None = None
+    base_ref: str | None = None
+    pr_number: int | None = None
+
+
+class DistributionInfo(BaseModel):
+    is_installable: bool
+    download_count: int
+    release_notes: str | None = None
+    error_code: str | None = None
+    error_message: str | None = None
+
+
+class StatusCheckResultSuccess(BaseModel):
+    """Result of a successfully posted status check."""
+
+    success: Literal[True] = True
+    check_id: str | None = None
+
+
+class StatusCheckResultFailure(BaseModel):
+    """Result of a failed status check post."""
+
+    success: Literal[False] = False
+    error_type: StatusCheckErrorType | None = None
+
+
+StatusCheckResult = Annotated[
+    StatusCheckResultSuccess | StatusCheckResultFailure,
+    Field(discriminator="success"),
+]
+
+
+class PostedStatusChecks(BaseModel):
+    """Status checks that have been posted to the VCS provider."""
+
+    size: StatusCheckResult | None = None
+
+
+class SnapshotComparisonInfo(BaseModel):
+    image_count: int
+    comparison_state: ComparisonStateLiteral | None = None
+    comparison_error_message: str | None = None
+    images_added: int = 0
+    images_removed: int = 0
+    images_changed: int = 0
+    images_unchanged: int = 0
+    images_skipped: int = 0
+    approval_status: ApprovalStatusLiteral | None = None
+
+
+class SizeInfoSizeMetric(BaseModel):
+    metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType
+    install_size_bytes: int
+    download_size_bytes: int
+
+
+class SizeInfoPending(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
+    )
+
+
+class SizeInfoProcessing(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
+    )
+
+
+class SizeInfoCompleted(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+    )
+    # Deprecated, use size_metrics instead
+    install_size_bytes: int
+    # Deprecated, use size_metrics instead
+    download_size_bytes: int
+    size_metrics: list[SizeInfoSizeMetric]
+    base_size_metrics: list[SizeInfoSizeMetric]
+
+
+class SizeInfoFailed(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
+    )
+    error_code: int
+    error_message: str
+
+
+class SizeInfoNotRan(BaseModel):
+    state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN] = (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN
+    )
+    error_code: int
+    error_message: str
+
+
+SizeInfo = Annotated[
+    SizeInfoPending | SizeInfoProcessing | SizeInfoCompleted | SizeInfoFailed | SizeInfoNotRan,
+    Field(discriminator="state"),
+]
+
+
+class BuildDetailsApiResponse(BaseModel):
+    id: str
+    state: PreprodArtifact.ArtifactState
+    app_info: BuildDetailsAppInfo
+    vcs_info: BuildDetailsVcsInfo
+    project_id: int
+    project_slug: str
+    distribution_info: DistributionInfo
+    size_info: SizeInfo | None = None
+    posted_status_checks: PostedStatusChecks | None = None
+    base_artifact_id: str | None = None
+    base_build_info: BuildDetailsAppInfo | None = None
+    snapshot_comparison_info: SnapshotComparisonInfo | None = None
+
+
+def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppInfo:
+    """Factory function to create BuildDetailsAppInfo from a PreprodArtifact."""
+    platform = artifact.platform
+
+    apple_app_info = None
+    if platform == Platform.APPLE:
+        legacy_missing_dsym_binaries = (
+            artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
+        )
+        has_missing_dsym_binaries = (
+            artifact.extras.get("has_missing_dsym_binaries", False)
+            or len(legacy_missing_dsym_binaries) > 0
+            if artifact.extras
+            else False
+        )
+        apple_app_info = AppleAppInfo(has_missing_dsym_binaries=has_missing_dsym_binaries)
+
+    android_app_info = None
+    if platform == Platform.ANDROID:
+        android_app_info = AndroidAppInfo(
+            has_proguard_mapping=(
+                artifact.extras.get("has_proguard_mapping", True) if artifact.extras else True
+            )
+        )
+
+    mobile_app_info = artifact.get_mobile_app_info()
+
+    return BuildDetailsAppInfo(
+        app_id=artifact.app_id,
+        name=mobile_app_info.app_name if mobile_app_info else None,
+        version=(mobile_app_info.build_version if mobile_app_info else None),
+        build_number=(mobile_app_info.build_number if mobile_app_info else None),
+        date_added=(artifact.date_added.isoformat() if artifact.date_added else None),
+        date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
+        artifact_type=artifact.artifact_type,
+        platform=platform,
+        build_configuration=(
+            artifact.build_configuration.name if artifact.build_configuration else None
+        ),
+        app_icon_id=(mobile_app_info.app_icon_id if mobile_app_info else None),
+        apple_app_info=apple_app_info,
+        android_app_info=android_app_info,
+    )
+
+
+def to_size_info(
+    size_metrics: list[PreprodArtifactSizeMetrics],
+    base_size_metrics: list[PreprodArtifactSizeMetrics] | None = None,
+) -> None | SizeInfo:
+    if len(size_metrics) == 0:
+        return None
+
+    main_metric = next(
+        (
+            metric
+            for metric in size_metrics
+            if metric.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        ),
+        # Fallback to the first metric if no main artifact is found
+        size_metrics[0],
+    )
+
+    match main_metric.state:
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
+            return SizeInfoPending()
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
+            return SizeInfoProcessing()
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
+            max_install_size = main_metric.max_install_size
+            max_download_size = main_metric.max_download_size
+            if max_install_size is None or max_download_size is None:
+                raise ValueError(
+                    "COMPLETED state requires both max_install_size and max_download_size"
+                )
+
+            return SizeInfoCompleted(
+                install_size_bytes=max_install_size,
+                download_size_bytes=max_download_size,
+                size_metrics=[
+                    SizeInfoSizeMetric(
+                        metrics_artifact_type=metric.metrics_artifact_type,
+                        install_size_bytes=metric.max_install_size,
+                        download_size_bytes=metric.max_download_size,
+                    )
+                    for metric in size_metrics
+                ],
+                base_size_metrics=[
+                    SizeInfoSizeMetric(
+                        metrics_artifact_type=metric.metrics_artifact_type,
+                        install_size_bytes=metric.max_install_size,
+                        download_size_bytes=metric.max_download_size,
+                    )
+                    for metric in (base_size_metrics or [])
+                    if metric.max_install_size is not None and metric.max_download_size is not None
+                ],
+            )
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
+            error_code = main_metric.error_code
+            error_message = main_metric.error_message
+            if error_code is None or error_message is None:
+                raise ValueError("FAILED state requires both error_code and error_message")
+            return SizeInfoFailed(error_code=error_code, error_message=error_message)
+        case PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN:
+            error_code = main_metric.error_code
+            error_message = main_metric.error_message
+            if error_code is None or error_message is None:
+                raise ValueError("NOT_RAN state requires both error_code and error_message")
+            return SizeInfoNotRan(error_code=error_code, error_message=error_message)
+        case _:
+            raise ValueError(f"Unknown SizeAnalysisState {main_metric.state}")
+
+
+def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotComparisonInfo | None:
+    try:
+        snapshot_metrics = head_artifact.preprodsnapshotmetrics
+    except PreprodSnapshotMetrics.DoesNotExist:
+        return None
+
+    comparisons = sorted(
+        snapshot_metrics.snapshot_comparisons_head_metrics.all(),
+        key=lambda c: c.id,
+        reverse=True,
+    )
+    comparison = comparisons[0] if comparisons else None
+
+    cc = head_artifact.commit_comparison
+    has_base_sha = bool(cc and cc.base_sha)
+    artifact_age_seconds = (timezone.now() - head_artifact.date_added).total_seconds()
+
+    base_artifact_exists: bool | None = None
+    if comparison is None and has_base_sha and cc is not None:
+        if artifact_age_seconds > MISSING_BASE_GRACE_PERIOD_SECONDS:
+            assert cc.base_sha is not None
+            base_artifact_exists = (
+                find_base_snapshot_artifact(
+                    organization_id=cc.organization_id,
+                    base_sha=cc.base_sha,
+                    base_repo_name=cc.base_repo_name or cc.head_repo_name,
+                    project_id=head_artifact.project_id,
+                    app_id=head_artifact.app_id,
+                    artifact_type=head_artifact.artifact_type,
+                    build_configuration=head_artifact.build_configuration,
+                )
+                is not None
+            )
+
+    approvals = [
+        a
+        for a in head_artifact.preprodcomparisonapproval_set.all()
+        if a.preprod_feature_type == PreprodComparisonApproval.FeatureType.SNAPSHOTS
+    ]
+    approvals.sort(key=lambda a: a.id, reverse=True)
+
+    derived = derive_snapshot_status(
+        SnapshotStatusInput(
+            latest_comparison=comparison,
+            latest_approval=approvals[0] if approvals else None,
+            has_base_sha=has_base_sha,
+            artifact_age_seconds=artifact_age_seconds,
+            base_artifact_exists=base_artifact_exists,
+        )
+    )
+
+    images_added = 0
+    images_removed = 0
+    images_changed = 0
+    images_unchanged = 0
+    images_skipped = 0
+    if comparison is not None and comparison.state == PreprodSnapshotComparison.State.SUCCESS:
+        images_added = comparison.images_added
+        images_removed = comparison.images_removed
+        images_changed = comparison.images_changed
+        images_unchanged = comparison.images_unchanged
+        images_skipped = comparison.images_skipped
+
+    return SnapshotComparisonInfo(
+        image_count=snapshot_metrics.image_count,
+        comparison_state=derived.comparison_state,
+        comparison_error_message=derived.comparison_error_message,
+        images_added=images_added,
+        images_removed=images_removed,
+        images_changed=images_changed,
+        images_unchanged=images_unchanged,
+        images_skipped=images_skipped,
+        approval_status=derived.approval_status,
+    )
+
+
+def transform_preprod_artifact_to_build_details(
+    artifact: PreprodArtifact,
+) -> BuildDetailsApiResponse:
+    size_metrics_list = list(artifact.preprodartifactsizemetrics_set.all())
+
+    base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
+    base_artifact = (
+        artifact.get_base_artifact_for_commit().select_related("build_configuration").first()
+    )
+    base_build_info = None
+    if base_artifact:
+        base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=base_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+        base_size_metrics_list = list(base_size_metrics_qs)
+        base_build_info = create_build_details_app_info(base_artifact)
+
+    size_info = to_size_info(size_metrics_list, base_size_metrics_list)
+
+    app_info = create_build_details_app_info(artifact)
+    is_installable = is_installable_artifact(artifact)
+
+    error_code_str = None
+    if artifact.installable_app_error_code is not None:
+        error_code_map = dict(PreprodArtifact.InstallableAppErrorCode.as_choices())
+        error_code_str = error_code_map.get(artifact.installable_app_error_code)
+
+    distribution_info = DistributionInfo(
+        is_installable=is_installable,
+        download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
+        release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
+        error_code=error_code_str,
+        error_message=artifact.installable_app_error_message,
+    )
+
+    vcs_info = BuildDetailsVcsInfo(
+        head_sha=(artifact.commit_comparison.head_sha if artifact.commit_comparison else None),
+        base_sha=(artifact.commit_comparison.base_sha if artifact.commit_comparison else None),
+        provider=(artifact.commit_comparison.provider if artifact.commit_comparison else None),
+        head_repo_name=(
+            artifact.commit_comparison.head_repo_name if artifact.commit_comparison else None
+        ),
+        base_repo_name=(
+            artifact.commit_comparison.base_repo_name if artifact.commit_comparison else None
+        ),
+        head_ref=(artifact.commit_comparison.head_ref if artifact.commit_comparison else None),
+        base_ref=(artifact.commit_comparison.base_ref if artifact.commit_comparison else None),
+        pr_number=(artifact.commit_comparison.pr_number if artifact.commit_comparison else None),
+    )
+
+    posted_status_checks = _parse_posted_status_checks(artifact)
+
+    snapshot_comparison_info = to_snapshot_comparison_info(artifact)
+
+    return BuildDetailsApiResponse(
+        id=artifact.id,
+        state=artifact.state,
+        app_info=app_info,
+        vcs_info=vcs_info,
+        project_id=artifact.project.id,
+        project_slug=artifact.project.slug,
+        distribution_info=distribution_info,
+        size_info=size_info,
+        posted_status_checks=posted_status_checks,
+        base_artifact_id=base_artifact.id if base_artifact else None,
+        base_build_info=base_build_info,
+        snapshot_comparison_info=snapshot_comparison_info,
+    )
+
+
+def _parse_posted_status_checks(artifact: PreprodArtifact) -> PostedStatusChecks | None:
+    """Parse posted status checks from artifact extras, returning None for invalid data."""
+    if not artifact.extras:
+        return None
+
+    raw_checks = artifact.extras.get("posted_status_checks")
+    if not isinstance(raw_checks, dict):
+        return None
+
+    raw_size = raw_checks.get("size")
+    if not isinstance(raw_size, dict):
+        return None
+
+    size_check: StatusCheckResult
+    if raw_size.get("success") is True:
+        size_check = _parse_success_check(raw_size, artifact.id)
+    else:
+        size_check = _parse_failure_check(raw_size, artifact.id)
+
+    return PostedStatusChecks(size=size_check)
+
+
+def _parse_success_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCheckResultSuccess:
+    """Parse a successful status check result."""
+    check_id = raw_size.get("check_id")
+    if check_id is not None and not isinstance(check_id, str):
+        logger.warning(
+            "preprod.build_details.invalid_check_id",
+            extra={
+                "preprod_artifact_id": artifact_id,
+                "check_id_type": type(check_id).__name__,
+            },
+        )
+        check_id = None
+    return StatusCheckResultSuccess(check_id=check_id)
+
+
+def _parse_failure_check(raw_size: dict[str, Any], artifact_id: int) -> StatusCheckResultFailure:
+    """Parse a failed status check result."""
+    error_type: StatusCheckErrorType | None = None
+    error_type_str = raw_size.get("error_type")
+    if error_type_str:
+        try:
+            error_type = StatusCheckErrorType(error_type_str)
+        except ValueError:
+            logger.warning(
+                "preprod.build_details.invalid_error_type",
+                extra={
+                    "preprod_artifact_id": artifact_id,
+                    "error_type": error_type_str,
+                },
+            )
+    return StatusCheckResultFailure(error_type=error_type)

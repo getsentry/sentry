@@ -1,0 +1,268 @@
+import {useMemo, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
+import {Grid, Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
+import {
+  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+  BREADCRUMB_TIME_DISPLAY_OPTIONS,
+  BreadcrumbTimeDisplay,
+  useBreadcrumbFilters,
+  type EnhancedCrumb,
+} from 'sentry/components/events/breadcrumbs/utils';
+import {
+  CrumbContainer,
+  EventDrawerBody,
+  EventDrawerContainer,
+  EventDrawerHeader,
+  EventNavigator,
+  Header,
+  NavigationCrumbs,
+  SearchInput,
+  ShortId,
+} from 'sentry/components/events/eventDrawer';
+import {
+  applyBreadcrumbSearch,
+  BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+  BREADCRUMB_SORT_OPTIONS,
+  BreadcrumbSort,
+} from 'sentry/components/events/interfaces/breadcrumbs';
+import {useFocusControl} from 'sentry/components/events/useFocusControl';
+import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getShortEventId} from 'sentry/utils/events';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export const enum BreadcrumbControlOptions {
+  SEARCH = 'search',
+  FILTER = 'filter',
+  SORT = 'sort',
+}
+
+interface BreadcrumbsDrawerProps {
+  breadcrumbs: EnhancedCrumb[];
+  event: Event;
+  group: Group;
+  project: Project;
+  focusControl?: BreadcrumbControlOptions;
+}
+
+export function BreadcrumbsDrawer({
+  breadcrumbs,
+  event,
+  project,
+  group,
+  focusControl: initialFocusControl,
+}: BreadcrumbsDrawerProps) {
+  const organization = useOrganization();
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+
+  const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<string[]>([]);
+  const [sort, setSort] = useLocalStorageState(
+    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+    BreadcrumbSort.NEWEST
+  );
+  const {getFocusProps} = useFocusControl(initialFocusControl);
+
+  const [timeDisplay, setTimeDisplay] = useLocalStorageState(
+    BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+    BreadcrumbTimeDisplay.ABSOLUTE
+  );
+  const {filterOptions, applyFilters} = useBreadcrumbFilters(breadcrumbs);
+
+  const displayCrumbs = useMemo(() => {
+    const sortedCrumbs =
+      sort === BreadcrumbSort.OLDEST ? breadcrumbs : [...breadcrumbs].reverse();
+    const filteredCrumbs = applyFilters(sortedCrumbs, filters);
+    const searchedCrumbs = applyBreadcrumbSearch(filteredCrumbs, search);
+    return searchedCrumbs;
+  }, [breadcrumbs, sort, filters, search, applyFilters]);
+
+  const startTimeString = useMemo(
+    () =>
+      timeDisplay === BreadcrumbTimeDisplay.RELATIVE
+        ? displayCrumbs?.at(0)?.breadcrumb?.timestamp
+        : undefined,
+    [displayCrumbs, timeDisplay]
+  );
+
+  const actions = (
+    <Grid flow="column" align="center" gap="md">
+      <InputGroup>
+        <SearchInput
+          size="xs"
+          value={search}
+          onChange={e => {
+            setSearch(e.target.value);
+            trackAnalytics('breadcrumbs.drawer.action', {
+              control: BreadcrumbControlOptions.SEARCH,
+              organization,
+            });
+          }}
+          aria-label={t('Search All Breadcrumbs')}
+          {...getFocusProps(BreadcrumbControlOptions.SEARCH)}
+        />
+        <InputGroup.TrailingItems disablePointerEvents>
+          <IconSearch size="xs" />
+        </InputGroup.TrailingItems>
+      </InputGroup>
+      <CompactSelect
+        size="xs"
+        multiple
+        clearable
+        menuTitle={t('Filter by')}
+        value={filters}
+        onChange={options => {
+          const newFilters = options.map(({value}) => value);
+          setFilters(newFilters);
+          trackAnalytics('breadcrumbs.drawer.action', {
+            control: BreadcrumbControlOptions.FILTER,
+            organization,
+          });
+        }}
+        options={filterOptions}
+        maxMenuHeight={400}
+        trigger={props => (
+          <OverlayTrigger.Button
+            variant="transparent"
+            showChevron={false}
+            icon={<IconFilter />}
+            aria-label={t('Filter All Breadcrumbs')}
+            title={t('Filter')}
+            {...props}
+            {...getFocusProps(BreadcrumbControlOptions.FILTER)}
+          >
+            {filters.length > 0 ? filters.length : ''}
+          </OverlayTrigger.Button>
+        )}
+      />
+      <CompactSelect
+        size="xs"
+        trigger={props => (
+          <OverlayTrigger.IconButton
+            variant="transparent"
+            icon={<IconSort />}
+            aria-label={t('Sort All Breadcrumbs')}
+            title={t('Sort')}
+            {...props}
+            {...getFocusProps(BreadcrumbControlOptions.SORT)}
+          />
+        )}
+        onChange={selectedOption => {
+          setSort(selectedOption.value);
+          trackAnalytics('breadcrumbs.drawer.action', {
+            control: BreadcrumbControlOptions.SORT,
+            value: selectedOption.value,
+            organization,
+          });
+        }}
+        value={sort}
+        options={BREADCRUMB_SORT_OPTIONS}
+      />
+      <CompactSelect
+        size="xs"
+        trigger={props => (
+          <OverlayTrigger.IconButton
+            variant="transparent"
+            icon={
+              timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
+                <IconClock size="xs" />
+              ) : (
+                <IconTimer size="xs" />
+              )
+            }
+            aria-label={t('Change Time Format for All Breadcrumbs')}
+            title={t('Time Format')}
+            {...props}
+          />
+        )}
+        onChange={selectedOption => {
+          setTimeDisplay(selectedOption.value);
+          trackAnalytics('breadcrumbs.drawer.action', {
+            control: 'time_display',
+            value: selectedOption.value,
+            organization,
+          });
+        }}
+        value={timeDisplay}
+        options={Object.values(BREADCRUMB_TIME_DISPLAY_OPTIONS)}
+      />
+      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} />
+    </Grid>
+  );
+
+  return (
+    <EventDrawerContainer>
+      <EventDrawerHeader>
+        <NavigationCrumbs
+          crumbs={[
+            {
+              label: (
+                <CrumbContainer>
+                  <ProjectAvatar project={project} />
+                  <ShortId>{group.shortId}</ShortId>
+                </CrumbContainer>
+              ),
+            },
+            {label: getShortEventId(event.id)},
+            {label: t('Breadcrumbs')},
+          ]}
+        />
+      </EventDrawerHeader>
+      <EventNavigator>
+        <Header>{t('Breadcrumbs')}</Header>
+        {actions}
+      </EventNavigator>
+      <EventDrawerBody ref={setContainer}>
+        <Container column="span 2">
+          {displayCrumbs.length === 0 ? (
+            <EmptyMessage>
+              {t('No breadcrumbs found.')}
+              <Button
+                variant="link"
+                onClick={() => {
+                  setFilters([]);
+                  setSearch('');
+                  trackAnalytics('breadcrumbs.drawer.action', {
+                    control: 'clear_filters',
+                    organization,
+                  });
+                }}
+              >
+                {t('Clear Filters?')}
+              </Button>
+            </EmptyMessage>
+          ) : (
+            <BreadcrumbsTimeline
+              breadcrumbs={displayCrumbs}
+              startTimeString={startTimeString}
+              containerElement={container}
+            />
+          )}
+        </Container>
+      </EventDrawerBody>
+    </EventDrawerContainer>
+  );
+}
+
+const EmptyMessage = styled('div')`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.md};
+`;

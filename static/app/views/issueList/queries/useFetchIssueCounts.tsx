@@ -1,0 +1,40 @@
+import {keepPreviousData} from '@tanstack/react-query';
+
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
+
+interface FetchIssueCountsParameters {
+  environment: string[];
+  orgSlug: string;
+  project: number[];
+  query: string[];
+  end?: string | null;
+  groupStatsPeriod?: string | null;
+  sort?: string;
+  start?: string | null;
+  statsPeriod?: string | null;
+}
+
+const makeFetchIssueCounts = ({
+  orgSlug,
+  ...requestParams
+}: FetchIssueCountsParameters): ApiQueryKey => [
+  getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
+    path: {organizationIdOrSlug: orgSlug},
+  }),
+  {
+    query: requestParams,
+  },
+];
+
+export const useFetchIssueCounts = (
+  params: FetchIssueCountsParameters,
+  options: Partial<UseApiQueryOptions<Record<string, number>>> = {}
+) => {
+  return useApiQuery<Record<string, number>>(makeFetchIssueCounts(params), {
+    staleTime: 180000, // 3 minutes
+    placeholderData: keepPreviousData,
+    ...options,
+  });
+};

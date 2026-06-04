@@ -1,0 +1,50 @@
+import type {StacktraceLinkResult} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+
+interface UseSourceCodeLinkProps {
+  commitId: string | undefined;
+  frame: {
+    file: string | undefined;
+    path: string | undefined;
+  };
+  organization: Organization;
+  platform: string | undefined;
+  project: Project | undefined;
+}
+
+export function useSourceCodeLink(
+  props: UseSourceCodeLinkProps
+): UseApiQueryResult<StacktraceLinkResult, RequestError> {
+  return useApiQuery<StacktraceLinkResult>(
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/', {
+        path: {
+          organizationIdOrSlug: props.organization.slug,
+          projectIdOrSlug: props.project?.slug!,
+        },
+      }),
+      {
+        query: {
+          file: props.frame.file,
+          platform: props.platform,
+          commitId: props.commitId,
+          ...(props.frame.path && {absPath: props.frame.path}),
+        },
+      },
+    ],
+    {
+      enabled: !!(
+        props.project &&
+        props.platform &&
+        props.frame &&
+        (props.frame.file || props.frame.path)
+      ),
+      staleTime: Infinity,
+    }
+  );
+}

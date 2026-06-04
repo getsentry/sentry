@@ -1,0 +1,183 @@
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
+import {MissingPerformanceButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingPerformanceButtons';
+
+import {ActionWrapper} from './actionWrapper';
+
+type Props = {
+  isProjectStabilized: boolean;
+  organization: Organization;
+  selection: PageFilters;
+  hasTransactions?: boolean;
+  query?: string;
+};
+
+const useApdex = (props: Props) => {
+  const {organization, selection, isProjectStabilized, hasTransactions, query} = props;
+
+  const isEnabled = !!(
+    organization.features.includes('performance-view') &&
+    isProjectStabilized &&
+    hasTransactions
+  );
+  const {projects, environments, datetime} = selection;
+  const {period} = datetime;
+
+  const doubledPeriod = getPeriod(
+    {period, start: undefined, end: undefined},
+    {shouldDoublePeriod: true}
+  ).statsPeriod;
+
+  const commonQuery = {
+    environment: environments,
+    project: projects.map(String),
+    field: ['apdex()'],
+    query: ['event.type:transaction count():>0', query].join(' ').trim(),
+  };
+
+  const currentQuery = useApiQuery<TableData>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {
+        query: {
+          ...commonQuery,
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {staleTime: Infinity, enabled: isEnabled}
+  );
+
+  const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
+    start: datetime.start,
+    end: datetime.end,
+    period: datetime.period,
+  });
+
+  const previousQuery = useApiQuery<TableData>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {
+        query: {
+          ...commonQuery,
+          statsPeriodStart: doubledPeriod,
+          statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: isEnabled && isPreviousPeriodEnabled,
+    }
+  );
+
+  return {
+    data: currentQuery.data,
+    previousData: previousQuery.data,
+    isLoading:
+      currentQuery.isPending || (previousQuery.isPending && isPreviousPeriodEnabled),
+    error: currentQuery.error || previousQuery.error,
+    refetch: () => {
+      currentQuery.refetch();
+      previousQuery.refetch();
+    },
+  };
+};
+
+export function ProjectApdexScoreCard(props: Props) {
+  const {organization, hasTransactions} = props;
+
+  const {data, previousData, isLoading, error, refetch} = useApdex(props);
+
+  const apdex = Number(data?.data?.[0]?.['apdex()']) || undefined;
+
+  const previousApdex = Number(previousData?.data?.[0]?.['apdex()']) || undefined;
+
+  const cardTitle = t('Apdex');
+
+  const cardHelp = getTermHelp(organization, PerformanceTerm.APDEX);
+
+  const Title = <Widget.WidgetTitle title={cardTitle} />;
+
+  if (!hasTransactions || !organization.features.includes('performance-view')) {
+    return (
+      <Widget
+        Title={Title}
+        Visualization={
+          <ActionWrapper>
+            <MissingPerformanceButtons organization={organization} />
+          </ActionWrapper>
+        }
+      />
+    );
+  }
+
+  if (isLoading || !defined(apdex)) {
+    return (
+      <Widget
+        Title={Title}
+        Visualization={<BigNumberWidgetVisualization.LoadingPlaceholder />}
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <Widget
+        Title={Title}
+        Actions={
+          <Widget.WidgetToolbar>
+            <Button size="xs" onClick={refetch}>
+              {t('Retry')}
+            </Button>
+          </Widget.WidgetToolbar>
+        }
+        Visualization={
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError error={error} />
+          </Container>
+        }
+      />
+    );
+  }
+
+  return (
+    <Widget
+      Title={Title}
+      Actions={
+        <Widget.WidgetToolbar>
+          <Widget.WidgetDescription description={cardHelp} />
+        </Widget.WidgetToolbar>
+      }
+      Visualization={
+        <BigNumberWidgetVisualization
+          value={apdex}
+          previousPeriodValue={previousApdex}
+          field="apdex()"
+          type="number"
+          unit={null}
+          preferredPolarity="+"
+        />
+      }
+    />
+  );
+}

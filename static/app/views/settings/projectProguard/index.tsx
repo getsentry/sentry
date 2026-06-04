@@ -1,0 +1,161 @@
+import {Fragment, useCallback, useState} from 'react';
+import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
+
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SearchBar} from 'sentry/components/searchBar';
+import {t, tct} from 'sentry/locale';
+import type {DebugFile} from 'sentry/types/debugFiles';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {ProjectProguardRow} from './projectProguardRow';
+
+export type ProguardMappingAssociation = {
+  releases: string[];
+};
+
+export default function ProjectProguard() {
+  const api = useApi();
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  const {
+    data: mappingsResp,
+    isPending: dataLoading,
+    refetch: fetchData,
+  } = useQuery({
+    ...apiOptions.as<DebugFile[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
+      {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        query: {
+          query: location.query.query,
+          file_formats: 'proguard',
+          cursor: location.query.cursor,
+        },
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
+  const mappings = mappingsResp?.json;
+
+  const mappingsPageLinks = mappingsResp?.headers.Link;
+
+  const handleSearch = useCallback(
+    (query: string) => {
+      navigate({
+        ...location,
+        query: {...location.query, cursor: undefined, query: query || undefined},
+      });
+    },
+    [location, navigate]
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      setLoading(true);
+      try {
+        await api.requestPromise(
+          `/projects/${
+            organization.slug
+          }/${project.slug}/files/dsyms/?id=${encodeURIComponent(id)}`,
+          {
+            method: 'DELETE',
+          }
+        );
+        setLoading(false);
+        addSuccessMessage('Successfully deleted the mapping file');
+        fetchData();
+      } catch {
+        setLoading(false);
+        addErrorMessage('An error occurred while deleting the mapping file');
+      }
+    },
+    [api, fetchData, organization.slug, project.slug]
+  );
+
+  const query =
+    typeof location.query.query === 'string' ? location.query.query : undefined;
+
+  const isLoading = loading || dataLoading;
+
+  return (
+    <Fragment>
+      <SettingsPageHeader
+        title={t('ProGuard Mappings')}
+        subtitle={tct(
+          'ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. To learn more about proguard mapping files, [link: read the docs].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/android/proguard/" />
+            ),
+          }
+        )}
+      />
+
+      <Flex direction="column" gap="md">
+        <SearchBar
+          placeholder={t('Filter mappings')}
+          onSearch={handleSearch}
+          query={query}
+        />
+        <StyledPanelTable
+          headers={[
+            t('Mapping'),
+            <SizeColumn key="size">{t('File Size')}</SizeColumn>,
+            '',
+          ]}
+          emptyMessage={
+            query
+              ? t('There are no mappings that match your search.')
+              : t('There are no mappings for this project.')
+          }
+          isEmpty={mappings?.length === 0}
+          isLoading={isLoading}
+        >
+          {mappings?.length
+            ? mappings.map(mapping => {
+                const downloadUrl = `${api.baseUrl}/projects/${
+                  organization.slug
+                }/${project.slug}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
+
+                return (
+                  <ProjectProguardRow
+                    mapping={mapping}
+                    downloadUrl={downloadUrl}
+                    onDelete={handleDelete}
+                    key={mapping.id}
+                    orgSlug={organization.slug}
+                  />
+                );
+              })
+            : null}
+        </StyledPanelTable>
+        <Pagination pageLinks={mappingsPageLinks} />
+      </Flex>
+    </Fragment>
+  );
+}
+
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: minmax(220px, 1fr) max-content 120px;
+`;
+
+const SizeColumn = styled('div')`
+  text-align: right;
+`;

@@ -1,0 +1,5 @@
+options:
+  int_option: 50
+  readonly_option: 30
+  invalid_type: [1, 2, 3]
+  inexistent_option: 10

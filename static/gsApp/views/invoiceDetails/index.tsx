@@ -1,0 +1,427 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
+
+import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
+
+import {DateTime} from 'sentry/components/dateTime';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {IconSentry} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {InvoiceStatus} from 'getsentry/types';
+import type {BillingDetails, Invoice, InvoiceBase} from 'getsentry/types';
+import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
+import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+
+import {InvoiceDetailsActions} from './actions';
+
+function InvoiceDetails() {
+  const {invoiceGuid} = useParams<{invoiceGuid: string}>();
+
+  const organization = useOrganization();
+  const navigate = useNavigate();
+
+  const {data: invoiceList} = useQuery(
+    // Use apiOptions so the cache key matches paymentHistory.tsx's list query,
+    // avoiding a redundant network request when navigating from the receipts list.
+    apiOptions.as<InvoiceBase[]>()('/customers/$organizationIdOrSlug/invoices/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 60_000,
+    })
+  );
+
+  const currentIndex = invoiceList
+    ? invoiceList.findIndex(inv => inv.id === invoiceGuid)
+    : -1;
+  // The list is newest-first, so "previous" is the older receipt (higher index)
+  // and "next" is the more recent receipt (lower index).
+  const prevId =
+    invoiceList && currentIndex >= 0 && currentIndex < invoiceList.length - 1
+      ? invoiceList[currentIndex + 1]!.id
+      : null;
+  const nextId =
+    invoiceList && currentIndex > 0 ? invoiceList[currentIndex - 1]!.id : null;
+
+  function receiptUrl(id: string) {
+    return `/settings/${organization.slug}/billing/receipts/${id}/`;
+  }
+
+  // Build a synthetic Link header string so <Pagination> can derive
+  // disabled state from results="false" / results="true".
+  // parseLinkHeader reads the cursor from the ; cursor="…" attribute, not the URL.
+  const pageLinks = invoiceList
+    ? [
+        prevId
+          ? `<.>; rel="previous"; results="true"; cursor="${prevId}"`
+          : `<.>; rel="previous"; results="false"`,
+        nextId
+          ? `<.>; rel="next"; results="true"; cursor="${nextId}"`
+          : `<.>; rel="next"; results="false"`,
+      ].join(', ')
+    : null;
+
+  const {
+    data: billingDetails,
+    isPending: isBillingDetailsLoading,
+    isError: isBillingDetailsError,
+    refetch: billingDetailsRefetch,
+  } = useApiQuery<BillingDetails>(
+    [
+      getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+      placeholderData: keepPreviousData,
+    }
+  );
+  const {
+    data: invoice,
+    isPending: isInvoiceLoading,
+    isError: isInvoiceError,
+    refetch: invoiceRefetch,
+  } = useApiQuery<Invoice>(
+    [
+      getApiUrl('/customers/$organizationIdOrSlug/invoices/$invoiceId/', {
+        path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
+
+  if (isBillingDetailsError || isInvoiceError) {
+    return (
+      <SubscriptionPageContainer>
+        <LoadingError
+          onRetry={() => {
+            billingDetailsRefetch();
+            invoiceRefetch();
+          }}
+        />
+      </SubscriptionPageContainer>
+    );
+  }
+
+  return (
+    <SubscriptionPageContainer>
+      <SettingsPageHeader
+        title={t('Receipt Details')}
+        action={
+          <InvoicePagination
+            pageLinks={pageLinks}
+            onCursor={cursor => cursor && navigate(receiptUrl(cursor))}
+          />
+        }
+      />
+      <Panel>
+        {isInvoiceLoading || isBillingDetailsLoading ? (
+          <PanelBody withPadding>
+            <LoadingIndicator />
+          </PanelBody>
+        ) : (
+          <PanelBody withPadding>
+            <SenderContainer>
+              <div>
+                <SenderName>
+                  <IconSentry size="lg" /> {invoice.sender.name}
+                </SenderName>
+                <StyledAddress>
+                  {invoice.sender.address.map((line, idx) => (
+                    <div key={idx}>{line}</div>
+                  ))}
+                </StyledAddress>
+                {invoice.sentryTaxIds && (
+                  <div>
+                    {invoice.sentryTaxIds.taxIdName}: {invoice.sentryTaxIds.taxId}
+                  </div>
+                )}
+                {invoice.sentryTaxIds?.region && (
+                  <div>
+                    {invoice.sentryTaxIds.region.taxIdName}:{' '}
+                    {invoice.sentryTaxIds.region.taxId}
+                  </div>
+                )}
+              </div>
+              {invoice && (
+                <InvoiceDetailsActions
+                  organization={organization}
+                  invoice={invoice}
+                  reloadInvoice={invoiceRefetch}
+                />
+              )}
+            </SenderContainer>
+            <hr />
+            <InvoiceDetailsContents invoice={invoice} billingDetails={billingDetails} />
+            <FinePrint>
+              {tct(
+                'Your subscription will automatically renew on or about the same day each [period] and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
+                {
+                  budgetTerm:
+                    'planDetails' in invoice.customer
+                      ? invoice.customer.planDetails.budgetTerm
+                      : 'pay-as-you-go',
+                  period:
+                    'billingInterval' in invoice.customer &&
+                    invoice.customer.billingInterval === 'annual'
+                      ? 'year'
+                      : 'month',
+                  here: (
+                    <ExternalLink
+                      href={`/settings/${organization.slug}/billing/cancel/`}
+                    />
+                  ),
+                }
+              )}
+            </FinePrint>
+          </PanelBody>
+        )}
+      </Panel>
+    </SubscriptionPageContainer>
+  );
+}
+
+type AttributeProps = {
+  invoice: Invoice;
+  billingDetails?: BillingDetails;
+};
+
+function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
+  let paymentStatus = InvoiceStatus.CLOSED;
+
+  if (invoice.isPaid) {
+    paymentStatus = InvoiceStatus.PAID;
+  } else if (!invoice.isClosed) {
+    paymentStatus = InvoiceStatus.AWAITING_PAYMENT;
+  }
+
+  const contactInfo = invoice?.displayAddress || billingDetails?.displayAddress;
+  const companyName = billingDetails?.companyName;
+  const billingEmail = billingDetails?.billingEmail;
+  const taxNumber = invoice?.taxNumber;
+  const countryCode = invoice?.countryCode || billingDetails?.countryCode;
+  const taxNumberName = `${getTaxFieldInfo(countryCode).label}:`;
+
+  return (
+    <AttributeGroup>
+      <Attributes>
+        <dt>{t('Account:')}</dt>
+        <dd>
+          {invoice.customer?.name && <div>{invoice.customer.name}</div>}
+          {billingEmail}
+        </dd>
+        {companyName || contactInfo ? (
+          <Fragment>
+            <dt>{t('Details:')}</dt>
+            <dd>
+              {!!companyName && <div>{companyName}</div>}
+              {!!contactInfo && <div>{contactInfo}</div>}
+            </dd>
+          </Fragment>
+        ) : null}
+        {!!taxNumber && (
+          <Fragment>
+            <dt>{taxNumberName}</dt>
+            <dd>{taxNumber}</dd>
+          </Fragment>
+        )}
+      </Attributes>
+      <Attributes>
+        <dt>{t('Invoice ID:')}</dt>
+        <dd>{invoice.id}</dd>
+        <dt>{t('Status:')}</dt>
+        <dd>{paymentStatus.toUpperCase()}</dd>
+        <dt>{t('Date:')}</dt>
+        <dd>
+          <DateTime date={invoice.dateCreated} dateOnly year />
+        </dd>
+      </Attributes>
+    </AttributeGroup>
+  );
+}
+
+type ContentsProps = {
+  invoice: Invoice;
+  billingDetails?: BillingDetails;
+};
+
+function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
+  // If an Invoice has 'isReverseCharge: true', it should be noted in
+  // the last row of the table with "VAT" in the left column and "Reverse Charge"
+  // on the right underneath the totals and (if included) refunds
+  return (
+    <Fragment>
+      <InvoiceAttributes invoice={invoice} billingDetails={billingDetails} />
+
+      <InvoiceItems data-test-id="invoice-items">
+        <colgroup>
+          <col />
+          <col style={{width: '150px'}} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>{t('Item')}</th>
+            <th>{t('Price')}</th>
+          </tr>
+        </thead>
+        <tfoot>
+          <tr>
+            <th>{t('Total')}</th>
+            <td>{displayPriceWithCents({cents: invoice.amountBilled ?? 0})} USD</td>
+          </tr>
+          {invoice.isRefunded && (
+            <RefundRow>
+              <th>{t('Refunds')}</th>
+              <td>{displayPriceWithCents({cents: invoice.amountRefunded})} USD</td>
+            </RefundRow>
+          )}
+          {invoice.isReverseCharge && (
+            <tr>
+              <th>{invoice.defaultTaxName}</th>
+              <td>{t('Reverse Charge')}</td>
+            </tr>
+          )}
+        </tfoot>
+        <tbody>
+          {invoice.items.map((item, i) => {
+            if (item.type === 'subscription') {
+              return (
+                <tr key={i}>
+                  <td>
+                    {tct('[description] Plan', {description: item.description})}
+                    <small>
+                      {tct('[start] to [end]', {
+                        start: <DateTime date={item.periodStart} dateOnly year />,
+                        end: <DateTime date={item.periodEnd} dateOnly year />,
+                      })}
+                    </small>
+                  </td>
+                  <td>{displayPriceWithCents({cents: item.amount})} USD</td>
+                </tr>
+              );
+            }
+            return (
+              <tr key={i}>
+                <td>{item.description}</td>
+                <td>{displayPriceWithCents({cents: item.amount})} USD</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </InvoiceItems>
+    </Fragment>
+  );
+}
+
+export default InvoiceDetails;
+
+const SenderName = styled('h3')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const SenderContainer = styled('div')`
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: ${p => p.theme.space.xl};
+
+  padding-left: ${p => p.theme.space.md};
+
+  /* Use a vertical layout on smaller viewports */
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: auto;
+    grid-template-rows: auto auto;
+  }
+`;
+
+const AttributeGroup = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${p => p.theme.space.xl};
+
+  /* Use a vertical layout on smaller viewports */
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: auto;
+    grid-template-rows: auto auto;
+  }
+`;
+
+const Attributes = styled('dl')`
+  overflow: hidden;
+
+  dt {
+    font-weight: bold;
+    margin: 0 0 ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
+  }
+  dd {
+    background: ${p => p.theme.tokens.background.secondary};
+    padding: ${p => p.theme.space.md};
+    margin-bottom: ${p => p.theme.space.xl};
+  }
+`;
+
+const StyledAddress = styled('address')`
+  margin-bottom: 0px;
+  line-height: 1.5;
+  font-style: normal;
+`;
+
+const InvoiceItems = styled('table')`
+  width: 100%;
+
+  tr th,
+  tr td {
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};
+  }
+  thead tr:first-child th,
+  thead tr:first-child td {
+    border-top: none;
+  }
+
+  th:last-child,
+  td:last-child {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  td small {
+    display: block;
+    margin-top: ${p => p.theme.space.xs};
+  }
+`;
+
+const RefundRow = styled('tr')`
+  td,
+  th {
+    background: ${p => p.theme.colors.yellow100};
+  }
+`;
+
+const FinePrint = styled('div')`
+  margin-top: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.colors.gray400};
+`;
+
+// Strip the default top margin from Pagination so it sits cleanly in the
+// SettingsPageHeader action slot without extra spacing.
+const InvoicePagination = styled(Pagination)`
+  margin: 0;
+`;

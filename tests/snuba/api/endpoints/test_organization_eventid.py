@@ -1,0 +1,119 @@
+import pytest
+from django.test import override_settings
+from django.urls import NoReverseMatch, reverse
+
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+
+
+class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        min_ago = before_now(minutes=1).isoformat()
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+
+        self.event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "oh no",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        self.group = self.event.group
+        self.login_as(user=self.user)
+
+    def test_simple(self) -> None:
+        url = reverse(
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": self.event.event_id},
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["organizationSlug"] == self.org.slug
+        assert response.data["projectSlug"] == self.project.slug
+        assert response.data["groupId"] == str(self.group.id)
+        assert response.data["eventId"] == str(self.event.event_id)
+        assert response.data["event"]["id"] == str(self.event.event_id)
+
+    def test_missing_eventid(self) -> None:
+        url = reverse(
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": "c" * 32},
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 404, response.content
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_ratelimit(self) -> None:
+        url = reverse(
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": self.event.event_id},
+        )
+        with freeze_time("2000-01-01"):
+            for i in range(10):
+                self.client.get(url, format="json")
+            resp = self.client.get(url, format="json")
+            assert resp.status_code == 429
+
+    def test_access_non_member_project(self) -> None:
+        # Org member who is not on the project's owning team must not be able
+        # to resolve event IDs from that project when Open Membership is off.
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(user=user_no_team, organization=self.org, role="member", teams=[])
+        self.login_as(user_no_team)
+
+        url = reverse(
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": self.event.event_id},
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 404, response.content
+
+    def test_open_membership_allows_non_team_member(self) -> None:
+        # With Open Membership on (the default), any org member has global
+        # project access, so a member not on the project's team can still
+        # resolve event IDs from it.
+        self.org.flags.allow_joinleave = True
+        self.org.save()
+
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(user=user_no_team, organization=self.org, role="member", teams=[])
+        self.login_as(user_no_team)
+
+        url = reverse(
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": self.event.event_id},
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["projectSlug"] == self.project.slug
+        assert response.data["eventId"] == str(self.event.event_id)
+
+    def test_invalid_event_id(self) -> None:
+        with pytest.raises(NoReverseMatch):
+            reverse(
+                "sentry-api-0-event-id-lookup",
+                kwargs={
+                    "organization_id_or_slug": self.org.slug,
+                    "event_id": "not-an-event",
+                },
+            )
+
+        url = reverse(
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_id_or_slug": self.org.slug, "event_id": 123456},
+        )
+        resp = self.client.get(url, format="json")
+
+        assert resp.status_code == 400

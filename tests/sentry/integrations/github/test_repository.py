@@ -1,0 +1,379 @@
+import datetime
+from functools import cached_property
+from typing import Any
+from unittest import mock
+
+import orjson
+import pytest
+import responses
+from django.utils import timezone
+
+from fixtures.github import (
+    COMPARE_COMMITS_EXAMPLE,
+    GET_COMMIT_EXAMPLE,
+    GET_LAST_COMMITS_EXAMPLE,
+)
+from sentry.constants import ObjectStatus
+from sentry.integrations.github.repository import GitHubRepositoryProvider
+from sentry.integrations.models.integration import Integration
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_commit_shape
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    assume_test_silo_mode_of,
+    control_silo_test,
+)
+
+
+@control_silo_test
+class GitHubAppsProviderTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        ten_hours = timezone.now() + datetime.timedelta(hours=10)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="654321",
+            metadata={
+                "access_token": "v1.install-token",
+                "expires_at": ten_hours.strftime("%Y-%m-%dT%H:%M:%S"),
+            },
+        )
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        responses.reset()
+
+    @cached_property
+    def provider(self) -> GitHubRepositoryProvider:
+        return GitHubRepositoryProvider("integrations:github")
+
+    @cached_property
+    def repository(self) -> Repository:
+        # TODO: Refactor this out with a call to the relevant factory if possible to avoid
+        # explicitly having to exempt it from silo limits
+        with assume_test_silo_mode(SiloMode.CELL):
+            return Repository.objects.create(
+                name="getsentry/example-repo",
+                provider="integrations:github",
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+                url="https://github.com/getsentry/example-repo",
+                config={"name": "getsentry/example-repo"},
+            )
+
+    def _build_compare_commit_payload(self, count: int) -> list[dict[str, Any]]:
+        commits = []
+        for index in range(count):
+            commits.append(
+                {
+                    "sha": f"{index:040x}",
+                    "commit": {
+                        "author": {
+                            "email": "jane@example.com",
+                            "name": "Jane Doe",
+                            "date": "2024-01-01T00:00:00+00:00",
+                        },
+                        "message": f"commit {index}",
+                    },
+                }
+            )
+        return commits
+
+    @responses.activate
+    def test_build_repository_config(self) -> None:
+        organization = self.create_organization()
+        integration = self.create_provider_integration(provider="github", name="Example GitHub")
+        integration.add_organization(organization, self.user)
+        data = {
+            "identifier": "getsentry/example-repo",
+            "external_id": "654321",
+            "integration_id": integration.id,
+        }
+        repo_config_data = self.provider.build_repository_config(organization, data)
+        assert repo_config_data == {
+            "config": {"name": "getsentry/example-repo"},
+            "external_id": "654321",
+            "integration_id": integration.id,
+            "name": "getsentry/example-repo",
+            "url": "https://github.com/getsentry/example-repo",
+        }
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_compare_commits_no_start(self, get_jwt: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef&per_page=20",
+            json=orjson.loads(GET_LAST_COMMITS_EXAMPLE),
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
+        )
+        result = self.provider.compare_commits(self.repository, None, "abcdef")
+        for commit in result:
+            assert_commit_shape(commit)
+
+    @responses.activate
+    def test_compare_commits_no_start_failure(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef&per_page=20",
+            status=502,
+        )
+        with pytest.raises(IntegrationError):
+            self.provider.compare_commits(self.repository, None, "abcdef")
+
+    def test_compare_commits_inactive_integration(self) -> None:
+        with assume_test_silo_mode_of(Integration):
+            self.integration.update(status=ObjectStatus.DISABLED)
+
+        with pytest.raises(NotImplementedError):
+            self.provider.compare_commits(self.repository, "xyz123", "abcdef")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_compare_commits(self, get_jwt: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
+            json=orjson.loads(COMPARE_COMMITS_EXAMPLE),
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
+        )
+        result = self.provider.compare_commits(self.repository, "xyz123", "abcdef")
+        for commit in result:
+            assert_commit_shape(commit)
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_compare_commits_pagination(self, get_jwt: mock.MagicMock) -> None:
+        """Test that compare_commits paginates to fetch all commits."""
+        page1_data = orjson.loads(COMPARE_COMMITS_EXAMPLE)
+        page2_commit = {
+            **page1_data["commits"][0],
+            "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        }
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
+            json=page1_data,
+            headers={
+                "Link": '<https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef?page=2>; rel="next"'
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef?page=2",
+            json={**page1_data, "commits": [page2_commit]},
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
+        )
+
+        result = self.provider.compare_commits(self.repository, "xyz123", "abcdef")
+        assert len(result) == 2
+        assert result[0]["id"] == "6dcb09b5b57875f334f61aebed695e2e4193db5e"
+        assert result[1]["id"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+    @mock.patch("sentry.integrations.github.repository.logger.info")
+    def test_fetch_commits_for_compare_range_truncates_over_cap(
+        self, log_info: mock.MagicMock
+    ) -> None:
+        client = mock.Mock()
+        client.compare_commits.return_value = self._build_compare_commit_payload(600)
+        client.get_commit.return_value = {"files": []}
+        installation = mock.Mock()
+
+        with (
+            self.options({"github-app.fetch-commits.max-compare-commits": 500}),
+            mock.patch.object(
+                self.provider,
+                "_get_installation_and_client",
+                return_value=(installation, client),
+            ),
+        ):
+            result = self.provider.fetch_commits_for_compare_range(
+                self.repository, "xyz123", "abcdef"
+            )
+
+        assert len(result) == 500
+        assert client.get_commit.call_count == 500
+        log_info.assert_called_once()
+
+    def test_fetch_commits_for_compare_range_keeps_most_recent(self) -> None:
+        client = mock.Mock()
+        commits = self._build_compare_commit_payload(3)
+        client.compare_commits.return_value = commits
+        client.get_commit.return_value = {"files": []}
+        installation = mock.Mock()
+
+        with (
+            self.options({"github-app.fetch-commits.max-compare-commits": 2}),
+            mock.patch.object(
+                self.provider,
+                "_get_installation_and_client",
+                return_value=(installation, client),
+            ),
+        ):
+            result = self.provider.fetch_commits_for_compare_range(
+                self.repository, "xyz123", "abcdef"
+            )
+
+        assert [commit["id"] for commit in result] == [
+            commits[-2]["sha"],
+            commits[-1]["sha"],
+        ]
+
+    @mock.patch("sentry.integrations.github.repository.logger.info")
+    def test_fetch_commits_for_compare_range_no_truncation_under_cap(
+        self, log_info: mock.MagicMock
+    ) -> None:
+        client = mock.Mock()
+        client.compare_commits.return_value = self._build_compare_commit_payload(499)
+        client.get_commit.return_value = {"files": []}
+        installation = mock.Mock()
+
+        with (
+            self.options({"github-app.fetch-commits.max-compare-commits": 500}),
+            mock.patch.object(
+                self.provider,
+                "_get_installation_and_client",
+                return_value=(installation, client),
+            ),
+        ):
+            result = self.provider.fetch_commits_for_compare_range(
+                self.repository, "xyz123", "abcdef"
+            )
+
+        assert len(result) == 499
+        assert client.get_commit.call_count == 499
+        log_info.assert_not_called()
+
+    @mock.patch("sentry.integrations.github.repository.logger.info")
+    def test_fetch_commits_for_compare_range_cap_zero_disables(
+        self, log_info: mock.MagicMock
+    ) -> None:
+        client = mock.Mock()
+        client.compare_commits.return_value = self._build_compare_commit_payload(600)
+        client.get_commit.return_value = {"files": []}
+        installation = mock.Mock()
+
+        with (
+            self.options({"github-app.fetch-commits.max-compare-commits": 0}),
+            mock.patch.object(
+                self.provider,
+                "_get_installation_and_client",
+                return_value=(installation, client),
+            ),
+        ):
+            result = self.provider.fetch_commits_for_compare_range(
+                self.repository, "xyz123", "abcdef"
+            )
+
+        assert len(result) == 600
+        assert client.get_commit.call_count == 600
+        log_info.assert_not_called()
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_compare_commits_patchset_handling(self, get_jwt: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
+            json=orjson.loads(COMPARE_COMMITS_EXAMPLE),
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
+        )
+        result = self.provider.compare_commits(self.repository, "xyz123", "abcdef")
+
+        patchset = result[0]["patch_set"]
+        assert patchset[0] == {"path": "file1.txt", "type": "M"}
+        assert patchset[1] == {"path": "added.txt", "type": "A"}
+        assert patchset[2] == {"path": "removed.txt", "type": "D"}
+        assert patchset[3] == {"path": "old_name.txt", "type": "D"}
+        assert patchset[4] == {"path": "renamed.txt", "type": "A"}
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_patchset_caching(self, get_jwt: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/abcdef",
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
+        )
+        client = self.integration.get_installation(self.repository.organization_id).get_client()
+
+        self.provider._get_patchset(client, self.repository.config["name"], "abcdef")
+        # Just for the patchset
+        assert len(responses.calls) == 1
+
+        self.provider._get_patchset(client, self.repository.config["name"], "abcdef")
+        # Now that patchset was cached, github shouldn't have been called again
+        assert len(responses.calls) == 1
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_compare_commits_reuses_cached_patchset_across_calls(
+        self, get_jwt: mock.MagicMock
+    ) -> None:
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
+            json=orjson.loads(COMPARE_COMMITS_EXAMPLE),
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
+            json=orjson.loads(COMPARE_COMMITS_EXAMPLE),
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+            json=orjson.loads(GET_COMMIT_EXAMPLE),
+        )
+
+        first = self.provider.compare_commits(self.repository, "xyz123", "abcdef")
+        second = self.provider.compare_commits(self.repository, "xyz123", "abcdef")
+
+        assert first == second
+        assert len(responses.calls) == 3
+
+    @responses.activate
+    def test_compare_commits_failure(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
+            status=502,
+        )
+        with pytest.raises(IntegrationError):
+            self.provider.compare_commits(self.repository, "xyz123", "abcdef")
+
+    def test_pull_request_url(self) -> None:
+        pull = PullRequest(key=99)
+        result = self.provider.pull_request_url(self.repository, pull)
+        assert result == "https://github.com/getsentry/example-repo/pull/99"
+
+    def test_repository_external_slug(self) -> None:
+        result = self.provider.repository_external_slug(self.repository)
+        assert result == self.repository.config["name"]

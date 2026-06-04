@@ -1,0 +1,120 @@
+import type {Theme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {defined} from 'sentry/utils/defined';
+
+type ScoreCardProps = {
+  title: React.ReactNode;
+  className?: string;
+  help?: React.ReactNode;
+  isTooltipHoverable?: boolean;
+  renderOpenButton?: () => React.ReactNode;
+  score?: React.ReactNode;
+  trend?: React.ReactNode;
+  trendStatus?: 'good' | 'bad';
+};
+
+export function ScoreCard({
+  title,
+  score,
+  help,
+  trend,
+  trendStatus,
+  className,
+  renderOpenButton,
+  isTooltipHoverable,
+}: ScoreCardProps) {
+  const displayScore = score ?? '\u2014';
+
+  return (
+    <ScorePanel className={className}>
+      <Flex wrap="wrap" align="center" justify="between">
+        <HeaderTitle>
+          <Title>{title}</Title>
+          {help && (
+            <QuestionTooltip
+              title={help}
+              size="sm"
+              position="top"
+              isHoverable={isTooltipHoverable}
+            />
+          )}
+        </HeaderTitle>
+        {renderOpenButton?.()}
+      </Flex>
+
+      <ScoreWrapper>
+        <Score>{displayScore}</Score>
+        {defined(trend) && (
+          <Trend trendStatus={trendStatus}>
+            <TextOverflow>{trend}</TextOverflow>
+          </Trend>
+        )}
+      </ScoreWrapper>
+    </ScorePanel>
+  );
+}
+
+function getTrendColor(p: TrendProps & {theme: Theme}) {
+  switch (p.trendStatus) {
+    case 'good':
+      return p.theme.tokens.content.success;
+    case 'bad':
+      return p.theme.tokens.content.danger;
+    default:
+      return p.theme.tokens.content.secondary;
+  }
+}
+
+export const ScorePanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
+  min-height: 96px;
+`;
+
+const HeaderTitle = styled('div')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+  width: fit-content;
+`;
+
+export const Title = styled('div')`
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+`;
+
+export const ScoreWrapper = styled((props: FlexProps) => {
+  return <Flex align="baseline" maxWidth="100%" {...props} />;
+})``;
+
+export const Score = styled('span')`
+  flex-shrink: 1;
+  font-size: 32px;
+  line-height: 1;
+  color: ${p => p.theme.tokens.content.primary};
+  white-space: nowrap;
+`;
+
+type TrendProps = {trendStatus: ScoreCardProps['trendStatus']};
+
+export const Trend = styled('div')<TrendProps>`
+  color: ${getTrendColor};
+  margin-left: ${p => p.theme.space.md};
+  line-height: 1;
+  overflow: hidden;
+`;

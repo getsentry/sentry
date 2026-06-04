@@ -1,0 +1,205 @@
+import styled from '@emotion/styled';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
+
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {DeviceName} from 'sentry/components/deviceName';
+import {Version} from 'sentry/components/version';
+import {t, tct} from 'sentry/locale';
+import {percent} from 'sentry/utils';
+import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+
+export function TagDistribution({tag}: {tag: GroupTag}) {
+  const visibleTagValues = tag.topValues.slice(0, 3);
+
+  const totalVisible = visibleTagValues.reduce((sum, value) => sum + value.count, 0);
+  const hasOther = totalVisible < tag.totalValues;
+
+  const otherPercentage =
+    100 -
+    visibleTagValues.reduce(
+      (sum, value) => sum + Math.round(percent(value.count, tag.totalValues)),
+      0
+    );
+  const otherDisplayPercentage =
+    otherPercentage < 1
+      ? '<1%'
+      : visibleTagValues.length > 0 && otherPercentage >= 100
+        ? '>99%'
+        : `${otherPercentage.toFixed(0)}%`;
+
+  return (
+    <TagPanel>
+      <TagHeader data-underline-on-hover="true">
+        <Tooltip title={tag.key} showOnlyOnOverflow skipWrapper>
+          {tag.key}
+        </Tooltip>
+      </TagHeader>
+      <TagValueContent>
+        {visibleTagValues.map((tagValue, tagValueIdx) => {
+          const percentage = Math.round(percent(tagValue.count, tag.totalValues));
+          // Ensure no item shows 100% when there are multiple items
+          const hasMultipleItems = tag.topValues.length > 1 || hasOther;
+          const cappedPercentage =
+            hasMultipleItems && percentage >= 100 ? 99 : percentage;
+          const displayPercentage =
+            cappedPercentage < 1
+              ? '<1%'
+              : hasMultipleItems && percentage >= 100
+                ? '>99%'
+                : `${cappedPercentage.toFixed(0)}%`;
+
+          let valueComponent: React.ReactNode = tagValue.value;
+          if (tagValue.value === '') {
+            valueComponent = <Text variant="muted">{t('(empty)')}</Text>;
+          } else {
+            if (tag.key === 'release') {
+              valueComponent = <Version version={tagValue.value} anchor={false} />;
+            } else if (tag.key === 'device') {
+              valueComponent = <DeviceName value={tagValue.value} />;
+            }
+          }
+
+          return (
+            <TagValueRow key={tagValueIdx}>
+              <Tooltip delay={300} title={valueComponent} skipWrapper>
+                <TagValue>{valueComponent}</TagValue>
+              </Tooltip>
+              <Tooltip
+                title={tct('[count] of [total] tagged events', {
+                  count: tagValue.count.toLocaleString(),
+                  total: tag.totalValues.toLocaleString(),
+                })}
+                skipWrapper
+              >
+                <TooltipContainer>
+                  <TagBarValue>{displayPercentage}</TagBarValue>
+                  <TagBar percentage={percentage} />
+                </TooltipContainer>
+              </Tooltip>
+            </TagValueRow>
+          );
+        })}
+        {hasOther && (
+          <TagValueRow>
+            <TagValue>{t('Other')}</TagValue>
+            <Tooltip
+              title={tct('[count] of [total] tagged events', {
+                count: (tag.totalValues - totalVisible).toLocaleString(),
+                total: tag.totalValues.toLocaleString(),
+              })}
+              skipWrapper
+            >
+              <TooltipContainer>
+                <TagBarValue>{otherDisplayPercentage}</TagBarValue>
+                <TagBar percentage={otherPercentage} />
+              </TooltipContainer>
+            </Tooltip>
+          </TagValueRow>
+        )}
+      </TagValueContent>
+    </TagPanel>
+  );
+}
+
+export function TagBar({
+  percentage,
+  style,
+  ...props
+}: {
+  percentage: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <TagBarPlaceholder>
+      <TagBarContainer style={{width: `${percentage}%`, ...style}} {...props} />
+    </TagBarPlaceholder>
+  );
+}
+
+const TagPanel = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  padding: ${p => p.theme.space.md};
+`;
+
+const TagHeader = styled('h5')`
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  margin: 0;
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const progressBarWidth = '45px'; // Prevent percentages from overflowing
+const TagValueContent = styled('div')`
+  display: grid;
+  grid-template-columns: 4fr auto ${progressBarWidth};
+  color: ${p => p.theme.tokens.content.secondary};
+  grid-column-gap: ${p => p.theme.space.md};
+
+  & > :nth-child(2n) {
+    background-color: ${p => p.theme.tokens.background.secondary};
+  }
+`;
+
+const TagValueRow = styled('div')`
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+`;
+
+const TagValue = styled('div')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+`;
+
+const TagBarPlaceholder = styled('div')`
+  position: relative;
+  height: ${p => p.theme.space.md};
+  width: 100%;
+  border-radius: 3px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
+  background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
+  overflow: hidden;
+`;
+
+const TagBarContainer = styled('div')`
+  height: ${p => p.theme.space.md};
+  position: absolute;
+  left: 0;
+  top: 0;
+  min-width: ${p => p.theme.space['2xs']};
+  &:before {
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: ${p =>
+      `linear-gradient(to right, ${color(p.theme.colors.gray400).alpha(0.5).toString()} 0px, ${color(p.theme.colors.gray400).alpha(0.7).toString()} ${progressBarWidth})`};
+    width: 100%;
+  }
+`;
+
+const TagBarValue = styled('div')`
+  text-align: right;
+`;
+
+const TooltipContainer = styled('div')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 2 / -1;
+  align-items: center;
+`;

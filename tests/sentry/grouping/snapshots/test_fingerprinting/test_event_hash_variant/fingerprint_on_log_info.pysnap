@@ -1,0 +1,44 @@
+---
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - log-
+    - '{{ logger }}'
+    - '-'
+    - '{{ level }}'
+    matchers:
+    - - logger
+      - sentry.*
+    - - level
+      - ERROR
+    text: logger:"sentry.*" level:"ERROR" -> "log-{{ logger }}-{{ level }}"
+  version: 1
+fingerprint:
+- log-
+- '{{ logger }}'
+- '-'
+- '{{ level }}'
+title: Love not found.
+variants:
+  custom_server_fingerprint:
+    contributes: true
+    hint: null
+    key: custom_server_fingerprint
+    matched_rule: logger:"sentry.*" level:"ERROR" -> "log-{{ logger }}-{{ level }}"
+    type: custom_fingerprint
+    values:
+    - log-
+    - sentry.example.love
+    - '-'
+    - error
+  default:
+    component:
+      contributes: false
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: message
+    type: component

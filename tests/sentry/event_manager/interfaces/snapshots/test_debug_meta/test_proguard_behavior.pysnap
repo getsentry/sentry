@@ -1,0 +1,10 @@
+---
+created: '2019-03-14T17:12:35.264920Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_debug_meta.py
+---
+errors: null
+to_json:
+  images:
+  - type: proguard
+    uuid: c05b4ddd-69a7-3840-a649-32180d341587

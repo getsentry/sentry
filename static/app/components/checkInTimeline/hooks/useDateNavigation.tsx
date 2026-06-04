@@ -1,0 +1,74 @@
+import {useCallback} from 'react';
+import moment from 'moment-timezone';
+
+import {updateDateTime} from 'sentry/components/pageFilters/actions';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {usePageFilterDates} from './useMonitorDates';
+
+export interface DateNavigation {
+  /**
+   * Is the windows end aligned to the current time?
+   */
+  endIsNow: boolean;
+  /**
+   * A duration label indicating how far the navigation will navigate
+   */
+  label: React.ReactNode;
+  /**
+   * Updates the page filter date range to the next period using the current
+   * period as a reference.
+   */
+  navigateToNextPeriod: () => void;
+  /**
+   * Updates the page filter date range to the previous period using the
+   * current period as a reference.
+   */
+  navigateToPreviousPeriod: () => void;
+}
+
+export function useDateNavigation(): DateNavigation {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {since, until, now} = usePageFilterDates();
+
+  const windowMs = until.getTime() - since.getTime();
+
+  const navigateToPreviousPeriod = useCallback(() => {
+    const nextUntil = moment(until).subtract(windowMs, 'milliseconds');
+    const nextSince = moment(nextUntil).subtract(windowMs, 'milliseconds');
+
+    updateDateTime(
+      {start: nextSince.toDate(), end: nextUntil.toDate()},
+      location,
+      navigate
+    );
+  }, [windowMs, location, navigate, until]);
+
+  const navigateToNextPeriod = useCallback(() => {
+    // Do not navigate past the current time
+    const nextUntil = moment.min(
+      moment(until).add(windowMs, 'milliseconds'),
+      moment(now)
+    );
+    const nextSince = moment(nextUntil).subtract(windowMs, 'milliseconds');
+
+    updateDateTime(
+      {start: nextSince.toDate(), end: nextUntil.toDate()},
+      location,
+      navigate,
+      {
+        keepCursor: true,
+      }
+    );
+  }, [until, windowMs, now, location, navigate]);
+
+  return {
+    endIsNow: until.getTime() === now.getTime(),
+    label: getDuration(windowMs / 1000),
+    navigateToPreviousPeriod,
+    navigateToNextPeriod,
+  };
+}

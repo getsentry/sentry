@@ -1,0 +1,176 @@
+import {useCallback, useEffect, useRef} from 'react';
+import * as Sentry from '@sentry/react';
+
+import {Container, Grid} from '@sentry/scraps/layout';
+
+import {
+  closeGuide,
+  dismissGuide,
+  nextStep,
+  recordFinish,
+  registerAnchor,
+  unregisterAnchor,
+} from 'sentry/actionCreators/guides';
+import type {Hovercard} from 'sentry/components/hovercard';
+import {TourAction, TourGuide} from 'sentry/components/tours/components';
+import {t} from 'sentry/locale';
+import {GuideStore} from 'sentry/stores/guideStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+
+interface Props {
+  target: string;
+  children?: React.ReactNode;
+  /**
+   * Hovercard renders the container
+   */
+  containerClassName?: string;
+  offset?: number;
+  /**
+   * Trigger when the guide is completed (all steps have been clicked through)
+   */
+  onFinish?: (e: React.MouseEvent) => void;
+  /**
+   * Triggered when any step is completed (including the last step)
+   */
+  onStepComplete?: (e: React.MouseEvent) => void;
+  position?: React.ComponentProps<typeof Hovercard>['position'];
+}
+
+function ScrollToGuide({children}: {children: React.ReactNode}) {
+  const containerElement = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (containerElement.current) {
+      try {
+        const {top} = containerElement.current.getBoundingClientRect();
+        const scrollTop = window.pageYOffset;
+        const centerElement = top + scrollTop - window.innerHeight / 2;
+        window.scrollTo({top: centerElement});
+      } catch (err) {
+        Sentry.captureException(err);
+      }
+    }
+  }, [containerElement]);
+
+  return <span ref={containerElement}>{children}</span>;
+}
+
+function BaseGuideAnchor({
+  target,
+  children,
+  position,
+  offset,
+  containerClassName,
+  onFinish,
+  onStepComplete,
+}: Props) {
+  const {currentGuide, currentStep: step, orgId, forceHide} = useLegacyStore(GuideStore);
+
+  useEffect(() => {
+    registerAnchor(target);
+    return () => {
+      unregisterAnchor(target);
+    };
+  }, [target]);
+
+  const active = currentGuide?.steps[step]?.target === target && !forceHide;
+
+  /**
+   * Terminology:
+   *
+   *  - A guide can be FINISHED by clicking one of the buttons in the last step
+   *  - A guide can be DISMISSED by x-ing out of it at any step except the last (where there is no x)
+   *  - In both cases we consider it CLOSED
+   */
+  const handleFinish = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onStepComplete?.(e);
+      onFinish?.(e);
+
+      if (currentGuide) {
+        recordFinish(currentGuide.guide, orgId);
+      }
+      closeGuide();
+    },
+    [currentGuide, onFinish, onStepComplete, orgId]
+  );
+
+  const handleNextStep = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onStepComplete?.(e);
+      nextStep();
+    },
+    [onStepComplete]
+  );
+
+  if (!active) {
+    return children ? children : null;
+  }
+
+  const totalStepCount = currentGuide?.steps.length ?? 0;
+  const currentStepCount = step + 1;
+  const currentStep = currentGuide?.steps[step]!;
+  const lastStep = currentStepCount === totalStepCount && !currentStep.hasNextGuide;
+  const hasManySteps = totalStepCount > 1;
+
+  return (
+    <TourGuide
+      isOpen
+      title={currentStep.title}
+      description={currentStep.description}
+      stepCount={currentStepCount}
+      stepTotal={totalStepCount}
+      handleDismiss={e => {
+        e.stopPropagation();
+        if (currentGuide) {
+          dismissGuide(currentGuide.guide, step, orgId);
+        }
+        window.location.hash = '';
+      }}
+      actions={
+        <Grid flow="column" align="center" gap="md">
+          {lastStep ? (
+            <TourAction size="xs" onClick={handleFinish}>
+              {currentStep.nextText || (hasManySteps ? t('Enough Already') : t('Got It'))}
+            </TourAction>
+          ) : (
+            <TourAction size="xs" onClick={handleNextStep}>
+              {currentStep.nextText || t('Next')}
+            </TourAction>
+          )}
+        </Grid>
+      }
+      className={containerClassName}
+      position={position}
+      offset={offset}
+    >
+      {props => (
+        <Container as="span" maxWidth="100%" display="inline-block" {...props}>
+          <ScrollToGuide>{children}</ScrollToGuide>
+        </Container>
+      )}
+    </TourGuide>
+  );
+}
+
+/**
+ * Wraps the GuideAnchor so we don't have to render it if it's disabled
+ * Using a class so we automatically have children as a typed prop
+ */
+interface WrapperProps extends Props {
+  disabled?: boolean;
+}
+
+/**
+ * A GuideAnchor puts an informative hovercard around an element. Guide anchors
+ * register with the GuideStore, which uses registrations from one or more
+ * anchors on the page to determine which guides can be shown on the page.
+ */
+export function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
+  if (disabled) {
+    return children;
+  }
+  return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;
+}

@@ -1,0 +1,292 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import type {Organization} from 'sentry/types/organization';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetBuilderQueryFilterBuilder} from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
+import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  useSpanItemAttributes,
+  useTraceItemDatasetAttributes,
+} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+
+jest.mock('sentry/utils/useCustomMeasurements');
+jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
+
+describe('QueryFilterBuilder', () => {
+  let organization: Organization;
+
+  beforeEach(() => {
+    organization = OrganizationFixture({
+      features: [],
+    });
+    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
+    jest
+      .mocked(useTraceItemDatasetAttributes)
+      .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
+    jest
+      .mocked(useSpanItemAttributes)
+      .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+  });
+
+  it('renders a dataset-specific query filter bar', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              query: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          },
+        },
+      }
+    );
+    expect(
+      await screen.findByPlaceholderText('Search for events, users, tags, and more')
+    ).toBeInTheDocument();
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.TABLE},
+          },
+        },
+      }
+    );
+    expect(
+      await screen.findByPlaceholderText('Search for spans, users, tags, and more')
+    ).toBeInTheDocument();
+  });
+
+  it('renders a legend alias input for charts', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              query: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByPlaceholderText('Legend Alias')).toBeInTheDocument();
+  });
+
+  it('does not render a legend alias input for the details widget', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              query: [],
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.DETAILS,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Search for spans, users, tags, and more')
+    ).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Legend Alias')).not.toBeInTheDocument();
+  });
+
+  it('does not allow adding multiple filters for the details widget', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              query: [],
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.DETAILS,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Search for spans, users, tags, and more')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('+ Add Filter')).not.toBeInTheDocument();
+  });
+
+  it('limits number of filter queries to 3', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              query: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      screen.getByPlaceholderText('Search for events, users, tags, and more')
+    ).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Filter')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByText('+ Add Filter'));
+    await userEvent.click(await screen.findByText('+ Add Filter'));
+
+    expect(screen.queryByText('+ Add Filter')).not.toBeInTheDocument();
+  });
+
+  it('allow adding filters for the spans dataset', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.LINE},
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('+ Add Filter')).toBeInTheDocument();
+  });
+
+  it('disables search bar when transaction widget type and discover-saved-queries-deprecation feature flag', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: ['discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithFeature,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              query: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
+    );
+
+    const searchBar = await screen.findByPlaceholderText(
+      'Search for events, users, tags, and more'
+    );
+    expect(searchBar).toBeDisabled();
+  });
+
+  it('enables search bar when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              query: [],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
+    );
+
+    const searchBar = await screen.findByPlaceholderText(
+      'Search for events, users, tags, and more'
+    );
+    expect(searchBar).toBeEnabled();
+  });
+});

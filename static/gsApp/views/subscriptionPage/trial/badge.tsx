@@ -1,0 +1,39 @@
+import styled from '@emotion/styled';
+
+import {Tag} from '@sentry/scraps/badge';
+
+import {t, tn} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+
+import type {Subscription} from 'getsentry/types';
+import {getTrialDaysLeft, getTrialLength} from 'getsentry/utils/billing';
+
+type Props = {
+  organization: Organization;
+  subscription: Subscription;
+};
+
+export function TrialBadge({subscription, organization}: Props) {
+  if (subscription.isTrial) {
+    return (
+      <Tag variant="promotion">
+        <TrialText>
+          {tn('%s Day Left', '%s Days Left', getTrialDaysLeft(subscription) || 0)}
+        </TrialText>
+      </Tag>
+    );
+  }
+
+  if (subscription.canTrial) {
+    return (
+      <Tag variant="promotion">
+        <TrialText>{t('%s Day Trial', getTrialLength(organization))}</TrialText>
+      </Tag>
+    );
+  }
+  return null;
+}
+
+const TrialText = styled('span')`
+  font-weight: 400;
+`;

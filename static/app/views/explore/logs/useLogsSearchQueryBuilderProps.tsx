@@ -1,0 +1,113 @@
+import {useCallback, useMemo} from 'react';
+
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
+import type {TagCollection} from 'sentry/types/group';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {usePrevious} from 'sentry/utils/usePrevious';
+import {
+  useTraceItemSearchQueryBuilderProps,
+  type TraceItemSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {HiddenLogSearchFields} from 'sentry/views/explore/logs/constants';
+import {
+  useQueryParamsFields,
+  useQueryParamsSearch,
+  useSetQueryParams,
+} from 'sentry/views/explore/queryParams/context';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {findSuggestedColumns} from 'sentry/views/explore/utils';
+
+export function useLogsSearchQueryBuilderProps({
+  attributeQuery,
+  booleanAttributes,
+  booleanSecondaryAliases,
+  numberAttributes,
+  stringAttributes,
+  numberSecondaryAliases,
+  stringSecondaryAliases,
+}: {
+  booleanAttributes: TagCollection;
+  booleanSecondaryAliases: TagCollection;
+  numberAttributes: TagCollection;
+  numberSecondaryAliases: TagCollection;
+  stringAttributes: TagCollection;
+  stringSecondaryAliases: TagCollection;
+  attributeQuery?: string;
+}) {
+  const logsSearch = useQueryParamsSearch();
+  const oldLogsSearch = usePrevious(logsSearch);
+  const fields = useQueryParamsFields();
+  const setQueryParams = useSetQueryParams();
+  const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
+
+  const onSearch = useCallback(
+    (newQuery: string) => {
+      const newSearch = new MutableSearch(newQuery);
+      const suggestedColumns = findSuggestedColumns(newSearch, oldLogsSearch, {
+        numberAttributes,
+        stringAttributes,
+        booleanAttributes,
+      });
+
+      const existingFields = new Set(fields);
+      const newColumns = suggestedColumns.filter(col => !existingFields.has(col));
+
+      setQueryParams({
+        query: newSearch.formatString(),
+        fields: newColumns.length ? [...fields, ...newColumns] : undefined,
+      });
+    },
+    [
+      booleanAttributes,
+      fields,
+      numberAttributes,
+      oldLogsSearch,
+      setQueryParams,
+      stringAttributes,
+    ]
+  );
+
+  const initialQuery = logsSearch.formatString();
+  const tracesItemSearchQueryBuilderProps = useMemo<TraceItemSearchQueryBuilderProps>(
+    () => ({
+      initialQuery,
+      searchSource: 'ourlogs',
+      onSearch,
+      booleanAttributes,
+      numberAttributes,
+      stringAttributes,
+      itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
+      booleanSecondaryAliases,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      caseInsensitive,
+      onCaseInsensitiveClick: setCaseInsensitive,
+      replaceRawSearchKeys: ['message'],
+      matchKeySuggestions: [{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}],
+      hiddenAttributeKeys: HiddenLogSearchFields,
+      attributeQuery,
+    }),
+    [
+      attributeQuery,
+      booleanAttributes,
+      booleanSecondaryAliases,
+      caseInsensitive,
+      initialQuery,
+      numberAttributes,
+      numberSecondaryAliases,
+      onSearch,
+      setCaseInsensitive,
+      stringAttributes,
+      stringSecondaryAliases,
+    ]
+  );
+
+  const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(
+    tracesItemSearchQueryBuilderProps
+  );
+
+  return {
+    tracesItemSearchQueryBuilderProps,
+    searchQueryBuilderProviderProps,
+  };
+}

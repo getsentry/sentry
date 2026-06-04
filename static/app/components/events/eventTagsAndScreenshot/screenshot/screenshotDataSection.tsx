@@ -1,0 +1,138 @@
+import {useState} from 'react';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
+
+import {
+  useDeleteEventAttachmentOptimistic,
+  useFetchEventAttachments,
+} from 'sentry/actionCreators/events';
+import {Screenshot} from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
+import {
+  modalCss,
+  ScreenshotModal,
+} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
+import {t, tn} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import type {EventAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+
+interface ScreenshotDataSectionProps {
+  event: Event;
+  projectSlug: Project['slug'];
+  isShare?: boolean;
+}
+
+export function ScreenshotDataSection({
+  event,
+  projectSlug,
+  isShare,
+  ...props
+}: ScreenshotDataSectionProps) {
+  const {openModal} = useModal();
+
+  const location = useLocation();
+  const organization = useOrganization();
+  const {data: attachments} = useFetchEventAttachments(
+    {
+      orgSlug: organization.slug,
+      projectSlug,
+      eventId: event.id,
+    },
+    {enabled: !isShare}
+  );
+  const [screenshotInFocus, setScreenshotInFocus] = useState(0);
+  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
+  const screenshots = attachments?.filter(attachment =>
+    attachment.name.includes('screenshot')
+  );
+
+  const showScreenshot = !isShare && !!screenshots?.length;
+  if (!showScreenshot) {
+    return null;
+  }
+
+  const screenshot = screenshots[screenshotInFocus]!;
+
+  const handleDeleteScreenshot = (attachmentId: string) => {
+    deleteAttachment({
+      orgSlug: organization.slug,
+      projectSlug,
+      eventId: event.id,
+      attachmentId,
+    });
+  };
+
+  function handleOpenVisualizationModal(
+    eventAttachment: EventAttachment,
+    downloadUrl: string
+  ) {
+    trackAnalytics('issue_details.issue_tab.screenshot_modal_opened', {
+      organization,
+    });
+    function handleDelete() {
+      trackAnalytics('issue_details.issue_tab.screenshot_modal_deleted', {
+        organization,
+      });
+      handleDeleteScreenshot(eventAttachment.id);
+    }
+
+    openModal(
+      modalProps => (
+        <ScreenshotModal
+          {...modalProps}
+          projectSlug={projectSlug}
+          eventAttachment={eventAttachment}
+          downloadUrl={downloadUrl}
+          onDelete={handleDelete}
+          onDownload={() =>
+            trackAnalytics('issue_details.issue_tab.screenshot_modal_download', {
+              organization,
+            })
+          }
+          attachments={screenshots}
+        />
+      ),
+      {modalCss}
+    );
+  }
+
+  const linkPath = {
+    pathname: `${location.pathname}${TabPaths[Tab.ATTACHMENTS]}`,
+    query: {...location.query, attachmentFilter: EventAttachmentFilter.SCREENSHOT},
+  };
+  const title = tn('Screenshot', 'Screenshots', screenshots.length);
+
+  return showScreenshot ? (
+    <FoldSection
+      sectionKey={SectionKey.SCREENSHOT}
+      title={title}
+      actions={
+        <LinkButton to={linkPath} size="xs">
+          {t('View All')}
+        </LinkButton>
+      }
+      {...props}
+    >
+      <Screenshot
+        organization={organization}
+        eventId={event.id}
+        projectSlug={projectSlug}
+        screenshot={screenshot}
+        onDelete={handleDeleteScreenshot}
+        onNext={() => setScreenshotInFocus(screenshotInFocus + 1)}
+        onPrevious={() => setScreenshotInFocus(screenshotInFocus - 1)}
+        screenshotInFocus={screenshotInFocus}
+        totalScreenshots={screenshots.length}
+        openVisualizationModal={handleOpenVisualizationModal}
+      />
+    </FoldSection>
+  ) : null;
+}

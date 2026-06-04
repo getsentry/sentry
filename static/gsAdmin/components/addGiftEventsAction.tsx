@@ -1,0 +1,155 @@
+import {Component} from 'react';
+
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {DataCategory} from 'sentry/types/core';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+
+import type {
+  AdminConfirmParams,
+  AdminConfirmRenderProps,
+} from 'admin/components/adminConfirmationModal';
+import type {BilledDataCategoryInfo, Subscription} from 'getsentry/types';
+import {
+  getPlanCategoryName,
+  isByteCategory,
+  isContinuousProfiling,
+  isEmergeCategory,
+} from 'getsentry/utils/dataCategory';
+
+export function getFreeEventsKey(dataCategory: DataCategory) {
+  return `addFree${toTitleCase(dataCategory, {allowInnerUpperCase: true})}`;
+}
+
+type Props = AdminConfirmRenderProps & {
+  billedCategoryInfo: BilledDataCategoryInfo | null;
+  dataCategory: DataCategory;
+  subscription: Subscription;
+};
+
+type State = {
+  freeEvents?: number;
+};
+
+/**
+ * Rendered as part of a openAdminConfirmModal call
+ */
+export class AddGiftEventsAction extends Component<Props, State> {
+  state: State = {
+    freeEvents: undefined,
+  };
+
+  componentDidMount() {
+    this.props.setConfirmCallback(this.handleConfirm);
+    this.props.disableConfirmButton(true);
+  }
+
+  handleChange = (value: string) => {
+    const freeEvents = this.coerceValue(value);
+    this.props.disableConfirmButton(freeEvents === 0);
+    this.setState({freeEvents});
+  };
+
+  coerceValue(value: string) {
+    const intValue = parseInt(value, 10);
+
+    if (isNaN(intValue) || intValue < 0) {
+      return;
+    }
+
+    return intValue;
+  }
+
+  handleConfirm = (params: AdminConfirmParams) => {
+    const {onConfirm, dataCategory} = this.props;
+
+    const freeEvents = this.calculatedTotal;
+    const freeEventsKey = getFreeEventsKey(dataCategory);
+
+    onConfirm?.({[freeEventsKey]: freeEvents, ...params});
+
+    this.resetValue();
+  };
+
+  resetValue = () => {
+    this.setState({freeEvents: 0});
+  };
+
+  get calculatedTotal() {
+    const {billedCategoryInfo} = this.props;
+    const {freeEvents} = this.state;
+
+    if (!freeEvents) {
+      return 0;
+    }
+    return freeEvents * (billedCategoryInfo?.freeEventsMultiple ?? 0);
+  }
+
+  render() {
+    const {billedCategoryInfo, dataCategory, subscription} = this.props;
+    const {freeEvents} = this.state;
+
+    function getlabel() {
+      const categoryName = getPlanCategoryName({
+        plan: subscription.planDetails,
+        category: dataCategory,
+        capitalize: false,
+      });
+
+      if (isByteCategory(dataCategory)) {
+        return `How many ${categoryName} in GB?`;
+      }
+      if (isContinuousProfiling(dataCategory)) {
+        return 'How many profile hours?';
+      }
+      if (isEmergeCategory(dataCategory)) {
+        return `How many ${categoryName}?`;
+      }
+
+      const multiplier = billedCategoryInfo?.freeEventsMultiple ?? 0;
+      const addToMessage =
+        multiplier > 1
+          ? ` in multiples of ${multiplier.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}s?`
+          : '?';
+      return `How many ${categoryName}${addToMessage} (50 is ${(50 * multiplier).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} ${categoryName})`;
+    }
+
+    const total = this.calculatedTotal.toLocaleString();
+    function getHelp() {
+      let postFix = '';
+      if (isContinuousProfiling(dataCategory)) {
+        if (total === '1') {
+          postFix = ' hour';
+        } else {
+          postFix = ' hours';
+        }
+      }
+      if (isByteCategory(dataCategory)) {
+        postFix = ' GB';
+      }
+      if (dataCategory === DataCategory.SIZE_ANALYSIS) {
+        postFix = total === '1' ? ' build' : ' builds';
+      }
+      if (dataCategory === DataCategory.INSTALLABLE_BUILD) {
+        postFix = total === '1' ? ' install' : ' installs';
+      }
+      return `Total: ${total}${postFix}`;
+    }
+
+    return (
+      <TextField
+        autoFocus
+        inline={false}
+        stacked
+        flexibleControlStateSize
+        data-test-id={`num-free-${dataCategory}`}
+        label={getlabel()}
+        help={getHelp()}
+        name={dataCategory}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={freeEvents && !isNaN(freeEvents) ? freeEvents.toString() : ''}
+        onChange={this.handleChange}
+      />
+    );
+  }
+}

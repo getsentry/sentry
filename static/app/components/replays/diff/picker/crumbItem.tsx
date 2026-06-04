@@ -1,0 +1,75 @@
+import styled from '@emotion/styled';
+
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
+import {t} from 'sentry/locale';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
+import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
+import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
+
+export function CrumbItem({
+  crumb,
+  startTimestampMs,
+}: {
+  crumb: BreadcrumbFrame;
+  startTimestampMs: number;
+}) {
+  const {title, icon} = getFrameDetails(crumb);
+
+  const formattedDuration = formatDuration({
+    duration: [crumb.offsetMs, 'ms'],
+    precision: 'ms',
+    style: 'hh:mm:ss.sss',
+  });
+
+  return (
+    <Container justifySelf="center" position="relative">
+      <ErrorLine />
+      <ErrorLabel>
+        <Tooltip
+          skipWrapper
+          title={
+            <LeftAligned>
+              {t('Detected: %s', title)}
+              <div>
+                <ReplayTooltipTime
+                  timestampMs={crumb.timestampMs}
+                  startTimestampMs={startTimestampMs}
+                />
+              </div>
+            </LeftAligned>
+          }
+        >
+          <Flex direction="column" gap="xs">
+            <Flex gap="sm" align="center">
+              {icon}
+              {formattedDuration}
+            </Flex>
+          </Flex>
+        </Tooltip>
+      </ErrorLabel>
+    </Container>
+  );
+}
+
+const ErrorLine = styled('div')`
+  border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
+  height: 100%;
+`;
+
+const ErrorLabel = styled('div')`
+  color: ${p => p.theme.tokens.content.accent};
+  position: absolute;
+  top: 0;
+  transform: translate(-50%, -100%);
+  padding-bottom: ${p => p.theme.space.xs};
+`;
+
+const LeftAligned = styled('div')`
+  text-align: left;
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  flex-direction: column;
+`;

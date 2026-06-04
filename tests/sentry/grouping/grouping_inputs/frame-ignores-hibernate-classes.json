@@ -1,0 +1,11 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "function": "jipJipManagementApplication",
+        "module": "com.example.model.User$HibernateProxy$oRWxjAWT"
+      }
+    ]
+  },
+  "platform": "java"
+}

@@ -1,0 +1,82 @@
+import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
+
+import onboardingImg from 'sentry-images/spot/crons-onboarding.svg';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
+import {IconGlobe, IconTerminal} from 'sentry/icons';
+import {t} from 'sentry/locale';
+
+import {platformGuides, type SupportedPlatform} from './upsertPlatformGuides';
+
+interface Props {
+  onSelect: (platform: SupportedPlatform | null) => void;
+}
+
+export function PlatformPickerPanel({onSelect}: Props) {
+  return (
+    <OnboardingPanel image={<img src={onboardingImg} />}>
+      <OnboardingTitle>{t('Monitor Your Cron Jobs')}</OnboardingTitle>
+      <p>
+        {t(
+          "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
+        )}
+      </p>
+      <SectionTitle>{t('Platforms')}</SectionTitle>
+      <Flex wrap="wrap" gap="xl">
+        {platformGuides
+          .filter(({platform}) => !['cli', 'http'].includes(platform))
+          .map(({platform, label}) => (
+            <PlatformOption key={platform}>
+              <PlatformButton
+                variant="secondary"
+                onClick={() => onSelect(platform)}
+                aria-label={t('Create %s Monitor', platform)}
+              >
+                <PlatformIcon platform={platform} format="lg" size="100%" />
+              </PlatformButton>
+              <div>{label}</div>
+            </PlatformOption>
+          ))}
+      </Flex>
+      <SectionTitle>{t('Generic')}</SectionTitle>
+      <Flex wrap="wrap" gap="xl">
+        <Button size="sm" icon={<IconTerminal />} onClick={() => onSelect('cli')}>
+          Sentry CLI
+        </Button>
+        <Button size="sm" icon={<IconGlobe />} onClick={() => onSelect('http')}>
+          HTTP (cURL)
+        </Button>
+      </Flex>
+    </OnboardingPanel>
+  );
+}
+
+const OnboardingTitle = styled('h3')`
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const SectionTitle = styled('h5')`
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  text-transform: uppercase;
+  margin-bottom: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space['3xl']};
+`;
+
+const PlatformButton = styled(Button)`
+  width: 80px;
+  height: 80px;
+  padding: ${p => p.theme.space.lg};
+`;
+
+const PlatformOption = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+`;

@@ -1,0 +1,875 @@
+import {Component, createRef, type ReactNode} from 'react';
+import {withTheme, type CSSObject, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
+
+import type {InputProps} from '@sentry/scraps/input';
+import {Input} from '@sentry/scraps/input';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {pulse} from 'sentry/styles/animations';
+import type {
+  AggregateParameter,
+  AggregationKeyWithAlias,
+  Column,
+  ColumnType,
+  QueryFieldValue,
+  ValidateColumnTypes,
+} from 'sentry/utils/discover/fields';
+import {AGGREGATIONS, DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
+import type {FieldValueType} from 'sentry/utils/fields';
+import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+
+import {ArithmeticInput} from './arithmeticInput';
+import type {FieldValue, FieldValueColumns} from './types';
+import {FieldValueKind} from './types';
+
+export type FieldValueOption = SelectValue<FieldValue>;
+
+type FieldOptions = Record<string, FieldValueOption>;
+
+// Intermediate type that combines the current column
+// data with the AggregateParameter type.
+export type ParameterDescription =
+  | {
+      dataType: ColumnType;
+      kind: 'value';
+      required: boolean;
+      value: string;
+      placeholder?: string;
+    }
+  | {
+      kind: 'column';
+      options: FieldValueOption[];
+      required: boolean;
+      value: FieldValue | null;
+    }
+  | {
+      dataType: string;
+      kind: 'dropdown';
+      options: Array<SelectValue<string>>;
+      required: boolean;
+      value: string;
+      placeholder?: string;
+    };
+
+type Props = {
+  fieldOptions: FieldOptions;
+  fieldValue: QueryFieldValue;
+  onChange: (fieldValue: QueryFieldValue) => void;
+  className?: string;
+  disableParameterSelector?: boolean;
+  disabled?: boolean;
+  error?: string;
+  /**
+   * Function to filter the options that are used as parameters for function/aggregate.
+   */
+  filterAggregateParameters?: (
+    option: FieldValueOption,
+    fieldValue?: QueryFieldValue
+  ) => boolean;
+  /**
+   * Filter the options in the primary selector. Useful if you only want to
+   * show a subset of selectable items.
+   *
+   * NOTE: This is different from passing an already filtered fieldOptions
+   * list, as tag items in the list may be used as parameters to functions.
+   */
+  filterPrimaryOptions?: (option: FieldValueOption) => boolean;
+  /**
+   * The number of columns to render. Columns that do not have a parameter will
+   * render an empty parameter placeholder. Leave blank to avoid adding spacers.
+   */
+  gridColumns?: number;
+  hideParameterSelector?: boolean;
+  hidePrimarySelector?: boolean;
+  /**
+   * Whether or not to add labels inside of the input fields, currently only
+   * used for the metric alert builder.
+   */
+  inFieldLabels?: boolean;
+  /**
+   * This will be displayed in the select if there are no fields
+   */
+  noFieldsMessage?: string;
+  otherColumns?: Column[];
+  placeholder?: string;
+  /**
+   * A custom tag renderer for indicating the type of the field.
+   */
+  renderTagOverride?: (
+    kind: FieldValueKind,
+    label: ReactNode,
+    meta: FieldValue['meta']
+  ) => ReactNode;
+  /**
+   * Whether or not to add the tag explaining the FieldValueKind of each field
+   */
+  shouldRenderTag?: boolean;
+  skipParameterPlaceholder?: boolean;
+  takeFocus?: boolean;
+  theme?: Theme;
+  /**
+   * Whether or not to mount the popover menu in the document.body.
+   * Useful for rendering query fields in scroll containers.
+   */
+  useMenuPortal?: boolean;
+};
+
+class _QueryField extends Component<Props> {
+  FieldSelectComponents = {
+    SingleValue: ({data, ...props}: SingleValueProps<FieldValueOption>): ReactNode => {
+      return (
+        <components.SingleValue data={data} {...props}>
+          <span data-test-id="label">{data.label}</span>
+          {data.value && this.renderTag(data.value.kind, data.label, data.value.meta)}
+        </components.SingleValue>
+      );
+    },
+  };
+
+  FieldSelectStyles = {
+    singleValue(provided: CSSObject) {
+      const custom = {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      };
+      return {...provided, ...custom};
+    },
+  };
+
+  handleFieldChange = (selected?: FieldValueOption | null) => {
+    if (!selected) {
+      return;
+    }
+    const {value} = selected;
+    const current = this.props.fieldValue;
+    let fieldValue = cloneDeep(this.props.fieldValue);
+
+    switch (value.kind) {
+      case FieldValueKind.TAG:
+      case FieldValueKind.MEASUREMENT:
+      case FieldValueKind.CUSTOM_MEASUREMENT:
+      case FieldValueKind.BREAKDOWN:
+      case FieldValueKind.FIELD:
+        fieldValue = {kind: 'field', field: value.meta.name};
+        break;
+      case FieldValueKind.NUMERIC_METRICS:
+        fieldValue = {
+          kind: 'calculatedField',
+          field: value.meta.name,
+        };
+        break;
+      case FieldValueKind.FUNCTION:
+        if (current.kind === 'function') {
+          fieldValue = {
+            kind: 'function',
+            function: [
+              value.meta.name as AggregationKeyWithAlias,
+              current.function[1],
+              current.function[2],
+              current.function[3],
+            ],
+          };
+        } else {
+          fieldValue = {
+            kind: 'function',
+            function: [
+              value.meta.name as AggregationKeyWithAlias,
+              '',
+              undefined,
+              undefined,
+            ],
+          };
+        }
+        break;
+      case FieldValueKind.EQUATION:
+        fieldValue = {
+          kind: 'equation',
+          field: value.meta.name,
+          alias: value.meta.name,
+        };
+        break;
+      default:
+        throw new Error('Invalid field type found in column picker');
+    }
+
+    if (value.kind === FieldValueKind.FUNCTION) {
+      value.meta.parameters.forEach((param: AggregateParameter, i: number) => {
+        if (fieldValue.kind !== 'function') {
+          return;
+        }
+        if (param.kind === 'column') {
+          const field = this.getFieldOrTagOrMeasurementValue(fieldValue.function[i + 1]);
+          if (field === null) {
+            fieldValue.function[i + 1] = param.defaultValue || '';
+          } else if (
+            (field.kind === FieldValueKind.FIELD ||
+              field.kind === FieldValueKind.TAG ||
+              field.kind === FieldValueKind.MEASUREMENT ||
+              field.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
+              field.kind === FieldValueKind.METRICS ||
+              field.kind === FieldValueKind.BREAKDOWN) &&
+            validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
+          ) {
+            // New function accepts current field.
+            fieldValue.function[i + 1] = field.meta.name;
+          } else {
+            // field does not fit within new function requirements, use the default.
+            fieldValue.function[i + 1] = param.defaultValue || '';
+            fieldValue.function[i + 2] = undefined;
+            fieldValue.function[i + 3] = undefined;
+          }
+        } else {
+          fieldValue.function[i + 1] = param.defaultValue || '';
+        }
+      });
+
+      if (fieldValue.kind === 'function') {
+        if (value.meta.parameters.length === 0) {
+          fieldValue.function = [fieldValue.function[0], '', undefined, undefined];
+        } else if (value.meta.parameters.length === 1) {
+          fieldValue.function[2] = undefined;
+          fieldValue.function[3] = undefined;
+        } else if (value.meta.parameters.length === 2) {
+          fieldValue.function[3] = undefined;
+        }
+      }
+    }
+
+    this.triggerChange(fieldValue);
+  };
+
+  handleEquationChange = (value: string) => {
+    const newColumn = cloneDeep(this.props.fieldValue);
+    if (newColumn.kind === FieldValueKind.EQUATION) {
+      newColumn.field = value;
+    }
+    this.triggerChange(newColumn);
+  };
+
+  handleFieldParameterChange = ({value}: any) => {
+    const newColumn = cloneDeep(this.props.fieldValue);
+    if (newColumn.kind === 'function') {
+      newColumn.function[1] = value.meta.name;
+    }
+    this.triggerChange(newColumn);
+  };
+
+  handleDropdownParameterChange = (index: number) => {
+    return (value: SelectValue<string>) => {
+      const newColumn = cloneDeep(this.props.fieldValue);
+      if (newColumn.kind === 'function') {
+        newColumn.function[index] = value.value;
+      }
+      this.triggerChange(newColumn);
+    };
+  };
+
+  handleScalarParameterChange = (index: number) => {
+    return (value: string) => {
+      const newColumn = cloneDeep(this.props.fieldValue);
+      if (newColumn.kind === 'function') {
+        newColumn.function[index] = value;
+      }
+      this.triggerChange(newColumn);
+    };
+  };
+
+  triggerChange(fieldValue: QueryFieldValue) {
+    this.props.onChange(fieldValue);
+  }
+
+  getFieldOrTagOrMeasurementValue(
+    name: string | undefined,
+    functions: string[] = []
+  ): FieldValue | null {
+    const {fieldOptions} = this.props;
+    if (name === undefined) {
+      return null;
+    }
+
+    const fieldName = `field:${name}`;
+    if (fieldOptions[fieldName]) {
+      return fieldOptions[fieldName].value;
+    }
+
+    const measurementName = `measurement:${name}`;
+    if (fieldOptions[measurementName]) {
+      return fieldOptions[measurementName].value;
+    }
+
+    const spanOperationBreakdownName = `span_op_breakdown:${name}`;
+    if (fieldOptions[spanOperationBreakdownName]) {
+      return fieldOptions[spanOperationBreakdownName].value;
+    }
+
+    const equationName = `equation:${name}`;
+    if (fieldOptions[equationName]) {
+      return fieldOptions[equationName].value;
+    }
+
+    const tagName =
+      name.indexOf('tags[') === 0
+        ? `tag:${name.replace(/tags\[(.*?)\]/, '$1')}`
+        : `tag:${name}`;
+
+    if (fieldOptions[tagName]) {
+      return fieldOptions[tagName].value;
+    }
+
+    if (name.length > 0) {
+      // Custom Measurement. Probably not appearing in field options because
+      // no metrics found within selected time range
+      if (name.startsWith('measurements.')) {
+        return {
+          kind: FieldValueKind.CUSTOM_MEASUREMENT,
+          meta: {
+            name,
+            dataType: 'number',
+            functions,
+          },
+        };
+      }
+      // Likely a tag that was deleted but left behind in a saved query
+      // Cook up a tag option so select control works.
+      return {
+        kind: FieldValueKind.TAG,
+        meta: {
+          name,
+          dataType: 'string',
+          unknown: true,
+        },
+      };
+    }
+    return null;
+  }
+
+  getFieldData() {
+    let field: FieldValue | null = null;
+
+    const {fieldValue} = this.props;
+    let {fieldOptions} = this.props;
+
+    if (fieldValue?.kind === 'function') {
+      const funcName = `function:${fieldValue.function[0]}`;
+      if (fieldOptions[funcName] !== undefined) {
+        field = fieldOptions[funcName].value;
+      }
+    }
+
+    if (fieldValue?.kind === 'field' || fieldValue?.kind === 'calculatedField') {
+      field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
+      fieldOptions = appendFieldIfUnknown(fieldOptions, field);
+    }
+
+    let parameterDescriptions: ParameterDescription[] = [];
+    // Generate options and values for each parameter.
+    if (
+      field?.kind === FieldValueKind.FUNCTION &&
+      field.meta.parameters.length > 0 &&
+      fieldValue?.kind === FieldValueKind.FUNCTION
+    ) {
+      parameterDescriptions = field.meta.parameters.map(
+        (param, index: number): ParameterDescription => {
+          if (param.kind === 'column') {
+            const fieldParameter = this.getFieldOrTagOrMeasurementValue(
+              fieldValue.function[1],
+              [fieldValue.function[0]]
+            );
+            fieldOptions = appendFieldIfUnknown(fieldOptions, fieldParameter);
+            return {
+              kind: 'column',
+              value: fieldParameter,
+              required: param.required,
+              options: Object.values(fieldOptions).filter(
+                ({value}) =>
+                  (value.kind === FieldValueKind.FIELD ||
+                    value.kind === FieldValueKind.TAG ||
+                    value.kind === FieldValueKind.MEASUREMENT ||
+                    value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
+                    value.kind === FieldValueKind.METRICS ||
+                    value.kind === FieldValueKind.BREAKDOWN) &&
+                  validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
+              ),
+            };
+          }
+          if (param.kind === 'dropdown') {
+            return {
+              kind: 'dropdown',
+              options: param.options,
+              dataType: param.dataType,
+              required: param.required,
+              value:
+                (fieldValue.kind === 'function' && fieldValue.function[index + 1]) ||
+                param.defaultValue ||
+                '',
+            };
+          }
+
+          return {
+            kind: 'value',
+            value:
+              (fieldValue.kind === 'function' && fieldValue.function[index + 1]) ||
+              param.defaultValue ||
+              '',
+            dataType: param.dataType,
+            required: param.required,
+            placeholder: param.placeholder,
+          };
+        }
+      );
+    }
+    return {field, fieldOptions, parameterDescriptions};
+  }
+
+  renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
+    const {
+      disabled,
+      inFieldLabels,
+      filterAggregateParameters,
+      hideParameterSelector,
+      skipParameterPlaceholder,
+      fieldValue,
+      useMenuPortal,
+      theme,
+      disableParameterSelector,
+    } = this.props;
+
+    const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
+      if (descriptor.kind === 'column' && descriptor.options.length > 0) {
+        if (hideParameterSelector) {
+          return null;
+        }
+        const aggregateParameters = filterAggregateParameters
+          ? descriptor.options.filter(option =>
+              filterAggregateParameters(option, fieldValue)
+            )
+          : descriptor.options;
+
+        aggregateParameters.forEach(opt => {
+          opt.trailingItems = this.renderTag(
+            opt.value.kind,
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
+            String(opt.label),
+            opt.value.meta
+          );
+        });
+
+        const portalProps = useMenuPortal
+          ? {
+              menuPortalTarget: document.body,
+              styles: {
+                menuPortal: (provided: CSSObject) => ({
+                  ...provided,
+                  // This ensures that the dropdown appears above the widget builder
+                  // because the default dropdown z-index is too low
+                  zIndex: theme?.zIndex.widgetBuilderDrawer
+                    ? theme.zIndex.widgetBuilderDrawer + 1
+                    : undefined,
+                }),
+              },
+            }
+          : {};
+
+        return (
+          <Select
+            key="select"
+            name="parameter"
+            placeholder={t('Select value')}
+            options={aggregateParameters}
+            value={descriptor.value}
+            onChange={this.handleFieldParameterChange}
+            inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
+            disabled={disabled || disableParameterSelector}
+            menuPortalTarget={portalProps.menuPortalTarget}
+            styles={{
+              ...portalProps.styles,
+              ...(inFieldLabels ? undefined : this.FieldSelectStyles),
+            }}
+            components={this.FieldSelectComponents}
+          />
+        );
+      }
+      if (descriptor.kind === 'value') {
+        const inputProps = {
+          required: descriptor.required,
+          value: descriptor.value,
+          onUpdate: this.handleScalarParameterChange(index + 1),
+          placeholder: descriptor.placeholder,
+          disabled,
+        };
+        switch (descriptor.dataType) {
+          case 'number':
+            return (
+              <BufferedInput
+                name="refinement"
+                key="parameter:number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*(\.[0-9]*)?"
+                {...inputProps}
+              />
+            );
+          case 'integer':
+            return (
+              <BufferedInput
+                name="refinement"
+                key="parameter:integer"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                {...inputProps}
+              />
+            );
+          default:
+            return (
+              <BufferedInput
+                name="refinement"
+                key="parameter:text"
+                type="text"
+                {...inputProps}
+              />
+            );
+        }
+      }
+      if (descriptor.kind === 'dropdown') {
+        return (
+          <Select
+            key="dropdown"
+            name="dropdown"
+            placeholder={t('Select value')}
+            options={descriptor.options}
+            value={descriptor.value}
+            onChange={this.handleDropdownParameterChange(index + 1)}
+            inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
+            disabled={disabled}
+          />
+        );
+      }
+      throw new Error(
+        `Unknown parameter type encountered for ${JSON.stringify(this.props.fieldValue)}`
+      );
+    });
+
+    if (skipParameterPlaceholder) {
+      return inputs;
+    }
+
+    // Add enough disabled inputs to fill the grid up.
+    // We always have 1 input.
+    const {gridColumns} = this.props;
+    const requiredInputs = (gridColumns ?? inputs.length + 1) - inputs.length - 1;
+    if (gridColumns !== undefined && requiredInputs > 0) {
+      for (let i = 0; i < requiredInputs; i++) {
+        inputs.push(<BlankSpace key={i} data-test-id="blankSpace" />);
+      }
+    }
+
+    return inputs;
+  }
+
+  renderTag(kind: FieldValueKind, label: React.ReactNode, meta: FieldValue['meta']) {
+    const {shouldRenderTag, renderTagOverride} = this.props;
+    if (shouldRenderTag === false) {
+      return null;
+    }
+    if (renderTagOverride) {
+      return renderTagOverride(kind, label, meta);
+    }
+
+    const valueType =
+      meta && 'dataType' in meta ? (meta.dataType as FieldValueType) : undefined;
+
+    return (
+      <TypeBadge
+        label={label}
+        valueKind={kind}
+        valueType={valueType}
+        deprecatedFields={DEPRECATED_FIELDS}
+      />
+    );
+  }
+
+  render() {
+    const {
+      className,
+      takeFocus,
+      filterPrimaryOptions,
+      fieldValue,
+      inFieldLabels,
+      disabled,
+      error,
+      hidePrimarySelector,
+      gridColumns,
+      otherColumns,
+      placeholder,
+      noFieldsMessage,
+      skipParameterPlaceholder,
+    } = this.props;
+    const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
+
+    const allFieldOptions = filterPrimaryOptions
+      ? Object.values(fieldOptions).filter(filterPrimaryOptions)
+      : Object.values(fieldOptions);
+
+    allFieldOptions.forEach(opt => {
+      opt.trailingItems = this.renderTag(
+        opt.value.kind,
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        String(opt.label),
+        opt.value.meta
+      );
+    });
+
+    const selectProps: ControlProps = {
+      name: 'field',
+      options: Object.values(allFieldOptions),
+      placeholder: placeholder ?? t('(Required)'),
+      value: field,
+      onChange: this.handleFieldChange,
+      inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
+      disabled,
+      noOptionsMessage: () => noFieldsMessage ?? null,
+    };
+    if (takeFocus && field === null) {
+      selectProps.autoFocus = true;
+    }
+
+    const parameters = this.renderParameterInputs(parameterDescriptions);
+
+    if (fieldValue?.kind === FieldValueKind.EQUATION) {
+      return (
+        <Container
+          className={className}
+          gridColumns={1}
+          tripleLayout={false}
+          error={error !== undefined}
+          data-test-id="queryField"
+        >
+          <ArithmeticInput
+            name="arithmetic"
+            key="parameter:text"
+            type="text"
+            value={fieldValue.field}
+            onUpdate={this.handleEquationChange}
+            options={otherColumns}
+            placeholder={t('Equation')}
+          />
+          {error ? (
+            <ArithmeticError title={error}>
+              <IconWarning variant="danger" data-test-id="arithmeticErrorWarning" />
+            </ArithmeticError>
+          ) : null}
+        </Container>
+      );
+    }
+
+    // if there's more than 2 parameters, set gridColumns to 2 so they go onto the next line instead
+    const containerColumns =
+      parameters.length > 2 ? 2 : gridColumns ? gridColumns : parameters.length + 1;
+
+    let gridColumnsQuantity: undefined | number;
+
+    if (skipParameterPlaceholder) {
+      // if the selected field is a function and has parameters, we would like to display each value in separate columns.
+      // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
+      if (fieldValue.kind === 'function') {
+        const operation =
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          AGGREGATIONS[fieldValue.function[0]] ??
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          SESSIONS_OPERATIONS[fieldValue.function[0]];
+        if (operation?.parameters.length > 0) {
+          if (containerColumns === 3 && operation.parameters.length === 1) {
+            gridColumnsQuantity = 2;
+          } else {
+            gridColumnsQuantity = containerColumns;
+          }
+        } else {
+          gridColumnsQuantity = 1;
+        }
+      } else {
+        gridColumnsQuantity = 1;
+      }
+    }
+
+    return (
+      <Container
+        className={className}
+        gridColumns={gridColumnsQuantity ?? containerColumns}
+        tripleLayout={gridColumns === 3 && parameters.length > 2}
+        data-test-id="queryField"
+      >
+        {!hidePrimarySelector && (
+          <Select
+            {...selectProps}
+            styles={inFieldLabels ? undefined : this.FieldSelectStyles}
+            components={this.FieldSelectComponents}
+          />
+        )}
+        {parameters}
+      </Container>
+    );
+  }
+}
+
+export function validateColumnTypes(
+  columnTypes: ValidateColumnTypes,
+  input: FieldValueColumns
+): boolean {
+  if (typeof columnTypes === 'function') {
+    return columnTypes({name: input.meta.name, dataType: input.meta.dataType});
+  }
+
+  return (columnTypes as string[]).includes(input.meta.dataType);
+}
+
+const Container = styled('div')<{
+  gridColumns: number;
+  tripleLayout: boolean;
+  error?: boolean;
+}>`
+  display: grid;
+  ${p =>
+    p.tripleLayout
+      ? 'grid-template-columns: 1fr 2fr;'
+      : css`
+          grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};
+        `}
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+
+  flex-grow: 1;
+`;
+
+interface BufferedInputProps extends InputProps {
+  onUpdate: (value: string) => void;
+  value: string;
+}
+type InputState = {value: string};
+
+/**
+ * Because controlled inputs fire onChange on every key stroke,
+ * we can't update the QueryField that often as it would re-render
+ * the input elements causing focus to be lost.
+ *
+ * Using a buffered input lets us throttle rendering and enforce data
+ * constraints better.
+ */
+export class BufferedInput extends Component<BufferedInputProps, InputState> {
+  constructor(props: BufferedInputProps) {
+    super(props);
+    this.input = createRef();
+  }
+
+  state: InputState = {
+    value: this.props.value,
+  };
+
+  private input: React.RefObject<HTMLInputElement | null>;
+
+  get isValid() {
+    if (!this.input.current) {
+      return true;
+    }
+    return this.input.current.validity.valid;
+  }
+
+  handleBlur = () => {
+    if (this.props.required && this.state.value === '') {
+      // Handle empty strings separately because we don't pass required
+      // to input elements, causing isValid to return true
+      this.setState({value: this.props.value});
+    } else if (this.isValid) {
+      this.props.onUpdate(this.state.value);
+    } else {
+      this.setState({value: this.props.value});
+    }
+  };
+
+  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (this.isValid) {
+      this.setState({value: event.target.value});
+    }
+  };
+
+  render() {
+    const {onUpdate: _, ...props} = this.props;
+    return (
+      <StyledInput
+        {...props}
+        ref={this.input}
+        className="form-control"
+        value={this.state.value}
+        onChange={this.handleChange}
+        onBlur={this.handleBlur}
+      />
+    );
+  }
+}
+
+// Set a min-width to allow shrinkage in grid.
+const StyledInput = styled(Input)`
+  min-width: 50px;
+`;
+
+const BlankSpace = styled('div')`
+  /* Match the height of the select boxes */
+  height: ${p => p.theme.form.md.height};
+  min-width: 50px;
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:after {
+    font-size: ${p => p.theme.font.size.md};
+    content: '${t('No parameter')}';
+    color: ${p => p.theme.tokens.content.secondary};
+  }
+`;
+
+const ArithmeticError = styled(Tooltip)`
+  color: ${p => p.theme.tokens.content.danger};
+  animation: ${() => pulse(1.15)} 1s ease infinite;
+  display: flex;
+`;
+
+const QueryField = withTheme(_QueryField);
+
+export {QueryField};
+
+function appendFieldIfUnknown(
+  fieldOptions: FieldOptions,
+  field: FieldValue | null
+): FieldOptions {
+  if (!field) {
+    return fieldOptions;
+  }
+
+  if (field?.kind === FieldValueKind.TAG && field.meta.unknown) {
+    // Clone the options so we don't mutate other rows.
+    fieldOptions = Object.assign({}, fieldOptions);
+    fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
+  } else if (field?.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
+    fieldOptions = Object.assign({}, fieldOptions);
+    fieldOptions[`measurement:${field.meta.name}`] = {
+      label: field.meta.name,
+      value: field,
+    };
+  }
+
+  return fieldOptions;
+}

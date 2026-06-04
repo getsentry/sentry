@@ -1,0 +1,18 @@
+{
+  "org": "__org__",
+  "release": "__release__",
+  "debug_id": "cb7ae504-9a0c-4e88-a910-f2beed210738",
+  "files": {
+    "files/_/_/index.js.map": {
+      "url": "~/index.js.map",
+      "type": "source_map"
+    },
+    "files/_/_/index.js": {
+      "url": "~/index.js",
+      "type": "source",
+      "headers": {
+        "Sourcemap": "index.js.map"
+      }
+    }
+  }
+}

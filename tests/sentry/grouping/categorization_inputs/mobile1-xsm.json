@@ -1,0 +1,101 @@
+{
+  "event_id": "ae243bccdd0c410c381e28067327900e",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "package": "/system/lib/libc.so"
+            },
+            {
+              "function": "std::__ndk1::__thread_proxy<T>"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "std::__ndk1::__function::__func<T>::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "eglSwapBuffersWithDamageKHR",
+              "package": "/system/lib/libEGL.so"
+            },
+            {
+              "function": "eglp_swap_buffers",
+              "package": "/vendor/lib/egl/libGLES_mali.so"
+            },
+            {
+              "package": "/vendor/lib/egl/libGLES_mali.so"
+            },
+            {
+              "package": "/vendor/lib/egl/libGLES_mali.so"
+            },
+            {
+              "package": "/vendor/lib/egl/libGLES_mali.so"
+            },
+            {
+              "function": "android::Surface::queueBuffer",
+              "package": "/system/lib/libgui.so"
+            },
+            {
+              "function": "android::ProducerFrameEventHistory::updateSignalTimes",
+              "package": "/system/lib/libgui.so"
+            },
+            {
+              "function": "android::FenceTimeline::updateSignalTimes",
+              "package": "/system/lib/libui.so"
+            },
+            {
+              "function": "android::FenceTime::getSignalTime",
+              "package": "/system/lib/libui.so"
+            },
+            {
+              "function": "android::Fence::getSignalTime",
+              "package": "/system/lib/libui.so"
+            },
+            {
+              "function": "sync_fence_info",
+              "package": "/system/lib/libsync.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

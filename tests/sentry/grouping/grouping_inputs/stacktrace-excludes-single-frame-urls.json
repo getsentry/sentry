@@ -1,0 +1,13 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "lineno": 107,
+        "abs_path": "http://foo.com/bar/",
+        "context_line": "hello world",
+        "module": "<unknown module>",
+        "filename": "/bar/"
+      }
+    ]
+  }
+}

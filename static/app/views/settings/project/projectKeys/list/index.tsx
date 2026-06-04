@@ -1,0 +1,221 @@
+import {Fragment, useState} from 'react';
+import {useQuery, useMutation} from '@tanstack/react-query';
+
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
+
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import {hasEveryAccess} from 'sentry/components/acl/access';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconAdd, IconFlag} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {ProjectKey} from 'sentry/types/project';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {KeyRow} from './keyRow';
+
+export default function ProjectKeys() {
+  const params = useParams<{projectId: string}>();
+  const location = useLocation();
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+  const api = useApi({persistInFlight: true});
+  const routes = useRoutes();
+
+  const [keyListState, setKeyListState] = useState<ProjectKey[] | undefined>(undefined);
+
+  const {
+    data: keyListResponse,
+    isPending,
+    isError,
+    refetch,
+  } = useQuery({
+    ...projectKeysApiOptions({
+      orgSlug: organization.slug,
+      projSlug: project.slug,
+      query: {
+        cursor: decodeScalar(location.query.cursor),
+        per_page: 5,
+      },
+    }),
+    select: selectJsonWithHeaders,
+  });
+
+  /**
+   * Optimistically remove key
+   */
+  const handleRemoveKeyMutation = useMutation({
+    mutationFn: (data: ProjectKey) => {
+      return api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/keys/${data.id}/`,
+        {
+          method: 'DELETE',
+        }
+      );
+    },
+    onMutate: (data: ProjectKey) => {
+      addLoadingMessage(t('Revoking key\u2026'));
+      setKeyListState(keyList.filter(key => key.id !== data.id));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Revoked key'));
+    },
+    onError: () => {
+      setKeyListState([...keyList]);
+      addErrorMessage(t('Unable to revoke key'));
+    },
+  });
+
+  const handleToggleKeyMutation = useMutation({
+    mutationFn: ({isActive, data}: {data: ProjectKey; isActive: boolean}) => {
+      return api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/keys/${data.id}/`,
+        {
+          method: 'PUT',
+          data: {isActive},
+        }
+      );
+    },
+    onMutate: ({data}) => {
+      addLoadingMessage(t('Saving changes\u2026'));
+      setKeyListState(
+        keyList.map(key => {
+          if (key.id === data.id) {
+            return {
+              ...key,
+              isActive: !data.isActive,
+            };
+          }
+
+          return key;
+        })
+      );
+    },
+    onSuccess: ({isActive}: {isActive: boolean}) => {
+      addSuccessMessage(isActive ? t('Enabled key') : t('Disabled key'));
+    },
+    onError: ({isActive}: {isActive: boolean}) => {
+      addErrorMessage(isActive ? t('Error enabling key') : t('Error disabling key'));
+      setKeyListState([...keyList]);
+    },
+  });
+
+  const handleCreateKeyMutation = useMutation({
+    mutationFn: () => {
+      return api.requestPromise(`/projects/${organization.slug}/${project.slug}/keys/`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: (updatedKey: ProjectKey) => {
+      setKeyListState([...keyList, updatedKey]);
+      addSuccessMessage(t('Created a new key.'));
+    },
+    onError: () => {
+      addErrorMessage(t('Unable to create new key. Please try again.'));
+    },
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  const keyList = keyListState ? keyListState : keyListResponse.json;
+
+  const renderEmpty = () => {
+    return (
+      <Panel>
+        <EmptyMessage icon={<IconFlag />}>
+          {t('There are no keys active for this project.')}
+        </EmptyMessage>
+      </Panel>
+    );
+  };
+
+  const renderResults = () => {
+    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
+
+    return (
+      <Fragment>
+        {keyList.map(key => (
+          <KeyRow
+            hasWriteAccess={hasAccess}
+            key={key.id}
+            projectId={project.slug}
+            project={project}
+            data={key}
+            onToggle={(isActive, data) =>
+              handleToggleKeyMutation.mutate({isActive, data})
+            }
+            onRemove={data => handleRemoveKeyMutation.mutate(data)}
+            routes={routes}
+            location={location}
+            params={params}
+          />
+        ))}
+        <Pagination pageLinks={keyListResponse.headers.Link} />
+      </Fragment>
+    );
+  };
+
+  const isEmpty = !keyList.length;
+  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
+
+  return (
+    <div data-test-id="project-keys">
+      <SentryDocumentTitle title={t('Client Keys')} projectSlug={project.slug} />
+      <SettingsPageHeader
+        title={t('Client Keys')}
+        action={
+          <Button
+            onClick={() => handleCreateKeyMutation.mutate()}
+            size="md"
+            variant="primary"
+            icon={<IconAdd />}
+            disabled={!hasAccess}
+          >
+            {t('Generate New Key')}
+          </Button>
+        }
+        subtitle={tct(
+          `To send data to Sentry you will need to configure an SDK with a client key
+          (usually referred to as the [code:SENTRY_DSN] value). For more
+          information on integrating Sentry with your application take a look at our
+          [link:documentation].`,
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/options/" />
+            ),
+            code: <code />,
+          }
+        )}
+      />
+
+      <ProjectPermissionAlert project={project} />
+
+      {isEmpty ? renderEmpty() : renderResults()}
+    </div>
+  );
+}

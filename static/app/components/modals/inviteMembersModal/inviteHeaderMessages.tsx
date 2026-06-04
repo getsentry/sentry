@@ -1,0 +1,35 @@
+import styled from '@emotion/styled';
+
+import {Alert} from '@sentry/scraps/alert';
+
+import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
+import {t} from 'sentry/locale';
+
+export function ErrorAlert() {
+  const {error} = useInviteMembersContext();
+  return error ? (
+    <Alert.Container>
+      <Alert variant="danger">{error}</Alert>
+    </Alert.Container>
+  ) : null;
+}
+
+export function InviteMessage() {
+  const {willInvite} = useInviteMembersContext();
+  return willInvite ? (
+    <Subtext>{t('Invite unlimited new members to join your organization.')}</Subtext>
+  ) : (
+    <Alert.Container>
+      <Alert variant="warning">
+        {t(
+          'You can’t invite users directly, but we’ll forward your request to an org owner or manager for approval.'
+        )}
+      </Alert>
+    </Alert.Container>
+  );
+}
+
+const Subtext = styled('p')`
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-bottom: ${p => p.theme.space['2xl']};
+`;

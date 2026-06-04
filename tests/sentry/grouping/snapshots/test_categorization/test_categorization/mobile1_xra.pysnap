@@ -1,0 +1,20 @@
+---
+source: tests/sentry/grouping/test_categorization.py::test_categorization
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                        /system/lib/libdl.so  dlopen category=load
+                          /system/bin/linker  ??? category=internals
+                          /system/bin/linker  ??? category=internals
+                          /system/bin/linker  ??? category=internals
+                          /system/bin/linker  ??? category=internals
+                          /system/bin/linker  ??? category=internals
+                         /system/lib/libc.so  ??? category=internals
+                         /system/lib/libc.so  ??? category=internals
+                         /system/lib/libc.so  ??? category=internals
+                         /system/lib/libc.so  getenv category=indirection
+                         /system/lib/libc.so  ??? category=internals

@@ -1,0 +1,645 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {
+  Actions,
+  ActionTriggerType,
+  CellAction,
+  updateQuery,
+} from 'sentry/views/discover/table/cellAction';
+import type {TableColumn} from 'sentry/views/discover/table/types';
+
+const defaultData: TableDataRow = {
+  transaction: 'best-transaction',
+  count: 19,
+  timestamp: '2020-06-09T01:46:25+00:00',
+  release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
+  'measurements.fcp': 1234,
+  'percentile(measurements.fcp, 0.5)': 1234,
+  // @ts-expect-error TODO: Fix this type
+  'error.handled': [null],
+  // @ts-expect-error TODO: Fix this type
+  'error.type': [
+    'ServerException',
+    'ClickhouseError',
+    'QueryException',
+    'QueryException',
+  ],
+  id: '42',
+};
+
+function renderComponent({
+  eventView,
+  handleCellAction = jest.fn(),
+  columnIndex = 0,
+  data = defaultData,
+  pin,
+  triggerType,
+}: {
+  eventView: EventView;
+  columnIndex?: number;
+  data?: TableDataRow;
+  handleCellAction?: (
+    action: Actions,
+    value: string | number | null[] | string[] | null
+  ) => void;
+  pin?: React.ReactNode;
+  triggerType?: ActionTriggerType;
+}) {
+  return render(
+    <CellAction
+      dataRow={data}
+      column={eventView.getColumns()[columnIndex]!}
+      handleCellAction={handleCellAction}
+      pin={pin}
+      triggerType={triggerType}
+    >
+      <strong>some content</strong>
+    </CellAction>
+  );
+}
+
+describe('Discover -> CellAction', () => {
+  const location = LocationFixture({
+    query: {
+      id: '42',
+      name: 'best query',
+      field: [
+        'transaction',
+        'count()',
+        'timestamp',
+        'release',
+        'nullValue',
+        'measurements.fcp',
+        'percentile(measurements.fcp, 0.5)',
+        'error.handled',
+        'error.type',
+      ],
+      widths: ['437', '647', '416', '905'],
+      sort: ['title'],
+      query: 'event.type:transaction',
+      project: ['123'],
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+      statsPeriod: '14d',
+      environment: ['staging'],
+      yAxis: 'p95',
+    },
+  });
+
+  const view = EventView.fromLocation(location);
+
+  async function openMenu() {
+    await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+  }
+
+  describe('hover menu button', () => {
+    it('shows no menu by default', () => {
+      renderComponent({eventView: view});
+      expect(screen.getByRole('button', {name: 'Actions'})).toBeInTheDocument();
+    });
+  });
+
+  describe('opening the menu', () => {
+    it('toggles the menu on click', async () => {
+      renderComponent({eventView: view});
+      await openMenu();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('per cell actions', () => {
+    let handleCellAction!: jest.Mock;
+
+    beforeEach(() => {
+      handleCellAction = jest.fn();
+    });
+
+    it('add button appends condition', async () => {
+      renderComponent({eventView: view, handleCellAction});
+      await openMenu();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
+
+      expect(handleCellAction).toHaveBeenCalledWith('add', 'best-transaction');
+    });
+
+    it('exclude button adds condition', async () => {
+      renderComponent({eventView: view, handleCellAction});
+      await openMenu();
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      );
+
+      expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
+    });
+
+    it('exclude button appends exclusions', async () => {
+      const excludeView = EventView.fromLocation(
+        LocationFixture({
+          query: {...location.query, query: '!transaction:nope'},
+        })
+      );
+      renderComponent({eventView: excludeView, handleCellAction});
+      await openMenu();
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      );
+
+      expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
+    });
+
+    it('go to release button goes to release health page', async () => {
+      renderComponent({eventView: view, handleCellAction, columnIndex: 3});
+      await openMenu();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
+
+      expect(handleCellAction).toHaveBeenCalledWith(
+        'release',
+        'F2520C43515BD1F0E8A6BD46233324641A370BF6'
+      );
+    });
+
+    it('greater than button adds condition', async () => {
+      renderComponent({eventView: view, handleCellAction, columnIndex: 2});
+      await openMenu();
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+      );
+
+      expect(handleCellAction).toHaveBeenCalledWith(
+        'show_greater_than',
+        '2020-06-09T01:46:25+00:00'
+      );
+    });
+
+    it('less than button adds condition', async () => {
+      renderComponent({eventView: view, handleCellAction, columnIndex: 2});
+      await openMenu();
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
+      );
+
+      expect(handleCellAction).toHaveBeenCalledWith(
+        'show_less_than',
+        '2020-06-09T01:46:25+00:00'
+      );
+    });
+
+    it('does not offer link actions for wildcard URLs', async () => {
+      const urlView = EventView.fromLocation(
+        LocationFixture({
+          query: {
+            ...location.query,
+            field: ['url'],
+          },
+        })
+      );
+
+      render(
+        <CellAction
+          dataRow={{id: '1', url: 'http://*/v1/api/auth/register'}}
+          column={urlView.getColumns()[0]!}
+          handleCellAction={handleCellAction}
+        >
+          <strong>http://*/v1/api/auth/register</strong>
+        </CellAction>
+      );
+
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open external link'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not offer open link for invalid external anchors', async () => {
+      const urlView = EventView.fromLocation(
+        LocationFixture({
+          query: {
+            ...location.query,
+            field: ['url'],
+          },
+        })
+      );
+      const wildcardUrl = 'http://*/v1/api/auth/register';
+
+      render(
+        <CellAction
+          dataRow={{id: '1'}}
+          column={urlView.getColumns()[0]!}
+          handleCellAction={handleCellAction}
+        >
+          <a href={wildcardUrl}>{wildcardUrl}</a>
+        </CellAction>
+      );
+
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open external link'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('uses the full anchor href for external link actions', async () => {
+      const urlView = EventView.fromLocation(
+        LocationFixture({
+          query: {
+            ...location.query,
+            field: ['url'],
+          },
+        })
+      );
+      const fullUrl = 'https://example.com/v1/api/auth/register';
+
+      render(
+        <CellAction
+          dataRow={{id: '1', url: '/v1/api/auth/register'}}
+          column={urlView.getColumns()[0]!}
+          handleCellAction={handleCellAction}
+        >
+          <a href={fullUrl}>/v1/api/auth/register</a>
+        </CellAction>
+      );
+
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Open external link'})
+      ).toHaveAttribute('href', fullUrl);
+    });
+
+    it('error.handled with null adds condition', async () => {
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 7,
+        data: defaultData,
+      });
+      await openMenu();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
+
+      expect(handleCellAction).toHaveBeenCalledWith('add', 1);
+    });
+
+    it('error.type with array values adds condition', async () => {
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 8,
+        data: defaultData,
+      });
+      await openMenu();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
+
+      expect(handleCellAction).toHaveBeenCalledWith('add', [
+        'ServerException',
+        'ClickhouseError',
+        'QueryException',
+        'QueryException',
+      ]);
+    });
+
+    it('error.handled with 0 adds condition', async () => {
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 7,
+        data: {
+          ...defaultData,
+          // @ts-expect-error TODO: Fix this type
+          'error.handled': ['0'],
+        },
+      });
+      await openMenu();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
+
+      expect(handleCellAction).toHaveBeenCalledWith('add', ['0']);
+    });
+
+    it('show appropriate actions for string cells', async () => {
+      renderComponent({eventView: view, handleCellAction, columnIndex: 0});
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Show values greater than'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Show values less than'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('show appropriate actions for string cells with null values', async () => {
+      renderComponent({eventView: view, handleCellAction, columnIndex: 4});
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
+    });
+
+    it('show appropriate actions for number cells', async () => {
+      renderComponent({eventView: view, handleCellAction, columnIndex: 1});
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
+      ).toBeInTheDocument();
+    });
+
+    it('show appropriate actions for date cells', async () => {
+      renderComponent({eventView: view, handleCellAction, columnIndex: 2});
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
+      ).toBeInTheDocument();
+    });
+
+    it('show appropriate actions for release cells', async () => {
+      renderComponent({eventView: view, handleCellAction, columnIndex: 3});
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Go to release'})
+      ).toBeInTheDocument();
+    });
+
+    it('show appropriate actions for empty release cells', async () => {
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 3,
+        // @ts-expect-error TODO: Fix this type
+        data: {...defaultData, release: null},
+      });
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Go to release'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('show appropriate actions for measurement cells', async () => {
+      renderComponent({eventView: view, handleCellAction, columnIndex: 5});
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
+      ).toBeInTheDocument();
+    });
+
+    it('show appropriate actions for empty measurement cells', async () => {
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 5,
+        data: {
+          ...defaultData,
+          // @ts-expect-error TODO: Fix this type
+          'measurements.fcp': null,
+        },
+      });
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Show values greater than'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Show values less than'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('show appropriate actions for numeric function cells', async () => {
+      renderComponent({eventView: view, handleCellAction, columnIndex: 6});
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
+      ).toBeInTheDocument();
+    });
+
+    it('show appropriate actions for empty numeric function cells', () => {
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        columnIndex: 6,
+        data: {
+          ...defaultData,
+          // @ts-expect-error TODO: Fix this type
+          'percentile(measurements.fcp, 0.5)': null,
+        },
+      });
+      expect(screen.queryByRole('button', {name: 'Actions'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('pin prop', () => {
+    it('renders the pin element with the bold hover trigger', () => {
+      renderComponent({
+        eventView: view,
+        triggerType: ActionTriggerType.BOLD_HOVER,
+        pin: <button type="button">pin me</button>,
+      });
+
+      expect(screen.getByRole('button', {name: 'pin me'})).toBeInTheDocument();
+    });
+
+    it('renders the pin element with the ellipsis trigger', () => {
+      renderComponent({
+        eventView: view,
+        triggerType: ActionTriggerType.ELLIPSIS,
+        pin: <button type="button">pin me</button>,
+      });
+
+      expect(screen.getByRole('button', {name: 'pin me'})).toBeInTheDocument();
+    });
+  });
+});
+
+describe('updateQuery()', () => {
+  const columnA: TableColumn<keyof TableDataRow> = {
+    key: 'a',
+    name: 'a',
+    type: 'number',
+    isSortable: false,
+    column: {
+      kind: 'field',
+      field: 'a',
+    },
+    width: -1,
+  };
+
+  const columnB: TableColumn<keyof TableDataRow> = {
+    key: 'b',
+    name: 'b',
+    type: 'number',
+    isSortable: false,
+    column: {
+      kind: 'field',
+      field: 'b',
+    },
+    width: -1,
+  };
+
+  it('modifies the query with has/!has', () => {
+    let results = new MutableSearch([]);
+    // @ts-expect-error TODO: Fix this type
+    updateQuery(results, Actions.ADD, columnA, null);
+    expect(results.formatString()).toBe('!has:a');
+    // @ts-expect-error TODO: Fix this type
+    updateQuery(results, Actions.EXCLUDE, columnA, null);
+    expect(results.formatString()).toBe('has:a');
+    // @ts-expect-error TODO: Fix this type
+    updateQuery(results, Actions.ADD, columnA, null);
+    expect(results.formatString()).toBe('!has:a');
+
+    results = new MutableSearch([]);
+    // @ts-expect-error TODO: Fix this type
+    updateQuery(results, Actions.ADD, columnA, [null]);
+    expect(results.formatString()).toBe('!has:a');
+  });
+
+  it('modifies the query with additions', () => {
+    const results = new MutableSearch([]);
+    updateQuery(results, Actions.ADD, columnA, '1');
+    expect(results.formatString()).toBe('a:1');
+    updateQuery(results, Actions.ADD, columnB, '1');
+    expect(results.formatString()).toBe('a:1 b:1');
+    updateQuery(results, Actions.ADD, columnA, '2');
+    expect(results.formatString()).toBe('b:1 a:2');
+    updateQuery(results, Actions.ADD, columnA, ['1', '2', '3']);
+    expect(results.formatString()).toBe('b:1 a:2 a:1 a:3');
+  });
+
+  it('modifies the query with exclusions', () => {
+    const results = new MutableSearch([]);
+    updateQuery(results, Actions.EXCLUDE, columnA, '1');
+    expect(results.formatString()).toBe('!a:1');
+    updateQuery(results, Actions.EXCLUDE, columnB, '1');
+    expect(results.formatString()).toBe('!a:1 !b:1');
+    updateQuery(results, Actions.EXCLUDE, columnA, '2');
+    expect(results.formatString()).toBe('!b:1 !a:1 !a:2');
+    updateQuery(results, Actions.EXCLUDE, columnA, ['1', '2', '3']);
+    expect(results.formatString()).toBe('!b:1 !a:1 !a:2 !a:3');
+  });
+
+  it('modifies the query with a mix of additions and exclusions', () => {
+    const results = new MutableSearch([]);
+    updateQuery(results, Actions.ADD, columnA, '1');
+    expect(results.formatString()).toBe('a:1');
+    updateQuery(results, Actions.ADD, columnB, '2');
+    expect(results.formatString()).toBe('a:1 b:2');
+    updateQuery(results, Actions.EXCLUDE, columnA, '3');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3');
+    updateQuery(results, Actions.EXCLUDE, columnB, '4');
+    expect(results.formatString()).toBe('a:1 b:2 !a:3 !b:4');
+    results.addFilterValues('!a', ['*dontescapeme*'], false);
+    expect(results.formatString()).toBe('a:1 b:2 !a:3 !b:4 !a:*dontescapeme*');
+    updateQuery(results, Actions.EXCLUDE, columnA, '*escapeme*');
+    expect(results.formatString()).toBe(
+      'a:1 b:2 !b:4 !a:3 !a:*dontescapeme* !a:"\\*escapeme\\*"'
+    );
+    updateQuery(results, Actions.ADD, columnA, '5');
+    expect(results.formatString()).toBe('b:2 !b:4 a:5');
+    updateQuery(results, Actions.ADD, columnB, '6');
+    expect(results.formatString()).toBe('a:5 b:6');
+  });
+
+  it('modifies the query with greater/less than', () => {
+    const results = new MutableSearch([]);
+    updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 1);
+    expect(results.formatString()).toBe('a:>1');
+    updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 2);
+    expect(results.formatString()).toBe('a:>2');
+    updateQuery(results, Actions.SHOW_LESS_THAN, columnA, 3);
+    expect(results.formatString()).toBe('a:<3');
+    updateQuery(results, Actions.SHOW_LESS_THAN, columnA, 4);
+    expect(results.formatString()).toBe('a:<4');
+  });
+
+  it('modifies the query with greater/less than on duration fields', () => {
+    const columnADuration: TableColumn<keyof TableDataRow> = {
+      ...columnA,
+      type: 'duration',
+    };
+
+    const results = new MutableSearch([]);
+    updateQuery(results, Actions.SHOW_GREATER_THAN, columnADuration, 1);
+    expect(results.formatString()).toBe('a:>1.00ms');
+    updateQuery(results, Actions.SHOW_GREATER_THAN, columnADuration, 2);
+    expect(results.formatString()).toBe('a:>2.00ms');
+    updateQuery(results, Actions.SHOW_LESS_THAN, columnADuration, 3);
+    expect(results.formatString()).toBe('a:<3.00ms');
+    updateQuery(results, Actions.SHOW_LESS_THAN, columnADuration, 4.1234);
+    expect(results.formatString()).toBe('a:<4.12ms');
+  });
+
+  it('does not error for special actions', () => {
+    const results = new MutableSearch([]);
+    updateQuery(results, Actions.RELEASE, columnA, '');
+    updateQuery(results, Actions.DRILLDOWN, columnA, '');
+  });
+
+  it('errors for unknown actions', () => {
+    const results = new MutableSearch([]);
+    // @ts-expect-error TODO: Fix this type
+    expect(() => updateQuery(results, 'unknown', columnA, '')).toThrow();
+  });
+});

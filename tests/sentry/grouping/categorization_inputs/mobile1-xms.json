@@ -1,0 +1,235 @@
+{
+  "event_id": "664dfe1b541448b58d481681dcb0f010",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "AbsListView.java",
+              "filename": "AbsListView.java",
+              "function": "run",
+              "module": "android.widget.AbsListView$3"
+            },
+            {
+              "abs_path": "AbsListView.java",
+              "filename": "AbsListView.java",
+              "function": "run",
+              "module": "android.widget.AbsListView$PerformClick"
+            },
+            {
+              "abs_path": "AbsListView.java",
+              "filename": "AbsListView.java",
+              "function": "performItemClick",
+              "module": "android.widget.AbsListView"
+            },
+            {
+              "abs_path": "AdapterView.java",
+              "filename": "AdapterView.java",
+              "function": "performItemClick",
+              "module": "android.widget.AdapterView"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "Activity.java",
+              "filename": "Activity.java",
+              "function": "runOnUiThread",
+              "module": "android.app.Activity"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "SQLiteDatabase.java",
+              "filename": "SQLiteDatabase.java",
+              "function": "execSQL",
+              "module": "android.database.sqlite.SQLiteDatabase"
+            },
+            {
+              "abs_path": "SQLiteDatabase.java",
+              "filename": "SQLiteDatabase.java",
+              "function": "executeSql",
+              "module": "android.database.sqlite.SQLiteDatabase"
+            },
+            {
+              "abs_path": "SQLiteStatement.java",
+              "filename": "SQLiteStatement.java",
+              "function": "<init>",
+              "module": "android.database.sqlite.SQLiteStatement"
+            },
+            {
+              "abs_path": "SQLiteProgram.java",
+              "filename": "SQLiteProgram.java",
+              "function": "<init>",
+              "module": "android.database.sqlite.SQLiteProgram"
+            },
+            {
+              "abs_path": "SQLiteSession.java",
+              "filename": "SQLiteSession.java",
+              "function": "prepare",
+              "module": "android.database.sqlite.SQLiteSession"
+            },
+            {
+              "abs_path": "SQLiteConnection.java",
+              "filename": "SQLiteConnection.java",
+              "function": "prepare",
+              "module": "android.database.sqlite.SQLiteConnection"
+            },
+            {
+              "abs_path": "SQLiteConnection.java",
+              "filename": "SQLiteConnection.java",
+              "function": "acquirePreparedStatement",
+              "module": "android.database.sqlite.SQLiteConnection"
+            },
+            {
+              "abs_path": "SQLiteConnection.java",
+              "filename": "SQLiteConnection.java",
+              "function": "nativePrepareStatement",
+              "module": "android.database.sqlite.SQLiteConnection"
+            }
+          ]
+        },
+        "type": "SQLiteException",
+        "value": "duplicate column name: a (code 1): , while compiling: create table DownloadEntity(a varchar,b bigint,s bigint,t interger,u bigint,v varchar,w varchar,a varchar,b varchar,c varchar,d varchar,e boolean,f boolean,g boolean,h varchar,i varchar,j varchar,k varchar,l interger,m boolean,n boolean,o varchar,y boolean);"
+      }
+    ]
+  },
+  "platform": "java"
+}

@@ -1,0 +1,44 @@
+import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {t, tct} from 'sentry/locale';
+import type {ProjectKey} from 'sentry/types/project';
+
+const DEFAULT_ENDPOINT = 'https://sentry.example.com/api/security-report/';
+
+export function getSecurityDsn(keyList: ProjectKey[]) {
+  const endpoint = keyList.length ? keyList[0]!.dsn.security : DEFAULT_ENDPOINT;
+  return endpoint;
+}
+
+type Props = {
+  keyList: ProjectKey[];
+  orgId: string;
+  projectId: string;
+};
+
+export function ReportUri({keyList, orgId, projectId}: Props) {
+  return (
+    <Panel>
+      <PanelHeader>{t('Report URI')}</PanelHeader>
+      <PanelBody>
+        <PanelAlert variant="info">
+          {tct(
+            "We've automatically pulled these credentials from your available [link:Client Keys]",
+            {
+              link: <Link to={`/settings/${orgId}/projects/${projectId}/keys/`} />,
+            }
+          )}
+        </PanelAlert>
+        <Container padding="xl">
+          <TextCopyInput>{getSecurityDsn(keyList)}</TextCopyInput>
+        </Container>
+      </PanelBody>
+    </Panel>
+  );
+}

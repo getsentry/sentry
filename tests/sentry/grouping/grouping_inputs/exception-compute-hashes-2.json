@@ -1,0 +1,17 @@
+{
+  "exception": {
+    "stacktrace": {
+      "frames": [
+        {
+          "abs_path": "foo/baz.py",
+          "filename": "foo/baz.py",
+          "lineno": 1,
+          "in_app": true
+        }
+      ]
+    },
+    "type": "ValueError",
+    "module": "foo.bar",
+    "value": "hello world"
+  }
+}

@@ -1,0 +1,154 @@
+import styled from '@emotion/styled';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {IconClose} from 'sentry/icons/iconClose';
+import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+
+type BannerProps = {
+  description: React.ReactNode;
+  docsRoute: string;
+  image: any;
+  localStorageKey: string;
+  onPrimaryButtonClick: () => void;
+  onSecondaryButtonClick: () => void;
+  organization: Organization;
+  primaryButtonText: string;
+  title: React.ReactNode;
+};
+
+function Banner(props: BannerProps) {
+  const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({
+    key: props.localStorageKey,
+    expirationDays: 7,
+  });
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: props.localStorageKey,
+    expirationDays: 365,
+  });
+
+  if (isDismissed || isSnoozed) {
+    return null;
+  }
+
+  return (
+    <BannerWrapper>
+      <ActionsWrapper>
+        <BannerTitle>{props.title}</BannerTitle>
+        <BannerDescription>{props.description}</BannerDescription>
+        <Flex align="center" gap="xs">
+          <Flex gap="md">
+            <Button
+              variant="primary"
+              onClick={event => {
+                event.preventDefault();
+                props.onPrimaryButtonClick();
+              }}
+            >
+              {props.primaryButtonText}
+            </Button>
+          </Flex>
+          <Flex gap="md">
+            <LinkButton
+              onClick={props.onSecondaryButtonClick}
+              href={props.docsRoute}
+              external
+            >
+              {t('Learn More')}
+            </LinkButton>
+          </Flex>
+        </Flex>
+      </ActionsWrapper>
+      <BannerBackground image={props.image} />
+      <CloseDropdownMenu
+        position="bottom-end"
+        triggerProps={{
+          showChevron: false,
+          variant: 'transparent',
+          icon: <IconClose variant="muted" />,
+        }}
+        size="xs"
+        items={[
+          {
+            key: 'dismiss',
+            label: t('Dismiss'),
+            onAction: dismiss,
+          },
+          {
+            key: 'snooze',
+            label: t('Snooze'),
+            onAction: snooze,
+          },
+        ]}
+      />
+    </BannerWrapper>
+  );
+}
+
+const BannerWrapper = styled('div')`
+  position: relative;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
+    ${p => p.theme.tokens.background.secondary} 70%,
+    ${p => p.theme.tokens.background.secondary} 100%
+  );
+  container-type: inline-size;
+`;
+
+const ActionsWrapper = styled('div')`
+  max-width: 50%;
+`;
+
+const BannerTitle = styled('div')`
+  font-size: ${p => p.theme.font.size.xl};
+  margin-bottom: ${p => p.theme.space.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+`;
+
+const BannerDescription = styled('div')`
+  margin-bottom: ${p => p.theme.space.lg};
+`;
+
+const CloseDropdownMenu = styled(DropdownMenu)`
+  position: absolute;
+  display: block;
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.md};
+  color: ${p => p.theme.colors.white};
+  cursor: pointer;
+  z-index: 1;
+`;
+
+const BannerBackground = styled('div')<{image: any}>`
+  display: flex;
+  justify-self: flex-end;
+  position: absolute;
+  top: 11px;
+  right: -15px;
+  height: 90%;
+  width: 100%;
+  max-width: 270px;
+  background-image: url(${p => p.image});
+  background-repeat: no-repeat;
+  background-size: contain;
+
+  @container (max-width: 840px) {
+    display: none;
+  }
+`;
+
+const TraceWarningComponents = {
+  Banner,
+  BannerBackground,
+};
+
+export {TraceWarningComponents};

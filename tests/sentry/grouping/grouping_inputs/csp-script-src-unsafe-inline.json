@@ -1,0 +1,11 @@
+{
+  "csp": {
+    "TODO": "Remove 'unsafe-inline' from `original_policy`, `violated_directive`, and `culprit` and change `blocked_uri` to 'inline' once https://github.com/getsentry/relay/issues/4323 and https://github.com/getsentry/sentry/issues/81531 are fixed",
+    "effective_directive": "script-src",
+    "blocked_uri": "",
+    "original_policy": "default-src 'self'; script-src 'unsafe-inline' 'self'; report-uri https://o1121.ingest.us.sentry.io/api/1231/security/?sentry_key=09082013112120121231201204152013; report-to csp-endpoint",
+    "violated_directive": "script-src 'unsafe-inline' 'self'"
+  },
+  "culprit": "script-src 'unsafe-inline' 'self'",
+  "message": "Blocked unsafe inline 'script'"
+}

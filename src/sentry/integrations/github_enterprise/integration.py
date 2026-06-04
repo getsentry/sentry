@@ -1,0 +1,782 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping, MutableMapping
+from typing import Any
+from urllib.parse import urlparse
+
+from django.http.request import HttpRequest
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import BooleanField, CharField, URLField
+
+from sentry import features, http
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.identity.oauth2 import OAuth2ApiStep
+from sentry.integrations.base import (
+    FeatureDescription,
+    IntegrationData,
+    IntegrationFeatures,
+    IntegrationMetadata,
+)
+from sentry.integrations.github.constants import (
+    GITHUB_API_ACCEPT_HEADER,
+    ISSUE_LOCKED_ERROR_MESSAGE,
+    RATE_LIMITED_MESSAGE,
+)
+from sentry.integrations.github.integration import (
+    GitHubIntegrationProvider,
+    build_repository_query,
+)
+from sentry.integrations.github.issue_sync import GitHubIssueSyncSpec
+from sentry.integrations.github.issues import GitHubIssuesSpec
+from sentry.integrations.github.types import GitHubIssueStatus
+from sentry.integrations.github.utils import get_jwt, parse_github_blob_url
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository import RpcRepository
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repository import (
+    HaltReason,
+    RepositoryInfo,
+    RepositoryIntegration,
+)
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiForbiddenError,
+    ApiPaginationTruncated,
+    IntegrationError,
+)
+from sentry.utils import jwt, metrics
+from sentry.utils.http import absolute_uri
+
+from .client import GitHubEnterpriseApiClient
+from .repository import GitHubEnterpriseRepositoryProvider
+
+
+def _api_base_url(url: str) -> str:
+    if url == "github.com" or url.endswith(".ghe.com"):
+        return f"https://api.{url}"
+    return f"https://{url}/api/v3"
+
+
+def get_user_info(url, access_token):
+    with http.build_session() as session:
+        resp = session.get(
+            f"{_api_base_url(url)}/user",
+            headers={"Accept": GITHUB_API_ACCEPT_HEADER, "Authorization": f"token {access_token}"},
+            verify=False,
+        )
+        resp.raise_for_status()
+    return resp.json()
+
+
+DESCRIPTION = """
+Connect your Sentry organization into your on-premises GitHub Enterprise
+instances. Take a step towards augmenting your sentry issues with commits from
+your repositories ([using releases](https://docs.sentry.io/learn/releases/))
+and linking up your GitHub issues and pull requests directly to issues in
+Sentry.
+"""
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Authorize repositories to be added to your Sentry organization to augment
+        sentry issues with commit data with [deployment
+        tracking](https://docs.sentry.io/learn/releases/).
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a GitHub issue or pull
+        request in any of your repositories, providing a quick way to jump from
+        Sentry bug to tracked issue or PR.
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Automatically sync the status of Sentry issues to GitHub issues.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Automatically sync the assignment of Sentry issues to GitHub issues.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your GitHub source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
+    FeatureDescription(
+        """
+        Import your GitHub [CODEOWNERS file](https://docs.sentry.io/product/integrations/source-code-mgmt/github/#code-owners) and use it alongside your ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
+    ),
+    FeatureDescription(
+        """
+        Automatically create GitHub issues based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
+    ),
+]
+
+
+disable_dialog = {
+    "actionText": "Visit GitHub Enterprise",
+    "body": "Before deleting this integration, you must uninstall it from your"
+    " GitHub Enterprise instance. After uninstalling, your integration"
+    " will be disabled at which point you can choose to delete this"
+    " integration.",
+}
+
+removal_dialog = {
+    "actionText": "Delete",
+    "body": "Deleting this integration will delete all associated repositories"
+    " and commit data. This action cannot be undone. Are you sure you"
+    " want to delete your integration?",
+}
+
+setup_alert = {
+    "type": "warning",
+    "icon": "icon-warning-sm",
+    "text": "Your GitHub enterprise instance must be able to communicate with"
+    " Sentry. Before you proceed, make sure that connections from [the static set"
+    " of IP addresses that Sentry makes outbound requests from]"
+    "(https://docs.sentry.io/product/security/ip-ranges/#outbound-requests)"
+    " are allowed in your firewall.",
+}
+
+metadata = IntegrationMetadata(
+    description=DESCRIPTION.strip(),
+    features=FEATURES,
+    author="The Sentry Team",
+    noun=_("Installation"),
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=GitHub%20Enterprise%20Integration%20Problem",
+    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/github_enterprise",
+    aspects={
+        "disable_dialog": disable_dialog,
+        "removal_dialog": removal_dialog,
+        "alerts": [setup_alert],
+    },
+)
+
+
+API_ERRORS = {
+    404: "If this repository exists, ensure"
+    + " that your installation has permission to access this repository"
+    + " (https://github.com/settings/installations).",
+    401: ERR_UNAUTHORIZED,
+}
+
+
+class GitHubEnterpriseIntegration(
+    RepositoryIntegration[GitHubEnterpriseApiClient],
+    GitHubIssuesSpec,
+    GitHubIssueSyncSpec,
+    CommitContextIntegration,
+):
+    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
+
+    @property
+    def integration_name(self) -> str:
+        return IntegrationProviderSlug.GITHUB_ENTERPRISE.value
+
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
+
+    def get_client(self):
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
+
+        base_url = self.model.metadata["domain_name"].split("/")[0]
+        return GitHubEnterpriseApiClient(
+            base_url=base_url,
+            integration=self.model,
+            private_key=self.model.metadata["installation"]["private_key"],
+            app_id=self.model.metadata["installation"]["id"],
+            verify_ssl=self.model.metadata["installation"]["verify_ssl"],
+            org_integration_id=self.org_integration.id,
+        )
+
+    # IntegrationInstallation methods
+
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
+        if (
+            exc.json
+            and isinstance(exc.json, dict)
+            and RATE_LIMITED_MESSAGE in exc.json.get("message", "")
+        ):
+            metrics.incr("github_enterprise.link_all_repos.rate_limited_error")
+            return True
+        return False
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        if isinstance(exc, ApiForbiddenError):
+            if self.is_rate_limited_error(exc):
+                return "rate_limited"
+            if "suspended" in str(exc):
+                return "installation_suspended"
+            return "unauthorized"
+        return super().is_broken_integration_error(exc)
+
+    def message_from_error(self, exc: Exception) -> str:
+        if isinstance(exc, ApiError):
+            if exc.code is None:
+                message = None
+            else:
+                message = API_ERRORS.get(exc.code)
+            if message is None:
+                message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
+            return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
+        else:
+            return ERR_INTERNAL
+
+    # RepositoryIntegration methods
+
+    def get_repositories(
+        self,
+        query: str | None = None,
+        page_number_limit: int | None = None,
+        accessible_only: bool = False,
+        use_cache: bool = False,
+        raise_on_page_limit: bool = False,
+    ) -> list[RepositoryInfo]:
+        def _process(raw_repos: Iterable[Mapping[str, Any]]) -> list[RepositoryInfo]:
+            return [
+                {
+                    "name": i["name"],
+                    "identifier": i["full_name"],
+                    "external_id": self.get_repo_external_id(i),
+                    "default_branch": i.get("default_branch"),
+                }
+                for i in raw_repos
+                if not i.get("archived")
+            ]
+
+        if not query:
+            try:
+                all_repos = self.get_client().get_repos(
+                    page_number_limit=page_number_limit,
+                    raise_on_page_limit=raise_on_page_limit,
+                )
+            except ApiPaginationTruncated as e:
+                # Transform partial data into RepositoryInfo before re-raising
+                # so callers see the same shape regardless of truncation.
+                raise ApiPaginationTruncated(_process(e.partial_data)) from e
+            return _process(all_repos)
+
+        full_query = build_repository_query(self.model.metadata, self.model.name, query)
+        response = self.get_client().search_repositories(full_query)
+        return [
+            {
+                "name": i["name"],
+                "identifier": i["full_name"],
+                "external_id": self.get_repo_external_id(i),
+                "default_branch": i.get("default_branch"),
+            }
+            for i in response.get("items", [])
+        ]
+
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith(f"https://{self.model.metadata['domain_name']}")
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        # Must format the url ourselves since `check_file` is a head request
+        # "https://github.example.org/octokit/octokit.rb/blob/master/README.md"
+        return f"{repo.url}/blob/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        if not repo.url:
+            return ""
+        branch, _ = parse_github_blob_url(repo.url, url)
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        if not repo.url:
+            return ""
+        _, source_path = parse_github_blob_url(repo.url, url)
+        return source_path
+
+    def search_issues(self, query: str | None, **kwargs):
+        return self.get_client().search_issues(query)
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        # TODO: define this, used to migrate repositories
+        return False
+
+    # CommitContextIntegration methods
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        if api_error.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "issue_locked_error"},
+                )
+                return True
+
+            elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "rate_limited_error"},
+                )
+                return True
+
+        return False
+
+    def _get_debug_metadata_keys(self) -> list[str]:
+        return ["domain_name", "installation_id", "account_type"]
+
+    def get_config_data(self):
+        config = self.org_integration.config
+        project_mappings = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id
+        )
+        sync_status_forward = {}
+
+        for pm in project_mappings:
+            sync_status_forward[pm.external_id] = {
+                "on_unresolve": pm.unresolved_status,
+                "on_resolve": pm.resolved_status,
+            }
+        config["sync_status_forward"] = sync_status_forward
+        return config
+
+    def _get_organization_config_default_values(self) -> list[dict[str, Any]]:
+        """
+        Return configuration options for the GitHub integration.
+        """
+        config: list[dict[str, Any]] = []
+
+        if features.has(
+            "organizations:integrations-github_enterprise-project-management", self.organization
+        ):
+            config.extend(
+                [
+                    {
+                        "name": self.inbound_status_key,
+                        "type": "boolean",
+                        "label": _("Sync GitHub Status to Sentry"),
+                        "help": _(
+                            "When a GitHub issue is marked closed, resolve its linked issue in Sentry. "
+                            "When a GitHub issue is reopened, unresolve its linked Sentry issue."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.inbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Github Assignment to Sentry"),
+                        "help": _(
+                            "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.outbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Assignment to GitHub"),
+                        "help": _(
+                            "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.resolution_strategy_key,
+                        "label": "Resolve",
+                        "type": "select",
+                        "placeholder": "Resolve",
+                        "choices": [
+                            ("resolve", "Resolve"),
+                            ("resolve_current_release", "Resolve in Current Release"),
+                            ("resolve_next_release", "Resolve in Next Release"),
+                        ],
+                        "help": _(
+                            "Select what action to take on Sentry Issue when GitHub ticket is marked Closed."
+                        ),
+                    },
+                    {
+                        "name": self.comment_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Comments to GitHub"),
+                        "help": _("Post comments from Sentry issues to linked GitHub issues"),
+                    },
+                ]
+            )
+
+        return config
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        """
+        Return configuration options for the GitHub integration.
+        """
+        config = self._get_organization_config_default_values()
+
+        if features.has(
+            "organizations:integrations-github_enterprise-project-management", self.organization
+        ):
+            # Async lookup for integration external projects in the frontend
+            # Get currently configured external projects to display their labels
+            current_repo_items = []
+            external_projects = IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            )
+
+            if external_projects.exists():
+                # Use the stored external_id from IntegrationExternalProject
+                current_repo_items = [
+                    {"value": project.external_id, "label": project.external_id}
+                    for project in external_projects
+                ]
+
+            config.insert(
+                0,
+                {
+                    "name": self.outbound_status_key,
+                    "type": "choice_mapper",
+                    "label": _("Sync Sentry Status to Github"),
+                    "help": _(
+                        "When a Sentry issue changes status, change the status of the linked ticket in Github."
+                    ),
+                    "addButtonText": _("Add Github Project"),
+                    "addDropdown": {
+                        "emptyMessage": _("All projects configured"),
+                        "noResultsMessage": _("Could not find Github project"),
+                        "items": current_repo_items,
+                        "url": reverse(
+                            "sentry-integration-github-search",
+                            args=[self.organization.slug, self.model.id],
+                        ),
+                        "searchField": "repo",
+                    },
+                    "mappedSelectors": {
+                        "on_resolve": {"choices": GitHubIssueStatus.get_choices()},
+                        "on_unresolve": {"choices": GitHubIssueStatus.get_choices()},
+                    },
+                    "columnLabels": {
+                        "on_resolve": _("When resolved"),
+                        "on_unresolve": _("When unresolved"),
+                    },
+                    "mappedColumnLabel": _("Github Project"),
+                    "formatMessageValue": False,
+                },
+            )
+
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        assert context, "organizationcontext must exist to get org"
+        organization = context.organization
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+
+        if not has_issue_sync:
+            for field in config:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return config
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        """
+        Update the configuration field for an organization integration.
+        """
+        if not self.org_integration:
+            return
+
+        config = self.org_integration.config
+
+        # Handle status sync configuration
+        if "sync_status_forward" in data:
+            project_mappings = data.pop("sync_status_forward")
+
+            if any(
+                not mapping["on_unresolve"] or not mapping["on_resolve"]
+                for mapping in project_mappings.values()
+            ):
+                raise IntegrationError("Resolve and unresolve status are required.")
+
+            data["sync_status_forward"] = bool(project_mappings)
+
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            ).delete()
+
+            for repo_id, statuses in project_mappings.items():
+                # For GitHub, we only support open/closed states
+                # Validate that the statuses are valid GitHub states
+                if statuses["on_resolve"] not in [
+                    GitHubIssueStatus.OPEN.value,
+                    GitHubIssueStatus.CLOSED.value,
+                ]:
+                    raise IntegrationError(
+                        f"Invalid resolve status: {statuses['on_resolve']}. Must be 'open' or 'closed'."
+                    )
+                if statuses["on_unresolve"] not in ["open", "closed"]:
+                    raise IntegrationError(
+                        f"Invalid unresolve status: {statuses['on_unresolve']}. Must be 'open' or 'closed'."
+                    )
+
+                IntegrationExternalProject.objects.create(
+                    organization_integration_id=self.org_integration.id,
+                    external_id=repo_id,
+                    resolved_status=statuses["on_resolve"],
+                    unresolved_status=statuses["on_unresolve"],
+                )
+
+        config.update(data)
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
+        if org_integration is not None:
+            self.org_integration = org_integration
+
+
+class GHEInstallationConfigSerializer(CamelSnakeSerializer):
+    url = URLField(required=True)
+    id = CharField(required=True)
+    name = CharField(required=True)
+    public_link = URLField(required=False, allow_blank=True, default="")
+    verify_ssl = BooleanField(required=False, default=True)
+    webhook_secret = CharField(required=True)
+    private_key = CharField(required=True)
+    client_id = CharField(required=True)
+    client_secret = CharField(required=True)
+
+
+class GHEInstallationConfigApiStep:
+    step_name = "installation_config"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {
+            "defaults": {
+                "verifySsl": True,
+            },
+        }
+
+    def get_serializer_cls(self) -> type:
+        return GHEInstallationConfigSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, Any],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        validated_data["url"] = urlparse(validated_data["url"]).netloc.lower()
+
+        if not validated_data["public_link"]:
+            validated_data["public_link"] = None
+
+        pipeline.bind_state("installation_data", validated_data)
+        pipeline.bind_state(
+            "oauth_config_information",
+            {
+                "access_token_url": f"https://{validated_data['url']}/login/oauth/access_token",
+                "authorize_url": f"https://{validated_data['url']}/login/oauth/authorize",
+                "client_id": validated_data["client_id"],
+                "client_secret": validated_data["client_secret"],
+                "verify_ssl": validated_data["verify_ssl"],
+            },
+        )
+        return PipelineStepResult.advance()
+
+
+class GHEAppInstallSerializer(CamelSnakeSerializer):
+    installation_id = CharField(required=False, allow_blank=True, default="")
+
+
+def _get_app_install_url(installation_data: Mapping[str, Any]) -> str:
+    if installation_data.get("public_link"):
+        return installation_data["public_link"]
+
+    url = installation_data.get("url")
+    name = installation_data.get("name")
+    # github.com uses /apps/{name}; GHES uses /github-apps/{name}.
+    if url == "github.com":
+        return f"https://{url}/apps/{name}"
+    return f"https://{url}/github-apps/{name}"
+
+
+class GHEAppInstallRedirectApiStep:
+    step_name = "app_install_redirect"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        installation_data = pipeline.fetch_state("installation_data")
+        if installation_data is None:
+            raise AssertionError("pipeline called out of order")
+        return {"appInstallUrl": _get_app_install_url(installation_data)}
+
+    def get_serializer_cls(self) -> type:
+        return GHEAppInstallSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, Any],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        installation_id = validated_data.get("installation_id")
+        if not installation_id:
+            installation_data = pipeline.fetch_state("installation_data")
+            if installation_data is None:
+                raise AssertionError("pipeline called out of order")
+            return PipelineStepResult.stay(
+                data={"appInstallUrl": _get_app_install_url(installation_data)}
+            )
+        pipeline.bind_state("installation_id", installation_id)
+        return PipelineStepResult.advance()
+
+
+class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
+    key = IntegrationProviderSlug.GITHUB_ENTERPRISE.value
+    name = "GitHub Enterprise"
+    metadata = metadata
+    integration_cls = GitHubEnterpriseIntegration
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
+            IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
+        ]
+    )
+
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
+        return []
+
+    def _make_oauth_api_step(self) -> OAuth2ApiStep:
+        oauth_info = self.pipeline.fetch_state("oauth_config_information")
+        if oauth_info is None:
+            raise AssertionError("pipeline called out of order")
+        return OAuth2ApiStep(
+            authorize_url=oauth_info["authorize_url"],
+            client_id=oauth_info["client_id"],
+            client_secret=oauth_info["client_secret"],
+            access_token_url=oauth_info["access_token_url"],
+            scope="",
+            redirect_url=absolute_uri("/extensions/github-enterprise/setup/"),
+            verify_ssl=oauth_info.get("verify_ssl", True),
+            bind_key="oauth_data",
+        )
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [
+            GHEInstallationConfigApiStep(),
+            GHEAppInstallRedirectApiStep(),
+            lambda: self._make_oauth_api_step(),
+        ]
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        pass
+
+    def _get_ghe_installation_info(self, installation_data, access_token, installation_id):
+        headers = {"Accept": GITHUB_API_ACCEPT_HEADER}
+        headers.update(
+            jwt.authorization_header(
+                get_jwt(
+                    github_id=installation_data["id"],
+                    github_private_key=installation_data["private_key"],
+                )
+            )
+        )
+        base = _api_base_url(installation_data["url"])
+        with http.build_session() as session:
+            resp = session.get(
+                f"{base}/app/installations/{installation_id}",
+                headers=headers,
+                verify=installation_data["verify_ssl"],
+            )
+            resp.raise_for_status()
+            installation_resp = resp.json()
+
+            resp = session.get(
+                f"{base}/user/installations",
+                headers={
+                    "Accept": GITHUB_API_ACCEPT_HEADER,
+                    "Authorization": f"token {access_token}",
+                },
+                verify=installation_data["verify_ssl"],
+            )
+            resp.raise_for_status()
+            user_installations_resp = resp.json()
+
+        # verify that user actually has access to the installation
+        for installation in user_installations_resp["installations"]:
+            if installation["id"] == installation_resp["id"]:
+                return installation_resp
+
+        return None
+
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
+        identity = state["oauth_data"]
+        installation_data = state["installation_data"]
+        user = get_user_info(installation_data["url"], identity["access_token"])
+        installation = self._get_ghe_installation_info(
+            installation_data, identity["access_token"], state["installation_id"]
+        )
+
+        domain = urlparse(installation["account"]["html_url"]).netloc
+        return {
+            "name": installation["account"]["login"],
+            # installation id is not enough to be unique for self-hosted GH
+            "external_id": "{}:{}".format(domain, installation["id"]),
+            # GitHub identity is associated directly to the application, *not*
+            # to the installation itself.
+            # app id is not enough to be unique for self-hosted GH
+            "idp_external_id": "{}:{}".format(domain, installation["app_id"]),
+            "metadata": {
+                # The access token will be populated upon API usage
+                "access_token": None,
+                "expires_at": None,
+                "icon": installation["account"]["avatar_url"],
+                "domain_name": installation["account"]["html_url"].replace("https://", ""),
+                "account_type": installation["account"]["type"],
+                "installation_id": installation["id"],
+                "installation": installation_data,
+            },
+            "user_identity": {
+                "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                "external_id": user["id"],
+                "scopes": [],  # GitHub apps do not have user scopes
+                "data": {"access_token": identity["access_token"]},
+            },
+            "idp_config": state["oauth_config_information"],
+        }
+
+    def setup(self):
+        from sentry.plugins.base import bindings
+
+        bindings.add(
+            "integration-repository.provider",
+            GitHubEnterpriseRepositoryProvider,
+            id="integrations:github_enterprise",
+        )

@@ -1,0 +1,11 @@
+Your relocation request was successful! The following organizations were moved to sentry.io:
+
+{% for org in orgs %}
+* {{ org }}
+{% endfor %}
+
+You are now an owner of all of these organizations. Please note that the DSNs (see: https://docs.sentry.io/product/sentry-basics/concepts/dsn-explainer/) for your relocated projects have changed, and will need to be updated in their respective clients.
+
+Welcome to sentry.io!
+
+ID: {{ uuid }}

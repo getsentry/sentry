@@ -1,0 +1,19 @@
+---
+source: tests/sentry/grouping/test_categorization.py::test_categorization
+---
+
+
+NoSuchMethodException:exec [] (thread_id:_, crashed:_)
+                   java.util.Timer$TimerImpl  run category=std
+                                              stripped_application_code
+                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=indirection
+                                              stripped_application_code
+                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=indirection
+                                              stripped_application_code
+                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=indirection
+                                              stripped_application_code
+                             java.lang.Class  getDeclaredMethod category=std
+                             java.lang.Class  getMethod category=indirection

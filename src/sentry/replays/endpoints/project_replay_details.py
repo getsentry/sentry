@@ -1,0 +1,102 @@
+import uuid
+
+from drf_spectacular.utils import extend_schema
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases.project import ProjectPermission
+from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import GlobalParams, ReplayParams
+from sentry.models.project import Project
+from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
+from sentry.replays.post_process import process_raw_response
+from sentry.replays.query import query_replay_instance
+from sentry.replays.tasks import delete_replay
+from sentry.replays.usecases.reader import has_archived_segment
+
+
+class ReplayDetailsPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:read", "project:write", "project:admin"],
+        "POST": ["project:write", "project:admin"],
+        "PUT": ["project:write", "project:admin"],
+        "DELETE": ["project:write", "project:admin"],
+    }
+
+
+@cell_silo_endpoint
+@extend_schema(tags=["Replays"])
+class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
+    permission_classes = (ReplayDetailsPermission,)
+
+    def get(self, request: Request, project: Project, replay_id: str) -> Response:
+        self.check_replay_access(request, project)
+
+        filter_params = self.get_filter_params(request, project)
+
+        try:
+            replay_id = str(uuid.UUID(replay_id))
+        except ValueError:
+            return Response(status=404)
+
+        snuba_response = query_replay_instance(
+            project_id=project.id,
+            replay_id=replay_id,
+            start=filter_params["start"],
+            end=filter_params["end"],
+            organization=project.organization,
+            request_user_id=request.user.id,
+        )
+
+        replay_data = process_raw_response(
+            snuba_response,
+            fields=request.query_params.getlist("field"),
+        )
+
+        if len(replay_data) == 0:
+            return Response(status=404)
+        else:
+            return Response({"data": replay_data[0]}, status=200)
+
+    @extend_schema(
+        operation_id="Delete a Replay Instance",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            ReplayParams.REPLAY_ID,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=None,
+    )
+    def delete(self, request: Request, project: Project, replay_id: str) -> Response:
+        """
+        Delete a replay.
+        """
+        self.check_replay_access(request, project)
+
+        if has_archived_segment(project.id, replay_id):
+            return Response(status=404)
+
+        # We don't check Seer features because an org may have previously had them on, then turned them off.
+        has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
+        organization_id = project.organization.id
+
+        delete_replay.delay(
+            organization_id=organization_id,
+            project_id=project.id,
+            replay_id=replay_id,
+            has_seer_data=has_seer_data,
+        )
+
+        return Response(status=204)

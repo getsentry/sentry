@@ -1,0 +1,202 @@
+import {useMemo, useState} from 'react';
+import pick from 'lodash/pick';
+
+import {Tag as TagBadge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {ValueType} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
+import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {IconAdd, IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Tag} from 'sentry/types/group';
+import {
+  FieldKind,
+  FieldValueType,
+  prettifyTagKey,
+  type FieldDefinition,
+} from 'sentry/utils/fields';
+import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
+import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
+import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
+import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
+
+export const DATASET_CHOICES = new Map<WidgetType, string>([
+  [WidgetType.ERRORS, t('Errors')],
+  [WidgetType.SPANS, t('Spans')],
+  [WidgetType.LOGS, t('Logs')],
+  [WidgetType.TRACEMETRICS, t('Application Metrics')],
+  [WidgetType.RELEASE, t('Releases')],
+  [WidgetType.ISSUE, t('Issues')],
+]);
+
+const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION];
+const UNSUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.DATE];
+const IGNORE_DEFAULT_VALUES = [FieldValueType.STRING, FieldValueType.BOOLEAN];
+
+export function getDatasetLabel(dataset: WidgetType) {
+  return DATASET_CHOICES.get(dataset) ?? '';
+}
+
+type AddFilterProps = {
+  getSearchBarData: (widgetType: WidgetType) => SearchBarData;
+  globalFilters: GlobalFilter[];
+  onAddFilter: (filter: GlobalFilter) => void;
+};
+
+export function AddFilter({
+  globalFilters,
+  getSearchBarData,
+  onAddFilter,
+}: AddFilterProps) {
+  const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
+  const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
+  const [isSelectingFilterKey, setIsSelectingFilterKey] = useState(false);
+
+  // Dataset selection before showing filter keys
+  const datasetOptions = useMemo(() => {
+    return Array.from(DATASET_CHOICES.entries()).map(([widgetType, label]) => ({
+      label,
+      value: widgetType,
+      trailingItems: <IconArrow direction="right" variant="muted" size="xs" />,
+    }));
+  }, []);
+
+  const filterKeys = selectedDataset
+    ? Object.fromEntries(
+        Object.entries(getSearchBarData(selectedDataset).getFilterKeys()).filter(
+          ([key, value]) =>
+            !shouldExcludeTracingKeys(key) &&
+            (!value.kind || !UNSUPPORTED_FIELD_KINDS.includes(value.kind))
+        )
+      )
+    : {};
+
+  // Maps filter keys to their field definitions
+  const fieldDefinitionMap = new Map<string, FieldDefinition | null>();
+
+  // Get filter keys for the selected dataset
+  const filterKeyOptions = selectedDataset
+    ? Object.entries(filterKeys).flatMap(([_, tag]) => {
+        const fieldDefinition = getFieldDefinitionForDataset(tag, selectedDataset);
+        const valueType = fieldDefinition?.valueType;
+        if (valueType && UNSUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
+          return [];
+        }
+        fieldDefinitionMap.set(tag.key, fieldDefinition);
+
+        return {
+          value: tag.key,
+          label: prettifyTagKey(tag.key),
+          trailingItems: (
+            <TagBadge variant="muted">
+              <ValueType fieldDefinition={fieldDefinition} fieldKind={tag.kind} />
+            </TagBadge>
+          ),
+          disabled: globalFilters.some(
+            filter => filter.tag.key === tag.key && filter.dataset === selectedDataset
+          ),
+        };
+      })
+    : [];
+
+  return (
+    <CompactSelect
+      options={isSelectingFilterKey ? filterKeyOptions : datasetOptions}
+      search={isSelectingFilterKey}
+      sizeLimit={50}
+      closeOnSelect={false}
+      onClose={() => {
+        setSelectedFilterKey(null);
+        setSelectedDataset(null);
+        setIsSelectingFilterKey(false);
+      }}
+      value={selectedFilterKey?.key ?? ''}
+      onChange={(option: SelectOption<string>) => {
+        if (isSelectingFilterKey) {
+          setSelectedFilterKey(filterKeys[option.value] ?? null);
+          return;
+        }
+        setSelectedDataset(option.value as WidgetType);
+        setSelectedFilterKey(null);
+        setIsSelectingFilterKey(true);
+      }}
+      size="md"
+      menuWidth="300px"
+      menuTitle={
+        <MenuTitleWrapper>
+          {isSelectingFilterKey
+            ? t(
+                'Select %s Tag',
+                selectedDataset ? getDatasetLabel(selectedDataset) : 'Filter'
+              )
+            : t('Select Filter Dataset')}
+        </MenuTitleWrapper>
+      }
+      menuFooter={
+        isSelectingFilterKey
+          ? ({resetSearch}) => {
+              return (
+                <Flex gap="md" justify="end">
+                  <Button
+                    size="xs"
+                    variant="transparent"
+                    icon={<IconArrow direction="left" />}
+                    onClick={() => {
+                      resetSearch();
+                      setIsSelectingFilterKey(false);
+                    }}
+                  >
+                    {t('Back')}
+                  </Button>
+
+                  <MenuComponents.ApplyButton
+                    disabled={!selectedFilterKey}
+                    onClick={() => {
+                      if (!selectedFilterKey || !selectedDataset) {
+                        return;
+                      }
+
+                      let defaultFilterValue = '';
+                      const fieldDefinition =
+                        fieldDefinitionMap.get(selectedFilterKey.key) ?? null;
+                      const valueType = fieldDefinition?.valueType;
+
+                      if (valueType && !IGNORE_DEFAULT_VALUES.includes(valueType)) {
+                        defaultFilterValue = getInitialFilterText(
+                          selectedFilterKey.key,
+                          fieldDefinition
+                        );
+                      }
+
+                      const newFilter: GlobalFilter = {
+                        dataset: selectedDataset,
+                        tag: pick(selectedFilterKey, 'key', 'name', 'kind'),
+                        value: defaultFilterValue,
+                      };
+                      onAddFilter(newFilter);
+                      setIsSelectingFilterKey(false);
+                    }}
+                  />
+                </Flex>
+              );
+            }
+          : undefined
+      }
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Add Global Filter')}
+          icon={<IconAdd size="sm" />}
+        />
+      )}
+    />
+  );
+}

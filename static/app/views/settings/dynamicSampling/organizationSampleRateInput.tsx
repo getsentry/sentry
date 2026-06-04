@@ -1,0 +1,147 @@
+import type React from 'react';
+import {useEffect, useRef} from 'react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+
+interface Props {
+  help: React.ReactNode;
+  label: React.ReactNode;
+  onChange: (value: string) => void;
+  previousValue: string;
+  showPreviousValue: boolean;
+  value: string;
+  error?: string;
+  isBulkEditActive?: boolean;
+  isBulkEditEnabled?: boolean;
+  onBulkEditChange?: (value: boolean) => void;
+}
+
+export function OrganizationSampleRateInput({
+  value,
+  onChange,
+  isBulkEditEnabled,
+  isBulkEditActive,
+  label,
+  help,
+  error,
+  previousValue,
+  showPreviousValue,
+  onBulkEditChange,
+}: Props) {
+  const hasAccess = useHasDynamicSamplingWriteAccess();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Autofocus the input when bulk edit is activated
+  useEffect(() => {
+    if (isBulkEditActive) {
+      inputRef.current?.focus();
+    }
+  }, [isBulkEditActive]);
+
+  const showBulkEditButton = hasAccess && isBulkEditEnabled && !isBulkEditActive;
+  return (
+    <SampleRateRow>
+      <Description>
+        <Label>{label}</Label>
+        <HelpText>{help}</HelpText>
+      </Description>
+      <InputWrapper>
+        <Flex gap="md">
+          {showBulkEditButton && (
+            <Button
+              tooltipProps={{title: t('Proportionally scale project rates')}}
+              aria-label={t('Proportionally scale project rates')}
+              variant="transparent"
+              size="sm"
+              onClick={() => onBulkEditChange?.(true)}
+              icon={<IconEdit />}
+            />
+          )}
+          <Tooltip
+            disabled={hasAccess}
+            title={t('You do not have permission to change the sample rate.')}
+          >
+            <PercentInput
+              type="number"
+              disabled={!hasAccess || (isBulkEditEnabled && !isBulkEditActive)}
+              value={value}
+              size="sm"
+              ref={inputRef}
+              onKeyDown={event => {
+                if (event.key === 'Enter' && isBulkEditActive) {
+                  event.preventDefault();
+                  inputRef.current?.blur();
+                }
+              }}
+              onBlur={() => onBulkEditChange?.(false)}
+              onChange={event => onChange(event.target.value)}
+            />
+          </Tooltip>
+        </Flex>
+        {error ? (
+          <ErrorMessage>{error}</ErrorMessage>
+        ) : showPreviousValue ? (
+          <PreviousValue>{t('previous: %f%%', previousValue)}</PreviousValue>
+        ) : value === '100' ? (
+          <AllDataStoredMessage>{t('All spans are stored')}</AllDataStoredMessage>
+        ) : null}
+      </InputWrapper>
+    </SampleRateRow>
+  );
+}
+
+const SampleRateRow = styled('div')`
+  display: flex;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl} ${p => p.theme.space.md};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  gap: ${p => p.theme.space['3xl']};
+`;
+
+const Description = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
+`;
+
+const Label = styled('label')`
+  margin-bottom: 0;
+`;
+
+const HelpText = styled('div')`
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const PreviousValue = styled('span')`
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const ErrorMessage = styled('span')`
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.danger};
+`;
+
+const AllDataStoredMessage = styled('span')`
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.success};
+`;
+
+const InputWrapper = styled('div')`
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  align-items: flex-end;
+`;

@@ -1,0 +1,227 @@
+import {Fragment, useEffect} from 'react';
+import styled from '@emotion/styled';
+import type {Location} from 'history';
+
+import {
+  getStacktrace,
+  StackTracePreviewContent,
+} from 'sentry/components/groupPreviewTooltip/stackTracePreview';
+import {t} from 'sentry/locale';
+import type {Event, EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {EventView} from 'sentry/utils/discover/eventView';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {useApiQuery} from 'sentry/utils/queryClient';
+
+import {ActionDropDown, ContextValueType} from './actionDropdown';
+import {NoContext} from './quickContextWrapper';
+import {
+  ContextBody,
+  ContextContainer,
+  ContextHeader,
+  ContextRow,
+  ContextTitle,
+  NoContextWrapper,
+  Wrapper,
+} from './styles';
+import type {BaseContextProps} from './utils';
+import {ContextType, tenSecondInMs} from './utils';
+
+interface EventContextProps extends BaseContextProps {
+  eventView?: EventView;
+  location?: Location;
+  projects?: Project[];
+}
+
+export function EventContext(props: EventContextProps) {
+  const {organization, dataRow, eventView, location} = props;
+  const {isPending, isError, data} = useApiQuery<Event>(
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: dataRow['project.name'],
+            eventId: dataRow.id,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: tenSecondInMs,
+    }
+  );
+
+  useEffect(() => {
+    if (data) {
+      trackAnalytics('discover_v2.quick_context_hover_contexts', {
+        organization,
+        contextType: ContextType.EVENT,
+        eventType: data.type,
+      });
+    }
+  }, [data, organization]);
+
+  if (isPending || isError) {
+    return <NoContext isLoading={isPending} />;
+  }
+
+  if (data.type === 'transaction') {
+    const transactionDuration = getDuration(
+      data.endTimestamp - data.startTimestamp,
+      2,
+      true
+    );
+    const status = getStatusBodyText(data);
+    return (
+      <Wrapper data-test-id="quick-context-hover-body">
+        <EventContextContainer>
+          <ContextHeader>
+            <ContextTitle>{t('Transaction Duration')}</ContextTitle>
+            {location && eventView && (
+              <ActionDropDown
+                dataRow={dataRow}
+                contextValueType={ContextValueType.DURATION}
+                location={location}
+                eventView={eventView}
+                organization={organization}
+                queryKey="transaction.duration"
+                value={transactionDuration}
+              />
+            )}
+          </ContextHeader>
+          <EventContextBody>{transactionDuration}</EventContextBody>
+        </EventContextContainer>
+        {location && (
+          <EventContextContainer>
+            <Fragment>
+              <ContextHeader>
+                <ContextTitle>{t('Status')}</ContextTitle>
+                {location && eventView && (
+                  <ActionDropDown
+                    dataRow={dataRow}
+                    contextValueType={ContextValueType.STRING}
+                    location={location}
+                    eventView={eventView}
+                    organization={organization}
+                    queryKey="transaction.status"
+                    value={status}
+                  />
+                )}
+              </ContextHeader>
+              <EventContextBody>
+                <ContextRow>
+                  {status}
+                  <HttpStatusWrapper>
+                    (<HttpStatus event={data} />)
+                  </HttpStatusWrapper>
+                </ContextRow>
+              </EventContextBody>
+            </Fragment>
+          </EventContextContainer>
+        )}
+      </Wrapper>
+    );
+  }
+
+  const stackTrace = getStacktrace(data);
+
+  return stackTrace ? (
+    <Fragment>
+      {!dataRow.title && (
+        <ErrorTitleContainer>
+          <ContextHeader>
+            <ContextTitle>{t('Title')}</ContextTitle>
+            {location && eventView && (
+              <ActionDropDown
+                dataRow={dataRow}
+                contextValueType={ContextValueType.STRING}
+                location={location}
+                eventView={eventView}
+                organization={organization}
+                queryKey="title"
+                value={data.title}
+              />
+            )}
+          </ContextHeader>
+          <ErrorTitleBody>{data.title}</ErrorTitleBody>
+        </ErrorTitleContainer>
+      )}
+      <StackTraceWrapper>
+        <StackTracePreviewContent event={data} stacktrace={stackTrace} />
+      </StackTraceWrapper>
+    </Fragment>
+  ) : (
+    <NoContextWrapper>
+      {t('There is no stack trace available for this event.')}
+    </NoContextWrapper>
+  );
+}
+
+function HttpStatus({event}: {event: Event}) {
+  const {tags} = event;
+
+  const emptyStatus = <Fragment>{'\u2014'}</Fragment>;
+
+  if (!Array.isArray(tags)) {
+    return emptyStatus;
+  }
+
+  const tag = tags.find(tagObject => tagObject.key === 'http.status_code');
+
+  if (!tag) {
+    return emptyStatus;
+  }
+
+  return <Fragment>HTTP {tag.value}</Fragment>;
+}
+
+function getStatusBodyText(event: EventTransaction): string {
+  return event.contexts?.trace?.status ?? '\u2014';
+}
+
+const ErrorTitleContainer = styled(ContextContainer)`
+  padding: ${p => p.theme.space.lg};
+`;
+
+const ErrorTitleBody = styled(ContextBody)`
+  margin: 0;
+  max-width: 450px;
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const EventContextBody = styled(ContextBody)`
+  font-size: ${p => p.theme.font.size.xl};
+  margin: 0;
+  align-items: flex-start;
+  flex-direction: column;
+`;
+
+const EventContextContainer = styled(ContextContainer)`
+  & + & {
+    margin-top: ${p => p.theme.space.xl};
+  }
+`;
+
+const StackTraceWrapper = styled('div')`
+  overflow: hidden;
+  max-height: 300px;
+  width: 500px;
+  overflow-y: auto;
+  .traceback {
+    margin-bottom: 0;
+    border: 0;
+  }
+  border-radius: ${p => p.theme.radius.md};
+`;
+
+const HttpStatusWrapper = styled('span')`
+  margin-left: ${p => p.theme.space.xs};
+`;

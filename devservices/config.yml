@@ -1,0 +1,610 @@
+# Ignored by docker compose, used by devservices
+x-sentry-service-config:
+  version: 0.1
+  service_name: sentry
+  dependencies:
+    #########################################################
+    # Docker Compose Services
+    #########################################################
+    snuba:
+      description: Service that provides fast aggregation and query capabilities on top of Clickhouse
+      remote:
+        repo_name: snuba
+        branch: master
+        repo_link: https://github.com/getsentry/snuba.git
+        mode: containerized
+    snuba-profiling:
+      description: Service that provides fast aggregation and query capabilities on top of Clickhouse that includes profiling consumers
+      remote:
+        repo_name: snuba
+        branch: master
+        repo_link: https://github.com/getsentry/snuba.git
+        mode: containerized-profiles
+    snuba-metrics:
+      description: Service that provides fast aggregation and query capabilities on top of Clickhouse that includes metrics consumers
+      remote:
+        repo_name: snuba
+        branch: master
+        repo_link: https://github.com/getsentry/snuba.git
+        mode: containerized-metrics-dev
+    relay:
+      description: Service event forwarding and ingestion service
+      remote:
+        repo_name: relay
+        branch: master
+        repo_link: https://github.com/getsentry/relay.git
+        mode: containerized
+    postgres:
+      description: Shared instance of postgres used by sentry services
+      remote:
+        repo_name: sentry-shared-postgres
+        branch: main
+        repo_link: https://github.com/getsentry/sentry-shared-postgres.git
+    redis:
+      description: Shared instance of redis used by sentry services
+      remote:
+        repo_name: sentry-shared-redis
+        branch: main
+        repo_link: https://github.com/getsentry/sentry-shared-redis.git
+    symbolicator:
+      description: A symbolication service for native stacktraces and minidumps with symbol server support
+      remote:
+        repo_name: symbolicator
+        branch: master
+        repo_link: https://github.com/getsentry/symbolicator.git
+        mode: default
+    launchpad:
+      description: Service for analyzing iOS and Android apps
+      remote:
+        repo_name: launchpad
+        branch: main
+        repo_link: https://github.com/getsentry/launchpad.git
+        mode: containerized
+    uptime-checker:
+      description: Service powering Sentry's uptime detection features
+      remote:
+        repo_name: uptime-checker
+        branch: main
+        repo_link: https://github.com/getsentry/uptime-checker.git
+        mode: containerized
+    vroom:
+      description: Sentry's profiling service, processing and deriving data about your profiles
+      remote:
+        repo_name: vroom
+        branch: main
+        repo_link: https://github.com/getsentry/vroom.git
+        mode: default
+    bigtable:
+      description: Bigtable emulator
+    redis-cluster:
+      description: Redis cluster used for testing
+    chartcuterie:
+      description: Chartcuterie is a service that generates charts
+      remote:
+        repo_name: chartcuterie
+        branch: master
+        repo_link: https://github.com/getsentry/chartcuterie.git
+    taskbroker: &taskbroker
+      description: Service used to process asynchronous tasks
+      remote:
+        repo_name: taskbroker
+        branch: main
+        repo_link: https://github.com/getsentry/taskbroker.git
+        mode: containerized
+    # ingest-profiles runs taskbroker in passthrough mode (STREAM-1041). Ideally
+    # this would be a remote dependency like taskbroker, but devservices doesn't
+    # support passing custom environment variables to remote services (DI-1956).
+    ingest-profiles:
+      description: Kafka consumer for processing profiling data via taskbroker passthrough mode
+    memcached:
+      description: Memcached used for caching
+    spotlight:
+      description: Spotlight server for local debugging
+    # Local Relays used only by the `cell-routing` mode to exercise Relay's
+    # advertised-upstream routing without touching the relay repo or the default
+    # `relay` config. relay-cell replaces the plain `relay` in this mode.
+    relay-cell:
+      description: Processing Relay terminus that advertises an upstream (cell-routing only)
+    relay-edge:
+      description: Downstream Relay that routes on the advertised upstream (cell-routing only)
+    objectstore:
+      description: Storage for files and blobs
+      remote:
+        repo_name: objectstore
+        branch: main
+        repo_link: https://github.com/getsentry/objectstore.git
+        mode: containerized
+    synapse:
+      description: Cell routing services (proxy + ingest-router)
+      remote:
+        repo_name: synapse
+        branch: main
+        repo_link: https://github.com/getsentry/synapse.git
+        mode: default
+    #########################################################
+    # Supervisor Programs
+    #########################################################
+    # Taskworker services
+    taskworker:
+      description: Workers that process tasks from the taskbroker
+    taskworker-evals-ingest-errors:
+      description: Dedicated taskworker for eval error ingest tasks
+    taskworker-evals-ingest-errors-postprocess:
+      description: Dedicated taskworker for eval error post-processing tasks
+    taskworker-evals-issues:
+      description: Dedicated taskworker for eval issue-side tasks
+    taskworker-evals-relay:
+      description: Dedicated taskworker for eval Relay project config tasks
+    taskworker-scheduler:
+      description: Task scheduler that can spawn tasks based on their schedules
+    taskworker-ingest-profiles:
+      description: Taskworker for ingest-profiles passthrough broker
+    # Kafka consumer services for event ingestion
+    ingest-events:
+      description: Kafka consumer for processing ingested events
+    ingest-attachments:
+      description: Kafka consumer for processing ingested attachments
+    ingest-transactions:
+      description: Kafka consumer for processing ingested transactions
+    ingest-monitors:
+      description: Kafka consumer for processing monitor check-ins
+    ingest-occurrences:
+      description: Kafka consumer for processing issue occurrences
+    ingest-feedback-events:
+      description: Kafka consumer for processing user feedback events
+    ingest-replay-recordings:
+      description: Kafka consumer for processing ingested replay recordings
+    # Monitor-related services
+    monitors-clock-tick:
+      description: Kafka consumer for monitor clock ticks
+    monitors-clock-tasks:
+      description: Kafka consumer for monitor clock tasks
+    monitors-incident-occurrences:
+      description: Kafka consumer for monitor incident occurrences
+    # Spans and performance monitoring
+    process-spans:
+      description: Kafka consumer for processing spans data
+    process-segments:
+      description: Kafka consumer for processing performance segments
+    # Metrics-related consumers
+    ingest-metrics:
+      description: Kafka consumer for processing metrics data
+    ingest-generic-metrics:
+      description: Kafka consumer for processing generic metrics
+    billing-metrics-consumer:
+      description: Kafka consumer for billing metrics processing
+    # Post-processing forwarders
+    post-process-forwarder-errors:
+      description: Post-process forwarder for error events
+    post-process-forwarder-transactions:
+      description: Post-process forwarder for transaction events
+    post-process-forwarder-issue-platform:
+      description: Post-process forwarder for issue platform events
+    # Subscription results consumers
+    subscription-results-eap-items:
+      description: Kafka consumer for processing subscription results for eap items
+    metrics-subscription-results:
+      description: Kafka consumer for processing subscription results for metrics
+    generic-metrics-subscription-results:
+      description: Kafka consumer for processing subscription results for generic metrics
+    # Uptime monitoring
+    uptime-results:
+      description: Kafka consumer for uptime monitoring results
+
+  modes:
+    default: [snuba, postgres, relay, spotlight, objectstore]
+    migrations: [postgres, redis]
+    acceptance-ci: [postgres, snuba, chartcuterie]
+    chartcuterie: [postgres, snuba, chartcuterie, spotlight]
+    launchpad: [snuba, postgres, launchpad, taskbroker, taskworker, objectstore]
+    taskbroker: [snuba, postgres, relay, spotlight, taskbroker]
+    taskworker:
+      [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
+    backend-ci:
+      [snuba, postgres, redis, bigtable, redis-cluster, symbolicator, objectstore]
+    symbolicator: [postgres, snuba, symbolicator, spotlight]
+    memcached: [postgres, snuba, memcached, spotlight]
+    tracing:
+      [
+        postgres,
+        snuba-metrics,
+        relay,
+        spotlight,
+        ingest-events,
+        ingest-transactions,
+        ingest-metrics,
+        ingest-generic-metrics,
+        billing-metrics-consumer,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+        subscription-results-eap-items,
+        metrics-subscription-results,
+        generic-metrics-subscription-results,
+        process-spans,
+        ingest-occurrences,
+        process-segments,
+        taskbroker,
+        taskworker,
+      ]
+    crons:
+      [
+        postgres,
+        snuba,
+        relay,
+        spotlight,
+        ingest-monitors,
+        monitors-clock-tick,
+        monitors-clock-tasks,
+        monitors-incident-occurrences,
+        taskbroker,
+        taskworker,
+      ]
+    profiling:
+      [
+        postgres,
+        snuba-profiling,
+        relay,
+        vroom,
+        spotlight,
+        ingest-events,
+        ingest-transactions,
+        ingest-profiles,
+        ingest-occurrences,
+        taskbroker,
+        taskworker,
+        taskworker-ingest-profiles,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+      ]
+    replay:
+      [
+        postgres,
+        snuba,
+        relay,
+        spotlight,
+        ingest-replay-recordings,
+        ingest-events,
+        ingest-transactions,
+        taskbroker,
+        taskworker,
+      ]
+    ingest:
+      [
+        snuba,
+        postgres,
+        relay,
+        spotlight,
+        objectstore,
+        taskbroker,
+        taskworker,
+        ingest-events,
+        ingest-transactions,
+        ingest-attachments,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+      ]
+    evals:
+      [
+        snuba,
+        postgres,
+        relay,
+        spotlight,
+        objectstore,
+        taskbroker,
+        taskworker-evals-relay,
+        taskworker-evals-ingest-errors,
+        taskworker-evals-ingest-errors-postprocess,
+        taskworker-evals-issues,
+        ingest-events,
+        post-process-forwarder-errors,
+      ]
+    minimal: [postgres, snuba]
+    cell-routing:
+      [
+        postgres,
+        snuba,
+        redis,
+        taskbroker,
+        spotlight,
+        objectstore,
+        synapse,
+        taskworker,
+        taskworker-scheduler,
+        ingest-events,
+        post-process-forwarder-errors,
+        relay-cell,
+        relay-edge,
+      ]
+    # The minimal set of services Symbolicator needs to run
+    # Sentry integration tests.
+    symbolicator-tests: [postgres, snuba, objectstore]
+    uptime:
+      [
+        snuba,
+        postgres,
+        relay,
+        taskbroker,
+        taskworker,
+        ingest-events,
+        ingest-transactions,
+        uptime-checker,
+        uptime-results,
+      ]
+    ingest-all:
+      [
+        billing-metrics-consumer,
+        ingest-attachments,
+        ingest-events,
+        ingest-feedback-events,
+        ingest-generic-metrics,
+        ingest-metrics,
+        ingest-monitors,
+        ingest-occurrences,
+        ingest-profiles,
+        ingest-transactions,
+        ingest-replay-recordings,
+        monitors-clock-tasks,
+        monitors-clock-tick,
+        monitors-incident-occurrences,
+        post-process-forwarder-errors,
+        post-process-forwarder-issue-platform,
+        post-process-forwarder-transactions,
+        postgres,
+        process-segments,
+        process-spans,
+        relay,
+        symbolicator,
+        objectstore,
+        snuba,
+        spotlight,
+        taskbroker,
+        taskworker,
+        taskworker-ingest-profiles,
+        vroom,
+      ]
+    full:
+      [
+        snuba,
+        postgres,
+        relay,
+        symbolicator,
+        spotlight,
+        vroom,
+        ingest-events,
+        ingest-attachments,
+        ingest-transactions,
+        ingest-monitors,
+        ingest-feedback-events,
+        ingest-replay-recordings,
+        monitors-clock-tick,
+        monitors-clock-tasks,
+        monitors-incident-occurrences,
+        ingest-profiles,
+        ingest-occurrences,
+        objectstore,
+        process-spans,
+        process-segments,
+        ingest-metrics,
+        ingest-generic-metrics,
+        billing-metrics-consumer,
+        uptime-checker,
+        uptime-results,
+        post-process-forwarder-errors,
+        post-process-forwarder-transactions,
+        post-process-forwarder-issue-platform,
+        taskbroker,
+        taskworker,
+        taskworker-ingest-profiles,
+        taskworker-scheduler,
+      ]
+
+x-programs:
+  devserver:
+    command: sentry devserver
+  taskworker:
+    command: sentry run taskworker
+  taskworker-evals-ingest-errors:
+    command: sentry run taskworker --namespace ingest.errors --concurrency 2 --processing-pool-name eval-ingest-errors
+  taskworker-evals-ingest-errors-postprocess:
+    command: sentry run taskworker --namespace ingest.errors.postprocess --concurrency 1 --processing-pool-name eval-ingest-errors-postprocess
+  taskworker-evals-issues:
+    command: sentry run taskworker --namespace issues --concurrency 1 --processing-pool-name eval-issues
+  taskworker-evals-relay:
+    command: sentry run taskworker --namespace relay --concurrency 1 --processing-pool-name eval-relay
+  taskworker-scheduler:
+    command: sentry run taskworker-scheduler
+  taskworker-ingest-profiles:
+    command: sentry run taskworker --rpc-host localhost:50052 --namespace ingest.profiling.passthrough
+  ingest-events:
+    command: sentry run consumer ingest-events --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-attachments:
+    command: sentry run consumer ingest-attachments --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-transactions:
+    command: sentry run consumer ingest-transactions --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-monitors:
+    command: sentry run consumer ingest-monitors --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  monitors-clock-tick:
+    command: sentry run consumer monitors-clock-tick --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  monitors-clock-tasks:
+    command: sentry run consumer monitors-clock-tasks --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  monitors-incident-occurrences:
+    command: sentry run consumer monitors-incident-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-occurrences:
+    command: sentry run consumer ingest-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  process-spans:
+    command: sentry run consumer process-spans --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  process-segments:
+    command: sentry run consumer process-segments --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  uptime-results:
+    command: sentry run consumer uptime-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-metrics:
+    command: sentry run consumer ingest-metrics --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-generic-metrics:
+    command: sentry run consumer ingest-generic-metrics --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  billing-metrics-consumer:
+    command: sentry run consumer billing-metrics-consumer --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  post-process-forwarder-errors:
+    command: sentry run consumer post-process-forwarder-errors --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  post-process-forwarder-transactions:
+    command: sentry run consumer post-process-forwarder-transactions --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  post-process-forwarder-issue-platform:
+    command: sentry run consumer post-process-forwarder-issue-platform --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-feedback-events:
+    command: sentry run consumer ingest-feedback-events --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-replay-recordings:
+    command: sentry run consumer ingest-replay-recordings --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  subscription-results-eap-items:
+    command: sentry run consumer subscription-results-eap-items --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  metrics-subscription-results:
+    command: sentry run consumer metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  generic-metrics-subscription-results:
+    command: sentry run consumer generic-metrics-subscription-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+
+services:
+  bigtable:
+    image: 'ghcr.io/getsentry/cbtemulator:d28ad6b63e461e8c05084b8c83f1c06627068c04'
+    ports:
+      - '127.0.0.1:8086:8086'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    labels:
+      - orchestrator=devservices
+  redis-cluster:
+    image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
+    ports:
+      - '127.0.0.1:7000:7000'
+      - '127.0.0.1:7001:7001'
+      - '127.0.0.1:7002:7002'
+      - '127.0.0.1:7003:7003'
+      - '127.0.0.1:7004:7004'
+      - '127.0.0.1:7005:7005'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    environment:
+      - IP=0.0.0.0
+    labels:
+      - orchestrator=devservices
+  memcached:
+    image: ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine
+    ports:
+      - '127.0.0.1:11211:11211'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    labels:
+      - orchestrator=devservices
+  spotlight:
+    image: ghcr.io/getsentry/spotlight:7640f9ff4be79a934e5cac8b255d2a2055ceeb28
+    healthcheck:
+      interval: 1s
+      timeout: 1s
+      retries: 3
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8969:8969/tcp'
+    networks:
+      - devservices
+    labels:
+      - orchestrator=devservices
+  # Relay chain for the `cell-routing` mode. These exercise Relay's
+  # advertised-upstream routing entirely from sentry's devservices: the
+  # `advertised_upstream` value lives in relay-cell.yml (mounted only here), so
+  # the default `relay` service and its config are untouched. relay-cell is the
+  # processing terminus (replaces plain `relay` here); relay-edge forwards.
+  relay-cell:
+    image: ghcr.io/getsentry/relay:nightly
+    command: [run, --config, /etc/relay]
+    healthcheck:
+      test:
+        ['CMD', '/bin/relay', '--config', '/etc/relay', 'healthcheck', '--mode', 'live']
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    ports:
+      - 127.0.0.1:7900:7900
+    volumes:
+      - ./config/relay-cell.yml:/etc/relay/config.yml
+      - ./config/relay-cell-credentials.json:/etc/relay/credentials.json
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      - devservices
+    labels:
+      - orchestrator=devservices
+    restart: unless-stopped
+  relay-edge:
+    image: ghcr.io/getsentry/relay:nightly
+    command: [run, --config, /etc/relay]
+    healthcheck:
+      test:
+        ['CMD', '/bin/relay', '--config', '/etc/relay', 'healthcheck', '--mode', 'live']
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    ports:
+      - 127.0.0.1:7901:7901
+    volumes:
+      - ./config/relay-edge.yml:/etc/relay/config.yml
+      - ./config/relay-edge-credentials.json:/etc/relay/credentials.json
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      - devservices
+    labels:
+      - orchestrator=devservices
+    restart: unless-stopped
+  # Taskbroker in passthrough mode for ingest-profiles topic (STREAM-1041).
+  # This is a local service rather than a remote dependency because devservices
+  # doesn't support passing custom environment variables to remote services (DI-1956).
+  ingest-profiles:
+    image: ghcr.io/getsentry/taskbroker:nightly
+    environment:
+      # Multi-topic/cluster config via env vars: nested keys use "__", and
+      # figment lowercases each segment, so topic/cluster names can only use
+      # underscores (not hyphens) when set this way.
+      TASKBROKER_KAFKA_CLUSTERS__DEFAULT__ADDRESS: 'kafka-kafka-1:9093'
+      # Consumed topic, in raw (passthrough) mode. Raw mode is configured per
+      # topic via the topic's `raw` block.
+      TASKBROKER_KAFKA_TOPICS__PROFILES__CLUSTER: 'default'
+      TASKBROKER_KAFKA_TOPICS__PROFILES__CONSUMER_GROUP: 'ingest-profiles'
+      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__NAMESPACE: 'ingest.profiling.passthrough'
+      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__APPLICATION: 'sentry'
+      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__TASKNAME: 'sentry.profiles.task.process_profile_from_kafka'
+      TASKBROKER_KAFKA_TOPICS__PROFILES__RAW__PROCESSING_DEADLINE_DURATION: '30'
+      # A raw topic's messages aren't activations, so retries (which are
+      # activation-encoded) cannot loop back into `profiles`; a separate retry
+      # topic is mandatory. Send them to the main `taskworker` topic so the
+      # default taskbroker picks them up instead of standing up another broker.
+      TASKBROKER_KAFKA_RETRY_TOPIC: 'taskworker'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER__CLUSTER: 'default'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER__CONSUMER_GROUP: 'ingest-profiles'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER__PRODUCE_ONLY: 'true'
+      TASKBROKER_KAFKA_DEADLETTER_TOPIC: 'taskworker_dlq'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER_DLQ__CLUSTER: 'default'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER_DLQ__CONSUMER_GROUP: 'ingest-profiles'
+      TASKBROKER_KAFKA_TOPICS__TASKWORKER_DLQ__PRODUCE_ONLY: 'true'
+      TASKBROKER_CREATE_MISSING_TOPICS: 'true'
+      # TODO(STREAM-1041): Remove debug logging once passthrough mode is stable
+      TASKBROKER_LOG_FILTER: 'debug'
+    ports:
+      - '127.0.0.1:50052:50051'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    labels:
+      - orchestrator=devservices
+    restart: unless-stopped
+    platform: linux/amd64
+
+networks:
+  devservices:
+    name: devservices
+    external: true

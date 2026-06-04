@@ -1,0 +1,15 @@
+---
+created: '2019-12-06T10:30:09.470614Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_breadcrumbs.py
+---
+errors:
+- name: breadcrumbs.values.0.data
+  reason: expected an object
+  type: invalid_data
+  value: must be a mapping
+to_json:
+  values:
+  - level: info
+    timestamp: 1458857193.973275
+    type: message

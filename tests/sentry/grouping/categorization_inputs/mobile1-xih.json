@@ -1,0 +1,91 @@
+{
+  "event_id": "57dfaa5b81bf43daacb166746c284aea",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Timer.java",
+              "filename": "Timer.java",
+              "function": "run",
+              "module": "java.util.Timer$TimerImpl"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "Class.java",
+              "filename": "Class.java",
+              "function": "getDeclaredMethod",
+              "module": "java.lang.Class"
+            },
+            {
+              "abs_path": "Class.java",
+              "filename": "Class.java",
+              "function": "getMethod",
+              "module": "java.lang.Class"
+            }
+          ]
+        },
+        "type": "NoSuchMethodException",
+        "value": "exec []"
+      }
+    ]
+  },
+  "platform": "java"
+}

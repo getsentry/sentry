@@ -1,0 +1,40 @@
+from enum import Enum
+
+
+class ApiOwner(Enum):
+    """
+    Used to track ownership of APIs
+    Value should map to team's github group
+    """
+
+    ALERTS_MONITORS = "alerts-monitors"
+    BILLING = "revenue"
+    CODING_WORKFLOWS = "coding-workflows-sentry-backend"
+    CRONS = "crons"
+    DASHBOARDS = "dashboards"
+    DATA_BROWSING = "data-browsing"
+    EMERGE_TOOLS = "emerge-tools"
+    EXPLORE = "explore"
+    FEEDBACK = "feedback-backend"
+    FLAG = "replay-backend"
+    FOUNDATIONAL_STORAGE = "foundational-storage"
+    FOUNDATIONS = "foundations"
+    GDX = "gdx"
+    HYBRID_CLOUD = "hybrid-cloud"
+    INFRA_ENG = "sre-infrastructure-engineering"
+    INTEGRATION_PLATFORM = "integration-platform"
+    ISSUE_DETECTION_BACKEND = "issue-detection-backend"
+    ISSUES = "issue-workflow"
+    MESSAGING_INTEGRATIONS = "messaging-integrations"
+    ML_AI = "machine-learning-ai"
+    NOTIFICATIONS = "notifications"
+    OWNERS_INGEST = "ingest"
+    OWNERS_SNUBA = "owners-snuba"
+    PROFILING = "profiling"
+    PROJECT_MANAGEMENT_INTEGRATIONS = "project-management-integrations"
+    REPLAY = "replay-backend"
+    SECURITY = "security"
+    TELEMETRY_EXPERIENCE = "telemetry-experience"
+    UNOWNED = "unowned"
+    VALUE_DISCOVERY = "value-discovery"
+    WEB_FRONTEND_SDKS = "team-javascript-sdks"

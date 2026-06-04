@@ -1,0 +1,78 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "4ec09a051686463f01ce05bffbcf3f89"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          type*
+            "MultiValueDictKeyError"
+          stacktrace*
+            frame* (marked in-app by the client)
+              module*
+                "sentry.web.frontend.release_webhook"
+              function*
+                "post"
+              context_line*
+                "hook.handle(request)"
+            frame* (marked in-app by the client)
+              module*
+                "sentry_plugins.heroku.plugin"
+              function*
+                "handle"
+              context_line*
+                "email = request.POST['user']"
+  system*
+    hash: "b19423b06ce0a7e46ae8b00e12804378"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          type*
+            "MultiValueDictKeyError"
+          stacktrace*
+            frame*
+              module*
+                "sentry.web.frontend.release_webhook"
+              function*
+                "post"
+              context_line*
+                "hook.handle(request)"
+            frame*
+              module*
+                "sentry_plugins.heroku.plugin"
+              function*
+                "handle"
+              context_line*
+                "email = request.POST['user']"
+            frame*
+              module*
+                "django.utils.datastructures"
+              function*
+                "__getitem__"
+              context_line*
+                "raise MultiValueDictKeyError(repr(key))"

@@ -1,0 +1,118 @@
+from django.db import router, transaction
+from rest_framework import status
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases.servicehook import ServiceHookEndpoint
+from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
+from sentry.models.project import Project
+from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
+from sentry.sentry_apps.api.serializers.servicehook import ServiceHookSerializer
+from sentry.sentry_apps.models.servicehook import ServiceHook
+
+
+@cell_silo_endpoint
+class ProjectServiceHookDetailsEndpoint(ServiceHookEndpoint):
+    owner = ApiOwner.INTEGRATION_PLATFORM
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+
+    def get(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
+        """
+        Retrieve a Service Hook
+        ```````````````````````
+
+        Return a service hook bound to a project.
+
+        :pparam string organization_id_or_slug: the id or slug of the organization the
+                                          client keys belong to.
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
+                                     belong to.
+        :pparam string hook_id: the guid of the service hook.
+        :auth: required
+        """
+        return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
+
+    def put(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
+        """
+        Update a Service Hook
+        `````````````````````
+
+        :pparam string organization_id_or_slug: the id or slug of the organization the
+                                          client keys belong to.
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
+                                     belong to.
+        :pparam string hook_id: the guid of the service hook.
+        :param string url: the url for the webhook
+        :param array[string] events: the events to subscribe to
+        :auth: required
+        """
+        if not request.user.is_authenticated:
+            return self.respond(status=401)
+
+        validator = ServiceHookValidator(data=request.data, partial=True)
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        result = validator.validated_data
+
+        updates = {}
+        if result.get("events") is not None:
+            updates["events"] = result["events"]
+        if result.get("url"):
+            updates["url"] = result["url"]
+        if result.get("version") is not None:
+            updates["version"] = result["version"]
+        if result.get("isActive") is True:
+            updates["status"] = ObjectStatus.ACTIVE
+        elif result.get("isActive") is False:
+            updates["status"] = ObjectStatus.DISABLED
+
+        with transaction.atomic(router.db_for_write(ServiceHook)):
+            hook.update(**updates)
+
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=hook.id,
+                event=audit_log.get_event_id("SERVICEHOOK_EDIT"),
+                data=hook.get_audit_log_data(),
+            )
+
+        return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
+
+    def delete(self, request: Request, project: Project, hook: ServiceHook, **kwargs) -> Response:
+        """
+        Remove a Service Hook
+        `````````````````````
+
+        :pparam string organization_id_or_slug: the id or slug of the organization the
+                                          client keys belong to.
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
+                                     belong to.
+        :pparam string hook_id: the guid of the service hook.
+        :auth: required
+        """
+        if not request.user.is_authenticated:
+            return self.respond(status=401)
+
+        with transaction.atomic(router.db_for_write(ServiceHook)):
+            hook.delete()
+
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=hook.id,
+                event=audit_log.get_event_id("SERVICEHOOK_REMOVE"),
+                data=hook.get_audit_log_data(),
+            )
+
+        return self.respond(status=204)

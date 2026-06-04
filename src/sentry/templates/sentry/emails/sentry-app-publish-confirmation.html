@@ -1,0 +1,37 @@
+
+{% extends "sentry/emails/base.html" %}
+{% load i18n %}
+{% load sentry_avatars%}
+{% load sentry_helpers %}
+
+{% block main %}
+<p>
+  Thank you for your submission!
+  This email confirms that user {{ actor.email }} has submitted the custom integration, {{ sentry_app.slug }}, for {{ organization.slug }}.
+</p>
+<table>
+  <div style="padding-bottom: 8px;"> Here are your responses to the submission form: <div>
+	{% for question in questionnaire %}
+  <tr>
+    <td>
+      <div style="padding-bottom: 8px;"><strong>{{ question.question }}</strong></div>
+      <div style="padding: 10px 10px 15px 15px; background-color: #f7f8f9; border-radius: 5px; word-break: break-word;">
+        <span style="">
+        {{ question.answer }}
+        </span>
+      </div>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+<p>
+  Our team will review your submission to ensure it meets our guidelines.
+  By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove it at any time in its sole discretion.
+  Please note our current processing time for integration publishing requests is 4–5 weeks.
+  You’ll hear from us once the integration is approved or if any changes are required.
+  Thanks again for contributing to the Sentry community!
+</p>
+  Best regards,
+  <br/>
+  <div style="padding-top: 8px;">The Sentry Team</div>
+{% endblock %} {% block footer %}{% endblock %}

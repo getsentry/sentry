@@ -1,0 +1,67 @@
+{
+  "Sessions": {
+    "type": "object",
+    "required": ["start", "end", "intervals", "groups"],
+    "properties": {
+      "start": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The start time of the data being returned."
+      },
+      "end": {
+        "type": "string",
+        "format": "date-time",
+        "description": "The exclusive end time of the data being returned."
+      },
+      "intervals": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "description": "The time slices of the timeseries data given in the `groups[].series` field."
+      },
+      "groups": {
+        "type": "array",
+        "items": {
+          "$ref": "#/Group"
+        }
+      }
+    }
+  },
+  "Group": {
+    "type": "object",
+    "description": "A grouped result, as requested by the `groupBy` request parameter.",
+    "required": ["by", "totals", "series"],
+    "properties": {
+      "by": {
+        "type": "object",
+        "description": "These are key/value pairs, the key being the requested `groupBy` property with its corresponding value.",
+        "properties": {
+          "session.status": {
+            "type": "string",
+            "description": "Example `groupBy` property"
+          }
+        }
+      },
+      "totals": {
+        "type": "object",
+        "description": "These are key/value pairs, the key being the requested `field`, and the value the corresponding total over the requested time frame.",
+        "properties": {
+          "sum(session)": {
+            "type": "integer",
+            "description": "Example `field` value"
+          }
+        }
+      },
+      "series": {
+        "type": "object",
+        "description": "These are key/value pairs, the key being the requested `field`, and the value is an array of aggregated values. The array corresponds to the times given in the `intervals` array.",
+        "additionalProperties": {
+          "type": "array",
+          "items": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

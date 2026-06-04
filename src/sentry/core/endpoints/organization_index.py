@@ -1,0 +1,516 @@
+import logging
+
+from django.conf import settings
+from django.db import IntegrityError
+from django.db.models import Count, OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry import features, options, roles
+from sentry import ratelimits as ratelimiter
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.paginator import DateTimePaginator, OffsetPaginator
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.organization import (
+    BaseOrganizationSerializer,
+    ControlSiloOrganizationMappingSerializer,
+    OrganizationSummarySerializerResponse,
+)
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.user_examples import UserExamples
+from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
+from sentry.db.models.query import in_iexact
+from sentry.demo_mode.utils import is_demo_user
+from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.organizations.services.organization import organization_service
+from sentry.search.utils import tokenize_query
+from sentry.services.organization import (
+    OrganizationOptions,
+    OrganizationProvisioningOptions,
+    PostProvisionOptions,
+)
+from sentry.services.organization.provisioning import (
+    organization_provisioning_service,
+    resolve_provisioning_cell,
+)
+from sentry.silo.base import SiloMode
+from sentry.types.cell import (
+    CellResolutionError,
+    RegionCategory,
+    get_locality_by_name,
+)
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
+from sentry.utils.pagination_factory import PaginatorLike
+
+logger = logging.getLogger(__name__)
+
+
+class OrganizationPostSerializer(BaseOrganizationSerializer):
+    defaultTeam = serializers.BooleanField(required=False)
+    agreeTerms = serializers.BooleanField(required=True)
+    aggregatedDataConsent = serializers.BooleanField(required=False)
+    idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
+    dataStorageLocation = serializers.CharField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not (settings.TERMS_URL and settings.PRIVACY_URL):
+            del self.fields["agreeTerms"]
+        self.fields["slug"].required = False
+        self.fields["name"].required = True
+
+    def validate_agreeTerms(self, value):
+        if not value:
+            raise serializers.ValidationError("This attribute is required.")
+        return value
+
+    def validate_slug(self, value: str) -> str:
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            value = self._validate_slug_shape(value)
+            if OrganizationMapping.objects.filter(slug=value).exists():
+                raise serializers.ValidationError(f'The slug "{value}" is already in use.')
+
+            return value
+        # TODO(cells) remove this path when cell scoped provisioning is removed.
+        return super().validate_slug(value)
+
+    def validate_dataStorageLocation(self, value: str) -> str:
+        try:
+            locality = get_locality_by_name(value)
+        except CellResolutionError:
+            raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
+        if "request" in self.context and is_active_staff(self.context["request"]):
+            # Staff users are allowed to create orgs in hidden cells/localities.
+            return value
+        if locality.category != RegionCategory.MULTI_TENANT or not locality.visible:
+            raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
+        return value
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        locality_name = attrs.get("dataStorageLocation")
+
+        if locality_name:
+            attrs["cell_name"] = resolve_provisioning_cell(locality_name)
+        else:
+            # TODO(cells) Remove this when cell silo compatibility is removed.
+            attrs["cell_name"] = settings.SENTRY_LOCAL_CELL or settings.SENTRY_MONOLITH_REGION
+
+        return attrs
+
+
+@extend_schema(tags=["Users"])
+@all_silo_endpoint
+class OrganizationIndexEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    permission_classes = (OrganizationPermission,)
+
+    @extend_schema(
+        operation_id="List Your Organizations",
+        parameters=[
+            OrganizationParams.OWNER,
+            CursorQueryParam,
+            OrganizationParams.QUERY,
+            OrganizationParams.SORT_BY,
+            VisibilityParams.PER_PAGE,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizations", list[OrganizationSummarySerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=UserExamples.LIST_ORGANIZATIONS,
+    )
+    def get(self, request: Request) -> Response[list[OrganizationSummarySerializerResponse]]:
+        """
+        Return a list of organizations available to the authenticated session in a region.
+        This is particularly useful for requests with a user bound context. For API key-based requests this will only return the organization that belongs to the key.
+        """
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            return self._get_from_control(request)
+
+        return self._get_from_cell(request)
+
+    def _get_from_cell(self, request: Request) -> Response:
+        metrics.incr("api.organization_index.get", tags={"silo": "cell"}, sample_rate=1.0)
+
+        owner_only = request.GET.get("owner") in ("1", "true")
+
+        queryset = Organization.objects.distinct()
+
+        if request.auth and not request.user.is_authenticated:
+            if hasattr(request.auth, "project"):
+                queryset = queryset.filter(id=request.auth.project.organization_id)
+            elif request.auth.organization_id is not None:
+                queryset = queryset.filter(id=request.auth.organization_id)
+
+        elif owner_only and request.user.is_authenticated:
+            # This is used when closing an account
+
+            # also fetches organizations in which you are a member of an owner team
+            queryset = Organization.objects.get_organizations_where_user_is_owner(
+                user_id=request.user.id
+            )
+            org_results = []
+            for org in sorted(queryset, key=lambda x: x.name):
+                # O(N) query
+                org_results.append(
+                    {"organization": serialize(org), "singleOwner": org.has_single_owner()}
+                )
+
+            return Response(org_results)
+
+        elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
+            queryset = queryset.filter(
+                id__in=OrganizationMember.objects.filter(user_id=request.user.id).values(
+                    "organization"
+                )
+            )
+            if request.auth and request.auth.organization_id is not None and queryset.count() > 1:
+                # If a token is limited to one organization, this endpoint should only return that one organization
+                queryset = queryset.filter(id=request.auth.organization_id)
+
+        query = request.GET.get("query")
+        if query:
+            tokens = tokenize_query(query)
+            for key, value in tokens.items():
+                if key == "query":
+                    query_value = " ".join(value)
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(
+                            emails=[query_value], is_verified=False
+                        )
+                    }
+                    queryset = queryset.filter(
+                        Q(name__icontains=query_value)
+                        | Q(slug__icontains=query_value)
+                        | Q(member_set__user_id__in=user_ids)
+                    )
+                elif key == "slug":
+                    queryset = queryset.filter(in_iexact("slug", value))
+                elif key == "email":
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=value, is_verified=False)
+                    }
+                    queryset = queryset.filter(Q(member_set__user_id__in=user_ids))
+                elif key == "id":
+                    queryset = queryset.filter(id__in=value)
+                elif key == "status":
+                    try:
+                        queryset = queryset.filter(
+                            status__in=[OrganizationStatus[v.upper()] for v in value]
+                        )
+                    except KeyError:
+                        queryset = queryset.none()
+                elif key == "member_id":
+                    queryset = queryset.filter(
+                        id__in=OrganizationMember.objects.filter(id__in=value).values(
+                            "organization"
+                        )
+                    )
+                else:
+                    queryset = queryset.none()
+
+        sort_by = request.GET.get("sortBy")
+        paginator_cls: type[PaginatorLike]
+        if sort_by == "members":
+            queryset = queryset.annotate(member_count=Count("member_set"))
+            order_by = "-member_count"
+            paginator_cls = OffsetPaginator
+        else:
+            order_by = "-date_added"
+            paginator_cls = DateTimePaginator
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by=order_by,
+            on_results=lambda x: serialize(x, request.user, include_feature_flags=False),
+            paginator_cls=paginator_cls,
+        )
+
+    def _get_from_control(self, request: Request) -> Response:
+        metrics.incr("api.organization_index.get", tags={"silo": "control"}, sample_rate=1.0)
+
+        owner_only = request.GET.get("owner") in ("1", "true")
+
+        # owner=1 (used by the account-close flow) means "orgs I own", which is
+        # defined by the user's membership. A userless token (org auth token or
+        # DSN) passes the permission check but has no membership to resolve, so
+        # reject it rather than falling through to the general token-scoped listing.
+        if owner_only:
+            if not request.user.is_authenticated:
+                raise PermissionDenied
+            return self._get_owned_from_control(request)
+
+        queryset = OrganizationMapping.objects.distinct()
+
+        if request.auth and not request.user.is_authenticated:
+            if hasattr(request.auth, "project"):
+                queryset = queryset.filter(organization_id=request.auth.project.organization_id)
+            elif request.auth.organization_id is not None:
+                queryset = queryset.filter(organization_id=request.auth.organization_id)
+        elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
+            assert request.user.id is not None
+            queryset = queryset.filter(
+                organization_id__in=OrganizationMemberMapping.objects.filter(
+                    user_id=request.user.id
+                ).values("organization_id")
+            )
+            if request.auth and request.auth.organization_id is not None and queryset.count() > 1:
+                # If a token is limited to one organization, this endpoint should only return that one organization
+                queryset = queryset.filter(organization_id=request.auth.organization_id)
+
+        query = request.GET.get("query")
+        if query:
+            tokens = tokenize_query(query)
+            for key, value in tokens.items():
+                if key == "query":
+                    query_value = " ".join(value)
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(
+                            emails=[query_value], is_verified=False
+                        )
+                    }
+                    queryset = queryset.filter(
+                        Q(name__icontains=query_value)
+                        | Q(slug__icontains=query_value)
+                        # Control-side equivalent of `Q(member_set__user_id__in=user_ids)`
+                        | Q(
+                            organization_id__in=OrganizationMemberMapping.objects.filter(
+                                user_id__in=user_ids
+                            ).values("organization_id")
+                        )
+                    )
+                elif key == "slug":
+                    queryset = queryset.filter(in_iexact("slug", value))
+                elif key == "email":
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=value, is_verified=False)
+                    }
+                    queryset = queryset.filter(
+                        organization_id__in=OrganizationMemberMapping.objects.filter(
+                            user_id__in=user_ids
+                        ).values("organization_id")
+                    )
+                elif key == "id":
+                    queryset = queryset.filter(organization_id__in=value)
+                elif key == "status":
+                    try:
+                        queryset = queryset.filter(
+                            status__in=[OrganizationStatus[v.upper()] for v in value]
+                        )
+                    except KeyError:
+                        queryset = queryset.none()
+                elif key == "member_id":
+                    queryset = queryset.filter(
+                        organization_id__in=OrganizationMemberMapping.objects.filter(
+                            organizationmember_id__in=value
+                        ).values("organization_id")
+                    )
+                else:
+                    queryset = queryset.none()
+
+        sort_by = request.GET.get("sortBy")
+        paginator_cls: type[PaginatorLike]
+        if sort_by == "members":
+            member_count_subquery = (
+                OrganizationMemberMapping.objects.filter(
+                    organization_id=OuterRef("organization_id")
+                )
+                .values("organization_id")
+                .annotate(member_count=Count("id"))
+                .values("member_count")[:1]
+            )
+            queryset = queryset.annotate(member_count=Coalesce(Subquery(member_count_subquery), 0))
+            order_by = "-member_count"
+            paginator_cls = OffsetPaginator
+        else:
+            order_by = "-date_created"
+            paginator_cls = DateTimePaginator
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by=order_by,
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                serializer=ControlSiloOrganizationMappingSerializer(),
+            ),
+            paginator_cls=paginator_cls,
+        )
+
+    def _get_owned_from_control(self, request: Request) -> Response:
+        assert request.user.id is not None
+        owner_role = roles.get_top_dog().id
+
+        owner_org_ids = OrganizationMemberMapping.objects.filter(
+            user_id=request.user.id,
+            role=owner_role,
+        ).values_list("organization_id", flat=True)
+
+        org_mappings = list(
+            OrganizationMapping.objects.filter(
+                organization_id__in=owner_org_ids,
+                status=OrganizationStatus.ACTIVE,
+            ).order_by("name")
+        )
+
+        owner_counts = (
+            OrganizationMemberMapping.objects.filter(
+                organization_id__in=[m.organization_id for m in org_mappings],
+                role=owner_role,
+                user_id__isnull=False,
+                user__is_active=True,
+            )
+            .values("organization_id")
+            .annotate(count=Count("id"))
+        )
+        single_owner_org_ids = {row["organization_id"] for row in owner_counts if row["count"] == 1}
+
+        serialized = serialize(
+            org_mappings,
+            request.user,
+            serializer=ControlSiloOrganizationMappingSerializer(),
+        )
+
+        return Response(
+            [
+                {
+                    "organization": data,
+                    "singleOwner": mapping.organization_id in single_owner_org_ids,
+                }
+                for mapping, data in zip(org_mappings, serialized)
+            ]
+        )
+
+    def post(self, request: Request) -> Response:
+        """
+        Create a New Organization
+        `````````````````````````
+
+        Create a new organization owned by the request's user.  To create
+        an organization only the name is required.
+
+        :param string name: the human readable name for the new organization.
+        :param string slug: the unique URL slug for this organization.  If
+                            this is not provided a slug is automatically
+                            generated based on the name.
+        :param bool agreeTerms: a boolean signaling you agree to the applicable
+                                terms of service and privacy policy.
+        :auth: required, user-context-needed
+        """
+        if not request.user.is_authenticated:
+            return Response({"detail": "This endpoint requires user info"}, status=401)
+
+        if is_demo_user(request.user):
+            return Response(
+                {"detail": "Demo users are not allowed to create organizations."}, status=403
+            )
+
+        if not features.has("organizations:create", actor=request.user):
+            return Response(
+                {"detail": "Organizations are not allowed to be created by this user."}, status=401
+            )
+
+        limit = options.get("api.rate-limit.org-create")
+        if limit and ratelimiter.backend.is_limited(
+            f"org-create:{request.user.id}", limit=limit, window=3600
+        ):
+            return Response(
+                {"detail": "You are attempting to create too many organizations too quickly."},
+                status=429,
+            )
+
+        metrics.incr(
+            "api.organization_index.post",
+            tags={"silo": SiloMode.get_current_mode().name.lower()},
+            sample_rate=1.0,
+        )
+
+        serializer = OrganizationPostSerializer(data=request.data, context={"request": request})
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        result = serializer.validated_data
+
+        getsentry_options = None
+        getsentry_options = {
+            # Define a self-serve free account for saas. Historically
+            # these were not trial accounts.
+            # See getsentry/utils/provisioning.py
+            "subscription": {
+                "channel": 0,
+                "type": 0,
+            },
+            "ip_address": request.META["REMOTE_ADDR"],
+            "provisioning_user_id": request.user.id,
+            "sender": "in-app",
+            "referrer": "in-app",
+        }
+
+        try:
+            create_default_team = bool(result.get("defaultTeam"))
+            rpc_user = serialize_generic_user(request.user)
+            assert rpc_user  # narrow type
+
+            provision_args = OrganizationProvisioningOptions(
+                provision_options=OrganizationOptions(
+                    name=result["name"],
+                    slug=result.get("slug") or result["name"],
+                    owning_user_id=request.user.id,
+                    owner=rpc_user,
+                    create_default_team=create_default_team,
+                    ip_address=request.META["REMOTE_ADDR"],
+                    aggregated_data_consent=result.get("aggregatedDataConsent"),
+                    agree_terms=result.get("agreeTerms"),
+                ),
+                post_provision_options=PostProvisionOptions(
+                    getsentry_options=getsentry_options,
+                    sentry_options=None,
+                ),
+            )
+
+            rpc_org = organization_provisioning_service.provision_organization_in_cell(
+                cell_name=result["cell_name"],
+                provisioning_options=provision_args,
+            )
+        except IntegrityError:
+            # TODO(cells) Remove this once all provisioning goes through control
+            # Instead we'll need to handle error messages from the RPC call.
+            return Response(
+                {"detail": "An organization with this slug already exists."}, status=409
+            )
+
+        org_data = organization_service.serialize_organization(id=rpc_org.id, as_user=rpc_user)
+
+        return Response(org_data, status=201)

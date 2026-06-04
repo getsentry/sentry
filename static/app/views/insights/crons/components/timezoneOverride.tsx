@@ -1,0 +1,85 @@
+import {useMemo, useState} from 'react';
+import styled from '@emotion/styled';
+import moment from 'moment-timezone';
+
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {t} from 'sentry/locale';
+import type {Monitor} from 'sentry/views/insights/crons/types';
+
+interface TimezoneOverrideProps {
+  monitor: Monitor;
+  onTimezoneSelected: (timezone: string) => void;
+  userTimezone: string;
+  size?: 'sm' | 'xs';
+}
+
+type Mode = 'user' | 'monitor' | 'utc';
+
+export function TimezoneOverride({
+  monitor,
+  onTimezoneSelected,
+  size = 'xs',
+  userTimezone,
+}: TimezoneOverrideProps) {
+  const monitorTimezone = monitor.config.timezone ?? 'UTC';
+
+  const [mode, setMode] = useState<Mode>('user');
+
+  const timezoneMapping = useMemo<Record<Mode, string>>(
+    () => ({
+      user: userTimezone,
+      monitor: monitorTimezone,
+      utc: 'UTC',
+    }),
+    [monitorTimezone, userTimezone]
+  );
+
+  const handleChange = (newMode: Mode) => {
+    setMode(newMode);
+    onTimezoneSelected(timezoneMapping[newMode]);
+  };
+
+  return (
+    <CompactSelect
+      size={size}
+      value={mode}
+      position="bottom-end"
+      onChange={option => handleChange(option.value)}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Date Display')} />
+      )}
+      options={[
+        {
+          value: 'user',
+          label: 'My Timezone',
+          trailingItems: <TimezoneLabel timezone={userTimezone} />,
+        },
+        {
+          value: 'monitor',
+          label: 'Monitor',
+          trailingItems: <TimezoneLabel timezone={monitorTimezone} />,
+        },
+        {
+          value: 'utc',
+          label: 'UTC',
+          trailingItems: <TimezoneLabel timezone="UTC" />,
+        },
+      ]}
+    />
+  );
+}
+
+function TimezoneLabel({timezone}: {timezone: string}) {
+  return <TimezoneName>{moment.tz(timezone).format('z Z')}</TimezoneName>;
+}
+
+const TimezoneName = styled('div')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.font.size.sm};
+  width: max-content;
+`;

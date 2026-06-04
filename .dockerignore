@@ -1,0 +1,9 @@
+/.devenv
+/.dockerignore
+/.git
+/.gitignore
+/.venv
+/.webpack_cache
+/fixtures
+/node_modules
+/tests

@@ -1,0 +1,66 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: "bf617e996d4427cda2f75c965c4266e2"
+  contributing component: exception
+  hint: None
+  root_component:
+    app*
+      exception*
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+        stacktrace*
+          frame* (marked in-app by the client)
+            filename*
+              "server.php"
+            context_line*
+              "require_once __DIR__.'/public/index.php';"
+          frame (marked out of app by the client)
+            filename*
+              "pipeline.php"
+            function* (anonymous class method)
+              "run"
+            context_line*
+              "return $callable($passable);"
+          frame (marked out of app by the client)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context_line*
+              "? $pipe->{$this->method}(...$parameters)"
+--------------------------------------------------------------------------
+system:
+  hash: "dc13fee96d9e544e8aee8f1b4e6cbf22"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context_line*
+              "require_once __DIR__.'/public/index.php';"
+          frame*
+            filename*
+              "pipeline.php"
+            function* (anonymous class method)
+              "run"
+            context_line*
+              "return $callable($passable);"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context_line*
+              "? $pipe->{$this->method}(...$parameters)"

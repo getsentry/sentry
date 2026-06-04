@@ -1,0 +1,43 @@
+{
+  "debug_id": "67429b2f-1d9e-43bb-a626-771a1e37555d",
+  "files": {
+    "files/_/_/index.js": {
+      "url": "~/index.js",
+      "type": "source"
+    },
+    "files/_/_/index.min.js": {
+      "url": "~/index.min.js",
+      "type": "minified_source",
+      "headers": {
+        "Debug-id": "Eb6e60f1-65ff-4f6f-Adff-f1bbeDEd627b",
+        "Sourcemap": "index.js.map"
+      }
+    },
+    "files/_/_/index.js.map": {
+      "url": "~/index.js.map",
+      "type": "source_map",
+      "headers": {
+        "debug-id": "Eb6e60f1-65ff-4f6f-Adff-f1bbeDEd627b"
+      }
+    },
+    "files/_/_/bundle1.js": {
+      "url": "~/bundle1.js",
+      "type": "source"
+    },
+    "files/_/_/bundle1.min.js": {
+      "url": "~/bundle1.min.js",
+      "type": "minified_source",
+      "headers": {
+        "Debug-id": "Eb6e60f1-65ff-4f6f-Adff-f1bbeDEd627b",
+        "Sourcemap": "index.js.map"
+      }
+    },
+    "files/_/_/bundle1.min.js.map": {
+      "url": "~/bundle1.min.js.map",
+      "type": "source_map",
+      "headers": {
+        "debug-id": "Eb6e60f1-65ff-4f6f-Adff-f1bbeDEd627b"
+      }
+    }
+  }
+}

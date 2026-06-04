@@ -1,0 +1,128 @@
+import {Fragment, useMemo, useRef} from 'react';
+import styled from '@emotion/styled';
+import type {AriaOptionProps} from '@react-aria/listbox';
+import {useOption} from '@react-aria/listbox';
+import {mergeRefs} from '@react-aria/utils';
+import type {ListState} from '@react-stately/list';
+import type {Node} from '@react-types/shared';
+
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {LeadWrap} from '@sentry/scraps/compactSelect';
+import {
+  InnerWrap,
+  MenuListItem,
+  type MenuListItemProps,
+} from '@sentry/scraps/menuListItem';
+
+import {IconCheckmark} from 'sentry/icons';
+
+export interface ListBoxOptionProps extends AriaOptionProps {
+  item: Node<any>;
+  listState: ListState<any>;
+  size: MenuListItemProps['size'];
+  'data-index'?: number;
+  ref?: React.Ref<HTMLLIElement>;
+  showDetails?: boolean;
+}
+
+/**
+ * A <li /> element with accessible behaviors & attributes.
+ * https://react-spectrum.adobe.com/react-aria/useListBox.html
+ */
+export function ListBoxOption({
+  item,
+  listState,
+  size,
+  showDetails = true,
+  ref: refProp,
+  'data-index': dataIndex,
+}: ListBoxOptionProps) {
+  const ref = useRef<HTMLLIElement>(null);
+  const {
+    label,
+    details,
+    trailingItems,
+    priority,
+    hideCheck,
+    tooltip,
+    tooltipOptions,
+    selectionMode,
+    showDetailsInOverlay,
+  } = item.props;
+  const multiple = selectionMode
+    ? selectionMode === 'multiple'
+    : listState.selectionManager.selectionMode === 'multiple';
+
+  const {optionProps, labelProps, isSelected, isFocused, isDisabled, isPressed} =
+    useOption({key: item.key, 'aria-label': item['aria-label']}, listState, ref);
+
+  // Not memoized: optionProps contains press event handlers from useOption/usePress
+  // that capture the current selection state and must stay up-to-date.
+
+  const labelPropsMemo = useMemo(
+    () => ({...labelProps, as: typeof label === 'string' ? 'p' : 'div'}) as const,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [labelProps.id, label]
+  );
+
+  const leadingItems = (item.props as MenuListItemProps).leadingItems;
+  const leadingItemsMemo = useMemo(() => {
+    const checkboxSize = size === 'xs' ? 'xs' : 'sm';
+
+    const leading =
+      typeof leadingItems === 'function'
+        ? leadingItems({disabled: isDisabled, isFocused, isSelected})
+        : leadingItems;
+
+    if (hideCheck) {
+      return leading;
+    }
+
+    return (
+      <Fragment>
+        <LeadWrap aria-hidden="true">
+          {multiple ? (
+            <Checkbox
+              size={checkboxSize}
+              checked={isSelected}
+              disabled={isDisabled}
+              readOnly
+            />
+          ) : (
+            isSelected && <IconCheckmark size={checkboxSize} />
+          )}
+        </LeadWrap>
+        {leading ? <LeadWrap aria-hidden="true">{leading}</LeadWrap> : null}
+      </Fragment>
+    );
+  }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
+
+  return (
+    <StyledMenuListItem
+      {...optionProps}
+      data-index={dataIndex}
+      ref={mergeRefs(ref, refProp)}
+      size={size}
+      label={label}
+      details={showDetails ? details : null}
+      disabled={isDisabled}
+      isPressed={isPressed}
+      isSelected={isSelected}
+      isFocused={listState.selectionManager.isFocused && isFocused}
+      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
+      labelProps={labelPropsMemo}
+      leadingItems={leadingItemsMemo}
+      trailingItems={trailingItems}
+      showDetailsInOverlay={showDetailsInOverlay}
+      tooltip={tooltip}
+      tooltipOptions={tooltipOptions}
+      data-test-id={item.key}
+    />
+  );
+}
+
+const StyledMenuListItem = styled(MenuListItem)`
+  > ${InnerWrap} {
+    padding-left: ${p => p.theme.space.md};
+  }
+`;

@@ -1,0 +1,97 @@
+import type {MouseEventHandler} from 'react';
+import styled from '@emotion/styled';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {t, tct} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export function NewSecretHandler({
+  secret,
+  provider,
+  onGoBack,
+}: {
+  onGoBack: MouseEventHandler;
+  provider: string;
+  secret: string;
+}) {
+  const organization = useOrganization();
+
+  return (
+    <div>
+      <Alert variant="success" system>
+        {t('The secret has been posted.')}
+      </Alert>
+
+      <StyledPanelItem>
+        <Container flex="1">
+          <StyledFieldGroup
+            label={t('Webhook URL')}
+            help={tct(
+              "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
+              {
+                link: (
+                  <ExternalLink
+                    href={
+                      PROVIDER_TO_SETUP_WEBHOOK_URL[
+                        provider.toLowerCase() as keyof typeof PROVIDER_TO_SETUP_WEBHOOK_URL
+                      ]
+                    }
+                  />
+                ),
+              }
+            )}
+            inline
+            flexibleControlStateSize
+          >
+            <TextCopyInput
+              aria-label={t('Webhook URL')}
+            >{`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${provider.toLowerCase()}/`}</TextCopyInput>
+          </StyledFieldGroup>
+          <StyledFieldGroup
+            label={t('Secret')}
+            help={t(
+              'The secret should not be shared and will not be retrievable once you leave this page.'
+            )}
+            inline
+            flexibleControlStateSize
+          >
+            <TextCopyInput aria-label={t('Secret')}>{secret}</TextCopyInput>
+          </StyledFieldGroup>
+        </Container>
+      </StyledPanelItem>
+
+      <StyledPanelItem>
+        <ButtonWrapper>
+          <Button onClick={onGoBack} variant="primary">
+            {t('Done')}
+          </Button>
+        </ButtonWrapper>
+      </StyledPanelItem>
+    </div>
+  );
+}
+
+const StyledFieldGroup = styled(FieldGroup)`
+  padding: ${p => p.theme.space.md};
+`;
+
+const ButtonWrapper = styled('div')`
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: ${p => p.theme.font.size.sm};
+  gap: ${p => p.theme.space.md};
+`;
+
+const StyledPanelItem = styled(PanelItem)`
+  padding: ${p => p.theme.space.lg};
+`;

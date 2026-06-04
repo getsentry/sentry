@@ -1,0 +1,118 @@
+import {queryOptions} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
+import {t} from 'sentry/locale';
+import type {ResolvedStatusDetails} from 'sentry/types/group';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+interface CustomCommitsResolutionModalProps extends ModalRenderProps {
+  onSelected: (x: ResolvedStatusDetails) => void;
+  orgSlug: string;
+  projectSlug: string;
+}
+
+const commitSchema = z.object({
+  commit: z
+    .looseObject({
+      id: z.string(),
+      repository: z.looseObject({
+        name: z.string(),
+      }),
+      dateCreated: z.string(),
+    })
+    .nullable()
+    .refine(val => val !== null, t('Please select a commit')),
+});
+
+const defaultValues: z.input<typeof commitSchema> = {
+  commit: null,
+};
+
+type Commit = z.output<typeof commitSchema>['commit'];
+
+export function CustomCommitsResolutionModal({
+  onSelected,
+  orgSlug,
+  projectSlug,
+  closeModal,
+  Header,
+  Body,
+  Footer,
+}: CustomCommitsResolutionModalProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {
+      onDynamic: commitSchema,
+    },
+    onSubmit: ({value}) => {
+      onSelected({
+        inCommit: {
+          commit: value.commit?.id,
+          repository: value.commit?.repository?.name,
+        },
+      });
+      closeModal();
+    },
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <Header>
+        <h4>{t('Resolved In')}</h4>
+      </Header>
+      <Body>
+        <form.AppField name="commit">
+          {field => (
+            <field.Layout.Stack label={t('Commit')} required>
+              <field.SelectAsync
+                value={field.state.value}
+                onChange={field.handleChange}
+                queryOptions={debouncedInput => {
+                  return queryOptions({
+                    ...apiOptions.as<Commit[]>()(
+                      '/projects/$organizationIdOrSlug/$projectIdOrSlug/commits/',
+                      {
+                        path: {
+                          organizationIdOrSlug: orgSlug,
+                          projectIdOrSlug: projectSlug,
+                        },
+                        query: {query: debouncedInput},
+                        staleTime: 30_000,
+                      }
+                    ),
+                    select: ({json: commits}) =>
+                      commits.map(c => ({
+                        value: c,
+                        textValue: c.id,
+                        label: <Version version={c.id} anchor={false} />,
+                        details: (
+                          <span>
+                            {t('Created')} <TimeSince date={c.dateCreated} />
+                          </span>
+                        ),
+                      })),
+                  });
+                }}
+                placeholder={t('e.g. d86b832')}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+      </Body>
+      <Footer>
+        <Flex gap="sm" justify="end">
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <form.SubmitButton>{t('Resolve')}</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
+  );
+}

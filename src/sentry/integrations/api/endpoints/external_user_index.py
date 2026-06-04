@@ -1,0 +1,76 @@
+import logging
+
+from drf_spectacular.utils import extend_schema
+from rest_framework import status
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases import OrganizationEndpoint
+from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.integrations.api.bases.external_actor import (
+    ExternalActorEndpointMixin,
+    ExternalUserPermission,
+    ExternalUserSerializer,
+)
+from sentry.integrations.api.serializers.models.external_actor import (
+    ExternalActorResponse,
+    ExternalActorSerializer,
+)
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.models.organization import Organization
+
+logger = logging.getLogger(__name__)
+
+
+@cell_silo_endpoint
+@extend_schema(tags=["Integrations"])
+class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
+    owner = ApiOwner.INTEGRATION_PLATFORM
+    permission_classes = (ExternalUserPermission,)
+    publish_status = {
+        "POST": ApiPublishStatus.PUBLIC,
+    }
+
+    @extend_schema(
+        operation_id="Create an External User",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=ExternalUserSerializer,
+        responses={
+            200: ExternalActorSerializer,
+            201: ExternalActorSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=IntegrationExamples.EXTERNAL_USER_CREATE,
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[ExternalActorResponse] | Response[ValidationErrorResponse]:
+        """
+        Link a user from an external provider to a Sentry user.
+        """
+        self.assert_has_feature(request, organization)
+
+        serializer = ExternalUserSerializer(
+            data=request.data, context={"organization": organization}
+        )
+        if not serializer.is_valid():
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
+
+        external_user: ExternalActor
+        created: bool
+        external_user, created = serializer.save()
+        status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(
+            serialize(
+                external_user, request.user, key="user", serializer=ExternalActorSerializer()
+            ),
+            status=status_code,
+        )

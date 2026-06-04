@@ -1,0 +1,44 @@
+import {useEffect} from 'react';
+import {useMatches} from 'react-router-dom';
+import * as Sentry from '@sentry/react';
+
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {LoadingError} from 'sentry/components/loadingError';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {t, tct} from 'sentry/locale';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+
+const ERROR_NAME = 'Permission Denied';
+
+export function PermissionDenied() {
+  const matches = useMatches();
+  useEffect(() => {
+    const route = getRouteStringFromRoutes({matches});
+    Sentry.addBreadcrumb({
+      category: 'auth',
+      message: `${ERROR_NAME}${route ? ` : ${route}` : ''}`,
+      level: 'error',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <SentryDocumentTitle title={t('Permission Denied')}>
+      <Stack flex={1} padding="2xl 3xl">
+        <LoadingError
+          message={tct(
+            `Your role does not have the necessary permissions to access this
+             resource, please read more about [link:organizational roles]`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/accounts/membership/" />
+              ),
+            }
+          )}
+        />
+      </Stack>
+    </SentryDocumentTitle>
+  );
+}

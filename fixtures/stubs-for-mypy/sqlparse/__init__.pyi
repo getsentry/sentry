@@ -1,0 +1,3 @@
+from typing import Any
+
+def format(sql: str, encoding: str | None = ..., **kwargs: Any) -> str: ...

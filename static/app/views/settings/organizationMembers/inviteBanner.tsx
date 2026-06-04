@@ -1,0 +1,354 @@
+import {Fragment, useCallback, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
+import * as qs from 'query-string';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
+import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+import {Card} from 'sentry/components/card';
+import {Carousel} from 'sentry/components/carousel';
+import {openConfirmModal} from 'sentry/components/confirm';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {MissingMember, OrgRole} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+const MAX_MEMBERS_TO_SHOW = 5;
+
+type Props = {
+  allowedRoles: OrgRole[];
+  onModalClose: () => void;
+  onSendInvite: () => void;
+};
+
+export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) {
+  const organization = useOrganization();
+  const isEligibleForBanner = organization.access.includes('org:write');
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
+  const [missingMembers, setMissingMembers] = useState<MissingMember[]>([]);
+
+  const api = useApi();
+  // NOTE: this is currently used for Github only
+  const promptsFeature = 'github_missing_members';
+  const location = useLocation();
+
+  const snoozePrompt = useCallback(async () => {
+    trackAnalytics('github_invite_banner.snoozed', {
+      organization,
+    });
+    setShowBanner(false);
+    await promptsUpdate(api, {
+      organization,
+      feature: promptsFeature,
+      status: 'snoozed',
+    });
+  }, [api, organization, promptsFeature]);
+
+  const openInviteModal = useCallback(() => {
+    openInviteMissingMembersModal({
+      allowedRoles,
+      missingMembers,
+      organization,
+      onClose: onModalClose,
+    });
+  }, [allowedRoles, missingMembers, organization, onModalClose]);
+
+  const fetchMissingMembers = useCallback(async () => {
+    try {
+      const data = await api.requestPromise(
+        `/organizations/${organization.slug}/missing-members/`,
+        {
+          method: 'GET',
+        }
+      );
+      const githubEntry = data?.find(
+        (integrationMissingMembers: any) =>
+          integrationMissingMembers.integration === 'github'
+      );
+      if (!githubEntry?.enabled) {
+        return;
+      }
+      setMissingMembers(githubEntry.users ?? []);
+    } catch (err: any) {
+      if (err.status !== 403) {
+        addErrorMessage(t('Unable to fetching missing commit authors'));
+      }
+    }
+  }, [api, organization]);
+
+  useEffect(() => {
+    if (!isEligibleForBanner) {
+      return;
+    }
+    fetchMissingMembers();
+    promptsCheck(api, {
+      organization,
+      feature: promptsFeature,
+    }).then(prompt => {
+      setShowBanner(!promptIsDismissed(prompt));
+    });
+  }, [api, organization, promptsFeature, isEligibleForBanner, fetchMissingMembers]);
+
+  useEffect(() => {
+    const {inviteMissingMembers} = qs.parse(location.search);
+
+    if (isEligibleForBanner && inviteMissingMembers) {
+      openInviteModal();
+    }
+  }, [openInviteModal, location, isEligibleForBanner]);
+
+  if (isEligibleForBanner && showBanner && missingMembers.length > 0) {
+    trackAnalytics('github_invite_banner.viewed', {
+      organization,
+      members_shown: missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).length,
+      total_members: missingMembers.length,
+    });
+  }
+  if (!isEligibleForBanner || !showBanner || missingMembers.length === 0) {
+    return null;
+  }
+
+  // TODO(cathy): include docs link
+  const menuItems: MenuItemProps[] = [
+    {
+      key: 'invite-banner-snooze',
+      label: t('Hide Missing Members'),
+      onAction: () => {
+        openConfirmModal({
+          message: t('Are you sure you want to snooze this banner?'),
+          onConfirm: snoozePrompt,
+        });
+      },
+    },
+  ];
+
+  const handleSendInvite = async (email: string) => {
+    if (sendingInvite) {
+      return;
+    }
+    setSendingInvite(true);
+    try {
+      await api.requestPromise(
+        `/organizations/${organization.slug}/members/?referrer=github_nudge_invite`,
+        {
+          method: 'POST',
+          data: {email},
+        }
+      );
+      addSuccessMessage(tct('Sent invite to [email]', {email}));
+      onSendInvite();
+      const updatedMissingMembers = missingMembers.filter(
+        member => member.email !== email
+      );
+      setMissingMembers(updatedMissingMembers);
+    } catch {
+      addErrorMessage(t('Error sending invite'));
+    }
+    setSendingInvite(false);
+  };
+
+  return (
+    <Fragment>
+      {/* this is temporary to collect feedback about the banner */}
+      <FloatingFeedbackButton />
+      <StyledCard>
+        <Flex justify="between">
+          <Stack>
+            <CardTitle>{t('Bring your full GitHub team on board in Sentry')}</CardTitle>
+            <Subtitle>
+              {tct('[missingMemberCount] missing members', {
+                missingMemberCount: missingMembers.length,
+              })}
+              <QuestionTooltip
+                title={t(
+                  "Based on the last 30 days of GitHub commit data, there are team members committing code to Sentry projects that aren't in your Sentry organization"
+                )}
+                size="xs"
+              />
+            </Subtitle>
+          </Stack>
+          <Grid flow="column" align="center" gap="md">
+            <Button
+              variant="primary"
+              size="xs"
+              onClick={openInviteModal}
+              analyticsEventName="Github Invite Banner: View All"
+              analyticsEventKey="github_invite_banner.view_all"
+            >
+              {t('View All')}
+            </Button>
+            <DropdownMenu
+              items={menuItems}
+              triggerProps={{
+                size: 'xs',
+                showChevron: false,
+                icon: <IconEllipsis direction="down" size="sm" />,
+                'aria-label': t('Actions'),
+              }}
+            />
+          </Grid>
+        </Flex>
+        <Carousel>
+          <MemberCards
+            missingMembers={missingMembers}
+            handleSendInvite={handleSendInvite}
+            openInviteModal={openInviteModal}
+          />
+        </Carousel>
+      </StyledCard>
+    </Fragment>
+  );
+}
+
+type MemberCardsProps = {
+  handleSendInvite: (email: string) => void;
+  missingMembers: MissingMember[];
+  openInviteModal: () => void;
+};
+
+function MemberCards({
+  missingMembers,
+  handleSendInvite,
+  openInviteModal,
+}: MemberCardsProps) {
+  return (
+    <Fragment>
+      {missingMembers.slice(0, MAX_MEMBERS_TO_SHOW).map(member => {
+        const username = member.externalId.split(':').pop();
+        return (
+          <MemberCard
+            key={member.externalId}
+            data-test-id={`member-card-${member.externalId}`}
+          >
+            <Stack flex="1 1" minWidth="50%" maxWidth="75%">
+              <MemberCardContentRow>
+                <IconGithub size="sm" />
+                {/* TODO(cathy): create mapping from integration to lambda external link function */}
+                <StyledExternalLink href={`https://github.com/${username}`}>
+                  @{username}
+                </StyledExternalLink>
+              </MemberCardContentRow>
+              <MemberCardContentRow>
+                <IconCommit size="xs" />
+                {tct('[commitCount] Recent Commits', {commitCount: member.commitCount})}
+              </MemberCardContentRow>
+              <MemberEmail>{member.email}</MemberEmail>
+            </Stack>
+            <Button
+              size="sm"
+              onClick={() => handleSendInvite(member.email)}
+              data-test-id="invite-missing-member"
+              icon={<IconMail />}
+              analyticsEventName="Github Invite Banner: Invite"
+              analyticsEventKey="github_invite_banner.invite"
+            >
+              {t('Invite')}
+            </Button>
+          </MemberCard>
+        );
+      })}
+
+      <MemberCard data-test-id="see-more-card" key="see-more">
+        <Stack flex="1 1" minWidth="50%" maxWidth="75%">
+          <MemberCardContentRow>
+            <SeeMore>
+              {tct('See all [missingMembersCount] missing members', {
+                missingMembersCount: missingMembers.length,
+              })}
+            </SeeMore>
+          </MemberCardContentRow>
+          <Subtitle>
+            {tct('Accounting for [totalCommits] recent commits', {
+              totalCommits: missingMembers.reduce(
+                (acc, curr) => acc + curr.commitCount,
+                0
+              ),
+            })}
+          </Subtitle>
+        </Stack>
+        <Button
+          size="sm"
+          variant="primary"
+          onClick={openInviteModal}
+          analyticsEventName="Github Invite Banner: View All"
+          analyticsEventKey="github_invite_banner.view_all"
+        >
+          {t('View All')}
+        </Button>
+      </MemberCard>
+    </Fragment>
+  );
+}
+
+const StyledCard = styled(Card)`
+  display: flex;
+  padding: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.lg};
+  overflow: hidden;
+`;
+
+const CardTitle = styled('h6')`
+  margin: 0;
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.colors.gray500};
+`;
+
+const Subtitle = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
+  gap: ${p => p.theme.space.xs};
+`;
+
+const MemberEmail = styled('div')`
+  display: block;
+  max-width: 70%;
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
+  text-overflow: ellipsis;
+  overflow: hidden;
+`;
+
+const MemberCard = styled(Card)`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  min-width: 30%;
+  margin: ${p => p.theme.space.md} ${p => p.theme.space.xs} 0 0;
+  padding: ${p => p.theme.space.xl} 18px;
+  justify-content: center;
+  align-items: center;
+`;
+
+const MemberCardContentRow = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${p => p.theme.space['2xs']};
+  font-size: ${p => p.theme.font.size.sm};
+  gap: ${p => p.theme.space.sm};
+`;
+
+export const StyledExternalLink = styled(ExternalLink)`
+  font-size: ${p => p.theme.font.size.md};
+`;
+
+const SeeMore = styled('div')`
+  font-size: ${p => p.theme.font.size.lg};
+`;

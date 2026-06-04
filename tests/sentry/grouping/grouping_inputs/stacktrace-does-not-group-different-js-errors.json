@@ -1,0 +1,12 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "https://foo.com/index.js",
+        "lineno": 20,
+        "context_line": "{snip}",
+        "filename": "/index.js"
+      }
+    ]
+  }
+}

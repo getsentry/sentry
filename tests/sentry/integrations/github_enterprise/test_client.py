@@ -1,0 +1,202 @@
+import datetime
+from unittest import mock
+
+import pytest
+import responses
+from django.utils import timezone
+
+from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.testutils.cases import TestCase
+
+GITHUB_CODEOWNERS = {
+    "filepath": "CODEOWNERS",
+    "html_url": "https://github.example.org/Test-Organization/foo/blob/master/CODEOWNERS",
+    "raw": "docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
+}
+
+
+class GitHubEnterpriseCloudApiClientTest(TestCase):
+    """Tests for GHE.com (GitHub Enterprise Cloud with data residency) URL construction."""
+
+    def _make_client(self, base_url: str) -> GitHubEnterpriseApiClient:
+        integration = mock.MagicMock()
+        integration.metadata = {"installation_id": "123"}
+        return GitHubEnterpriseApiClient(
+            base_url=base_url,
+            integration=integration,
+            app_id="1",
+            private_key="key",
+            verify_ssl=True,
+            org_integration_id=1,
+        )
+
+    def test_ghe_cloud_base_url(self) -> None:
+        client = self._make_client("acme-corp.ghe.com")
+        assert client.base_url == "https://api.acme-corp.ghe.com"
+
+    def test_ghes_base_url_unchanged(self) -> None:
+        client = self._make_client("github.example.org")
+        assert client.base_url == "https://github.example.org"
+
+    def test_ghe_cloud_build_url_no_api_v3_prefix(self) -> None:
+        client = self._make_client("acme-corp.ghe.com")
+        assert client.build_url("/repos/org/repo") == "https://api.acme-corp.ghe.com/repos/org/repo"
+
+    def test_ghe_cloud_build_url_graphql(self) -> None:
+        client = self._make_client("acme-corp.ghe.com")
+        assert client.build_url("/graphql") == "https://api.acme-corp.ghe.com/graphql"
+
+    def test_ghes_build_url_adds_api_v3_prefix(self) -> None:
+        client = self._make_client("github.example.org")
+        assert (
+            client.build_url("/repos/org/repo")
+            == "https://github.example.org/api/v3/repos/org/repo"
+        )
+
+    def test_ghes_build_url_graphql(self) -> None:
+        client = self._make_client("github.example.org")
+        assert client.build_url("/graphql") == "https://github.example.org/api/graphql"
+
+    def test_github_com_base_url(self) -> None:
+        client = self._make_client("github.com")
+        assert client.base_url == "https://api.github.com"
+
+    def test_github_com_build_url_no_api_v3_prefix(self) -> None:
+        client = self._make_client("github.com")
+        assert client.build_url("/repos/org/repo") == "https://api.github.com/repos/org/repo"
+
+    def test_github_com_build_url_graphql(self) -> None:
+        client = self._make_client("github.com")
+        assert client.build_url("/graphql") == "https://api.github.com/graphql"
+
+
+class GitHubEnterpriseApiClientTest(TestCase):
+    base_url = "https://github.example.org/api/v3"
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        patcher_1 = mock.patch(
+            "sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1"
+        )
+        patcher_1.start()
+        self.addCleanup(patcher_1.stop)
+
+        patcher_2 = mock.patch(
+            "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1"
+        )
+        patcher_2.start()
+        self.addCleanup(patcher_2.stop)
+
+        ten_days = timezone.now() + datetime.timedelta(days=10)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="Github Test Org",
+            external_id="1",
+            metadata={
+                "access_token": "12345token",
+                "expires_at": ten_days.strftime("%Y-%m-%dT%H:%M:%S"),
+                "icon": "https://github.example.org/avatar.png",
+                "domain_name": "github.example.org/Test-Organization",
+                "account_type": "Organization",
+                "installation_id": "install_id_1",
+                "installation": {
+                    "client_id": "client_id",
+                    "client_secret": "client_secret",
+                    "id": "2",
+                    "name": "test-app",
+                    "private_key": "private_key",
+                    "url": "github.example.org",
+                    "webhook_secret": "webhook_secret",
+                    "verify_ssl": True,
+                },
+            },
+        )
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Test-Organization/foo",
+            url="https://github.example.org/Test-Organization/foo",
+            provider="integrations:github_enterprise",
+            external_id=123,
+            integration_id=integration.id,
+        )
+        install = integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(install, GitHubEnterpriseIntegration)
+        self.install = install
+        self.gh_client = self.install.get_client()
+
+    @responses.activate
+    def test_check_file(self) -> None:
+        path = "src/sentry/integrations/github/client.py"
+        version = "master"
+        url = f"{self.base_url}/repos/{self.repo.name}/contents/{path}?ref={version}"
+
+        responses.add(
+            method=responses.HEAD,
+            url=url,
+            json={"text": 200},
+        )
+
+        resp = self.gh_client.check_file(self.repo, path, version)
+        assert resp.status_code == 200
+
+    @responses.activate
+    def test_check_no_file(self) -> None:
+        path = "src/santry/integrations/github/client.py"
+        version = "master"
+        url = f"{self.base_url}/repos/{self.repo.name}/contents/{path}?ref={version}"
+
+        responses.add(method=responses.HEAD, url=url, status=404)
+
+        with pytest.raises(ApiError):
+            self.gh_client.check_file(self.repo, path, version)
+
+        assert responses.calls[0].response.status_code == 404
+
+    @responses.activate
+    def test_get_stacktrace_link(self) -> None:
+        path = "/src/sentry/integrations/github/client.py"
+        version = "master"
+        url = f"{self.base_url}/repos/{self.repo.name}/contents/{path.lstrip('/')}?ref={version}"
+
+        responses.add(
+            method=responses.HEAD,
+            url=url,
+            json={"text": 200},
+        )
+
+        source_url = self.install.get_stacktrace_link(self.repo, path, "master", version)
+        assert (
+            source_url
+            == "https://github.example.org/Test-Organization/foo/blob/master/src/sentry/integrations/github/client.py"
+        )
+
+    @responses.activate
+    def test_get_codeowner_file(self) -> None:
+        self.config = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+        )
+        url = f"{self.base_url}/repos/{self.repo.name}/contents/CODEOWNERS?ref=master"
+
+        responses.add(
+            method=responses.HEAD,
+            url=url,
+            json={"text": 200},
+        )
+        responses.add(
+            method=responses.GET,
+            url=url,
+            body="docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
+        )
+        result = self.install.get_codeowner_file(
+            self.config.project_repository.repository, ref=self.config.default_branch
+        )
+        assert (
+            responses.calls[1].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+        )
+        assert result == GITHUB_CODEOWNERS

@@ -1,0 +1,169 @@
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud data models or service classes are
+# defined, because we want to reflect on type annotations and avoid forward references.
+
+from abc import abstractmethod
+from typing import Any
+
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
+from sentry.integrations.services.repository import RpcRepository
+from sentry.integrations.services.repository.model import RpcCreateRepository
+from sentry.silo.base import SiloMode
+from sentry.users.services.user.model import RpcUser
+
+
+class RepositoryService(RpcService):
+    key = "repository"
+    local_mode = SiloMode.CELL
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.integrations.services.repository.impl import DatabaseBackedRepositoryService
+
+        return DatabaseBackedRepositoryService()
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def serialize_repository(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        as_user: RpcUser | None = None,
+    ) -> Any | None:
+        """
+        Attempts to serialize a given repository.  Note that this can be None if the repository is already deleted
+        in the corresponding cell silo.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_repositories(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int | None = None,
+        external_id: str | None = None,
+        providers: list[str] | None = None,
+        has_integration: bool | None = None,
+        has_provider: bool | None = None,
+        status: int | None = None,
+    ) -> list[RpcRepository]:
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_repository(self, *, organization_id: int, id: int) -> RpcRepository | None:
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def create_repository(
+        self, *, organization_id: int, create: RpcCreateRepository
+    ) -> RpcRepository | None:
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_repository(self, *, organization_id: int, update: RpcRepository) -> None:
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def update_repositories(self, *, organization_id: int, updates: list[RpcRepository]) -> None:
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def disable_repositories_for_integration(
+        self, *, organization_id: int, integration_id: int, provider: str
+    ) -> None:
+        """
+        Disables all repositories associated with the given integration by marking them as disabled.
+        Code owners and code mappings will not be changed.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def disable_repositories_by_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+    ) -> None:
+        """
+        Disables specific repositories by external_id for a given integration.
+        Only active repositories are affected. Code mappings and commits are preserved.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def find_recently_active_repo_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+        cutoff_days: int,
+    ) -> list[str]:
+        """
+        Of the given ``external_ids`` (scoped to the org/integration/provider),
+        return the subset whose underlying ``Repository`` rows have at least one
+        commit, pull request, or code review event in the last ``cutoff_days``.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def disassociate_organization_integration(
+        self,
+        *,
+        organization_id: int,
+        organization_integration_id: int,
+        integration_id: int,
+    ) -> None:
+        """
+        Disassociates all repositories for an organization integration.
+        This will also delete code owners, and code mapping associated with matching repositories.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def schedule_update_gitlab_project_webhooks(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+    ) -> None:
+        """
+        Schedules a task to update all GitLab project webhooks for an integration.
+        This is used when sync settings change and webhooks need to be updated.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def auto_link_repos_by_name(
+        self,
+        *,
+        organization_id: int,
+        repo_ids: list[int] | None = None,
+        project_ids: list[int] | None = None,
+    ) -> int:
+        """
+        Auto-link repositories to projects based on name matching.
+        Only creates links when neither the repo nor the project
+        already has a ProjectRepository row.
+
+        If repo_ids is provided, only consider those repos. Otherwise all
+        unlinked repos in the org are considered.
+        If project_ids is provided, only consider those projects.
+
+        Returns the number of links created.
+        """
+
+
+repository_service = RepositoryService.create_delegation()

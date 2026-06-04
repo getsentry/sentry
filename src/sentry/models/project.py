@@ -1,0 +1,980 @@
+from __future__ import annotations
+
+import logging
+from collections import defaultdict
+from collections.abc import Callable, Collection, Iterable
+from typing import TYPE_CHECKING, Any, ClassVar
+from uuid import uuid1
+
+import sentry_sdk
+from django.conf import settings
+from django.db import IntegrityError, models, router, transaction
+from django.db.models import Count, Q, QuerySet, Subquery
+from django.db.models.signals import pre_delete
+from django.utils import timezone
+from django.utils.http import urlencode
+from django.utils.translation import gettext_lazy as _
+
+from bitfield import TypedClassBitField
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    cell_silo_model,
+    sane_repr,
+)
+from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.utils import slugify_instance
+from sentry.db.pending_deletion import (
+    delete_pending_deletion_option,
+    rename_on_pending_deletion,
+    reset_pending_deletion_field_names,
+)
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.locks import locks
+from sentry.models.grouplink import GroupLink
+from sentry.models.team import Team
+from sentry.notifications.services import notifications_service
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
+from sentry.utils.colors import get_hashed_color
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.models.options.project_option import ProjectOptionManager
+    from sentry.models.organization import Organization
+    from sentry.users.models.user import User
+
+# NOTE:
+# - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
+# - Please keep this list organized alphabetically.
+GETTING_STARTED_DOCS_PLATFORMS = [
+    "android",
+    "apple",
+    "apple-ios",
+    "apple-macos",
+    "bun",
+    "capacitor",
+    "cordova",
+    "dart",
+    "deno",
+    "dotnet",
+    "dotnet-aspnet",
+    "dotnet-aspnetcore",
+    "dotnet-awslambda",
+    "dotnet-gcpfunctions",
+    "dotnet-maui",
+    "dotnet-uwp",
+    "dotnet-winforms",
+    "dotnet-wpf",
+    "dotnet-xamarin",
+    "electron",
+    "elixir",
+    "flutter",
+    "go",
+    "go-echo",
+    "go-fasthttp",
+    "go-fiber",
+    "go-gin",
+    "go-http",
+    "go-iris",
+    "go-martini",
+    "go-negroni",
+    "godot",
+    "ionic",
+    "java",
+    "java-log4j2",
+    "java-logback",
+    "java-spring",
+    "java-spring-boot",
+    "javascript",
+    "javascript-angular",
+    "javascript-astro",
+    "javascript-ember",
+    "javascript-gatsby",
+    "javascript-nextjs",
+    "javascript-nuxt",
+    "javascript-react",
+    "javascript-react-router",
+    "javascript-remix",
+    "javascript-solid",
+    "javascript-solidstart",
+    "javascript-svelte",
+    "javascript-sveltekit",
+    "javascript-tanstackstart-react",
+    "javascript-vue",
+    "kotlin",
+    "minidump",
+    "native",
+    "native-qt",
+    "nintendo-switch",
+    "node",
+    "node-awslambda",
+    "node-azurefunctions",
+    "node-cloudflare-pages",
+    "node-cloudflare-workers",
+    "node-connect",
+    "node-express",
+    "node-fastify",
+    "node-gcpfunctions",
+    "node-hapi",
+    "node-hono",
+    "node-koa",
+    "node-nestjs",
+    "php",
+    "php-laravel",
+    "php-symfony",
+    "playstation",
+    "powershell",
+    "python",
+    "python-aiohttp",
+    "python-asgi",
+    "python-awslambda",
+    "python-bottle",
+    "python-celery",
+    "python-chalice",
+    "python-django",
+    "python-falcon",
+    "python-fastapi",
+    "python-flask",
+    "python-gcpfunctions",
+    "python-litestar",
+    "python-pylons",
+    "python-pymongo",
+    "python-pyramid",
+    "python-quart",
+    "python-rq",
+    "python-sanic",
+    "python-serverless",
+    "python-starlette",
+    "python-tornado",
+    "python-tryton",
+    "python-wsgi",
+    "react-native",
+    "ruby",
+    "ruby-rack",
+    "ruby-rails",
+    "rust",
+    "unity",
+    "unreal",
+    "xbox",
+]
+
+
+class ProjectManager(BaseManager["Project"]):
+    def get_by_users(self, users: Iterable[User | RpcUser]) -> dict[int, set[int]]:
+        """Given a list of users, return a mapping of each user to the projects they are a member of."""
+        project_rows = self.filter(
+            projectteam__team__organizationmemberteam__is_active=True,
+            projectteam__team__organizationmemberteam__organizationmember__user_id__in=map(
+                lambda u: u.id, users
+            ),
+        ).values_list(
+            "id", "projectteam__team__organizationmemberteam__organizationmember__user_id"
+        )
+
+        projects_by_user_id = defaultdict(set)
+        for project_id, user_id in project_rows:
+            if user_id is not None:
+                projects_by_user_id[user_id].add(project_id)
+        return projects_by_user_id
+
+    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
+        """Returns the QuerySet of all projects that a set of Users have access to."""
+        return self.filter(
+            status=ObjectStatus.ACTIVE,
+            teams__organizationmember__user_id__in=user_ids,
+        )
+
+    def get_for_team_ids(self, team_ids: Collection[int] | Subquery) -> QuerySet:
+        """Returns the QuerySet of all projects that a set of Teams have access to."""
+        return self.filter(status=ObjectStatus.ACTIVE, teams__in=team_ids)
+
+    # TODO(dcramer): we might want to cache this per user
+    def get_for_user(self, team, user, scope=None, _skip_team_check=False):
+        from sentry.models.team import Team
+
+        if not (user and user.is_authenticated):
+            return []
+
+        if not _skip_team_check:
+            team_list = Team.objects.get_for_user(
+                organization=team.organization, user=user, scope=scope
+            )
+
+            try:
+                team = team_list[team_list.index(team)]
+            except ValueError:
+                logging.info("User does not have access to team: %s", team.id)
+                return []
+
+        base_qs = self.filter(teams=team, status=ObjectStatus.ACTIVE)
+
+        project_list = []
+        for project in base_qs:
+            project_list.append(project)
+
+        return sorted(project_list, key=lambda x: x.name.lower())
+
+
+@snowflake_id_model
+@cell_silo_model
+class Project(Model):
+    from sentry.models.projectteam import ProjectTeam
+
+    """
+    Projects are permission based namespaces which generally
+    are the top level entry point for all data.
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    slug = SentrySlugField(max_length=PROJECT_SLUG_MAX_LENGTH)
+    # DEPRECATED do not use, prefer slug
+    name = models.CharField(max_length=200)
+    forced_color = models.CharField(max_length=6, null=True, blank=True)
+    organization = FlexibleForeignKey("sentry.Organization")
+    teams = models.ManyToManyField("sentry.Team", related_name="teams", through=ProjectTeam)
+    public = models.BooleanField(default=False)
+    date_added = models.DateTimeField(default=timezone.now)
+    status = BoundedPositiveIntegerField(
+        default=0,
+        choices=(
+            (ObjectStatus.ACTIVE, _("Active")),
+            (ObjectStatus.PENDING_DELETION, _("Pending Deletion")),
+            (ObjectStatus.DELETION_IN_PROGRESS, _("Deletion in Progress")),
+        ),
+        db_index=True,
+    )
+    # projects that were created before this field was present
+    # will have their first_event field set to date_added
+    first_event = models.DateTimeField(null=True)
+
+    # external_id for the projects managed/provisioned through the 3rd party
+    external_id = models.CharField(max_length=256, null=True)
+
+    class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
+        # This Project has sent release data
+        has_releases: bool
+        # This Project has issue alerts targeting
+        has_issue_alerts_targeting: bool
+
+        # This Project has sent transactions
+        has_transactions: bool
+
+        # has_alert_filters is DEPRECATED
+        has_alert_filters: bool
+
+        # This Project has sessions
+        has_sessions: bool
+
+        # This Project has sent profiles
+        has_profiles: bool
+
+        # This Project has sent replays
+        has_replays: bool
+
+        # This project has sent feedbacks
+        has_feedbacks: bool
+
+        # This project has sent new feedbacks, from the user-initiated widget
+        has_new_feedbacks: bool
+
+        # spike protection flags are DEPRECATED
+        spike_protection_error_currently_active: bool
+        spike_protection_transaction_currently_active: bool
+        spike_protection_attachment_currently_active: bool
+
+        # This Project has event with minified stack trace
+        has_minified_stack_trace: bool
+
+        # This Project has cron monitors
+        has_cron_monitors: bool
+
+        # This Project has sent check-ins
+        has_cron_checkins: bool
+
+        # This Project has event with sourcemaps
+        has_sourcemaps: bool
+
+        # This Project has custom metrics
+        has_custom_metrics: bool
+
+        # `has_high_priority_alerts` is DEPRECATED
+        has_high_priority_alerts: bool
+
+        # This Project has sent insight request spans
+        has_insights_http: bool
+
+        # This Project has sent insight db spans
+        has_insights_db: bool
+
+        # This Project has sent insight assets spans
+        has_insights_assets: bool
+
+        # This Project has sent insight app starts spans
+        has_insights_app_start: bool
+
+        # This Project has sent insight screen load spans
+        has_insights_screen_load: bool
+
+        # This Project has sent insight vitals spans
+        has_insights_vitals: bool
+
+        # This Project has sent insight caches spans
+        has_insights_caches: bool
+
+        # This Project has sent insight queues spans
+        has_insights_queues: bool
+
+        # No longer used, use has_insights_agent_monitoring instead
+        has_insights_llm_monitoring: bool
+
+        # This Project has sent feature flags
+        has_flags: bool
+
+        # This Project has sent insight agent monitoring spans
+        has_insights_agent_monitoring: bool
+
+        # This Project has sent insight MCP spans
+        has_insights_mcp: bool
+
+        # This project has sent logs
+        has_logs: bool
+
+        # This project has sent trace metrics
+        has_trace_metrics: bool
+
+        bitfield_default = 10
+
+    objects: ClassVar[ProjectManager] = ProjectManager(cache_fields=["pk"])
+    platform = models.CharField(max_length=64, null=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_project"
+        unique_together = (("organization", "slug"), ("organization", "external_id"))
+
+    __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.slug})"
+
+    def next_short_id(self, delta: int = 1) -> int:
+        from sentry.models.counter import Counter
+
+        with (
+            sentry_sdk.start_span(op="project.next_short_id") as span,
+            metrics.timer("project.next_short_id"),
+        ):
+            span.set_data("project_id", self.id)
+            span.set_data("project_slug", self.slug)
+            return Counter.increment(self, delta)
+
+    def _save_project(self, *args, **kwargs):
+        if settings.SENTRY_USE_SNOWFLAKE:
+            snowflake_redis_key = "project_snowflake_key"
+            save_with_snowflake_id(
+                instance=self,
+                snowflake_redis_key=snowflake_redis_key,
+                save_callback=lambda: super(Project, self).save(*args, **kwargs),
+            )
+        else:
+            super().save(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if getattr(self, "id", None) is not None:
+            # no need to acquire lock if we're updating an existing project
+            self._save_project(*args, **kwargs)
+            return
+
+        # when project is created, we need to acquire a lock to ensure that the generated slug is unique
+        lock = locks.get(f"slug:project:{self.organization_id}", duration=5, name="project_slug")
+        with TimedRetryPolicy(10)(lock.acquire):
+            if not self.slug:
+                slugify_instance(
+                    self,
+                    self.name,
+                    organization=self.organization,
+                    reserved=RESERVED_PROJECT_SLUGS,
+                    max_length=50,
+                )
+            self._save_project(*args, **kwargs)
+
+    def get_absolute_url(self, params=None):
+        path = f"/organizations/{self.organization.slug}/issues/"
+        params = {} if params is None else params
+        params["project"] = self.id
+        query = None
+        if params:
+            query = urlencode(params)
+        return self.organization.absolute_url(path, query=query)
+
+    def is_internal_project(self):
+        for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
+            if str(self.id) == str(value) or str(self.slug) == str(value):
+                return True
+        return False
+
+    @property
+    def option_manager(self) -> ProjectOptionManager:
+        from sentry.models.options.project_option import ProjectOption
+
+        return ProjectOption.objects
+
+    def get_option(
+        self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
+    ) -> Any:
+        from sentry.models.options.project_option import get_option
+
+        return get_option(self.id, key, default, validate)
+
+    def update_option(self, key: str, value: Any) -> bool:
+        """
+        Updates a project option for this project.
+        """
+        return self.option_manager.set_value(self, key, value)
+
+    def delete_option(self, key: str) -> None:
+        self.option_manager.unset_value(self, key)
+
+    @property
+    def color(self):
+        if self.forced_color is not None:
+            return f"#{self.forced_color}"
+        assert self.slug is not None
+        return get_hashed_color(self.slug.upper())
+
+    @property
+    def member_set(self):
+        """:returns a QuerySet of all Users that belong to this Project"""
+        from sentry.models.organizationmember import OrganizationMember
+
+        return self.organization.member_set.filter(
+            id__in=OrganizationMember.objects.filter(
+                organizationmemberteam__is_active=True,
+                organizationmemberteam__team__in=self.teams.all(),
+            ).values("id"),
+            user_is_active=True,
+            user_id__isnull=False,
+        ).distinct()
+
+    def get_members_as_rpc_users(self) -> list[RpcUser]:
+        member_ids = self.member_set.values_list("user_id", flat=True)
+        return user_service.get_many_by_id(ids=list(member_ids))
+
+    def get_audit_log_data(self):
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": self.status,
+            "public": self.public,
+        }
+
+    def get_full_name(self):
+        return self.slug
+
+    def transfer_to(self, organization: Organization) -> None:
+        from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+        from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.integrations.models.external_issue import ExternalIssue
+        from sentry.integrations.models.repository_project_path_config import (
+            RepositoryProjectPathConfig,
+        )
+        from sentry.models.environment import Environment, EnvironmentProject
+        from sentry.models.projectcodeowners import ProjectCodeOwners
+        from sentry.models.projectrepository import ProjectRepository
+        from sentry.models.projectteam import ProjectTeam
+        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+        from sentry.models.releases.release_project import ReleaseProject
+        from sentry.models.rule import Rule
+        from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
+        from sentry.snuba.models import SnubaQuery
+        from sentry.workflow_engine.models import (
+            AlertRuleWorkflow,
+            DataConditionGroup,
+            DataSource,
+            Detector,
+            DetectorWorkflow,
+            Workflow,
+        )
+        from sentry.workflow_engine.processors.project_transfer import (
+            clone_workflow_to_organization,
+        )
+
+        old_org_id = self.organization_id
+        org_changed = old_org_id != organization.id
+
+        self.organization = organization
+
+        # Wrap the org update and ProjectTeam cleanup in a single transaction so
+        # that a crash between the two doesn't leave the project with team
+        # associations from the old organization.
+        with transaction.atomic(router.db_for_write(Project)):
+            try:
+                with transaction.atomic(router.db_for_write(Project)):
+                    self.update(organization=organization)
+            except IntegrityError:
+                slugify_instance(self, self.name, organization=organization, max_length=50)
+                self.update(slug=self.slug, organization=organization)
+
+            if org_changed:
+                ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
+
+        # Both environments and releases are bound at an organization level.
+        # Due to this, when you transfer a project into another org, we have to
+        # handle this behavior somehow. We really only have two options here:
+        # * Copy over all releases/environments into the new org and handle de-duping
+        # * Delete the bindings and let them reform with new data.
+        # We're generally choosing to just delete the bindings since new data
+        # flowing in will recreate links correctly. The tradeoff is that
+        # historical data is lost, but this is a compromise we're willing to
+        # take and a side effect of allowing this feature. There are exceptions
+        # to this however, such as rules, which should maintain their
+        # configuration when moved across organizations.
+        if org_changed:
+            for model in ReleaseProject, ReleaseProjectEnvironment, EnvironmentProject:
+                model.objects.filter(project_id=self.id).delete()
+
+        rules_by_environment_id = defaultdict(set)
+        for rule_id, environment_id in Rule.objects.filter(
+            project_id=self.id, environment_id__isnull=False
+        ).values_list("id", "environment_id"):
+            assert environment_id is not None
+            rules_by_environment_id[environment_id].add(rule_id)
+
+        environment_names = dict(
+            Environment.objects.filter(organization_id=old_org_id).values_list("id", "name")
+        )
+
+        for environment_id, rule_ids in rules_by_environment_id.items():
+            Rule.objects.filter(id__in=rule_ids).update(
+                environment_id=Environment.get_or_create(self, environment_names[environment_id]).id
+            )
+
+        # Manually move over organization id's for Monitors
+        monitors = Monitor.objects.filter(organization_id=old_org_id, project_id=self.id)
+        new_monitors = set(
+            Monitor.objects.filter(organization_id=organization.id).values_list("slug", flat=True)
+        )
+        for monitor in monitors:
+            if monitor.slug in new_monitors:
+                CellScheduledDeletion.schedule(monitor, days=0)
+            else:
+                for monitor_env_id, env_id in MonitorEnvironment.objects.filter(
+                    monitor_id=monitor.id, status=MonitorStatus.ACTIVE
+                ).values_list("id", "environment_id"):
+                    MonitorEnvironment.objects.filter(id=monitor_env_id).update(
+                        environment_id=Environment.get_or_create(
+                            self, name=environment_names.get(env_id, None)
+                        ).id
+                    )
+                monitor.update(organization_id=organization.id)
+
+        # Remove alert owners not in new org
+        alert_rules = AlertRule.objects.fetch_for_project(self).filter(
+            Q(user_id__isnull=False) | Q(team_id__isnull=False)
+        )
+        for alert_rule in alert_rules:
+            is_member = False
+            if alert_rule.user_id:
+                is_member = organization.member_set.filter(user_id=alert_rule.user_id).exists()
+            if alert_rule.team_id:
+                is_member = Team.objects.filter(
+                    organization_id=organization.id, id=alert_rule.team_id
+                ).exists()
+            if not is_member:
+                alert_rule.update(team_id=None, user_id=None)
+        rule_models = Rule.objects.filter(
+            Q(owner_team_id__isnull=False) | Q(owner_user_id__isnull=False), project=self
+        )
+        for rule_model in rule_models:
+            is_member = False
+            if rule_model.owner_user_id:
+                is_member = organization.member_set.filter(
+                    user_id=rule_model.owner_user_id
+                ).exists()
+            if rule_model.owner_team_id:
+                is_member = Team.objects.filter(
+                    organization_id=organization.id, id=rule_model.owner_team_id
+                ).exists()
+            if not is_member:
+                rule_model.update(owner_user_id=None, owner_team_id=None)
+
+        # [Rule, AlertRule(SnubaQuery->Environment)]
+        # id -> name
+        environment_names_with_alerts = {
+            **environment_names,
+            **{
+                env_id: env_name
+                for env_id, env_name in AlertRule.objects.fetch_for_project(self).values_list(
+                    "snuba_query__environment__id", "snuba_query__environment__name"
+                )
+            },
+        }
+
+        # conditionally create a new environment associated to the new Org -> Project -> AlertRule -> SnubaQuery
+        # this should take care of any potentially dead references from SnubaQuery -> Environment when deleting
+        # the old org
+        # alertrule ->  snuba_query -> environment_id
+        for snuba_id, environment_id in AlertRule.objects.fetch_for_project(self).values_list(
+            "snuba_query_id", "snuba_query__environment__id"
+        ):
+            SnubaQuery.objects.filter(id=snuba_id).update(
+                environment_id=Environment.get_or_create(
+                    self, name=environment_names_with_alerts.get(environment_id, None)
+                ).id
+            )
+
+        AlertRule.objects.fetch_for_project(self).update(organization=organization)
+
+        # Transfer DataSource, Workflow, and DataConditionGroup objects for Detectors attached to
+        # this project. Detectors are project-scoped (they move with the project via their project
+        # FK), but Workflows and their DataConditionGroups are organization-scoped, so they need to
+        # be moved into the new org explicitly.
+        #
+        # Workflows can be shared across multiple projects in the same org if connected to detectors in multiple projects.
+        # To keep every workflow in the same org as the detectors and legacy Rule/AlertRule it fires for, we handle two cases:
+        # * A workflow used ONLY by detectors in this project is moved into the new org as-is.
+        # * A workflow shared with detectors in other projects is cloned into the new org; we then
+        #   re-point just this project's DetectorWorkflow and AlertRuleWorkflow links onto the clone
+        #   and leave the original behind for the projects that remain.
+        #
+        # The whole block runs in a transaction so a crash can't leave a half-cloned workflow
+        detector_ids = list(
+            Detector.objects.filter(project_id=self.id).values_list("id", flat=True)
+        )
+        if detector_ids:
+            with transaction.atomic(router.db_for_write(Workflow)):
+                # DataSources are 1:1 with their source (e.g. QuerySubscription, Monitor) and are
+                # detector-scoped, so they always transfer.
+                data_source_ids = list(
+                    DataSource.objects.filter(detectors__id__in=detector_ids)
+                    .distinct()
+                    .values_list("id", flat=True)
+                )
+                DataSource.objects.filter(id__in=data_source_ids).update(
+                    organization_id=organization.id
+                )
+
+                all_workflow_ids = set(
+                    Workflow.objects.filter(
+                        detectorworkflow__detector_id__in=detector_ids,
+                    )
+                    .exclude(organization_id=organization.id)
+                    .distinct()
+                    .values_list("id", flat=True)
+                )
+
+                # Workflows whose detector links are ALL in this project can be moved as-is.
+                exclusive_workflow_ids = set(
+                    Workflow.objects.filter(id__in=all_workflow_ids)
+                    .annotate(
+                        detector_count=Count("detectorworkflow__detector"),
+                        project_detector_count=Count(
+                            "detectorworkflow__detector",
+                            filter=Q(detectorworkflow__detector_id__in=detector_ids),
+                        ),
+                    )
+                    .filter(detector_count=models.F("project_detector_count"))
+                    .values_list("id", flat=True)
+                )
+                shared_workflow_ids = all_workflow_ids - exclusive_workflow_ids
+
+                def resolve_environment_id(environment_id: int | None) -> int | None:
+                    if environment_id is None:
+                        return None
+                    return Environment.get_or_create(
+                        self, name=environment_names.get(environment_id)
+                    ).id
+
+                # Move the exclusive workflows (and their org/environment references) into the new org.
+                workflows_with_env = dict(
+                    Workflow.objects.filter(
+                        id__in=exclusive_workflow_ids, environment_id__isnull=False
+                    ).values_list("id", "environment_id")
+                )
+                for workflow_id, env_id in workflows_with_env.items():
+                    Workflow.objects.filter(id=workflow_id).update(
+                        organization_id=organization.id,
+                        environment_id=resolve_environment_id(env_id),
+                    )
+                Workflow.objects.filter(id__in=exclusive_workflow_ids).exclude(
+                    id__in=workflows_with_env.keys()
+                ).update(organization_id=organization.id)
+
+                # DataConditionGroups attached to the moved workflows (the "if" filters, linked via
+                # WorkflowDataConditionGroup) move with them.
+                exclusive_condition_group_ids = list(
+                    DataConditionGroup.objects.filter(
+                        workflowdataconditiongroup__workflow_id__in=exclusive_workflow_ids
+                    )
+                    .distinct()
+                    .values_list("id", flat=True)
+                )
+                DataConditionGroup.objects.filter(id__in=exclusive_condition_group_ids).update(
+                    organization_id=organization.id
+                )
+
+                # when_condition_groups of the moved workflows are never shared, so move them too.
+                when_condition_group_ids = (
+                    Workflow.objects.filter(
+                        id__in=exclusive_workflow_ids, when_condition_group_id__isnull=False
+                    )
+                    .values_list("when_condition_group_id", flat=True)
+                    .distinct()
+                )
+                DataConditionGroup.objects.filter(id__in=when_condition_group_ids).update(
+                    organization_id=organization.id
+                )
+
+                # Clone the shared workflows into the new org and re-point only this project's links.
+                # we use DetectorWorkflow to identify Workflows that need to be cloned, but once we clone
+                # we remove the DetectorWorkflow links to the old Workflow so that in a re-run these cloned
+                # workflows will be treated as exclusive and no-op transferred
+                if shared_workflow_ids:
+                    project_rule_ids = list(
+                        Rule.objects.filter(project_id=self.id).values_list("id", flat=True)
+                    )
+                    project_alert_rule_ids = list(
+                        AlertRule.objects.fetch_for_project(self).values_list("id", flat=True)
+                    )
+                    for workflow in Workflow.objects.filter(id__in=shared_workflow_ids):
+                        clone = clone_workflow_to_organization(
+                            workflow,
+                            organization,
+                            resolve_environment_id(workflow.environment_id),
+                        )
+                        # Detectors are project-scoped and move with this project, so re-point all
+                        # of their workflow links (cron, issue_stream, error, ...) onto the clone.
+                        DetectorWorkflow.objects.filter(
+                            workflow=workflow, detector_id__in=detector_ids
+                        ).update(workflow=clone)
+                        # Re-point the legacy lookups for this project's Rule/AlertRule. Each Rule is
+                        # single-project and AlertRule is functionally single-project, so re-pointing
+                        # this project's rows is unambiguous.
+                        if project_rule_ids:
+                            AlertRuleWorkflow.objects.filter(
+                                workflow=workflow, rule_id__in=project_rule_ids
+                            ).update(workflow=clone)
+                        if project_alert_rule_ids:
+                            AlertRuleWorkflow.objects.filter(
+                                workflow=workflow, alert_rule_id__in=project_alert_rule_ids
+                            ).update(workflow=clone)
+
+                # DataConditionGroups directly owned by detectors (Detector.workflow_condition_group,
+                # a unique FK) are exclusively owned by the detector, so they always transfer.
+                detector_condition_group_ids = (
+                    Detector.objects.filter(
+                        id__in=detector_ids, workflow_condition_group_id__isnull=False
+                    )
+                    .values_list("workflow_condition_group_id", flat=True)
+                    .distinct()
+                )
+                DataConditionGroup.objects.filter(id__in=detector_condition_group_ids).update(
+                    organization_id=organization.id
+                )
+
+                # Null out detector owners — the owning team/user won't belong to the new org.
+                Detector.objects.filter(id__in=detector_ids).exclude(
+                    owner_team_id__isnull=True, owner_user_id__isnull=True
+                ).update(owner_team_id=None, owner_user_id=None)
+
+        # Manually move over external issues to the new org
+        linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(
+            "linked_id", flat=True
+        )
+
+        # Delete issue ownership objects to prevent them from being stuck on the old org
+        ProjectCodeOwners.objects.filter(project_id=self.id).delete()
+        RepositoryProjectPathConfig.objects.filter(project_repository__project_id=self.id).delete()
+        ProjectRepository.objects.filter(project_id=self.id).delete()
+
+        for external_issues in chunked(
+            RangeQuerySetWrapper(
+                ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups),
+                step=1000,
+            ),
+            1000,
+        ):
+            for ei in external_issues:
+                ei.organization_id = organization.id
+            ExternalIssue.objects.bulk_update(external_issues, ["organization_id"])
+
+    def add_team(self, team):
+        from sentry.models.projectteam import ProjectTeam
+
+        try:
+            with transaction.atomic(router.db_for_write(ProjectTeam)):
+                ProjectTeam.objects.create(project=self, team=team)
+        except IntegrityError:
+            return False
+        else:
+            return True
+
+    def remove_team(self, team):
+        from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.models.projectteam import ProjectTeam
+        from sentry.models.rule import Rule
+
+        ProjectTeam.objects.filter(project=self, team=team).delete()
+        AlertRule.objects.fetch_for_project(self).filter(team_id=team.id).update(team_id=None)
+        Rule.objects.filter(owner_team_id=team.id, project=self).update(owner_team_id=None)
+
+    def get_security_token(self):
+        lock = locks.get(self.get_lock_key(), duration=5, name="project_security_token")
+        with TimedRetryPolicy(10)(lock.acquire):
+            security_token = self.get_option("sentry:token", None)
+            if security_token is None:
+                security_token = uuid1().hex
+                self.update_option("sentry:token", security_token)
+            return security_token
+
+    def get_lock_key(self) -> str:
+        return f"project_token:{self.id}"
+
+    def copy_settings_from(self, project_id: int) -> bool:
+        """
+        Copies project level settings of the inputted project
+        - General Settings
+        - ProjectTeams
+        - Alerts Settings and Rules
+        - EnvironmentProjects
+        - ProjectOwnership Rules and settings
+        - Project Inbound Data Filters
+
+        Returns True if the settings have successfully been copied over
+        Returns False otherwise
+        """
+        from sentry.models.environment import EnvironmentProject
+        from sentry.models.options.project_option import ProjectOption
+        from sentry.models.projectownership import ProjectOwnership
+        from sentry.models.projectteam import ProjectTeam
+        from sentry.models.rule import Rule
+
+        # XXX: this type sucks but it helps the type checker understand
+        model_list: tuple[type[EnvironmentProject | ProjectOwnership | ProjectTeam | Rule], ...] = (
+            EnvironmentProject,
+            ProjectOwnership,
+            ProjectTeam,
+            Rule,
+        )
+
+        project = Project.objects.get(id=project_id)
+        try:
+            with transaction.atomic(router.db_for_write(Project)):
+                for model in model_list:
+                    # remove all previous project settings
+                    model.objects.filter(project_id=self.id).delete()
+
+                    # add settings from other project to self
+                    for setting in model.objects.filter(project_id=project_id):
+                        setting.pk = None
+                        setting.project_id = self.id
+                        setting.save()
+
+                options = ProjectOption.objects.get_all_values(project=project)
+                for key, value in options.items():
+                    self.update_option(key, value)
+
+        except IntegrityError as e:
+            logging.exception(
+                "Error occurred during copy project settings.",
+                extra={
+                    "error": str(e),
+                    "project_to": self.id,
+                    "project_from": project_id,
+                },
+            )
+            return False
+        return True
+
+    @staticmethod
+    def is_valid_platform(value):
+        return not value or value == "other" or value in GETTING_STARTED_DOCS_PLATFORMS
+
+    @staticmethod
+    def outbox_for_update(project_identifier: int, organization_identifier: int) -> CellOutbox:
+        return CellOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=organization_identifier,
+            category=OutboxCategory.PROJECT_UPDATE,
+            object_identifier=project_identifier,
+        )
+
+    def delete(self, *args, **kwargs):
+        # There is no foreign key relationship so we have to manually cascade.
+        notifications_service.remove_notification_settings_for_project(project_id=self.id)
+
+        # There are projects being blocked from deletion because they have GroupHash objects
+        # that are preventing the project from being deleted.
+        try:
+            from sentry.deletions.defaults.group import delete_project_group_hashes
+
+            delete_project_group_hashes(project_id=self.id)
+        except Exception:
+            logger.warning("Failed to delete group hashes for project %s", self.id)
+
+        with outbox_context(transaction.atomic(router.db_for_write(Project))):
+            Project.outbox_for_update(self.id, self.organization_id).save()
+            return super().delete(*args, **kwargs)
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+
+        # A `Global` restore implies a blanket restoration of all data. In such a case, we want to
+        # ensure that project IDs remain unchanged, so that recovering users do not need to mint new
+        # DSNs post-recovery.
+        if scope == ImportScope.Global:
+            self.pk = old_pk
+
+        return old_pk
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> tuple[int, ImportKind] | None:
+        from sentry.workflow_engine.receivers.project_detectors import (
+            disable_default_detector_creation,
+        )
+
+        with disable_default_detector_creation():
+            return super().write_relocation_import(scope, flags)
+
+    # pending deletion implementation
+    _pending_fields = ("slug",)
+
+    def rename_on_pending_deletion(self) -> None:
+        rename_on_pending_deletion(self.organization_id, self, self._pending_fields)
+
+    def reset_pending_deletion_field_names(self) -> bool:
+        return reset_pending_deletion_field_names(self.organization_id, self, self._pending_fields)
+
+    def delete_pending_deletion_option(self) -> None:
+        delete_pending_deletion_option(self.organization_id, self)
+
+
+pre_delete.connect(
+    lambda instance, **k: instance.delete_pending_deletion_option(),
+    sender=Project,
+    weak=False,
+)

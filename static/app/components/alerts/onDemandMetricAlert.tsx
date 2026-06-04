@@ -1,0 +1,94 @@
+import type React from 'react';
+import styled from '@emotion/styled';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {IconClose, IconWarning} from 'sentry/icons';
+import {SvgIcon} from 'sentry/icons/svgIcon';
+import {t} from 'sentry/locale';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+
+const EXTRAPOLATED_AREA_STRIPE_IMG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkAQMAAACFAjPUAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAZQTFRFpKy5SVlzL3npZAAAAA9JREFUeJxjsD/AMIqIQwBIyGOd43jaDwAAAABJRU5ErkJggg==';
+
+export const extrapolatedAreaStyle = {
+  color: {
+    repeat: 'repeat',
+    image: EXTRAPOLATED_AREA_STRIPE_IMG,
+    rotation: 0.785,
+    scaleX: 0.5,
+  },
+  opacity: 1,
+};
+
+export function OnDemandWarningIcon({
+  msg,
+  isHoverable,
+  variant = 'muted',
+}: {
+  msg: React.ReactNode;
+  isHoverable?: boolean;
+  variant?: 'primary' | 'warning' | 'danger' | 'muted';
+}) {
+  return (
+    <Tooltip skipWrapper title={msg} isHoverable={isHoverable}>
+      <HoverableIconWarning variant={variant} />
+    </Tooltip>
+  );
+}
+
+const LOCAL_STORAGE_KEY = 'on-demand-empty-alert-dismissed';
+
+export function OnDemandMetricAlert({
+  message,
+  dismissable = false,
+}: {
+  message: React.ReactNode;
+  dismissable?: boolean;
+}) {
+  const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
+
+  if (dismissable && isDismissed) {
+    return null;
+  }
+
+  return (
+    <Alert.Container>
+      <InfoAlert variant="info">
+        {message}
+        {dismissable && (
+          <Button
+            size="sm"
+            variant="transparent"
+            icon={<IconClose />}
+            aria-label={t('Close Alert')}
+            onClick={dismiss}
+          />
+        )}
+      </InfoAlert>
+    </Alert.Container>
+  );
+}
+
+// @TODO(jonasbadalic): Why cant this just be Alert type=info?
+const InfoAlert = styled(Alert)`
+  display: flex;
+  align-items: flex-start;
+
+  & > span {
+    display: flex;
+    flex-grow: 1;
+    justify-content: space-between;
+
+    line-height: 1.5em;
+  }
+`;
+
+const HoverableIconWarning = styled(IconWarning)`
+  min-width: ${() => SvgIcon.ICON_SIZES.sm};
+  &:hover {
+    cursor: pointer;
+  }
+`;

@@ -1,0 +1,10 @@
+---
+source: tests/sentry/grouping/test_categorization.py::test_categorization
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+              /system/framework/arm/boot.oat  ??? category=internals
+           /system/lib/libandroid_runtime.so  ??? category=internals
+           /system/lib/libandroid_runtime.so  ??? category=internals
+                   /system/lib/libminikin.so  android::FontCollection::baseFontFaked category=internals

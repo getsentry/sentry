@@ -1,0 +1,284 @@
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
+
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Group} from 'sentry/types/group';
+import {
+  getIssueFieldRenderer,
+  type IssueRowMetadata,
+} from 'sentry/utils/dashboards/issueFieldRenderers';
+
+describe('getIssueFieldRenderer', () => {
+  let location: any,
+    context: any,
+    project: any,
+    organization: any,
+    theme: any,
+    data: any,
+    user: any;
+
+  beforeEach(() => {
+    context = initializeOrg({
+      organization,
+      projects: [ProjectFixture()],
+    });
+    organization = context.organization;
+    project = context.project;
+    act(() => ProjectsStore.loadInitialData([project]));
+    user = 'email:text@example.com';
+
+    location = {
+      pathname: '/events',
+      query: {},
+    };
+    data = {
+      id: '1',
+      team_key_transaction: 1,
+      title: 'ValueError: something bad',
+      transaction: 'api.do_things',
+      boolValue: 1,
+      numeric: 1.23,
+      createdAt: new Date(2019, 9, 3, 12, 13, 14),
+      url: '/example',
+      project: project.slug,
+      release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
+      user,
+      'span_ops_breakdown.relative': '',
+      'spans.browser': 10,
+      'spans.db': 30,
+      'spans.http': 15,
+      'spans.resource': 20,
+      'spans.total.time': 75,
+      'transaction.duration': 75,
+      'timestamp.to_day': '2021-09-05T00:00:00+00:00',
+      lifetimeEvents: 10000,
+      filteredEvents: 3000,
+      events: 6000,
+      period: '7d',
+      projectId: project.id,
+      links: [{url: 'sentry.io', displayName: 'ANNO-123'}],
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/${project.slug}/`,
+      body: project,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/key-transactions/`,
+      method: 'POST',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/key-transactions/`,
+      method: 'DELETE',
+    });
+  });
+
+  function makeIssueMeta(issueId: string, metadata: IssueRowMetadata) {
+    return {
+      issueRowMetadata: {
+        [issueId]: metadata,
+      },
+    };
+  }
+
+  describe('Issue fields', () => {
+    it('can render assignee', async () => {
+      const assignedUser = UserFixture({
+        id: '1',
+        name: 'Test User',
+        email: 'test@sentry.io',
+        avatar: {
+          avatarType: 'letter_avatar',
+          avatarUuid: null,
+        },
+      });
+
+      const assignedTo = {
+        email: 'test@sentry.io',
+        type: 'user',
+        id: '1',
+        name: 'Test User',
+      } satisfies Group['assignedTo'];
+      const issueDetailMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/${organization.slug}/issues/${data.id}/`,
+        body: GroupFixture({id: data.id, project, assignedTo}),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: [{user: assignedUser}],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/`,
+        body: [{user: assignedUser}],
+      });
+      const renderer = getIssueFieldRenderer(
+        'assignee',
+        makeIssueMeta(data.id, {assignedTo, links: [], owners: []})
+      );
+
+      render(
+        renderer(data, {
+          location,
+          navigate: jest.fn(),
+          organization,
+          theme,
+        }) as React.ReactElement
+      );
+      expect(await screen.findByText('TU')).toBeInTheDocument();
+      expect(issueDetailMock).not.toHaveBeenCalled();
+    });
+
+    it('updates assignee when changed', async () => {
+      const users = [
+        UserFixture({
+          id: '1',
+          name: 'Test User',
+          email: 'test@sentry.io',
+        }),
+        UserFixture({
+          id: '2',
+          name: 'Next User',
+          email: 'next@sentry.io',
+        }),
+      ];
+
+      const assignedTo = {
+        email: 'test@sentry.io',
+        type: 'user',
+        id: '1',
+        name: 'Test User',
+      } satisfies Group['assignedTo'];
+
+      const issueDetailMock = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: `/organizations/${organization.slug}/issues/${data.id}/`,
+        body: GroupFixture({id: data.id, project, assignedTo}),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: users.map(memberUser => ({user: memberUser})),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/`,
+        body: users.map(memberUser => ({user: memberUser})),
+      });
+
+      const assignMock = MockApiClient.addMockResponse({
+        method: 'PUT',
+        url: `/organizations/${organization.slug}/issues/${data.id}/`,
+        body: {
+          ...GroupFixture({id: data.id, project, assignedTo}),
+          assignedTo: {
+            email: 'next@sentry.io',
+            type: 'user',
+            id: '2',
+            name: 'Next User',
+          },
+        },
+      });
+
+      const renderer = getIssueFieldRenderer(
+        'assignee',
+        makeIssueMeta(data.id, {assignedTo, links: [], owners: []})
+      );
+
+      render(
+        renderer(data, {
+          location,
+          navigate: jest.fn(),
+          organization,
+          theme,
+        }) as React.ReactElement
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Modify issue assignee'})
+      );
+      await userEvent.click(await screen.findByText('Next User'));
+
+      await waitFor(() =>
+        expect(assignMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/issues/${data.id}/`,
+          expect.objectContaining({
+            data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
+          })
+        )
+      );
+
+      expect(await screen.findByText('NU')).toBeInTheDocument();
+      expect(issueDetailMock).not.toHaveBeenCalled();
+    });
+
+    it('can render counts', async () => {
+      const renderer = getIssueFieldRenderer('events', {});
+
+      render(
+        renderer(data, {
+          location,
+          navigate: jest.fn(),
+          organization,
+          theme,
+        }) as React.ReactElement
+      );
+      expect(screen.getByText('3K')).toBeInTheDocument();
+      expect(screen.getByText('6K')).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('3K'));
+      expect(await screen.findByText('Total in last 7 days')).toBeInTheDocument();
+      expect(screen.getByText('Matching search filters')).toBeInTheDocument();
+      expect(screen.getByText('Since issue began')).toBeInTheDocument();
+    });
+  });
+
+  it('can render links', () => {
+    const renderer = getIssueFieldRenderer(
+      'links',
+      makeIssueMeta(data.id, {
+        assignedTo: null,
+        links: [{url: 'sentry.io', displayName: 'ANNO-123'}],
+        owners: [],
+      })
+    );
+
+    render(
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement
+    );
+    expect(screen.getByText('ANNO-123')).toBeInTheDocument();
+  });
+
+  it('can render multiple links', () => {
+    const renderer = getIssueFieldRenderer(
+      'links',
+      makeIssueMeta(data.id, {
+        assignedTo: null,
+        links: [
+          {url: 'sentry.io', displayName: 'ANNO-123'},
+          {url: 'sentry.io', displayName: 'ANNO-456'},
+        ],
+        owners: [],
+      })
+    );
+
+    render(
+      renderer(data, {
+        location,
+        navigate: jest.fn(),
+        organization,
+        theme,
+      }) as React.ReactElement
+    );
+    expect(screen.getByText('ANNO-123')).toBeInTheDocument();
+    expect(screen.getByText('ANNO-456')).toBeInTheDocument();
+  });
+});

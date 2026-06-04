@@ -1,0 +1,248 @@
+import {useCallback, useState} from 'react';
+import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
+
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
+import {updateUptimeRule} from 'sentry/actionCreators/uptime';
+import {hasEveryAccess} from 'sentry/components/acl/access';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {IdBadge} from 'sentry/components/idBadge';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconEdit} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
+import {setApiQueryData} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useProjects} from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {
+  makeDetectorDetailsQueryKey,
+  useDetectorQuery,
+} from 'sentry/views/detectors/hooks';
+import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+import {UptimeDetailsSidebar} from './detailsSidebar';
+import {DetailsTimeline} from './detailsTimeline';
+import {StatusToggleButton} from './statusToggleButton';
+import {CheckStatus, type CheckStatusBucket} from './types';
+import {UptimeChecksTable} from './uptimeChecksTable';
+import {UptimeIssues} from './uptimeIssues';
+
+export default function UptimeAlertDetails() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const {detectorId, projectId} = useParams<{detectorId: string; projectId: string}>();
+
+  const api = useApi();
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  const {projects, fetching: loadingProject} = useProjects({slugs: [projectId]});
+  const project = projects.find(({slug}) => slug === projectId);
+
+  const {
+    data: detector,
+    isPending,
+    isError,
+  } = useDetectorQuery<UptimeDetector>(detectorId);
+
+  const {data: uptimeSummaries} = useUptimeMonitorSummaries({detectorIds: [detectorId]});
+  const summary =
+    uptimeSummaries === undefined ? undefined : (uptimeSummaries?.[detectorId] ?? null);
+
+  // Only display the missed window legend when there are visible missed window
+  // check-ins in the timeline
+  const [showMissedLegend, setShowMissedLegend] = useState(false);
+
+  const checkHasUnknown = useCallback((stats: CheckStatusBucket[]) => {
+    const hasUnknown = stats.some(bucket =>
+      Boolean(bucket[1][CheckStatus.MISSED_WINDOW])
+    );
+    setShowMissedLegend(hasUnknown);
+  }, []);
+
+  if (isError) {
+    return (
+      <LoadingError
+        message={t('The uptime alert rule you were looking for was not found.')}
+      />
+    );
+  }
+
+  if (isPending || loadingProject) {
+    return (
+      <Layout.Body>
+        <Layout.Main width="full">
+          <LoadingIndicator />
+        </Layout.Main>
+      </Layout.Body>
+    );
+  }
+
+  if (!project) {
+    return (
+      <LoadingError message={t('The project you were looking for was not found.')} />
+    );
+  }
+
+  const toggleStatus = async ({enabled}: Partial<UptimeDetector>) => {
+    // XXX(epurkhiser): We're not yet able to use the detector APIs to enable /
+    // disable uptime monitors. The detector APIs are not yet connected to
+    // billing or remote uptime subscription updates, so we need to continue
+    // using the legacy uptime rule APIs.
+    const resp = await updateUptimeRule(api, organization, project, detector, {
+      status: enabled ? 'active' : 'disabled',
+    });
+
+    if (resp !== null) {
+      setApiQueryData<UptimeDetector>(
+        queryClient,
+        makeDetectorDetailsQueryKey({orgSlug: organization.slug, detectorId}),
+        prev => Object.assign({}, prev, {enabled})
+      );
+    }
+  };
+
+  const uptimeSub = detector.dataSources[0].queryObj;
+
+  const canEdit = hasEveryAccess(['alerts:write'], {organization, project});
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
+  );
+
+  return (
+    <Stack flex={1}>
+      <SentryDocumentTitle title={`${detector.name} — Alerts`} />
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: t('Alerts'),
+                to: makeAlertsPathname({
+                  path: '/rules/',
+                  organization,
+                }),
+              },
+              {
+                label: t('Uptime Monitor'),
+              },
+            ]}
+          />
+          <Layout.Title>
+            <IdBadge
+              project={project}
+              avatarSize={28}
+              hideName
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+            />
+            {detector.name}
+          </Layout.Title>
+        </Layout.HeaderContent>
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="actions">
+            <StatusToggleButton
+              uptimeDetector={detector}
+              onToggleStatus={data => toggleStatus(data)}
+              disabled={!canEdit}
+              {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
+            />
+            <LinkButton
+              icon={<IconEdit />}
+              disabled={!canEdit}
+              tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
+              to={makeAlertsPathname({
+                path: `/uptime-rules/${project.slug}/${detectorId}/`,
+                organization,
+              })}
+            >
+              {t('Edit Rule')}
+            </LinkButton>
+          </TopBar.Slot>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <StatusToggleButton
+                uptimeDetector={detector}
+                onToggleStatus={data => toggleStatus(data)}
+                size="sm"
+                disabled={!canEdit}
+                {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
+              />
+              <LinkButton
+                size="sm"
+                icon={<IconEdit />}
+                disabled={!canEdit}
+                tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
+                to={makeAlertsPathname({
+                  path: `/uptime-rules/${project.slug}/${detectorId}/`,
+                  organization,
+                })}
+              >
+                {t('Edit Rule')}
+              </LinkButton>
+            </Grid>
+          </Layout.HeaderActions>
+        )}
+      </Layout.Header>
+      <Layout.Body>
+        <Layout.Main>
+          <StyledPageFilterBar condensed>
+            <DatePageFilter />
+          </StyledPageFilterBar>
+          {!detector.enabled && (
+            <Alert.Container>
+              <Alert
+                variant="muted"
+                trailingItems={
+                  <StatusToggleButton
+                    uptimeDetector={detector}
+                    size="xs"
+                    onToggleStatus={data => toggleStatus(data)}
+                  >
+                    {t('Enable')}
+                  </StatusToggleButton>
+                }
+              >
+                {t('This monitor is disabled and not recording uptime checks.')}
+              </Alert>
+            </Alert.Container>
+          )}
+          <DetailsTimeline uptimeDetector={detector} onStatsLoaded={checkHasUnknown} />
+          <UptimeIssues project={project} uptimeDetector={detector} />
+          <SectionHeading>{t('Checks List')}</SectionHeading>
+          <UptimeChecksTable
+            detectorId={detector.id}
+            project={project}
+            traceSampling={uptimeSub.traceSampling}
+          />
+        </Layout.Main>
+        <Layout.Side>
+          <UptimeDetailsSidebar
+            summary={summary}
+            uptimeDetector={detector}
+            showMissedLegend={showMissedLegend}
+          />
+        </Layout.Side>
+      </Layout.Body>
+    </Stack>
+  );
+}
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${p => p.theme.space.xl};
+`;

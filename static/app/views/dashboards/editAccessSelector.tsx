@@ -1,0 +1,431 @@
+import {useCallback, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
+import sortBy from 'lodash/sortBy';
+
+import {AvatarList, CollapsedAvatars, TeamAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {InnerWrap, LeadingItems} from '@sentry/scraps/menuListItem';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {hasEveryAccess} from 'sentry/components/acl/access';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {t, tct} from 'sentry/locale';
+import type {Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTeams} from 'sentry/utils/useTeams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {useUser} from 'sentry/utils/useUser';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardPermissions,
+} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+
+interface EditAccessSelectorProps {
+  dashboard: DashboardDetails | DashboardListItem;
+  disabled?: boolean;
+  listOnly?: boolean;
+  onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
+}
+
+/**
+ * Dropdown multiselect button to enable selective Dashboard editing access to
+ * specific users and teams
+ */
+export function EditAccessSelector({
+  dashboard,
+  onChangeEditAccess,
+  listOnly = false,
+  disabled = false,
+}: EditAccessSelectorProps) {
+  const theme = useTheme();
+  const currentUser = useUser();
+  const dashboardCreator = dashboard.createdBy;
+
+  const organization = useOrganization();
+  const userCanEditDashboardPermissions =
+    dashboardCreator?.id === currentUser.id ||
+    hasEveryAccess(['org:write'], {organization});
+
+  // Retrieves teams from the team store, which may contain only a subset of all teams
+  const {teams: teamsToRender} = useTeamsById();
+  const {onSearch} = useTeams();
+  const teamIds: string[] = Object.values(teamsToRender).map(team => team.id);
+
+  const derivedOptions = useMemo(() => {
+    const teamIdsList: string[] = Object.values(teamsToRender).map(team => team.id);
+    return !defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone
+      ? ['_creator', '_allUsers', ...teamIdsList]
+      : ['_creator', ...(dashboard.permissions.teamsWithEditAccess?.map(String) ?? [])];
+  }, [dashboard.permissions, teamsToRender]);
+
+  const [pendingOptions, setPendingOptions] = useState<string[] | null>(null);
+  const selectedOptions = pendingOptions ?? derivedOptions;
+
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] = useState(false);
+  const {teams: selectedTeam} = useTeamsById({
+    ids:
+      selectedOptions[1] && selectedOptions[1] !== '_allUsers'
+        ? [selectedOptions[1]]
+        : [],
+  });
+  const {teams: allSelectedTeams} = useTeamsById({
+    ids: selectedOptions.filter(
+      option => option !== '_allUsers' && option !== '_creator'
+    ),
+  });
+
+  // Handles state change when dropdown options are selected
+  const onSelectOptions = (newSelectedOptions: any) => {
+    let newSelectedValues = newSelectedOptions.map(
+      (option: {value: string}) => option.value
+    );
+    const areAllTeamsSelected = teamIds.every(teamId =>
+      newSelectedValues.includes(teamId)
+    );
+
+    if (
+      !selectedOptions.includes('_allUsers') &&
+      newSelectedValues.includes('_allUsers')
+    ) {
+      newSelectedValues = ['_creator', '_allUsers', ...teamIds];
+    } else if (
+      selectedOptions.includes('_allUsers') &&
+      !newSelectedValues.includes('_allUsers')
+    ) {
+      newSelectedValues = ['_creator'];
+    } else {
+      if (areAllTeamsSelected) {
+        // selecting all teams deselects 'Select All'
+        newSelectedValues = ['_creator', '_allUsers', ...teamIds];
+      } else {
+        // deselecting any team deselects 'Select All'
+        newSelectedValues = newSelectedValues.filter(
+          (value: any) => value !== '_allUsers'
+        );
+      }
+    }
+
+    setPendingOptions(newSelectedValues);
+  };
+
+  // Creates a permissions object based on the options selected
+  function getDashboardPermissions() {
+    return {
+      isEditableByEveryone: selectedOptions.includes('_allUsers'),
+      teamsWithEditAccess: selectedOptions.includes('_allUsers')
+        ? []
+        : selectedOptions
+            .filter(option => option !== '_creator')
+            .map(teamId => parseInt(teamId, 10))
+            .sort((a, b) => a - b),
+    };
+  }
+
+  // Creates tooltip for the + bubble in avatar list
+  const renderCollapsedAvatarTooltip = () => {
+    const permissions = getDashboardPermissions();
+    if (permissions.teamsWithEditAccess.length > 1) {
+      return (
+        <CollapsedAvatarTooltip>
+          {allSelectedTeams.map((team, index) => (
+            <Flex
+              align="center"
+              gap="md"
+              key={team.id}
+              style={{
+                marginBottom: index === allSelectedTeams.length - 1 ? 0 : theme.space.md,
+              }}
+            >
+              <TeamAvatar team={team} size={18} />
+              <div>#{team.name}</div>
+            </Flex>
+          ))}
+        </CollapsedAvatarTooltip>
+      );
+    }
+    return null;
+  };
+
+  const renderCollapsedAvatars = (_avatarSize: number, numCollapsedAvatars: number) => {
+    return (
+      <Tooltip
+        title={renderCollapsedAvatarTooltip()}
+        isHoverable
+        overlayStyle={{
+          pointerEvents: 'auto',
+          zIndex: 1000,
+        }}
+      >
+        <div
+          onMouseEnter={() => setIsCollapsedAvatarTooltipOpen(true)}
+          onMouseLeave={() => setIsCollapsedAvatarTooltipOpen(false)}
+        >
+          <CollapsedAvatars>
+            {numCollapsedAvatars < 99 && <Plus>+</Plus>}
+            {numCollapsedAvatars}
+          </CollapsedAvatars>
+        </div>
+      </Tooltip>
+    );
+  };
+
+  const makeCreatorOption = useCallback(
+    () => ({
+      value: '_creator',
+      label: (
+        <UserBadge
+          avatarSize={18}
+          user={dashboardCreator}
+          displayName={
+            <StyledDisplayName>
+              {dashboardCreator?.id === currentUser.id
+                ? tct('You ([email])', {email: currentUser.email})
+                : dashboardCreator?.email ||
+                  tct('You ([email])', {email: currentUser.email})}
+            </StyledDisplayName>
+          }
+          displayEmail={t('Creator')}
+        />
+      ),
+      textValue: `creator_${currentUser.email}`,
+      disabled: true,
+    }),
+    [dashboardCreator, currentUser]
+  );
+
+  // Single team option in the dropdown
+  const makeTeamOption = (team: Team) => ({
+    value: team.id,
+    label: `#${team.slug}`,
+    leadingItems: <TeamAvatar team={team} size={18} />,
+  });
+
+  // Avatars/Badges in the Edit Access Selector Button
+  const triggerAvatars =
+    selectedOptions.includes('_allUsers') || !dashboardCreator ? (
+      <StyledBadge key="_all" size={listOnly ? 26 : 20} variant="info">
+        {t('All')}
+      </StyledBadge>
+    ) : selectedOptions.length === 2 ? (
+      // Case where we display 1 Creator Avatar + 1 Team Avatar
+      <StyledAvatarList
+        listonly={listOnly}
+        key="avatar-list-2-badges"
+        typeAvatars="users"
+        users={[dashboardCreator]}
+        teams={selectedTeam ? selectedTeam : []}
+        maxVisibleAvatars={1}
+        avatarSize={listOnly ? 30 : 25}
+        renderUsersFirst
+        tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
+      />
+    ) : (
+      // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
+      <StyledAvatarList
+        key="avatar-list-many-teams"
+        listonly={listOnly}
+        typeAvatars="users"
+        users={Array.from<User>({length: selectedOptions.length}).fill(dashboardCreator)}
+        maxVisibleAvatars={1}
+        avatarSize={listOnly ? 30 : 25}
+        tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
+        renderCollapsedAvatars={renderCollapsedAvatars}
+      />
+    );
+
+  // Sorting function for team options — uses derivedOptions (the saved state)
+  // so the sort order is stable while the user interacts with checkboxes
+  const listSort = useCallback(
+    (team: Team) => [!derivedOptions.includes(team.id), team.slug],
+    [derivedOptions]
+  );
+
+  const allDropdownOptions = useMemo(
+    () => [
+      makeCreatorOption(),
+      {
+        value: '_all_users_section',
+        label: 'Teams',
+        options: [
+          {
+            value: '_allUsers',
+            label: t('Select All'),
+            disabled: !userCanEditDashboardPermissions,
+          },
+        ],
+      },
+      {
+        value: '_teams',
+        options: sortBy(teamsToRender, listSort).map(makeTeamOption),
+        showToggleAllButton: userCanEditDashboardPermissions,
+        disabled: !userCanEditDashboardPermissions,
+      },
+    ],
+    [userCanEditDashboardPermissions, teamsToRender, makeCreatorOption, listSort]
+  );
+
+  const dropdownMenu = (
+    <StyledCompactSelect
+      data-test-id="edit-access-dropdown"
+      size="sm"
+      onChange={newSelectedOptions => {
+        onSelectOptions(newSelectedOptions);
+      }}
+      multiple
+      search={{
+        placeholder: t('Search Teams'),
+        onChange: debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION),
+      }}
+      options={allDropdownOptions}
+      value={selectedOptions}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          variant={listOnly ? 'transparent' : undefined}
+          style={listOnly ? {padding: 2} : {}}
+        >
+          {listOnly
+            ? [triggerAvatars]
+            : [
+                <LabelContainer key="selector-label">{t('Editors:')}</LabelContainer>,
+                triggerAvatars,
+              ]}
+        </OverlayTrigger.Button>
+      )}
+      isOpen={isMenuOpen}
+      onOpenChange={newOpenState => {
+        if (newOpenState) {
+          trackAnalytics('dashboards2.edit_access.start', {organization});
+        }
+
+        setPendingOptions(null);
+        setMenuOpen(newOpenState);
+      }}
+      menuFooter={
+        <Flex gap="md" justify="end">
+          <MenuComponents.CancelButton
+            onClick={() => {
+              setPendingOptions(null);
+              setMenuOpen(false);
+            }}
+            disabled={!userCanEditDashboardPermissions}
+          />
+          <MenuComponents.ApplyButton
+            onClick={() => {
+              const isDefaultState =
+                !defined(dashboard.permissions) && selectedOptions.includes('_allUsers');
+              const newDashboardPermissions = getDashboardPermissions();
+              if (
+                !isDefaultState &&
+                !isEqual(newDashboardPermissions, dashboard.permissions)
+              ) {
+                trackAnalytics('dashboards2.edit_access.save', {
+                  organization,
+                  editable_by: newDashboardPermissions.isEditableByEveryone
+                    ? 'all'
+                    : newDashboardPermissions.teamsWithEditAccess.length > 0
+                      ? 'team_selection'
+                      : 'owner_only',
+                  team_count:
+                    newDashboardPermissions.teamsWithEditAccess.length || undefined,
+                });
+
+                onChangeEditAccess?.(newDashboardPermissions);
+              }
+              setPendingOptions(null);
+              setMenuOpen(false);
+            }}
+            disabled={
+              disabled ||
+              !userCanEditDashboardPermissions ||
+              isEqual(getDashboardPermissions(), {
+                ...dashboard.permissions,
+                teamsWithEditAccess: dashboard.permissions?.teamsWithEditAccess?.sort(
+                  (a, b) => a - b
+                ),
+              })
+            }
+          />
+        </Flex>
+      }
+      position="bottom-end"
+      strategy="fixed"
+      preventOverflowOptions={{mainAxis: false}}
+      disabled={disabled}
+    />
+  );
+
+  const tooltipTitle = disabled
+    ? tct('[label] dashboards cannot be edited', {label: PREBUILT_DASHBOARD_LABEL})
+    : t('Only the creator of this dashboard can manage editor access');
+
+  return (
+    <Tooltip
+      title={tooltipTitle}
+      disabled={
+        !disabled &&
+        (userCanEditDashboardPermissions || isMenuOpen || isCollapsedAvatarTooltipOpen)
+      }
+    >
+      {dropdownMenu}
+    </Tooltip>
+  );
+}
+
+const StyledCompactSelect = styled(CompactSelect)`
+  ${InnerWrap} {
+    align-items: center;
+  }
+
+  ${LeadingItems} {
+    margin-top: 0;
+  }
+`;
+
+const StyledDisplayName = styled('div')`
+  font-weight: normal;
+`;
+
+const StyledAvatarList = styled(AvatarList)<{listonly: boolean}>`
+  margin-left: ${p => p.theme.space.sm};
+  margin-right: ${p => (p.listonly ? 0 : -3)}px;
+  font-weight: normal;
+`;
+
+const LabelContainer = styled('div')`
+  margin-right: ${p => p.theme.space.md};
+`;
+
+const StyledBadge = styled(Tag)<{size: number}>`
+  padding: 0;
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: 0px;
+`;
+
+const CollapsedAvatarTooltip = styled('div')`
+  max-height: 200px;
+  overflow-y: auto;
+`;
+
+const Plus = styled('span')`
+  font-size: 10px;
+  margin-left: 1px;
+  margin-right: -1px;
+`;

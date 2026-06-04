@@ -1,0 +1,51 @@
+import styled from '@emotion/styled';
+
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
+
+import {AutoSelectText} from 'sentry/components/autoSelectText';
+
+interface Props {
+  shortId: string;
+  avatar?: React.ReactNode;
+  className?: string;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  /**
+   * A router target destination
+   */
+  to?: LinkProps['to'];
+}
+
+export function ShortId({shortId, avatar, onClick, to, className}: Props) {
+  if (!shortId) {
+    return null;
+  }
+
+  return (
+    <StyledShortId onClick={onClick} className={className}>
+      {avatar}
+      {to ? (
+        <Link to={to}>{shortId}</Link>
+      ) : (
+        <StyledAutoSelectText>{shortId}</StyledAutoSelectText>
+      )}
+    </StyledShortId>
+  );
+}
+
+const StyledShortId = styled('div')`
+  font-family: ${p => p.theme.font.family.mono};
+  display: grid;
+  grid-auto-flow: column;
+  gap: 0.5em;
+  align-items: center;
+  justify-content: flex-end;
+`;
+
+export const StyledAutoSelectText = styled(AutoSelectText)`
+  min-width: 0;
+
+  a & {
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  }
+`;

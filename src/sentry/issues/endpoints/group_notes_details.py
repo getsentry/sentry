@@ -1,0 +1,148 @@
+from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.deprecation import deprecated
+from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.api.utils import to_valid_int_id
+from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log import (
+    GroupActionActor,
+    publish_action,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
+from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.notifications.types import GroupSubscriptionReason
+from sentry.signals import comment_deleted, comment_updated
+from sentry.types.activity import ActivityType
+
+
+@cell_silo_endpoint
+class GroupNotesDetailsEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+
+    # We explicitly don't allow a request with an ApiKey
+    # since an ApiKey is bound to the Organization, not
+    # an individual. Not sure if we'd want to allow an ApiKey
+    # to delete/update other users' comments
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
+    def delete(self, request: Request, group: Group, note_id: str) -> Response:
+        if not request.user.is_authenticated:
+            raise PermissionDenied(detail="Key doesn't have permission to delete Note")
+
+        note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)
+
+        notes_by_user = Activity.objects.filter(
+            group=group, type=ActivityType.NOTE.value, user_id=request.user.id
+        )
+        if not len(notes_by_user):
+            raise ResourceDoesNotExist
+
+        user_note = [n for n in notes_by_user if n.id == note_id_int]
+        if not user_note or len(user_note) > 1:
+            raise ResourceDoesNotExist
+        note = user_note[0]
+
+        webhook_data = {
+            "comment_id": note.id,
+            "timestamp": note.datetime,
+            "comment": note.data.get("text"),
+            "project_slug": note.project.slug,
+        }
+
+        note.delete()
+
+        publish_action(
+            CommentDeleteAction(comment_id=note_id_int),
+            source=resolve_action_source(request),
+            group_id=group.id,
+            organization_id=group.organization.id,
+            project_id=group.project_id,
+            actor=GroupActionActor.user(request.user.id),
+        )
+
+        comment_deleted.send_robust(
+            project=group.project,
+            user=request.user,
+            group=group,
+            data=webhook_data,
+            sender="delete",
+        )
+        # if the user left more than one comment, we want to keep the subscription
+        if len(notes_by_user) == 1:
+            GroupSubscription.objects.filter(
+                user_id=request.user.id,
+                group=group,
+                project=group.project,
+                reason=GroupSubscriptionReason.comment,
+            ).delete()
+
+        return Response(status=204)
+
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
+    def put(self, request: Request, group: Group, note_id: str) -> Response:
+        if not request.user.is_authenticated:
+            raise PermissionDenied(detail="Key doesn't have permission to edit Note")
+
+        note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)
+
+        try:
+            note = Activity.objects.get(
+                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id_int
+            )
+        except Activity.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        serializer = NoteSerializer(data=request.data, context={"organization": group.organization})
+
+        if serializer.is_valid():
+            payload = serializer.validated_data
+            # TODO: adding mentions to a note doesn't send notifications. Should it?
+            # Remove mentions as they shouldn't go into the database
+            payload.pop("mentions", [])
+
+            # Would be nice to have a last_modified timestamp we could bump here
+            note.data.update(dict(payload))
+            note.save()
+
+            publish_action(
+                CommentEditAction(comment_id=note.id),
+                source=resolve_action_source(request),
+                group_id=group.id,
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                actor=GroupActionActor.user(request.user.id),
+            )
+
+            if note.data.get("external_id"):
+                self.update_external_comment(request, group, note)
+
+            webhook_data = {
+                "comment_id": note.id,
+                "timestamp": note.datetime,
+                "comment": note.data.get("text"),
+                "project_slug": note.project.slug,
+            }
+
+            comment_updated.send_robust(
+                project=group.project,
+                user=request.user,
+                group=group,
+                data=webhook_data,
+                sender="put",
+            )
+            return Response(serialize(note, request.user), status=200)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -1,0 +1,136 @@
+import {useEffect, useState} from 'react';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
+
+import {ProgressRing} from 'sentry/components/progressRing';
+import {IconBusiness} from 'sentry/icons';
+import {t} from 'sentry/locale';
+
+import {MoreFeaturesLink} from 'getsentry/views/amCheckout/components/moreFeaturesLink';
+
+import type {Feature} from './types';
+
+type Props = {
+  features: Feature[];
+  onClick: (feat: Feature) => void;
+  shouldShowPerformanceFeatures: boolean;
+  shouldShowTeamFeatures: boolean;
+  selected?: Feature;
+  withCountdown?: number;
+};
+
+export function FeatureList({
+  features,
+  selected,
+  onClick,
+  withCountdown,
+  shouldShowTeamFeatures,
+  shouldShowPerformanceFeatures,
+}: Props) {
+  return (
+    <div>
+      <Heading>
+        {shouldShowPerformanceFeatures
+          ? t('Features Include')
+          : shouldShowTeamFeatures
+            ? t('Features Include')
+            : t('Business Features Include')}
+        <AnimatePresence>
+          {selected && withCountdown && (
+            <CountdownRing id={selected.id} totalTime={withCountdown} />
+          )}
+        </AnimatePresence>
+      </Heading>
+      {features.map(feat => (
+        <FeatureLink
+          key={feat.id}
+          onClick={() => onClick(feat)}
+          aria-selected={feat === selected ? true : undefined}
+          data-test-id={feat.id}
+          whileTap={{x: -7}}
+        >
+          <IconBusiness />
+          {feat.name}
+        </FeatureLink>
+      ))}
+      <MoreFeaturesLink />
+    </div>
+  );
+}
+
+type CountdownRingProps = {
+  id: string;
+  theme: Theme;
+  totalTime: number;
+};
+
+/**
+ * Countdown ring is used to show a countdown ring to the right of the header
+ * when in 'auto rotate' carousel mode
+ */
+const CountdownRing = withTheme(({theme, id, totalTime}: CountdownRingProps) => {
+  const [timeLeft, setTimeLeft] = useState(totalTime);
+  const tick = 200;
+
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      return () => void 0;
+    }
+
+    const intervalId = setInterval(() => setTimeLeft(timeLeft - tick), tick);
+    return () => clearInterval(intervalId);
+  }, [timeLeft]);
+
+  // Reset time left when id changes
+  useEffect(() => setTimeLeft(totalTime), [id, totalTime]);
+
+  return (
+    <RingContainer animate={{opacity: 1}} initial={{opacity: 0}} exit={{opacity: 0}}>
+      <ProgressRing
+        maxValue={totalTime}
+        value={timeLeft}
+        barWidth={2}
+        size={14}
+        backgroundColor={theme.colors.gray100}
+        progressColor={theme.colors.gray200}
+      />
+    </RingContainer>
+  );
+});
+
+const RingContainer = styled(motion.div)`
+  display: flex;
+  align-items: center;
+`;
+
+const Heading = styled('div')`
+  font-weight: bold;
+  margin-bottom: ${p => p.theme.space.md};
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const FeatureLink = styled(motion.div)`
+  cursor: pointer;
+  transition: color 300ms;
+  color: ${p => p.theme.tokens.content.secondary};
+  position: relative;
+  display: grid;
+  grid-template-columns: max-content auto;
+  gap: ${p => p.theme.space.md};
+  align-items: flex-start;
+  align-content: center;
+  margin-bottom: ${p => p.theme.space.xs};
+  white-space: nowrap;
+
+  &:hover {
+    color: ${p => p.theme.tokens.content.primary};
+  }
+  &[aria-selected] {
+    color: ${p => p.theme.tokens.content.primary};
+    font-weight: bold;
+  }
+`;

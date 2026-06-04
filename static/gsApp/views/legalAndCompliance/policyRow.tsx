@@ -1,0 +1,272 @@
+import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import moment from 'moment-timezone';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
+
+import {t, tct} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {safeURL} from 'sentry/utils/url/safeURL';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {Policy, Subscription} from 'getsentry/types';
+import {PolicyStatus} from 'getsentry/views/legalAndCompliance/policyStatus';
+import {PanelItemPolicy} from 'getsentry/views/legalAndCompliance/styles';
+
+type PolicyRowProps = {
+  onAccept: (policy: Policy) => void;
+  policies: Record<string, Policy>;
+  policy: Policy;
+  subscription: Subscription;
+  showConsentText?: boolean;
+  showUpdated?: boolean;
+};
+
+// TODO(dcramer): we dont yet support multiple parent policies if a policy in the
+// chain does not require signature (and instead would just have you page through it)
+export function PolicyRow({
+  policy,
+  policies,
+  showUpdated,
+  showConsentText = true,
+  onAccept,
+  subscription,
+}: PolicyRowProps) {
+  const {openModal} = useModal();
+
+  const theme = useTheme();
+  const organization = useOrganization();
+
+  const parentPolicy = policy.parent ? policies[policy.parent] : null;
+  const curPolicy = parentPolicy && !parentPolicy.consent ? parentPolicy : policy;
+
+  const user = ConfigStore.get('user');
+  const companyName = subscription?.companyName ?? organization.name;
+  const activeSuperUser = isActiveSuperuser();
+  const hasBillingAccess = organization.access.includes('org:billing');
+
+  const rawPolicyUrl = policy.url ? safeURL(policy.url) : null;
+  // Only allow http/https URLs to prevent javascript: and data: URL injection
+  const policyUrl =
+    rawPolicyUrl?.protocol === 'http:' || rawPolicyUrl?.protocol === 'https:'
+      ? rawPolicyUrl
+      : null;
+  // userCurrentVersion filters version select dropdown to only the current version + latest version
+  if (policyUrl && policy.consent) {
+    policyUrl.searchParams.set('userCurrentVersion', policy.consent.acceptedVersion);
+  }
+
+  const showPolicy = (e: React.MouseEvent) => {
+    let dialog: Window | null = null;
+    e.preventDefault();
+
+    const name = 'sentryPolicy';
+    const width = 600;
+    const height = 600;
+    const url = policyUrl?.toString() ?? null;
+
+    // this attempts to center the dialog
+    const innerWidth = window.innerWidth
+      ? window.innerWidth
+      : document.documentElement.clientWidth
+        ? document.documentElement.clientWidth
+        : screen.width;
+    const innerHeight = window.innerHeight
+      ? window.innerHeight
+      : document.documentElement.clientHeight
+        ? document.documentElement.clientHeight
+        : screen.height;
+    const left = innerWidth / 2 - width / 2 + window.screenLeft;
+    const top = innerHeight / 2 - height / 2 + window.screenTop;
+
+    dialog = url
+      ? window.open(
+          url,
+          name,
+          `scrollbars=yes, width=${width}, height=${height}, top=${top}, left=${left}`
+        )
+      : null;
+    // @ts-expect-error TS(2774): This condition will always return true since this ... Remove this comment to see the full error message
+    if (window.focus) {
+      dialog?.focus();
+    }
+  };
+
+  const showModal = () => {
+    openModal(
+      ({Header, Footer, Body, closeModal}) => (
+        <Fragment>
+          <Header>
+            {curPolicy.slug === policy.slug ? (
+              <Flex justify="between" align="center">
+                <h5>{curPolicy.name}</h5>
+                <Button size="sm" onClick={showPolicy}>
+                  {t('Download')}
+                </Button>
+              </Flex>
+            ) : (
+              <div style={{textAlign: 'center'}}>
+                {tct("You must first agree to Sentry's [policy]", {
+                  policy: <a onClick={showPolicy}>{curPolicy.name}</a>,
+                })}
+              </div>
+            )}
+          </Header>
+          <Body>
+            <PolicyFrame
+              src={policyUrl ? policyUrl.toString() : undefined}
+              data-test-id="policy-iframe"
+            />
+            {curPolicy.hasSignature && (
+              <div style={{fontSize: '0.9em'}}>
+                <p style={{marginBottom: 10}}>You represent and warrant that:</p>
+                <ol style={{marginBottom: 10}}>
+                  <li>
+                    you have full legal authority to agree to these terms presented above
+                    on behalf of <strong>{companyName}</strong>;
+                  </li>
+                  <li>you have read and understand these terms; and</li>
+                  <li>
+                    you agree, on behalf of <strong>{companyName}</strong>, to these
+                    terms.
+                  </li>
+                </ol>
+                <p>
+                  If you do not have the authority to bind <strong>{companyName}</strong>,
+                  or do not agree to these terms, do not click the "I Accept" button
+                  below.
+                </p>
+              </div>
+            )}
+          </Body>
+          <Footer>
+            {curPolicy.hasSignature ? (
+              <Flex justify="between" align="center" flexGrow={1}>
+                <small>
+                  {tct('You are agreeing as [email]', {
+                    email: <strong>{user.email}</strong>,
+                  })}
+                </small>
+
+                <Grid flow="column" align="center" gap="md">
+                  <Button size="sm" onClick={closeModal}>
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => {
+                      onAccept(curPolicy);
+                      closeModal();
+                    }}
+                  >
+                    {t('I Accept')}
+                  </Button>
+                </Grid>
+              </Flex>
+            ) : (
+              <Button size="sm" onClick={closeModal}>
+                {t('Close')}
+              </Button>
+            )}
+          </Footer>
+        </Fragment>
+      ),
+      {modalCss: modalCss(theme)}
+    );
+  };
+  const getPolicySubstatus = () => {
+    const {consent, updatedAt, version} = policy;
+    if (consent && showConsentText) {
+      let consentText = `Version ${consent.acceptedVersion} signed ${moment(
+        consent.createdAt
+      ).format('ll')}`;
+      if (version && consent.acceptedVersion < version) {
+        consentText = `${consentText}. New version available`;
+      }
+      return consentText;
+    }
+    if (showUpdated) {
+      return `Updated on ${moment(updatedAt).format('ll')}`;
+    }
+    return '';
+  };
+
+  return (
+    <PanelItemPolicy>
+      <div>
+        <PolicyTitle style={{marginBottom: showUpdated ? theme.space.xs : 0}}>
+          {policy.slug === 'terms' ? 'Terms of Service' : policy.name}
+        </PolicyTitle>
+        <PolicySubtext>{getPolicySubstatus()}</PolicySubtext>
+      </div>
+      <PolicyStatusRow>
+        <PolicyStatus policy={policy} />
+        {policy.url &&
+          policyUrl &&
+          (policy.consent?.acceptedVersion === policy.version ? (
+            <LinkButton size="sm" external href={policyUrl.toString()}>
+              {t('Review')}
+            </LinkButton>
+          ) : policy.hasSignature &&
+            policy.slug !== 'privacy' &&
+            policy.slug !== 'terms' &&
+            hasBillingAccess ? (
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={showModal}
+              disabled={activeSuperUser || !hasBillingAccess}
+              tooltipProps={{
+                title: activeSuperUser
+                  ? t("Superusers can't consent to policies")
+                  : hasBillingAccess
+                    ? undefined
+                    : t("You don't have access to accept policies."),
+              }}
+            >
+              {t('Review and Accept')}
+            </Button>
+          ) : (
+            <LinkButton size="sm" external href={policyUrl.toString()}>
+              {t('Review')}
+            </LinkButton>
+          ))}
+      </PolicyStatusRow>
+    </PanelItemPolicy>
+  );
+}
+
+const PolicyFrame = styled('iframe')`
+  height: 300px;
+  width: 100%;
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
+  border-radius: 3px;
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const PolicySubtext = styled('div')`
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const PolicyTitle = styled('h6')`
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    font-size: ${p => p.theme.font.size.lg};
+  }
+`;
+
+const modalCss = (theme: Theme) => css`
+  @media (min-width: ${theme.breakpoints.sm}) {
+    width: 80%;
+    max-width: 1200px;
+  }
+`;
+export function PolicyStatusRow(props: FlexProps) {
+  return <Flex align="center" height="100%" {...props} />;
+}

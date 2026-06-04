@@ -1,0 +1,119 @@
+from __future__ import annotations
+
+from datetime import datetime
+from enum import Enum
+from typing import TypedDict
+
+from django.db import models
+from django.utils import timezone
+
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    cell_silo_model,
+    sane_repr,
+)
+from sentry.utils import metrics
+from sentry.utils.cache import cache
+from sentry.utils.last_seen import try_bump_last_seen
+
+
+class ReleaseStages(str, Enum):
+    ADOPTED = "adopted"
+    LOW_ADOPTION = "low_adoption"
+    REPLACED = "replaced"
+
+
+@cell_silo_model
+class ReleaseProjectEnvironment(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    release = FlexibleForeignKey("sentry.Release")
+    project = FlexibleForeignKey("sentry.Project")
+    environment = FlexibleForeignKey("sentry.Environment")
+    new_issues_count = BoundedPositiveIntegerField(default=0)
+    first_seen = models.DateTimeField(default=timezone.now)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    last_deploy_id = BoundedPositiveIntegerField(null=True, db_index=True)
+
+    adopted = models.DateTimeField(null=True, blank=True)
+    unadopted = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_releaseprojectenvironment"
+        indexes = (
+            models.Index(fields=("project", "adopted", "environment")),
+            models.Index(fields=("project", "unadopted", "environment")),
+        )
+        unique_together = (("project", "release", "environment"),)
+
+    __repr__ = sane_repr("project", "release", "environment")
+
+    @classmethod
+    def get_cache_key(cls, release_id, project_id, environment_id) -> str:
+        return f"releaseprojectenv:{release_id}:{project_id}:{environment_id}"
+
+    @classmethod
+    def get_or_create(cls, release, project, environment, datetime, **kwargs):
+        with metrics.timer("models.releaseprojectenvironment.get_or_create") as metrics_tags:
+            return cls._get_or_create_impl(
+                release, project, environment, datetime, metrics_tags, **kwargs
+            )
+
+    @classmethod
+    def _get_or_create_impl(cls, release, project, environment, datetime, metrics_tags, **kwargs):
+        cache_key = cls.get_cache_key(project.id, release.id, environment.id)
+
+        instance = cache.get(cache_key)
+        if instance is None:
+            metrics_tags["cache_hit"] = "false"
+            instance, created = cls.objects.get_or_create(
+                release=release,
+                project=project,
+                environment=environment,
+                defaults={"first_seen": datetime, "last_seen": datetime},
+            )
+            cache.set(cache_key, instance, 3600)
+        else:
+            metrics_tags["cache_hit"] = "true"
+            created = False
+
+        metrics_tags["created"] = "true" if created else "false"
+
+        if not created:
+            try_bump_last_seen(
+                model_class=cls,
+                instance=instance,
+                datetime=datetime,
+                bump_key=f"releaseprojectenv_bump:{instance.id}",
+                cache_key=cache_key,
+                metrics_tags=metrics_tags,
+            )
+        else:
+            metrics_tags["bumped"] = "false"
+
+        return instance
+
+    @property
+    def adoption_stages(self) -> AdoptionStage:
+        return adoption_stage(self.adopted, self.unadopted)
+
+
+class AdoptionStage(TypedDict):
+    stage: ReleaseStages
+    adopted: datetime | None
+    unadopted: datetime | None
+
+
+def adoption_stage(adopted: datetime | None, unadopted: datetime | None) -> AdoptionStage:
+    if adopted is not None and unadopted is None:
+        stage = ReleaseStages.ADOPTED
+    elif adopted is not None and unadopted is not None:
+        stage = ReleaseStages.REPLACED
+    else:
+        stage = ReleaseStages.LOW_ADOPTION
+
+    return {"stage": stage, "adopted": adopted, "unadopted": unadopted}

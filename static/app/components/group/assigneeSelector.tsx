@@ -1,0 +1,166 @@
+import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
+
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {AssigneeBadge} from 'sentry/components/assigneeBadge';
+import {
+  AssigneeSelectorDropdown,
+  type AssignableEntity,
+  type AssigneeGroup,
+  type SuggestedAssignee,
+} from 'sentry/components/assigneeSelectorDropdown';
+import {t} from 'sentry/locale';
+import type {Actor} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {selectUsersFromMembers} from 'sentry/utils/members/shared';
+import {
+  useAssignIssueMutation,
+  type AssignedBy,
+} from 'sentry/views/issueDetails/useAssignIssueMutation';
+
+type HandleAssignOptions = {
+  assignedBy?: AssignedBy;
+};
+
+interface AssigneeSelectorProps {
+  assigneeLoading: boolean;
+  group: AssigneeGroup;
+  handleAssigneeChange: (
+    assignedActor: AssignableEntity | null,
+    options?: HandleAssignOptions
+  ) => void;
+  additionalMenuFooterItems?: React.ReactNode;
+  memberList?: User[];
+  owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
+  showLabel?: boolean;
+}
+
+type OnAssignCallback = (
+  type: Actor['type'],
+  assignee: User | Actor,
+  suggestedAssignee?: SuggestedAssignee
+) => void;
+
+export function useHandleAssigneeChange({
+  organization,
+  group,
+  onAssign,
+  onSuccess,
+  onError,
+}: {
+  group: AssigneeGroup;
+  organization: Organization;
+  onAssign?: OnAssignCallback;
+  onError?: (error: Error) => void;
+  onSuccess?: (assignedTo: Group['assignedTo']) => void;
+}) {
+  const {mutate: assignMutate, isPending: assigneeLoading} = useAssignIssueMutation();
+
+  const handleAssigneeChange = (
+    newAssignee: AssignableEntity | null,
+    {assignedBy = 'assignee_selector'}: HandleAssignOptions = {}
+  ) => {
+    assignMutate(
+      {
+        groupId: group.id,
+        orgSlug: organization.slug,
+        actor: newAssignee ? {id: newAssignee.id, type: newAssignee.type} : null,
+        assignedBy,
+      },
+      {
+        onSuccess: updatedGroup => {
+          if (onAssign && newAssignee) {
+            onAssign(
+              newAssignee.type,
+              newAssignee.assignee,
+              newAssignee.suggestedAssignee
+            );
+          }
+          onSuccess?.(updatedGroup.assignedTo);
+        },
+        onError: error => {
+          onError?.(error);
+        },
+      }
+    );
+  };
+
+  return {handleAssigneeChange, assigneeLoading};
+}
+
+/**
+ * Assignee selector used on issue details + issue stream. Uses `AssigneeSelectorDropdown` which controls most of the logic while this is primarily responsible for the design.
+ */
+export function AssigneeSelector({
+  group,
+  memberList,
+  assigneeLoading,
+  handleAssigneeChange,
+  owners,
+  additionalMenuFooterItems,
+  showLabel = false,
+}: AssigneeSelectorProps) {
+  const {data: defaultMemberList = [], isPending: defaultMemberListLoading} = useQuery({
+    ...useProjectMembersQueryOptions([group.project.id]),
+    select: resp => selectUsersFromMembers(resp.json),
+    enabled: memberList === undefined,
+  });
+  const currentMemberList = memberList ?? defaultMemberList;
+  const assignedUser =
+    group.assignedTo?.type === 'user'
+      ? currentMemberList.find(user => user.id === group.assignedTo?.id)
+      : undefined;
+
+  return (
+    <AssigneeSelectorDropdown
+      group={group}
+      loading={assigneeLoading || (memberList === undefined && defaultMemberListLoading)}
+      memberList={currentMemberList}
+      owners={owners}
+      onAssign={(assignedActor: AssignableEntity | null) =>
+        handleAssigneeChange(assignedActor)
+      }
+      onClear={() => handleAssigneeChange(null)}
+      trigger={(props, isOpen) => (
+        <StyledTrigger
+          {...props}
+          showChevron={false}
+          aria-label={t('Modify issue assignee')}
+          size="zero"
+        >
+          <AssigneeBadge
+            assignedTo={group.assignedTo ?? undefined}
+            assignedUser={assignedUser}
+            assignmentReason={
+              group.owners?.find(owner => {
+                const [_ownershipType, ownerId] = owner.owner.split(':');
+                return ownerId === group.assignedTo?.id;
+              })?.type
+            }
+            loading={assigneeLoading}
+            showLabel={showLabel}
+            chevronDirection={isOpen ? 'up' : 'down'}
+          />
+        </StyledTrigger>
+      )}
+      additionalMenuFooterItems={additionalMenuFooterItems}
+    />
+  );
+}
+
+const StyledTrigger = styled(OverlayTrigger.Button)`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  border: none;
+  padding: 0;
+  height: unset;
+  border-radius: 20px;
+  box-shadow: none;
+
+  > span > div {
+    border-radius: 20px;
+  }
+`;

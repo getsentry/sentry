@@ -1,0 +1,80 @@
+{
+  "expand": "transitions",
+  "transitions": [
+    {
+      "hasScreen": false,
+      "id": "11",
+      "isConditional": false,
+      "isGlobal": true,
+      "isInitial": false,
+      "name": "To Do",
+      "to": {
+        "description": "",
+        "iconUrl": "https://getsentry-dev.atlassian.net/",
+        "id": "10100",
+        "name": "To Do",
+        "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/10100",
+        "statusCategory": {
+          "colorName": "blue-gray",
+          "id": 2,
+          "key": "new",
+          "name": "To Do",
+          "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/2"
+        }
+      }
+    },
+    {
+      "hasScreen": false,
+      "id": "21",
+      "isConditional": false,
+      "isGlobal": true,
+      "isInitial": false,
+      "name": "In Progress",
+      "to": {
+        "description": "This issue is being actively worked on at the moment by the assignee.",
+        "iconUrl": "https://getsentry-dev.atlassian.net/images/icons/statuses/inprogress.png",
+        "id": "3",
+        "name": "In Progress",
+        "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/3",
+        "statusCategory": {
+          "colorName": "yellow",
+          "id": 4,
+          "key": "indeterminate",
+          "name": "In Progress",
+          "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/4"
+        }
+      }
+    },
+    {
+      "hasScreen": false,
+      "id": "31",
+      "isConditional": false,
+      "isGlobal": true,
+      "isInitial": false,
+      "name": "Done",
+      "to": {
+        "description": "",
+        "iconUrl": "https://getsentry-dev.atlassian.net/",
+        "id": "10101",
+        "name": "Done",
+        "self": "https://getsentry-dev.atlassian.net/rest/api/2/status/10101",
+        "statusCategory": {
+          "colorName": "green",
+          "id": 3,
+          "key": "done",
+          "name": "Done",
+          "self": "https://getsentry-dev.atlassian.net/rest/api/2/statuscategory/3"
+        }
+      }
+    },
+    {
+      "hasScreen": false,
+      "id": "61",
+      "isAvailable": true,
+      "isConditional": false,
+      "isGlobal": true,
+      "isInitial": false,
+      "name": "Kicked"
+    }
+  ]
+}

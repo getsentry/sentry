@@ -1,0 +1,334 @@
+import contextvars
+from concurrent.futures import CancelledError, Future
+from contextlib import contextmanager
+from queue import Full
+from threading import Event
+from unittest import mock
+
+import pytest
+import sentry_sdk
+
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.utils.concurrent import (
+    ContextPropagatingThreadPoolExecutor,
+    FutureSet,
+    SynchronousExecutor,
+    ThreadedExecutor,
+    TimedFuture,
+)
+
+
+def test_future_set_callback_success() -> None:
+    future_set = FutureSet([Future() for i in range(3)])
+
+    callback = mock.Mock()
+    future_set.add_done_callback(callback)
+
+    for i, future in enumerate(list(future_set)):
+        assert callback.call_count == 0
+        future.set_result(True)
+
+    assert callback.call_count == 1
+    assert callback.call_args == mock.call(future_set)
+
+    other_callback = mock.Mock()
+    future_set.add_done_callback(other_callback)
+
+    assert other_callback.call_count == 1
+    assert other_callback.call_args == mock.call(future_set)
+
+
+def test_future_set_callback_error() -> None:
+    future_set = FutureSet([Future() for i in range(3)])
+
+    callback = mock.Mock()
+    future_set.add_done_callback(callback)
+
+    for i, future in enumerate(list(future_set)):
+        assert callback.call_count == 0
+        future.set_exception(Exception)
+
+    assert callback.call_count == 1
+    assert callback.call_args == mock.call(future_set)
+
+    other_callback = mock.Mock()
+    future_set.add_done_callback(other_callback)
+
+    assert other_callback.call_count == 1
+    assert other_callback.call_args == mock.call(future_set)
+
+
+def test_future_set_callback_empty() -> None:
+    future_set = FutureSet([])
+
+    callback = mock.Mock()
+    future_set.add_done_callback(callback)
+
+    assert callback.call_count == 1
+    assert callback.call_args == mock.call(future_set)
+
+
+def test_future_broken_callback() -> None:
+    future_set = FutureSet([])
+
+    callback = mock.Mock(side_effect=Exception("Boom!"))
+
+    future_set.add_done_callback(callback)  # should not raise
+
+    assert callback.call_count == 1
+    assert callback.call_args == mock.call(future_set)
+
+
+@contextmanager
+def timestamp(t):
+    with mock.patch("sentry.utils.concurrent.time") as mock_time:
+        mock_time.return_value = t
+        yield
+
+
+def test_timed_future_success() -> None:
+    future: TimedFuture[object] = TimedFuture()
+    assert future.get_timing() == (None, None)
+
+    expected_result = mock.sentinel.RESULT_VALUE
+    start_time, finish_time = expected_timing = (1.0, 2.0)
+
+    callback_results = []
+    callback = lambda future: callback_results.append((future.result(), future.get_timing()))
+
+    future.add_done_callback(callback)
+
+    with timestamp(start_time):
+        future.set_running_or_notify_cancel()
+        assert future.get_timing() == (start_time, None)
+
+    assert len(callback_results) == 0
+
+    with timestamp(finish_time):
+        future.set_result(expected_result)
+        assert future.get_timing() == expected_timing
+
+    assert len(callback_results) == 1
+    assert callback_results[0] == (expected_result, expected_timing)
+
+
+def test_time_is_not_overwritten_if_fail_to_set_result() -> None:
+    future: TimedFuture[int] = TimedFuture()
+
+    with timestamp(1.0):
+        future.set_running_or_notify_cancel()
+        future.set_result(1)
+        assert future.get_timing() == (1.0, 1.0)
+
+    from concurrent.futures import InvalidStateError
+
+    with timestamp(2.0):
+        try:
+            future.set_result(1)
+        except InvalidStateError:
+            pass
+        # If set_result fails, the time shouldn't be overwritten.
+        assert future.get_timing() == (1.0, 1.0)
+
+
+def test_timed_future_error() -> None:
+    future: TimedFuture[None] = TimedFuture()
+    assert future.get_timing() == (None, None)
+
+    start_time, finish_time = expected_timing = (1.0, 2.0)
+
+    callback_timings = []
+    callback = lambda future: callback_timings.append(future.get_timing())
+
+    future.add_done_callback(callback)
+
+    with timestamp(start_time):
+        future.set_running_or_notify_cancel()
+        assert future.get_timing() == (start_time, None)
+
+    assert len(callback_timings) == 0
+
+    with timestamp(finish_time):
+        future.set_exception(None)
+        assert future.get_timing() == expected_timing
+
+    assert len(callback_timings) == 1
+    assert callback_timings[0] == expected_timing
+
+
+def test_timed_future_cancel() -> None:
+    future: TimedFuture[None] = TimedFuture()
+    assert future.get_timing() == (None, None)
+
+    with timestamp(1.0):
+        future.cancel()
+        assert future.get_timing() == (None, 1.0)
+
+    with timestamp(1.5):
+        future.cancel()
+        assert future.get_timing() == (None, 1.0)
+
+    with timestamp(2.0):
+        future.set_running_or_notify_cancel()
+        assert future.get_timing() == (2.0, 1.0)
+
+    with pytest.raises(RuntimeError):
+        future.set_running_or_notify_cancel()
+
+    assert future.get_timing() == (2.0, 1.0)
+
+
+def test_synchronous_executor() -> None:
+    executor = SynchronousExecutor()
+
+    assert executor.submit(lambda: mock.sentinel.RESULT).result() is mock.sentinel.RESULT
+
+    class SentinelException(ValueError):
+        pass
+
+    def callable():
+        raise SentinelException
+
+    future = executor.submit(callable)
+    with pytest.raises(SentinelException):
+        future.result()
+
+
+@thread_leak_allowlist(reason="sentry threaded executor", issue=97043)
+def test_threaded_same_priority_Tasks() -> None:
+    executor = ThreadedExecutor(worker_count=1)
+
+    def callable():
+        pass
+
+    # Test that we can correctly submit multiple tasks
+    executor.submit(callable)
+    executor.submit(callable)
+
+
+@thread_leak_allowlist(reason="sentry threaded executor", issue=97043)
+def test_threaded_executor() -> None:
+    executor = ThreadedExecutor(worker_count=1, maxsize=3)
+
+    def waiter(ready, waiting, result):
+        ready.set()
+        waiting.wait()
+        return result
+
+    initial_ready = Event()
+    initial_waiting = Event()
+    initial_future = executor.submit(
+        lambda: waiter(initial_ready, initial_waiting, 1), block=True, timeout=1
+    )
+
+    # wait until the worker has removed this item from the queue
+    assert initial_ready.wait(timeout=1), "waiter not ready"
+    assert initial_future.running(), "waiter did not get marked as started"
+
+    low_priority_ready = Event()
+    low_priority_waiting = Event()
+    low_priority_future = executor.submit(
+        lambda: waiter(low_priority_ready, low_priority_waiting, 2),
+        block=True,
+        timeout=1,
+        priority=10,
+    )
+    assert not low_priority_future.done(), "future should not be done (indicative of a full queue)"
+
+    cancelled_future = executor.submit(lambda: None, block=True, timeout=1, priority=5)
+    assert not cancelled_future.done(), "future should not be done (indicative of a full queue)"
+    assert cancelled_future.cancel(), "future should be able to be cancelled"
+    assert cancelled_future.done(), "future should be completed"
+    with pytest.raises(CancelledError):
+        cancelled_future.result()
+
+    high_priority_ready = Event()
+    high_priority_waiting = Event()
+    high_priority_future = executor.submit(
+        lambda: waiter(high_priority_ready, high_priority_waiting, 3),
+        block=True,
+        timeout=1,
+        priority=0,
+    )
+    assert not high_priority_future.done(), "future should not be done (indicative of a full queue)"
+
+    queue_full_future = executor.submit(lambda: None, block=False)
+    assert queue_full_future.done()
+    with pytest.raises(Full):
+        queue_full_future.result()  # will not block if completed
+
+    initial_waiting.set()  # let the task finish
+    assert initial_future.result(timeout=1) == 1
+    assert initial_future.done()
+
+    assert high_priority_ready.wait(timeout=1)  # this should be the next task to execute
+    assert high_priority_future.running()
+    assert not low_priority_future.running()
+
+    high_priority_waiting.set()  # let the task finish
+    assert high_priority_future.result(timeout=1) == 3
+    assert high_priority_future.done()
+
+    assert low_priority_ready.wait(timeout=1)  # this should be the next task to execute
+    assert low_priority_future.running()
+
+    low_priority_waiting.set()  # let the task finish
+    assert low_priority_future.result(timeout=1) == 2
+    assert low_priority_future.done()
+
+
+# --- ContextPropagatingThreadPoolExecutor tests ---
+
+_test_var: contextvars.ContextVar[str] = contextvars.ContextVar("test_var")
+
+
+def test_context_propagating_executor_submit() -> None:
+    _test_var.set("hello")
+
+    def get_var():
+        return _test_var.get()
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(get_var)
+        assert future.result(timeout=2) == "hello"
+
+
+def test_context_propagating_executor_map() -> None:
+    _test_var.set("from_parent")
+
+    def get_var_with_arg(x):
+        return (_test_var.get(), x)
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(get_var_with_arg, [1, 2, 3]))
+
+    assert results == [("from_parent", 1), ("from_parent", 2), ("from_parent", 3)]
+
+
+def test_context_propagating_executor_isolation() -> None:
+    """Mutations in worker threads don't leak to the parent or other tasks."""
+    _test_var.set("original")
+
+    def mutate_var(value):
+        _test_var.set(value)
+        return _test_var.get()
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+        assert executor.submit(mutate_var, "changed_1").result(timeout=2) == "changed_1"
+        assert executor.submit(mutate_var, "changed_2").result(timeout=2) == "changed_2"
+
+    # Parent context is unaffected
+    assert _test_var.get() == "original"
+
+
+def test_context_propagating_executor_sentry_scope() -> None:
+    """Sentry SDK scopes are propagated via contextvars."""
+    sentry_sdk.get_current_scope().set_tag("test_key", "test_value")
+
+    def read_scope_tag():
+        return sentry_sdk.get_current_scope()._tags.get("test_key")
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+        result = executor.submit(read_scope_tag).result(timeout=2)
+
+    assert result == "test_value"

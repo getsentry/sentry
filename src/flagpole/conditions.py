@@ -1,0 +1,347 @@
+import dataclasses
+from abc import abstractmethod
+from collections.abc import Mapping
+from enum import Enum
+from typing import Any, Self, TypeVar
+
+from flagpole.evaluation_context import EvaluationContext
+
+
+class ConditionOperatorKind(str, Enum):
+    IN = "in"
+    """Provided a list of values, check if the property value is in the list ov values"""
+
+    NOT_IN = "not_in"
+
+    CONTAINS = "contains"
+    """Provided a single value, check if the property (a list) is included"""
+
+    NOT_CONTAINS = "not_contains"
+    """Provided a single value, check if the property (a list) is not included"""
+
+    EQUALS = "equals"
+    """Compare a value to another. Values are compared with types"""
+
+    NOT_EQUALS = "not_equals"
+    """Compare a value to not be equal to another. Values are compared with types"""
+
+    MATCHES = "matches"
+    """
+    Provided a list of patterns, check if the property value matches any pattern.
+    """
+
+    NOT_MATCHES = "not_matches"
+    """
+    Provided a list of patterns, check if the property value matches none of the patterns.
+    """
+
+
+class ConditionTypeMismatchException(Exception):
+    pass
+
+
+def get_type_name(value: Any):
+    return type(value).__name__
+
+
+T = TypeVar("T", str, int, float)
+
+
+def create_case_insensitive_set_from_list(values: list[T]) -> set[T]:
+    case_insensitive_set = set()
+    for value in values:
+        if isinstance(value, str):
+            case_insensitive_set.add(value.lower())
+        else:
+            case_insensitive_set.add(value)
+
+    return case_insensitive_set
+
+
+@dataclasses.dataclass(frozen=True)
+class ConditionBase:
+    property: str
+    """The evaluation context property to match against."""
+
+    value: Any
+    """The value to compare against the condition's evaluation context property."""
+
+    operator: str = dataclasses.field(default="")
+    """
+    The name of the operator to use when comparing the evaluation context property to the condition's value.
+    Values must be a valid ConditionOperatorKind.
+    """
+
+    def match(self, context: EvaluationContext, segment_name: str) -> bool:
+        return self._operator_match(
+            condition_property=context.get(self.property), segment_name=segment_name
+        )
+
+    @abstractmethod
+    def _operator_match(self, condition_property: Any, segment_name: str) -> bool:
+        raise NotImplementedError("Each Condition needs to implement this method")
+
+    def _evaluate_in(self, condition_property: Any, segment_name: str) -> bool:
+        if not isinstance(self.value, list):
+            raise ConditionTypeMismatchException(
+                f"'In' condition value must be a list, but was provided a '{get_type_name(self.value)}'"
+                + f" of segment {segment_name}"
+            )
+        if isinstance(condition_property, (list, dict)):
+            raise ConditionTypeMismatchException(
+                "'In' condition property value must be str | int | float | bool | None, but was provided a"
+                + f"'{get_type_name(self.value)}' of segment {segment_name}"
+            )
+        if isinstance(condition_property, str):
+            condition_property = condition_property.lower()
+
+        return condition_property in create_case_insensitive_set_from_list(self.value)
+
+    def _evaluate_contains(self, condition_property: Any, segment_name: str) -> bool:
+        if not isinstance(condition_property, list):
+            raise ConditionTypeMismatchException(
+                f"'Contains' can only be checked against a list, but was given a {get_type_name(condition_property)}"
+                + f" context property '{condition_property}' of segment '{segment_name}'"
+            )
+        value = self.value
+        if isinstance(value, str):
+            value = value.lower()
+
+        return value in create_case_insensitive_set_from_list(condition_property)
+
+    def _evaluate_equals(self, condition_property: Any, segment_name: str) -> bool:
+        if condition_property is None:
+            return False
+
+        if not isinstance(condition_property, type(self.value)):
+            value_type = get_type_name(self.value)
+            property_value = get_type_name(condition_property)
+            raise ConditionTypeMismatchException(
+                "'Equals' operator cannot be applied to values of mismatching types"
+                + f"({value_type} and {property_value}) for segment {segment_name}"
+            )
+
+        if isinstance(condition_property, str):
+            return condition_property.lower() == self.value.lower()
+
+        return condition_property == self.value
+
+    def _evaluate_matches(self, condition_property: Any, segment_name: str) -> bool:
+        if not isinstance(self.value, list):
+            raise ConditionTypeMismatchException(
+                f"'Matches' condition value must be a list of strings, but was provided a"
+                f" '{get_type_name(self.value)}' of segment {segment_name}"
+            )
+        if isinstance(condition_property, (list, dict)):
+            raise ConditionTypeMismatchException(
+                "'Matches' condition property value must be a string, but was provided a"
+                f" '{get_type_name(condition_property)}' of segment {segment_name}"
+            )
+        if condition_property is None:
+            return False
+        if not isinstance(condition_property, str):
+            return False
+        return any(_glob_star_match(pattern, condition_property) for pattern in self.value)
+
+
+InOperatorValueTypes = list[int] | list[float] | list[str]
+
+
+class InCondition(ConditionBase):
+    value: InOperatorValueTypes
+    operator: str = dataclasses.field(default="in")
+
+    def _operator_match(self, condition_property: Any, segment_name: str):
+        return self._evaluate_in(condition_property=condition_property, segment_name=segment_name)
+
+
+class NotInCondition(ConditionBase):
+    value: InOperatorValueTypes
+    operator: str = dataclasses.field(default="not_in")
+
+    def _operator_match(self, condition_property: Any, segment_name: str):
+        return not self._evaluate_in(
+            condition_property=condition_property, segment_name=segment_name
+        )
+
+
+ContainsOperatorValueTypes = int | str | float
+
+
+class ContainsCondition(ConditionBase):
+    value: ContainsOperatorValueTypes
+    operator: str = dataclasses.field(default="contains")
+
+    def _operator_match(self, condition_property: Any, segment_name: str):
+        return self._evaluate_contains(
+            condition_property=condition_property, segment_name=segment_name
+        )
+
+
+class NotContainsCondition(ConditionBase):
+    value: ContainsOperatorValueTypes
+    operator: str = dataclasses.field(default="not_contains")
+
+    def _operator_match(self, condition_property: Any, segment_name: str):
+        return not self._evaluate_contains(
+            condition_property=condition_property, segment_name=segment_name
+        )
+
+
+EqualsOperatorValueTypes = int | float | str | bool | list[int] | list[float] | list[str]
+
+
+class EqualsCondition(ConditionBase):
+    value: EqualsOperatorValueTypes
+    operator: str = dataclasses.field(default="equals")
+
+    def _operator_match(self, condition_property: Any, segment_name: str):
+        return self._evaluate_equals(
+            condition_property=condition_property,
+            segment_name=segment_name,
+        )
+
+
+class NotEqualsCondition(ConditionBase):
+    value: EqualsOperatorValueTypes
+    operator: str = dataclasses.field(default="not_equals")
+
+    def _operator_match(self, condition_property: Any, segment_name: str):
+        return not self._evaluate_equals(
+            condition_property=condition_property,
+            segment_name=segment_name,
+        )
+
+
+def _glob_star_match(pattern: str, value: str) -> bool:
+    """
+    Match value against a star-only glob pattern (case-insensitive).
+
+    '*' matches zero or more of any character. Every other character,
+    including '?' and '[', is treated as a literal for now.
+    """
+    pattern = pattern.lower()
+    value = value.lower()
+    # Split on '*' to get the literal segments that must appear in order.
+    # e.g. "a*b*c" -> ["a", "b", "c"]
+    parts = pattern.split("*")
+    # No wildcard — require exact equality.
+    if len(parts) == 1:
+        return value == pattern
+    # parts[0] is the prefix anchor; value must start with it.
+    if not value.startswith(parts[0]):
+        return False
+    # parts[-1] is the suffix anchor; value must end with it (unless the
+    # pattern ends with '*', in which case parts[-1] is "" and any suffix matches).
+    if not value.endswith(parts[-1]) and parts[-1] != "":
+        return False
+    # Narrow the search window to exclude the already-matched prefix and suffix.
+    end = len(value) - len(parts[-1]) if parts[-1] else len(value)
+    start = len(parts[0])
+    # The prefix and suffix anchors overlap, meaning the
+    # value is shorter than prefix + suffix combined — no valid match possible.
+    if start > end:
+        return False
+    # Walk the middle segments left-to-right, advancing the cursor after each hit
+    # so that relative ordering is preserved.
+    for part in parts[1:-1]:
+        if not part:
+            # Consecutive '*'s produce empty segments — nothing to match, skip.
+            continue
+        idx = value.find(part, start, end)
+        if idx == -1:
+            return False
+        start = idx + len(part)
+    return True
+
+
+MatchesOperatorValueTypes = list[str]
+
+
+class MatchesCondition(ConditionBase):
+    value: MatchesOperatorValueTypes
+    operator: str = dataclasses.field(default="matches")
+
+    def _operator_match(self, condition_property: Any, segment_name: str) -> bool:
+        return self._evaluate_matches(
+            condition_property=condition_property, segment_name=segment_name
+        )
+
+
+class NotMatchesCondition(ConditionBase):
+    value: MatchesOperatorValueTypes
+    operator: str = dataclasses.field(default="not_matches")
+
+    def _operator_match(self, condition_property: Any, segment_name: str) -> bool:
+        return not self._evaluate_matches(
+            condition_property=condition_property, segment_name=segment_name
+        )
+
+
+OPERATOR_LOOKUP: Mapping[ConditionOperatorKind, type[ConditionBase]] = {
+    ConditionOperatorKind.IN: InCondition,
+    ConditionOperatorKind.NOT_IN: NotInCondition,
+    ConditionOperatorKind.CONTAINS: ContainsCondition,
+    ConditionOperatorKind.NOT_CONTAINS: NotContainsCondition,
+    ConditionOperatorKind.EQUALS: EqualsCondition,
+    ConditionOperatorKind.NOT_EQUALS: NotEqualsCondition,
+    ConditionOperatorKind.MATCHES: MatchesCondition,
+    ConditionOperatorKind.NOT_MATCHES: NotMatchesCondition,
+}
+
+
+def condition_from_dict(data: Mapping[str, Any]) -> ConditionBase:
+    operator_kind = ConditionOperatorKind(data.get("operator", "invalid"))
+    if operator_kind not in OPERATOR_LOOKUP:
+        valid = ", ".join(OPERATOR_LOOKUP.keys())
+        raise ValueError(f"The {operator_kind} is not a known operator. Choose from {valid}")
+
+    condition_cls = OPERATOR_LOOKUP[operator_kind]
+    return condition_cls(
+        property=str(data.get("property")), operator=operator_kind.value, value=data.get("value")
+    )
+
+
+@dataclasses.dataclass
+class Segment:
+    name: str
+    "A brief description or identifier for the segment"
+
+    conditions: list[ConditionBase] = dataclasses.field(default_factory=list)
+    "The list of conditions that the segment must be matched in order for this segment to be active"
+
+    rollout: int | None = dataclasses.field(default=100)
+    """
+    Rollout rate controls how many buckets will be granted a feature when this segment matches.
+
+    Rollout rates range from 0 (off) to 100 (all users). Rollout rates use `context.id`
+    to determine bucket membership consistently over time.
+    """
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> Self:
+        conditions = [condition_from_dict(condition) for condition in data.get("conditions", [])]
+        return cls(
+            name=str(data.get("name", "")),
+            rollout=int(data.get("rollout", 100)),
+            conditions=conditions,
+        )
+
+    def match(self, context: EvaluationContext) -> bool:
+        for condition in self.conditions:
+            match_condition = condition.match(context, segment_name=self.name)
+            if not match_condition:
+                return False
+        return True
+
+    def in_rollout(self, context: EvaluationContext) -> bool:
+        # Rollout = 0 allows segments to match and disable a feature
+        # even if other segments would match
+        if self.rollout == 0:
+            return False
+
+        # Apply incremental rollout if available.
+        if self.rollout is not None and self.rollout < 100:
+            return context.id % 100 <= self.rollout
+
+        return True

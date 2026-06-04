@@ -1,0 +1,7 @@
+Unable to Delete Repo
+---------------------
+
+We were unable to delete webhooks in {{ provider_name }} for your repository (<em>{{ repo.name }}</em>) due to the following error:
+{{ error_message }}
+
+You will need to remove these webhooks manually in {{ provider_name }} in order to stop sending commit data to Sentry.

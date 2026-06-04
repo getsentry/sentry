@@ -1,0 +1,132 @@
+import {useCallback} from 'react';
+import {useBlocker} from 'react-router-dom';
+import styled from '@emotion/styled';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
+import {removeProject} from 'sentry/actionCreators/projects';
+import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
+import {IconChevron} from 'sentry/icons/iconChevron';
+import {t} from 'sentry/locale';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+type Props = {
+  platform: PlatformIntegration;
+  projectSlug: Project['slug'];
+  title?: string;
+};
+
+export function PlatformDocHeader({platform, projectSlug, title}: Props) {
+  const organization = useOrganization();
+  const api = useApi({persistInFlight: true});
+  const navigate = useNavigate();
+
+  const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
+    orgSlug: organization.slug,
+    projectSlug,
+  });
+
+  const handleGoBack = useCallback(async () => {
+    if (!recentCreatedProject) {
+      return;
+    }
+
+    trackAnalytics('project_creation.back_button_clicked', {
+      organization,
+    });
+
+    if (!isProjectActive) {
+      trackAnalytics('project_creation.data_removal_modal_confirm_button_clicked', {
+        organization,
+        platform: recentCreatedProject.slug,
+        project_id: recentCreatedProject.id,
+      });
+
+      try {
+        await removeProject({
+          api,
+          orgSlug: organization.slug,
+          projectSlug: recentCreatedProject.slug,
+          origin: 'getting_started',
+        });
+
+        trackAnalytics('project_creation.data_removed', {
+          organization,
+          date_created: recentCreatedProject.dateCreated,
+          platform: recentCreatedProject.slug,
+          project_id: recentCreatedProject.id,
+        });
+      } catch (error) {
+        handleXhrErrorResponse(
+          'Unable to delete project in project creation',
+          error as RequestError
+        );
+        // we don't give the user any feedback regarding this error as this shall be silent
+      }
+    }
+
+    navigate(
+      makeProjectsPathname({
+        path: '/new/',
+        organization,
+      }) + `?referrer=getting-started&project=${recentCreatedProject.id}`,
+      {replace: true}
+    );
+  }, [api, recentCreatedProject, organization, isProjectActive, navigate]);
+
+  useBlocker(({historyAction}) => {
+    if (historyAction === 'POP') {
+      handleGoBack();
+    }
+    return false;
+  });
+
+  return (
+    <StyledPageHeader>
+      <h2>
+        {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
+      </h2>
+      <Grid flow="column" align="center" gap="md">
+        <Button
+          size="sm"
+          icon={<IconChevron direction="left" size="xs" />}
+          onClick={handleGoBack}
+        >
+          {t('Back to Platform Selection')}
+        </Button>
+        {platform.id !== 'other' && (
+          <LinkButton size="sm" href={platform.link ?? ''} external>
+            {t('Full Documentation')}
+          </LinkButton>
+        )}
+      </Grid>
+    </StyledPageHeader>
+  );
+}
+
+const StyledPageHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${p => p.theme.space['2xl']};
+
+  h2 {
+    margin: 0;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    flex-direction: column;
+    align-items: flex-start;
+
+    h2 {
+      margin-bottom: ${p => p.theme.space.xl};
+    }
+  }
+`;

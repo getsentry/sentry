@@ -1,0 +1,10 @@
+---
+created: '2019-03-14T17:12:35.698124Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_http.py
+---
+errors: null
+to_json:
+  data:
+    foo: bar
+  url: http://example.com/

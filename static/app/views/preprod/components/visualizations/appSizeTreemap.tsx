@@ -1,0 +1,588 @@
+import {useContext, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+import {Separator} from '@sentry/scraps/separator';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
+import {
+  IconClose,
+  IconContract,
+  IconExpand,
+  IconFix,
+  IconLightning,
+  IconSearch,
+} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
+import {
+  getAppSizeCategoryInfo,
+  getOpaqueColorFromComposite,
+} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
+import {
+  TreemapControlButtons,
+  type TreemapControlButton,
+} from 'sentry/views/preprod/components/visualizations/treemapControlButtons';
+import {
+  TreemapType,
+  type FlaggedInsight,
+  type TreemapElement,
+} from 'sentry/views/preprod/types/appSizeTypes';
+import {getInsightConfig} from 'sentry/views/preprod/utils/insightProcessing';
+import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering';
+
+interface AppSizeTreemapProps {
+  highlightInsights: boolean;
+  insightsAvailable: boolean;
+  onHighlightInsightsChange: (enabled: boolean) => void;
+  root: TreemapElement | null;
+  searchQuery: string;
+  alertMessage?: string;
+  onAlertClick?: () => void;
+  onSearchChange?: (query: string) => void;
+  unfilteredRoot?: TreemapElement;
+}
+
+function FullscreenModalContent({
+  unfilteredRoot,
+  initialSearch,
+  alertMessage,
+  onAlertClick,
+  onSearchChange,
+  initialHighlightInsights,
+  onHighlightInsightsChange,
+  insightsAvailable,
+}: {
+  initialHighlightInsights: boolean;
+  initialSearch: string;
+  insightsAvailable: boolean;
+  onHighlightInsightsChange: (enabled: boolean) => void;
+  unfilteredRoot: TreemapElement;
+  alertMessage?: string;
+  onAlertClick?: () => void;
+  onSearchChange?: (query: string) => void;
+}) {
+  const [localSearch, setLocalSearch] = useState(initialSearch);
+  const [localHighlightInsights, setLocalHighlightInsights] = useState(
+    initialHighlightInsights
+  );
+  const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch, '');
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearch(value);
+    onSearchChange?.(value);
+  };
+
+  const handleHighlightInsightsChange = (enabled: boolean) => {
+    setLocalHighlightInsights(enabled);
+    onHighlightInsightsChange(enabled);
+  };
+
+  return (
+    <Flex direction="column" gap="md" height="100%" width="100%">
+      <InputGroup>
+        <InputGroup.LeadingItems>
+          <IconSearch />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input
+          placeholder="Search files"
+          value={localSearch}
+          onChange={e => handleSearchChange(e.target.value)}
+        />
+        {localSearch && (
+          <InputGroup.TrailingItems>
+            <Button
+              onClick={() => handleSearchChange('')}
+              aria-label="Clear search"
+              variant="transparent"
+              size="zero"
+            >
+              <IconClose size="sm" />
+            </Button>
+          </InputGroup.TrailingItems>
+        )}
+      </InputGroup>
+      <Container height="100%" width="100%" flex={1} minHeight={0}>
+        <AppSizeTreemap
+          root={filteredRoot}
+          searchQuery={localSearch}
+          alertMessage={alertMessage}
+          onAlertClick={onAlertClick}
+          highlightInsights={localHighlightInsights}
+          onHighlightInsightsChange={handleHighlightInsightsChange}
+          insightsAvailable={insightsAvailable}
+        />
+      </Container>
+    </Flex>
+  );
+}
+
+export function AppSizeTreemap(props: AppSizeTreemapProps) {
+  const theme = useTheme();
+  const {
+    root,
+    searchQuery,
+    unfilteredRoot,
+    alertMessage,
+    onAlertClick,
+    onSearchChange,
+    highlightInsights,
+    onHighlightInsightsChange,
+    insightsAvailable,
+  } = props;
+  const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
+  const renderToString = useRenderToString();
+  const renderingContext = useContext(ChartRenderingContext);
+  const isFullscreen = renderingContext?.isFullscreen ?? false;
+  const contextHeight = renderingContext?.height;
+  const chartRef = useRef<ECharts | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+
+  const handleChartReady = (chart: ECharts) => {
+    chartRef.current = chart;
+  };
+
+  const handleContainerMouseDown = () => {
+    setIsZoomed(true);
+  };
+
+  const handleRecenter = () => {
+    if (chartRef.current) {
+      chartRef.current.dispatchAction({
+        type: 'treemapRootToNode',
+        seriesIndex: 0,
+      });
+      setIsZoomed(false);
+    }
+  };
+
+  const chartSurfaceColor = theme.tokens.background.primary;
+
+  function convertToEChartsData(
+    element: TreemapElement,
+    parentCompositeColor: string = chartSurfaceColor
+  ): any {
+    const categoryInfo =
+      appSizeCategoryInfo[element.type] ?? appSizeCategoryInfo[TreemapType.OTHER];
+    if (!categoryInfo) {
+      throw new Error(`Category ${element.type} not found`);
+    }
+
+    const hasChildren = element.children.length > 0;
+    const hasFlaggedInsights =
+      element.flagged_insights && element.flagged_insights.length > 0;
+    const shouldHighlight = highlightInsights && hasFlaggedInsights;
+
+    const baselineNodeColor =
+      hasChildren && categoryInfo.translucentColor
+        ? categoryInfo.translucentColor
+        : categoryInfo.color;
+
+    const compositeNodeColor = getOpaqueColorFromComposite(
+      baselineNodeColor,
+      parentCompositeColor
+    );
+
+    const borderColor = shouldHighlight
+      ? theme.tokens.border.danger.vibrant
+      : compositeNodeColor;
+
+    const fillColor =
+      shouldHighlight && !hasChildren
+        ? getOpaqueColorFromComposite(
+            theme.tokens.border.danger.vibrant,
+            parentCompositeColor
+          )
+        : compositeNodeColor;
+
+    const data: any = {
+      name: element.name,
+      value: element.size,
+      path: element.path,
+      category: element.type,
+      misc: element.misc,
+      flagged_insights: element.flagged_insights,
+      itemStyle: {
+        color: fillColor,
+        borderColor,
+        borderWidth: 6,
+        gapWidth: 2,
+        gapColor: fillColor,
+      },
+      label: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: theme.colors.white,
+        fontFamily: 'Rubik',
+        padding: 0,
+        textShadowBlur: 2,
+        textShadowColor: theme.colors.gray800,
+        textShadowOffsetY: 0.5,
+      },
+      upperLabel: {
+        show: true,
+        color: theme.colors.white,
+        backgroundColor: 'transparent',
+        height: 24,
+        fontSize: 12,
+        fontWeight: 'bold',
+        borderRadius: [2, 2, 0, 0],
+        fontFamily: 'Rubik',
+        padding: 0,
+        textShadowBlur: 2,
+        textShadowColor: theme.colors.gray800,
+        textShadowOffsetY: 0.5,
+      },
+    };
+
+    if (element.children.length > 0) {
+      data.children = element.children.map((child: TreemapElement) =>
+        convertToEChartsData(child, compositeNodeColor)
+      );
+    }
+
+    return data;
+  }
+
+  // Empty state
+  if (root === null) {
+    return (
+      <Flex align="center" justify="center" height="100%">
+        <Heading as="h4">
+          No files match your search:{'  '}
+          <span
+            style={{
+              fontFamily: 'monospace',
+              backgroundColor: theme.colors.gray100,
+              padding: theme.space.xs,
+              borderRadius: theme.radius.md,
+            }}
+          >
+            {props.searchQuery}
+          </span>
+        </Heading>
+      </Flex>
+    );
+  }
+
+  const chartDataChildren = root.children.map((child: TreemapElement) =>
+    convertToEChartsData(child, chartSurfaceColor)
+  );
+  const chartData =
+    chartDataChildren.length > 0
+      ? chartDataChildren
+      : [convertToEChartsData(root, chartSurfaceColor)];
+  const totalSize = root.size;
+
+  const series: TreemapSeriesOption[] = [
+    {
+      name: 'Size Analysis',
+      type: 'treemap',
+      animationEasing: 'quarticOut',
+      animationDuration: 300,
+      height: 'calc(100% - 22px)',
+      width: '100%',
+      top: '22px',
+      // Controls how many levels deep to render at once.
+      // Users can click on nodes to drill down into deeper levels.
+      // The breadcrumb shows the current path and allows navigating back up.
+      leafDepth: 4,
+      breadcrumb: {
+        show: true,
+        left: '0',
+        top: '0',
+        emphasis: {
+          itemStyle: {
+            color: theme.colors.surface200,
+            textStyle: {
+              fontSize: 12,
+              fontWeight: 'bold',
+              fontFamily: 'Rubik',
+              color: theme.tokens.interactive.link.accent.rest,
+            },
+          },
+        },
+        itemStyle: {
+          textStyle: {
+            fontSize: 12,
+            fontWeight: 'bold',
+            fontFamily: 'Rubik',
+            color: theme.colors.white,
+          },
+        },
+      },
+      zoomToNodeRatio: 0.1,
+      visibleMin: 300,
+      levels: [
+        {
+          itemStyle: {
+            gapWidth: 4,
+            borderRadius: 6,
+            borderColor: chartSurfaceColor,
+          },
+          colorSaturation: [0.3, 0.5],
+        },
+        {
+          itemStyle: {
+            borderRadius: 6,
+          },
+          colorSaturation: [0.4, 0.6],
+        },
+        {
+          itemStyle: {
+            borderRadius: 4,
+          },
+          colorSaturation: [0.4, 0.6],
+        },
+        {
+          itemStyle: {
+            borderRadius: 2,
+          },
+          colorSaturation: [0.4, 0.6],
+        },
+        {
+          itemStyle: {
+            borderRadius: 1,
+          },
+          colorSaturation: [0.4, 0.6],
+        },
+      ],
+      data: chartData,
+    },
+  ];
+
+  const visualMap: VisualMapComponentOption = {
+    show: false,
+    type: 'continuous',
+    dimension: 1,
+    min: 0,
+    max: 1000,
+    inRange: {
+      colorSaturation: [0.1, 1],
+    },
+    seriesIndex: 0,
+  };
+
+  function InsightRow({
+    insight,
+    index,
+  }: {
+    index: number;
+    insight: string | FlaggedInsight;
+  }) {
+    const key = typeof insight === 'string' ? insight : insight.key;
+    const savings = typeof insight === 'string' ? 0 : insight.savings;
+
+    return (
+      <Flex
+        justify="between"
+        align="start"
+        padding="xs"
+        radius="xs"
+        gap="xl"
+        style={{
+          backgroundColor:
+            index % 2 === 0 ? theme.tokens.background.secondary : 'transparent',
+        }}
+      >
+        <Text size="sm">{getInsightConfig(key).name}</Text>
+        {savings > 0 ? (
+          <Text size="sm" variant="muted" style={{whiteSpace: 'nowrap'}}>
+            -{formatBytesBase10(savings)}
+          </Text>
+        ) : null}
+      </Flex>
+    );
+  }
+
+  function InsightsSection({insights}: {insights: Array<string | FlaggedInsight>}) {
+    if (insights.length === 0) {
+      return null;
+    }
+
+    return (
+      <Stack gap="sm">
+        <Separator orientation="horizontal" padding="0" />
+        <Flex gap="xs" align="center" padding="0 xs">
+          <IconFix size="xs" />
+          <Text size="sm">{t('Insights')}</Text>
+        </Flex>
+        <Stack gap="2xs">
+          {insights.map((insight, index) => (
+            <InsightRow
+              key={typeof insight === 'string' ? insight : insight.key}
+              insight={insight}
+              index={index}
+            />
+          ))}
+        </Stack>
+      </Stack>
+    );
+  }
+
+  const tooltip: TooltipOption = {
+    trigger: 'item',
+    borderWidth: 0,
+    backgroundColor: theme.tokens.background.primary,
+    hideDelay: 0,
+    transitionDuration: 0,
+    padding: [12, 8, 8, 8],
+    extraCssText: `border-radius: 6px; border: 1px solid ${theme.tokens.border.secondary}; border-bottom-width: 2px;`,
+    textStyle: {
+      color: theme.tokens.content.primary,
+      fontFamily: 'Rubik',
+    },
+    formatter: function (params: any) {
+      const value = typeof params.value === 'number' ? params.value : 0;
+      const percent = ((value / totalSize) * 100).toFixed(2);
+      const dotColor = params.data?.itemStyle?.borderColor ?? theme.tokens.border.primary;
+      const category = params.data?.category ?? 'Other';
+      const insights: Array<string | FlaggedInsight> =
+        params.data?.flagged_insights ?? [];
+
+      return renderToString(
+        <Stack gap="md" padding="xs">
+          <Flex gap="xs" align="center">
+            <Container
+              as="span"
+              display="inline-block"
+              width="6px"
+              height="6px"
+              radius="full"
+              style={{backgroundColor: dotColor}}
+            />
+            <Text size="sm">{category}</Text>
+          </Flex>
+          <Stack gap="2xs">
+            <Flex gap="sm" align="baseline">
+              <Text bold>{params.name}</Text>
+              {params.data?.misc?.scale ? (
+                <Tag variant="muted">@{params.data.misc.scale}x</Tag>
+              ) : null}
+            </Flex>
+            {params.data?.path ? (
+              <Text size="sm" variant="muted">
+                {params.data.path}
+              </Text>
+            ) : null}
+            <Text size="sm" variant="muted">
+              {formatBytesBase10(value)} ( {percent}% )
+            </Text>
+          </Stack>
+          <InsightsSection insights={insights} />
+        </Stack>
+      );
+    },
+  };
+
+  const treemapControlButtons: TreemapControlButton[] = [
+    ...(insightsAvailable
+      ? [
+          {
+            ariaLabel: t('Toggle Insight Highlighting'),
+            title: highlightInsights ? t('Hide Insights') : t('Insights'),
+            icon: <IconLightning />,
+            onClick: () => onHighlightInsightsChange(!highlightInsights),
+            disabled: false,
+            active: highlightInsights,
+          },
+        ]
+      : []),
+    {
+      ariaLabel: t('Recenter View'),
+      title: t('Recenter'),
+      icon: <IconContract />,
+      onClick: handleRecenter,
+      disabled: !isZoomed,
+    },
+  ];
+  if (!isFullscreen) {
+    treemapControlButtons.push({
+      ariaLabel: t('Open Full-Screen View'),
+      title: t('Fullscreen'),
+      icon: <IconExpand />,
+      disabled: false,
+      onClick: () => {
+        openInsightChartModal({
+          title: t('Size Analysis'),
+          fullscreen: true,
+          children: unfilteredRoot ? (
+            <FullscreenModalContent
+              unfilteredRoot={unfilteredRoot}
+              initialSearch={searchQuery}
+              alertMessage={alertMessage}
+              onAlertClick={onAlertClick}
+              onSearchChange={onSearchChange}
+              initialHighlightInsights={highlightInsights}
+              onHighlightInsightsChange={onHighlightInsightsChange}
+              insightsAvailable={insightsAvailable}
+            />
+          ) : (
+            <Container height="100%" width="100%">
+              <AppSizeTreemap
+                root={root}
+                searchQuery={searchQuery}
+                alertMessage={alertMessage}
+                onAlertClick={onAlertClick}
+                highlightInsights={highlightInsights}
+                onHighlightInsightsChange={onHighlightInsightsChange}
+                insightsAvailable={insightsAvailable}
+              />
+            </Container>
+          ),
+        });
+      },
+    });
+  }
+
+  return (
+    <Flex direction="column" gap="sm" height="100%" width="100%">
+      {alertMessage && (
+        <ClickableAlert
+          variant="warning"
+          onClick={onAlertClick}
+          style={{cursor: onAlertClick ? 'pointer' : 'default'}}
+        >
+          {alertMessage}
+        </ClickableAlert>
+      )}
+      <Container
+        height="100%"
+        width="100%"
+        position="relative"
+        onMouseDown={handleContainerMouseDown}
+        flex={1}
+        minHeight={0}
+      >
+        <BaseChart
+          autoHeightResize
+          height={contextHeight}
+          renderer="canvas"
+          xAxis={null}
+          yAxis={null}
+          series={series}
+          visualMap={visualMap}
+          tooltip={tooltip}
+          onChartReady={handleChartReady}
+        />
+        <TreemapControlButtons buttons={treemapControlButtons} />
+      </Container>
+    </Flex>
+  );
+}
+
+const ClickableAlert = styled(Alert)`
+  &:hover {
+    opacity: ${p => (p.onClick ? 0.9 : 1)};
+  }
+`;

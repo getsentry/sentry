@@ -1,0 +1,48 @@
+import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {t} from 'sentry/locale';
+
+interface SectionHeaderProps {
+  title: React.ReactNode;
+  className?: string;
+  optional?: boolean;
+  tooltipText?: React.ReactNode;
+}
+
+export function SectionHeader({
+  tooltipText,
+  title,
+  optional,
+  className,
+}: SectionHeaderProps) {
+  return (
+    <Flex gap="xs">
+      <Tooltip
+        title={tooltipText}
+        disabled={!tooltipText}
+        position="right-end"
+        delay={200}
+        isHoverable
+        showUnderline
+      >
+        <StyledHeader className={className}>{title}</StyledHeader>
+      </Tooltip>
+      {optional && <OptionalHeader>{t('(optional)')}</OptionalHeader>}
+    </Flex>
+  );
+}
+
+const StyledHeader = styled('h6')`
+  font-size: ${p => p.theme.form.md.fontSize};
+  margin-bottom: ${p => p.theme.space.xs};
+`;
+
+const OptionalHeader = styled('h6')`
+  font-size: ${p => p.theme.form.md.fontSize};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  margin-bottom: ${p => p.theme.space.xs};
+`;

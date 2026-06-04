@@ -1,0 +1,87 @@
+import {useQuery} from '@tanstack/react-query';
+
+import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {UptimeChecksGrid} from 'sentry/views/alerts/rules/uptime/uptimeChecksGrid';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
+import {uptimeChecksApiOptions} from 'sentry/views/insights/uptime/utils/uptimeChecksApiOptions';
+import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
+import {useUptimeIssueDetectorId} from 'sentry/views/issueDetails/issueUptimeCheckTimeline';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+export default function GroupUptimeChecks() {
+  const organization = useOrganization();
+  const {groupId} = useParams<{groupId: string}>();
+  const location = useLocation();
+  const {since, until} = usePageFilterDates();
+  const detectorId = useUptimeIssueDetectorId({groupId});
+
+  const {
+    data: group,
+    isPending: isGroupPending,
+    isError: isGroupError,
+    refetch: refetchGroup,
+  } = useGroup({groupId});
+
+  const canFetchUptimeChecks =
+    Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(detectorId);
+
+  const {data: uptimeDetector} = useDetectorQuery<UptimeDetector>(detectorId ?? '', {
+    enabled: canFetchUptimeChecks,
+  });
+
+  const {data} = useQuery({
+    ...uptimeChecksApiOptions({
+      orgSlug: organization.slug,
+      projectSlug: group?.project.slug ?? '',
+      detectorId: detectorId ?? '',
+      cursor: decodeScalar(location.query.cursor),
+      limit: 50,
+      start: since.toISOString(),
+      end: until.toISOString(),
+    }),
+    enabled: canFetchUptimeChecks,
+    select: selectJsonWithHeaders,
+  });
+  const uptimeChecks = data?.json;
+
+  if (isGroupError) {
+    return <LoadingError onRetry={refetchGroup} />;
+  }
+
+  if (isGroupPending || uptimeChecks === undefined || uptimeDetector === undefined) {
+    return <LoadingIndicator />;
+  }
+
+  const links = parseLinkHeader(data?.headers.Link ?? '');
+  const previousDisabled = links?.previous?.results === false;
+  const nextDisabled = links?.next?.results === false;
+  const pageCount = uptimeChecks.length;
+
+  return (
+    <EventListTable
+      title={t('All Uptime Checks')}
+      pagination={{
+        tableUnits: t('uptime checks'),
+        links,
+        pageCount,
+        nextDisabled,
+        previousDisabled,
+      }}
+    >
+      <UptimeChecksGrid
+        traceSampling={uptimeDetector.dataSources[0].queryObj.traceSampling}
+        uptimeChecks={uptimeChecks}
+      />
+    </EventListTable>
+  );
+}

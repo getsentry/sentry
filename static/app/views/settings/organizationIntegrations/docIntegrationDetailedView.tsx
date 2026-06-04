@@ -1,0 +1,147 @@
+import {useCallback, useEffect, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {DocIntegration} from 'sentry/types/integrations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+
+export default function DocIntegrationDetailsView() {
+  const theme = useTheme();
+  const tabs: IntegrationTab[] = ['overview'];
+  const organization = useOrganization();
+  const {integrationSlug} = useParams<{integrationSlug: string}>();
+
+  const {data: doc, isPending} = useApiQuery<DocIntegration>(
+    [
+      getApiUrl('/doc-integrations/$docIntegrationIdOrSlug/', {
+        path: {docIntegrationIdOrSlug: integrationSlug},
+      }),
+    ],
+    {staleTime: Infinity, retry: false}
+  );
+
+  const integrationType = 'document';
+  const description = doc?.description ?? '';
+  const author = doc?.author ?? '';
+  const installationStatus = null;
+  const resourceLinks = useMemo(() => doc?.resources ?? [], [doc]);
+  const integrationName = doc?.name ?? '';
+  const featureData = useMemo(() => doc?.features ?? [], [doc]);
+
+  useEffect(() => {
+    trackIntegrationAnalytics('integrations.integration_viewed', {
+      view: 'integrations_directory_integration_detail',
+      integration: integrationSlug,
+      integration_type: integrationType,
+      already_installed: installationStatus !== 'Not Installed',
+      organization,
+      integration_tab: 'overview',
+    });
+  }, [integrationSlug, integrationType, installationStatus, organization]);
+
+  const renderTopButton = useCallback(() => {
+    if (!doc) {
+      return null;
+    }
+    return (
+      <ExternalLink
+        href={doc.url}
+        onClick={() => {
+          trackIntegrationAnalytics('integrations.installation_start', {
+            view: 'integrations_directory_integration_detail',
+            integration: integrationSlug,
+            integration_type: integrationType,
+            is_scm: false,
+            already_installed: installationStatus !== 'Not Installed',
+            organization,
+          });
+        }}
+        data-test-id="learn-more"
+      >
+        <LearnMoreButton
+          size="sm"
+          variant="primary"
+          style={{marginLeft: theme.space.md}}
+          icon={<StyledIconOpen />}
+        >
+          {t('Learn More')}
+        </LearnMoreButton>
+      </ExternalLink>
+    );
+  }, [
+    doc,
+    integrationSlug,
+    integrationType,
+    installationStatus,
+    organization,
+    theme.space,
+  ]);
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (!doc) {
+    return <LoadingError message={t('There was an error loading this integration.')} />;
+  }
+
+  return (
+    <IntegrationLayout.Body
+      integrationName={integrationName}
+      alert={null}
+      topSection={
+        <IntegrationLayout.TopSection
+          featureData={featureData}
+          integrationName={integrationName}
+          installationStatus={installationStatus}
+          integrationIcon={<DocIntegrationAvatar docIntegration={doc} size={50} />}
+          addInstallButton={
+            <IntegrationLayout.AddInstallButton
+              featureData={featureData}
+              hideButtonIfDisabled={false}
+              requiresAccess={false}
+              renderTopButton={renderTopButton}
+            />
+          }
+          additionalCTA={null}
+        />
+      }
+      tabs={<IntegrationLayout.Tabs tabs={tabs} activeTab="overview" />}
+      content={
+        <IntegrationLayout.InformationCard
+          integrationSlug={integrationSlug}
+          description={description}
+          featureData={featureData}
+          author={author}
+          resourceLinks={resourceLinks}
+          permissions={null}
+        />
+      }
+    />
+  );
+}
+
+const LearnMoreButton = styled(Button)`
+  margin-left: ${p => p.theme.space.md};
+`;
+
+const StyledIconOpen = styled(IconOpen)`
+  transition: 0.1s linear color;
+  margin: 0 ${p => p.theme.space.xs};
+  position: relative;
+  top: 1px;
+`;

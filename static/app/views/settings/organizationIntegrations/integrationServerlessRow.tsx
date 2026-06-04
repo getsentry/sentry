@@ -1,0 +1,190 @@
+import {Fragment, useCallback, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
+import type {
+  OrganizationIntegration,
+  ServerlessFunction,
+} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+interface IntegrationServerlessRowProps {
+  integration: OrganizationIntegration;
+  onUpdate: (serverlessFunctionUpdate: Partial<ServerlessFunction>) => void;
+  serverlessFunction: ServerlessFunction;
+}
+
+export function IntegrationServerlessRow({
+  integration,
+  onUpdate,
+  serverlessFunction,
+}: IntegrationServerlessRowProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/serverless-functions/`;
+
+  const {version} = serverlessFunction;
+  // during optimistic update, we might be enabled without a version
+  const versionText =
+    serverlessFunction.enabled && version > 0 ? (
+      <Fragment>&nbsp;|&nbsp;v{version}</Fragment>
+    ) : null;
+
+  const recordAction = useCallback(
+    (action: 'enable' | 'disable' | 'updateVersion') => {
+      trackAnalytics('integrations.serverless_function_action', {
+        integration: integration.provider.key,
+        integration_type: 'first_party',
+        action,
+        organization,
+      });
+    },
+    [integration.provider.key, organization]
+  );
+
+  const handleUpdate = useCallback(async () => {
+    const data = {
+      action: 'updateVersion',
+      target: serverlessFunction.name,
+    };
+    try {
+      setIsSubmitting(true);
+      // don't know the latest version but at least optimistically remove the update button
+      onUpdate({outOfDate: false});
+      addLoadingMessage();
+      recordAction('updateVersion');
+      const resp = await api.requestPromise(endpoint, {
+        method: 'POST',
+        data,
+      });
+      // update remaining after response
+      onUpdate(resp);
+      addSuccessMessage(t('Success'));
+    } catch (err: any) {
+      // restore original on failure
+      onUpdate(serverlessFunction);
+      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
+    }
+    setIsSubmitting(false);
+  }, [api, endpoint, onUpdate, recordAction, serverlessFunction]);
+
+  const handleToggle = useCallback(async () => {
+    const action = serverlessFunction.enabled ? 'disable' : 'enable';
+    const data = {
+      action,
+      target: serverlessFunction.name,
+    };
+    try {
+      addLoadingMessage();
+      setIsSubmitting(true);
+      // optimistically update enable state
+      onUpdate({enabled: !serverlessFunction.enabled});
+      recordAction(action);
+      const resp = await api.requestPromise(endpoint, {
+        method: 'POST',
+        data,
+      });
+      // update remaining after response
+      onUpdate(resp);
+      addSuccessMessage(t('Success'));
+    } catch (err: any) {
+      // restore original on failure
+      onUpdate(serverlessFunction);
+      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
+    }
+    setIsSubmitting(false);
+  }, [api, endpoint, onUpdate, recordAction, serverlessFunction]);
+
+  const layerStatus = useMemo(() => {
+    if (!serverlessFunction.outOfDate) {
+      return serverlessFunction.enabled ? t('Latest') : t('Disabled');
+    }
+    return (
+      <UpdateButton size="sm" variant="primary" onClick={handleUpdate}>
+        {t('Update')}
+      </UpdateButton>
+    );
+  }, [serverlessFunction.outOfDate, serverlessFunction.enabled, handleUpdate]);
+
+  return (
+    <Item>
+      <NameWrapper>
+        <Stack>
+          <Name>{serverlessFunction.name}</Name>
+          <RuntimeAndVersion>
+            <DetailWrapper>{serverlessFunction.runtime}</DetailWrapper>
+            <DetailWrapper>{versionText}</DetailWrapper>
+          </RuntimeAndVersion>
+        </Stack>
+      </NameWrapper>
+      <LayerStatusWrapper>{layerStatus}</LayerStatusWrapper>
+      <StyledSwitch
+        checked={serverlessFunction.enabled}
+        disabled={isSubmitting}
+        size="sm"
+        onChange={handleToggle}
+      />
+    </Item>
+  );
+}
+
+const Item = styled('div')`
+  padding: ${p => p.theme.space.xl};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+
+  display: grid;
+  grid-column-gap: ${p => p.theme.space.md};
+  align-items: center;
+  grid-template-columns: 2fr 1fr 0.5fr;
+  grid-template-areas: 'function-name layer-status enable-switch';
+`;
+
+const ItemWrapper = styled('span')`
+  height: 32px;
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+`;
+
+const NameWrapper = styled(ItemWrapper)`
+  grid-area: function-name;
+`;
+
+const LayerStatusWrapper = styled(ItemWrapper)`
+  grid-area: layer-status;
+`;
+
+const StyledSwitch = styled(Switch)`
+  grid-area: enable-switch;
+`;
+
+const UpdateButton = styled(Button)``;
+
+const Name = styled('span')`
+  padding-bottom: ${p => p.theme.space.md};
+`;
+
+const RuntimeAndVersion = styled('div')`
+  display: flex;
+  flex-direction: row;
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const DetailWrapper = styled('div')`
+  line-height: 1.2;
+`;

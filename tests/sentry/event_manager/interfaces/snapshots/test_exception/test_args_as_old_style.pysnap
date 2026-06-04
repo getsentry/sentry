@@ -1,0 +1,24 @@
+---
+source: tests/sentry/event_manager/interfaces/test_exception.py::test_args_as_old_style
+---
+errors: null
+get_api_context:
+  excOmitted: null
+  hasSystemFrames: false
+  values:
+  - mechanism: null
+    module: foo.bar
+    rawModule: null
+    rawStacktrace: null
+    rawType: null
+    rawValue: null
+    stacktrace: null
+    threadId: null
+    type: ValueError
+    value: hello world
+to_json:
+  values:
+  - module: foo.bar
+    type: ValueError
+    value: hello world
+to_string: 'ValueError: hello world'

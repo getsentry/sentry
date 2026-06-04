@@ -1,0 +1,57 @@
+import {Observer} from 'mobx-react-lite';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+
+import {FormContext} from 'sentry/components/forms/formContext';
+import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
+import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+
+interface NewDetectorFooterProps {
+  disabledCreate?: string;
+  extras?: React.ReactNode;
+  maxWidth?: string;
+}
+
+export function NewDetectorFooter({
+  maxWidth,
+  disabledCreate,
+  extras,
+}: NewDetectorFooterProps) {
+  const organization = useOrganization();
+
+  return (
+    <FormContext.Consumer>
+      {({form}) => (
+        <EditLayout.Footer label={t('Step 2 of 2')} maxWidth={maxWidth}>
+          <LinkButton
+            variant="secondary"
+            to={`${makeMonitorBasePathname(organization.slug)}new/`}
+          >
+            {t('Back')}
+          </LinkButton>
+          {extras}
+          <Observer>
+            {() => (
+              <Button
+                variant="primary"
+                type="submit"
+                busy={form?.isSaving}
+                disabled={!!disabledCreate || form?.isFormIncomplete || form?.isError}
+                tooltipProps={{
+                  title: form
+                    ? getSubmitButtonTitle(form, disabledCreate)
+                    : disabledCreate,
+                }}
+              >
+                {t('Create Monitor')}
+              </Button>
+            )}
+          </Observer>
+        </EditLayout.Footer>
+      )}
+    </FormContext.Consumer>
+  );
+}

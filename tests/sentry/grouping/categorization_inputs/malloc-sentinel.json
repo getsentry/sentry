@@ -1,0 +1,113 @@
+{
+  "event_id": "0f79414d8b894e199c467cf859cc84a5",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "handled": false,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 10,
+              "name": "EXC_CRASH",
+              "subcode": 0
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGABRT",
+              "number": 6
+            }
+          },
+          "type": "signal"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_start",
+              "package": "libsystem_pthread.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "std::__1::basic_string<T>::~basic_string",
+              "package": "libc++.1.dylib"
+            },
+            {
+              "function": "free",
+              "package": "libsystem_malloc.dylib"
+            },
+            {
+              "function": "malloc_report",
+              "package": "libsystem_malloc.dylib"
+            },
+            {
+              "function": "malloc_vreport",
+              "package": "libsystem_malloc.dylib"
+            },
+            {
+              "function": "abort",
+              "package": "libsystem_c.dylib"
+            },
+            {
+              "function": "pthread_kill",
+              "package": "libsystem_pthread.dylib"
+            },
+            {
+              "function": "__pthread_kill",
+              "package": "libsystem_kernel.dylib"
+            }
+          ]
+        },
+        "type": "SIGABRT",
+        "value": "<redacted>"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

@@ -1,0 +1,47 @@
+import styled from '@emotion/styled';
+
+import {
+  SpanProfileDetails,
+  useSpanProfileDetails,
+  type SpanProfileDetailsProps,
+} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
+import {t} from 'sentry/locale';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils/defined';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+export function ProfileDetails({
+  organization,
+  project,
+  event,
+  span,
+}: {
+  event: Readonly<EventTransaction>;
+  organization: Organization;
+  project: Project | undefined;
+  span: Readonly<SpanProfileDetailsProps['span']>;
+}) {
+  const {profile, frames} = useSpanProfileDetails(organization, project, event, span);
+
+  if (!defined(profile) || frames.length === 0) {
+    return null;
+  }
+
+  return (
+    <FoldSection
+      sectionKey="span_profile_details"
+      title={t('Profile')}
+      disableCollapsePersistence
+    >
+      <EmbededContentWrapper>
+        <SpanProfileDetails span={span} event={event} />
+      </EmbededContentWrapper>
+    </FoldSection>
+  );
+}
+
+const EmbededContentWrapper = styled('div')`
+  margin-top: ${p => p.theme.space.xs};
+`;

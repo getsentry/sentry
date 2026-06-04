@@ -1,0 +1,353 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+
+import type {Config} from '@jest/types';
+import type {Options as SwcOptions} from '@swc/core';
+
+const swcConfig: SwcOptions = {
+  isModule: true,
+  module: {
+    type: 'commonjs',
+  },
+  sourceMaps: 'inline',
+  jsc: {
+    target: 'esnext',
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+      dynamicImport: true,
+    },
+    transform: {
+      react: {
+        runtime: 'automatic',
+        importSource: '@emotion/react',
+      },
+    },
+    experimental: {
+      plugins: [['@swc-contrib/mut-cjs-exports', {}]],
+    },
+  },
+};
+
+const {
+  CI,
+  CI_NODE_TOTAL,
+  CI_NODE_INDEX,
+  GITHUB_PR_SHA,
+  GITHUB_PR_REF,
+  GITHUB_RUN_ID,
+  GITHUB_RUN_ATTEMPT,
+  SENTRY_DSN,
+} = process.env;
+
+const JEST_TEST_FILES_PATH = path.resolve(import.meta.dirname, 'jest-test-files.json');
+const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
+  ? (JSON.parse(fs.readFileSync(JEST_TEST_FILES_PATH, 'utf-8')) as string[])
+  : undefined;
+const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
+
+const optionalTags: {
+  total_tests?: number | 'all';
+  node_index?: number;
+  node_total?: number;
+  balancer_strategy?: string;
+} = {
+  total_tests: undefined,
+  node_index: undefined,
+  node_total: undefined,
+  balancer_strategy: undefined,
+};
+
+/**
+ * In CI we may need to shard our jest tests so that we can parellize the test runs
+ *
+ * `JEST_TESTS` is a list of all tests that will run, captured by `jest --listTests --json`
+ * Then we split up the tests based on the total number of CI instances that will
+ * be running the tests.
+ *
+ * By default we'll run everything we were given.
+ */
+if (CI && CI_NODE_TOTAL && !JEST_TESTS) {
+  throw new Error(
+    'CI is configured for sharding (CI_NODE_TOTAL is set) but jest-test-files.json is missing. ' +
+      'This would cause each shard to run the entire test suite. ' +
+      'Check that the jest-test-files artifact was uploaded and downloaded successfully.'
+  );
+}
+
+let testMatch = JEST_TESTS;
+
+function getTestsForGroup(
+  nodeIndex: number,
+  nodeTotal: number,
+  allTests: ReadonlyArray<string>,
+  testStats: Record<string, number>
+): string[] {
+  if (allTests.length === 0) {
+    return [];
+  }
+
+  const speculatedSuiteDuration = Object.values(testStats).reduce((a, b) => a + b, 0);
+  const targetDuration = speculatedSuiteDuration / nodeTotal;
+
+  if (speculatedSuiteDuration <= 0) {
+    throw new Error('Speculated suite duration is <= 0');
+  }
+
+  // We are going to take all of our tests and split them into groups.
+  // If we have a test without a known duration, we will default it to 2 second
+  // This is to ensure that we still assign some weight to the tests and still attempt to somewhat balance them.
+  // The 1.5s default is selected as a p50 value of all of our JS tests in CI (as of 2022-10-26) taken from our sentry performance monitoring.
+  const tests = new Map<string, number>();
+  const SUITE_P50_DURATION_MS = 1500;
+
+  const allTestsSet = new Set(allTests);
+
+  // First, iterate over all of the tests we have stats for.
+  Object.entries(testStats).forEach(([test, duration]) => {
+    if (!allTestsSet.has(test)) {
+      return;
+    }
+    if (duration <= 0) {
+      throw new Error(`Test duration is <= 0 for ${test}`);
+    }
+    tests.set(test, duration);
+  });
+  // Then, iterate over all of the remaining tests and assign them a default duration.
+  for (const test of allTests) {
+    if (tests.has(test)) {
+      continue;
+    }
+    tests.set(test, SUITE_P50_DURATION_MS);
+  }
+
+  // Sanity check to ensure that we have all of our tests accounted for, we need to fail
+  // if this is not the case as we risk not executing some tests and passing the build.
+  if (tests.size < allTests.length) {
+    throw new Error(
+      `All tests should be accounted for, missing ${allTests.length - tests.size}`
+    );
+  }
+
+  const groups: string[][] = [];
+
+  // We sort files by path so that we try and improve the transformer cache hit rate.
+  // Colocated domain specific files are likely to require other domain specific files.
+  const testsSortedByPath = Array.from(tests.entries()).sort((a, b) => {
+    return a[0].localeCompare(b[0]);
+  });
+
+  for (let group = 0; group < nodeTotal; group++) {
+    groups[group] = [];
+    let duration = 0;
+
+    // While we are under our target duration and there are tests in the group
+    while (duration < targetDuration && testsSortedByPath.length > 0) {
+      // We peek the next item to check that it is not some super long running
+      // test that may exceed our target duration. For example, if target runtime for each group is
+      // 10 seconds, we have currently accounted for 9 seconds, and the next test is 5 seconds, we
+      // want to move that test to the next group so as to avoid a 40% imbalance.
+      const peek = testsSortedByPath[testsSortedByPath.length - 1]!;
+      if (duration + peek[1] > targetDuration && peek[1] > 30_000) {
+        break;
+      }
+      const nextTest = testsSortedByPath.pop();
+      if (!nextTest) {
+        throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
+      }
+      groups[group]!.push(nextTest[0]);
+      duration += nextTest[1];
+    }
+  }
+
+  // Whatever may be left over will get round robin'd into the groups.
+  let i = 0;
+  while (testsSortedByPath.length) {
+    const nextTest = testsSortedByPath.pop();
+    if (!nextTest) {
+      throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
+    }
+    groups[i % nodeTotal]!.push(nextTest[0]);
+    i++;
+  }
+
+  // Make sure we exhausted all tests before proceeding.
+  if (testsSortedByPath.length > 0) {
+    throw new Error('All tests should be accounted for');
+  }
+
+  // We need to ensure that everything from jest --listTests is accounted for.
+  for (const test of allTests) {
+    if (!tests.has(test)) {
+      throw new Error(`Test ${test} is not accounted for`);
+    }
+  }
+
+  if (!groups[nodeIndex]?.length) {
+    return ['<rootDir>/__no_tests_for_this_shard__'];
+  }
+  return groups[nodeIndex].map(test => `<rootDir>/${test}`);
+}
+
+if (
+  JEST_TESTS &&
+  typeof CI_NODE_TOTAL !== 'undefined' &&
+  typeof CI_NODE_INDEX !== 'undefined'
+) {
+  let balance: null | Record<string, number> = null;
+
+  const BALANCE_RESULTS_PATH = path.resolve(
+    import.meta.dirname,
+    'tests',
+    'js',
+    'test-balancer',
+    'jest-balance.json'
+  );
+  try {
+    balance = (await import(BALANCE_RESULTS_PATH, {with: {type: 'json'}})).default;
+  } catch (err) {
+    // Just ignore if balance results doesn't exist
+  }
+  // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
+  const envTestList: string[] = JEST_TESTS.map(file =>
+    file.replace(import.meta.dirname, '')
+  );
+  const nodeTotal = Number(CI_NODE_TOTAL);
+  const nodeIndex = Number(CI_NODE_INDEX);
+  optionalTags.total_tests = JEST_TESTS.length;
+  optionalTags.node_total = nodeTotal;
+  optionalTags.node_index = nodeIndex;
+
+  if (balance) {
+    testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
+    optionalTags.balancer_strategy = 'by_duration';
+  } else {
+    const tests = envTestList.sort((a, b) => b.localeCompare(a));
+
+    const length = tests.length;
+    const size = Math.floor(length / nodeTotal);
+    const remainder = length % nodeTotal;
+    const offset = Math.min(nodeIndex, remainder) + nodeIndex * size;
+    const chunk = size + (nodeIndex < remainder ? 1 : 0);
+
+    testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
+    optionalTags.balancer_strategy = 'by_name';
+  }
+}
+
+/**
+ * For performance we don't want to try and compile everything in the
+ * node_modules, but some packages which use ES6 syntax only NEED to be
+ * transformed.
+ */
+const ESM_NODE_MODULES = [
+  'screenfull',
+  'cbor2',
+  'nuqs',
+  'color',
+  'marked',
+  '@sentry\\+sqlish',
+];
+
+const config: Config.InitialOptions = {
+  verbose: false,
+  cacheDirectory: '.cache/jest',
+  collectCoverageFrom: [
+    'static/app/**/*.{js,jsx,ts,tsx}',
+    '!static/app/**/*.spec.{js,jsx,ts,tsx}',
+  ],
+  coverageReporters: ['html', 'cobertura'],
+  coverageDirectory: '.artifacts/coverage',
+  moduleNameMapper: {
+    '\\.(css|less|png|gif|jpg|woff|mp4)$':
+      '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
+    '^sentry/(.*)': '<rootDir>/static/app/$1',
+    '^@sentry/scraps/(.*)': '<rootDir>/static/app/components/core/$1',
+    '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
+    '^admin/(.*)': '<rootDir>/static/gsAdmin/$1',
+    '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
+    '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
+    '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
+    '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
+    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
+
+    // Disable echarts in test, since they're very slow and take time to
+    // transform
+    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+
+    // @sentry/sqlish is ESM-only with `exports` that only define `import`
+    // conditions. Jest's CJS resolver can't follow them without explicit mapping.
+    '^@sentry/sqlish/react$': '<rootDir>/node_modules/@sentry/sqlish/dist/react.js',
+    '^@sentry/sqlish$': '<rootDir>/node_modules/@sentry/sqlish/dist/index.js',
+
+    // Disabled @sentry/toolbar in tests. It depends on iframes and global
+    // window/cookies state.
+    '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
+  },
+  passWithNoTests: JEST_TESTS !== undefined,
+  setupFiles: [
+    '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
+    'jest-canvas-mock',
+  ],
+  setupFilesAfterEnv: [
+    '<rootDir>/tests/js/setup.ts',
+    '<rootDir>/tests/js/setupFramework.ts',
+  ],
+  testMatch: testMatch?.length
+    ? testMatch
+    : ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
+  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+
+  unmockedModulePathPatterns: [
+    '<rootDir>/node_modules/react',
+    '<rootDir>/node_modules/reflux',
+  ],
+  transform: {
+    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
+    '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
+  },
+  transformIgnorePatterns: [
+    ESM_NODE_MODULES.length
+      ? `/node_modules/.pnpm/(?!${ESM_NODE_MODULES.join('|')})`
+      : '/node_modules/',
+  ],
+
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
+  globals: {},
+
+  reporters: ['default'],
+  /**
+   * jest.clearAllMocks() automatically called before each test
+   * @link - https://jestjs.io/docs/configuration#clearmocks-boolean
+   */
+  clearMocks: true,
+
+  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.js',
+  testEnvironmentOptions: {
+    globalsCleanup: 'on',
+    sentryConfig: {
+      init: {
+        // jest project under Sentry organization (dev productivity team)
+        dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
+        // Use production env to reduce sampling of commits on master
+        environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
+        tracesSampleRate: CI ? 0.75 : 0,
+        profilesSampleRate: 0,
+        transportOptions: {keepAlive: true},
+      },
+      transactionOptions: {
+        tags: {
+          ...optionalTags,
+          branch: GITHUB_PR_REF,
+          commit: GITHUB_PR_SHA,
+          github_run_attempt: GITHUB_RUN_ATTEMPT,
+          github_actions_run: `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
+        },
+      },
+    },
+  },
+};
+
+export default config;

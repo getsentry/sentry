@@ -1,0 +1,49 @@
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+
+import {t} from 'sentry/locale';
+
+interface Props {
+  jump: undefined | 'up' | 'down';
+  onClick: () => void;
+  tableHeaderHeight: number;
+}
+
+const offsetFromEdge = 5;
+
+export function JumpButtons({jump, onClick, tableHeaderHeight}: Props) {
+  if (jump === 'up') {
+    return (
+      <JumpButton
+        onClick={onClick}
+        aria-label={t('Jump Up')}
+        variant="primary"
+        size="xs"
+        style={{top: `${tableHeaderHeight + offsetFromEdge}px`}}
+      >
+        {t('↑ Jump to current timestamp')}
+      </JumpButton>
+    );
+  }
+  if (jump === 'down') {
+    return (
+      <JumpButton
+        onClick={onClick}
+        aria-label={t('Jump Down')}
+        variant="primary"
+        size="xs"
+        style={{bottom: `${offsetFromEdge}px`}}
+      >
+        {t('↓ Jump to current timestamp')}
+      </JumpButton>
+    );
+  }
+  return null;
+}
+
+const JumpButton = styled(Button)`
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+`;

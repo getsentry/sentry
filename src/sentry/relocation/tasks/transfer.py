@@ -1,0 +1,233 @@
+import logging
+from typing import Any
+
+from django.db.models import Subquery
+from django.utils import timezone
+from sentry_sdk import capture_exception
+from taskbroker_client.task import Task
+
+from sentry.models.files.utils import get_relocation_storage
+from sentry.relocation.models.relocationtransfer import (
+    MAX_AGE,
+    RETRY_BACKOFF,
+    BaseRelocationTransfer,
+    ControlRelocationTransfer,
+    RegionRelocationTransfer,
+    RelocationTransferState,
+)
+from sentry.relocation.services.relocation_export.service import (
+    cell_relocation_export_service,
+    control_relocation_export_service,
+)
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import relocation_control_tasks, relocation_tasks
+from sentry.types.cell import get_local_cell
+
+logger = logging.getLogger("sentry.relocation")
+
+
+@instrumented_task(
+    name="sentry.relocation.transfer.find_relocation_transfer_control",
+    namespace=relocation_control_tasks,
+    silo_mode=SiloMode.CONTROL,
+)
+def find_relocation_transfer_control() -> None:
+    _find_relocation_transfer(ControlRelocationTransfer, process_relocation_transfer_control)
+
+
+@instrumented_task(
+    name="sentry.relocation.transfer.find_relocation_transfer_region",
+    namespace=relocation_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def find_relocation_transfer_region() -> None:
+    _find_relocation_transfer(RegionRelocationTransfer, process_relocation_transfer_region)
+
+
+def _find_relocation_transfer(
+    model_cls: type[BaseRelocationTransfer],
+    process_task: Task[..., Any],
+) -> None:
+    """
+    Advance the scheduled_for time for all transfers that are
+    due, and schedule processing tasks for them.
+    """
+    now = timezone.now()
+    scheduled_ids = model_cls.objects.filter(
+        scheduled_for__lte=now,
+        date_added__gte=now - MAX_AGE,
+    ).values_list("id", flat=True)
+
+    for transfer_id in scheduled_ids:
+        process_task.delay(transfer_id=transfer_id)
+
+    if len(scheduled_ids):
+        # Advance next retry time in case these deliveries fail.
+        model_cls.objects.filter(id__in=Subquery(scheduled_ids)).update(
+            scheduled_for=timezone.now() + RETRY_BACKOFF
+        )
+
+    # Garbage collect expired transfers. Because relocations are
+    # expected to complete in 80min we should purge transfers older than
+    # that.
+    now = timezone.now()
+    expired = model_cls.objects.filter(date_added__lte=now - MAX_AGE)
+    for item in expired:
+        logger.warning(
+            "relocation.expired",
+            extra={
+                "relocation_uuid": item.relocation_uuid,
+                "org_slug": item.org_slug,
+                "requesting_cell": item.requesting_cell,
+                "exporting_cell": item.exporting_cell,
+            },
+        )
+        item.delete()
+
+
+@instrumented_task(
+    name="sentry.relocation.transfer.process_relocation_transfer_control",
+    namespace=relocation_control_tasks,
+    silo_mode=SiloMode.CONTROL,
+    processing_deadline_duration=60,
+)
+def process_relocation_transfer_control(transfer_id: int) -> None:
+    log_context = {"id": transfer_id, "silo": "control"}
+    try:
+        transfer = ControlRelocationTransfer.objects.get(id=transfer_id)
+    except ControlRelocationTransfer.DoesNotExist:
+        logging.warning("relocation.transfer_missing", extra=log_context)
+        return
+    log_context["state"] = transfer.state
+    log_context["relocation_uuid"] = str(transfer.relocation_uuid)
+
+    logger.info("relocation.transfer.processing", extra=log_context)
+
+    if transfer.state == RelocationTransferState.Request:
+        public_key = transfer.public_key or b""
+        if public_key:
+            public_key = bytes(public_key)
+
+        # Forward the export request to the exporting cell.
+        try:
+            cell_relocation_export_service.request_new_export(
+                relocation_uuid=str(transfer.relocation_uuid),
+                requesting_region_name=transfer.requesting_cell,
+                replying_region_name=transfer.exporting_cell,
+                org_slug=transfer.org_slug,
+                encrypt_with_public_key=public_key,
+            )
+            # Once the RPC is successful, we're done with this transfer.
+            transfer.delete()
+        except Exception as err:
+            logging.warning(
+                "relocation.transfer_failed",
+                extra={
+                    **log_context,
+                    "error": str(err),
+                },
+            )
+            capture_exception(err)
+    elif transfer.state == RelocationTransferState.Reply:
+        # We expect the `ProxyRelocationExportService::reply_with_export` implementation to have
+        # written the export data to the control silo's local relocation-specific GCS bucket. Here,
+        # we just read it into memory and attempt the RPC back to the requesting cell.
+        uuid = transfer.relocation_uuid
+        slug = transfer.org_slug
+
+        relocation_storage = get_relocation_storage()
+        path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
+        try:
+            encrypted_bytes = relocation_storage.open(path)
+        except Exception as err:
+            logger.warning(
+                "relocation.failed_open_reply",
+                extra={
+                    **log_context,
+                    "error": str(err),
+                },
+            )
+            capture_exception(err)
+            return
+
+        try:
+            with encrypted_bytes:
+                # Move encrypted bytes to the requesting cell.
+                cell_relocation_export_service.reply_with_export(
+                    relocation_uuid=str(transfer.relocation_uuid),
+                    requesting_region_name=transfer.requesting_cell,
+                    replying_region_name=transfer.exporting_cell,
+                    org_slug=slug,
+                    # TODO(mark): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+                    encrypted_contents=None,
+                    encrypted_bytes=[int(byte) for byte in encrypted_bytes.read()],
+                )
+                # We are done with this stage of the transfer
+                transfer.delete()
+        except Exception as err:
+            logger.warning(
+                "relocation.failed_rpc_reply",
+                extra={
+                    **log_context,
+                    "error": str(err),
+                },
+            )
+            capture_exception(err)
+            return
+
+
+@instrumented_task(
+    name="sentry.relocation.transfer.process_relocation_transfer_region",
+    namespace=relocation_tasks,
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=60,
+)
+def process_relocation_transfer_region(transfer_id: int) -> None:
+    log_context = {"id": transfer_id, "silo": "region", "region": get_local_cell().name}
+
+    try:
+        transfer = RegionRelocationTransfer.objects.get(id=transfer_id)
+    except RegionRelocationTransfer.DoesNotExist:
+        logging.warning("relocation.transfer_missing", extra=log_context)
+        return
+
+    uuid = str(transfer.relocation_uuid)
+    slug = transfer.org_slug
+
+    log_context["state"] = transfer.state
+    log_context["relocation_uuid"] = uuid
+
+    logger.info("relocation.transfer.processing", extra=log_context)
+
+    if transfer.state == RelocationTransferState.Reply:
+        relocation_storage = get_relocation_storage()
+        path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
+        try:
+            encrypted_bytes = relocation_storage.open(path)
+        except Exception as err:
+            logger.warning(
+                "relocation.failed_open.export",
+                extra={
+                    **log_context,
+                    "error": str(err),
+                },
+            )
+            capture_exception(err)
+            return
+
+        with encrypted_bytes:
+            control_relocation_export_service.reply_with_export(
+                relocation_uuid=uuid,
+                requesting_region_name=transfer.requesting_cell,
+                replying_region_name=transfer.exporting_cell,
+                org_slug=slug,
+                # TODO(mark): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+                encrypted_contents=None,
+                encrypted_bytes=[int(byte) for byte in encrypted_bytes.read()],
+            )
+        # Remove the transfer once the reply is sent.
+        transfer.delete()
+    else:
+        logger.warning("relocation.transfer_invalid_state", extra=log_context)
+        transfer.delete()

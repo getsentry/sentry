@@ -1,0 +1,6 @@
+{
+  "html": "<div class=\"section\" id=\"installation\"></div>\n",
+  "link": "https://docs.sentry.io/platforms/python/guides/fastapi/",
+  "id": "python-fastapi",
+  "name": "FastAPI"
+}

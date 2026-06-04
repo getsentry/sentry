@@ -1,0 +1,562 @@
+import {useCallback} from 'react';
+import styled from '@emotion/styled';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
+import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
+import {IconEllipsis, IconSort} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+const sortByOptions = {
+  'recent-first': t('Newest'),
+  'recent-last': t('Oldest'),
+};
+
+export const stackTraceDisplayOptionLabels = {
+  'absolute-addresses': t('Absolute addresses'),
+  'absolute-file-paths': t('Absolute file paths'),
+  minified: t('Unsymbolicated'),
+  'raw-stack-trace': t('Raw stack trace'),
+  'verbose-function-names': t('Verbose function names'),
+};
+
+type Props = {
+  children: React.ReactNode;
+  event: Event;
+  eventId: Event['id'];
+  hasAbsoluteAddresses: boolean;
+  hasAbsoluteFilePaths: boolean;
+  hasMinified: boolean;
+  hasNewestFirst: boolean;
+  hasVerboseFunctionNames: boolean;
+  platform: PlatformKey;
+  projectSlug: Project['slug'];
+  stackTraceNotFound: boolean;
+  title: React.ReactNode;
+  type: string;
+  activeThreadId?: number;
+  isNestedSection?: boolean;
+};
+
+export function TraceEventDataSection({
+  type,
+  title,
+  stackTraceNotFound,
+  children,
+  platform,
+  projectSlug,
+  event,
+  eventId,
+  hasNewestFirst,
+  hasMinified,
+  hasVerboseFunctionNames,
+  hasAbsoluteFilePaths,
+  hasAbsoluteAddresses,
+  isNestedSection = false,
+  activeThreadId,
+}: Props) {
+  const api = useApi();
+  const organization = useOrganization();
+
+  const {
+    displayOptions,
+    isNewestFramesFirst,
+    isFullStackTrace,
+    forceFullStackTrace,
+    setDisplayOptions,
+    setIsNewestFramesFirst,
+    setIsFullStackTrace,
+  } = useStacktraceContext();
+
+  const isMobile = isMobilePlatform(platform);
+
+  const handleFilterFramesChange = (val: 'full' | 'relevant') => {
+    const isFullOptionClicked = val === 'full';
+
+    trackAnalytics(
+      isFullOptionClicked
+        ? 'stack-trace.full_stack_trace_clicked'
+        : 'stack-trace.most_relevant_clicked',
+      {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+      }
+    );
+
+    setIsFullStackTrace(isFullOptionClicked);
+  };
+
+  const handleSortByChange = (val: keyof typeof sortByOptions) => {
+    const isRecentFirst = val === 'recent-first';
+
+    trackAnalytics(
+      isRecentFirst
+        ? 'stack-trace.sort_option_recent_first_clicked'
+        : 'stack-trace.sort_option_recent_last_clicked',
+      {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+      }
+    );
+
+    setIsNewestFramesFirst(isRecentFirst);
+  };
+
+  const handleDisplayChange = (vals: typeof displayOptions) => {
+    if (vals.includes('raw-stack-trace')) {
+      trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('raw-stack-trace')) {
+      trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
+
+    if (vals.includes('absolute-addresses')) {
+      trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('absolute-addresses')) {
+      trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
+
+    if (vals.includes('absolute-file-paths')) {
+      trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('absolute-file-paths')) {
+      trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
+
+    if (vals.includes('minified')) {
+      trackAnalytics(
+        platform.startsWith('javascript')
+          ? 'stack-trace.display_option_minified_clicked'
+          : 'stack-trace.display_option_unsymbolicated_clicked',
+        {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+          checked: true,
+        }
+      );
+    } else if (displayOptions.includes('minified')) {
+      trackAnalytics(
+        platform.startsWith('javascript')
+          ? 'stack-trace.display_option_minified_clicked'
+          : 'stack-trace.display_option_unsymbolicated_clicked',
+        {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+          checked: false,
+        }
+      );
+    }
+
+    if (vals.includes('verbose-function-names')) {
+      trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('verbose-function-names')) {
+      trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
+
+    setDisplayOptions(vals);
+  };
+
+  const handleCopyRawStacktrace = useCallback(() => {
+    trackAnalytics('stack-trace.copy_raw_clicked', {
+      organization,
+      project_slug: projectSlug,
+      platform,
+      is_mobile: isMobile,
+    });
+
+    const useMinified = displayOptions.includes('minified');
+
+    const stacktraceEntries = event.entries.filter(
+      entry =>
+        entry.type === EntryType.EXCEPTION ||
+        entry.type === EntryType.STACKTRACE ||
+        entry.type === EntryType.THREADS
+    );
+
+    const rawStacktraces = stacktraceEntries.map(entry => {
+      if (entry.type === EntryType.EXCEPTION) {
+        return (
+          entry.data.values
+            ?.map(exception => {
+              const stacktraceData = useMinified
+                ? (exception.rawStacktrace ?? exception.stacktrace)
+                : exception.stacktrace;
+              return displayRawContent({
+                data: stacktraceData,
+                platform: stacktraceData?.frames?.[0]?.platform ?? platform,
+                exception,
+                hasSimilarityEmbeddingsFeature: false,
+                includeLocation: true,
+                rawTrace: true,
+                isMinified: useMinified,
+              });
+            })
+            .filter(Boolean)
+            .join('\n\n') ?? ''
+        );
+      }
+      if (entry.type === EntryType.STACKTRACE) {
+        return displayRawContent({
+          data: entry.data,
+          platform: entry.data.frames?.[0]?.platform ?? platform,
+          hasSimilarityEmbeddingsFeature: false,
+          includeLocation: true,
+          rawTrace: true,
+          isMinified: useMinified,
+        });
+      }
+      if (entry.type === EntryType.THREADS) {
+        const activeThread = entry.data.values?.find(
+          thread => thread.id === activeThreadId
+        );
+        if (activeThread) {
+          const stacktraceData = useMinified
+            ? (activeThread.rawStacktrace ?? activeThread.stacktrace)
+            : activeThread.stacktrace;
+          if (stacktraceData) {
+            const threadInfo = activeThread.name ? `Thread: ${activeThread.name}\n` : '';
+            return (
+              threadInfo +
+              displayRawContent({
+                data: stacktraceData,
+                platform: stacktraceData.frames?.[0]?.platform ?? platform,
+                hasSimilarityEmbeddingsFeature: false,
+                includeLocation: true,
+                rawTrace: true,
+                isMinified: useMinified,
+              })
+            );
+          }
+        }
+        return '';
+      }
+      return '';
+    });
+
+    return rawStacktraces.filter(Boolean).join('\n\n');
+  }, [
+    event,
+    platform,
+    organization,
+    projectSlug,
+    isMobile,
+    activeThreadId,
+    displayOptions,
+  ]);
+
+  function getDisplayOptions(): Array<{
+    label: string;
+    value: (typeof displayOptions)[number];
+    disabled?: boolean;
+    tooltip?: string;
+  }> {
+    if (
+      platform === 'objc' ||
+      platform === 'native' ||
+      platform === 'cocoa' ||
+      platform === 'nintendo-switch' ||
+      platform === 'playstation' ||
+      platform === 'xbox'
+    ) {
+      return [
+        {
+          label: stackTraceDisplayOptionLabels['absolute-addresses'],
+          value: 'absolute-addresses',
+          disabled: displayOptions.includes('raw-stack-trace') || !hasAbsoluteAddresses,
+          tooltip: displayOptions.includes('raw-stack-trace')
+            ? t('Not available on raw stack trace')
+            : hasAbsoluteAddresses
+              ? undefined
+              : t('Absolute addresses not available'),
+        },
+        {
+          label: stackTraceDisplayOptionLabels['absolute-file-paths'],
+          value: 'absolute-file-paths',
+          disabled: displayOptions.includes('raw-stack-trace') || !hasAbsoluteFilePaths,
+          tooltip: displayOptions.includes('raw-stack-trace')
+            ? t('Not available on raw stack trace')
+            : hasAbsoluteFilePaths
+              ? undefined
+              : t('Absolute file paths not available'),
+        },
+        {
+          label: stackTraceDisplayOptionLabels.minified,
+          value: 'minified',
+          disabled: !hasMinified,
+          tooltip: hasMinified ? undefined : t('Unsymbolicated version not available'),
+        },
+        {
+          label: stackTraceDisplayOptionLabels['raw-stack-trace'],
+          value: 'raw-stack-trace',
+        },
+        {
+          label: stackTraceDisplayOptionLabels['verbose-function-names'],
+          value: 'verbose-function-names',
+          disabled:
+            displayOptions.includes('raw-stack-trace') || !hasVerboseFunctionNames,
+          tooltip: displayOptions.includes('raw-stack-trace')
+            ? t('Not available on raw stack trace')
+            : hasVerboseFunctionNames
+              ? undefined
+              : t('Verbose function names not available'),
+        },
+      ];
+    }
+
+    if (platform.startsWith('python')) {
+      return [
+        {
+          label: stackTraceDisplayOptionLabels['raw-stack-trace'],
+          value: 'raw-stack-trace',
+        },
+      ];
+    }
+
+    // This logic might be incomplete, but according to the SDK folks, this is 99.9% of the cases
+    if (platform.startsWith('javascript') || platform.startsWith('node')) {
+      return [
+        {
+          label: t('Minified'),
+          value: 'minified',
+          disabled: !hasMinified,
+          tooltip: hasMinified ? undefined : t('Minified version not available'),
+        },
+        {
+          label: stackTraceDisplayOptionLabels['raw-stack-trace'],
+          value: 'raw-stack-trace',
+        },
+      ];
+    }
+
+    return [
+      {
+        label: stackTraceDisplayOptionLabels.minified,
+        value: 'minified',
+        disabled: !hasMinified,
+        tooltip: hasMinified ? undefined : t('Minified version not available'),
+      },
+      {
+        label: stackTraceDisplayOptionLabels['raw-stack-trace'],
+        value: 'raw-stack-trace',
+      },
+    ];
+  }
+
+  const nativePlatform = isNativePlatform(platform);
+  const minified = displayOptions.includes('minified');
+
+  // Apple crash report endpoint
+  const threadIdQuery =
+    activeThreadId === undefined ? '' : `&thread_id=${activeThreadId}`;
+  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}${threadIdQuery}`;
+  const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
+
+  const sortByTooltip = hasNewestFirst
+    ? displayOptions.includes('raw-stack-trace')
+      ? t('Not available on raw stack trace')
+      : undefined
+    : t('Not available on stack trace with single frame');
+
+  const optionsToShow = getDisplayOptions();
+  const displayValues = displayOptions.filter(value =>
+    optionsToShow.some(opt => opt.value === value && !opt.disabled)
+  );
+
+  const actions = !stackTraceNotFound && (
+    <Grid flow="column" align="center" gap="md">
+      {!displayOptions.includes('raw-stack-trace') && (
+        <SegmentedControl
+          size="xs"
+          aria-label={t('Filter frames')}
+          value={isFullStackTrace ? 'full' : 'relevant'}
+          onChange={handleFilterFramesChange}
+        >
+          <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
+            {t('Most Relevant')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="full">
+            {t('Full Stack Trace')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+      )}
+      {displayOptions.includes('raw-stack-trace') && nativePlatform && (
+        <LinkButton
+          size="xs"
+          href={rawStackTraceDownloadLink}
+          tooltipProps={{title: t('Download raw stack trace file')}}
+          onClick={() => {
+            trackAnalytics('stack-trace.download_clicked', {
+              organization,
+              project_slug: projectSlug,
+              platform,
+              is_mobile: isMobile,
+            });
+          }}
+        >
+          {t('Download')}
+        </LinkButton>
+      )}
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            icon={<IconSort />}
+            size="xs"
+            tooltipProps={{title: sortByTooltip}}
+          />
+        )}
+        disabled={!!sortByTooltip}
+        position="bottom-end"
+        onChange={selectedOption => {
+          handleSortByChange(selectedOption.value);
+        }}
+        value={isNewestFramesFirst ? 'recent-first' : 'recent-last'}
+        options={Object.entries(sortByOptions).map(([value, label]) => ({
+          label,
+          value: value as keyof typeof sortByOptions,
+        }))}
+      />
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            size="xs"
+            icon={<IconEllipsis />}
+            aria-label={t('Display as')}
+          >
+            {t('Display as')}
+          </OverlayTrigger.IconButton>
+        )}
+        multiple
+        position="bottom-end"
+        value={displayValues}
+        onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
+        options={[{label: t('Display'), options: optionsToShow}]}
+      />
+
+      <CopyAsDropdown
+        size="xs"
+        items={CopyAsDropdown.makeDefaultCopyAsOptions({
+          text: handleCopyRawStacktrace,
+          json: undefined,
+          markdown: undefined,
+        })}
+      />
+    </Grid>
+  );
+
+  if (isNestedSection) {
+    return (
+      <InlineThreadSection title={title} actions={actions}>
+        {children}
+      </InlineThreadSection>
+    );
+  }
+
+  return (
+    <FoldSection
+      sectionKey={type}
+      title={title}
+      disableCollapsePersistence
+      actions={actions}
+    >
+      {children}
+    </FoldSection>
+  );
+}
+
+function InlineThreadSection({
+  children,
+  title,
+  actions,
+}: {
+  actions: React.ReactNode;
+  children: React.ReactNode;
+  title: React.ReactNode;
+}) {
+  return (
+    <Container>
+      <Flex justify="between" align="center" marginBottom="md">
+        <ThreadHeading>{title}</ThreadHeading>
+        {actions}
+      </Flex>
+      {children}
+    </Container>
+  );
+}
+
+const ThreadHeading = styled('h3')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  margin-bottom: ${p => p.theme.space.md};
+`;

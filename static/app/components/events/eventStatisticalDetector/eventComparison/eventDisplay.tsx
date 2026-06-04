@@ -1,0 +1,389 @@
+import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {DateTime} from 'sentry/components/dateTime';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {EventTags} from 'sentry/components/events/eventTags';
+import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
+import {
+  ActualMinimap,
+  MINIMAP_HEIGHT,
+  MinimapBackground,
+} from 'sentry/components/events/interfaces/spans/minimap';
+import {WaterfallModel} from 'sentry/components/events/interfaces/spans/waterfallModel';
+import {OpsBreakdown} from 'sentry/components/events/opsBreakdown';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {IconChevron, IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {getShortEventId} from 'sentry/utils/events';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+const BUTTON_ICON_SIZE = 'sm';
+const BUTTON_SIZE = 'sm';
+
+function getSampleEventQuery({
+  transaction,
+  durationBaseline,
+  addUpperBound = true,
+}: {
+  durationBaseline: number;
+  transaction: string;
+  addUpperBound?: boolean;
+}) {
+  const baseQuery = `event.type:transaction transaction:["${transaction}"] transaction.duration:>=${
+    durationBaseline * 0.5
+  }ms`;
+
+  if (addUpperBound) {
+    return `${baseQuery} transaction.duration:<=${durationBaseline * 1.5}ms`;
+  }
+
+  return baseQuery;
+}
+
+// A hook for getting "sample events" for a transaction
+// In its current state it will just fetch at most 5 events that match the
+// transaction name within a range of the duration baseline provided
+function useFetchSampleEvents({
+  start,
+  end,
+  transaction,
+  durationBaseline,
+  projectId,
+}: {
+  durationBaseline: number;
+  end: number;
+  projectId: number;
+  start: number;
+  transaction: string;
+}) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const eventView = new EventView({
+    dataset: DiscoverDatasets.DISCOVER,
+    // Assumes the start and end timestamps are already in milliseconds
+    start: new Date(start).toISOString(),
+    end: new Date(end).toISOString(),
+    fields: [{field: 'id'}, {field: 'timestamp'}],
+    query: getSampleEventQuery({transaction, durationBaseline}),
+
+    createdBy: undefined,
+    display: undefined,
+    id: undefined,
+    environment: [],
+    name: undefined,
+    project: [projectId],
+    sorts: [],
+    statsPeriod: undefined,
+    team: [],
+    topEvents: undefined,
+  });
+
+  return useDiscoverQuery({
+    eventView,
+    location,
+    orgSlug: organization.slug,
+    limit: 20,
+  });
+}
+
+interface NavButtonProps {
+  disabled: boolean;
+  icon: React.ReactNode;
+  onPaginate: () => void;
+  title: string;
+}
+
+function NavButton({title, disabled, icon, onPaginate}: NavButtonProps) {
+  return (
+    <Tooltip title={title} disabled={disabled} skipWrapper>
+      <div>
+        <StyledNavButton
+          size={BUTTON_SIZE}
+          aria-label={title}
+          icon={icon}
+          disabled={disabled}
+          onClick={onPaginate}
+        />
+      </div>
+    </Tooltip>
+  );
+}
+
+interface EventDisplayProps {
+  durationBaseline: number;
+  end: number;
+  eventSelectLabel: string;
+  project: Project;
+  start: number;
+  transaction: string;
+}
+
+function EventDisplay({
+  eventSelectLabel,
+  project,
+  start,
+  end,
+  transaction,
+  durationBaseline,
+}: EventDisplayProps) {
+  const theme = useTheme();
+  const organization = useOrganization();
+  const location = useLocation();
+  const [selectedEventId, setSelectedEventId] = useState('');
+
+  const {data, isPending, isError} = useFetchSampleEvents({
+    start,
+    end,
+    transaction,
+    durationBaseline,
+    projectId: parseInt(project.id, 10),
+  });
+
+  const eventIds = data?.data.map(({id}) => id);
+
+  const {data: eventData, isFetching} = useApiQuery<EventTransaction>(
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            eventId: selectedEventId,
+          },
+        }
+      ),
+    ],
+    {staleTime: Infinity, retry: false, enabled: !!selectedEventId && !!project.slug}
+  );
+
+  useEffect(() => {
+    if (defined(eventIds) && eventIds.length > 0 && !selectedEventId) {
+      setSelectedEventId(eventIds[0]!);
+    }
+  }, [eventIds, selectedEventId]);
+
+  const eventIdIndex = eventIds?.indexOf(selectedEventId);
+  const hasNext =
+    defined(eventIdIndex) && defined(eventIds) && eventIdIndex + 1 < eventIds.length;
+  const hasPrev = defined(eventIdIndex) && eventIdIndex - 1 >= 0;
+
+  if (isError) {
+    return null;
+  }
+
+  if (isPending || isFetching) {
+    return <LoadingIndicator />;
+  }
+
+  if (!defined(eventData) || !defined(eventIds)) {
+    return (
+      <EmptyStateWrapper>
+        <EmptyStateWarning withIcon>
+          <div>{t('Unable to find a sample event')}</div>
+        </EmptyStateWarning>
+      </EmptyStateWrapper>
+    );
+  }
+
+  const waterfallModel = new WaterfallModel(eventData);
+  const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
+  const fullEventTarget = generateLinkToEventInTraceView({
+    eventId: eventData.id,
+    traceSlug,
+    timestamp: eventData.endTimestamp,
+    location,
+    organization,
+  });
+  return (
+    <Stack gap="md">
+      <div>
+        <Flex justify="between">
+          <StyledEventControls>
+            <CompactSelect
+              size="sm"
+              disabled={false}
+              options={eventIds.map(id => ({
+                value: id,
+                label: id,
+                details: <DateTime date={data?.data.find(d => d.id === id)?.timestamp} />,
+              }))}
+              value={selectedEventId}
+              onChange={({value}) => setSelectedEventId(value)}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps}>
+                  {
+                    <ButtonLabelWrapper>
+                      <TextOverflow>
+                        {eventSelectLabel}:{' '}
+                        <SelectionTextWrapper>
+                          {getShortEventId(selectedEventId)}
+                        </SelectionTextWrapper>
+                      </TextOverflow>
+                    </ButtonLabelWrapper>
+                  }
+                </OverlayTrigger.Button>
+              )}
+            />
+            <LinkButton
+              tooltipProps={{title: t('Full Event Details')}}
+              size={BUTTON_SIZE}
+              to={fullEventTarget}
+              aria-label={t('Full Event Details')}
+              icon={<IconOpen />}
+            />
+          </StyledEventControls>
+          <div>
+            <NavButtons>
+              <NavButton
+                title={t('Previous Event')}
+                disabled={!hasPrev}
+                icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
+                onPaginate={() => {
+                  if (hasPrev) {
+                    setSelectedEventId(eventIds[eventIdIndex - 1]!);
+                  }
+                }}
+              />
+              <NavButton
+                title={t('Next Event')}
+                disabled={!hasNext}
+                icon={<IconChevron direction="right" size={BUTTON_ICON_SIZE} />}
+                onPaginate={() => {
+                  if (hasNext) {
+                    setSelectedEventId(eventIds[eventIdIndex + 1]!);
+                  }
+                }}
+              />
+            </NavButtons>
+          </div>
+        </Flex>
+        <ComparisonContentWrapper>
+          <Link to={fullEventTarget}>
+            <MinimapContainer>
+              <MinimapPositioningContainer>
+                <ActualMinimap
+                  theme={theme}
+                  spans={waterfallModel.getWaterfall({
+                    viewStart: 0,
+                    viewEnd: 1,
+                  })}
+                  generateBounds={waterfallModel.generateBounds({
+                    viewStart: 0,
+                    viewEnd: 1,
+                  })}
+                  dividerPosition={0}
+                  rootSpan={waterfallModel.rootSpan.span}
+                />
+              </MinimapPositioningContainer>
+            </MinimapContainer>
+          </Link>
+
+          <OpsBreakdown event={eventData} operationNameFilters={noFilter} hideHeader />
+        </ComparisonContentWrapper>
+      </div>
+
+      <EventTags event={eventData} projectSlug={project.slug} />
+    </Stack>
+  );
+}
+
+export {EventDisplay};
+
+const ButtonLabelWrapper = styled('span')`
+  width: 100%;
+  text-align: left;
+  align-items: center;
+  display: inline-grid;
+  grid-template-columns: 1fr auto;
+`;
+
+const StyledEventControls = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+`;
+
+const MinimapPositioningContainer = styled('div')`
+  position: absolute;
+  top: 0;
+  width: 100%;
+
+  ${MinimapBackground} {
+    overflow-y: scroll;
+  }
+`;
+
+const MinimapContainer = styled('div')`
+  height: ${MINIMAP_HEIGHT}px;
+  max-height: ${MINIMAP_HEIGHT}px;
+  position: relative;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
+const ComparisonContentWrapper = styled('div')`
+  border: ${p => `1px solid ${p.theme.tokens.border.primary}`};
+  border-radius: ${p => p.theme.radius.md};
+  overflow: hidden;
+`;
+
+const EmptyStateWrapper = styled('div')`
+  border: ${p => `1px solid ${p.theme.tokens.border.primary}`};
+  border-radius: ${p => p.theme.radius.md};
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const SelectionTextWrapper = styled('span')`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
+
+const StyledNavButton = styled(Button)`
+  border-radius: 0;
+`;
+
+const NavButtons = styled('div')`
+  display: flex;
+
+  > * {
+    &:not(:last-child) {
+      ${StyledNavButton} {
+        border-right: none;
+      }
+    }
+
+    &:first-child {
+      ${StyledNavButton} {
+        border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
+      }
+    }
+
+    &:last-child {
+      ${StyledNavButton} {
+        border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
+      }
+    }
+  }
+`;

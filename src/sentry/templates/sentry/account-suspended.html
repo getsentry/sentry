@@ -1,0 +1,10 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Account Suspended" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <h2>Account Suspended</h2>
+  <p>Your account has been suspended.</p>
+{% endblock %}

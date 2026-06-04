@@ -1,0 +1,26 @@
+import {t} from 'sentry/locale';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+export function LogDetails() {
+  const logsQueryResult = useLogsPageDataQueryResult();
+
+  if (!logsQueryResult?.data?.length) {
+    return null;
+  }
+  return (
+    <FoldSection
+      sectionKey={SectionKey.LOGS}
+      title={t('Logs')}
+      disableCollapsePersistence
+    >
+      <LogsInfiniteTable
+        embedded
+        analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+      />
+    </FoldSection>
+  );
+}

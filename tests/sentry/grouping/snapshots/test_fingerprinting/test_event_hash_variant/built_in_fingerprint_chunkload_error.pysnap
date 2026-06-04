@@ -1,0 +1,34 @@
+---
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
+---
+config:
+  rules: []
+  version: 1
+fingerprint:
+- chunkloaderror
+title: 'ChunkLoadError: ChunkLoadError: something something...'
+variants:
+  app:
+    component:
+      contributes: false
+      hint: ignored because built-in fingerprint takes precedence
+    contributes: false
+    hint: ignored because built-in fingerprint takes precedence
+    key: app_exception_stacktrace
+    type: component
+  built_in_fingerprint:
+    contributes: true
+    hint: null
+    key: built_in_fingerprint
+    matched_rule: family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"
+    type: custom_fingerprint
+    values:
+    - chunkloaderror
+  system:
+    component:
+      contributes: false
+      hint: ignored because built-in fingerprint takes precedence
+    contributes: false
+    hint: ignored because built-in fingerprint takes precedence
+    key: system_exception_stacktrace
+    type: component

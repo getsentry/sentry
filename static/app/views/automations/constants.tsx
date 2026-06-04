@@ -1,0 +1,1 @@
+export const AUTOMATION_LIST_PAGE_LIMIT = 20;

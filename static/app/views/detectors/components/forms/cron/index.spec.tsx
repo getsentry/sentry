@@ -1,0 +1,126 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
+
+import {NewCronDetectorForm} from './index';
+
+describe('NewCronDetectorForm', () => {
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
+
+  beforeEach(() => {
+    OrganizationStore.init();
+    OrganizationStore.onUpdate(organization, {replace: true});
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitors-schedule-window/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitors-schedule-buckets/`,
+      body: [],
+    });
+  });
+
+  const renderForm = (routerConfig?: any) => {
+    return render(
+      <DetectorFormProvider detectorType="monitor_check_in_failure">
+        <NewCronDetectorForm />
+      </DetectorFormProvider>,
+      {
+        organization,
+        initialRouterConfig: routerConfig,
+      }
+    );
+  };
+
+  it('renders form sections when no guide is shown', async () => {
+    renderForm();
+
+    // Form sections should be visible
+    expect(await screen.findByTestId('form-sections')).toBeVisible();
+
+    // Create Monitor button should be present and enabled
+    const createButton = screen.getByRole('button', {name: 'Create Monitor'});
+    expect(createButton).toBeInTheDocument();
+    expect(createButton).toBeEnabled();
+  });
+
+  it('hides form sections and disables create button when a platform guide is shown', async () => {
+    renderForm({
+      location: {
+        pathname: '/test/',
+        query: {platform: 'php', guide: 'upsert'},
+      },
+    });
+
+    // Wait for render to complete
+    await screen.findByText('Step 2 of 2');
+
+    // Form sections should be hidden
+    expect(screen.getByTestId('form-sections')).not.toBeVisible();
+
+    // Create Monitor button should be present but disabled
+    const createButton = screen.getByRole('button', {name: 'Create Monitor'});
+    expect(createButton).toBeInTheDocument();
+    expect(createButton).toBeDisabled();
+  });
+
+  it('renders issue preview and updates title when name changes', async () => {
+    renderForm();
+
+    // Issue preview section should render with fallback title
+    expect(await screen.findByTestId('issue-preview-section')).toBeInTheDocument();
+    expect(screen.getByText('Cron failure: …')).toBeInTheDocument();
+    expect(
+      screen.getByText('Your monitor is failing: A missed check-in was detected')
+    ).toBeInTheDocument();
+
+    // Edit the monitor name
+    const title = screen.getByText('New Monitor');
+    await userEvent.click(title);
+    const nameInput = screen.getByRole('textbox', {name: 'Monitor Name'});
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'My Cron Job{Enter}');
+
+    // Issue preview updates with the new name
+    expect(await screen.findByText('Cron failure: My Cron Job')).toBeInTheDocument();
+  });
+
+  it('shows form sections and enabled button when guide is set to "manual"', async () => {
+    renderForm({
+      location: {
+        pathname: '/test/',
+        query: {platform: 'php', guide: 'manual'},
+      },
+    });
+
+    // Form sections should be visible even with platform set, because guide is "manual"
+    expect(await screen.findByText(/Detect/)).toBeInTheDocument();
+    expect(screen.getByText(/Issue Ownership/)).toBeInTheDocument();
+
+    // Create Monitor button should be present and enabled
+    const createButton = screen.getByRole('button', {name: 'Create Monitor'});
+    expect(createButton).toBeInTheDocument();
+    expect(createButton).toBeEnabled();
+  });
+});

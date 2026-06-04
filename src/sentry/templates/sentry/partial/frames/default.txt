@@ -1,0 +1,4 @@
+{% autoescape off %}
+{% if filename %}  File "{{ filename }}"{% elif module %}  Module "{{ module }}"{% else %}  ?{% endif %}{% if lineno != None %}, line {{ lineno }}{% endif %}{% if function %}, in {{ function }}{% endif %}{% if context_line %}
+    {{ context_line.strip }}{% endif %}
+{% endautoescape %}

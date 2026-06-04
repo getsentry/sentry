@@ -1,0 +1,676 @@
+import {useMemo} from 'react';
+import {type Theme} from '@emotion/react';
+import type {YAXisComponentOption} from 'echarts';
+
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import Feature from 'sentry/components/acl/feature';
+import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart';
+import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
+import {useChartZoom} from 'sentry/components/charts/useChartZoom';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {Placeholder} from 'sentry/components/placeholder';
+import {IconInfo, IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Series} from 'sentry/types/echarts';
+import type {GroupOpenPeriod} from 'sentry/types/group';
+import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
+import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {
+  buildDetectorZoomQuery,
+  computeZoomRangeMs,
+} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
+import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
+import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
+import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
+import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
+import {
+  useIncidentMarkers,
+  type IncidentPeriod,
+} from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
+import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
+import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
+import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
+import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
+
+/**
+ * Shift data points from bucket-start to bucket-end timestamps.
+ * The API returns timestamps at the start of each bucket (e.g. 1pm for 1pm–2pm),
+ * but we want to display them at the end (2pm) since the value represents
+ * the data collected during the preceding interval.
+ *
+ * The reason we do this for metric charts is that it's important that the data points
+ * visually align with the open period markers. If an open period starts at 1pm, it should
+ * be vertically aligned with the data point for 12pm-1pm.
+ */
+function shiftSeriesToBucketEnd(seriesList: Series[], intervalSeconds: number): Series[] {
+  const offsetMs = intervalSeconds * 1000;
+  return seriesList.map(s => ({
+    ...s,
+    data: s.data.map(point => ({
+      ...point,
+      name: (point.name as number) + offsetMs,
+    })),
+  }));
+}
+
+interface IncidentTooltipContext {
+  period: IncidentPeriod;
+  theme: Theme;
+}
+
+function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
+  const startTime = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
+  const endTime = ctx.period.end
+    ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
+    : '-';
+  const color =
+    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
+  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
+
+  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
+  return [
+    '<div class="tooltip-series">',
+    `<div><span class="tooltip-label"><strong>#${ctx.period.id}</strong></span></div>`,
+    `<div><span class="tooltip-label">${t('Started')}</span> ${startTime}</div>`,
+    `<div><span class="tooltip-label">${t('Ended')}</span> ${endTime}</div>`,
+    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
+    '</div>',
+    '<div class="tooltip-arrow arrow-top"></div>',
+  ].join('');
+}
+
+function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
+  const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
+  const color =
+    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
+  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
+  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
+  return [
+    '<div class="tooltip-series">',
+    `<div><span class="tooltip-label"><strong>${t('#%s Triggered', ctx.period.id)}</strong></span></div>`,
+    `<div><span class="tooltip-label">${t('Started')}</span> ${time}</div>`,
+    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
+    '</div>',
+    '<div class="tooltip-arrow arrow-top"></div>',
+  ].join('');
+}
+
+interface MetricDetectorDetailsChartProps {
+  detector: MetricDetector;
+  // Passing snubaQuery separately to avoid checking null in all places
+  snubaQuery: SnubaQuery;
+}
+const CHART_HEIGHT = 180;
+
+interface UseMetricDetectorChartProps {
+  detector: MetricDetector;
+  openPeriods: GroupOpenPeriod[];
+  enabled?: boolean;
+  /**
+   * Relative time period (e.g., '7d'). Use either statsPeriod or absolute start/end.
+   */
+  end?: string | null;
+  height?: number;
+  /**
+   * Display a persistent highlight area for the open period with the given ID.
+   */
+  highlightedOpenPeriodId?: string;
+  start?: string | null;
+  statsPeriod?: string | null;
+}
+
+function createTriggerIntervalMarkerData({
+  period,
+  intervalMs,
+}: {
+  intervalMs: number;
+  period: GroupOpenPeriod;
+}): IncidentPeriod {
+  return {
+    id: period.id,
+    end: new Date(period.start).getTime(),
+    priority: period.activities[0]?.value ?? 'high',
+    start: new Date(period.start).getTime() - intervalMs,
+    type: 'trigger-interval',
+  };
+}
+
+function createOpenPeriodMarkerData({
+  period,
+}: {
+  period: GroupOpenPeriod;
+}): IncidentPeriod[] {
+  const endDate = period.end ? new Date(period.end).getTime() : Date.now();
+
+  const segments = period.activities
+    .filter(activity => activity.type !== 'closed')
+    .map((activity, i) => {
+      const activityEndTime = new Date(
+        period.activities[i + 1]?.dateCreated ?? period.end ?? endDate
+      ).getTime();
+
+      return {
+        priority: activity.value,
+        end: activityEndTime,
+        start: new Date(activity.dateCreated).getTime(),
+      };
+    });
+
+  return segments.map((segment, i) => ({
+    type: i === 0 ? 'open-period-start' : 'open-period-transition',
+    end: segment.end,
+    id: period.id,
+    name: t('Open Periods'),
+    priority: segment.priority ?? 'high',
+    start: segment.start,
+  }));
+}
+
+type UseMetricDetectorChartResult =
+  | {
+      chartProps: AreaChartProps;
+      error: null;
+      isAnomalyThresholdCutOff: boolean;
+      isLoading: false;
+    }
+  | {chartProps: null; error: null; isAnomalyThresholdCutOff: false; isLoading: true}
+  | {
+      chartProps: null;
+      error: Error;
+      isAnomalyThresholdCutOff: false;
+      isLoading: false;
+    };
+
+export function useMetricDetectorChart({
+  statsPeriod,
+  start,
+  end,
+  detector,
+  enabled = true,
+  openPeriods,
+  highlightedOpenPeriodId,
+  height = CHART_HEIGHT,
+}: UseMetricDetectorChartProps): UseMetricDetectorChartResult {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const detectionType = detector.config.detectionType;
+  const comparisonDelta =
+    detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
+  const snubaQuery = detector.dataSources[0].queryObj.snubaQuery;
+  const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
+  const datasetConfig = getDatasetConfig(dataset);
+  const aggregate = datasetConfig.fromApiAggregate(snubaQuery.aggregate);
+  const {
+    series,
+    comparisonSeries,
+    isLoading,
+    error,
+    unit,
+    outputType: serverOutputType,
+  } = useMetricDetectorSeries({
+    detectorDataset: dataset,
+    dataset: snubaQuery.dataset,
+    extrapolationMode: snubaQuery.extrapolationMode,
+    aggregate: snubaQuery.eventTypes.includes(EventTypes.TRACE_ITEM_METRIC)
+      ? snubaQuery.aggregate
+      : aggregate,
+    interval: snubaQuery.timeWindow,
+    query: datasetConfig.toSnubaQueryString(snubaQuery),
+    environment: snubaQuery.environment,
+    projectId: detector.projectId,
+    eventTypes: snubaQuery.eventTypes,
+    comparisonDelta,
+    statsPeriod,
+    start,
+    end,
+    options: {enabled},
+  });
+
+  const metricTimestamps = useMetricTimestamps(series);
+
+  const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
+    useMetricDetectorThresholdSeries({
+      aggregate,
+      conditions: detector.conditionGroup?.conditions,
+      detectionType,
+      comparisonSeries,
+    });
+
+  const {anomalyThresholdSeries} = useMetricDetectorAnomalyThresholds({
+    detectorId: detector.id,
+    detectionType,
+    startTimestamp: metricTimestamps.start,
+    endTimestamp: metricTimestamps.end,
+    series,
+  });
+
+  const filteredAnomalyThresholdSeries = useFilteredAnomalyThresholdSeries({
+    anomalyThresholdSeries,
+    detector,
+  });
+
+  const incidentPeriods = useMemo(() => {
+    return openPeriods.flatMap<IncidentPeriod>(period => [
+      createTriggerIntervalMarkerData({
+        period,
+        intervalMs: snubaQuery.timeWindow * 1000,
+      }),
+      ...createOpenPeriodMarkerData({period}),
+    ]);
+  }, [openPeriods, snubaQuery.timeWindow]);
+
+  const openPeriodMarkerResult = useIncidentMarkers({
+    incidents: incidentPeriods,
+    highlightedIncidentId: highlightedOpenPeriodId,
+    seriesName: t('Open Periods'),
+    seriesId: '__incident_marker__',
+    yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
+    seriesTooltip: incidentSeriesTooltip,
+    markLineTooltip: incidentMarklineTooltip,
+    onClick: context => {
+      const startMs = context.period.start;
+      const endMs = context.period.end ?? Date.now();
+      const intervalSeconds = Number(snubaQuery.timeWindow) || 60;
+      const zoomRange = computeZoomRangeMs({
+        startMs,
+        endMs,
+        intervalSeconds,
+      });
+      navigate({
+        pathname: location.pathname,
+        query: buildDetectorZoomQuery(location.query, zoomRange),
+      });
+    },
+  });
+
+  const chartZoomProps = useChartZoom({
+    usePageDate: true,
+  });
+
+  const {maxValue, minValue} = useDetectorChartAxisBounds({
+    series,
+    thresholdMaxValue,
+    aggregate,
+  });
+
+  // Check if any anomaly threshold values exceed the chart's upper bound
+  const isAnomalyThresholdCutOff = useMemo(() => {
+    if (maxValue <= 0) {
+      return false;
+    }
+    return filteredAnomalyThresholdSeries.some(seriesItem => {
+      const data = (seriesItem as {data?: Array<[number, number]>}).data;
+      if (!data) {
+        return false;
+      }
+      return data.some(([, value]) => value > maxValue);
+    });
+  }, [filteredAnomalyThresholdSeries, maxValue]);
+
+  const additionalSeries = useMemo(() => {
+    const baseSeries = [...thresholdAdditionalSeries, ...filteredAnomalyThresholdSeries];
+
+    // Line series not working well with the custom series type
+    baseSeries.push(openPeriodMarkerResult.incidentMarkerSeries as any);
+    if (openPeriodMarkerResult.highlightedIncidentAreaSeries) {
+      baseSeries.push(openPeriodMarkerResult.highlightedIncidentAreaSeries as any);
+    }
+
+    return baseSeries;
+  }, [
+    thresholdAdditionalSeries,
+    filteredAnomalyThresholdSeries,
+    openPeriodMarkerResult.incidentMarkerSeries,
+    openPeriodMarkerResult.highlightedIncidentAreaSeries,
+  ]);
+
+  const yAxes = useMemo(() => {
+    const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
+      detectionType,
+      aggregate,
+      unit,
+      serverOutputType,
+    });
+
+    const isPercentage = outputType === 'percentage';
+    // Use calculated max/min values from data and thresholds for appropriate scaling
+    const yAxisMax = maxValue > 0 ? maxValue : undefined;
+    const yAxisMin = minValue;
+
+    // For percentages, use 2 decimal places
+    const customFormatter = (value: number): string => {
+      if (isPercentage) {
+        return axisLabelFormatterUsingAggregateOutputType(
+          value,
+          outputType,
+          true,
+          undefined,
+          undefined,
+          2
+        );
+      }
+      return formatYAxisLabel(value);
+    };
+
+    const mainYAxis: YAXisComponentOption = {
+      max: yAxisMax,
+      min: yAxisMin,
+      axisLabel: {
+        // Show max label for percentage but hide for other types to avoid arbitrary values
+        showMaxLabel: isPercentage,
+        // Format the axis labels with units
+        formatter: customFormatter,
+      },
+      // Disable the y-axis grid lines
+      splitLine: {show: false},
+    };
+
+    const axes: YAXisComponentOption[] = [mainYAxis];
+
+    if (openPeriodMarkerResult.incidentMarkerYAxis) {
+      axes.push(openPeriodMarkerResult.incidentMarkerYAxis);
+    }
+
+    return axes;
+  }, [
+    detectionType,
+    aggregate,
+    maxValue,
+    minValue,
+    openPeriodMarkerResult.incidentMarkerYAxis,
+    serverOutputType,
+    unit,
+  ]);
+
+  const grid = useMemo(() => {
+    return {
+      left: '2px',
+      right: '2px',
+      top: '12px',
+      bottom: '8px',
+      ...openPeriodMarkerResult.incidentMarkerGrid,
+    };
+  }, [openPeriodMarkerResult.incidentMarkerGrid]);
+
+  const chartProps = useMemo<AreaChartProps | null>(() => {
+    if (isLoading || error) {
+      return null;
+    }
+    return {
+      showTimeInTooltip: true,
+      height,
+      stacked: false,
+      series: shiftSeriesToBucketEnd(series, snubaQuery.timeWindow),
+      additionalSeries,
+      yAxes: yAxes.length > 1 ? yAxes : undefined,
+      yAxis: yAxes.length === 1 ? yAxes[0] : undefined,
+      grid,
+      xAxis: openPeriodMarkerResult.incidentMarkerXAxis,
+      tooltip: {
+        // Data points are shifted to bucket-end timestamps
+        // so we need to subtract the interval to get the bucket-start time.
+        formatAxisLabel: (
+          value,
+          isTimestamp,
+          utc,
+          showTimeInTooltip,
+          addSecondsToTimeFormat,
+          bucketSize
+        ) =>
+          defaultFormatAxisLabel(
+            value - snubaQuery.timeWindow * 1000,
+            isTimestamp,
+            utc,
+            showTimeInTooltip,
+            addSecondsToTimeFormat,
+            bucketSize
+          ).toString(),
+        valueFormatter: getDetectorChartFormatters({
+          detectionType,
+          aggregate,
+          unit,
+          serverOutputType,
+        }).formatTooltipValue,
+      },
+      ...chartZoomProps,
+      onChartReady: chart => {
+        chartZoomProps.onChartReady(chart);
+        openPeriodMarkerResult.onChartReady(chart);
+      },
+    } satisfies AreaChartProps;
+  }, [
+    additionalSeries,
+    aggregate,
+    chartZoomProps,
+    detectionType,
+    error,
+    grid,
+    height,
+    isLoading,
+    openPeriodMarkerResult,
+    series,
+    serverOutputType,
+    snubaQuery.timeWindow,
+    unit,
+    yAxes,
+  ]);
+
+  if (chartProps) {
+    return {
+      chartProps,
+      error: null,
+      isAnomalyThresholdCutOff,
+      isLoading: false,
+    };
+  }
+
+  if (error) {
+    return {
+      chartProps: null,
+      error,
+      isAnomalyThresholdCutOff: false,
+      isLoading: false,
+    };
+  }
+
+  return {
+    isLoading: true,
+    error: null,
+    isAnomalyThresholdCutOff: false,
+    chartProps: null,
+  };
+}
+
+interface OpenInButtonProps {
+  detector: MetricDetector;
+}
+
+function OpenInButton({detector}: OpenInButtonProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
+
+  const isUsingMigratedExtrapolationMode = useIsMigratedExtrapolation({
+    dataset: getDetectorDataset(snubaQuery?.dataset, snubaQuery?.eventTypes),
+    extrapolationMode: snubaQuery?.extrapolationMode,
+  });
+
+  if (!snubaQuery) {
+    return null;
+  }
+
+  const destination = getDetectorOpenInDestination({
+    detectorName: detector.name,
+    organization,
+    projectId: detector.projectId,
+    snubaQuery,
+    statsPeriod: decodeScalar(location.query.statsPeriod),
+    start: decodeScalar(location.query.start),
+    end: decodeScalar(location.query.end),
+  });
+
+  if (!destination?.to) {
+    return null;
+  }
+
+  const disabledTooltip = isUsingMigratedExtrapolationMode
+    ? t(
+        'This detector cannot be opened in Explore until you update thresholds and resave.'
+      )
+    : undefined;
+
+  return (
+    <Feature features="visibility-explore-view">
+      <LinkButton
+        size="xs"
+        to={destination.to}
+        disabled={isUsingMigratedExtrapolationMode}
+        tooltipProps={{title: disabledTooltip}}
+      >
+        {destination.buttonText}
+      </LinkButton>
+    </Feature>
+  );
+}
+
+function ChartContainer({
+  children,
+  overflow,
+}: {
+  children: React.ReactNode;
+  overflow?: 'hidden';
+}) {
+  return (
+    <Container border="muted" radius="md" overflow={overflow}>
+      {children}
+    </Container>
+  );
+}
+
+function ChartBody({children}: {children: React.ReactNode}) {
+  return <Container padding="lg">{children}</Container>;
+}
+
+function ChartFooter({
+  detector,
+  isAnomalyThresholdCutOff,
+}: {
+  detector: MetricDetector;
+  isAnomalyThresholdCutOff?: boolean;
+}) {
+  return (
+    <Flex justify="between" align="center" padding="lg" borderTop="muted">
+      {isAnomalyThresholdCutOff ? (
+        <Flex align="center" gap="xs">
+          <IconInfo size="xs" variant="muted" />
+          <Text size="sm" variant="muted">
+            {t('Some anomaly thresholds are outside the chart area')}
+          </Text>
+        </Flex>
+      ) : (
+        <div />
+      )}
+      <OpenInButton detector={detector} />
+    </Flex>
+  );
+}
+
+export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChartProps) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const dateParams = normalizeDateTimeParams(location.query);
+  const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
+
+  const destination =
+    snubaQuery &&
+    getDetectorOpenInDestination({
+      detectorName: detector.name,
+      organization,
+      projectId: detector.projectId,
+      snubaQuery,
+      statsPeriod: decodeScalar(location.query.statsPeriod),
+      start: decodeScalar(location.query.start),
+      end: decodeScalar(location.query.end),
+    });
+
+  const {data: openPeriods = []} = useOpenPeriods({
+    detectorId: detector.id,
+    ...dateParams,
+  });
+
+  const {chartProps, isLoading, error, isAnomalyThresholdCutOff} = useMetricDetectorChart(
+    {
+      detector,
+      openPeriods,
+      height: CHART_HEIGHT,
+      ...dateParams,
+    }
+  );
+
+  if (isLoading) {
+    return (
+      <ChartContainer>
+        <ChartBody>
+          <Flex height={CHART_HEIGHT} justify="center" align="center">
+            <Placeholder height={`${CHART_HEIGHT}px`} />
+          </Flex>
+        </ChartBody>
+        {destination && <ChartFooter detector={detector} />}
+      </ChartContainer>
+    );
+  }
+  if (error || !chartProps) {
+    const errorMessage =
+      error instanceof RequestError && typeof error?.responseJSON?.detail === 'string'
+        ? error.responseJSON.detail
+        : null;
+    return (
+      <ChartContainer overflow="hidden">
+        {errorMessage && (
+          <Alert system variant="danger">
+            {errorMessage}
+          </Alert>
+        )}
+        <ChartBody>
+          <Flex justify="center" align="center">
+            <ErrorPanel height={`${CHART_HEIGHT - 45}px`}>
+              <IconWarning variant="muted" size="lg" />
+              <div>{t('Error loading chart data')}</div>
+            </ErrorPanel>
+          </Flex>
+        </ChartBody>
+        {destination && <ChartFooter detector={detector} />}
+      </ChartContainer>
+    );
+  }
+
+  return (
+    <ChartContainer>
+      <ChartBody>
+        <AreaChart {...chartProps} />
+      </ChartBody>
+      {destination && (
+        <ChartFooter
+          detector={detector}
+          isAnomalyThresholdCutOff={isAnomalyThresholdCutOff}
+        />
+      )}
+    </ChartContainer>
+  );
+}

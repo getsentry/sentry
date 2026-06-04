@@ -1,0 +1,83 @@
+import type {CSSProperties, ReactNode} from 'react';
+import styled from '@emotion/styled';
+
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {IconArrow, IconInfo} from 'sentry/icons';
+
+type BaseRecord = Record<string, unknown>;
+export interface SortConfig<RecordType extends BaseRecord> {
+  asc: boolean;
+  by: keyof RecordType | string;
+  getValue: (row: RecordType) => any;
+}
+
+type Props<SortableRecord extends BaseRecord> = {
+  field: string;
+  handleSort: (fieldName: string) => void;
+  label: ReactNode;
+  sortConfig: SortConfig<SortableRecord>;
+  style: CSSProperties;
+  tooltipTitle: undefined | ReactNode;
+  ref?: React.Ref<HTMLButtonElement>;
+};
+
+const StyledIconInfo = styled(IconInfo)`
+  display: block;
+`;
+
+function CatchClicks({children}: {children: ReactNode}) {
+  return <div onClick={e => e.stopPropagation()}>{children}</div>;
+}
+
+export function HeaderCell<T extends BaseRecord>({
+  field,
+  handleSort,
+  label,
+  sortConfig,
+  style,
+  tooltipTitle,
+  ref,
+}: Props<T>) {
+  return (
+    <HeaderButton style={style} onClick={() => handleSort(field)} ref={ref}>
+      {label}
+      {tooltipTitle ? (
+        <Tooltip isHoverable title={<CatchClicks>{tooltipTitle}</CatchClicks>}>
+          <StyledIconInfo size="xs" />
+        </Tooltip>
+      ) : null}
+      <IconArrow
+        variant="muted"
+        size="xs"
+        direction={sortConfig.by === field && !sortConfig.asc ? 'down' : 'up'}
+        style={{visibility: sortConfig.by === field ? 'visible' : 'hidden'}}
+      />
+    </HeaderButton>
+  );
+}
+
+const HeaderButton = styled('button')`
+  border: 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
+
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  line-height: 16px;
+  text-align: unset;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs}
+    ${p => p.theme.space.lg};
+
+  svg {
+    margin-left: ${p => p.theme.space['2xs']};
+  }
+`;

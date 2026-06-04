@@ -1,0 +1,194 @@
+import {useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {Truncate} from 'sentry/components/truncate';
+import {getRegions} from 'sentry/utils/regions';
+import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {DebounceSearch} from 'admin/components/debounceSearch';
+import {Overview} from 'admin/views/overview';
+
+export function HomePage() {
+  const navigate = useNavigate();
+  const regions = getRegions();
+  const [oldSplash, setOldSplash] = useState(false);
+  const [regionUrl, setRegionUrl] = useState(regions[0]!.url);
+  const selectedRegion = regions.find((region: any) => region.url === regionUrl);
+
+  const buildOrgPath = (org: any) => `/_admin/customers/${org.slug}/`;
+  const orgSelect = (org: any) => {
+    navigate(buildOrgPath(org));
+  };
+  const orgSubmit = (query: string) => {
+    navigate({
+      pathname: '/_admin/customers/',
+      query: {
+        query,
+        regionUrl,
+      },
+    });
+  };
+  const buildUserPath = (user: any) => `/_admin/users/${user.id}/`;
+  const userSelect = (user: any) => {
+    navigate(buildUserPath(user));
+  };
+  const userSubmit = (query: string) => {
+    navigate({
+      pathname: '/_admin/users/',
+      query: {
+        query,
+      },
+    });
+  };
+  const buildProjPath = (proj: any) =>
+    `/_admin/customers/${proj.organization.slug}/projects/${proj.slug}/`;
+  const projSelect = (proj: any) => {
+    navigate(buildProjPath(proj));
+  };
+
+  const renderOrgSuggestion = (org: any) => {
+    return (
+      <div>
+        <strong>{org.slug}</strong> (<SecondaryText>{org.name}</SecondaryText>)
+      </div>
+    );
+  };
+  const renderUserSuggestion = (user: any) => {
+    return (
+      <UserBadge
+        hideEmail
+        user={user}
+        displayName={<Truncate maxLength={40} value={user.name} />}
+      />
+    );
+  };
+  const renderProjSuggestion = (proj: any) => {
+    return (
+      <div>
+        <strong>{proj.organization.slug}</strong>: {proj.slug} (id:{' '}
+        <SecondaryText>{proj.id}</SecondaryText>)
+      </div>
+    );
+  };
+
+  if (oldSplash) {
+    return <Overview />;
+  }
+  return (
+    <Container padding="2xl">
+      <Flex align="center" margin="3xl 0">
+        <HeaderTitle>Welcome to the Admin Portal!</HeaderTitle>
+      </Flex>
+      <div>
+        <strong>
+          This is an internal tool meant to enable Sentry Employees (you!) to better
+          assist and resolve issues that may arise for our customers.
+        </strong>
+        <div>
+          If you have any questions, ask us in{' '}
+          <a
+            href="https://app.slack.com/client/T024ZCV9U/CQDHVRS2W"
+            target="_blank"
+            rel="noreferrer"
+          >
+            #triage-product
+          </a>
+          .
+        </div>
+      </div>
+      <Flex justify="center" margin="xl 0">
+        <Warning>
+          <strong>NOTE:</strong>&nbsp;
+          <span>All actions are logged and audited</span>
+        </Warning>
+      </Flex>
+      <div>
+        <Container as="label" display="block" marginTop="xl">
+          Users
+        </Container>
+        <DebounceSearch
+          path="/users/"
+          onSelectResult={userSelect}
+          onSearch={userSubmit}
+          suggestionContent={renderUserSuggestion}
+          placeholder="Query users"
+          createSuggestionPath={buildUserPath}
+        />
+      </div>
+      <Container padding="3xl 0">
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+          )}
+          value={regionUrl}
+          options={regions.map((r: any) => ({
+            label: r.name,
+            value: r.url,
+          }))}
+          onChange={opt => {
+            setRegionUrl(opt.value);
+          }}
+        />
+
+        <Container as="label" display="block" marginTop="xl">
+          Organizations
+        </Container>
+        <DebounceSearch
+          host={regionUrl}
+          path={
+            selectedRegion
+              ? `/_admin/cells/${selectedRegion.name}/customers/`
+              : '/customers/'
+          }
+          onSelectResult={orgSelect}
+          onSearch={orgSubmit}
+          suggestionContent={renderOrgSuggestion}
+          placeholder="Query organizations"
+          createSuggestionPath={buildOrgPath}
+        />
+
+        <Container as="label" display="block" marginTop="xl">
+          Projects (by ID)
+        </Container>
+        <DebounceSearch
+          createSuggestionPath={buildProjPath}
+          onSelectResult={projSelect}
+          placeholder="Project ID"
+          queryParam="id"
+          host={regionUrl}
+          path="/projects/?show=all"
+          suggestionContent={renderProjSuggestion}
+        />
+      </Container>
+
+      <Container margin="xl 0">
+        <div>Looking for the old overview page?</div>
+        <Button size="xs" onClick={() => setOldSplash(true)}>
+          click here
+        </Button>
+      </Container>
+    </Container>
+  );
+}
+
+const HeaderTitle = styled('h3')`
+  margin: 0;
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: normal;
+  color: ${p => p.theme.tokens.content.primary};
+`;
+
+const SecondaryText = styled('span')`
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const Warning = styled('div')`
+  color: red;
+  font-size: large;
+`;

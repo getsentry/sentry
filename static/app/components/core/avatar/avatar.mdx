@@ -1,0 +1,226 @@
+---
+title: Avatar
+description: Avatars display an image of users, teams, organizations, and other Sentry-specific items.
+category: display
+source: '@sentry/scraps/avatar'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/alert/index.tsx
+---
+
+import {Fragment} from 'react';
+
+import {Flex} from '@sentry/scraps/layout';
+
+import {Placeholder} from 'sentry/components/placeholder';
+import * as Storybook from 'sentry/stories';
+import {useMembers} from 'sentry/utils/members/useMembers';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
+
+import {
+  AvatarList,
+  DocIntegrationAvatar,
+  OrganizationAvatar,
+  ProjectAvatar,
+  SentryAppAvatar,
+  TeamAvatar,
+  UserAvatar,
+} from '@sentry/scraps/avatar';
+
+import {
+  DOC_INTEGRATION,
+  ORGANIZATION,
+  PREVIEW_SIZE,
+  PROJECT,
+  SENTRY_APP,
+  TEAM,
+  USER,
+} from './__stories__/fixtures';
+
+export const documentation = import('!!type-loader!@sentry/scraps/avatar');
+
+There are multiple avatar components which represent users, teams, organizations, projects, and integrations.
+
+<Storybook.Demo>
+  <UserAvatar size={PREVIEW_SIZE} user={USER} />
+  <TeamAvatar size={PREVIEW_SIZE} team={TEAM} />
+  <ProjectAvatar size={PREVIEW_SIZE} project={PROJECT} />
+  <OrganizationAvatar size={PREVIEW_SIZE} organization={ORGANIZATION} />
+  <SentryAppAvatar size={PREVIEW_SIZE} sentryApp={SENTRY_APP} />
+  <DocIntegrationAvatar size={PREVIEW_SIZE} docIntegration={DOC_INTEGRATION} />
+</Storybook.Demo>
+
+## Types
+
+To distinguish between individuals (users) and groups (teams, organizations, etc) at glance, avatars may use different shapes. Individuals are displayed with a round avatar, but groups are displayed with a square avatar.
+
+### User
+
+The `<UserAvatar />` component displays an avatar for a user.
+
+<Storybook.Demo>
+  <UserAvatar size={PREVIEW_SIZE} user={USER} />
+</Storybook.Demo>
+```jsx
+<UserAvatar user={user} />
+```
+
+### Team
+
+The `<TeamAvatar />` component displays an avatar for a team.
+
+<Storybook.Demo>
+  <TeamAvatar size={PREVIEW_SIZE} team={TEAM} />
+</Storybook.Demo>
+```jsx
+<TeamAvatar team={team} />
+```
+
+### Project
+
+The `<ProjectAvatar project={project} />` component displays an avatar for a project.
+
+<Storybook.Demo>
+  <ProjectAvatar size={PREVIEW_SIZE} project={PROJECT} />
+</Storybook.Demo>
+```jsx
+<ProjectAvatar project={project} />
+```
+
+### Organization
+
+The `<OrganizationAvatar />` component displays an avatar for an organization.
+
+<Storybook.Demo>
+  <OrganizationAvatar size={PREVIEW_SIZE} organization={ORGANIZATION} />
+</Storybook.Demo>
+```jsx
+<OrganizationAvatar organization={organization} />
+```
+
+### Sentry App
+
+The `<SentryAppAvatar sentryApp={sentryApp} />` component displays an avatar for a SentryApp (integration).
+
+<Storybook.Demo>
+  <SentryAppAvatar size={PREVIEW_SIZE} sentryApp={SENTRY_APP} />
+</Storybook.Demo>
+```jsx
+<SentryAppAvatar sentryApp={sentryApp} />
+```
+
+### Doc Integration
+
+The `<DocIntegrationAvatar />` component displays an avatar for a doc integration.
+
+<Storybook.Demo>
+  <DocIntegrationAvatar size={PREVIEW_SIZE} docIntegration={DOC_INTEGRATION} />
+</Storybook.Demo>
+```jsx
+<DocIntegrationAvatar docIntegration={docIntegration} />
+```
+
+## Avatar Lists
+
+To display multiple avatars in a group, use the `AvatarList` component. It accepts `users` or `teams`.
+
+export function useLoadedMembers() {
+  const {data: members = [], isPending: fetching} = useMembers({limit: 50});
+
+return {members, fetching};
+}
+
+export function BasicDemo() {
+const {teams, isLoading} = useUserTeams();
+  const {members, fetching} = useLoadedMembers();
+    if (fetching || isLoading) {
+        return <Placeholder />
+    }
+
+    return <Flex direction="column" align="center" gap="md">
+        <AvatarList users={members} />
+        <AvatarList teams={teams} />
+    </Flex>
+
+}
+
+<Storybook.Demo>
+  <BasicDemo />
+</Storybook.Demo>
+```jsx
+<AvatarList users={users} />
+<AvatarList teams={teams} />
+```
+
+### Combined Types
+
+Setting both `users` and `teams` props will display both, with `teams` always displayed first.
+
+export function TeamAndMembers() {
+    const {teams, isLoading} = useUserTeams();
+    const {members, fetching} = useLoadedMembers();
+
+    if (isLoading || fetching) {
+        return <Placeholder />
+    }
+
+    return <AvatarList teams={teams} users={members} />
+
+}
+
+<Storybook.Demo>
+  <TeamAndMembers />
+</Storybook.Demo>
+```jsx
+<AvatarList teams={teams} users={members} />
+```
+
+### Custom tooltip
+
+Pass the `typeAvatars` to customize the tooltip on the summary avatar, for example "10 other users" would become "10 other users and teams".
+
+export function TypeAvatars() {
+    const {teams, isLoading} = useUserTeams();
+    const {members, fetching} = useLoadedMembers();
+
+    if (isLoading || fetching) {
+        return <Placeholder />;
+    }
+
+    return <Fragment>
+        <AvatarList
+            teams={teams}
+            users={members}
+            maxVisibleAvatars={10}
+            typeAvatars="users and teams"
+        />
+    </Fragment>
+
+}
+
+<Storybook.Demo>
+  <TypeAvatars />
+</Storybook.Demo>
+```jsx
+<AvatarList teams={teams} users={users} typeAvatars="users and teams" />
+```
+
+### Customizing display
+
+The `avatarSize` and `maxVisibleAvatars` props can be used to adjust the display of an AvatarList. By default, `avatarSize` is `28` and `maxVisibleAvatars` is `5`.
+
+export function Display() {
+    const {members, fetching} = useLoadedMembers();
+
+    if (fetching) {
+        return <Placeholder />
+    }
+    return <AvatarList avatarSize={48} maxVisibleAvatars={10} users={members} />
+
+}
+
+<Storybook.Demo>
+  <Display />
+</Storybook.Demo>
+```jsx
+<AvatarList users={users} avatarSize={48} maxVisibleAvatars={10} />
+```

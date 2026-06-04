@@ -1,0 +1,141 @@
+import {Fragment, useState} from 'react';
+import {css, useTheme} from '@emotion/react';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import type {Authenticator} from 'sentry/types/auth';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
+type Props = ModalRenderProps & {
+  authenticatorName: string;
+};
+
+function RecoveryOptionsModal({
+  authenticatorName,
+  closeModal,
+  Body,
+  Header,
+  Footer,
+}: Props) {
+  const theme = useTheme();
+  const {
+    isPending,
+    isError,
+    refetch: refetchAuthenticators,
+    data: authenticators = [],
+  } = useApiQuery<Authenticator[]>(
+    [getApiUrl('/users/$userId/authenticators/', {path: {userId: 'me'}})],
+    {
+      staleTime: 5000, // expire after 5 seconds
+    }
+  );
+  const [skipSms, setSkipSms] = useState(false);
+
+  const {recovery, sms} = authenticators.reduce<Record<string, Authenticator>>(
+    (obj, item) => {
+      obj[item.id] = item;
+      return obj;
+    },
+    {}
+  );
+
+  const recoveryEnrolled = recovery?.isEnrolled;
+  const displaySmsPrompt =
+    sms && !sms.isEnrolled && !skipSms && !sms.disallowNewEnrollment;
+
+  const handleSkipSms = () => {
+    setSkipSms(true);
+  };
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return (
+      <LoadingError
+        message={t('There was an error loading authenticators.')}
+        onRetry={refetchAuthenticators}
+      />
+    );
+  }
+
+  return (
+    <Fragment>
+      <Header closeButton>{t('Two-Factor Authentication Enabled')}</Header>
+
+      <Body>
+        <TextBlock>
+          {t('Two-factor authentication via %s has been enabled.', authenticatorName)}
+        </TextBlock>
+        <TextBlock>
+          {t('You should now set up recovery options to secure your account.')}
+        </TextBlock>
+
+        {displaySmsPrompt ? (
+          // set up backup phone number
+          <Alert.Container>
+            <Alert variant="warning" showIcon={false}>
+              {t('We recommend adding a phone number as a backup 2FA method.')}
+            </Alert>
+          </Alert.Container>
+        ) : (
+          // get recovery codes
+          <Alert.Container>
+            <Alert variant="warning" showIcon={false}>
+              {t(
+                `Recovery codes are the only way to access your account if you lose
+                  your device and cannot receive two-factor authentication codes.`
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
+      </Body>
+
+      {displaySmsPrompt ? (
+        // set up backup phone number
+        <Footer>
+          <Button onClick={handleSkipSms} name="skipStep" autoFocus>
+            {t('Skip this step')}
+          </Button>
+          <LinkButton
+            variant="primary"
+            onClick={closeModal}
+            to={`/settings/account/security/mfa/${sms.id}/enroll/`}
+            css={css`
+              margin-left: ${theme.space.md};
+            `}
+            autoFocus
+          >
+            {t('Add a Phone Number')}
+          </LinkButton>
+        </Footer>
+      ) : (
+        // get recovery codes
+        <Footer>
+          <LinkButton
+            variant="primary"
+            onClick={closeModal}
+            to={
+              recoveryEnrolled
+                ? `/settings/account/security/mfa/${recovery.authId}/`
+                : '/settings/account/security/'
+            }
+            autoFocus
+          >
+            {t('Get Recovery Codes')}
+          </LinkButton>
+        </Footer>
+      )}
+    </Fragment>
+  );
+}
+
+export default RecoveryOptionsModal;

@@ -1,0 +1,317 @@
+from __future__ import annotations
+
+import ast
+from collections.abc import Generator
+from datetime import datetime, timezone
+from typing import Any
+
+S001_fmt = (
+    "S001 Avoid using the {} mock call as it is "
+    "confusing and prone to causing invalid test "
+    "behavior."
+)
+S001_methods = frozenset(("not_called", "called_once", "called_once_with"))
+
+S002_msg = "S002 print functions or statements are not allowed."
+
+S003_msg = "S003 Use `from sentry.utils import json` instead."
+S003_modules = frozenset(("json", "simplejson"))
+
+S004_msg = "S004 Use `pytest.raises` instead for better debuggability."
+S004_methods = frozenset(("assertRaises", "assertRaisesRegex"))
+
+S005_msg = "S005 Do not import models from sentry.models but the actual module"
+
+S006_msg = "S006 Do not use force_bytes / force_str -- test the types directly"
+
+S007_msg = "S007 Do not import sentry.testutils into production code."
+
+S008_msg = "S008 Use datetime.fromisoformat rather than guessing at date formats"
+
+S009_msg = "S009 Use `raise` with no arguments to reraise exceptions"
+
+S010_msg = "S010 Except handler does nothing and should be removed"
+
+S011_msg = "S011 Use override_options(...) instead to ensure proper cleanup"
+
+# SentryIsAuthenticated extends from IsAuthenticated and provides additional checks for demo users
+S012_msg = "S012 Use `from sentry.api.permissions import SentryIsAuthenticated` instead"
+
+S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
+
+S014_msg = "S014 Use `unittest.mock` instead"
+
+S016_msg = "S016 Use `from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor` instead of `concurrent.futures.ThreadPoolExecutor` to ensure contextvars propagation."
+
+S017_msg = (
+    "S017 Platform boundary violation: do not import non-platform getsentry code in "
+    "billing/platform/. Use only getsentry.billing.platform.* imports."
+)
+
+S018_msg = (
+    "S018 Use `sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache` "
+    "instead of `django.core.cache.backends.memcached.PyMemcacheCache`."
+)
+S018_fqn = "django.core.cache.backends.memcached.PyMemcacheCache"  # noqa: S018
+S018_module = "django.core.cache.backends.memcached"
+
+
+# --- S015: do not hardcode current or future UTC year as test "now" ---
+# Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
+def _s015_msg() -> str:
+    return (
+        "S015 Do not hardcode datetime with current or future UTC year at module/class "
+        "scope or in freeze_time(...); use before_now(...), now-timedelta, or an older fixed year"
+    )
+
+
+def _is_tests_path(filename: str) -> bool:
+    return "tests/" in filename or "testutils/" in filename
+
+
+def _is_platform_path(filename: str) -> bool:
+    return "billing/platform/" in filename and "tests/" not in filename
+
+
+def _is_non_platform_import(module: str) -> bool:
+    """Check if a getsentry import is outside the billing platform."""
+    if module.startswith("getsentry.") or module == "getsentry":
+        platform_prefix = "getsentry.billing.platform"
+        if not (module.startswith(platform_prefix + ".") or module == platform_prefix):
+            return True
+    return False
+
+
+# Returns the literal year when this is a datetime(...) call shape we lint for.
+def _wall_clock_year_from_datetime_call(node: ast.Call) -> int | None:
+    if not node.args:
+        return None
+    y = node.args[0]
+    if not isinstance(y, ast.Constant) or not isinstance(y.value, int):
+        return None
+    if isinstance(node.func, ast.Name) and node.func.id == "datetime":
+        return y.value
+    if (
+        isinstance(node.func, ast.Attribute)
+        and node.func.attr == "datetime"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "datetime"
+    ):
+        return y.value
+    return None
+
+
+class SentryVisitor(ast.NodeVisitor):
+    def __init__(self, filename: str, s015_year: int, s015_msg: str) -> None:
+        self.errors: list[tuple[int, int, str]] = []
+        self.filename = filename
+        self._s015_year = s015_year
+        self._s015_msg = s015_msg
+
+        self._except_vars: list[str | None] = []
+        self._function_depth = 0
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        if node.module and not node.level:
+            if node.module.split(".")[0] in S003_modules:
+                self.errors.append((node.lineno, node.col_offset, S003_msg))
+            elif node.module == "sentry.models":
+                self.errors.append((node.lineno, node.col_offset, S005_msg))
+            elif (
+                ("tests/" in self.filename or "testutils/" in self.filename)
+                and node.module == "django.utils.encoding"
+                and any(x.name in {"force_bytes", "force_str"} for x in node.names)
+            ):
+                self.errors.append((node.lineno, node.col_offset, S006_msg))
+            elif (
+                "tests/" in self.filename or "testutils/" in self.filename
+            ) and node.module == "dateutil.parser":
+                self.errors.append((node.lineno, node.col_offset, S008_msg))
+            elif (
+                "tests/" not in self.filename
+                and "fixtures/" not in self.filename
+                and "sentry/testutils/" not in self.filename
+                and "sentry.testutils" in node.module
+            ):
+                self.errors.append((node.lineno, node.col_offset, S007_msg))
+            elif node.module == "rest_framework.permissions" and any(
+                x.name == "IsAuthenticated" for x in node.names
+            ):
+                self.errors.append((node.lineno, node.col_offset, S012_msg))
+            elif node.module == "sentry.db.models.fields.array":
+                self.errors.append((node.lineno, node.col_offset, S013_msg))
+            elif node.module == "concurrent.futures" and any(
+                x.name == "ThreadPoolExecutor" for x in node.names
+            ):
+                self.errors.append((node.lineno, node.col_offset, S016_msg))
+            elif node.module == S018_module and any(
+                x.name == "PyMemcacheCache" for x in node.names
+            ):
+                self.errors.append((node.lineno, node.col_offset, S018_msg))
+
+        if (
+            _is_platform_path(self.filename)
+            and node.module
+            and not node.level
+            and _is_non_platform_import(node.module)
+        ):
+            self.errors.append((node.lineno, node.col_offset, S017_msg))
+
+        self.generic_visit(node)
+
+    def visit_Import(self, node: ast.Import) -> None:
+        for alias in node.names:
+            if alias.name.split(".")[0] in S003_modules:
+                self.errors.append((node.lineno, node.col_offset, S003_msg))
+            elif (
+                "tests/" not in self.filename
+                and "fixtures/" not in self.filename
+                and "sentry/testutils/" not in self.filename
+                and "sentry.testutils" in alias.name
+            ):
+                self.errors.append((node.lineno, node.col_offset, S007_msg))
+
+        if _is_platform_path(self.filename):
+            for alias in node.names:
+                if _is_non_platform_import(alias.name):
+                    self.errors.append((node.lineno, node.col_offset, S017_msg))
+
+        self.generic_visit(node)
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        if node.attr in S001_methods:
+            self.errors.append((node.lineno, node.col_offset, S001_fmt.format(node.attr)))
+        elif node.attr in S004_methods:
+            self.errors.append((node.lineno, node.col_offset, S004_msg))
+        elif (
+            node.attr == "ThreadPoolExecutor"
+            and isinstance(node.value, ast.Attribute)
+            and node.value.attr == "futures"
+            and isinstance(node.value.value, ast.Name)
+            and node.value.value.id == "concurrent"
+        ):
+            self.errors.append((node.lineno, node.col_offset, S016_msg))
+
+        self.generic_visit(node)
+
+    def visit_Name(self, node: ast.Name) -> None:
+        if node.id == "print":
+            self.errors.append((node.lineno, node.col_offset, S002_msg))
+
+        self.generic_visit(node)
+
+    def visit_Constant(self, node: ast.Constant) -> None:
+        if isinstance(node.value, str) and node.value == S018_fqn:
+            self.errors.append((node.lineno, node.col_offset, S018_msg))
+
+        self.generic_visit(node)
+
+    def visit_arg(self, node: ast.arg) -> None:
+        if node.arg == "monkeypatch":
+            self.errors.append((node.lineno, node.col_offset, S014_msg))
+
+        self.generic_visit(node)
+
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        self._except_vars.append(node.name)
+        try:
+            self.generic_visit(node)
+        finally:
+            self._except_vars.pop()
+
+    def visit_Raise(self, node: ast.Raise) -> None:
+        if (
+            self._except_vars
+            and isinstance(node.exc, ast.Name)
+            and node.exc.id == self._except_vars[-1]
+        ):
+            self.errors.append((node.lineno, node.col_offset, S009_msg))
+        self.generic_visit(node)
+
+    def visit_Try(self, node: ast.Try) -> None:
+        if (
+            node.handlers
+            and len(node.handlers[-1].body) == 1
+            and isinstance(node.handlers[-1].body[0], ast.Raise)
+            and node.handlers[-1].body[0].exc is None
+        ):
+            self.errors.append((node.handlers[-1].lineno, node.handlers[-1].col_offset, S010_msg))
+
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._function_depth += 1
+        try:
+            self.generic_visit(node)
+        finally:
+            self._function_depth -= 1
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._function_depth += 1
+        try:
+            self.generic_visit(node)
+        finally:
+            self._function_depth -= 1
+
+    def visit_Lambda(self, node: ast.Lambda) -> None:
+        self._function_depth += 1
+        try:
+            self.generic_visit(node)
+        finally:
+            self._function_depth -= 1
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        if (
+            _is_tests_path(self.filename)
+            and self._function_depth == 0
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and isinstance(node.value, ast.Call)
+        ):
+            y = _wall_clock_year_from_datetime_call(node.value)
+            if y is not None and y >= self._s015_year:
+                self.errors.append((node.lineno, node.col_offset, self._s015_msg))
+        self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        if _is_tests_path(self.filename):
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "freeze_time"
+                and node.args
+                and isinstance(node.args[0], ast.Call)
+            ):
+                y = _wall_clock_year_from_datetime_call(node.args[0])
+                if y is not None and y >= self._s015_year:
+                    self.errors.append((node.lineno, node.col_offset, self._s015_msg))
+        if (
+            # override_settings(...)
+            (isinstance(node.func, ast.Name) and node.func.id == "override_settings")
+            or
+            # self.settings(...)
+            (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "self"
+                and node.func.attr == "settings"
+            )
+        ):
+            for keyword in node.keywords:
+                if keyword.arg == "SENTRY_OPTIONS":
+                    self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+        self.generic_visit(node)
+
+
+class SentryCheck:
+    def __init__(self, tree: ast.AST, filename: str) -> None:
+        self.tree = tree
+        self.filename = filename
+
+    def run(self) -> Generator[tuple[int, int, str, type[Any]]]:
+        cy = datetime.now(timezone.utc).year
+        visitor = SentryVisitor(self.filename, cy, _s015_msg())
+        visitor.visit(self.tree)
+
+        for e in visitor.errors:
+            yield (*e, type(self))

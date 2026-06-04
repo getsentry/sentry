@@ -1,0 +1,228 @@
+import {useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {Grid} from '@sentry/scraps/layout';
+
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {
+  BreadcrumbControlOptions,
+  BreadcrumbsDrawer,
+} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
+import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
+import {
+  BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+  BREADCRUMB_TIME_DISPLAY_OPTIONS,
+  BreadcrumbTimeDisplay,
+  getEnhancedBreadcrumbs,
+  getSummaryBreadcrumbs,
+} from 'sentry/components/events/breadcrumbs/utils';
+import {
+  BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+  BreadcrumbSort,
+} from 'sentry/components/events/interfaces/breadcrumbs';
+import {IconClock, IconEllipsis, IconSearch, IconTimer} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+interface BreadcrumbsDataSectionProps {
+  event: Event;
+  group: Group;
+  project: Project;
+  initialCollapse?: boolean;
+}
+
+export function BreadcrumbsDataSection({
+  event,
+  group,
+  project,
+  initialCollapse,
+}: BreadcrumbsDataSectionProps) {
+  const theme = useTheme();
+  const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+  const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
+  const organization = useOrganization();
+  const [timeDisplay, setTimeDisplay] = useLocalStorageState(
+    BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+    BreadcrumbTimeDisplay.ABSOLUTE
+  );
+  // Use the local storage preferences, but allow the drawer to do updates
+  const [sort, _setSort] = useLocalStorageState(
+    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+    BreadcrumbSort.NEWEST
+  );
+
+  const enhancedCrumbs = useMemo(
+    () => getEnhancedBreadcrumbs(event, theme),
+    [event, theme]
+  );
+  const summaryCrumbs = useMemo(
+    () => getSummaryBreadcrumbs(enhancedCrumbs, sort),
+    [enhancedCrumbs, sort]
+  );
+  const startTimeString = useMemo(
+    () =>
+      timeDisplay === BreadcrumbTimeDisplay.RELATIVE
+        ? summaryCrumbs?.at(0)?.breadcrumb?.timestamp
+        : undefined,
+    [summaryCrumbs, timeDisplay]
+  );
+
+  const onViewAllBreadcrumbs = (focusControl?: BreadcrumbControlOptions) => {
+    trackAnalytics('breadcrumbs.issue_details.drawer_opened', {
+      control: focusControl ?? 'view all',
+      organization,
+    });
+    openDrawer(
+      () => (
+        <BreadcrumbsDrawer
+          breadcrumbs={enhancedCrumbs}
+          focusControl={focusControl}
+          project={project}
+          event={event}
+          group={group}
+        />
+      ),
+      {
+        ariaLabel: 'breadcrumb drawer',
+        drawerKey: 'breadcrumbs-drawer',
+        // We prevent a click on the 'View All' button from closing the drawer so that
+        // we don't reopen it immediately, and instead let the button handle this itself.
+        shouldCloseOnInteractOutside: element => {
+          const viewAllButton = viewAllButtonRef.current;
+          if (viewAllButton?.contains(element)) {
+            return false;
+          }
+          // Third-party packages (e.g. Pendo) use a container with id "pendo-guide-container".
+          // If the click is inside that container, treat it as an internal click.
+          if (element.closest('#pendo-guide-container')) {
+            return false;
+          }
+          return true;
+        },
+      }
+    );
+  };
+
+  if (enhancedCrumbs.length === 0) {
+    return null;
+  }
+
+  const nextTimeDisplay =
+    timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
+      ? BreadcrumbTimeDisplay.RELATIVE
+      : BreadcrumbTimeDisplay.ABSOLUTE;
+
+  const actions = (
+    <Grid flow="column" align="center" gap="md">
+      <Button
+        aria-label={t('Open Breadcrumb Search')}
+        icon={<IconSearch size="xs" />}
+        size="xs"
+        tooltipProps={{title: t('Open Search')}}
+        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
+      />
+      <Button
+        aria-label={t('Change Time Format for Breadcrumbs')}
+        tooltipProps={{
+          title: tct('Use [format] Timestamps', {
+            format: BREADCRUMB_TIME_DISPLAY_OPTIONS[nextTimeDisplay].label,
+          }),
+        }}
+        icon={
+          timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
+            <IconClock size="xs" />
+          ) : (
+            <IconTimer size="xs" />
+          )
+        }
+        onClick={() => {
+          setTimeDisplay(nextTimeDisplay);
+          trackAnalytics('breadcrumbs.issue_details.change_time_display', {
+            value: nextTimeDisplay,
+            organization,
+          });
+        }}
+        size="xs"
+      />
+      <CopyBreadcrumbsDropdown breadcrumbs={enhancedCrumbs} />
+    </Grid>
+  );
+
+  const numHiddenCrumbs = enhancedCrumbs.length - summaryCrumbs.length;
+
+  return (
+    <FoldSection
+      sectionKey={SectionKey.BREADCRUMBS}
+      title={t('Breadcrumbs')}
+      actions={actions}
+      initialCollapse={initialCollapse}
+    >
+      <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
+        <div ref={setContainer}>
+          <BreadcrumbsTimeline
+            breadcrumbs={summaryCrumbs}
+            startTimeString={startTimeString}
+            // We want the timeline to appear connected to the 'View All' button
+            showLastLine
+            fullyExpanded={false}
+            containerElement={container}
+          />
+        </div>
+        <ViewAllContainer>
+          <VerticalEllipsis />
+          <div>
+            <ViewAllButton
+              size="sm"
+              // Since we've disabled the button as an 'outside click' for the drawer we can change
+              // the operation based on the drawer state.
+              onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllBreadcrumbs())}
+              ref={viewAllButtonRef}
+            >
+              {numHiddenCrumbs > 0 ? t('View %s more', numHiddenCrumbs) : t('View All')}
+            </ViewAllButton>
+          </div>
+        </ViewAllContainer>
+      </ErrorBoundary>
+    </FoldSection>
+  );
+}
+
+const ViewAllContainer = styled('div')`
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  margin-top: ${p => p.theme.space.md};
+  &::after {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    width: 1px;
+    top: -${p => p.theme.space.md};
+    height: ${p => p.theme.space.md};
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
+`;
+
+const VerticalEllipsis = styled(IconEllipsis)`
+  height: 22px;
+  color: ${p => p.theme.tokens.content.secondary};
+  margin: ${p => p.theme.space.xs};
+  transform: rotate(90deg);
+`;
+
+const ViewAllButton = styled(Button)`
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+`;

@@ -1,0 +1,392 @@
+import {useState} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+import pick from 'lodash/pick';
+
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
+import {hasEveryAccess} from 'sentry/components/acl/access';
+import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
+import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
+import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
+import {openConfirmModal} from 'sentry/components/confirm';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {ActorBadge} from 'sentry/components/idBadge/actorBadge';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {fadeIn} from 'sentry/styles/animations';
+import type {ObjectStatus} from 'sentry/types/core';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
+import type {Monitor} from 'sentry/views/insights/crons/types';
+import {
+  checkInStatusPrecedent,
+  statusToText,
+  tickStyle,
+} from 'sentry/views/insights/crons/utils';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
+import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
+import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
+
+import {MonitorEnvironmentLabel} from './monitorEnvironmentLabel';
+
+interface Props {
+  monitor: Monitor;
+  timeWindowConfig: TimeWindowConfig;
+  onDeleteEnvironment?: (env: string) => Promise<void>;
+  onToggleMuteEnvironment?: (env: string, isMuted: boolean) => Promise<void>;
+  onToggleStatus?: (monitor: Monitor, status: ObjectStatus) => Promise<void>;
+  /**
+   * Whether only one monitor is being rendered in a larger view with this component
+   * turns off things like zebra striping, hover effect, and showing monitor name
+   */
+  singleMonitorView?: boolean;
+}
+
+const MAX_SHOWN_ENVIRONMENTS = 4;
+
+export function OverviewRow({
+  monitor,
+  singleMonitorView,
+  timeWindowConfig,
+  onDeleteEnvironment,
+  onToggleMuteEnvironment,
+  onToggleStatus,
+}: Props) {
+  const organization = useOrganization();
+
+  const {data: monitorStats, isPending} = useMonitorStats({
+    monitors: [monitor.id],
+    timeWindowConfig,
+  });
+
+  const [isExpanded, setExpanded] = useState(
+    monitor.environments.length <= MAX_SHOWN_ENVIRONMENTS
+  );
+
+  const environments = isExpanded
+    ? monitor.environments
+    : monitor.environments.slice(0, MAX_SHOWN_ENVIRONMENTS);
+
+  const isDisabled = monitor.status === 'disabled';
+
+  const location = useLocation();
+  const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
+
+  const canDisable = hasEveryAccess(['alerts:write'], {
+    organization,
+    project: monitor.project,
+  });
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
+  );
+
+  const monitorDetails = singleMonitorView ? null : (
+    <DetailsArea>
+      <DetailsLink
+        to={{
+          pathname: makeAlertsPathname({
+            path: `/rules/crons/${monitor.project.slug}/${monitor.slug}/details/`,
+            organization,
+          }),
+          query,
+        }}
+      >
+        <DetailsHeadline>
+          <Name>{monitor.name}</Name>
+        </DetailsHeadline>
+        <Stack gap="xs">
+          <OwnershipDetails>
+            <ProjectBadge project={monitor.project} avatarSize={12} disableLink />
+            {monitor.owner ? (
+              <ActorBadge actor={monitor.owner} avatarSize={12} />
+            ) : (
+              <Flex align="center" gap="xs">
+                <IconUser size="xs" />
+                {t('Unassigned')}
+              </Flex>
+            )}
+          </OwnershipDetails>
+          <ScheduleDetails>
+            <IconTimer size="xs" />
+            {scheduleAsText(monitor.config)}
+          </ScheduleDetails>
+          <Flex gap="xs">
+            {monitor.isMuted && <Tag variant="muted">{t('Muted')}</Tag>}
+            {isDisabled && <Tag variant="muted">{t('Disabled')}</Tag>}
+          </Flex>
+        </Stack>
+      </DetailsLink>
+      <DetailsActions>
+        {onToggleStatus && (
+          <StatusToggleButton
+            monitor={monitor}
+            size="xs"
+            onToggleStatus={status => onToggleStatus(monitor, status)}
+            disabled={!canDisable}
+            tooltipProps={{title: canDisable ? undefined : permissionTooltipText}}
+          />
+        )}
+      </DetailsActions>
+    </DetailsArea>
+  );
+
+  const environmentActionCreators = [
+    (env: string) => ({
+      label: t('View Environment'),
+      key: 'view',
+      to: {pathname: location.pathname, query: {...query, environment: env}},
+    }),
+    ...(onToggleMuteEnvironment
+      ? [
+          (env: string, isMuted: boolean) => ({
+            label: isMuted ? t('Unmute Environment') : t('Mute Environment'),
+            key: 'mute',
+            onAction: () => onToggleMuteEnvironment(env, !isMuted),
+          }),
+        ]
+      : []),
+    ...(onDeleteEnvironment
+      ? [
+          (env: string) => ({
+            label: t('Delete Environment'),
+            key: 'delete',
+            onAction: () => {
+              openConfirmModal({
+                onConfirm: () => onDeleteEnvironment(env),
+                header: t('Delete Environment?'),
+                message: tct(
+                  'Are you sure you want to remove the "[envName]" environment and delete the associated check-ins from this Cron Monitor?',
+                  {envName: env}
+                ),
+                confirmText: t('Delete'),
+                priority: 'danger',
+              });
+            },
+          }),
+        ]
+      : []),
+  ];
+
+  return (
+    <TimelineRow
+      as={singleMonitorView ? 'div' : 'li'}
+      key={monitor.id}
+      isDisabled={isDisabled}
+      singleMonitorView={singleMonitorView}
+    >
+      {monitorDetails}
+      <MonitorEnvContainer>
+        {environments.map(env => {
+          const {name, isMuted} = env;
+          return (
+            <EnvRow key={name}>
+              <MonitorEnvironmentLabel monitorEnv={env} />
+              <EnvDropdown
+                size="sm"
+                trigger={triggerProps => (
+                  <EnvActionButton
+                    {...triggerProps}
+                    aria-label={t('Monitor environment actions')}
+                    size="zero"
+                    icon={<IconEllipsis />}
+                  />
+                )}
+                items={environmentActionCreators.map(actionCreator =>
+                  actionCreator(name, isMuted)
+                )}
+              />
+            </EnvRow>
+          );
+        })}
+        {!isExpanded && (
+          <Button size="xs" onClick={() => setExpanded(true)}>
+            {tct('Show [num] More', {
+              num: monitor.environments.length - MAX_SHOWN_ENVIRONMENTS,
+            })}
+          </Button>
+        )}
+      </MonitorEnvContainer>
+
+      <TimelineContainer>
+        {environments.map(({name: envName}) => (
+          <TimelineEnvOuterContainer key={envName}>
+            {isPending ? (
+              <CheckInPlaceholder />
+            ) : (
+              <TimelineEnvContainer>
+                <CheckInTimeline
+                  statusLabel={statusToText}
+                  statusStyle={tickStyle}
+                  statusPrecedent={checkInStatusPrecedent}
+                  timeWindowConfig={timeWindowConfig}
+                  bucketedData={selectCheckInData(
+                    monitorStats?.[monitor.id] ?? [],
+                    envName
+                  )}
+                />
+              </TimelineEnvContainer>
+            )}
+          </TimelineEnvOuterContainer>
+        ))}
+      </TimelineContainer>
+    </TimelineRow>
+  );
+}
+
+const DetailsLink = styled(Link)`
+  display: block;
+  padding: ${p => p.theme.space['2xl']};
+  color: ${p => p.theme.tokens.content.primary};
+
+  &:focus-visible {
+    outline: none;
+  }
+`;
+
+const DetailsArea = styled('div')`
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: 0;
+  position: relative;
+`;
+
+const DetailsHeadline = styled('div')`
+  display: grid;
+  gap: ${p => p.theme.space.md};
+  grid-template-columns: 1fr minmax(30px, max-content);
+`;
+
+const OwnershipDetails = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${p => p.theme.space.sm};
+  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+const Name = styled('h3')`
+  font-size: ${p => p.theme.font.size.lg};
+  word-break: break-word;
+  margin-bottom: ${p => p.theme.space.xs};
+`;
+
+const ScheduleDetails = styled('small')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+interface TimelineRowProps {
+  isDisabled?: boolean;
+  singleMonitorView?: boolean;
+}
+
+const TimelineRow = styled('li')<TimelineRowProps>`
+  grid-column: 1/-1;
+
+  display: grid;
+  grid-template-columns: subgrid;
+
+  ${p =>
+    !p.singleMonitorView &&
+    css`
+      transition: background 50ms ease-in-out;
+
+      &:nth-child(odd) {
+        background: ${p.theme.tokens.background.secondary};
+      }
+      &:hover {
+        background: ${p.theme.tokens.background.tertiary};
+      }
+      &:has(*:focus-visible) {
+        background: ${p.theme.tokens.background.tertiary};
+      }
+    `}
+
+  /* Disabled monitors become more opaque */
+  --disabled-opacity: ${p => (p.isDisabled ? '0.6' : 'unset')};
+
+  &:last-child {
+    border-bottom-left-radius: ${p => p.theme.radius.md};
+    border-bottom-right-radius: ${p => p.theme.radius.md};
+  }
+`;
+
+const DetailsActions = styled('div')`
+  position: absolute;
+  top: 0;
+  right: 0;
+  opacity: 0;
+
+  /* Align to the center of the heading text */
+  height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
+  margin: ${p => p.theme.space['2xl']};
+
+  /* Show when timeline is hovered / focused */
+  ${TimelineRow}:hover &,
+  ${DetailsLink}:focus-visible + &,
+  &:has(a:focus-visible),
+  &:has(button:focus-visible) {
+    opacity: 1;
+  }
+`;
+
+const MonitorEnvContainer = styled('div')`
+  display: flex;
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
+  gap: ${p => p.theme.space['3xl']};
+  flex-direction: column;
+  border-right: 1px solid ${p => p.theme.tokens.border.secondary};
+  text-align: right;
+`;
+
+const EnvDropdown = styled(DropdownMenu)`
+  text-align: left;
+`;
+
+const EnvRow = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  justify-content: space-between;
+  align-items: center;
+  height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
+`;
+
+const EnvActionButton = styled(Button)`
+  ${EnvRow}:not(:hover) & {
+    display: none;
+  }
+`;
+
+const TimelineContainer = styled('div')`
+  display: flex;
+  padding: ${p => p.theme.space['2xl']} 0;
+  flex-direction: column;
+  gap: ${p => p.theme.space['3xl']};
+  contain: content;
+  grid-column: 3/-1;
+`;
+
+const TimelineEnvOuterContainer = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
+  opacity: var(--disabled-opacity);
+`;
+
+const TimelineEnvContainer = styled('div')`
+  width: 100%;
+  opacity: 0;
+  animation: ${fadeIn} 1.5s ease-out forwards;
+`;

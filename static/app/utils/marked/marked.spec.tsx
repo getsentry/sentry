@@ -1,0 +1,225 @@
+/* eslint no-script-url:0 */
+
+import {
+  asyncSanitizedMarked,
+  sanitizedMarked,
+  singleLineRenderer,
+} from 'sentry/utils/marked/marked';
+import {loadPrismLanguage} from 'sentry/utils/prism';
+
+jest.unmock('prismjs');
+
+function expectMarkdown(test: any) {
+  expect(sanitizedMarked(test[0])).toEqual('<p>' + test[1] + '</p>\n');
+}
+
+describe('marked', () => {
+  beforeAll(async () => {
+    await loadPrismLanguage('javascript', {});
+  });
+
+  it('normal links get rendered as html', () => {
+    for (const test of [
+      ['[x](http://example.com)', '<a href="http://example.com">x</a>'],
+      ['[x](https://example.com)', '<a href="https://example.com">x</a>'],
+      ['[x](mailto:foo@example.com)', '<a href="mailto:foo@example.com">x</a>'],
+      [
+        '[x](https://example.com "Example Title")',
+        '<a href="https://example.com" title="Example Title">x</a>',
+      ],
+    ]) {
+      expectMarkdown(test);
+    }
+  });
+
+  it('renders inline code blocks', () => {
+    expect(sanitizedMarked('`foo`')).toBe('<p><code>foo</code></p>\n');
+  });
+
+  it('rejected links should be rendered as plain text', () => {
+    for (const test of [
+      ['[x](javascript:foo)', '<a>x</a>'],
+      ['[x](java\nscript:foo)', '[x](java\nscript:foo)'],
+      ['[x](data:foo)', '<a>x</a>'],
+      ['[x](vbscript:foo)', '<a>x</a>'],
+    ]) {
+      expectMarkdown(test);
+    }
+  });
+
+  it('strips images from markdown output', () => {
+    for (const test of [
+      ['![](http://example.com)', ''],
+      ['![x](http://example.com)', ''],
+      ['![x](https://example.com)', ''],
+      ['![x](javascript:foo)', ''],
+    ]) {
+      expectMarkdown(test);
+    }
+  });
+
+  it('escapes injections', () => {
+    [
+      [
+        '[x<b>Bold</b>](https://evil.example.com)',
+        '<a href="https://evil.example.com">x<b>Bold</b></a>',
+      ],
+      [
+        '[x](https://evil.example.com"class="foo)',
+        '<a href="https://evil.example.com%22class=%22foo">x</a>',
+      ],
+      [
+        '[x](https://evil.example.com "class=\\"bar")',
+        '<a href="https://evil.example.com" title="class=&quot;bar">x</a>',
+      ],
+    ].forEach(expectMarkdown);
+    expect(sanitizedMarked('<script> <img <script> src=x onerror=alert(1) />')).toBe('');
+  });
+
+  it('allows custom html within code blocks', () => {
+    expect(sanitizedMarked('```html\n<div>Hello</div>\n```')).toBe(
+      '<pre><code class="language-html">&lt;div&gt;Hello&lt;/div&gt;\n</code></pre>\n'
+    );
+    expect(sanitizedMarked('```tsx\n<div>Hello</div>\n```')).toBe(
+      '<pre><code class="language-tsx">&lt;div&gt;Hello&lt;/div&gt;\n</code></pre>\n'
+    );
+    expect(sanitizedMarked('```jsx\n<Component>Hello</Component>\n```')).toBe(
+      '<pre><code class="language-jsx">&lt;Component&gt;Hello&lt;/Component&gt;\n</code></pre>\n'
+    );
+  });
+
+  it('single line renderer should not render paragraphs', () => {
+    expect(singleLineRenderer('foo')).toBe('foo');
+    expect(sanitizedMarked('foo')).toBe('<p>foo</p>\n');
+    expect(singleLineRenderer('Reading `file.py`')).toBe('Reading <code>file.py</code>');
+    expect(sanitizedMarked('Reading `file.py`')).toBe(
+      '<p>Reading <code>file.py</code></p>\n'
+    );
+  });
+
+  it('escapes injections via asyncSanitizedMarked', async () => {
+    const tests: Array<[string, string]> = [
+      [
+        '[x<b>Bold</b>](https://evil.example.com)',
+        '<a href="https://evil.example.com">x<b>Bold</b></a>',
+      ],
+      [
+        '[x](https://evil.example.com"class="foo)',
+        '<a href="https://evil.example.com%22class=%22foo">x</a>',
+      ],
+      [
+        '[x](https://evil.example.com "class=\\"bar")',
+        '<a href="https://evil.example.com" title="class=&quot;bar">x</a>',
+      ],
+    ];
+    for (const test of tests) {
+      expect(await asyncSanitizedMarked(test[0])).toBe(`<p>${test[1]}</p>\n`);
+    }
+    expect(
+      await asyncSanitizedMarked('<script> <img <script> src=x onerror=alert(1) />')
+    ).toBe('');
+  });
+
+  it('does not render syntax highlighting via sanitizedMarked', () => {
+    const markdown = '```javascript\nconst x = 1;\n```';
+    expect(sanitizedMarked(markdown)).toBe(
+      '<pre><code class="language-javascript">const x = 1;\n</code></pre>\n'
+    );
+  });
+
+  it('strips style tags', () => {
+    const result1 = sanitizedMarked('<style>body { color: red; }</style>hello');
+    expect(result1).not.toContain('<style');
+    expect(result1).not.toContain('color: red');
+
+    const result2 = sanitizedMarked('text<style>.x{background:url(evil)}</style>');
+    expect(result2).not.toContain('<style');
+    expect(result2).toContain('text');
+  });
+
+  it('strips form elements', () => {
+    const formHtml = sanitizedMarked(
+      '<form action="/evil"><input name="csrf"><button>click</button></form>'
+    );
+    expect(formHtml).not.toContain('<form');
+    expect(formHtml).not.toContain('<input');
+    expect(formHtml).not.toContain('<button');
+
+    expect(sanitizedMarked('<select><option>a</option></select>')).not.toContain(
+      '<select'
+    );
+    expect(sanitizedMarked('<textarea>injected</textarea>')).not.toContain('<textarea');
+  });
+
+  it('strips iframe, object, and embed tags', () => {
+    expect(sanitizedMarked('<iframe src="https://evil.com"></iframe>')).not.toContain(
+      '<iframe'
+    );
+    expect(sanitizedMarked('<object data="evil.swf"></object>')).not.toContain('<object');
+    expect(sanitizedMarked('<embed src="evil.swf">')).not.toContain('<embed');
+  });
+
+  it('strips style attributes', () => {
+    const result1 = sanitizedMarked('<p style="color:red">text</p>');
+    expect(result1).toContain('<p>text</p>');
+    expect(result1).not.toContain('style');
+
+    const result2 = sanitizedMarked('a <span style="background:url(evil)">x</span> b');
+    expect(result2).toContain('<span>x</span>');
+    expect(result2).not.toContain('style');
+  });
+
+  it('strips event handler attributes', () => {
+    const imgResult = sanitizedMarked('<img src="x" onerror="alert(1)">');
+    expect(imgResult).not.toContain('<img');
+    expect(imgResult).not.toContain('onerror');
+
+    const linkResult = sanitizedMarked(
+      'a <a href="https://ok.com" onclick="alert(1)">link</a> b'
+    );
+    expect(linkResult).toContain('<a href="https://ok.com">link</a>');
+    expect(linkResult).not.toContain('onclick');
+  });
+
+  it('preserves allowed markdown HTML', () => {
+    // Bold, italic, code, links, images, lists, tables, blockquotes, headings
+    expect(sanitizedMarked('**bold** *italic* `code`')).toBe(
+      '<p><strong>bold</strong> <em>italic</em> <code>code</code></p>\n'
+    );
+    expect(sanitizedMarked('- item 1\n- item 2')).toBe(
+      '<ul>\n<li>item 1</li>\n<li>item 2</li>\n</ul>\n'
+    );
+    expect(sanitizedMarked('> quote')).toBe(
+      '<blockquote>\n<p>quote</p>\n</blockquote>\n'
+    );
+    expect(sanitizedMarked('# heading')).toBe('<h1>heading</h1>\n');
+    expect(sanitizedMarked('---')).toBe('<hr>\n');
+  });
+
+  it('strips dangerous tags via asyncSanitizedMarked', async () => {
+    const styleResult = await asyncSanitizedMarked('<style>body{color:red}</style>hello');
+    expect(styleResult).not.toContain('<style');
+    expect(styleResult).toContain('hello');
+
+    const formResult = await asyncSanitizedMarked(
+      '<form><input><button>x</button></form>'
+    );
+    expect(formResult).not.toContain('<form');
+    expect(formResult).not.toContain('<input');
+    expect(formResult).not.toContain('<button');
+  });
+
+  it('renders syntax highlighting via asyncSanitizedMarked', async () => {
+    const markdown = '```javascript\nconst x = 1;\n```';
+    expect(await asyncSanitizedMarked(markdown)).toBe(
+      '<pre><code class="language-javascript"><span class="token keyword">const</span> x <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>\n</code></pre>'
+    );
+  });
+
+  it('renders unknown language code blocks as plaintext via asyncSanitizedMarked', async () => {
+    const markdown = '```unknown\nconst x = 1;\n```';
+    expect(await asyncSanitizedMarked(markdown)).toBe(
+      '<pre><code class="language-unknown">const x = 1;\n</code></pre>'
+    );
+  });
+});

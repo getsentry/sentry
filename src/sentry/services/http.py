@@ -1,0 +1,123 @@
+from __future__ import annotations
+
+import os
+from collections.abc import MutableMapping
+from typing import Any
+
+from granian import Granian
+
+from sentry.services.base import Service
+
+
+def _run_server(options: dict[str, Any]):
+    server = Granian(
+        target=options["module"],
+        address=options["host"],
+        port=options["port"],
+        interface=options["iface"],
+        workers=options["workers"],
+        backlog=options["backlog"],
+        workers_kill_timeout=options["workers-kill-timeout"],
+        blocking_threads=options["threads"],
+        respawn_failed_workers=True,
+        reload=options["reload"],
+        reload_ignore_worker_failure=options["reload-ignore-worker-failure"],
+        process_name=options["proc-name"],
+        workers_lifetime=options["max-worker-lifetime"],
+        workers_max_rss=options["reload-on-rss"],
+        log_access=options["log-enabled"],
+        log_access_format=options["log-format"],
+    )
+    server.serve()
+
+
+class SentryHTTPServer(Service):
+    name = "http"
+
+    def __init__(
+        self,
+        host: str | None = None,
+        port: int | None = None,
+        debug: bool = False,
+        workers: int | None = None,
+        extra_options: dict[str, Any] | None = None,
+    ) -> None:
+        from django.conf import settings
+
+        from sentry import options as sentry_options
+        from sentry.logging import LoggingFormat
+
+        host = host or settings.SENTRY_WEB_HOST
+        port = port or int(os.environ.get("SENTRY_GRANIAN_PORT", "0")) or settings.SENTRY_WEB_PORT
+        workers = workers or int(os.environ.get("SENTRY_GRANIAN_WORKERS", "1"))
+        iface = os.environ.get("SENTRY_GRANIAN_IFACE", "wsgi")
+        reload = bool(os.environ.get("SENTRY_GRANIAN_RELOAD"))
+
+        options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
+        if extra_options is not None:
+            for k, v in extra_options.items():
+                options[k] = v
+
+        options.setdefault("module", f"sentry.{iface[:4]}:application")
+        options.setdefault("iface", iface)
+        options.setdefault("host", host)
+        options.setdefault("port", port)
+        options.setdefault("workers", workers)
+        options.setdefault("threads", None)
+        options.setdefault("backlog", max(128, 64 * options["workers"]))
+        options.setdefault("log-enabled", True)
+        options.setdefault("proc-name", "sentry")
+        options.setdefault("reload", reload)
+        options.setdefault("reload-ignore-worker-failure", reload)
+        options.setdefault("workers-kill-timeout", 3 if reload else 30)
+        options.setdefault("max-worker-lifetime", None)
+        options.setdefault("reload-on-rss", 600)
+        options.setdefault(
+            "log-format", '%(addr)s - [%(time)s] "%(method)s %(path)s %(scheme)s" %(status)d'
+        )
+
+        # FIXME: while this was true with uwsgi, Granian allows logging customisation
+        #        through the stdlib `logging` module. Thus, it's now possible
+        #        to configure the logger to output json.
+        # For machine logging, we are choosing to 100% disable logging
+        # from uwsgi since it's currently not possible to get a nice json
+        # logging out of uwsgi, so it's better to just opt out. There's
+        # also an assumption that anyone operating at the scale of needing
+        # machine formatted logs, they are also using nginx in front which
+        # has it's own logs that can be formatted correctly.
+        if sentry_options.get("system.logging-format") == LoggingFormat.MACHINE:
+            options["disable-logging"] = True
+
+        # Old options from uwsgi
+        if "procname-prefix-spaced" in options:
+            options["proc-name"] = options.pop("procname-prefix-spaced")
+        if "disable-logging" in options:
+            options["log-enabled"] = not options.pop("disable-logging")
+
+        self.options = options
+        self.debug = debug
+
+    def prepare_environment(self, env: MutableMapping[str, str] | None = None) -> None:
+        from django.conf import settings
+
+        if env is None:
+            env = os.environ
+
+        # Signal that we're running within granian
+        env["SENTRY_RUNNING_GRANIAN"] = "1" if settings.SENTRY_USE_GRANIAN else "0"
+
+        # This has already been validated inside __init__
+        env["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
+
+    def run(self):
+        self.prepare_environment()
+        if self.debug or os.environ.get("SENTRY_RUNNING_GRANIAN") == "0":
+            from wsgiref.simple_server import make_server
+
+            from sentry.wsgi import application
+
+            httpd = make_server(self.options["host"], self.options["port"], application)
+            httpd.serve_forever()
+            raise AssertionError("unreachable")
+        else:
+            _run_server(self.options)

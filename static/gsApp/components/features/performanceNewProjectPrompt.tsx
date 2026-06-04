@@ -1,0 +1,77 @@
+import styled from '@emotion/styled';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
+import {IconBusiness} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+
+import {openUpsellModal} from 'getsentry/actionCreators/modal';
+
+type Props = React.PropsWithChildren<{
+  features: Organization['features'];
+  organization: Organization;
+}>;
+
+export function PerformanceNewProjectPrompt({organization}: Props) {
+  return (
+    <Alert.Container>
+      <StyledAlert variant="info">
+        <Container>
+          {t(
+            "Performance is available for your platform, but your organization's plan does not include performance monitoring."
+          )}
+          <StyledButton
+            size="sm"
+            variant="primary"
+            icon={<IconBusiness />}
+            onClick={() =>
+              openUpsellModal({
+                organization,
+                source: 'feature.performance_new_project',
+              })
+            }
+          >
+            {t('Learn More')}
+          </StyledButton>
+        </Container>
+      </StyledAlert>
+    </Alert.Container>
+  );
+}
+
+const Container = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const StyledButton = styled(Button)`
+  margin-left: ${p => p.theme.space.md};
+  flex-shrink: 0;
+
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    margin-left: 0;
+    margin-top: ${p => p.theme.space.md};
+  }
+`;
+
+const StyledAlert = styled(Alert)`
+  align-items: center;
+  margin-top: ${p => p.theme.space['2xl']};
+
+  button svg,
+  a svg {
+    color: ${p => p.theme.colors.white};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    align-items: flex-start;
+  }
+`;

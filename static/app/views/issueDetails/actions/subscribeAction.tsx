@@ -1,0 +1,44 @@
+import {Button} from '@sentry/scraps/button';
+
+import {IconSubscribed} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Group} from 'sentry/types/group';
+import {getSubscriptionReason} from 'sentry/views/issueDetails/utils';
+
+type Props = {
+  group: Group;
+  onClick: (event: React.MouseEvent) => void;
+  className?: string;
+  /**
+   * Disables the primary color scheme when subscribed
+   */
+  disablePriority?: boolean;
+  disabled?: boolean;
+  icon?: React.ReactNode;
+  size?: 'xs' | 'sm';
+};
+
+export function SubscribeAction({
+  className,
+  disabled,
+  group,
+  icon,
+  onClick,
+  disablePriority,
+  size = 'xs',
+}: Props) {
+  const disabledNotifications = group.subscriptionDetails?.disabled ?? false;
+
+  return (
+    <Button
+      className={className}
+      disabled={disabled || disabledNotifications}
+      tooltipProps={{title: getSubscriptionReason(group), delay: 300}}
+      variant={!disablePriority && group.isSubscribed ? 'primary' : 'secondary'}
+      size={size}
+      aria-label={t('Subscribe')}
+      onClick={onClick}
+      icon={icon ?? <IconSubscribed size={size} />}
+    />
+  );
+}

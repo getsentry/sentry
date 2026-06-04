@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+{% load i18n %}
+{% load sentry_assets %}
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    {% script src=ac_js_src %}{% endscript %}
+    <style>
+      {% include 'sentry/integrations/jira/aui-prototyping.9.1.5.css' %}
+      body {
+        background: transparent;
+      }
+      .container {
+        padding: 30px;
+      }
+      .aui-message::after {
+        font-family: arial, sans-serif;
+        content: 'i';
+        font-size: 13px;
+        line-height: 16px;
+        width: 16px;
+        height: 16px;
+        text-align: center;
+        border-radius: 50%;
+
+        color: #fff;
+        font-weight: bold;
+        background: var(--aui-message-info-icon-color);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      {% if error_message %}
+      <div class="aui-message aui-message-info">
+        <h2>Error</h2>
+        <p>{{ error_message }}</p>
+      </div>
+
+      {% elif refresh_required %}
+      <div class="aui-message aui-message-info">
+        <h2>Error</h2>
+        <p>
+          {% trans "This page has expired, please refresh to view the Sentry issue" %}
+        </p>
+      </div>
+
+      {% elif issue_not_linked %}
+      <div class="aui-message aui-message-info">
+        <h2>Issue not linked</h2>
+        <p>{% trans "This Sentry issue is not linked to a Jira issue" %}</p>
+      </div>
+      {% else %}
+
+      {% for group in groups %}
+      <div>
+        <p><a href="{{ group.title_url }}" target="_blank">{{ group.title }}</a> - last linked {{ group.link_date|date:"Y-m-d H:i:s" }}</p>
+      </div>
+      <br/>
+      {% if not forloop.last %}
+      <hr style="opacity:0.5;" />
+      {% endif %}
+
+      {% endfor %}
+      {% endif %}
+    </div>
+  </body>
+</html>

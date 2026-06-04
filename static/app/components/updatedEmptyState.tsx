@@ -1,0 +1,361 @@
+import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Container} from '@sentry/scraps/layout';
+
+import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  DocsParams,
+  OnboardingStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
+import {t, tct} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeInteger} from 'sentry/utils/queryString';
+import {useApi} from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export function SetupTitle({project}: {project: Project}) {
+  return (
+    <BodyTitle>
+      {tct('Set up the Sentry SDK for [projectBadge]', {
+        projectBadge: (
+          <ProjectBadgeWrapper>
+            <ProjectBadge project={project} avatarSize={16} />
+          </ProjectBadgeWrapper>
+        ),
+      })}
+    </BodyTitle>
+  );
+}
+
+function WaitingIndicator({project}: {project: Project}) {
+  const organization = useOrganization();
+  const firstIssue = useEventWaiter({
+    eventType: 'error',
+    organization,
+    project,
+  });
+
+  if (!firstIssue) {
+    return <EventWaitingIndicator />;
+  }
+
+  return (
+    <LinkButton
+      onClick={() =>
+        trackAnalytics('growth.onboarding_take_to_error', {
+          organization,
+          platform: project.platform,
+        })
+      }
+      to={`/organizations/${organization.slug}/issues/${
+        firstIssue !== true && 'id' in firstIssue ? `${firstIssue.id}/` : ''
+      }?referrer=onboarding-first-event-indicator`}
+      variant="primary"
+    >
+      {t('Take me to my error')}
+    </LinkButton>
+  );
+}
+
+export default function UpdatedEmptyState({project}: {project?: Project}) {
+  const theme = useTheme();
+  const api = useApi();
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
+
+  const currentPlatformKey = project?.platform ?? 'other';
+  const currentPlatform = platforms.find(p => p.id === currentPlatformKey)!;
+
+  useEffect(() => {
+    trackAnalytics('issue_stream.updated_empty_state_viewed', {
+      organization,
+      platform: currentPlatformKey,
+    });
+  }, [organization, currentPlatformKey]);
+
+  const loadGettingStarted = useLoadGettingStarted({
+    platform: currentPlatform,
+    orgSlug: organization.slug,
+    projSlug: project?.slug,
+  });
+
+  if (
+    !currentPlatform ||
+    !project ||
+    loadGettingStarted.isError ||
+    loadGettingStarted.isLoading ||
+    !loadGettingStarted.docs ||
+    !loadGettingStarted.dsn ||
+    !loadGettingStarted.projectKeyId
+  ) {
+    return null;
+  }
+
+  const docParams: DocsParams<any> = {
+    api,
+    projectKeyId: loadGettingStarted.projectKeyId,
+    dsn: loadGettingStarted.dsn,
+    organization,
+    platformKey: currentPlatformKey,
+    project,
+    isLogsSelected: false,
+    isMetricsSelected: false,
+    isFeedbackSelected: false,
+    isPerformanceSelected: false,
+    isProfilingSelected: false,
+    isReplaySelected: false,
+    sourcePackageRegistries: {
+      isLoading: isLoadingRegistry,
+      data: registryData,
+    },
+    platformOptions: {installationMode: 'auto'},
+    newOrg: false,
+    replayOptions: {block: true, mask: true},
+    isSelfHosted,
+    urlPrefix,
+  };
+
+  if (currentPlatformKey === 'java' || currentPlatformKey === 'java-spring-boot') {
+    docParams.platformOptions = {
+      ...docParams.platformOptions,
+      packageManager: 'gradle',
+    };
+  }
+
+  if (currentPlatformKey === 'javascript') {
+    docParams.platformOptions = {
+      ...docParams.platformOptions,
+      installationMode: 'manual',
+    };
+  }
+
+  const install = loadGettingStarted.docs.onboarding.install(docParams);
+  const configure = loadGettingStarted.docs.onboarding.configure(docParams);
+  const verify = loadGettingStarted.docs.onboarding.verify(docParams);
+
+  // TODO: Is there a reason why we are only selecting a few steps?
+  const steps = [install[0], configure[0], configure[1], verify[0]]
+    // Filter optional steps
+    .filter((step): step is OnboardingStep => !!step && !step.collapsible);
+
+  return (
+    <AuthTokenGeneratorProvider projectSlug={project?.slug}>
+      <TabSelectionScope>
+        <div>
+          <HeaderWrapper>
+            <Title>{t('Get Started with Sentry Issues')}</Title>
+            <Container maxWidth="340px">
+              {t('Your code sleuth eagerly awaits its first mission.')}
+            </Container>
+            <Image src={waitingForEventImg} />
+          </HeaderWrapper>
+          <Divider />
+          <Body>
+            <Setup>
+              <SetupTitle project={project} />
+              <GuidedSteps
+                initialStep={decodeInteger(location.query.guidedStep)}
+                onStepChange={step => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      guidedStep: step,
+                    },
+                  });
+                }}
+              >
+                {steps.map((step, index) => {
+                  const title = step.title ?? StepTitles[step.type ?? 'install'];
+                  const isLastStep = index === steps.length - 1;
+                  return (
+                    <GuidedSteps.Step
+                      key={index}
+                      stepKey={title}
+                      title={title}
+                      trailingItems={
+                        index === 0 && copyEnabled ? (
+                          <OnboardingCopyMarkdownButton
+                            borderless
+                            steps={steps}
+                            source="issues_onboarding"
+                          />
+                        ) : undefined
+                      }
+                    >
+                      <StepIndexProvider index={index}>
+                        <ContentBlocksRenderer
+                          contentBlocks={step.content}
+                          spacing={theme.space.md}
+                        />
+                      </StepIndexProvider>
+                      <GuidedSteps.ButtonWrapper>
+                        <GuidedSteps.BackButton size="md" />
+                        <GuidedSteps.NextButton size="md" />
+                        {isLastStep && <WaitingIndicator project={project} />}
+                      </GuidedSteps.ButtonWrapper>
+                      {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
+                      {isLastStep && <PulseSpacer />}
+                    </GuidedSteps.Step>
+                  );
+                })}
+              </GuidedSteps>
+            </Setup>
+            <Container padding="3xl">
+              <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
+              <Container marginTop="md">
+                <Arcade
+                  src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
+                  loading="lazy"
+                  allowFullScreen
+                />
+              </Container>
+            </Container>
+          </Body>
+        </div>
+      </TabSelectionScope>
+    </AuthTokenGeneratorProvider>
+  );
+}
+
+const PulsingIndicator = styled('div')`
+  ${pulsingIndicatorStyles};
+  flex-shrink: 0;
+`;
+
+function EventWaitingIndicator() {
+  return (
+    <EventWaitingIndicatorContainer
+      align="center"
+      position="relative"
+      padding="0 md"
+      paddingRight="3xl"
+      gap="md"
+      flexGrow={1}
+    >
+      {t("Waiting for this project's first error")}
+      <PulsingIndicator />
+    </EventWaitingIndicatorContainer>
+  );
+}
+
+const EventWaitingIndicatorContainer = styled(Flex)`
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.promotion};
+  z-index: 10;
+`;
+
+const ProjectBadgeWrapper = styled('div')`
+  display: inline-block;
+  vertical-align: text-top;
+  max-width: 100%;
+`;
+
+const Title = styled('div')`
+  font-size: 26px;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+`;
+
+const HeaderWrapper = styled('div')`
+  border-radius: ${p => p.theme.radius.md};
+  padding: ${p => p.theme.space['3xl']};
+`;
+
+const Setup = styled('div')`
+  padding: ${p => p.theme.space['3xl']};
+
+  &:after {
+    content: '';
+    position: absolute;
+    right: 50%;
+    top: 19%;
+    height: 78%;
+    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
+  }
+`;
+
+export const BodyTitle = styled('div')`
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const Body = styled('div')`
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+
+  h4 {
+    margin-bottom: 0;
+  }
+`;
+
+const Image = styled('img')`
+  position: absolute;
+  display: block;
+  top: 0px;
+  right: 20px;
+  pointer-events: none;
+  height: 120px;
+  overflow: hidden;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    display: none;
+  }
+`;
+
+const Divider = styled('hr')`
+  height: 1px;
+  width: 95%;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  background: ${p => p.theme.tokens.border.primary};
+  border: none;
+  margin-top: 0;
+  margin-bottom: 0;
+`;
+
+const Arcade = styled('iframe')`
+  width: 720px;
+  max-width: 100%;
+  height: 420px;
+  border: 0;
+  color-scheme: auto;
+`;
+
+const PulseSpacer = styled('div')`
+  height: ${p => p.theme.space['3xl']};
+`;

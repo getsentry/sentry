@@ -1,0 +1,147 @@
+# This is used by the action https://github.com/dorny/paths-filter
+
+sentry_frontend_workflow_file: &sentry_frontend_workflow_file
+  - added|modified: '.github/workflows/frontend.yml'
+
+sentry_frontend_snapshots_workflow_file: &sentry_frontend_snapshots_workflow_file
+  - added|modified: '.github/workflows/frontend-snapshots.yml'
+
+# Provides list of changed files to test (jest)
+# getsentry/sentry does not use the list directly, instead we shard tests inside jest.config.js
+testable_modified: &testable_modified
+  - added|modified: 'package.json'
+  - added|modified: 'static/**/!(*.generated).{ts,tsx,js,jsx,mjs}'
+  - added|modified: 'tests/js/**/*'
+  - added|deleted|modified: 'fixtures/search-syntax/**/*'
+
+# Trigger for when we must run full tests (jest)
+testable_rules_changed: &testable_rules_changed
+  - *sentry_frontend_workflow_file
+  - added|modified: '.github/file-filters.yml'
+  - added|modified: 'jest.config.ts'
+
+# Trigger whether to run TypeScript typechecking or not
+# There's no "rules_changed" for this, because we run it for all files always
+# getsentry/sentry does not use this directly, instead frontend_all is a superset to trigger typechecking
+typecheckable_rules_changed: &typecheckable_rules_changed
+  - *sentry_frontend_workflow_file
+  - added|modified: '.github/file-filters.yml'
+  - added|deleted|modified: '**/tsconfig*.json'
+  - added|deleted|modified: 'static/**/*.{ts,tsx,js,jsx,mjs}'
+  - added|deleted|modified: 'static/**/*.mdx'
+
+# Trigger whether to run MDX typechecking
+mdx_typecheckable: &mdx_typecheckable
+  - *sentry_frontend_workflow_file
+  - added|modified: '.github/file-filters.yml'
+  - added|deleted|modified: '**/tsconfig*.json'
+  - added|deleted|modified: 'static/**/*.mdx'
+  - added|deleted|modified: 'static/app/components/core/**/*.{ts,tsx}'
+  - added|deleted|modified: 'static/**/__stories__/**/*.{ts,tsx}'
+
+# Trigger to apply the 'Scope: Frontend' label to PRs
+frontend_all: &frontend_all
+  - *sentry_frontend_workflow_file
+  - *sentry_frontend_snapshots_workflow_file
+  - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
+  - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
+  - added|modified: '{vercel,tsconfig,biome,package}.json'
+
+# Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
+backend_dependencies: &backend_dependencies
+  - 'requirements-*.txt'
+  - 'pyproject.toml'
+  - 'uv.lock'
+
+backend_build_changes: &backend_build_changes
+  - '.github/workflows/backend.yml'
+  - '.github/actions/collect-test-data/**'
+  - '.pre-commit-config.yaml'
+  - 'Makefile'
+  - 'pyproject.toml'
+
+# Files that impact the list of URLS served by the API.
+# The main entry file is `src/sentry/api/urls.py`
+# But that module imports from some other places too, which are also named
+# `urls.py` by convention, it's not enforced anywhere.
+# Examples:
+#   - src/sentry/workflow_engine/endpoints/urls.py
+#   - src/sentry/notifications/platform/api/endpoints/urls.py
+#   - src/sentry/preprod/api/endpoints/urls.py
+#   - and maybe more in the future.
+backend_api_urls: &backend_api_urls
+  - '**/urls.py'
+
+# `backend_src` filters on files that are backend changes excluding
+# changes to the tests/ directory and changes to typescript related config files.
+# If you want to filter on *all* backend files, use the `backend_all` filter.
+backend_src: &backend_src
+  - *backend_build_changes
+  - *backend_dependencies
+  - '!(tests)/**/*.py'
+  - '**/*.sh'
+  - '**/*.pysnap'
+  - 'src/sentry/!(static)/**'
+  - 'src/sentry_plugins/**/*.html'
+  - 'migrations_lockfile.txt'
+  - 'config/**/!(tsconfig)*'
+  - 'fixtures/search-syntax/**/*'
+  # There is a dependency between CODEOWNERS and sentry.api.api_owners in
+  # tests/sentry/api/test_api_owners.py. As a result, any change to CODEOWNERS
+  # needs to trigger the backend tests.
+  - '.github/CODEOWNERS'
+
+backend_common: &backend_common
+  - *backend_src
+  - 'devservices/**'
+  - '.github/actions/setup-sentry/action.yml'
+
+backend_all: &backend_all
+  - *backend_common
+  - '**/*.py'
+  - '**/*.pyi'
+
+# Like backend_all, but excludes tests/acceptance/ since those have their own
+# dedicated workflow (acceptance.yml) and are already --ignored by test-python-ci.
+# Used by backend.yml to avoid triggering the full backend suite unnecessarily.
+backend_all_without_acceptance: &backend_all_without_acceptance
+  - *backend_common
+  - 'tests/!(acceptance)/**/*.{py,pyi}'
+  - 'tests/*.py'
+  - '!(tests)/**/*.pyi'
+
+# This is the ultimate controller for acceptance.yml
+acceptance: &acceptance
+  - *frontend_all
+  - *backend_all
+  - '.github/workflows/acceptance.yml'
+  - '.github/actions/collect-test-data/**'
+
+# Used in `getsentry-dispatch.js` to decide whether to run getsentry's
+# acceptance suite against a sentry PR. Scoped to gsApp and gsAdmin
+# frontend changes (both have acceptance tests in getsentry).
+gsapp: &gsapp
+  - added|deleted|modified: 'static/{gsApp,gsAdmin}/**/*.{ts,tsx}'
+
+api_docs: &api_docs
+  - *backend_all
+  - 'api-docs/**'
+  - 'tests/apidocs/**'
+
+# This is the ultimate controller for backend.yml
+backend_any_type: &backend_any_type
+  - *backend_all
+  - *api_docs
+  - 'devservices/**'
+
+migrations_added:
+  - added:
+      - 'src/sentry/**/migrations/*'
+
+# These files will trigger our workflow to check if lockfile
+# updates are needed
+migration_lockfile:
+  - *backend_dependencies
+  - '**/*.py'
+  - .github/workflows/check-if-migration-is-required.yml
+  - .github/workflows/scripts/migration-check.sh

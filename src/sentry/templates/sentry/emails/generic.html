@@ -1,0 +1,12 @@
+{% extends "sentry/emails/issue_alert_base.html" %}
+
+{% block table %}
+  <div class="default">
+    {% for label, html, _ in generic_issue_data %}
+    <div class="interface">
+        <h3 class="title">{{ label }}</h3>
+        {{ html }}
+    </div>
+    {% endfor %}
+  </div>
+{% endblock %}

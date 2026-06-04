@@ -1,0 +1,48 @@
+import logging
+
+from sentry.api.utils import generate_locality_url
+from sentry.integrations.messaging.linkage import UnlinkTeamView
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.slack.views.linkage import SlackLinkageView
+from sentry.silo.base import SiloMode
+from sentry.web.frontend.base import cell_silo_view
+
+from . import build_linking_url as base_build_linking_url
+
+_logger = logging.getLogger(__name__)
+
+INSUFFICIENT_ACCESS = (
+    "You must be a Sentry organization admin/manager/owner or a team admin to unlink a team."
+)
+
+
+def build_team_unlinking_url(
+    integration: Integration | RpcIntegration,
+    organization_id: int,
+    slack_id: str,
+    channel_id: str,
+    channel_name: str,
+    response_url: str,
+) -> str:
+    return base_build_linking_url(
+        "sentry-integration-slack-unlink-team",
+        integration_id=integration.id,
+        organization_id=organization_id,
+        slack_id=slack_id,
+        channel_name=channel_name,
+        channel_id=channel_id,
+        response_url=response_url,
+        # TODO(cells): This is broken for a multi-cell locality as the router cannot identify
+        # the correct cell silo for routing. The endpoint should be moved to the control silo.
+        url_prefix=(
+            generate_locality_url() if SiloMode.get_current_mode() == SiloMode.CELL else None
+        ),
+    )
+
+
+@cell_silo_view
+class SlackUnlinkTeamView(SlackLinkageView, UnlinkTeamView):
+    """
+    Django view for unlinking team from slack channel. Deletes from ExternalActor table.
+    """

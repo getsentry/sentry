@@ -1,0 +1,292 @@
+import type {ComponentProps} from 'react';
+import {useEffect} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {closeModal} from 'sentry/actionCreators/modal';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {Placeholder} from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
+import {
+  OnboardingDrawerKey,
+  OnboardingDrawerStore,
+} from 'sentry/stores/onboardingDrawerStore';
+import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {PlanTable} from 'getsentry/components/upgradeNowModal/planTable';
+import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
+import {useUpgradeNowParams} from 'getsentry/components/upgradeNowModal/useUpgradeNowParams';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import type {Subscription} from 'getsentry/types';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+
+type Props = ModalRenderProps &
+  Omit<ComponentProps<typeof ActionButtons>, 'hasPriceChange'> & {
+    organization: Organization;
+    subscription: Subscription;
+  };
+
+function UpsellModal(props: Props) {
+  const {organization, subscription} = props;
+  const hasBillingAccess = organization.access?.includes('org:billing');
+
+  const navigate = useNavigate();
+  const {loading, reservations, previewData, error} = usePreviewData(props);
+
+  useEffect(() => {
+    if (error && hasBillingAccess) {
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'profiling_upgrade_modal-preview_error'},
+        }),
+        {replace: true}
+      );
+    }
+  }, [error, hasBillingAccess, navigate, organization]);
+
+  useEffect(() => {
+    trackGetsentryAnalytics('upgrade_now.modal.viewed', {
+      organization,
+      planTier: subscription.planTier,
+      canSelfServe: subscription.canSelfServe,
+      channel: subscription.channel,
+      has_billing_scope: organization.access?.includes('org:billing'),
+      surface: 'profiling',
+      // Disable `react-hooks/exhaustive-deps` because of this next line...
+      // We want to track analytics right away, cannot wait for the network.
+      has_price_change: loading ? undefined : previewData?.billedAmount !== 0,
+    });
+  }, [organization, subscription]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <HighlightModalContainer>
+      <ModalLayout>
+        <UpsellContent>
+          <SubheaderPrimary>{t('Updates to Sentry')}</SubheaderPrimary>
+          <Header>{t('Performance Monitoring and Profiling that scales')}</Header>
+          <p>
+            {t(
+              'Get full visibility into the performance and stability of your application'
+            )}
+          </p>
+          <List symbol="bullet">
+            <ListItem>
+              {t('Identify hot code paths to optimize resource consumption')}
+            </ListItem>
+            <ListItem>{t('See the exact functions causing performance issues')}</ListItem>
+            <ListItem>
+              <ExternalLink href="https://docs.sentry.io/product/data-management-settings/dynamic-sampling/">
+                {t('Dynamically sample performance events at scale*')}
+              </ExternalLink>
+            </ListItem>
+          </List>
+          {loading || error ? (
+            <Placeholder height="40px" />
+          ) : (
+            <ActionButtons {...props} hasPriceChange={previewData.billedAmount !== 0} />
+          )}
+          <Note>
+            {t(
+              '* Dynamic sampling kicks in for customers reserving 1M or more performance units a month'
+            )}
+          </Note>
+        </UpsellContent>
+
+        <div>
+          <Subheader>{t('Plan Volume')}</Subheader>
+          <ErrorBoundary mini>
+            {loading || error ? (
+              <Placeholder height="100%" />
+            ) : (
+              <PlanTable
+                organization={organization}
+                subscription={subscription}
+                reservations={reservations}
+                previewData={previewData}
+              />
+            )}
+          </ErrorBoundary>
+        </div>
+      </ModalLayout>
+    </HighlightModalContainer>
+  );
+}
+
+const Subheader = styled('h2')`
+  text-transform: uppercase;
+  font-weight: bold;
+
+  font-size: ${p => p.theme.font.size.sm};
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const SubheaderPrimary = styled(Subheader)`
+  color: ${p => p.theme.tokens.content.accent};
+`;
+
+const Header = styled('h1')`
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: bold;
+  margin: ${p => p.theme.space.md} 0;
+`;
+
+const ModalLayout = styled('div')`
+  display: grid;
+  font-size: ${p => p.theme.font.size.md};
+  margin-bottom: ${p => p.theme.space.xl};
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: 1fr auto;
+    gap: ${p => p.theme.space['2xl']};
+  }
+`;
+
+const UpsellContent = styled('div')`
+  grid-column: 1;
+  grid-row: 1;
+  font-size: ${p => p.theme.font.size.lg};
+`;
+
+const Note = styled('p')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
+`;
+
+export const modalCss = css`
+  width: 100%;
+  max-width: 980px;
+
+  [role='document'] {
+    position: relative;
+    padding: 80px;
+    overflow: hidden;
+  }
+`;
+
+export default UpsellModal;
+
+type ActionButtonsProps = {
+  hasPriceChange: boolean;
+  organization: Organization;
+  subscription: Subscription;
+  isActionDisabled?: boolean;
+  onComplete?: () => void;
+};
+
+function ActionButtons({
+  hasPriceChange,
+  isActionDisabled,
+  onComplete,
+  organization,
+  subscription,
+}: ActionButtonsProps) {
+  const api = useApi();
+  const navigate = useNavigate();
+  const {plan, reservations} = useUpgradeNowParams({organization, subscription});
+
+  const onUpdatePlan = async () => {
+    try {
+      await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
+        method: 'PUT',
+        data: {
+          ...reservations,
+          plan: plan?.id,
+          referrer: 'profiling-am2-update-modal',
+        },
+      });
+
+      SubscriptionStore.loadData(organization.slug, () => {
+        if (onComplete) {
+          onComplete();
+        }
+        closeModal();
+        addSuccessMessage(t('Subscription Updated!'));
+
+        OnboardingDrawerStore.open(OnboardingDrawerKey.PROFILING_ONBOARDING);
+
+        trackGetsentryAnalytics('upgrade_now.modal.update_now', {
+          organization,
+          planTier: subscription.planTier,
+          canSelfServe: subscription.canSelfServe,
+          channel: subscription.channel,
+          has_billing_scope: organization.access?.includes('org:billing'),
+          surface: 'profiling',
+          has_price_change: hasPriceChange,
+        });
+      });
+    } catch (err) {
+      Sentry.captureException(err);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'profiling_upgrade_modal-update_plan-error'},
+        }),
+        {replace: true}
+      );
+    }
+  };
+
+  const onClickManageSubscription = () => {
+    trackGetsentryAnalytics('upgrade_now.modal.manage_sub', {
+      organization,
+      surface: 'profiling',
+      planTier: subscription.planTier,
+      canSelfServe: subscription.canSelfServe,
+      channel: subscription.channel,
+      has_billing_scope: organization.access?.includes('org:billing'),
+    });
+  };
+
+  const hasBillingAccess = organization.access?.includes('org:billing');
+
+  return hasBillingAccess ? (
+    <ButtonRow>
+      <Button
+        variant="primary"
+        onClick={onUpdatePlan}
+        disabled={isActionDisabled === true}
+      >
+        {t('Update Now')}
+      </Button>
+      <LinkButton
+        to={`/checkout/${organization.slug}/?referrer=profiling_onboard_modal-owner-modal`}
+        onClick={onClickManageSubscription}
+      >
+        {t('Manage Subscription')}
+      </LinkButton>
+    </ButtonRow>
+  ) : (
+    <ButtonRow>
+      <Button
+        disabled
+        tooltipProps={{
+          title: t(
+            'Only members with the role "Owner" or "Billing" can manage subscriptions'
+          ),
+        }}
+      >
+        {t('Manage Subscription')}
+      </Button>
+    </ButtonRow>
+  );
+}
+
+const ButtonRow = styled('p')`
+  display: flex;
+  gap: ${p => p.theme.space.lg};
+  margin-top: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.xl};
+`;

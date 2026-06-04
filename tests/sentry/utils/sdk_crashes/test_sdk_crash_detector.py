@@ -1,0 +1,125 @@
+import pytest
+
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
+    FunctionAndModulePattern,
+    SDKCrashDetectionConfig,
+)
+from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
+
+
+@pytest.mark.parametrize("field_containing_path", ["package", "module", "abs_path", "filename"])
+def test_build_sdk_crash_detection_configs(
+    empty_cocoa_config: SDKCrashDetectionConfig, field_containing_path: str
+) -> None:
+    empty_cocoa_config.sdk_frame_config.path_patterns = {"Sentry**"}
+
+    detector = SDKCrashDetector(empty_cocoa_config)
+
+    frame = {
+        field_containing_path: "Sentry",
+    }
+
+    assert detector.is_sdk_frame(frame) is True
+
+
+@pytest.mark.parametrize(
+    "test_id,ignore_matchers,frames,is_crash,description",
+    [
+        (
+            "function_module_match",
+            [
+                FunctionAndModulePattern(
+                    module_pattern="kotlin.coroutines", function_pattern="invoke"
+                )
+            ],
+            [{"function": "invoke", "module": "kotlin.coroutines", "package": "MyApp"}],
+            False,
+            "Should not report a crash when both module and function match pattern exactly",
+        ),
+        (
+            "function_match_module_wildcard",
+            [FunctionAndModulePattern(module_pattern="*", function_pattern="getCurrentStackTrace")],
+            [{"function": "getCurrentStackTrace", "module": "some.module", "package": "MyApp"}],
+            False,
+            "Should not report a crash when function matches and module pattern is wildcard",
+        ),
+        (
+            "function_match_module_wildcard_module_is_none",
+            [FunctionAndModulePattern(module_pattern="*", function_pattern="getCurrentStackTrace")],
+            [{"function": "getCurrentStackTrace", "package": "MyApp"}],
+            False,
+            "Should not report a crash when function matches and module pattern is wildcard, even when frames[0].module is None",
+        ),
+        (
+            "function_mismatch_module_wildcard",
+            [FunctionAndModulePattern(module_pattern="*", function_pattern="getCurrentStackTrace")],
+            [{"function": "someOtherFunction", "module": "some.module", "package": "MyApp"}],
+            True,
+            "Should report a crash when module pattern is wildcard but function doesn't match",
+        ),
+        (
+            "function_wildcard_module_match",
+            [FunctionAndModulePattern(module_pattern="test.module", function_pattern="*")],
+            [{"function": "anyFunction", "module": "test.module", "package": "MyApp"}],
+            False,
+            "Should not report a crash when function pattern is wildcard and module matches",
+        ),
+        (
+            "function_wildcard_module_mismatch",
+            [FunctionAndModulePattern(module_pattern="test.module", function_pattern="*")],
+            [{"function": "anyFunction", "module": "other.module", "package": "MyApp"}],
+            True,
+            "Should report a crash when function pattern is wildcard but module doesn't match",
+        ),
+        (
+            "invoke_match_module_prefix_with_suffix",
+            [
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentrySupportSQLiteStatement$*",
+                    function_pattern="invoke",
+                )
+            ],
+            [
+                {
+                    "function": "invoke",
+                    "module": "io.sentry.android.sqlite.SentrySupportSQLiteStatement$bindLong$1",
+                    "package": "MyApp",
+                }
+            ],
+            False,
+            "Should not report a crash when module matches SentrySupportSQLiteStatement$* and function is invoke",
+        ),
+        (
+            "begin_transaction_match_database_wrapper",
+            [
+                FunctionAndModulePattern(
+                    module_pattern="io.sentry.android.sqlite.SentrySupportSQLiteDatabase",
+                    function_pattern="beginTransaction*",
+                )
+            ],
+            [
+                {
+                    "function": "beginTransactionNonExclusive",
+                    "module": "io.sentry.android.sqlite.SentrySupportSQLiteDatabase",
+                    "package": "MyApp",
+                }
+            ],
+            False,
+            "Should not report a crash when beginTransaction* is called on SentrySupportSQLiteDatabase",
+        ),
+    ],
+)
+def test_sdk_crash_ignore_matchers(
+    empty_cocoa_config: SDKCrashDetectionConfig,
+    test_id: str,
+    ignore_matchers: list[FunctionAndModulePattern],
+    frames: list[dict[str, str]],
+    is_crash: bool,
+    description: str,
+):
+    empty_cocoa_config.sdk_crash_ignore_matchers = set(ignore_matchers)
+    empty_cocoa_config.sdk_frame_config.path_patterns = {"**"}
+
+    detector = SDKCrashDetector(empty_cocoa_config)
+
+    assert detector.is_sdk_crash(frames) is is_crash, description

@@ -1,0 +1,188 @@
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {closeModal} from 'sentry/actionCreators/modal';
+import {t} from 'sentry/locale';
+import {
+  OnboardingDrawerKey,
+  OnboardingDrawerStore,
+} from 'sentry/stores/onboardingDrawerStore';
+import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import type {Plan, PreviewData, Subscription} from 'getsentry/types';
+import {PlanTier} from 'getsentry/types';
+import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+
+import type {Reservations} from './types';
+
+type Props = {
+  organization: Organization;
+  plan: Plan;
+  previewData: PreviewData;
+  reservations: Reservations;
+  subscription: Subscription;
+  surface: AM2UpdateSurfaces;
+  isActionDisabled?: boolean;
+  onComplete?: () => void;
+};
+
+export function ActionButtons({
+  isActionDisabled,
+  onComplete,
+  organization,
+  plan,
+  previewData,
+  reservations,
+  subscription,
+  surface,
+}: Props) {
+  const api = useApi();
+  const navigate = useNavigate();
+
+  const onUpdatePlan = async () => {
+    try {
+      await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
+        method: 'PUT',
+        data: {
+          ...reservations,
+          plan: plan?.id,
+          referrer: 'replay-am2-update-modal',
+        },
+      });
+
+      SubscriptionStore.loadData(organization.slug, () => {
+        if (onComplete) {
+          onComplete();
+        }
+        closeModal();
+        addSuccessMessage(t('Subscription Updated!'));
+
+        window.location.hash = 'replay-sidequest';
+        OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);
+
+        trackGetsentryAnalytics('upgrade_now.modal.update_now', {
+          organization,
+          planTier: subscription.planTier,
+          canSelfServe: subscription.canSelfServe,
+          channel: subscription.channel,
+          has_billing_scope: organization.access?.includes('org:billing'),
+          surface,
+          has_price_change: previewData.billedAmount !== 0,
+        });
+      });
+    } catch (err) {
+      Sentry.captureException(err);
+      navigate(
+        normalizeUrl({
+          pathname: `/checkout/${organization.slug}/`,
+          query: {referrer: 'replay_upgrade_modal-update_plan-error'},
+        }),
+        {replace: true}
+      );
+    }
+  };
+
+  const onEmailOwner = async () => {
+    const currentPlanName =
+      subscription.planTier === PlanTier.AM2 ? 'am2-non-beta' : 'am1-non-beta';
+
+    await sendReplayOnboardRequest({
+      api,
+      orgSlug: organization.slug,
+      currentPlan: currentPlanName,
+      onSuccess: () => {
+        onComplete?.();
+        closeModal();
+        trackGetsentryAnalytics('upgrade_now.modal.sent_email', {
+          organization,
+          surface,
+          planTier: subscription.planTier,
+          canSelfServe: subscription.canSelfServe,
+          channel: subscription.channel,
+          has_billing_scope: organization.access?.includes('org:billing'),
+        });
+      },
+      onError: () => {
+        navigate(
+          normalizeUrl({
+            pathname: `/checkout/${organization.slug}/`,
+            query: {referrer: 'replay_upgrade_modal-email_owner-error'},
+          }),
+          {replace: true}
+        );
+      },
+    });
+  };
+
+  const onClickManageSubscription = () => {
+    trackGetsentryAnalytics('upgrade_now.modal.manage_sub', {
+      organization,
+      surface,
+      planTier: subscription.planTier,
+      canSelfServe: subscription.canSelfServe,
+      channel: subscription.channel,
+      has_billing_scope: organization.access?.includes('org:billing'),
+    });
+  };
+
+  const hasBillingAccess = organization.access?.includes('org:billing');
+
+  return hasBillingAccess ? (
+    <ButtonRow>
+      <Button
+        variant="primary"
+        onClick={onUpdatePlan}
+        disabled={isActionDisabled === true}
+      >
+        {t('Update Now')}
+      </Button>
+      <LinkButton
+        to={`/checkout/${organization.slug}/?referrer=replay_onboard_modal-owner-modal`}
+        onClick={onClickManageSubscription}
+      >
+        {t('Manage Subscription')}
+      </LinkButton>
+    </ButtonRow>
+  ) : (
+    <ButtonRow>
+      <Button
+        variant="primary"
+        tooltipProps={{
+          title: t(
+            'Notify an owner by email to update to the latest version of your plan'
+          ),
+        }}
+        onClick={onEmailOwner}
+        disabled={isActionDisabled === true}
+      >
+        {t('Request to Update Plan')}
+      </Button>
+      <Button
+        disabled
+        tooltipProps={{
+          title: t(
+            'Only members with the role "Owner" or "Billing" can manage subscriptions'
+          ),
+        }}
+      >
+        {t('Manage Subscription')}
+      </Button>
+    </ButtonRow>
+  );
+}
+
+const ButtonRow = styled('p')`
+  display: flex;
+  gap: ${p => p.theme.space.lg};
+  margin-top: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.xl};
+`;

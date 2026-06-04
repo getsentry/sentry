@@ -1,0 +1,838 @@
+import logging
+from typing import Any
+
+from sentry import features, options
+from sentry.constants import DataCategory
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcOrganization
+from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
+from sentry.seer.agent.client_utils import fetch_run_status
+from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
+from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
+from sentry.seer.entrypoints.cache import SeerOperatorAgentCache, SeerOperatorAutofixCache
+from sentry.seer.entrypoints.metrics import (
+    SeerOperatorEventLifecycleMetric,
+    SeerOperatorInteractionType,
+)
+from sentry.seer.entrypoints.registry import (
+    agent_entrypoint_registry,
+    autofix_entrypoint_registry,
+)
+from sentry.seer.entrypoints.types import (
+    SeerAgentEntrypoint,
+    SeerAutofixEntrypoint,
+    SeerEntrypointKey,
+)
+from sentry.seer.models import SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access
+from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import seer_tasks
+from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.registry import invoke_workflow_activity_handlers
+
+SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
+    SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
+    SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED: ActivityType.SEER_RCA_COMPLETED,
+    SentryAppEventType.SEER_SOLUTION_STARTED: ActivityType.SEER_SOLUTION_STARTED,
+    SentryAppEventType.SEER_SOLUTION_COMPLETED: ActivityType.SEER_SOLUTION_COMPLETED,
+    SentryAppEventType.SEER_CODING_STARTED: ActivityType.SEER_CODING_STARTED,
+    SentryAppEventType.SEER_CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED,
+    SentryAppEventType.SEER_PR_CREATED: ActivityType.SEER_PR_CREATED,
+}
+
+logger = logging.getLogger(__name__)
+
+
+# The cache here will not stop entrypoints from triggering autofixupdates, it only affects the
+# entrypoint's ability to receive updates from those triggers. So 12 is plenty, even accounting for
+# incidents, since a run should not take nearly that long to complete.
+PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
+
+
+def has_seer_autofix_entrypoint_access(
+    *,
+    organization: Organization,
+    entrypoint_key: SeerEntrypointKey | None = None,
+) -> bool:
+    """
+    Checks if the organization has access to Seer and at least one autofix entrypoint.
+    If an entrypoint_key is provided, ensures the organization has access to that specific
+    autofix entrypoint.
+    """
+    if not has_seer_access(organization):
+        return False
+
+    if entrypoint_key:
+        if entrypoint_key not in autofix_entrypoint_registry.registrations:
+            logger.error(
+                "seer.operator.invalid_entrypoint_key",
+                extra={
+                    "entrypoint_key": str(entrypoint_key),
+                    "organization_id": organization.id,
+                },
+            )
+            return False
+        entrypoint_cls = autofix_entrypoint_registry.registrations[entrypoint_key]
+        return entrypoint_cls.has_access(organization)
+
+    return any(
+        entrypoint_cls.has_access(organization=organization)
+        for entrypoint_cls in autofix_entrypoint_registry.registrations.values()
+    )
+
+
+class SeerAutofixOperator[CachePayloadT]:
+    """
+    A class that connects to entrypoint implementations and runs operations for Seer with them.
+    It does this to ensure all entrypoints have consistent behavior and responses.
+    """
+
+    def __init__(self, entrypoint: SeerAutofixEntrypoint[CachePayloadT]):
+        self.entrypoint = entrypoint
+
+    @classmethod
+    def has_access(
+        cls,
+        *,
+        organization: Organization,
+        entrypoint_key: SeerEntrypointKey | None = None,
+    ) -> bool:
+        return has_seer_autofix_entrypoint_access(
+            organization=organization, entrypoint_key=entrypoint_key
+        )
+
+    @classmethod
+    def can_trigger_autofix(cls, *, group: Group) -> bool:
+        """
+        Checks if a group is permitted to trigger autofix.
+        Validates Seer access for the organization, the issue category, and autofix quota.
+        """
+        from sentry import quotas
+        from sentry.seer.autofix.utils import is_issue_category_eligible
+
+        return (
+            has_seer_access(group.organization)
+            and is_issue_category_eligible(group)
+            and quotas.backend.check_seer_quota(
+                org_id=group.organization.id,
+                data_category=DataCategory.SEER_AUTOFIX,
+            )
+        )
+
+    def trigger_autofix(
+        self,
+        *,
+        group: Group,
+        user: User | RpcUser,
+        stopping_point: AutofixStoppingPoint,
+        instruction: str | None = None,
+        run_id: int | None = None,
+    ) -> None:
+        self.trigger_autofix_agent(
+            group=group,
+            user=user,
+            stopping_point=stopping_point,
+            instruction=instruction,
+            run_id=run_id,
+        )
+
+    def trigger_autofix_agent(
+        self,
+        *,
+        group: Group,
+        user: User | RpcUser,
+        stopping_point: AutofixStoppingPoint,
+        instruction: str | None = None,
+        run_id: int | None = None,
+    ) -> None:
+        from sentry.seer.autofix.autofix_agent import (
+            AutofixStep,
+            NoSeerQuotaException,
+            get_autofix_agent_state,
+            trigger_autofix_agent,
+            trigger_push_changes,
+        )
+
+        event_lifecyle = SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_AUTOFIX,
+            entrypoint_key=self.entrypoint.key,
+        )
+
+        with event_lifecyle.capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "group_id": str(group.id),
+                    "user_id": str(user.id),
+                    "stopping_point": str(stopping_point),
+                }
+            )
+
+            try:
+                existing_state = get_autofix_agent_state(group.organization, group.id)
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(
+                        error="Encountered an error while talking to Seer"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return
+            if existing_state:
+                has_complete_stage = get_autofix_explorer_status(stopping_point, existing_state)
+                lifecycle.add_extras(
+                    {
+                        "existing_run_id": str(existing_state.run_id),
+                        "existing_run_status": str(existing_state.status),
+                    }
+                )
+
+                # For now, we don't support re-runs over slack -- it causes a confusing UX without
+                # reliably being able to edit messages.
+                if has_complete_stage is not None:
+                    with SeerOperatorEventLifecycleMetric(
+                        interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
+                        entrypoint_key=self.entrypoint.key,
+                    ).capture():
+                        self.entrypoint.on_trigger_autofix_already_exists(
+                            run_id=existing_state.run_id,
+                            has_complete_stage=has_complete_stage,
+                        )
+                    return
+
+            try:
+                if not run_id:
+                    run_id = trigger_autofix_agent(
+                        group=group,
+                        step=AutofixStep.ROOT_CAUSE,
+                        referrer=AutofixReferrer.SLACK,
+                        run_id=None,
+                    )
+                elif stopping_point == AutofixStoppingPoint.OPEN_PR:
+                    trigger_push_changes(
+                        group,
+                        run_id,
+                        referrer=AutofixReferrer.SLACK,
+                    )
+                else:
+                    # NOTE: Stopping point here is really just what
+                    # step to run next. Not the same as the stopping_point
+                    # argument supported by `trigger_autofix_agent` which allows one
+                    # to run multiple steps at once
+                    trigger_autofix_agent(
+                        group=group,
+                        step=AutofixStep.from_autofix_stopping_point(stopping_point),
+                        referrer=AutofixReferrer.SLACK,
+                        run_id=run_id,
+                    )
+            except NoSeerQuotaException:
+                error = "No budget for Seer Autofix"
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(error=error)
+                lifecycle.record_failure(failure_reason=error)
+                return
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(
+                        error="Encountered an error while talking to Seer"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return
+
+            lifecycle.add_extra("run_id", str(run_id))
+
+            # Let the entrypoint signal to the external service that the run started
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_SUCCESS,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                self.entrypoint.on_trigger_autofix_success(run_id=run_id)
+
+            # Create a cache payload that will be picked up for subsequent updates
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_CREATE_AUTOFIX_CACHE_PAYLOAD,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                cache_payload = self.entrypoint.create_autofix_cache_payload()
+
+            if not cache_payload:
+                return
+            cache_result = SeerOperatorAutofixCache.populate_post_autofix_cache(
+                entrypoint_key=str(self.entrypoint.key),
+                cache_payload=cache_payload,
+                run_id=run_id,
+            )
+            lifecycle.add_extras(
+                {
+                    "cache_key": cache_result["key"],
+                    "cache_source": cache_result["source"],
+                }
+            )
+
+    def trigger_handoff(
+        self,
+        *,
+        group: Group,
+        run_id: int,
+    ) -> None:
+        from sentry.locks import locks
+        from sentry.seer.autofix.autofix_agent import trigger_coding_agent_handoff
+        from sentry.seer.autofix.utils import (
+            CodingAgentProviderType,
+            CodingAgentStatus,
+        )
+        from sentry.utils.locking import UnableToAcquireLock
+
+        event_lifecycle = SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_HANDOFF,
+            entrypoint_key=self.entrypoint.key,
+        )
+
+        with event_lifecycle.capture() as lifecycle:
+            lifecycle.add_extras({"group_id": str(group.id), "run_id": str(run_id)})
+
+            handoff_config = get_automation_handoff(group.project.get_option)
+            if handoff_config is None:
+                # Handoff was unset between message render and click.
+                lifecycle.record_halt(halt_reason="no_handoff_configured")
+                return
+
+            try:
+                target = CodingAgentProviderType(handoff_config.target)
+            except ValueError:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_handoff_error(
+                        error="Encountered an error handing off to the agent"
+                    )
+                lifecycle.record_failure(failure_reason="invalid_handoff_target")
+                return
+
+            lifecycle.add_extras(
+                {"target": target.value, "integration_id": str(handoff_config.integration_id)}
+            )
+
+            try:
+                agent_state = fetch_run_status(run_id=run_id, organization=group.organization)
+                coding_agents: list[CodingAgentState] = list(agent_state.coding_agents.values())
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_handoff_error(
+                        error="Encountered an error while talking to Seer"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return
+
+            lock_key = f"autofix:trigger_handoff:{self.entrypoint.key}:{group.id}:{run_id}"
+            lock = locks.get(lock_key, duration=30, name="autofix_trigger_handoff")
+            try:
+                with lock.acquire():
+                    non_failed = [a for a in coding_agents if a.status != CodingAgentStatus.FAILED]
+                    if non_failed:
+                        has_complete_stage = any(
+                            a.status == CodingAgentStatus.COMPLETED for a in non_failed
+                        )
+                        lifecycle.add_extra("active_agents", str(len(non_failed)))
+                        with SeerOperatorEventLifecycleMetric(
+                            interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ALREADY_EXISTS,
+                            entrypoint_key=self.entrypoint.key,
+                        ).capture():
+                            self.entrypoint.on_trigger_handoff_already_exists(
+                                run_id=run_id, target=target, has_complete_stage=has_complete_stage
+                            )
+                        lifecycle.record_halt(halt_reason="agent_already_active")
+                        return
+                    trigger_coding_agent_handoff(
+                        group=group,
+                        run_id=run_id,
+                        referrer=AutofixReferrer.SLACK,
+                        integration_id=handoff_config.integration_id,
+                    )
+            except UnableToAcquireLock as e:
+                lifecycle.record_halt(halt_reason=e)
+                return
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_handoff_error(
+                        error="Encountered an error while launching the coding agent"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_SUCCESS,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                self.entrypoint.on_trigger_handoff_success(run_id=run_id, target=target)
+
+
+def has_seer_agent_entrypoint_access(
+    *,
+    organization: Organization | RpcOrganization,
+    entrypoint_key: SeerEntrypointKey | None = None,
+) -> bool:
+    """
+    Checks if the organization has access to Seer Agent and at least one agent entrypoint.
+    If an entrypoint_key is provided, ensures the organization has access to that specific
+    agent entrypoint.
+
+    Should not be called from the CONTROL silo since ``has_seer_agent_access_with_detail``
+    depends on subscription context that getsentry's FlagpoleFeatureHandler does not
+    populate in control silo.
+    """
+    from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
+
+    has_access, _ = has_seer_agent_access_with_detail(organization, None)
+    if not has_access:
+        return False
+
+    if entrypoint_key:
+        if entrypoint_key not in agent_entrypoint_registry.registrations:
+            logger.error(
+                "seer.operator.invalid_agent_entrypoint_key",
+                extra={
+                    "entrypoint_key": str(entrypoint_key),
+                    "organization_id": organization.id,
+                },
+            )
+            return False
+        entrypoint_cls = agent_entrypoint_registry.registrations[entrypoint_key]
+        return entrypoint_cls.has_access(organization)
+
+    return any(
+        entrypoint_cls.has_access(organization=organization)
+        for entrypoint_cls in agent_entrypoint_registry.registrations.values()
+    )
+
+
+class SeerAgentOperator[CachePayloadT]:
+    """
+    A class that connects to entrypoint implementations and runs Seer Agent operations.
+    It does this to ensure all entrypoints have consistent behavior and responses.
+    """
+
+    def __init__(self, entrypoint: SeerAgentEntrypoint[CachePayloadT]):
+        self.entrypoint = entrypoint
+
+    @classmethod
+    def has_access(
+        cls,
+        *,
+        organization: Organization | RpcOrganization,
+        entrypoint_key: SeerEntrypointKey | None = None,
+    ) -> bool:
+        return has_seer_agent_entrypoint_access(
+            organization=organization, entrypoint_key=entrypoint_key
+        )
+
+    def trigger_agent(
+        self,
+        *,
+        organization: Organization,
+        user: User | RpcUser | None,
+        prompt: str,
+        on_page_context: str | None = None,
+        category_key: str,
+        category_value: str,
+    ) -> int | None:
+        """
+        Start or continue a Seer Agent run and return the run_id.
+        If a run exists for this category (e.g. slack thread), continues it; otherwise starts new.
+        Uses the entrypoint's Agent callbacks for success/error handling.
+        """
+        event_lifecycle = SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_AGENT,
+            entrypoint_key=self.entrypoint.key,
+        )
+
+        with event_lifecycle.capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "category_key": category_key,
+                    "category_value": category_value,
+                }
+            )
+
+            enable_code_mode_tools = "off"
+            if category_key == "slack_thread" and features.has(
+                "organizations:seer-slack-code-mode", organization
+            ):
+                enable_code_mode_tools = "only"
+
+            try:
+                # RpcUser is not in SeerAgentClient's type signature but works at runtime
+                client = SeerAgentClient(
+                    organization=organization,
+                    user=user,
+                    category_key=category_key,
+                    category_value=category_value,
+                    on_completion_hook=SeerOperatorCompletionHook,
+                    is_interactive=True,
+                    enable_coding=False,
+                    enable_code_mode_tools=enable_code_mode_tools,
+                )
+            except SeerPermissionError as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AGENT,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture(assume_success=False):
+                    self.entrypoint.on_trigger_agent_error(error=str(e))
+                lifecycle.record_failure(failure_reason=e)
+                return None
+
+            try:
+                existing_runs = client.get_runs(
+                    category_key=category_key,
+                    category_value=category_value,
+                    limit=1,
+                    only_current_user=False,
+                )
+
+                if existing_runs:
+                    run_id = client.continue_run(
+                        run_id=existing_runs[0].run_id,
+                        prompt=prompt,
+                        on_page_context=on_page_context,
+                    )
+                    lifecycle.add_extra("continued", "true")
+                else:
+                    run_id = client.start_run(
+                        prompt=prompt,
+                        on_page_context=on_page_context,
+                    )
+                    lifecycle.add_extra("continued", "false")
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AGENT,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture(assume_success=False):
+                    self.entrypoint.on_trigger_agent_error(error="An unexpected error occurred")
+                lifecycle.record_failure(failure_reason=e)
+                return None
+
+            lifecycle.add_extra("run_id", str(run_id))
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AGENT,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                self.entrypoint.on_trigger_agent_success(run_id=run_id)
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_CREATE_AGENT_CACHE_PAYLOAD,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                cache_payload = self.entrypoint.create_agent_cache_payload()
+
+            SeerOperatorAgentCache.set(
+                entrypoint_key=str(self.entrypoint.key),
+                run_id=run_id,
+                cache_payload=cache_payload,
+            )
+
+            return run_id
+
+
+def _create_seer_activity(
+    group: Group,
+    event_type: SentryAppEventType,
+    event_payload: dict[str, Any],
+) -> None:
+    activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
+    if not activity_type:
+        return
+
+    if not options.get("issues.record-seer-actions-as-activities"):
+        return
+
+    run_id = event_payload.get("run_id")
+
+    activity_data: dict[str, Any] = {}
+    if run_id is not None:
+        activity_data["run_id"] = run_id
+
+    if event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
+        root_cause = event_payload.get("root_cause")
+        if root_cause:
+            activity_data["summary"] = root_cause.get("one_line_description")
+    elif event_type == SentryAppEventType.SEER_SOLUTION_COMPLETED:
+        solution = event_payload.get("solution")
+        if solution:
+            activity_data["summary"] = solution.get("one_line_summary")
+    elif event_type == SentryAppEventType.SEER_PR_CREATED:
+        pull_requests = event_payload.get("pull_requests", [])
+        if pull_requests:
+            activity_data["pull_requests"] = pull_requests
+
+    activity = Activity.objects.create_group_activity(
+        group,
+        activity_type,
+        data=activity_data if activity_data else None,
+        send_notification=False,
+    )
+    invoke_workflow_activity_handlers(group=group, activity=activity)
+
+
+@instrumented_task(
+    name="sentry.seer.entrypoints.operator.process_autofix_updates",
+    namespace=seer_tasks,
+    processing_deadline_duration=PROCESS_AUTOFIX_TIMEOUT_SECONDS,
+    retry=None,
+)
+def process_autofix_updates(
+    *,
+    event_type: SentryAppEventType,
+    event_payload: dict[str, Any],
+    organization_id: int,
+) -> None:
+    """
+    Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
+    has a cache. If so, call the entrypoint's handler with the payload it had previously cached.
+    """
+    with SeerOperatorEventLifecycleMetric(
+        interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AUTOFIX_UPDATE
+    ).capture() as lifecycle:
+        run_id = event_payload.get("run_id")
+        group_id = event_payload.get("group_id")
+        lifecycle.add_extras(
+            {
+                "group_id": str(group_id),
+                "run_id": str(run_id),
+                "organization_id": organization_id,
+                "event_type": str(event_type),
+            }
+        )
+
+        if not run_id or not group_id:
+            lifecycle.record_failure(failure_reason="missing_identifiers")
+            return
+
+        if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
+            lifecycle.record_halt(halt_reason="skipped")
+            return
+
+        try:
+            group = Group.objects.get(id=group_id, project__organization_id=organization_id)
+        except Group.DoesNotExist:
+            lifecycle.record_failure(failure_reason="group_not_found")
+            return
+
+        organization = group.project.organization
+
+        if not SeerAutofixOperator.has_access(organization=organization):
+            lifecycle.record_halt(halt_reason="no_operator_access")
+            return
+
+        try:
+            _create_seer_activity(group, event_type, event_payload)
+        except Exception:
+            logger.exception(
+                "seer.activity_creation_failed",
+                extra={
+                    "group_id": group_id,
+                    "run_id": run_id,
+                    "event_type": str(event_type),
+                },
+            )
+
+        if event_type == SentryAppEventType.SEER_PR_CREATED and features.has(
+            "organizations:pr-metrics-attribution", organization
+        ):
+            try:
+                attribute_seer_created_pull_requests(
+                    organization=organization,
+                    pull_requests=event_payload.get("pull_requests", []),
+                    run_id=run_id,
+                    group_id=group_id,
+                )
+            except Exception:
+                logger.exception(
+                    "seer.pr_attribution.failed",
+                    extra={"group_id": group_id, "run_id": run_id},
+                )
+
+        for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
+            logging_ctx = {
+                "organization_id": organization.id,
+                "group_id": group_id,
+                "run_id": run_id,
+                "entrypoint_key": str(entrypoint_key),
+            }
+
+            if not entrypoint_cls.has_access(organization=organization):
+                logger.warning("seer.operator.no_access_entrypoint_key", extra=logging_ctx)
+                continue
+
+            cache_result = SeerOperatorAutofixCache.get(
+                entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
+            )
+            if not cache_result:
+                logger.warning("seer.operator.no_cache", extra=logging_ctx)
+                continue
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AUTOFIX_UPDATE,
+                entrypoint_key=entrypoint_key,
+            ).capture() as ept_lifecycle:
+                # We need to wrap here so that no one entrypoint failure can fail the whole task
+                try:
+                    entrypoint_cls.on_autofix_update(
+                        event_type=event_type,
+                        event_payload=event_payload,
+                        cache_payload=cache_result["payload"],
+                    )
+                except Exception as e:
+                    ept_lifecycle.record_failure(failure_reason=e)
+
+
+def get_autofix_explorer_status(
+    stopping_point: AutofixStoppingPoint, autofix_state: SeerRunState
+) -> bool | None:
+    from sentry.seer.autofix.autofix_agent import AutofixStep
+
+    expected_step = AutofixStep.from_autofix_stopping_point(stopping_point)
+
+    is_last = True
+    for block in reversed(autofix_state.blocks):
+        metadata = block.message.metadata
+        if metadata is None:
+            continue
+
+        step_str = metadata.get("step")
+        if step_str is None:
+            continue
+
+        try:
+            step = AutofixStep(step_str)
+        except ValueError:
+            continue
+
+        if step == expected_step:
+            # OPEN_PR step gets special treatment as it's not part of the normal blocks.
+            # We look for the code_changes step then the presence of repo_pr_states.
+            #
+            # This only works with a single code_changes step but that is the current
+            # expected behaviour.
+            if stopping_point == AutofixStoppingPoint.OPEN_PR:
+                # If there are no repo_pr_states, it means it's not started
+                if not autofix_state.repo_pr_states:
+                    return None
+                # If there are repo_pr_states, make sure they're not still creating
+                return all(
+                    pr_state.pr_creation_status != "creating"
+                    for pr_state in autofix_state.repo_pr_states.values()
+                )
+
+            # If the expected step is not the last step
+            # then we can assume it is already completed
+            # so return True to indicate that
+            if not is_last:
+                return True
+
+            # If the expected step is the last step, then
+            # we check the run state to see if it's processing
+            #
+            # Everything except the processing status
+            # is considered as some form of completed
+            return autofix_state.status != "processing"
+
+        is_last = False
+
+    # no block matching the stopping point found, so return None
+    # to indicate the step has not run before
+    return None
+
+
+class SeerOperatorCompletionHook(AgentOnCompletionHook):
+    """Completion hook that notifies all entrypoints when a Seer Agent run finishes.
+
+    Mirrors the pattern of process_autofix_updates: iterates through the entrypoint
+    registry and calls on_agent_update for each entrypoint that has access and
+    has a cached payload for this run.
+    """
+
+    @classmethod
+    def execute(cls, organization: Organization, run_id: int) -> None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AGENT_COMPLETION,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "run_id": str(run_id),
+                    "organization_id": organization.id,
+                }
+            )
+
+            if not SeerAgentOperator.has_access(organization=organization):
+                lifecycle.record_halt(halt_reason="no_operator_access")
+                return
+
+            summary: str | None = None
+            try:
+                state = fetch_run_status(run_id, organization)
+                for block in reversed(state.blocks):
+                    if block.message.role == "assistant" and block.message.content:
+                        summary = block.message.content
+                        break
+            except Exception as e:
+                lifecycle.record_failure(failure_reason=e)
+                return
+
+            for (
+                entrypoint_key,
+                entrypoint_cls,
+            ) in agent_entrypoint_registry.registrations.items():
+                if not entrypoint_cls.has_access(organization=organization):
+                    continue
+
+                from sentry.seer.entrypoints.slack.entrypoint import SlackAgentCachePayload
+
+                cache_payload = SeerOperatorAgentCache[SlackAgentCachePayload].get(
+                    entrypoint_key=str(entrypoint_key),
+                    run_id=run_id,
+                )
+                if not cache_payload:
+                    continue
+
+                if cache_payload.get("organization_id") != organization.id:
+                    # run_id is globally unique in Seer, so only one entrypoint will
+                    # have a cache entry per run. An org mismatch here is anomalous;
+                    # return rather than continue to abort the entire method.
+                    lifecycle.record_failure(failure_reason="org_mismatch")
+                    return
+
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AGENT_UPDATE,
+                    entrypoint_key=str(entrypoint_key),
+                ).capture() as ept_lifecycle:
+                    try:
+                        entrypoint_cls.on_agent_update(
+                            cache_payload=cache_payload,
+                            summary=summary,
+                            run_id=run_id,
+                        )
+                    except Exception as e:
+                        ept_lifecycle.record_failure(failure_reason=e)

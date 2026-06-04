@@ -1,0 +1,201 @@
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
+import {z} from 'zod';
+
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {t} from 'sentry/locale';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
+import {sampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampling';
+import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
+import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
+import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
+import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
+import {
+  useProjectSampleCounts,
+  type ProjectionSamplePeriod,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import {
+  useGetSamplingProjectRates,
+  useUpdateSamplingProjectRates,
+} from 'sentry/views/settings/dynamicSampling/utils/useSamplingProjectRates';
+
+const UNSAVED_CHANGES_MESSAGE = t(
+  'You have unsaved changes, are you sure you want to leave?'
+);
+
+const projectSamplingSchema = z.object({
+  projectRates: z.record(z.string(), sampleRateField),
+});
+
+export function ProjectSampling() {
+  const hasAccess = useHasDynamicSamplingWriteAccess();
+  const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
+  const [editMode, setEditMode] = useState<'single' | 'bulk'>('single');
+
+  const sampleRatesQuery = useGetSamplingProjectRates();
+  const sampleCountsQuery = useProjectSampleCounts({period});
+  const updateSamplingProjectRates = useUpdateSamplingProjectRates();
+
+  const projectRates = useMemo(
+    () =>
+      (sampleRatesQuery.data || []).reduce<Record<string, string>>((acc, item) => {
+        acc[item.id.toString()] = (item.sampleRate * 100).toString();
+        return acc;
+      }, {}),
+    [sampleRatesQuery.data]
+  );
+
+  const [savedProjectRates, setSavedProjectRates] = useState(projectRates);
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      projectRates,
+    },
+    validators: {
+      onDynamic: projectSamplingSchema,
+    },
+    onSubmit: async ({value, formApi}) => {
+      const ratesArray = Object.entries(value.projectRates).map(([id, rate]) => ({
+        id: Number(id),
+        sampleRate: parsePercent(rate),
+      }));
+      addLoadingMessage(t('Saving changes...'));
+      try {
+        await updateSamplingProjectRates.mutateAsync(ratesArray);
+        setSavedProjectRates(value.projectRates);
+        setEditMode('single');
+        formApi.reset(value);
+        addSuccessMessage(t('Changes applied'));
+      } catch {
+        addErrorMessage(t('Unable to save changes. Please try again.'));
+      }
+    },
+  });
+
+  const handleProjectRateChange = useCallback(
+    (projectId: string, rate: string) => {
+      form.setFieldValue(`projectRates.${projectId}`, rate);
+    },
+    [form]
+  );
+
+  const handleBulkProjectRateChange = useCallback(
+    (updates: Record<string, string>) => {
+      form.setFieldValue('projectRates', prev => ({...prev, ...updates}));
+    },
+    [form]
+  );
+
+  // Mirror enableReInitialize: reset the form whenever the server data changes
+  useEffect(() => {
+    form.reset({projectRates});
+    setSavedProjectRates(projectRates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectRates]);
+
+  const initialTargetRate = useMemo(() => {
+    const sampleRates = sampleRatesQuery.data ?? [];
+    const spanCounts = sampleCountsQuery.data ?? [];
+    const totalSpanCount = spanCounts.reduce((acc, item) => acc + item.count, 0);
+
+    const spanCountsById = mapArrayToObject({
+      array: spanCounts,
+      keySelector: item => item.project.id,
+      valueSelector: item => item.count,
+    });
+
+    return (
+      sampleRates.reduce((acc, item) => {
+        const count = spanCountsById[item.id] ?? 0;
+        return acc + count * item.sampleRate;
+      }, 0) / totalSpanCount
+    );
+  }, [sampleRatesQuery.data, sampleCountsQuery.data]);
+
+  return (
+    <form.AppForm form={form}>
+      <form.Subscribe
+        selector={s => ({
+          isDirty: s.isDirty,
+          currentProjectRates: s.values.projectRates,
+          fieldMeta: s.fieldMeta,
+        })}
+      >
+        {({isDirty, currentProjectRates, fieldMeta}) => {
+          const projectErrors: Record<string, string | undefined> = {};
+          for (const id of Object.keys(currentProjectRates)) {
+            const error = fieldMeta[`projectRates.${id}`]?.errors?.[0]?.message;
+            if (error) {
+              projectErrors[id] = error;
+            }
+          }
+
+          return (
+            <Fragment>
+              <OnRouteLeave
+                message={UNSAVED_CHANGES_MESSAGE}
+                when={locationChange =>
+                  locationChange.currentLocation.pathname !==
+                    locationChange.nextLocation.pathname && isDirty
+                }
+              />
+              <Flex justify="between" marginBottom="lg">
+                <ProjectionPeriodControl period={period} onChange={setPeriod} />
+                <SamplingModeSwitch initialTargetRate={initialTargetRate} />
+              </Flex>
+              {sampleCountsQuery.isError ? (
+                <LoadingError onRetry={sampleCountsQuery.refetch} />
+              ) : (
+                <ProjectsEditTable
+                  period={period}
+                  editMode={editMode}
+                  onEditModeChange={setEditMode}
+                  onProjectRateChange={handleProjectRateChange}
+                  onBulkProjectRateChange={handleBulkProjectRateChange}
+                  projectRates={currentProjectRates}
+                  projectErrors={projectErrors}
+                  isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+                  sampleCounts={sampleCountsQuery.data}
+                  savedProjectRates={savedProjectRates}
+                  actions={
+                    <Fragment>
+                      <form.ResetButton
+                        disabled={updateSamplingProjectRates.isPending}
+                        onClick={() => setEditMode('single')}
+                      >
+                        {t('Reset')}
+                      </form.ResetButton>
+                      <form.SubmitButton disabled={!hasAccess} formNoValidate>
+                        {t('Apply Changes')}
+                      </form.SubmitButton>
+                    </Fragment>
+                  }
+                />
+              )}
+              <FormActions />
+            </Fragment>
+          );
+        }}
+      </form.Subscribe>
+    </form.AppForm>
+  );
+}
+
+const FormActions = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: ${p => p.theme.space.md};
+  justify-content: flex-end;
+  padding-bottom: ${p => p.theme.space['3xl']};
+`;

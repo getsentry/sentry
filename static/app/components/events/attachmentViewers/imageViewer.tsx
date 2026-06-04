@@ -1,0 +1,20 @@
+import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
+import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
+
+type Props = Omit<ViewerProps, 'attachment'> & {
+  attachment: ViewerProps['attachment'];
+  onError?: React.ReactEventHandler<HTMLImageElement>;
+  onLoad?: React.ReactEventHandler<HTMLImageElement>;
+};
+
+export function ImageViewer({onLoad, onError, className, ...props}: Props) {
+  return (
+    <img
+      className={className}
+      data-test-id="image-viewer"
+      src={`/api/0${getAttachmentUrl(props)}?download`}
+      onLoad={onLoad}
+      onError={onError}
+    />
+  );
+}

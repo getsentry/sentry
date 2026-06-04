@@ -1,0 +1,66 @@
+import {Stack} from '@sentry/scraps/layout';
+
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import type {InsightEventKey} from 'sentry/utils/analytics/insightAnalyticEvents';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
+import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {INSIGHTS_TITLE, QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/settings';
+import type {ModuleName} from 'sentry/views/insights/types';
+
+type ModuleNameStrings = `${ModuleName}`;
+type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
+
+interface Props {
+  children: React.ReactNode;
+  moduleName: TitleableModuleNames;
+  analyticEventName?: InsightEventKey;
+  maxPickableDays?: DatePageFilterProps['maxPickableDays'];
+  pageTitle?: string;
+}
+
+export function ModulePageProviders({
+  moduleName,
+  pageTitle,
+  children,
+  analyticEventName,
+  maxPickableDays,
+}: Props) {
+  const organization = useOrganization();
+  const moduleTitles = useModuleTitles();
+  const {view} = useDomainViewFilters();
+
+  const hasDateRangeQueryLimit = organization.features.includes(
+    'insights-query-date-range-limit'
+  );
+
+  useHasDataTrackAnalytics(moduleName as ModuleName, analyticEventName);
+
+  const moduleTitle = moduleTitles[moduleName];
+
+  const fullPageTitle = [pageTitle, moduleTitle, INSIGHTS_TITLE]
+    .filter(Boolean)
+    .join(' — ');
+
+  return (
+    <PageFiltersContainer
+      maxPickableDays={
+        maxPickableDays ?? (hasDateRangeQueryLimit ? QUERY_DATE_RANGE_LIMIT : undefined)
+      }
+      storageNamespace={view}
+    >
+      <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
+        <Stack flex={1}>
+          <NoProjectMessage organization={organization}>
+            <WidgetSyncContextProvider>{children}</WidgetSyncContextProvider>
+          </NoProjectMessage>
+        </Stack>
+      </SentryDocumentTitle>
+    </PageFiltersContainer>
+  );
+}

@@ -1,0 +1,216 @@
+from collections import defaultdict
+from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import datetime
+from typing import Any, TypedDict
+
+from django.db.models import OuterRef, Subquery
+from drf_spectacular.utils import extend_schema_serializer
+
+from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.api.serializers.models.group import SimpleGroupSerializer
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.group import Group
+from sentry.models.options.project_option import ProjectOption
+from sentry.types.actor import Actor
+from sentry.workflow_engine.models import (
+    AlertRuleDetector,
+    DataConditionGroup,
+    DataSourceDetector,
+    Detector,
+    DetectorGroup,
+    DetectorWorkflow,
+)
+
+
+class DetectorSerializerResponseOptional(TypedDict, total=False):
+    owner: ActorSerializerResponse | None
+    createdBy: str | None
+    alertRuleId: int | None
+    ruleId: int | None
+    latestGroup: dict[str, Any] | None
+    description: str | None
+
+
+@extend_schema_serializer(exclude_fields=["alertRuleId", "ruleId"])
+class DetectorSerializerResponse(DetectorSerializerResponseOptional):
+    id: str
+    projectId: str
+    name: str
+    type: str
+    workflowIds: list[str] | None
+    dateCreated: datetime
+    dateUpdated: datetime
+    dataSources: list[dict[str, Any]] | None
+    conditionGroup: dict[str, Any] | None
+    config: dict[str, Any]
+    enabled: bool
+
+
+@register(Detector)
+class DetectorSerializer(Serializer[DetectorSerializerResponse]):
+    def get_attrs(
+        self, item_list: Sequence[Detector], user: Any, **kwargs: Any
+    ) -> MutableMapping[Detector, dict[str, Any]]:
+        attrs: MutableMapping[Detector, dict[str, Any]] = defaultdict(dict)
+
+        dsd_list = list(
+            DataSourceDetector.objects.filter(detector__in=item_list).select_related("data_source")
+        )
+        data_sources = {dsd.data_source for dsd in dsd_list}
+        serialized_data_sources = {
+            ds.id: serialized
+            for ds, serialized in zip(data_sources, serialize(data_sources, user=user))
+        }
+        ds_map = defaultdict(list)
+        for dsd in dsd_list:
+            ds_map[dsd.detector_id].append(serialized_data_sources[dsd.data_source_id])
+
+        condition_groups = list(
+            DataConditionGroup.objects.filter(
+                id__in=[
+                    d.workflow_condition_group_id
+                    for d in item_list
+                    if d.workflow_condition_group_id
+                ]
+            )
+        )
+        condition_group_map = {
+            str(group.id): serialized
+            for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
+        }
+
+        workflows_map = defaultdict(list)
+        detector_workflows = DetectorWorkflow.objects.filter(detector__in=item_list).values_list(
+            "detector_id", "workflow_id"
+        )
+        for detector_id, workflow_id in detector_workflows:
+            workflows_map[detector_id].append(str(workflow_id))
+
+        # Fetch alert rule mappings
+        # TODO: Remove alert rule mappings as they're deprecated
+        alert_rule_mappings = list(AlertRuleDetector.objects.filter(detector__in=item_list))
+        alert_rule_map = {
+            mapping.detector_id: {
+                "alert_rule_id": mapping.alert_rule_id,
+                "rule_id": mapping.rule_id,
+            }
+            for mapping in alert_rule_mappings
+        }
+
+        # LIMIT 1 subquery, not DISTINCT ON: Postgres lacks skip scan, so
+        # DISTINCT ON reads all rows per detector before deduplicating.
+        # LIMIT 1 stops after one index probe per detector.
+        # Impact is _dramatic_ for high cardinality DetectorGroups like error Detectors.
+        latest_group_subquery = (
+            DetectorGroup.objects.filter(detector_id=OuterRef("pk"))
+            .order_by("-date_added")
+            .values("group_id")[:1]
+        )
+        latest_group_ids_by_detector_id = {
+            d.id: d.latest_group_id
+            for d in Detector.objects.filter(id__in=[item.id for item in item_list]).annotate(
+                latest_group_id=Subquery(latest_group_subquery)
+            )
+            if d.latest_group_id is not None
+        }
+        project_ids = {item.project_id for item in item_list}
+        latest_groups = list(
+            Group.objects.filter(
+                id__in=latest_group_ids_by_detector_id.values(),
+                project_id__in=project_ids,
+            ).select_related("project")
+        )
+        serialized_latest_groups = {
+            group.id: serialized
+            for group, serialized in zip(
+                latest_groups,
+                serialize(latest_groups, user=user, serializer=SimpleGroupSerializer()),
+            )
+        }
+        latest_groups_map = {
+            detector_id: serialized_latest_groups.get(group_id)
+            for detector_id, group_id in latest_group_ids_by_detector_id.items()
+        }
+
+        filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
+        error_detector_project_ids = [item.project_id for item in filtered_item_list]
+
+        project_options_list = list(
+            ProjectOption.objects.filter(
+                key__in=Detector.error_detector_project_options.values(),
+                project__in=error_detector_project_ids,
+            )
+        )
+
+        configs: dict[int, dict[str, Any]] = defaultdict(
+            dict
+        )  # make the config for Error Detectors
+        for option in project_options_list:
+            configs[option.project_id][option.key] = option.value
+
+        # Serialize owners
+        owners = [item.owner for item in item_list if item.owner]
+        owners_serialized = serialize(
+            Actor.resolve_many(owners, filter_none=False), user, ActorSerializer()
+        )
+        owner_lookup = {owner: serialized for owner, serialized in zip(owners, owners_serialized)}
+
+        for item in item_list:
+            attrs[item]["data_sources"] = ds_map.get(item.id)
+            attrs[item]["condition_group"] = condition_group_map.get(
+                str(item.workflow_condition_group_id)
+            )
+            attrs[item]["workflow_ids"] = workflows_map[item.id]
+            attrs[item]["alert_rule_mapping"] = alert_rule_map.get(
+                item.id,
+                {
+                    "alert_rule_id": None,
+                    "rule_id": None,
+                },
+            )
+            attrs[item]["latest_group"] = latest_groups_map.get(item.id)
+            if item.id in configs:
+                attrs[item]["config"] = configs[item.id]
+            else:
+                attrs[item]["config"] = item.config
+            attrs[item]["owner"] = item.owner and owner_lookup.get(item.owner) or None
+
+        return attrs
+
+    @staticmethod
+    def _normalize_config(config: dict[str, Any]) -> dict[str, Any]:
+        # XXX: There are some migrated metric alerts which have `detection_type: "static"`,
+        # a defined `comparison_delta`. These are treated as `detection_type: "percent"` in the backend,
+        # so this is a temporary fix to ensure that the frontend displays the correct detection type.
+        # Remove this once ISWF-2272 backfills the correct `detection_type`.
+        if config.get("detection_type") == "static" and config.get("comparison_delta"):
+            return {**config, "detection_type": "percent"}
+        return config
+
+    def serialize(
+        self, obj: Detector, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> DetectorSerializerResponse:
+        alert_rule_mapping = attrs.get("alert_rule_mapping", {})
+        return {
+            "id": str(obj.id),
+            "projectId": str(obj.project_id),
+            "name": obj.name,
+            "description": obj.description,
+            "type": obj.type,
+            "workflowIds": attrs.get("workflow_ids"),
+            "owner": attrs.get("owner"),
+            "createdBy": str(obj.created_by_id) if obj.created_by_id else None,
+            "dateCreated": obj.date_added,
+            "dateUpdated": obj.date_updated,
+            "dataSources": attrs.get("data_sources"),
+            "conditionGroup": attrs.get("condition_group"),
+            "config": convert_dict_key_case(
+                self._normalize_config(attrs.get("config", {})), snake_to_camel_case
+            ),
+            "enabled": obj.enabled,
+            "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
+            "ruleId": alert_rule_mapping.get("rule_id"),
+            "latestGroup": attrs.get("latest_group"),
+        }

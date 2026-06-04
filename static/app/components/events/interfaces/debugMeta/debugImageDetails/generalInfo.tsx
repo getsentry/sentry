@@ -1,0 +1,79 @@
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Processings} from 'sentry/components/events/interfaces/debugMeta/debugImage/processings';
+import {getImageAddress} from 'sentry/components/events/interfaces/debugMeta/utils';
+import {NotAvailable} from 'sentry/components/notAvailable';
+import {t} from 'sentry/locale';
+import type {Image} from 'sentry/types/debugImage';
+
+type Props = {
+  image?: Image;
+};
+
+export function GeneralInfo({image}: Props) {
+  const {debug_id, debug_file, code_id, code_file, arch, unwind_status, debug_status} =
+    image ?? {};
+
+  const imageAddress = image ? getImageAddress(image) : undefined;
+
+  return (
+    <Wrapper>
+      <Label coloredBg>{t('Address Range')}</Label>
+      <Value coloredBg>{imageAddress ?? <NotAvailable />}</Value>
+
+      <Label>{t('Debug ID')}</Label>
+      <Value>{debug_id ?? <NotAvailable />}</Value>
+
+      <Label coloredBg>{t('Debug File')}</Label>
+      <Value coloredBg>{debug_file ?? <NotAvailable />}</Value>
+
+      <Label>{t('Code ID')}</Label>
+      <Value>{code_id ?? <NotAvailable />}</Value>
+
+      <Label coloredBg>{t('Code File')}</Label>
+      <Value coloredBg>{code_file ?? <NotAvailable />}</Value>
+
+      <Label>{t('Architecture')}</Label>
+      <Value>{arch ?? <NotAvailable />}</Value>
+
+      <Label coloredBg>{t('Processing')}</Label>
+      <Value coloredBg>
+        {unwind_status || debug_status ? (
+          <Processings unwind_status={unwind_status} debug_status={debug_status} />
+        ) : (
+          <NotAvailable />
+        )}
+      </Value>
+    </Wrapper>
+  );
+}
+
+const Wrapper = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+`;
+
+const Label = styled('div')<{coloredBg?: boolean}>`
+  color: ${p => p.theme.tokens.content.primary};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.md}
+    ${p => p.theme.space.md};
+  ${p =>
+    p.coloredBg &&
+    css`
+      background-color: ${p.theme.tokens.background.secondary};
+    `}
+`;
+
+const Value = styled(Label)`
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: ${p => p.theme.space.md};
+  font-family: ${p => p.theme.font.family.mono};
+  ${p =>
+    p.coloredBg &&
+    css`
+      background-color: ${p.theme.tokens.background.secondary};
+    `}
+`;

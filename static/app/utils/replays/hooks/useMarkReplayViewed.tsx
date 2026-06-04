@@ -1,0 +1,25 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+type TData = unknown;
+type TError = unknown;
+type TVariables = {projectSlug: string; replayId: string};
+
+export function useMarkReplayViewed() {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  return useMutation<TData, TError, TVariables>({
+    mutationFn: ({projectSlug, replayId}) => {
+      const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
+      return fetchMutation({method: 'POST', url});
+    },
+    onSuccess(_data, {projectSlug, replayId}) {
+      const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
+      queryClient.refetchQueries({queryKey: [url]});
+    },
+    retry: false,
+  });
+}

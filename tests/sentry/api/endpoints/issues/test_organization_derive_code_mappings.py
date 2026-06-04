@@ -1,0 +1,403 @@
+from typing import Any
+from unittest.mock import MagicMock, patch
+
+from django.db import router
+from django.urls import reverse
+from rest_framework import status
+
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
+
+
+class OrganizationDeriveCodeMappingsTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.organization = self.create_organization("federal-bureau-of-control")
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.team = self.create_team(organization=self.organization, name="night-springs")
+        self.create_team_membership(team=self.team, user=self.user)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+        self.url = reverse(
+            "sentry-api-0-organization-derive-code-mappings",
+            args=[self.organization.slug],
+        )
+
+        self.repo = self.create_repo(
+            name="getsentry/sentry",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            project=self.project,
+        )
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_single_match(self, mock_get_trees_for_org: Any) -> None:
+        config_data = {
+            "stacktraceFilename": "stack/root/file.py",
+        }
+        expected_matches = [
+            {
+                "filename": "stack/root/file.py",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "",
+                "source_path": "",
+            }
+        ]
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                    external_id="1",
+                ),
+                files=["stack/root/file.py"],
+            )
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert mock_get_trees_for_org.call_count == 1
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_frame_with_module(self, mock_get_trees_for_org: Any) -> None:
+        config_data = {
+            "absPath": "Billing.kt",
+            "module": "com.waffleware.billing.Billing$1",
+            "platform": "java",
+            "stacktraceFilename": "Billing.kt",
+        }
+        expected_matches = [
+            {
+                "filename": "app/src/main/java/com/waffleware/billing/Billing.kt",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "com/waffleware/billing/",
+                "source_path": "app/src/main/java/com/waffleware/billing/",
+            }
+        ]
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                    external_id="1",
+                ),
+                files=["app/src/main/java/com/waffleware/billing/Billing.kt"],
+            )
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_frame_with_module_multiple_same_repo_matches(
+        self, mock_get_trees_for_org: Any
+    ) -> None:
+        config_data = {
+            "absPath": "GraphQLFetcher.java",
+            "module": "io.sentry.graphql.GraphQLFetcher",
+            "platform": "java",
+            "stacktraceFilename": "GraphQLFetcher.java",
+        }
+        expected_matches = [
+            {
+                "filename": "sentry-graphql/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "io/sentry/graphql/",
+                "source_path": "sentry-graphql/src/main/java/io/sentry/graphql/",
+            },
+            {
+                "filename": "sentry-graphql-core/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "io/sentry/graphql/",
+                "source_path": "sentry-graphql-core/src/main/java/io/sentry/graphql/",
+            },
+        ]
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                    external_id="1",
+                ),
+                files=[
+                    "sentry-graphql/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                    "sentry-graphql-core/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
+                ],
+            )
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_start_with_backslash(self, mock_get_trees_for_org: Any) -> None:
+        file = "stack/root/file.py"
+        config_data = {"stacktraceFilename": f"/{file}"}
+        expected_matches = [
+            {
+                "filename": file,
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "/",
+                "source_path": "",
+            }
+        ]
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                    external_id="1",
+                ),
+                files=["stack/root/file.py"],
+            )
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert mock_get_trees_for_org.call_count == 1
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_multiple_matches(self, mock_get_trees_for_org: Any) -> None:
+        config_data = {
+            "stacktraceFilename": "stack/root/file.py",
+        }
+        expected_matches = [
+            {
+                "filename": "stack/root/file.py",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "",
+                "source_path": "",
+            },
+            {
+                "filename": "stack/root/file.py",
+                "repo_name": "getsentry/foobar",
+                "repo_branch": "master",
+                "stacktrace_root": "",
+                "source_path": "",
+            },
+        ]
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                    external_id="1",
+                ),
+                files=["stack/root/file.py"],
+            ),
+            "getsentry/foobar": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/foobar",
+                    branch="master",
+                    external_id="2",
+                ),
+                files=["stack/root/file.py"],
+            ),
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert mock_get_trees_for_org.call_count == 1
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
+
+    def test_get_no_installation(self) -> None:
+        config_data = {
+            "projectId": self.project.id,
+            "stacktraceFilename": "stack/root/file.py",
+        }
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            unguarded_write(using=router.db_for_write(Integration)),
+        ):
+            Integration.objects.all().delete()
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert response.status_code == 404, response.content
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_single_file_path(self, mock_get_trees_for_org: Any) -> None:
+        config_data = {
+            "stacktraceFilename": "top_level_file.py",
+        }
+        expected_matches = [
+            {
+                "filename": "top_level_file.py",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "",
+                "source_path": "",
+            }
+        ]
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                    external_id="1",
+                ),
+                files=["top_level_file.py"],
+            )
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
+
+    def test_idor_project_from_different_org(self) -> None:
+        """Regression test: Cannot access projects from other organizations (IDOR)."""
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        config_data = {
+            "projectId": other_project.id,
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+            "repoName": "getsentry/codemap",
+        }
+        response = self.client.post(self.url, data=config_data, format="json")
+        # Should return 404 (not found), not 403 (forbidden) to prevent ID enumeration
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data == {"text": "Could not find project"}
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        return_value=[
+            {"name": "codemap", "identifier": "getsentry/codemap", "external_id": "99999"}
+        ],
+    )
+    def test_non_project_member_permissions(self, mock_get_repos: MagicMock) -> None:
+        config_data = {
+            "projectId": self.project.id,
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+            "repoName": "getsentry/codemap",
+        }
+        non_member = self.create_user()
+        non_member_om = self.create_member(organization=self.organization, user=non_member)
+        self.login_as(user=non_member)
+
+        response = self.client.post(self.url, data=config_data, format="json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+        self.create_team_membership(team=self.team, member=non_member_om)
+
+        response = self.client.post(self.url, data=config_data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        return_value=[
+            {"name": "codemap", "identifier": "getsentry/codemap", "external_id": "99999"}
+        ],
+    )
+    def test_post_simple(self, mock_get_repos: MagicMock) -> None:
+        config_data = {
+            "projectId": self.project.id,
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+            "repoName": "getsentry/codemap",
+        }
+        response = self.client.post(self.url, data=config_data, format="json")
+        repo = Repository.objects.get(name="getsentry/codemap")
+        assert response.status_code == 201, response.content
+        assert response.data == {
+            "automaticallyGenerated": False,
+            "id": str(response.data["id"]),
+            "projectId": str(self.project.id),
+            "projectSlug": self.project.slug,
+            "repoId": str(repo.id),
+            "repoName": "getsentry/codemap",
+            "provider": {
+                "aspects": {},
+                "features": [
+                    "codeowners",
+                    "commits",
+                    "issue-basic",
+                    "issue-sync",
+                    "stacktrace-link",
+                ],
+                "name": "GitHub",
+                "canDisable": False,
+                "key": "github",
+                "slug": "github",
+                "canAdd": True,
+            },
+            "integrationId": str(self.integration.id),
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+        }
+
+    def test_post_no_installation(self) -> None:
+        config_data = {
+            "projectId": self.project.id,
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+            "repoName": "name",
+        }
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            unguarded_write(using=router.db_for_write(Integration)),
+        ):
+            Integration.objects.all().delete()
+        response = self.client.post(self.url, data=config_data, format="json")
+        assert response.status_code == 404, response.content
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        return_value=[{"name": "name", "identifier": "name", "external_id": "88888"}],
+    )
+    def test_post_existing_code_mapping(self, mock_get_repos: MagicMock) -> None:
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=self.repo,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        RepositoryProjectPathConfig.objects.create(
+            stack_root="/stack/root",
+            source_root="/source/root/wrong",
+            default_branch="master",
+            organization_integration_id=self.organization_integration.id,
+            organization_id=self.organization_integration.organization_id,
+            integration_id=self.organization_integration.integration_id,
+            project_repository=project_repo,
+        )
+
+        config_data = {
+            "projectId": self.project.id,
+            "stackRoot": "/stack/root",
+            "sourceRoot": "/source/root",
+            "defaultBranch": "master",
+            "repoName": "name",
+        }
+        response = self.client.post(self.url, data=config_data, format="json")
+        assert response.status_code == 201, response.content
+
+        # Both mappings should coexist: the original and the newly derived one
+        mappings = RepositoryProjectPathConfig.objects.filter(
+            project_repository__project=self.project, stack_root="/stack/root"
+        )
+        assert mappings.count() == 2
+        assert set(mappings.values_list("source_root", flat=True)) == {
+            "/source/root/wrong",
+            "/source/root",
+        }

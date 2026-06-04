@@ -1,0 +1,60 @@
+import click
+import yaml
+
+from sentry.runner.decorators import configuration
+from sentry.utils import json
+
+
+@click.group()
+def files() -> None:
+    """Manage files from filestore."""
+
+
+@files.command()
+@click.argument("id", type=click.INT, metavar="FILE_ID")
+@configuration
+def get(id: int) -> None:
+    """Fetch a file's contents by id."""
+    from sentry.models.files.file import File
+
+    try:
+        file = File.objects.get(id=id)
+    except File.DoesNotExist:
+        raise click.ClickException("File %d does not exist." % id)
+
+    stdout = click.get_binary_stream("stdout")
+
+    with file.getfile() as fp:
+        for chunk in fp.chunks():
+            stdout.write(chunk)
+
+
+@files.command()
+@click.argument("id", type=click.INT, metavar="FILE_ID")
+@click.option("--format", default="json", type=click.Choice(("json", "yaml")))
+@configuration
+def info(id: int, format: str) -> None:
+    """Show a file's metadata by id."""
+    from sentry.models.files.file import File
+
+    try:
+        file = File.objects.get(id=id)
+    except File.DoesNotExist:
+        raise click.ClickException("File %d does not exist." % id)
+
+    obj = {
+        "id": file.id,
+        "name": file.name,
+        "headers": file.headers,
+        "size": file.size,
+        "sha1": file.checksum,
+        "dateCreated": file.timestamp,
+    }
+
+    stdout = click.get_text_stream("stdout")
+
+    if format == "yaml":
+        yaml.safe_dump(obj, stdout)
+    elif format == "json":
+        json.dump(obj, stdout)
+        stdout.write("\n")

@@ -1,0 +1,74 @@
+from collections import defaultdict
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
+
+from django.contrib.auth.models import AnonymousUser
+from django.db.models import prefetch_related_objects
+
+from sentry.api.serializers import Serializer, register, serialize
+from sentry.snuba.models import ExtrapolationMode, QuerySubscription, SnubaQuery
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+
+
+@register(SnubaQuery)
+class SnubaQuerySerializer(Serializer[dict[str, Any]]):
+    def get_attrs(
+        self, item_list: Sequence[SnubaQuery], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> MutableMapping[SnubaQuery, dict[str, Any]]:
+        prefetch_related_objects(item_list, "environment", "snubaqueryeventtype_set")
+        return {}
+
+    def serialize(
+        self,
+        obj: SnubaQuery,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return {
+            "id": str(obj.id),
+            "dataset": obj.dataset,
+            "query": obj.query,
+            "aggregate": obj.aggregate,
+            "timeWindow": obj.time_window,
+            "environment": obj.environment.name if obj.environment else None,
+            "eventTypes": [event_type.name.lower() for event_type in obj.event_types],
+            "extrapolationMode": (
+                ExtrapolationMode(obj.extrapolation_mode).name.lower()
+                if obj.extrapolation_mode is not None
+                else None
+            ),
+        }
+
+
+@register(QuerySubscription)
+class QuerySubscriptionSerializer(Serializer[dict[str, Any]]):
+    def get_attrs(
+        self,
+        item_list: Sequence[QuerySubscription],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> MutableMapping[QuerySubscription, dict[str, Any]]:
+        attrs: dict[QuerySubscription, dict[str, Any]] = defaultdict(dict)
+
+        prefetch_related_objects(item_list, "snuba_query", "snuba_query__snubaqueryeventtype_set")
+        snuba_queries = [item.snuba_query for item in item_list]
+        for qs, serialized_sq in zip(item_list, serialize(snuba_queries, user=user)):
+            attrs[qs]["snuba_query"] = serialized_sq
+
+        return attrs
+
+    def serialize(
+        self,
+        obj: QuerySubscription,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return {
+            "id": str(obj.id),
+            "status": obj.status,
+            "subscription": obj.subscription_id,
+            "snubaQuery": attrs.get("snuba_query"),
+        }

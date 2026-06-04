@@ -1,0 +1,64 @@
+import {useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
+
+import {t} from 'sentry/locale';
+import type {IntegrationType} from 'sentry/types/integrations';
+
+import {RequestIntegrationModal} from './RequestIntegrationModal';
+
+type Props = {
+  name: string;
+  slug: string;
+  type: IntegrationType;
+};
+
+export function RequestIntegrationButton(props: Props) {
+  const {openModal} = useModal();
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+
+  const openRequestModal = () => {
+    setIsOpen(true);
+    openModal(
+      renderProps => (
+        <RequestIntegrationModal
+          {...props}
+          {...renderProps}
+          onSuccess={() => setIsSent(true)}
+        />
+      ),
+      {
+        onClose: () => setIsOpen(false),
+      }
+    );
+  };
+
+  let buttonText: any;
+  if (isOpen) {
+    buttonText = t('Requesting Installation');
+  } else if (isSent) {
+    buttonText = t('Installation Requested');
+  } else {
+    buttonText = t('Request Installation');
+  }
+
+  return (
+    <StyledRequestIntegrationButton
+      data-test-id="request-integration-button"
+      disabled={isOpen || isSent}
+      onClick={openRequestModal}
+      variant="primary"
+      size="sm"
+    >
+      {buttonText}
+    </StyledRequestIntegrationButton>
+  );
+}
+
+const StyledRequestIntegrationButton = styled(Button)`
+  margin-left: ${p => p.theme.space.md};
+`;

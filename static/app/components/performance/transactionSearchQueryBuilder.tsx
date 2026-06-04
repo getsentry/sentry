@@ -1,0 +1,156 @@
+import {useCallback, useEffect, useMemo} from 'react';
+
+import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {
+  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  STATIC_SEMVER_TAGS,
+  STATIC_SPAN_TAGS,
+} from 'sentry/components/events/searchBarFieldConstants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
+import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
+import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
+import {
+  ALL_INSIGHTS_FILTER_KEY_SECTIONS,
+  isAggregateField,
+  isMeasurement,
+} from 'sentry/utils/discover/fields';
+import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {getHasTag} from 'sentry/utils/tag';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTags} from 'sentry/utils/useTags';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
+
+interface TransactionSearchQueryBuilderProps {
+  initialQuery: string;
+  searchSource: string;
+  datetime?: PageFilters['datetime'];
+  disableLoadingTags?: boolean;
+  disallowFreeText?: boolean;
+  filterKeyMenuWidth?: number;
+  onSearch?: (query: string, state: CallbackSearchState) => void;
+  placeholder?: string;
+  projects?: PageFilters['projects'] | readonly number[];
+  trailingItems?: React.ReactNode;
+}
+
+export function TransactionSearchQueryBuilder({
+  initialQuery,
+  searchSource,
+  datetime,
+  onSearch,
+  placeholder,
+  projects,
+  disallowFreeText = true,
+  disableLoadingTags,
+  filterKeyMenuWidth,
+  trailingItems,
+}: TransactionSearchQueryBuilderProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const tags = useTags();
+  const {addAlert} = useGlobalAlerts();
+
+  const placeholderText = useMemo(() => {
+    return placeholder ?? t('Search for events, users, tags, and more');
+  }, [placeholder]);
+
+  useEffect(() => {
+    if (!disableLoadingTags) {
+      loadOrganizationTags(api, organization.slug, selection, addAlert);
+    }
+  }, [api, organization.slug, selection, disableLoadingTags, addAlert]);
+
+  const filterTags = useMemo(() => {
+    const measurements = getMeasurements();
+
+    const combinedTags: TagCollection = {
+      ...STATIC_SPAN_TAGS,
+      ...STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+      ...STATIC_SEMVER_TAGS,
+      ...measurements,
+      ...tags,
+    };
+
+    combinedTags['request.method'] = {
+      key: 'request.method',
+      name: 'request.method',
+      kind: FieldKind.FIELD,
+    };
+
+    combinedTags.has = getHasTag(combinedTags);
+    return combinedTags;
+  }, [tags]);
+
+  const filterKeySections = useMemo(
+    () => [
+      ...ALL_INSIGHTS_FILTER_KEY_SECTIONS,
+      {
+        value: 'custom_fields',
+        label: 'Custom Tags',
+        children: Object.keys(tags),
+      },
+    ],
+    [tags]
+  );
+
+  // This is adapted from the `getEventFieldValues` function in `events/searchBar.tsx`
+  const getTransactionFilterTagValues = useCallback<GetTagValues>(
+    async ({tag, searchQuery}) => {
+      if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
+        // We can't really auto suggest values for aggregate fields
+        // or measurements, so we simply don't
+        return Promise.resolve([]);
+      }
+      //
+      // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
+      // and low search filter values because discover maps device.class to these values.
+      if (isDeviceClass(tag.key)) {
+        return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
+      }
+
+      try {
+        const results = await fetchTagValues({
+          api,
+          orgSlug: organization.slug,
+          tagKey: tag.key,
+          search: searchQuery,
+          projectIds: projects?.map(String) ?? selection.projects?.map(String),
+          includeTransactions: true,
+          sort: '-count',
+          endpointParams: normalizeDateTimeParams(datetime ?? selection.datetime),
+        });
+
+        return results.filter(({name}) => defined(name)).map(({name}) => name);
+      } catch (e) {
+        throw new Error(`Unable to fetch event field values: ${e}`);
+      }
+    },
+    [api, organization, datetime, projects, selection.datetime, selection.projects]
+  );
+
+  return (
+    <SearchQueryBuilder
+      placeholder={placeholderText}
+      filterKeys={filterTags}
+      initialQuery={initialQuery}
+      onSearch={onSearch}
+      searchSource={searchSource}
+      filterKeySections={filterKeySections}
+      getTagValues={getTransactionFilterTagValues}
+      disallowFreeText={disallowFreeText}
+      disallowUnsupportedFilters
+      recentSearches={SavedSearchType.EVENT}
+      filterKeyMenuWidth={filterKeyMenuWidth}
+      trailingItems={trailingItems}
+    />
+  );
+}

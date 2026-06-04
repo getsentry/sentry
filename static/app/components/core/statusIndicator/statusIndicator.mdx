@@ -1,0 +1,80 @@
+---
+title: StatusIndicator
+description: A small circular indicator that communicates status or severity via color.
+category: utilities
+source: '@sentry/scraps/statusIndicator'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/statusIndicator/statusIndicator.tsx
+---
+
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/statusIndicator');
+
+The `StatusIndicator` is a small dot indicator that communicates status or severity. It supports six semantic variants mapped to design tokens. Each dot renders with a subtle muted background pulse behind it.
+
+Placement is the caller's responsibility — the component renders as an inline element with no positioning of its own.
+
+## Variants
+
+<Storybook.Demo>
+  <Grid columns="8px 1fr" flow="row" gap="md" align="center">
+    <StatusIndicator variant="accent" aria-label="Accent" />
+    <Text>Accent</Text>
+
+    <StatusIndicator variant="success" aria-label="Success" />
+    <Text>Success</Text>
+
+    <StatusIndicator variant="warning" aria-label="Warning" />
+    <Text>Warning</Text>
+
+    <StatusIndicator variant="danger" aria-label="Danger" />
+    <Text>Danger</Text>
+
+    <StatusIndicator variant="promotion" aria-label="Promotion" />
+    <Text>Promotion</Text>
+
+    <StatusIndicator variant="muted" aria-label="Muted" />
+    <Text>Muted</Text>
+
+  </Grid>
+</Storybook.Demo>
+
+```jsx
+<StatusIndicator variant="accent" />
+<StatusIndicator variant="success" />
+<StatusIndicator variant="warning" />
+<StatusIndicator variant="danger" />
+<StatusIndicator variant="promotion" />
+<StatusIndicator variant="muted" />
+```
+
+## Accessibility
+
+The component handles three patterns based on the props provided:
+
+| Props                 | Behaviour                                                       |
+| --------------------- | --------------------------------------------------------------- |
+| No `aria-label`       | `aria-hidden="true"` — decorative, invisible to screen readers  |
+| `aria-label` only     | `role="img"` + `aria-label` — standalone meaningful indicator   |
+| `role` + `aria-label` | Explicit role respected (e.g. `role="status"` for live updates) |
+
+Omit `aria-label` when the indicator accompanies visible text that already conveys the same meaning.
+
+```jsx
+// Decorative — the adjacent text already communicates the status
+<Flex align="center" gap="xs">
+  <StatusIndicator variant="danger" />
+  <Text>Critical error</Text>
+</Flex>
+
+// Meaningful — the indicator is the only signal
+<StatusIndicator variant="accent" aria-label="New updates available" />
+
+// Live region — updates are announced to screen readers
+<StatusIndicator variant="danger" role="status" aria-label="2 new errors" />
+```

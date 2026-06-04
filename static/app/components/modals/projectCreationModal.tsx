@@ -1,0 +1,281 @@
+import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+import omit from 'lodash/omit';
+import {PlatformIcon} from 'platformicons';
+
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Container} from '@sentry/scraps/layout';
+
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
+import {
+  type ModalRenderProps,
+  openConsoleModal,
+  openProjectCreationModal,
+} from 'sentry/actionCreators/modal';
+import {
+  type Category,
+  type Platform,
+  PlatformPicker,
+} from 'sentry/components/platformPicker';
+import type {TeamOption} from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
+import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Team} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
+import {slugify} from 'sentry/utils/slugify';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  getRequestDataFragment,
+  IssueAlertOptions,
+} from 'sentry/views/projectInstall/issueAlertOptions';
+
+type Props = ModalRenderProps & {
+  defaultCategory?: Category;
+};
+
+export default function ProjectCreationModal({
+  Header,
+  closeModal,
+  defaultCategory,
+}: Props) {
+  const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
+  const [step, setStep] = useState(0);
+  const [projectName, setProjectName] = useState('');
+  const [team, setTeam] = useState<string | undefined>(undefined);
+  const [creating, setCreating] = useState(false);
+  const [alertForm, setAlertForm] = useState<Partial<AlertRuleOptions>>();
+
+  const api = useApi();
+  const organization = useOrganization();
+
+  function handlePlatformChange(selectedPlatform: Platform | null) {
+    if (!selectedPlatform) {
+      setPlatform(undefined);
+      return;
+    }
+
+    if (
+      isDisabledGamingPlatform({
+        platform: selectedPlatform,
+        enabledConsolePlatforms: organization.enabledConsolePlatforms,
+      })
+    ) {
+      openConsoleModal({
+        organization,
+        selectedPlatform: {
+          ...selectedPlatform,
+          key: selectedPlatform.id,
+        },
+        origin: 'project-creation',
+        onClose: () => {
+          openProjectCreationModal({
+            defaultCategory: selectedPlatform.category,
+          });
+        },
+      });
+      return;
+    }
+
+    setPlatform({
+      ...omit(selectedPlatform, 'id'),
+      key: selectedPlatform.id,
+    });
+  }
+
+  const createProject = async () => {
+    const {slug} = organization;
+
+    const alertRuleConfig = getRequestDataFragment(alertForm);
+
+    if (platform === undefined) {
+      return;
+    }
+
+    addLoadingMessage(t('Creating project...'), {
+      duration: 15000,
+    });
+
+    try {
+      const url = `/teams/${slug}/${team}/projects/`;
+      const projectData = await api.requestPromise(url, {
+        method: 'POST',
+        data: {
+          name: projectName,
+          platform: platform.key,
+          default_rules: alertRuleConfig.defaultRules ?? true,
+          origin: 'ui',
+        },
+      });
+
+      let ruleId: string | undefined;
+      if (alertRuleConfig.shouldCreateCustomRule) {
+        const ruleData = await api.requestPromise(
+          `/projects/${organization.slug}/${projectData.slug}/rules/`,
+          {
+            method: 'POST',
+            data: {
+              name: alertRuleConfig.name,
+              conditions: alertRuleConfig.conditions,
+              actions: alertRuleConfig.actions,
+              actionMatch: alertRuleConfig.actionMatch,
+              frequency: alertRuleConfig.frequency,
+            },
+          }
+        );
+        ruleId = ruleData.id;
+      }
+
+      ProjectsStore.onCreateSuccess(projectData, organization.slug);
+      clearIndicators();
+      trackAnalytics('project_modal.created', {
+        organization,
+        issue_alert: alertRuleConfig.defaultRules
+          ? 'Default'
+          : alertRuleConfig.shouldCreateCustomRule
+            ? 'Custom'
+            : 'No Rule',
+        project_id: projectData.id,
+        rule_id: ruleId || '',
+      });
+
+      addSuccessMessage(`Created project ${projectData.slug}`);
+      closeModal();
+    } catch (err) {
+      setCreating(false);
+      addErrorMessage(`Failed to create project ${projectName}`);
+    }
+  };
+
+  return (
+    <Fragment>
+      <Header closeButton>
+        <h4>{t('Create a Project')}</h4>
+      </Header>
+      {step === 0 && (
+        <Fragment>
+          <Subtitle>{t('Choose a Platform')}</Subtitle>
+          <PlatformPicker
+            defaultCategory={platform?.category ?? defaultCategory}
+            setPlatform={handlePlatformChange}
+            organization={organization}
+            platform={platform?.key}
+          />
+        </Fragment>
+      )}
+      {step === 1 && (
+        <Fragment>
+          <Subtitle>{t('Set your alert frequency')}</Subtitle>
+          <IssueAlertOptions
+            alertSetting={alertForm?.alertSetting}
+            interval={alertForm?.interval}
+            metric={alertForm?.metric}
+            threshold={alertForm?.threshold}
+            onFieldChange={(field, value) => {
+              setAlertForm(prev => ({
+                ...prev,
+                [field]: value,
+              }));
+            }}
+          />
+          <Subtitle>{t('Name your project and assign it a team')}</Subtitle>
+          <Flex gap="md">
+            <div>
+              <Label>{t('Project slug')}</Label>
+              <Container position="relative">
+                <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
+                <ProjectNameInput
+                  type="text"
+                  name="project-name"
+                  placeholder={t('project-slug')}
+                  autoComplete="off"
+                  value={projectName}
+                  onChange={e => setProjectName(slugify(e.target.value))}
+                />
+              </Container>
+            </div>
+            <div>
+              <Label>{t('Team')}</Label>
+              <TeamInput
+                allowCreate
+                name="select-team"
+                aria-label={t('Select a Team')}
+                clearable={false}
+                value={team}
+                placeholder={t('Select a Team')}
+                onChange={(choice: TeamOption) => setTeam(choice.value)}
+                teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+              />
+            </div>
+          </Flex>
+        </Fragment>
+      )}
+      <Flex justify="right" marginTop="xl" gap="md">
+        {step === 1 && <Button onClick={() => setStep(step - 1)}>{t('Back')}</Button>}
+        {step === 0 && (
+          <Button
+            variant="primary"
+            disabled={!platform}
+            onClick={() => setStep(step + 1)}
+          >
+            {t('Next Step')}
+          </Button>
+        )}
+        {step === 1 && (
+          <Button
+            variant="primary"
+            onClick={() => {
+              setCreating(true);
+              createProject();
+            }}
+            disabled={!projectName || !team || !platform || creating}
+          >
+            {t('Create Project')}
+          </Button>
+        )}
+      </Flex>
+    </Fragment>
+  );
+}
+
+const StyledPlatformIcon = styled(PlatformIcon)`
+  position: absolute;
+  top: 50%;
+  left: ${p => p.theme.form.md.paddingLeft}px;
+  transform: translateY(-50%);
+`;
+
+const ProjectNameInput = styled(Input)`
+  padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
+`;
+
+export const modalCss = css`
+  width: 100%;
+  max-width: 1000px;
+`;
+
+const Label = styled('div')`
+  font-size: ${p => p.theme.font.size.xl};
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const TeamInput = styled(TeamSelector)`
+  min-width: 250px;
+`;
+
+const Subtitle = styled('p')`
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+`;

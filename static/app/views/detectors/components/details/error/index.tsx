@@ -1,0 +1,193 @@
+import {Fragment} from 'react';
+
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Placeholder} from 'sentry/components/placeholder';
+import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
+import {t, tct, tn} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {EditDetectorAction} from 'sentry/views/detectors/components/details/common/actions';
+import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
+import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
+import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
+import {DetectorDetailsDefaultHeaderContent} from 'sentry/views/detectors/components/details/common/header';
+import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+type ErrorDetectorDetailsProps = {
+  detector: Detector;
+  project: Project;
+};
+
+const formatResolveAge = (resolveAge: number) => {
+  if (!resolveAge) {
+    return t('Auto-resolution disabled.');
+  }
+
+  if (resolveAge < 24 || resolveAge % 24 !== 0) {
+    return tn(
+      'Auto-resolve after %s hour of inactivity.',
+      'Auto-resolve after %s hours of inactivity',
+      resolveAge
+    );
+  }
+  return tn(
+    'Auto-resolve after %s day of inactivity.',
+    'Auto-resolve after %s days of inactivity.',
+    resolveAge / 24
+  );
+};
+
+function ResolveSection({project}: {project: Project}) {
+  const organization = useOrganization();
+  const {data: detailedProject, isPending} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  if (isPending || !detailedProject) {
+    return (
+      <DetailSection title={t('Resolve')}>
+        <Placeholder height="1em" />
+      </DetailSection>
+    );
+  }
+
+  const resolveAgeHours = detailedProject.resolveAge;
+
+  return (
+    <DetailSection title={t('Resolve')}>
+      <p>{formatResolveAge(resolveAgeHours)}</p>
+    </DetailSection>
+  );
+}
+
+export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsProps) {
+  const organization = useOrganization();
+  const canEdit = useCanEditDetectorWorkflowConnections({projectId: project.id});
+  const {selection} = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
+
+  return (
+    <DetailLayout>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Monitors'),
+                  to: makeMonitorBasePathname(organization.slug),
+                },
+                {
+                  label: getDetectorTypeLabel(detector.type),
+                  to: makeMonitorTypePathname(organization.slug, detector.type),
+                },
+                {
+                  label: <ProjectBadge disableLink project={project} avatarSize={16} />,
+                },
+              ]}
+            />
+          </TopBar.Slot>
+          <MonitorFeedbackButton />
+        </Fragment>
+      ) : (
+        <DetailLayout.Header>
+          <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
+          <DetailLayout.Actions>
+            <MonitorFeedbackButton />
+            <EditDetectorAction detector={detector} canEdit={canEdit} />
+          </DetailLayout.Actions>
+        </DetailLayout.Header>
+      )}
+      <DetailLayout.Body>
+        <DetailLayout.Main>
+          <DisabledAlert
+            detector={detector}
+            message={t('This monitor is disabled and not creating issues.')}
+          />
+          {hasPageFrameFeature ? (
+            <Flex align="center" justify="between" gap="md">
+              <DatePageFilter />
+              <Flex flex={1} justify="end" gap="md">
+                <EditDetectorAction detector={detector} canEdit={canEdit} />
+              </Flex>
+            </Flex>
+          ) : (
+            <DatePageFilter />
+          )}
+          <DetectorDetailsOngoingIssues
+            detector={detector}
+            dateTimeSelection={selection.datetime}
+          />
+          <DetectorDetailsAutomations detector={detector} />
+        </DetailLayout.Main>
+        <DetailLayout.Sidebar>
+          <DetailSection title={t('Detect')}>
+            <Text as="p">
+              {tct(
+                'All events have a fingerprint. Events with the same fingerprint are grouped together into an issue. To learn more about issue grouping, [link:read the docs].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/concepts/data-management/event-grouping/" />
+                  ),
+                }
+              )}
+            </Text>
+          </DetailSection>
+          <DetailSection title={t('Assign')}>
+            <Text as="p">
+              {tct(
+                'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
+                {
+                  link: (
+                    <Link
+                      to={`/settings/${organization.slug}/projects/${project?.slug}/ownership/`}
+                    />
+                  ),
+                }
+              )}
+            </Text>
+          </DetailSection>
+          <DetailSection title={t('Prioritize')}>
+            <Text as="p">
+              {tct(
+                'New error issues are prioritized based on log level. [link:Learn more about Issue Priority].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/issues/issue-priority/" />
+                  ),
+                }
+              )}
+            </Text>
+          </DetailSection>
+          <ResolveSection project={project} />
+          <DetectorExtraDetails>
+            <DetectorExtraDetails.DateCreated detector={detector} />
+            <DetectorExtraDetails.CreatedBy detector={detector} />
+            <DetectorExtraDetails.LastModified detector={detector} />
+            <DetectorExtraDetails.Environment detector={detector} />
+          </DetectorExtraDetails>
+        </DetailLayout.Sidebar>
+      </DetailLayout.Body>
+    </DetailLayout>
+  );
+}

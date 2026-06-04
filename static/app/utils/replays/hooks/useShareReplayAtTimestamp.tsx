@@ -1,0 +1,108 @@
+import {useCallback, useState} from 'react';
+import {useMatches} from 'react-router-dom';
+import styled from '@emotion/styled';
+
+import {Input} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
+
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {t} from 'sentry/locale';
+import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
+import {parseClockToSeconds} from 'sentry/utils/duration/parseClockToSeconds';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+
+function ShareModal({currentTimeSec, Header, Body}: any) {
+  const matches = useMatches();
+  const [customSeconds, setSeconds] = useState(currentTimeSec);
+  const [shareMode, setShareMode] = useState<'current' | 'user'>('current');
+
+  const url = new URL(window.location.href);
+  const {searchParams} = url;
+  searchParams.set('referrer', getRouteStringFromRoutes({matches}));
+  searchParams.set(
+    't',
+    shareMode === 'user' ? String(customSeconds) : String(currentTimeSec)
+  );
+
+  // Use `value` instead of `defaultValue` so the number resets to
+  // `currentTimeSec` if the user toggles isCustom
+  const value =
+    shareMode === 'user'
+      ? formatSecondsToClock(customSeconds, {padAll: false})
+      : formatSecondsToClock(currentTimeSec, {padAll: false});
+
+  return (
+    <div>
+      <Header closeButton>
+        <h3>{t('Share Replay')}</h3>
+      </Header>
+      <Body>
+        <StyledTextCopyInput aria-label={t('Deeplink to current timestamp')} size="sm">
+          {url.toString()}
+        </StyledTextCopyInput>
+
+        <Stack marginTop="xl" maxWidth="fit-content">
+          <RadioGroup
+            value={shareMode}
+            choices={[
+              ['current', t('Share at current timestamp')],
+              [
+                'user',
+                <InputRow key="user">
+                  <div>{t('Share at')}</div>
+                  <Input
+                    name="time"
+                    onFocus={() => setShareMode('user')}
+                    value={value}
+                    onChange={e => {
+                      setSeconds(parseClockToSeconds(e.target.value));
+                    }}
+                  />
+                </InputRow>,
+              ],
+            ]}
+            label="share at"
+            onChange={id => setShareMode(id)}
+          />
+        </Stack>
+      </Body>
+    </div>
+  );
+}
+
+export function useShareReplayAtTimestamp() {
+  const {openModal} = useModal();
+
+  const {currentTime} = useReplayContext();
+
+  const handleShare = useCallback(() => {
+    // floor() to remove ms level precision. It's a cleaner url by default this way.
+    const currentTimeSec = Math.floor(currentTime / 1000);
+
+    openModal(deps => <ShareModal currentTimeSec={currentTimeSec} {...deps} />);
+  }, [currentTime, openModal]);
+  return handleShare;
+}
+
+const StyledTextCopyInput = styled(TextCopyInput)`
+  /* Keep height consistent with the other input in the modal */
+  input {
+    height: 38px;
+  }
+`;
+
+const InputRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+  & > div {
+    min-width: fit-content;
+  }
+  & > input {
+    width: 100px;
+  }
+`;

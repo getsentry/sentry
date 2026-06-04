@@ -1,0 +1,85 @@
+import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {t} from 'sentry/locale';
+import type {OrgRole} from 'sentry/types/organization';
+
+const Label = styled('label')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+  margin-bottom: 0;
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
+
+type Props = {
+  disabled: boolean;
+  enforceAllowed: boolean;
+  enforceRetired: boolean;
+  helpText: string | undefined;
+  roleList: OrgRole[];
+  roleSelected: string;
+  setSelected: (id: string) => void;
+};
+
+export function OrganizationRoleSelect({
+  disabled,
+  enforceRetired,
+  enforceAllowed,
+  roleList,
+  roleSelected,
+  setSelected,
+  helpText,
+}: Props) {
+  return (
+    <Panel>
+      <StyledPanelHeader>
+        <div>{t('Organization Role')}</div>
+        {disabled && helpText && <QuestionTooltip size="sm" title={helpText} />}
+      </StyledPanelHeader>
+
+      <PanelBody>
+        {roleList.map(role => {
+          const {desc, name, id, isAllowed, isRetired: roleRetired} = role;
+
+          const isRetired = enforceRetired && roleRetired;
+          const isDisabled = disabled || isRetired || (enforceAllowed && !isAllowed);
+
+          return (
+            <PanelItem
+              key={id}
+              onClick={() => !isDisabled && setSelected(id)}
+              css={isDisabled ? {cursor: 'default'} : {}}
+            >
+              <Label>
+                <Radio id={id} value={name} checked={id === roleSelected} readOnly />
+                <div style={{flex: 1, padding: '0 16px'}}>
+                  <Stack gap="md">
+                    <Text variant="primary" bold>
+                      {name}
+                    </Text>
+                    <Text variant="muted">{desc}</Text>
+                  </Stack>
+                </div>
+              </Label>
+            </PanelItem>
+          );
+        })}
+      </PanelBody>
+    </Panel>
+  );
+}
+
+const StyledPanelHeader = styled(PanelHeader)`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  justify-content: left;
+`;

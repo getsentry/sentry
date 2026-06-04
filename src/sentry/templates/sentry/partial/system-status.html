@@ -1,0 +1,15 @@
+{% load sentry_helpers %}
+
+{% if problems %}
+<div class="messages-container">
+  {% for problem in problems %}
+    <div class="alert alert-{% if problem.severity == "critical" %}error{% else %}warning{% endif %}">
+      <div class="container">
+        <a class="close" data-dismiss="alert">×</a>
+        <span class="icon icon-exclamation"></span>
+        {% if problem.url %}<a href="{{ problem.url }}">{% endif %}{{ problem|linebreaks }}{% if problem.url %}</a>{% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}

@@ -1,0 +1,404 @@
+import {useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import {useMutation} from '@tanstack/react-query';
+import {parseAsBoolean, useQueryState} from 'nuqs';
+
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
+import {Switch} from '@sentry/scraps/switch';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IconChevron, IconDownload, IconRefresh, IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {parseApiError} from 'sentry/utils/parseApiError';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
+import {downloadSizeCompareItemsAsCsv} from 'sentry/views/preprod/buildComparison/main/downloadSizeCompareItemsAsCsv';
+import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
+import {SizeCompareItemDiffTable} from 'sentry/views/preprod/buildComparison/main/sizeCompareItemDiffTable';
+import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/main/sizeCompareSelectedBuilds';
+import {TreemapDiffSection} from 'sentry/views/preprod/buildComparison/main/treemapDiffSection';
+import {BuildError} from 'sentry/views/preprod/components/buildError';
+import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
+import type {
+  SizeAnalysisComparison,
+  SizeAnalysisComparisonResults,
+  SizeComparisonApiResponse,
+} from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  isSizeAnalysisComparisonInProgress,
+  MetricsArtifactType,
+  SizeAnalysisComparisonState,
+} from 'sentry/views/preprod/types/appSizeTypes';
+import {
+  getCompareApiUrl,
+  getCompareBuildPath,
+} from 'sentry/views/preprod/utils/buildLinkUtils';
+
+function getMainComparison(
+  response: SizeComparisonApiResponse | undefined
+): SizeAnalysisComparison | undefined {
+  return response?.comparisons.find(
+    c => c.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
+  );
+}
+
+export function SizeCompareMainContent() {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const [isFilesExpanded, setIsFilesExpanded] = useState(true);
+  const [hideSmallChanges, setHideSmallChanges] = useQueryState(
+    'hideSmallChanges',
+    parseAsBoolean.withDefault(true)
+  );
+  const [searchQuery, setSearchQuery] = useState('');
+  const params = useParams();
+  const headArtifactId = params.headArtifactId;
+  const baseArtifactId = params.baseArtifactId;
+
+  // These parameters are part of the route and must always be present
+  if (headArtifactId === undefined) {
+    throw new Error('headArtifactId is required');
+  }
+  if (baseArtifactId === undefined) {
+    throw new Error('baseArtifactId is required');
+  }
+
+  const compareUrl = getCompareApiUrl({
+    organizationSlug: organization.slug,
+    headArtifactId,
+    baseArtifactId,
+  });
+
+  const sizeComparisonQuery = useApiQuery<SizeComparisonApiResponse>([compareUrl], {
+    staleTime: 0,
+    enabled: !!headArtifactId && !!baseArtifactId,
+    refetchInterval: query => {
+      const mainComparison = getMainComparison(query.state.data?.json);
+      return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
+    },
+  });
+
+  const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
+
+  // Query the comparison download endpoint to get detailed data
+  const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(
+    [
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: sizeComparisonQuery.data?.head_build_details.project_slug!,
+            headSizeMetricId: mainArtifactComparison?.head_size_metric_id!,
+            baseSizeMetricId: mainArtifactComparison?.base_size_metric_id!,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+      enabled:
+        !!mainArtifactComparison?.head_size_metric_id &&
+        !!mainArtifactComparison?.base_size_metric_id &&
+        !!organization.slug &&
+        !!baseArtifactId &&
+        mainArtifactComparison?.state === SizeAnalysisComparisonState.SUCCESS,
+    }
+  );
+
+  const {mutate: triggerComparison, isPending: isComparing} = useMutation<
+    void,
+    RequestError,
+    {baseArtifactId: string; headArtifactId: string}
+  >({
+    mutationFn: () => {
+      return fetchMutation({url: compareUrl, method: 'POST'});
+    },
+    onSuccess: () => {
+      navigate(
+        getCompareBuildPath({
+          organizationSlug: organization.slug,
+          headArtifactId,
+          baseArtifactId,
+        })
+      );
+    },
+    onError: error => {
+      const errorMessage = parseApiError(error);
+      addErrorMessage(
+        errorMessage === 'Unknown API Error'
+          ? t('Failed to trigger comparison. Please try again.')
+          : errorMessage
+      );
+    },
+  });
+
+  // Filter diff items based on the toggle and search query
+  const filteredDiffItems = useMemo(() => {
+    if (!comparisonDataQuery.data?.diff_items) {
+      return [];
+    }
+
+    let items = comparisonDataQuery.data.diff_items;
+
+    // Filter by size if hideSmallChanges is enabled
+    if (hideSmallChanges) {
+      items = items.filter(item => Math.abs(item.size_diff) >= 500);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      items = items.filter(item => item.path.toLowerCase().includes(query));
+    }
+
+    return items;
+  }, [comparisonDataQuery.data?.diff_items, hideSmallChanges, searchQuery]);
+
+  if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading || isComparing) {
+    return (
+      <Flex
+        direction="column"
+        align="center"
+        justify="center"
+        style={{minHeight: '60vh', padding: theme.space.md}}
+      >
+        <LoadingIndicator />
+      </Flex>
+    );
+  }
+
+  if (sizeComparisonQuery.isError || !sizeComparisonQuery.data) {
+    const errorMessage = sizeComparisonQuery.error
+      ? parseApiError(sizeComparisonQuery.error)
+      : 'Unknown API Error';
+    return (
+      <BuildError
+        title={t('Size comparison data unavailable')}
+        message={
+          errorMessage === 'Unknown API Error'
+            ? t('Failed to load size comparison data')
+            : errorMessage
+        }
+      />
+    );
+  }
+
+  if (!mainArtifactComparison) {
+    return (
+      <BuildError
+        title={t('No comparison data available')}
+        message={t("We don't have any comparison data available yet for these builds.")}
+      >
+        <Button
+          variant="primary"
+          onClick={() => {
+            triggerComparison({
+              baseArtifactId,
+              headArtifactId,
+            });
+          }}
+        >
+          {t('Trigger a comparison')}
+        </Button>
+      </BuildError>
+    );
+  }
+
+  if (
+    [
+      SizeAnalysisComparisonState.PROCESSING,
+      SizeAnalysisComparisonState.PENDING,
+    ].includes(mainArtifactComparison.state)
+  ) {
+    return (
+      <Flex width="100%" justify="center" align="center">
+        <BuildProcessing
+          title={t('Running diff engine')}
+          message={t('Hang tight, this may take a few minutes...')}
+        />
+      </Flex>
+    );
+  }
+
+  if (mainArtifactComparison.state === SizeAnalysisComparisonState.FAILED) {
+    return (
+      <BuildError
+        title={t('Comparison failed')}
+        message={
+          mainArtifactComparison.error_message ||
+          t("Something went wrong, we're looking into it.")
+        }
+      >
+        <Button
+          variant="secondary"
+          onClick={() => {
+            triggerComparison({
+              baseArtifactId,
+              headArtifactId,
+            });
+          }}
+        >
+          <Flex gap="sm">
+            <IconRefresh size="sm" />
+            {t('Retry')}
+          </Flex>
+        </Button>
+      </BuildError>
+    );
+  }
+
+  if (comparisonDataQuery.isError || !comparisonDataQuery.data) {
+    const errorMessage = comparisonDataQuery.error
+      ? parseApiError(comparisonDataQuery.error)
+      : 'Unknown API Error';
+    return (
+      <BuildError
+        title={t('Failed to load comparison details')}
+        message={
+          errorMessage === 'Unknown API Error'
+            ? t('Could not retrieve detailed comparison results')
+            : errorMessage
+        }
+      />
+    );
+  }
+
+  return (
+    <Flex direction="column" gap="2xl">
+      <SizeCompareSelectedBuilds
+        headBuildDetails={sizeComparisonQuery.data.head_build_details}
+        baseBuildDetails={sizeComparisonQuery.data.base_build_details}
+        isComparing={false}
+        onClearBaseBuild={() => {
+          navigate(
+            getCompareBuildPath({
+              organizationSlug: organization.slug,
+              headArtifactId,
+            })
+          );
+        }}
+      />
+
+      <BuildComparisonMetricCards
+        comparisonResults={comparisonDataQuery.data}
+        comparisonResponse={sizeComparisonQuery.data}
+      />
+
+      {/* Insights Section */}
+      {comparisonDataQuery.data?.insight_diff_items &&
+        comparisonDataQuery.data.insight_diff_items.length > 0 && (
+          <Stack gap="xl">
+            <Separator orientation="horizontal" border="primary" />
+            <Stack gap="md">
+              <Heading as="h2">{t('Insight Diff')}</Heading>
+              <InsightComparisonSection
+                totalInstallSizeBytes={
+                  comparisonDataQuery.data?.size_metric_diff_item.head_install_size
+                }
+                insightDiffItems={comparisonDataQuery.data.insight_diff_items}
+              />
+            </Stack>
+            <Separator orientation="horizontal" border="primary" />
+          </Stack>
+        )}
+
+      {/* Items Changed Section */}
+      <Container background="primary" radius="lg" padding="0" border="primary">
+        <Flex direction="column" gap="0">
+          <Flex align="center" justify="between" padding="xl">
+            <Flex align="center">
+              <Button
+                variant="transparent"
+                size="sm"
+                onClick={() => setIsFilesExpanded(!isFilesExpanded)}
+                aria-label={isFilesExpanded ? t('Collapse items') : t('Expand items')}
+              >
+                <IconChevron
+                  direction={isFilesExpanded ? 'up' : 'down'}
+                  size="sm"
+                  style={{
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </Button>
+              <Heading as="h2">
+                {t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
+              </Heading>
+            </Flex>
+            <Button
+              size="sm"
+              icon={<IconDownload />}
+              disabled={filteredDiffItems.length === 0}
+              onClick={() =>
+                downloadSizeCompareItemsAsCsv(
+                  filteredDiffItems,
+                  t('Size Compare Items Changed')
+                )
+              }
+              aria-label={t('Download CSV')}
+            >
+              {t('Download CSV')}
+            </Button>
+          </Flex>
+          {isFilesExpanded && (
+            <Stack>
+              <Stack gap="md" paddingLeft="xl" paddingRight="xl" paddingBottom="xl">
+                <InputGroup>
+                  <InputGroup.LeadingItems>
+                    <IconSearch />
+                  </InputGroup.LeadingItems>
+                  <InputGroup.Input
+                    placeholder={t('Search')}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                </InputGroup>
+                <Flex align="center" gap="lg" wrap="nowrap">
+                  <Text wrap="nowrap">{t('Hide changes < 500B')}</Text>
+                  <Switch
+                    checked={hideSmallChanges}
+                    size="sm"
+                    title={t('Hide < 500B')}
+                    onChange={() => setHideSmallChanges(!hideSmallChanges)}
+                    aria-label={
+                      hideSmallChanges ? t('Show small changes') : t('Hide small changes')
+                    }
+                  />
+                </Flex>
+              </Stack>
+              <SizeCompareItemDiffTable
+                diffItems={filteredDiffItems}
+                originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}
+                disableHideSmallChanges={() => setHideSmallChanges(false)}
+              />
+            </Stack>
+          )}
+        </Flex>
+      </Container>
+
+      {/* Treemap Diff Section */}
+      {comparisonDataQuery.data?.diff_items &&
+        comparisonDataQuery.data.diff_items.length > 0 && (
+          <Stack gap="xl">
+            <Separator orientation="horizontal" border="primary" />
+            <Stack gap="md">
+              <Heading as="h2">{t('X-Ray Diff')}</Heading>
+              <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+            </Stack>
+          </Stack>
+        )}
+    </Flex>
+  );
+}

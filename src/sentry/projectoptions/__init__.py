@@ -1,0 +1,26 @@
+from .manager import ProjectOptionsManager
+
+__all__ = ("get", "set", "delete", "register", "isset", "LATEST_EPOCH")
+
+default_manager = ProjectOptionsManager()
+
+# expose public api
+get = default_manager.get
+set = default_manager.set
+delete = default_manager.delete
+register = default_manager.register
+all = default_manager.all
+isset = default_manager.isset
+lookup_well_known_key = default_manager.lookup_well_known_key
+
+
+def get_well_known_default(key, project=None, epoch=None):
+    """Utility function to return the default for a well known key."""
+    well_known_key = lookup_well_known_key(key)
+    if well_known_key is not None:
+        return well_known_key.get_default(project=project, epoch=epoch)
+
+
+from . import defaults  # NOQA
+
+LATEST_EPOCH = defaults.LATEST_EPOCH

@@ -1,0 +1,122 @@
+import {renderHook} from 'sentry-test/reactTestingLibrary';
+
+import {useTimeout} from './useTimeout';
+
+jest.useFakeTimers();
+
+describe('useTimeout', () => {
+  const timeMs = 500;
+  const onTimeout = jest.fn();
+
+  beforeEach(() => {
+    onTimeout.mockReset();
+  });
+
+  it('should timeout after a specified delay', () => {
+    const {result} = renderHook(useTimeout, {
+      initialProps: {timeMs, onTimeout},
+    });
+
+    result.current.start();
+    expect(onTimeout).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(timeMs + 10);
+
+    expect(onTimeout).toHaveBeenCalled();
+  });
+
+  it('should call the callback if a timeout is ended early', () => {
+    const {result} = renderHook(useTimeout, {
+      initialProps: {timeMs, onTimeout},
+    });
+
+    result.current.start();
+    expect(onTimeout).not.toHaveBeenCalled();
+    result.current.end();
+
+    expect(onTimeout).toHaveBeenCalled();
+  });
+
+  it('should not exec the callback if a timeout is cancelled', () => {
+    const {result} = renderHook(useTimeout, {
+      initialProps: {timeMs, onTimeout},
+    });
+
+    result.current.start();
+    expect(onTimeout).not.toHaveBeenCalled();
+    result.current.cancel();
+
+    expect(onTimeout).not.toHaveBeenCalled();
+  });
+
+  it('should return stable start/cancel/end callbacks', () => {
+    const {result, rerender} = renderHook(useTimeout, {
+      initialProps: {timeMs, onTimeout},
+    });
+
+    const firstRender = {...result.current};
+
+    rerender({timeMs, onTimeout});
+
+    expect(result.current.start).toBe(firstRender.start);
+    expect(result.current.cancel).toBe(firstRender.cancel);
+    expect(result.current.end).toBe(firstRender.end);
+  });
+
+  it('should return a new start() method when timeMs changes', () => {
+    const {result, rerender} = renderHook(useTimeout, {
+      initialProps: {timeMs, onTimeout},
+    });
+
+    const firstRender = {...result.current};
+    rerender({timeMs: 999, onTimeout});
+
+    expect(result.current.cancel).toBe(firstRender.cancel);
+    expect(result.current.end).toBe(firstRender.end);
+
+    expect(result.current.start).not.toBe(firstRender.start);
+  });
+
+  it('should not return a new start() and end() method when onTimeout changes', () => {
+    const {result, rerender} = renderHook(useTimeout, {
+      initialProps: {timeMs, onTimeout},
+    });
+
+    const firstRender = {...result.current};
+
+    rerender({timeMs, onTimeout: jest.fn()});
+
+    expect(result.current.cancel).toBe(firstRender.cancel);
+
+    expect(result.current.start).toBe(firstRender.start);
+    expect(result.current.end).toBe(firstRender.end);
+  });
+
+  it('should use overrideTimeMs from start() when provided', () => {
+    const {result} = renderHook(useTimeout, {
+      initialProps: {timeMs, onTimeout},
+    });
+
+    result.current.start(2000);
+
+    jest.advanceTimersByTime(timeMs + 10);
+    expect(onTimeout).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(2000);
+    expect(onTimeout).toHaveBeenCalled();
+  });
+
+  it('should not exec the callback after unmount', () => {
+    const {result, unmount} = renderHook(useTimeout, {
+      initialProps: {timeMs, onTimeout},
+    });
+
+    result.current.start();
+
+    unmount();
+
+    jest.runAllTimers();
+
+    expect(onTimeout).not.toHaveBeenCalled();
+  });
+});

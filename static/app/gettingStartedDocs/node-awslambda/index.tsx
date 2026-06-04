@@ -1,0 +1,27 @@
+import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
+import {featureFlag} from 'sentry/gettingStartedDocs/node/featureFlag';
+
+import {crashReport} from './crashReport';
+import {logs} from './logs';
+import {mcp} from './mcp';
+import {metrics} from './metrics';
+import {onboarding} from './onboarding';
+import {profiling} from './profiling';
+import {platformOptions, type PlatformOptions} from './utils';
+
+export const docs: Docs<PlatformOptions> = {
+  onboarding,
+  crashReportOnboarding: crashReport,
+  profilingOnboarding: profiling,
+  featureFlagOnboarding: featureFlag({
+    packageName: '@sentry/aws-serverless',
+  }),
+  logsOnboarding: logs,
+  agentMonitoringOnboarding: agentMonitoring({
+    packageName: '@sentry/aws-serverless',
+  }),
+  mcpOnboarding: mcp,
+  platformOptions,
+  metricsOnboarding: metrics,
+};

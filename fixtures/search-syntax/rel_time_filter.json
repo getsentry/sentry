@@ -1,0 +1,97 @@
+[
+  {
+    "query": "firstSeen:+7d",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "relativeDate",
+        "negated": false,
+        "key": {
+          "type": "keySimple",
+          "value": "firstSeen",
+          "quoted": false
+        },
+        "operator": "",
+        "value": {
+          "type": "valueRelativeDate",
+          "value": "7",
+          "sign": "+",
+          "unit": "d",
+          "parsed": {
+            "value": "2017-10-24T02:41:20.000Z"
+          }
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "query": "firstSeen:-2w",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "relativeDate",
+        "negated": false,
+        "key": {
+          "type": "keySimple",
+          "value": "firstSeen",
+          "quoted": false
+        },
+        "operator": "",
+        "value": {
+          "type": "valueRelativeDate",
+          "value": "2",
+          "sign": "-",
+          "unit": "w",
+          "parsed": {
+            "value": "2017-10-03T02:41:20.000Z"
+          }
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "query": "random:-2w",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {
+          "type": "keySimple",
+          "value": "random",
+          "quoted": false
+        },
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "-2w",
+          "quoted": false
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  }
+]

@@ -1,0 +1,53 @@
+{
+  "event_id": "0b8989b8821d48c0bd42d01c0997478d",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/buildbot/src/android/ndk-release-r21/external/libcxx/src/mutex.cpp",
+              "filename": "external/libcxx/src/mutex.cpp",
+              "function": "std::__ndk1::mutex::lock"
+            },
+            {
+              "abs_path": "/buildbot/src/android/ndk-release-r21/external/libcxx/include/__threading_support",
+              "filename": "external/libcxx/include/__threading_support",
+              "function": "std::__ndk1::__libcpp_mutex_lock"
+            },
+            {
+              "function": "pthread_mutex_lock",
+              "package": "/system/lib64/libc.so"
+            }
+          ]
+        },
+        "type": "SIGSEGV",
+        "value": "Segfault"
+      }
+    ]
+  },
+  "platform": "native"
+}

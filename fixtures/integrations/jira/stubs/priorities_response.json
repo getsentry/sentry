@@ -1,0 +1,42 @@
+[
+  {
+    "self": "https://jira-integration.getsentry.net/rest/api/2/priority/1",
+    "statusColor": "#d04437",
+    "description": "This problem will block progress.",
+    "iconUrl": "https://jira-integration.getsentry.net/images/icons/priorities/highest.svg",
+    "name": "Highest",
+    "id": "1"
+  },
+  {
+    "self": "https://jira-integration.getsentry.net/rest/api/2/priority/2",
+    "statusColor": "#f15C75",
+    "description": "Serious problem that could block progress.",
+    "iconUrl": "https://jira-integration.getsentry.net/images/icons/priorities/high.svg",
+    "name": "High",
+    "id": "2"
+  },
+  {
+    "self": "https://jira-integration.getsentry.net/rest/api/2/priority/3",
+    "statusColor": "#f79232",
+    "description": "Has the potential to affect progress.",
+    "iconUrl": "https://jira-integration.getsentry.net/images/icons/priorities/medium.svg",
+    "name": "Medium",
+    "id": "3"
+  },
+  {
+    "self": "https://jira-integration.getsentry.net/rest/api/2/priority/4",
+    "statusColor": "#707070",
+    "description": "Minor problem or easily worked around.",
+    "iconUrl": "https://jira-integration.getsentry.net/images/icons/priorities/low.svg",
+    "name": "Low",
+    "id": "4"
+  },
+  {
+    "self": "https://jira-integration.getsentry.net/rest/api/2/priority/5",
+    "statusColor": "#999999",
+    "description": "Trivial problem with little or no impact on progress.",
+    "iconUrl": "https://jira-integration.getsentry.net/images/icons/priorities/lowest.svg",
+    "name": "Lowest",
+    "id": "5"
+  }
+]

@@ -1,0 +1,89 @@
+{
+  "event_id": "e961623cbbf04f978391bbc4c16e8ece",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x0000000912e01a10"
+          },
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 316676624,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "code_name": "BUS_NOOP",
+              "name": "SIGBUS",
+              "number": 10
+            }
+          },
+          "synthetic": null,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKit"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "_dispatch_main_queue_callback_4CF$VARIANT$mp",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_sync_thread_bound_invoke",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "libdispatch.dylib"
+            },
+            {
+              "function": "__97-[UIKeyboardLayout recognizer:beginTouchDownForTouchWithId:atPoint:forBeginState:whenStateReady:]_block_invoke.563",
+              "package": "UIKit"
+            },
+            {
+              "function": "objc_msgSend",
+              "package": "libobjc.A.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS",
+        "value": "_hasGesturesNeedingUpdate > _pressesEvent > _touchesEvent > addTask: > ndType.trigger > taskQueue >\nAttempted to dereference garbage pointer 0x912e01a10."
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

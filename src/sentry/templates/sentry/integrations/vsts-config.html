@@ -1,0 +1,40 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+{% block title %}{% trans "Azure DevOps Setup" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+<h3>Azure DevOps Configuration</h3>
+{% if no_accounts %}
+  <p>
+    {% trans "No accounts found. Please check that you are an Azure DevOps account owner." %}
+  </p>
+{% else %}
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <input type="hidden" name="provider" value="vsts" />
+
+    <p>
+      {% trans "Configure Azure DevOps to use with Sentry." %}
+    </p>
+
+    {{ form|as_crispy_errors }}
+
+    {% for field in form %}
+        {{ field|as_crispy_field }}
+    {% endfor %}
+
+    <fieldset class="form-actions">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        name="save_mappings" value="url">{% trans "Submit" %}</button>
+    </fieldset>
+  </form>
+{% endif %}
+{% endblock %}

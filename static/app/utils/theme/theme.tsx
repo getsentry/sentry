@@ -1,0 +1,884 @@
+/**
+ * This file is the source of truth for the theme,
+ * it is roughly split into the following sections:
+ *
+ * - Theme helpers (color generation and aliases)
+ * - Common type definitions for certain fields like button kinds and variants
+ * - Light and dark theme definitions
+ * - Theme type exports
+ */
+import type {CSSProperties} from 'react';
+import {css} from '@emotion/react';
+import {spring, type Transition} from 'framer-motion';
+
+import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants/env';
+// eslint-disable-next-line no-restricted-imports
+import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
+// eslint-disable-next-line no-restricted-imports
+import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/light';
+import {color} from 'sentry/utils/theme/scraps/tokens/color';
+import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
+
+import {makeSwatch, type Swatch} from './swatch';
+import type {MotionDuration, MotionEasing} from './types';
+
+type BaseTheme = typeof baseLightTheme | typeof baseDarkTheme;
+type Tokens = BaseTheme['tokens'];
+
+type MotionDefinition = Record<MotionDuration, string>;
+
+const motionDurations: Record<MotionDuration, number> = {
+  fast: 120,
+  moderate: 160,
+  slow: 240,
+};
+
+const motionCurves: Record<
+  Exclude<MotionEasing, keyof typeof motionTransitions>,
+  [number, number, number, number]
+> = {
+  smooth: [0.72, 0, 0.16, 1],
+  snap: [0.8, -0.4, 0.5, 1],
+  enter: [0.24, 1, 0.32, 1],
+  exit: [0.64, 0, 0.8, 0],
+};
+
+// Disable transitions in acceptance tests or node testing environments.
+const IS_ACCEPTANCE_OR_TESTING = IS_ACCEPTANCE_TEST || NODE_ENV === 'test';
+const EMPTY_TRANSITION: Transition = {
+  duration: 0,
+  staggerChildren: 0,
+  type: false,
+};
+
+const motionCurveWithDuration = (
+  durations: Record<MotionDuration, number>,
+  easing: [number, number, number, number]
+): [MotionDefinition, Record<MotionDuration, Transition>] => {
+  const motion: MotionDefinition = {
+    fast: `${durations.fast}ms cubic-bezier(${easing.join(', ')})`,
+    moderate: `${durations.moderate}ms cubic-bezier(${easing.join(', ')})`,
+    slow: `${durations.slow}ms cubic-bezier(${easing.join(', ')})`,
+  };
+
+  const framerMotion: Record<MotionDuration, Transition> = {
+    fast: IS_ACCEPTANCE_OR_TESTING
+      ? EMPTY_TRANSITION
+      : {
+          duration: durations.fast / 1000,
+          ease: easing,
+        },
+    moderate: IS_ACCEPTANCE_OR_TESTING
+      ? EMPTY_TRANSITION
+      : {
+          duration: durations.moderate / 1000,
+          ease: easing,
+        },
+    slow: IS_ACCEPTANCE_OR_TESTING
+      ? EMPTY_TRANSITION
+      : {
+          duration: durations.slow / 1000,
+          ease: easing,
+        },
+  };
+
+  return [motion, framerMotion];
+};
+
+const motionTransitions: Record<'spring', Record<MotionDuration, Transition>> = {
+  spring: {
+    fast: {
+      type: 'spring',
+      stiffness: 1400,
+      damping: 50,
+    },
+    moderate: {
+      type: 'spring',
+      stiffness: 1000,
+      damping: 50,
+    },
+    slow: {
+      type: 'spring',
+      stiffness: 600,
+      damping: 50,
+    },
+  },
+};
+
+const motionTransitionWithDuration = (
+  transitionDefinitions: Record<MotionDuration, Transition>
+): [MotionDefinition, Record<MotionDuration, Transition>] => {
+  const motion = {
+    fast: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.fast,
+    })}`,
+    moderate: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.moderate,
+    })}`,
+    slow: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.slow,
+    })}`,
+  };
+
+  return [motion, transitionDefinitions];
+};
+
+function generateMotion() {
+  const [smoothMotion, smoothFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.smooth
+  );
+  const [snapMotion, snapFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.snap
+  );
+  const [enterMotion, enterFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.enter
+  );
+  const [exitMotion, exitFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.exit
+  );
+  const [springMotion, springFramer] = motionTransitionWithDuration(
+    motionTransitions.spring
+  );
+
+  return {
+    smooth: smoothMotion,
+    snap: snapMotion,
+    enter: enterMotion,
+    exit: exitMotion,
+    spring: springMotion,
+    framer: {
+      smooth: smoothFramer,
+      snap: snapFramer,
+      enter: enterFramer,
+      exit: exitFramer,
+      spring: springFramer,
+    },
+  };
+}
+
+const generateThemeUtils = () => ({
+  // https://css-tricks.com/inclusively-hidden/
+  visuallyHidden: css`
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  `,
+});
+
+/**
+ * Theme definition
+ */
+
+type Colors = typeof lightColors;
+
+/**
+ * Values shared between light and dark theme
+ */
+const commonTheme = {
+  motion: generateMotion(),
+
+  // Try to keep these ordered plz
+  zIndex: {
+    // Generic z-index when you hope your component is isolated and
+    // does not need to battle others for z-index priority
+    initial: 1,
+    truncationFullValue: 10,
+
+    header: 1000,
+
+    // dashboard widget builder backdrop sits behind the sidebar
+    // because it renders on the right next to the sidebar
+    // @TODO(design-engineering): resolve this inconsistency
+    widgetBuilderDrawer: 1016,
+
+    sidebarPanel: 1019,
+    dropdown: 1020,
+    sidebar: 1020,
+
+    // Sentry user feedback modal
+    sentryErrorEmbed: 1090,
+
+    // If you change modal also update shared-components.less
+    // as the z-index for bootstrap modals lives there.
+    drawer: 9999,
+    modal: 10000,
+    toast: 10001,
+
+    // tooltips and hovercards can be inside modals sometimes.
+    hovercard: 10002,
+    tooltip: 10003,
+  },
+
+  form: {
+    md: {
+      height: '36px',
+      minHeight: '36px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+      borderRadius: baseLightTheme.radius.lg,
+    },
+    sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
+      borderRadius: baseLightTheme.radius.md,
+    },
+    xs: {
+      height: '28px',
+      minHeight: '28px',
+      fontSize: '0.75rem',
+      lineHeight: '1rem',
+      paddingLeft: 8,
+      paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+      borderRadius: baseLightTheme.radius.sm,
+    },
+  },
+
+  ...typography,
+};
+
+export interface SentryTheme extends Omit<
+  typeof lightThemeDefinition,
+  'chart' | 'tokens'
+> {
+  chart: {
+    getColorPalette: ReturnType<typeof makeChartColorPalette>;
+  };
+  swatch: Swatch;
+  tokens: Tokens;
+}
+
+const ccl = color.categorical.light;
+
+const CHART_PALETTE_LIGHT = [
+  [ccl.blurple],
+  [ccl.blurple, ccl.indigo],
+  [ccl.blurple, ccl.indigo, ccl.pink],
+  [ccl.blurple, ccl.indigo, ccl.pink, ccl.orange],
+  [ccl.blurple, ccl.indigo, ccl.pink, ccl.orange, ccl.yellow],
+  [ccl.blurple, ccl.indigo, ccl.pink, ccl.orange, ccl.yellow, ccl.green],
+  [ccl.blurple, ccl.purple, ccl.indigo, ccl.pink, ccl.orange, ccl.yellow, ccl.green],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.pink,
+    ccl.orange,
+    ccl.yellow,
+    ccl.green,
+  ],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.orange,
+    ccl.yellow,
+    ccl.green,
+  ],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.green,
+  ],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+  ],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+  ],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+  ],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+  ],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+  ],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+  ],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+  ],
+  [
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+    ccl.orange,
+    ccl.yellow,
+    ccl.lime,
+    ccl.green,
+    ccl.blurple,
+    ccl.purple,
+    ccl.indigo,
+    ccl.plum,
+    ccl.magenta,
+    ccl.pink,
+    ccl.salmon,
+  ],
+] as const;
+
+const ccd = color.categorical.dark;
+
+const CHART_PALETTE_DARK = [
+  [ccd.blurple],
+  [ccd.blurple, ccd.indigo],
+  [ccd.blurple, ccd.indigo, ccd.pink],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow],
+  [ccd.blurple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
+  [ccd.blurple, ccd.purple, ccd.indigo, ccd.pink, ccd.orange, ccd.yellow, ccd.green],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.pink,
+    ccd.orange,
+    ccd.yellow,
+    ccd.green,
+  ],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.orange,
+    ccd.yellow,
+    ccd.green,
+  ],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.green,
+  ],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+  ],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+  ],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+  ],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+  ],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+  ],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+  ],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+  ],
+  [
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+    ccd.orange,
+    ccd.yellow,
+    ccd.lime,
+    ccd.green,
+    ccd.blurple,
+    ccd.purple,
+    ccd.indigo,
+    ccd.plum,
+    ccd.magenta,
+    ccd.pink,
+    ccd.salmon,
+  ],
+] as const;
+
+type ChartColorPalette = typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
+type ColorLength = (typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK)['length'];
+
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
+  ? A
+  : TupleOf<N, [...A, A['length']]>;
+
+type ValidLengthArgument = TupleOf<ColorLength>[number];
+
+/**
+ * Returns the color palette for a given number of series.
+ * If length argument is statically analyzable, the return type will be narrowed
+ * to the specific color palette index.
+ * @TODO(jonasbadalic) Clarify why we return length+1. For a given length of 1, we should
+ * return a single color, not two colors. It smells like either a bug or off by one error.
+ * @param length - The number of series to return a color palette for?
+ */
+function makeChartColorPalette<T extends ChartColorPalette>(
+  palette: T
+): <Length extends ValidLengthArgument>(length: Length | number | 'all') => T[Length] {
+  return function getChartColorPalette<Length extends ValidLengthArgument>(
+    length: Length | number | 'all'
+  ): T[Length] {
+    if (length === 'all') {
+      return palette.at(-1) as unknown as T[Length];
+    }
+    // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
+    // the palette is not sparse, but we should probably add a runtime check here as well.
+    const index = Math.max(0, Math.min(palette.length - 1, length));
+    return palette[index] as unknown as T[Length];
+  };
+}
+
+const lightColors = {
+  black: color.black,
+  white: color.white,
+
+  surface500: color.white, // background.primary
+  surface400: color.neutral.light.opaque100, // background.secondary
+  surface300: color.neutral.light.opaque200, // background.tertiary
+  surface200: color.neutral.light.opaque300, // border.muted
+  surface100: color.neutral.light.opaque400, // border.primary
+
+  gray800: color.neutral.light.opaque1400, // content.primary
+  gray700: color.neutral.light.opaque1300, // ⚠ link.muted.active only
+  gray600: color.neutral.light.opaque1200, // ⚠ link.muted.hover only
+  gray500: color.neutral.light.opaque1100, // content.secondary, link.muted.default
+  gray400: color.neutral.light.opaque1000, // graphics.muted
+  gray300: color.neutral.light.transparent400,
+  gray200: color.neutral.light.transparent300,
+  gray100: color.neutral.light.transparent200,
+
+  blue700: color.blue.light.opaque1300, // ⚠ link.accent.active only
+  blue600: color.blue.light.opaque1200, // ⚠ link.accent.hover only
+  blue500: color.blue.light.opaque1100, // content.accent, link.accent.default
+  blue400: color.blue.light.opaque1000, // graphics.muted, border.accent
+  blue300: color.blue.light.transparent400,
+  blue200: color.blue.light.transparent300,
+  blue100: color.blue.light.transparent200,
+
+  pink700: color.pink.light.opaque1300, // ⚠ link.promotion.active only
+  pink600: color.pink.light.opaque1200, // ⚠ link.promotion.hover only
+  pink500: color.pink.light.opaque1100, // content.promotion, link.promotion.default
+  pink400: color.pink.light.opaque1000, // graphics.promotion, border.promotion
+  pink300: color.pink.light.transparent400,
+  pink200: color.pink.light.transparent300,
+  pink100: color.pink.light.transparent200,
+
+  red700: color.red.light.opaque1300, // ⚠ link.danger.active only
+  red600: color.red.light.opaque1200, // ⚠ link.danger.hover only
+  red500: color.red.light.opaque1100, // ⚠ content.danger, link.danger.default
+  red400: color.red.light.opaque1000, // graphics.danger, border.danger
+  red300: color.red.light.transparent400,
+  red200: color.red.light.transparent300,
+  red100: color.red.light.transparent200,
+
+  yellow700: color.yellow.light.opaque1300, // ⚠ link.warning.active only
+  yellow600: color.yellow.light.opaque1200, // ⚠ link.warning.hover only
+  yellow500: color.yellow.light.opaque1100, // content.warning, link.warning.default
+  yellow400: color.yellow.light.opaque800, // graphics.warning, border.warning
+  yellow300: color.yellow.light.transparent400,
+  yellow200: color.yellow.light.transparent300,
+  yellow100: color.yellow.light.transparent200,
+
+  green700: color.green.light.opaque1300, // ⚠ link.success.active only
+  green600: color.green.light.opaque1200, // ⚠ link.success.hover only
+  green500: color.green.light.opaque1100, // content.success, link.success.default
+  green400: color.green.light.opaque1000, // graphics.success, border.success
+  green300: color.green.light.transparent400,
+  green200: color.green.light.transparent300,
+  green100: color.green.light.transparent200,
+
+  // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
+  chonk: {
+    blue400: color.blue.light.opaque1000,
+    pink400: color.pink.light.opaque800,
+    red400: color.red.light.opaque1000,
+    yellow400: color.yellow.light.opaque600,
+    green400: color.green.light.opaque800,
+  },
+};
+
+const darkColors: Colors = {
+  black: color.black,
+  white: color.white,
+
+  surface500: color.neutral.dark.opaque500, // background.primary
+  surface400: color.neutral.dark.opaque400, // background.secondary
+  surface300: color.neutral.dark.opaque300, // background.teritary
+  surface200: color.neutral.dark.opaque200, // border.muted
+  surface100: color.neutral.dark.opaque100, // border.primary
+
+  gray800: color.neutral.dark.opaque1500, // content.primary
+  gray700: color.neutral.dark.opaque1400, // ⚠ link.muted.active only
+  gray600: color.neutral.dark.opaque1300, // ⚠ link.muted.hover only
+  gray500: color.neutral.dark.opaque1200, // content.secondary, link.muted.default
+  gray400: color.neutral.dark.opaque1100, // // graphics.muted
+  gray300: color.neutral.dark.transparent400,
+  gray200: color.neutral.dark.transparent300,
+  gray100: color.neutral.dark.transparent200,
+
+  blue700: color.blue.dark.opaque1400, // ⚠ link.accent.active only
+  blue600: color.blue.dark.opaque1300, // ⚠ link.accent.hover only
+  blue500: color.blue.dark.opaque1200, // content.accent, link.accent.default
+  blue400: color.blue.dark.opaque1100, // // graphics.accent, border.accent
+  blue300: color.blue.dark.transparent600,
+  blue200: color.blue.dark.transparent500,
+  blue100: color.blue.dark.transparent400,
+
+  pink700: color.pink.dark.opaque1400, // ⚠ link.promotion.active only
+  pink600: color.pink.dark.opaque1300, // ⚠ link.promotion.hover only
+  pink500: color.pink.dark.opaque1200, // content.promotion, link.promotion.default
+  pink400: color.pink.dark.opaque1100, // // graphics.promotion, border.promotion
+  pink300: color.pink.dark.transparent400,
+  pink200: color.pink.dark.transparent300,
+  pink100: color.pink.dark.transparent200,
+
+  red700: color.red.dark.opaque1400, // ⚠ link.danger.active only
+  red600: color.red.dark.opaque1300, // ⚠ link.danger.hover only
+  red500: color.red.dark.opaque1200, // content.danger, link.danger.default
+  red400: color.red.dark.opaque1100, // // graphics.danger, border.danger
+  red300: color.red.dark.transparent400,
+  red200: color.red.dark.transparent300,
+  red100: color.red.dark.transparent200,
+
+  yellow700: color.yellow.dark.opaque1500, // ⚠ link.warning.active only
+  yellow600: color.yellow.dark.opaque1400, // ⚠ link.warning.hover only
+  yellow500: color.yellow.dark.opaque1300, // content.warning, link.warning.default
+  yellow400: color.yellow.dark.opaque1200, // graphics.warning, border.warning
+  yellow300: color.yellow.dark.transparent400,
+  yellow200: color.yellow.dark.transparent300,
+  yellow100: color.yellow.dark.transparent200,
+
+  green700: color.green.dark.opaque1500, // ⚠ link.success.active only
+  green600: color.green.dark.opaque1400, // ⚠ link.success.hover only
+  green500: color.green.dark.opaque1300, // content.success, link.success.default
+  green400: color.green.dark.opaque1200, // graphics.success, border.success
+  green300: color.green.dark.transparent400,
+  green200: color.green.dark.transparent300,
+  green100: color.green.dark.transparent200,
+
+  // Currently used for avatars, badges, booleans, buttons, checkboxes, radio buttons
+  chonk: {
+    blue400: color.blue.dark.opaque900,
+    pink400: color.pink.dark.opaque1000,
+    red400: color.red.dark.opaque900,
+    yellow400: color.yellow.dark.opaque1200,
+    green400: color.green.dark.opaque1100,
+  },
+};
+
+const lightThemeDefinition = {
+  type: 'light' as 'light' | 'dark',
+  // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
+  ...commonTheme,
+  ...baseLightTheme,
+  focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
+    outline: 'none',
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
+  }),
+
+  ...generateThemeUtils(),
+
+  /**
+   * @deprecated do not use this.
+   */
+  level: {
+    orange: ccl.orange,
+  },
+
+  chart: {
+    getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
+  },
+
+  swatch: makeSwatch(
+    (({lime: _lime, ...rest}) => rest)(color.categorical.light),
+    baseLightTheme.tokens.content.onVibrant
+  ),
+
+  colors: lightColors,
+};
+
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
+ */
+export const lightTheme: SentryTheme = lightThemeDefinition;
+
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
+ */
+export const darkTheme: SentryTheme = {
+  type: 'dark',
+  // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
+  ...commonTheme,
+  ...baseDarkTheme,
+  // This sems to be a bug in the rule. baseShadow is optional.
+  // eslint-disable-next-line @typescript-eslint/no-useless-default-assignment
+  focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
+    outline: 'none',
+    boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
+  }),
+
+  ...generateThemeUtils(),
+
+  /**
+   * @deprecated do not use this.
+   */
+  level: {
+    orange: ccd.orange,
+  },
+
+  chart: {
+    getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
+  },
+
+  swatch: makeSwatch(
+    (({lime: _lime, ...rest}) => rest)(color.categorical.dark),
+    baseDarkTheme.tokens.content.onVibrant
+  ),
+
+  colors: darkColors,
+};
+
+declare module '@emotion/react' {
+  /**
+   * Configure Emotion to use our theme
+   */
+  export interface Theme extends SentryTheme {}
+}
+
+export type StrictCSSObject = {
+  [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
+} & Partial<{
+  [key: `&${string}`]: StrictCSSObject; // Allow nested selectors
+  [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
+  [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
+}>;

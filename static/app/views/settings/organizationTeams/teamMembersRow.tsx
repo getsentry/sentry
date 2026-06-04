@@ -1,0 +1,134 @@
+import type {Theme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {IdBadge} from 'sentry/components/idBadge';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TeamRoleSelect} from 'sentry/components/teamRoleSelect';
+import {IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Organization, Team, TeamMember} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
+
+interface Props {
+  hasWriteAccess: boolean;
+  member: TeamMember;
+  organization: Organization;
+  removeMember: (variables: {memberId: string}) => void;
+  team: Team;
+  updateMemberRole: (variables: {memberId: string; newRole: string}) => void;
+  user: User;
+}
+
+export function TeamMembersRow({
+  organization,
+  team,
+  member,
+  user,
+  hasWriteAccess,
+  removeMember,
+  updateMemberRole,
+}: Props) {
+  const isSelf = user.email === member.email;
+
+  return (
+    <TeamRolesPanelItem key={member.id}>
+      <Flex gap="md">
+        <IdBadge avatarSize={36} member={member} />
+        {member.pending ? <Tag variant="muted">{t('Pending')}</Tag> : null}
+      </Flex>
+      <RoleSelectWrapper>
+        <TeamRoleSelect
+          disabled={isSelf || !hasWriteAccess}
+          organization={organization}
+          team={team}
+          member={member}
+          onChangeTeamRole={newRole => updateMemberRole({memberId: member.id, newRole})}
+        />
+      </RoleSelectWrapper>
+      <div>
+        <RemoveButton
+          hasWriteAccess={hasWriteAccess}
+          isSelf={isSelf}
+          onClick={() => removeMember({memberId: member.id})}
+          team={team}
+          member={member}
+        />
+      </div>
+    </TeamRolesPanelItem>
+  );
+}
+
+function RemoveButton(props: {
+  hasWriteAccess: boolean;
+  isSelf: boolean;
+  member: TeamMember;
+  onClick: () => void;
+  team: Team;
+}) {
+  const {member, hasWriteAccess, isSelf, onClick, team} = props;
+
+  const canRemoveMember = hasWriteAccess || isSelf;
+  if (!canRemoveMember) {
+    return (
+      <Button
+        size="xs"
+        disabled
+        icon={<IconSubtract />}
+        aria-label={t('Remove')}
+        tooltipProps={{
+          title: t('You do not have permission to remove a member from this team.'),
+        }}
+      >
+        {t('Remove')}
+      </Button>
+    );
+  }
+
+  const isIdpProvisioned = team.flags['idp:provisioned'];
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
+
+  const buttonRemoveText = isSelf ? t('Leave') : t('Remove');
+  return (
+    <Button
+      data-test-id={`button-remove-${member.id}`}
+      size="xs"
+      disabled={!canRemoveMember || isIdpProvisioned}
+      icon={<IconSubtract />}
+      onClick={onClick}
+      aria-label={buttonRemoveText}
+      tooltipProps={{title: buttonHelpText}}
+    >
+      {buttonRemoveText}
+    </Button>
+  );
+}
+
+const RoleSelectWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  > div:first-child {
+    flex-grow: 1;
+  }
+`;
+
+export const GRID_TEMPLATE = (p: {theme: Theme}) => `
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) 200px 150px;
+  gap: ${p.theme.space.md};
+`;
+
+const TeamRolesPanelItem = styled(PanelItem)`
+  ${GRID_TEMPLATE};
+  align-items: center;
+
+  > div:last-child {
+    margin-left: auto;
+  }
+`;

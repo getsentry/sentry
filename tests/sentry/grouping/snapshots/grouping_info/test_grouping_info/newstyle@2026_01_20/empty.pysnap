@@ -1,0 +1,16 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": null,
+  "variants": {
+    "fallback": {
+      "contributes": true,
+      "description": "fallback grouping",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "hint": null,
+      "key": "fallback",
+      "type": "fallback"
+    }
+  }
+}

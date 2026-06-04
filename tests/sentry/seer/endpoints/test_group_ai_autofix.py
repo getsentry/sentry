@@ -1,0 +1,386 @@
+from unittest.mock import Mock, patch
+
+from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
+from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.models import SeerPermissionError
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.skips import requires_snuba
+
+# Note: Detailed tests for the implementation of functions in seer/autofix.py
+# have been moved to tests/sentry/seer/test_autofix.py
+# This file focuses on testing the endpoint behavior rather than the implementation details.
+
+pytestmark = [requires_snuba]
+
+
+@with_feature("organizations:gen-ai-features")
+class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
+    def _get_url(self, group_id: int) -> str:
+        return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_returns_state(self, mock_get_explorer_state):
+        group = self.create_group()
+        mock_get_explorer_state.return_value = None
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        mock_get_explorer_state.assert_called_once_with(group.organization, group.id)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_triggers_autofix_agent(self, mock_trigger_explorer):
+        group = self.create_group()
+        mock_trigger_explorer.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert response.data["run_id"] == 123
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_stopping_point(self, mock_trigger_explorer):
+        """Stopping point forces the step to be root_cause"""
+        group = self.create_group()
+        mock_trigger_explorer.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "coding_agent_handoff", "stopping_point": "code_changes"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert response.data["run_id"] == 123
+        mock_trigger_explorer.assert_called_once_with(
+            group=group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            stopping_point=AutofixStoppingPoint.CODE_CHANGES,
+            run_id=None,
+            user_context=None,
+            insert_index=None,
+        )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_insert_index_passed_through(self, mock_trigger_explorer):
+        """POST passes insert_index to trigger_autofix_agent for retry-from-step."""
+        group = self.create_group()
+        mock_trigger_explorer.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "solution", "run_id": 42, "insert_index": 3},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_trigger_explorer.assert_called_once_with(
+            group=group,
+            step=AutofixStep.SOLUTION,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            stopping_point=None,
+            run_id=42,
+            user_context=None,
+            insert_index=3,
+        )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer):
+        mock_trigger_explorer.side_effect = SeerPermissionError("Unknown run id for group")
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "solution", "run_id": 123},
+            format="json",
+        )
+
+        assert response.status_code == 404, response.data
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_returns_402_when_no_seer_quota(self, mock_trigger_explorer):
+        """POST returns 402 Payment Required when quota check fails."""
+        mock_trigger_explorer.side_effect = NoSeerQuotaException()
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+        )
+
+        assert response.status_code == 402, response.data
+        assert response.data == "No budget for Seer Autofix."
+
+    def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(self) -> None:
+        """POST returns 400 when both provider and integration_id are specified for coding_agent_handoff."""
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "coding_agent_handoff",
+                "run_id": 123,
+                "integration_id": 456,
+                "provider": "github_copilot",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400, response.data
+        assert response.data["detail"] == "Cannot specify both integration_id and provider"
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_coding_agent_handoff")
+    def test_post_coding_agent_handoff_unknown_run_returns_404(self, mock_handoff):
+        mock_handoff.side_effect = SeerPermissionError("Unknown run id for group")
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "coding_agent_handoff",
+                "run_id": 123,
+                "integration_id": 456,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 404, response.data
+        mock_handoff.assert_called_once()
+        assert mock_handoff.call_args.kwargs["referrer"] == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_coding_agent_handoff")
+    def test_post_coding_agent_handoff_auto_creates_pr_by_default(self, mock_handoff):
+        mock_handoff.return_value = {"successes": [{"repo_name": "owner/repo"}], "failures": []}
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "coding_agent_handoff",
+                "run_id": 123,
+                "integration_id": 456,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_handoff.assert_called_once_with(
+            group=group,
+            run_id=123,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            integration_id=456,
+            provider=None,
+            user_id=self.user.id,
+            auto_create_pr=True,
+        )
+
+    @patch("sentry.seer.agent.client_utils.make_agent_state_request")
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_open_pr(self, mock_explorer_update_request, mock_explorer_state_request):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        mock_explorer_update_response = Mock()
+        mock_explorer_update_response.status = 200
+        mock_explorer_update_request.return_value = mock_explorer_update_response
+
+        mock_explorer_state_response = Mock()
+        mock_explorer_state_response.status = 200
+        mock_explorer_state_response.json = Mock(
+            return_value={
+                "session": {
+                    **SeerRunState(
+                        run_id=123,
+                        blocks=[],
+                        status="completed",
+                        updated_at="2023-07-18T12:00:00Z",
+                    ).dict(),
+                    "metadata": {"group_id": group.id},
+                }
+            }
+        )
+        mock_explorer_state_request.return_value = mock_explorer_state_response
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "open_pr",
+                "run_id": 123,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert response.data == {"run_id": 123}
+
+    @patch("sentry.seer.agent.client_utils.make_agent_state_request")
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_open_pr_with_repo_name(
+        self, mock_explorer_update_request, mock_explorer_state_request
+    ):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        mock_explorer_update_response = Mock()
+        mock_explorer_update_response.status = 200
+        mock_explorer_update_request.return_value = mock_explorer_update_response
+
+        mock_explorer_state_response = Mock()
+        mock_explorer_state_response.status = 200
+        mock_explorer_state_response.json = Mock(
+            return_value={
+                "session": {
+                    **SeerRunState(
+                        run_id=123,
+                        blocks=[],
+                        status="completed",
+                        updated_at="2023-07-18T12:00:00Z",
+                    ).dict(),
+                    "metadata": {"group_id": group.id},
+                }
+            }
+        )
+        mock_explorer_state_request.return_value = mock_explorer_state_response
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "open_pr",
+                "run_id": 123,
+                "repo_name": "my-org/my-repo",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        call_body = mock_explorer_update_request.call_args[0][0]
+        assert call_body["payload"]["type"] == "create_pr"
+        assert call_body["payload"]["repo_name"] == "my-org/my-repo"
+
+    @patch("sentry.seer.agent.client_utils.make_agent_state_request")
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_open_pr_without_repo_name(
+        self, mock_explorer_update_request, mock_explorer_state_request
+    ):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        mock_explorer_update_response = Mock()
+        mock_explorer_update_response.status = 200
+        mock_explorer_update_request.return_value = mock_explorer_update_response
+
+        mock_explorer_state_response = Mock()
+        mock_explorer_state_response.status = 200
+        mock_explorer_state_response.json = Mock(
+            return_value={
+                "session": {
+                    **SeerRunState(
+                        run_id=123,
+                        blocks=[],
+                        status="completed",
+                        updated_at="2023-07-18T12:00:00Z",
+                    ).dict(),
+                    "metadata": {"group_id": group.id},
+                }
+            }
+        )
+        mock_explorer_state_request.return_value = mock_explorer_state_response
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "open_pr",
+                "run_id": 123,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        call_body = mock_explorer_update_request.call_args[0][0]
+        assert call_body["payload"]["type"] == "create_pr"
+        assert "repo_name" not in call_body["payload"]
+
+    def test_open_pr_no_run_id(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "open_pr"},
+            format="json",
+        )
+
+        assert response.status_code == 400, response.data
+        assert response.data["detail"] == "run_id is required for open_pr"
+
+    @patch("sentry.seer.agent.client_utils.make_agent_state_request")
+    def test_open_pr_permission_error(self, mock_explorer_state_request):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        mock_explorer_state_response = Mock()
+        mock_explorer_state_response.status = 200
+        mock_explorer_state_response.json = Mock(
+            return_value={
+                "session": SeerRunState(
+                    run_id=123,
+                    blocks=[],
+                    status="completed",
+                    updated_at="2023-07-18T12:00:00Z",
+                ).dict()
+            }
+        )
+        mock_explorer_state_request.return_value = mock_explorer_state_response
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "open_pr",
+                "run_id": 123,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 404, response.data
+
+    def test_open_pr_coding_disabled(self):
+        self.login_as(user=self.user)
+        group = self.create_group()
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "open_pr",
+                "run_id": 123,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 403, response.data

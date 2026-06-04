@@ -1,0 +1,76 @@
+import {Fragment} from 'react';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Confirm} from 'sentry/components/confirm';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TimeSince} from 'sentry/components/timeSince';
+import {IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
+import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
+
+export function OrganizationFeatureFlagsProviderRow({
+  isRemoving,
+  secret,
+  removeSecret,
+}: {
+  isRemoving: boolean;
+  secret: Secret;
+  removeSecret?: (id: number) => void;
+}) {
+  const {isPending: isUserPending, data: user} = useUserFromId({id: secret.createdBy});
+
+  return (
+    <Fragment>
+      <div>
+        <div>{secret.provider}</div>
+        <Text variant="secondary" aria-label={t('Secret preview')}>
+          {secret.secret}
+        </Text>
+      </div>
+
+      <Flex align="center" gap="xs">
+        <TimeSince date={secret.createdAt} />
+      </Flex>
+
+      <Flex align="center">
+        {isUserPending ? (
+          <LoadingIndicator mini />
+        ) : (
+          (user?.name ?? t('Deactivated user'))
+        )}
+      </Flex>
+
+      <Flex justify="end">
+        <Tooltip
+          title={t(
+            'You must be an organization owner, manager or admin to remove a secret.'
+          )}
+          disabled={!!removeSecret}
+        >
+          <Confirm
+            disabled={!removeSecret || isRemoving}
+            onConfirm={removeSecret ? () => removeSecret(secret.id) : undefined}
+            message={t(
+              'Are you sure you want to remove the secret for %s provider? It will not be usable anymore, and this cannot be undone.',
+              secret.provider
+            )}
+          >
+            <Button
+              size="sm"
+              disabled={isRemoving || !removeSecret}
+              aria-label={t('Remove secret for %s provider', secret.provider)}
+              icon={isRemoving ? <LoadingIndicator mini /> : <IconSubtract size="xs" />}
+            >
+              {t('Remove')}
+            </Button>
+          </Confirm>
+        </Tooltip>
+      </Flex>
+    </Fragment>
+  );
+}

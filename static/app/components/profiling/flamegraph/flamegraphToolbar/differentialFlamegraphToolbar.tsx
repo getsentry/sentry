@@ -1,0 +1,57 @@
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+
+import {DifferentialFlamegraphNegationSwitch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphNegationSwitch';
+import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
+import {t} from 'sentry/locale';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
+
+import {DifferentialFlamegraphSettingsButton} from './differentialFlamegraphSettingsButton';
+
+const EMPTY_SPANS: any = [];
+
+interface DifferentialFlamegraphProps {
+  canvasPoolManager: CanvasPoolManager;
+  flamegraph: DifferentialFlamegraph;
+  frameFilter: 'application' | 'system' | 'all';
+  negated: boolean;
+  onFrameFilterChange: (type: 'application' | 'system' | 'all') => void;
+  onNegatedChange: (source: boolean) => void;
+}
+export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps) {
+  const onResetZoom = () => {
+    props.canvasPoolManager.dispatch('reset zoom', []);
+  };
+
+  return (
+    <DifferentialFlamegraphToolbarContainer>
+      <DifferentialFlamegraphNegationSwitch
+        onNegatedChange={props.onNegatedChange}
+        negated={props.negated}
+      />
+      <FlamegraphSearch
+        spans={EMPTY_SPANS}
+        flamegraphs={props.flamegraph}
+        canvasPoolManager={props.canvasPoolManager}
+      />
+      <Button size="xs" onClick={onResetZoom}>
+        {t('Reset Zoom')}
+      </Button>
+      <DifferentialFlamegraphSettingsButton
+        frameFilter={props.frameFilter}
+        onFrameFilterChange={props.onFrameFilterChange}
+      />
+    </DifferentialFlamegraphToolbarContainer>
+  );
+}
+
+const DifferentialFlamegraphToolbarContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;

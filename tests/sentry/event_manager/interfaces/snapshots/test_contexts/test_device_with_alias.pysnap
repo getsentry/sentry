@@ -1,0 +1,18 @@
+---
+created: '2019-03-14T17:12:34.971395Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_contexts.py
+---
+errors: null
+tags:
+- - my_device
+  - iPad
+to_json:
+  my_device:
+    arch: arm64
+    model: iPad
+    model_id: 1234AB
+    name: My iPad
+    title: My Title
+    type: device
+    version: 1.2.3

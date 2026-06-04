@@ -1,0 +1,209 @@
+import {useEffect, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
+import type {Location} from 'history';
+import pick from 'lodash/pick';
+
+import {LinkButton} from '@sentry/scraps/button';
+
+import {sessionsApiOptions} from 'sentry/actionCreators/sessions';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/platform';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {
+  getSessionTermDescription,
+  SessionTerm,
+} from 'sentry/views/explore/releases/utils/sessionTerm';
+import {getANRIssueQueryText, getANRRateText} from 'sentry/views/projectDetail/utils';
+
+type Props = {
+  isProjectStabilized: boolean;
+  location: Location;
+  organization: Organization;
+  selection: PageFilters;
+  platform?: PlatformKey;
+  query?: string;
+};
+
+export function ProjectAnrScoreCard({
+  isProjectStabilized,
+  organization,
+  selection,
+  location,
+  query,
+  platform,
+}: Props) {
+  const {environments, projects, datetime} = selection;
+  const {start, end, period} = datetime;
+
+  const doubledPeriod = getPeriod(
+    {period, start: undefined, end: undefined},
+    {shouldDoublePeriod: true}
+  ).statsPeriod;
+
+  const queryClient = useQueryClient();
+
+  const [sessionsData, setSessionsData] = useState<SessionApiResponse | null>(null);
+  const [previousSessionData, setPreviousSessionsData] =
+    useState<SessionApiResponse | null>(null);
+
+  useEffect(() => {
+    let unmounted = false;
+
+    const requestData = {
+      orgSlug: organization.slug,
+      field: ['anr_rate()'],
+      environment: environments,
+      project: projects,
+      query,
+      includeSeries: false,
+    };
+
+    queryClient
+      .fetchQuery(
+        sessionsApiOptions({
+          ...requestData,
+          ...normalizeDateTimeParams(datetime),
+        })
+      )
+      .then(response => {
+        if (unmounted) {
+          return;
+        }
+
+        setSessionsData(response.json);
+      });
+
+    return () => {
+      unmounted = true;
+    };
+  }, [queryClient, datetime, environments, organization.slug, projects, query]);
+
+  useEffect(() => {
+    let unmounted = false;
+    if (
+      shouldFetchPreviousPeriod({
+        start,
+        end,
+        period,
+      })
+    ) {
+      const requestData = {
+        orgSlug: organization.slug,
+        field: ['anr_rate()'],
+        environment: environments,
+        project: projects,
+        query,
+        includeSeries: false,
+      };
+
+      queryClient
+        .fetchQuery(
+          sessionsApiOptions({
+            ...requestData,
+            statsPeriodStart: doubledPeriod,
+            statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
+          })
+        )
+        .then(response => {
+          if (unmounted) {
+            return;
+          }
+
+          setPreviousSessionsData(response.json);
+        });
+    } else {
+      setPreviousSessionsData(null);
+    }
+    return () => {
+      unmounted = true;
+    };
+  }, [
+    start,
+    end,
+    period,
+    doubledPeriod,
+    queryClient,
+    organization.slug,
+    environments,
+    projects,
+    query,
+  ]);
+
+  const value = sessionsData?.groups?.[0]?.totals['anr_rate()'] ?? null;
+  const previousValue = previousSessionData?.groups?.[0]?.totals['anr_rate()'] ?? null;
+
+  if (!isProjectStabilized) {
+    return null;
+  }
+
+  const endpointPath = `/organizations/${organization.slug}/issues/`;
+
+  const issueQuery = [getANRIssueQueryText(platform), query].join(' ').trim();
+
+  const queryParams = {
+    ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
+    query: issueQuery,
+    sort: 'freq',
+  };
+
+  const issueSearch = {
+    pathname: endpointPath,
+    query: queryParams,
+  };
+
+  const cardTitle = getANRRateText(platform);
+  const cardHelp = getSessionTermDescription(SessionTerm.ANR_RATE, platform || null);
+
+  const Title = <Widget.WidgetTitle title={cardTitle} />;
+
+  if (!defined(value)) {
+    return (
+      <Widget
+        Title={Title}
+        Visualization={<BigNumberWidgetVisualization.LoadingPlaceholder />}
+      />
+    );
+  }
+
+  return (
+    <Widget
+      Title={Title}
+      Actions={
+        <Widget.WidgetToolbar>
+          <LinkButton
+            size="xs"
+            to={issueSearch}
+            onClick={() => {
+              trackAnalytics('project_detail.open_anr_issues', {
+                organization,
+              });
+            }}
+          >
+            {t('View Issues')}
+          </LinkButton>
+          <Widget.WidgetDescription description={cardHelp} />
+        </Widget.WidgetToolbar>
+      }
+      Visualization={
+        <BigNumberWidgetVisualization
+          value={value ?? undefined}
+          previousPeriodValue={previousValue ?? undefined}
+          field="anr_rate()"
+          preferredPolarity="-"
+          type="percentage"
+          unit={null}
+        />
+      }
+    />
+  );
+}

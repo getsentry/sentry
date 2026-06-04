@@ -1,0 +1,207 @@
+import {Fragment, useEffect} from 'react';
+import styled from '@emotion/styled';
+
+import {Link} from '@sentry/scraps/link';
+
+import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
+import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
+import {NoStackTraceMessage} from 'sentry/components/events/interfaces/noStackTraceMessage';
+import {getThreadStacktrace} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
+import {
+  getEventTimestampInSeconds,
+  getThreadById,
+  inferPlatform,
+} from 'sentry/components/events/interfaces/utils';
+import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import {StackView} from 'sentry/types/stacktrace';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useProjects} from 'sentry/utils/useProjects';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
+import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+
+enum AnrRootCauseAllowlist {
+  PERFORMANCE_FILE_IO_MAIN_THREAD_GROUP_TYPE = 1008,
+  PERFORMANCE_DB_MAIN_THREAD_GROUP_TYPE = 1013,
+}
+
+interface Props {
+  event: Event;
+  organization: Organization;
+}
+
+export function AnrRootCause({event, organization}: Props) {
+  const traceSlug = event.contexts.trace?.trace_id ?? '';
+  const location = useLocation();
+
+  const trace = useTrace({
+    timestamp: getEventTimestampInSeconds(event),
+    traceSlug,
+    limit: 10000,
+  });
+  const tree = useIssuesTraceTree({trace, replay: null});
+  useTraceStateAnalytics({
+    trace,
+    organization,
+    traceTreeSource: 'issue_details_anr_root_cause',
+    tree,
+  });
+
+  const traceNode = tree.root.children[0];
+
+  const {projects} = useProjects();
+
+  const anrCulprit = analyzeFramesForRootCause(event);
+
+  useEffect(() => {
+    if (!anrCulprit?.culprit) {
+      return;
+    }
+
+    trackAnalytics('issue_group_details.anr_root_cause_detected', {
+      organization,
+      group: event?.groupID,
+      culprit: typeof anrCulprit?.culprit === 'string' ? anrCulprit?.culprit : 'lock',
+    });
+  }, [anrCulprit, organization, event?.groupID]);
+
+  if (tree.type === 'loading' || tree.type === 'error') {
+    return null;
+  }
+
+  const occurrences = Array.from(traceNode?.occurrences ?? []);
+  const noPerfIssueOnTrace = occurrences.length === 0;
+
+  if (noPerfIssueOnTrace && !anrCulprit) {
+    return null;
+  }
+
+  const potentialAnrRootCause = occurrences.filter(issue => {
+    const issueType = 'type' in issue ? issue.type : issue.issue_type;
+    return Object.values(AnrRootCauseAllowlist).includes(issueType);
+  });
+
+  function renderAnrCulprit() {
+    if (!defined(anrCulprit)) {
+      return;
+    }
+
+    if (typeof anrCulprit.culprit === 'string') {
+      return <Fragment>{anrCulprit.resources}</Fragment>;
+    }
+
+    const {address, thread_id} = anrCulprit.culprit;
+    if (!defined(thread_id)) {
+      return <Fragment>{anrCulprit.resources}</Fragment>;
+    }
+
+    const culpritThread = getThreadById(event, thread_id);
+    const stackTrace = getThreadStacktrace(false, culpritThread);
+    const platform = inferPlatform(event, culpritThread);
+
+    return (
+      <Fragment>
+        {anrCulprit?.resources}
+        <StackTraceWrapper>
+          {defined(stackTrace) ? (
+            <StackTraceContent
+              stacktrace={stackTrace}
+              stackView={StackView.FULL}
+              newestFirst
+              event={event}
+              platform={platform}
+              lockAddress={address ?? undefined}
+            />
+          ) : (
+            <NoStackTraceMessage />
+          )}
+        </StackTraceWrapper>
+      </Fragment>
+    );
+  }
+
+  return (
+    <FoldSection
+      sectionKey={SectionKey.SUSPECT_ROOT_CAUSE}
+      title={t('Suspect Root Cause')}
+    >
+      {potentialAnrRootCause?.map(occurence => {
+        const project = projects.find(p => p.id === occurence.project_id.toString());
+        const isEAPOccurence = 'description' in occurence;
+        const title = isEAPOccurence ? occurence.description : occurence.title;
+        const shortId = isEAPOccurence ? occurence.short_id : occurence.issue_short_id;
+        return (
+          <IssueSummary key={occurence.issue_id}>
+            <Title>
+              <TitleWithLink
+                to={{
+                  pathname: `/organizations/${organization.id}/issues/${occurence.issue_id}/${
+                    occurence.event_id ? `events/${occurence.event_id}/` : ''
+                  }`,
+                  query: extractSelectionParameters(location.query),
+                }}
+              >
+                {title}
+                <Fragment>
+                  <Spacer />
+                  <Subtitle title={occurence.culprit}>{occurence.culprit}</Subtitle>
+                </Fragment>
+              </TitleWithLink>
+            </Title>
+            {shortId && (
+              <ShortId
+                shortId={shortId}
+                avatar={
+                  project && <ProjectBadge project={project} hideName avatarSize={12} />
+                }
+              />
+            )}
+          </IssueSummary>
+        );
+      })}
+      {renderAnrCulprit()}
+    </FoldSection>
+  );
+}
+
+const IssueSummary = styled('div')`
+  padding-bottom: ${p => p.theme.space.xl};
+`;
+
+/**
+ * &nbsp; is used instead of margin/padding to split title and subtitle
+ * into 2 separate text nodes on the HTML AST. This allows the
+ * title to be highlighted without spilling over to the subtitle.
+ */
+function Spacer() {
+  return <span style={{display: 'inline-block', width: 10}}>&nbsp;</span>;
+}
+
+const Subtitle = styled('div')`
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const TitleWithLink = styled(Link)`
+  display: flex;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+`;
+
+const Title = styled('div')`
+  line-height: 1;
+  margin-bottom: ${p => p.theme.space.xs};
+`;
+
+const StackTraceWrapper = styled('div')`
+  margin-top: ${p => p.theme.space.xl};
+`;

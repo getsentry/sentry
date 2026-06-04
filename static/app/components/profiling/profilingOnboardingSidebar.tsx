@@ -1,0 +1,426 @@
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
+import partition from 'lodash/partition';
+
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {SelectValue} from '@sentry/scraps/select';
+
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  DocsPageLocation,
+  ProductSolution,
+  type DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
+import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {
+  OnboardingDrawerKey,
+  OnboardingDrawerStore,
+} from 'sentry/stores/onboardingDrawerStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getDocsPlatformSDKForPlatform} from 'sentry/utils/profiling/platforms';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+
+function splitProjectsByProfilingSupport(projects: Project[]): {
+  supported: Project[];
+  unsupported: Project[];
+} {
+  const [supported, unsupported] = partition(
+    projects,
+    project => project.platform && getDocsPlatformSDKForPlatform(project.platform)
+  );
+
+  return {supported, unsupported};
+}
+
+const PROFILING_ONBOARDING_STEPS = [
+  ProductSolution.PERFORMANCE_MONITORING,
+  ProductSolution.PROFILING,
+];
+
+export function useProfilingOnboardingDrawer() {
+  const organization = useOrganization();
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.PROFILING_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+  const initialPathname = useRef<string | null>(null);
+
+  const {openDrawer} = useDrawer();
+
+  useLayoutEffect(() => {
+    if (isActive && hasProjectAccess) {
+      initialPathname.current = window.location.pathname;
+
+      openDrawer(() => <DrawerContent />, {
+        ariaLabel: t('Profile Code'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location => {
+          return location.pathname !== initialPathname.current;
+        },
+      });
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+function DrawerContent() {
+  useLayoutEffect(() => {
+    return () => {
+      OnboardingDrawerStore.close();
+    };
+  }, []);
+
+  return <SidebarContent />;
+}
+
+function SidebarContent() {
+  const pageFilters = usePageFilters();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+
+  const [currentProject, setCurrentProject] = useState<Project | undefined>();
+
+  const {supported: supportedProjects, unsupported: unsupportedProjects} = useMemo(
+    () => splitProjectsByProfilingSupport(projects),
+    [projects]
+  );
+
+  useEffect(() => {
+    return () => {
+      trackAnalytics('profiling_views.onboarding_action', {
+        organization,
+        action: 'dismissed',
+      });
+    };
+  }, [organization]);
+
+  useEffect(() => {
+    if (currentProject) {
+      return;
+    }
+
+    // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
+    if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
+      if (pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS) {
+        setCurrentProject(unsupportedProjects[0]);
+        return;
+      }
+
+      setCurrentProject(
+        // there's an edge case where an org w/ a single project may be unsupported but for whatever reason there is no project selection so we can't select a project
+        // in those cases we'll simply default to the first unsupportedProject
+        unsupportedProjects.find(
+          p => p.id === String(pageFilters.selection.projects[0])
+        ) ?? unsupportedProjects[0]
+      );
+      return;
+    }
+    // if it's My Projects or All Projects, pick the first supported project
+    if (
+      pageFilters.selection.projects.length === 0 ||
+      pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS
+    ) {
+      setCurrentProject(supportedProjects[0]);
+      return;
+    }
+
+    // if it's a list of projects, pick the first one that's supported
+    const supportedProjectsById = supportedProjects.reduce((mapping, project) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      mapping[project.id] = project;
+      return mapping;
+    }, {});
+
+    for (const projectId of pageFilters.selection.projects) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      if (supportedProjectsById[String(projectId)]) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        setCurrentProject(supportedProjectsById[String(projectId)]);
+        return;
+      }
+    }
+  }, [
+    currentProject,
+    pageFilters.selection.projects,
+    supportedProjects,
+    unsupportedProjects,
+  ]);
+
+  const projectSelectOptions = useMemo(() => {
+    const supportedProjectItems: Array<SelectValue<string>> = supportedProjects.map(
+      project => {
+        return {
+          value: project.id,
+          textValue: project.id,
+          label: (
+            <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
+          ),
+        };
+      }
+    );
+
+    const unsupportedProjectItems: Array<SelectValue<string>> = unsupportedProjects.map(
+      project => {
+        return {
+          value: project.id,
+          textValue: project.id,
+          label: (
+            <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
+          ),
+          disabled: true,
+        };
+      }
+    );
+    return [
+      {
+        label: t('Supported'),
+        options: supportedProjectItems,
+      },
+      {
+        label: t('Unsupported'),
+        options: unsupportedProjectItems,
+      },
+    ];
+  }, [supportedProjects, unsupportedProjects]);
+
+  const currentPlatform = currentProject?.platform
+    ? platforms.find(p => p.id === currentProject.platform)
+    : undefined;
+
+  return (
+    <Fragment>
+      <Stack padding="xl" gap="md">
+        <Heading>{t('Profile Code')}</Heading>
+        <div
+          onClick={e => {
+            // we need to stop bubbling the CompactSelect click event
+            // failing to do so will cause the sidebar panel to close
+            // the event.target will be unmounted by the time the panel listener
+            // receives the event and assume the click was outside the panel
+            e.stopPropagation();
+          }}
+        >
+          <CompactSelect
+            value={currentProject?.id}
+            onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button {...triggerProps} aria-label={currentProject?.slug}>
+                {currentProject ? (
+                  <StyledIdBadge
+                    project={currentProject}
+                    avatarSize={16}
+                    hideOverflow
+                    disableLink
+                  />
+                ) : (
+                  t('Select a project')
+                )}
+              </OverlayTrigger.Button>
+            )}
+            options={projectSelectOptions}
+            position="bottom-end"
+          />
+        </div>
+        {currentProject && currentPlatform ? (
+          <ProfilingOnboardingContent
+            activeProductSelection={PROFILING_ONBOARDING_STEPS}
+            organization={organization}
+            platform={currentPlatform}
+            project={currentProject}
+          />
+        ) : null}
+      </Stack>
+    </Fragment>
+  );
+}
+
+interface ProfilingOnboardingContentProps {
+  activeProductSelection: ProductSolution[];
+  organization: Organization;
+  platform: PlatformIntegration;
+  project: Project;
+}
+
+function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
+  const api = useApi();
+  const organization = useOrganization();
+
+  const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
+    orgSlug: props.organization.slug,
+    projSlug: props.project.slug,
+    platform: props.platform,
+  });
+
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the getting started documentation for this platform.'
+        )}
+      />
+    );
+  }
+
+  if (!dsn) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the DSN for this getting started documentation.'
+        )}
+        onRetry={refetch}
+      />
+    );
+  }
+
+  if (props.platform.deprecated) {
+    return <DeprecatedPlatformInfo platform={props.platform} dsn={dsn} />;
+  }
+
+  if (!docs) {
+    return (
+      <LoadingError
+        message={t(
+          'The getting started documentation for this platform is currently unavailable.'
+        )}
+      />
+    );
+  }
+
+  if (!projectKeyId) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the Client Key for this getting started documentation.'
+        )}
+        onRetry={refetch}
+      />
+    );
+  }
+
+  const docParams: DocsParams<any> = {
+    api,
+    projectKeyId,
+    dsn,
+    organization: props.organization,
+    platformKey: props.platform.id,
+    project: props.project,
+    isLogsSelected: false,
+    isFeedbackSelected: false,
+    isMetricsSelected: false,
+    isPerformanceSelected: true,
+    isProfilingSelected: true,
+    isReplaySelected: false,
+    sourcePackageRegistries: {
+      isLoading: isLoadingRegistry,
+      data: registryData,
+    },
+    platformOptions: PROFILING_ONBOARDING_STEPS,
+    newOrg: false,
+    feedbackOptions: {},
+    /**
+     * Page where the docs will be rendered
+     */
+    docsLocation: DocsPageLocation.PROFILING_PAGE,
+    urlPrefix,
+    isSelfHosted,
+    profilingOptions: {
+      defaultProfilingMode: props.organization.features.includes('continuous-profiling')
+        ? 'continuous'
+        : 'transaction',
+    },
+  };
+
+  const doc = docs.profilingOnboarding ?? docs.onboarding;
+  const steps = [...doc.install(docParams), ...doc.configure(docParams)];
+
+  return (
+    <TabSelectionScope>
+      <Wrapper>
+        {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
+        <Steps>
+          {steps.map((step, index) => {
+            return (
+              <Step
+                key={step.title ?? step.type}
+                stepIndex={index}
+                {...step}
+                trailingItems={
+                  index === 0 && copyEnabled ? (
+                    <OnboardingCopyMarkdownButton
+                      borderless
+                      steps={steps}
+                      source="profiling_sidebar_onboarding"
+                    />
+                  ) : undefined
+                }
+              />
+            );
+          })}
+        </Steps>
+      </Wrapper>
+    </TabSelectionScope>
+  );
+}
+
+const Wrapper = styled('div')`
+  margin-top: ${p => p.theme.space.xl};
+`;
+
+const Steps = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const Introduction = styled('div')`
+  & > p:not(:last-child) {
+    margin-bottom: ${p => p.theme.space.xl};
+  }
+`;
+
+const Heading = styled('div')`
+  display: flex;
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-size: ${p => p.theme.font.size.xs};
+  text-transform: uppercase;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  line-height: 1;
+  margin-top: ${p => p.theme.space['2xl']};
+`;
+
+const StyledIdBadge = styled(IdBadge)`
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 1;
+`;

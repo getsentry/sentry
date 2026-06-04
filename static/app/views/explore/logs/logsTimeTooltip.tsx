@@ -1,0 +1,184 @@
+import React, {Fragment} from 'react';
+import {Link} from 'react-router-dom';
+import styled from '@emotion/styled';
+
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {AutoSelectText} from 'sentry/components/autoSelectText';
+import {DateTime} from 'sentry/components/dateTime';
+import {Duration} from 'sentry/components/duration/duration';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {useTimezone} from 'sentry/components/timezoneProvider';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+type Props = {
+  attributes: Record<string, string | number | boolean>;
+  children: React.ReactNode;
+  timestamp: string | number;
+  relativeTimeToReplay?: number;
+  shouldRender?: boolean;
+};
+
+function TimestampTooltipBody({
+  timestamp,
+  attributes,
+  relativeTime,
+}: {
+  attributes: Record<string, string | number | boolean>;
+  timestamp: string | number;
+  relativeTime?: number;
+}) {
+  const currentTimezone = useTimezone();
+  const organization = useOrganization();
+  const preciseTimestamp = attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+  const preciseTimestampMs = preciseTimestamp
+    ? Number(preciseTimestamp) / 1_000_000
+    : null;
+  const timestampToUse = preciseTimestampMs ? new Date(preciseTimestampMs) : timestamp;
+
+  const observedTimeNanos = attributes[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE];
+  const observedTime = observedTimeNanos
+    ? new Date(Math.floor(Number(observedTimeNanos) / 1_000_000))
+    : null;
+
+  const isUTCLocalTimezone = currentTimezone === 'UTC';
+
+  return (
+    <DescriptionList>
+      <dt>{t('Occurred')}</dt>
+      <dd>
+        <TimestampValues>
+          <AutoSelectText>
+            <DateTime date={timestampToUse} seconds milliseconds timeZone />
+          </AutoSelectText>
+          {!isUTCLocalTimezone && (
+            <AutoSelectText>
+              <DateTime date={timestampToUse} seconds milliseconds timeZone utc />
+            </AutoSelectText>
+          )}
+          <TimestampLabel>
+            ({preciseTimestampMs ? String(preciseTimestampMs) : String(timestamp)})
+          </TimestampLabel>
+        </TimestampValues>
+      </dd>
+      {relativeTime && (
+        <Fragment>
+          <dt>{t('Relative to Replay Start')}</dt>
+          <dd>
+            <TimestampValues>
+              <Duration duration={[Math.abs(relativeTime), 'ms']} precision="ms" />
+            </TimestampValues>
+          </dd>
+        </Fragment>
+      )}
+      {isUTCLocalTimezone && (
+        <Fragment>
+          <dt />
+          <TimestampLabelLinkContainer>
+            <TimestampLabelLink
+              target="_blank"
+              to="/settings/account/details/#timezone"
+              onClick={() =>
+                trackAnalytics('logs.timestamp_tooltip.add_timezone_clicked', {
+                  organization,
+                })
+              }
+            >
+              <br />
+              {t('Add your local timezone')}
+            </TimestampLabelLink>
+          </TimestampLabelLinkContainer>
+        </Fragment>
+      )}
+
+      <Fragment>
+        <HorizontalRule />
+        <dt>{t('Received')}</dt>
+        <dd>
+          {observedTime ? (
+            <TimestampValues>
+              <AutoSelectText>
+                <DateTime date={observedTime} seconds timeZone />
+              </AutoSelectText>
+            </TimestampValues>
+          ) : (
+            <LoadingIndicator size={16} style={{margin: 0}} />
+          )}
+        </dd>
+      </Fragment>
+    </DescriptionList>
+  );
+}
+
+export {TimestampTooltipBody};
+
+export function LogsTimestampTooltip({
+  timestamp,
+  attributes,
+  children,
+  shouldRender = true,
+  relativeTimeToReplay: relativeTime,
+}: Props) {
+  if (!shouldRender) {
+    return <Fragment>{children}</Fragment>;
+  }
+
+  const handleTooltipPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
+  };
+
+  return (
+    <Tooltip
+      title={
+        <div onPointerUp={handleTooltipPointerUp}>
+          <TimestampTooltipBody
+            timestamp={timestamp}
+            attributes={attributes}
+            relativeTime={relativeTime}
+          />
+        </div>
+      }
+      maxWidth={400}
+      isHoverable
+    >
+      {children}
+    </Tooltip>
+  );
+}
+
+const DescriptionList = styled('dl')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  text-align: left;
+  margin: 0;
+`;
+
+const TimestampValues = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space['2xs']};
+  font-family: ${p => p.theme.font.family.mono};
+`;
+
+const HorizontalRule = styled('hr')`
+  grid-column: 1 / -1;
+  margin: ${p => p.theme.space.xs} 0;
+  border: none;
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
+const TimestampLabelLink = styled(Link)`
+  line-height: 0.8;
+`;
+
+const TimestampLabel = styled('span')`
+  color: ${p => p.theme.colors.gray500};
+`;
+
+const TimestampLabelLinkContainer = styled('dd')`
+  line-height: 0.8;
+`;

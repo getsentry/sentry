@@ -1,0 +1,41 @@
+---
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - '{{ package }}'
+    matchers:
+    - - type
+      - DatabaseUnavailable
+    text: type:"DatabaseUnavailable" -> "{{ package }}"
+  version: 1
+fingerprint:
+- '{{ package }}'
+title: 'DatabaseUnavailable: For some reason the database went away'
+variants:
+  app:
+    component:
+      contributes: false
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: app_exception_stacktrace
+    type: component
+  custom_server_fingerprint:
+    contributes: true
+    hint: null
+    key: custom_server_fingerprint
+    matched_rule: type:"DatabaseUnavailable" -> "{{ package }}"
+    type: custom_fingerprint
+    values:
+    - <no-package>
+  system:
+    component:
+      contributes: false
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: system_exception_stacktrace
+    type: component

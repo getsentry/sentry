@@ -1,0 +1,148 @@
+import {memo} from 'react';
+import styled from '@emotion/styled';
+
+import {
+  ActorAvatar,
+  OrganizationAvatar,
+  ProjectAvatar,
+  TeamAvatar,
+  UserAvatar,
+} from '@sentry/scraps/avatar';
+import {Flex} from '@sentry/scraps/layout';
+
+import type {Actor} from 'sentry/types/core';
+import type {OrganizationSummary, Team} from 'sentry/types/organization';
+import type {AvatarProject} from 'sentry/types/project';
+import type {AvatarUser} from 'sentry/types/user';
+import type {SpaceSize} from 'sentry/utils/theme';
+
+export interface BaseBadgeProps {
+  avatarProps?: Record<string, any>;
+  avatarSize?: number;
+  className?: string;
+  description?: React.ReactNode;
+  // Hides the main display name
+  hideAvatar?: boolean;
+  hideName?: boolean;
+  onClick?: React.HTMLAttributes<HTMLDivElement>['onClick'];
+}
+
+interface AllBaseBadgeProps extends BaseBadgeProps {
+  displayName: React.ReactNode;
+  actor?: Actor;
+  organization?: OrganizationSummary;
+  project?: AvatarProject;
+  team?: Team;
+  user?: AvatarUser;
+}
+
+export const BaseBadge = memo(
+  ({
+    displayName,
+    hideName = false,
+    hideAvatar = false,
+    avatarProps = {},
+    avatarSize = 24,
+    description,
+    onClick,
+    team,
+    user,
+    organization,
+    project,
+    actor,
+    className,
+  }: AllBaseBadgeProps) => {
+    // Space items appropriately depending on avatar size
+    const wrapperGap: SpaceSize =
+      avatarSize <= 14 ? 'xs' : avatarSize <= 20 ? 'sm' : 'md';
+
+    return (
+      <Flex
+        align="center"
+        gap={wrapperGap}
+        flexShrink={0}
+        className={className}
+        onClick={onClick}
+      >
+        {!hideAvatar && (
+          <EntityAvatarType
+            team={team}
+            user={user}
+            organization={organization}
+            project={project}
+            actor={actor}
+            avatarProps={{...avatarProps, size: avatarSize}}
+          />
+        )}
+
+        {(!hideName || !!description) && (
+          <DisplayNameAndDescription>
+            {!hideName && (
+              <DisplayName data-test-id="badge-display-name">{displayName}</DisplayName>
+            )}
+            {!!description && <Description>{description}</Description>}
+          </DisplayNameAndDescription>
+        )}
+      </Flex>
+    );
+  }
+);
+
+function EntityAvatarType({
+  user,
+  team,
+  organization,
+  project,
+  actor,
+  avatarProps,
+}: Pick<
+  AllBaseBadgeProps,
+  'user' | 'team' | 'organization' | 'project' | 'actor' | 'avatarProps'
+>) {
+  if (user) {
+    return <UserAvatar user={user} {...avatarProps} />;
+  }
+
+  if (team) {
+    return <TeamAvatar team={team} {...avatarProps} />;
+  }
+
+  if (organization) {
+    return <OrganizationAvatar organization={organization} {...avatarProps} />;
+  }
+
+  if (project) {
+    return <ProjectAvatar project={project} {...avatarProps} />;
+  }
+
+  if (actor) {
+    return <ActorAvatar actor={actor} {...avatarProps} />;
+  }
+
+  return null;
+}
+
+const DisplayNameAndDescription = styled('div')`
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  overflow: hidden;
+`;
+
+const DisplayName = styled('span')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+`;
+
+const Description = styled('div')`
+  font-size: 0.875em;
+  margin-top: ${p => p.theme.space['2xs']};
+  color: ${p => p.theme.tokens.content.secondary};
+  line-height: 14px;
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;

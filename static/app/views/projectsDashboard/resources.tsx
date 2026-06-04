@@ -1,0 +1,50 @@
+import styled from '@emotion/styled';
+
+import breadcrumbsImg from 'sentry-images/spot/breadcrumbs-generic.svg';
+import docsImg from 'sentry-images/spot/code-arguments-tags-mirrored.svg';
+import releasesImg from 'sentry-images/spot/releases.svg';
+
+import * as Layout from 'sentry/components/layouts/thirds';
+import {ResourceCard} from 'sentry/components/resourceCard';
+import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+
+type Props = {
+  organization: Organization;
+};
+
+export function Resources(_props: Props) {
+  return (
+    <ResourcesWrapper data-test-id="resources">
+      <Layout.Title withMargins>{t('Resources')}</Layout.Title>
+      <ResourceCards>
+        <ResourceCard
+          link="https://docs.sentry.io/product/releases/"
+          imgUrl={releasesImg}
+          title={t('The Sentry Workflow')}
+        />
+        <ResourceCard
+          link="https://docs.sentry.io/product/issues/"
+          imgUrl={breadcrumbsImg}
+          title={t('Sentry vs Logging')}
+        />
+        <ResourceCard link="https://docs.sentry.io/" imgUrl={docsImg} title={t('Docs')} />
+      </ResourceCards>
+    </ResourcesWrapper>
+  );
+}
+
+const ResourcesWrapper = styled('div')`
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
+`;
+
+const ResourceCards = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr);
+  gap: ${p => p.theme.space['2xl']};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+`;

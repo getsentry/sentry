@@ -1,0 +1,434 @@
+import type {ReactNode} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
+import {PlatformIcon} from 'platformicons';
+
+import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {SelectValue} from '@sentry/scraps/select';
+
+import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
+import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
+import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {
+  feedbackCrashApiPlatforms,
+  feedbackNpmPlatforms,
+  feedbackOnboardingPlatforms,
+  feedbackWebApiPlatforms,
+  feedbackWidgetPlatforms,
+  replayBackendPlatforms,
+  replayJsLoaderInstructionsPlatformList,
+} from 'sentry/data/platformCategories';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
+import {t, tct} from 'sentry/locale';
+import {
+  OnboardingDrawerKey,
+  OnboardingDrawerStore,
+} from 'sentry/stores/onboardingDrawerStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export function useFeedbackOnboardingDrawer() {
+  const organization = useOrganization();
+  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const isActive = currentPanel === OnboardingDrawerKey.FEEDBACK_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+
+  const {openDrawer} = useDrawer();
+
+  useEffect(() => {
+    if (isActive && hasProjectAccess) {
+      openDrawer(() => <DrawerContent />, {
+        ariaLabel: t('Getting Started with User Feedback'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location =>
+          location.pathname !== window.location.pathname,
+      });
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+function DrawerContent() {
+  useEffect(() => {
+    return () => {
+      OnboardingDrawerStore.close();
+    };
+  }, []);
+
+  return <SidebarContent />;
+}
+
+function SidebarContent() {
+  const organization = useOrganization();
+
+  const {allProjects, currentProject, setCurrentProject} = useCurrentProjectState({
+    currentPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
+    targetPanel: OnboardingDrawerKey.FEEDBACK_ONBOARDING,
+    onboardingPlatforms: feedbackOnboardingPlatforms,
+    allPlatforms: feedbackOnboardingPlatforms,
+  });
+
+  useEffect(() => {
+    // this tracks clicks from any source: feedback index, issue details feedback tab, banner callout, etc
+    if (currentProject) {
+      trackAnalytics('feedback.list-view-setup-sidebar', {
+        organization,
+        platform: currentProject?.platform ?? 'unknown',
+      });
+    }
+  }, [currentProject, organization, setCurrentProject]);
+
+  const projectSelectOptions = useMemo(() => {
+    const supportedProjectItems: Array<SelectValue<string>> = allProjects
+      .sort((aProject, bProject) => {
+        // if we're comparing two projects w/ or w/o feedback alphabetical sort
+        if (aProject.hasNewFeedbacks === bProject.hasNewFeedbacks) {
+          return aProject.slug.localeCompare(bProject.slug);
+        }
+        // otherwise sort by whether or not they have feedback
+        return aProject.hasNewFeedbacks ? 1 : -1;
+      })
+      .map(project => {
+        return {
+          value: project.id,
+          textValue: project.id,
+          label: (
+            <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
+          ),
+        };
+      });
+
+    return [
+      {
+        label: t('Supported'),
+        options: supportedProjectItems,
+      },
+    ];
+  }, [allProjects]);
+
+  if (!currentProject) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <TopRightBackgroundImage src={HighlightTopRightPattern} />
+      <TaskList>
+        <Heading>{t('Getting Started with User Feedback')}</Heading>
+        <Flex justify="between" gap="2xl">
+          <div
+            onClick={e => {
+              // we need to stop bubbling the CompactSelect click event
+              // failing to do so will cause the sidebar panel to close
+              // the event.target will be unmounted by the time the panel listener
+              // receives the event and assume the click was outside the panel
+              e.stopPropagation();
+            }}
+          >
+            <CompactSelect
+              value={currentProject?.id}
+              onChange={opt =>
+                setCurrentProject(allProjects.find(p => p.id === opt.value))
+              }
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  aria-label={currentProject?.slug}
+                >
+                  {currentProject ? (
+                    <StyledIdBadge
+                      project={currentProject}
+                      avatarSize={16}
+                      hideOverflow
+                      disableLink
+                    />
+                  ) : (
+                    t('Select a project')
+                  )}
+                </OverlayTrigger.Button>
+              )}
+              options={projectSelectOptions}
+              position="bottom-end"
+            />
+          </div>
+        </Flex>
+        <OnboardingContent currentProject={currentProject} />
+      </TaskList>
+    </Fragment>
+  );
+}
+
+function OnboardingContent({currentProject}: {currentProject: Project}) {
+  const organization = useOrganization();
+  const jsFrameworkSelectOptions = replayJsFrameworkOptions().map(platform => {
+    return {
+      value: platform.id,
+      textValue: platform.name,
+      label: (
+        <Flex align="center" gap="md">
+          <PlatformIcon platform={platform.id} size={16} />
+          <TextOverflow>{platform.name}</TextOverflow>
+        </Flex>
+      ),
+    };
+  });
+
+  const [jsFramework, setJsFramework] = useState<{
+    value: PlatformKey;
+    label?: ReactNode;
+    textValue?: string;
+  }>(jsFrameworkSelectOptions[0]!);
+
+  const location = useLocation();
+  const crashReportOnboarding = location.hash === CRASH_REPORT_HASH;
+
+  const [setupMode, setSetupMode] = useQueryState(
+    'mode',
+    parseAsStringLiteral(['npm', 'jsLoader'] as const).withDefault('npm')
+  );
+
+  const currentPlatform = currentProject.platform
+    ? (platforms.find(p => p.id === currentProject.platform) ?? otherPlatform)
+    : otherPlatform;
+
+  const webBackendPlatform = replayBackendPlatforms.includes(currentPlatform.id);
+  const showJsFrameworkInstructions = webBackendPlatform && setupMode === 'npm';
+
+  const crashApiPlatform = feedbackCrashApiPlatforms.includes(currentPlatform.id);
+  const widgetPlatform = feedbackWidgetPlatforms.includes(currentPlatform.id);
+  const webApiPlatform = feedbackWebApiPlatforms.includes(currentPlatform.id);
+
+  const npmOnlyFramework = feedbackNpmPlatforms
+    .filter((p): p is PlatformKey => p !== 'javascript')
+    .includes(currentPlatform.id);
+
+  const showRadioButtons =
+    replayJsLoaderInstructionsPlatformList.includes(currentPlatform.id) &&
+    !crashReportOnboarding;
+
+  const jsFrameworkPlatform =
+    replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
+    replayJsFrameworkOptions()[0]!;
+
+  const {
+    isLoading,
+    docs: newDocs,
+    dsn,
+    projectKeyId,
+  } = useLoadGettingStarted({
+    platform:
+      showJsFrameworkInstructions && !crashReportOnboarding
+        ? jsFrameworkPlatform
+        : currentPlatform,
+    projSlug: currentProject.slug,
+    productType: 'feedback',
+    orgSlug: organization.slug,
+  });
+
+  // New onboarding docs for initial loading of JS Framework options
+  const {docs: jsFrameworkDocs} = useLoadGettingStarted({
+    platform: jsFrameworkPlatform,
+    projSlug: currentProject.slug,
+    orgSlug: organization.slug,
+  });
+
+  if (webApiPlatform && !crashReportOnboarding) {
+    return <FeedbackOnboardingWebApiBanner />;
+  }
+
+  const excludedPlatformOptions = ['react-native', 'flutter'];
+  const isExcluded = excludedPlatformOptions.includes(currentPlatform.id);
+
+  const radioButtons = (
+    <Header>
+      {showRadioButtons ? (
+        <Container padding="md 0">
+          <RadioGroup<typeof setupMode>
+            label="mode"
+            choices={[
+              [
+                'npm',
+                webBackendPlatform ? (
+                  <Flex align="center" wrap="wrap" gap="md" key="platform-select">
+                    {tct('I use [platformSelect]', {
+                      platformSelect: (
+                        <CompactSelect
+                          size="xs"
+                          trigger={triggerProps => (
+                            <OverlayTrigger.Button {...triggerProps}>
+                              {jsFramework.label ?? triggerProps.children}
+                            </OverlayTrigger.Button>
+                          )}
+                          value={jsFramework.value}
+                          onChange={setJsFramework}
+                          options={jsFrameworkSelectOptions}
+                          position="bottom-end"
+                          key={jsFramework.textValue}
+                          disabled={setupMode === 'jsLoader'}
+                        />
+                      ),
+                    })}
+                    {jsFrameworkDocs?.platformOptions && (
+                      <PlatformOptionDropdown
+                        platformOptions={jsFrameworkDocs?.platformOptions}
+                        disabled={setupMode === 'jsLoader'}
+                      />
+                    )}
+                  </Flex>
+                ) : (
+                  t('I use NPM or Yarn')
+                ),
+              ],
+              ['jsLoader', t('I use HTML templates (Loader Script)')],
+            ]}
+            value={setupMode}
+            onChange={value => setSetupMode(value)}
+            tooltipPosition="top-start"
+          />
+        </Container>
+      ) : (
+        (newDocs?.platformOptions?.siblingOption ||
+          newDocs?.platformOptions?.packageManager) &&
+        widgetPlatform &&
+        !isExcluded &&
+        !crashReportOnboarding &&
+        !isLoading && (
+          <Flex align="center" wrap="wrap" gap="md">
+            {tct("I'm using [platformSelect]", {
+              platformSelect: (
+                <PlatformOptionDropdown
+                  platformOptions={pickPlatformOptions(newDocs?.platformOptions)}
+                />
+              ),
+            })}
+          </Flex>
+        )
+      )}
+    </Header>
+  );
+
+  if (isLoading) {
+    return (
+      <Fragment>
+        {radioButtons}
+        <LoadingIndicator />
+      </Fragment>
+    );
+  }
+
+  // No platform or not supported or no docs
+  if (
+    !currentPlatform ||
+    !feedbackOnboardingPlatforms.includes(currentPlatform.id) ||
+    !newDocs ||
+    !dsn ||
+    !projectKeyId
+  ) {
+    return (
+      <Fragment>
+        <div>
+          {tct(
+            'Fiddlesticks. This checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
+            {project: currentProject.slug}
+          )}
+        </div>
+        <div>
+          <LinkButton
+            size="sm"
+            href="https://docs.sentry.io/platforms/javascript/user-feedback/"
+            external
+          >
+            {t('Read Docs')}
+          </LinkButton>
+        </div>
+      </Fragment>
+    );
+  }
+
+  function getConfig() {
+    if (crashReportOnboarding) {
+      return 'crashReportOnboarding';
+    }
+    if (crashApiPlatform) {
+      return 'feedbackOnboardingCrashApi';
+    }
+    if (
+      setupMode === 'npm' || // switched to NPM option
+      npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks
+    ) {
+      return 'feedbackOnboardingNpm';
+    }
+    return 'feedbackOnboardingJsLoader';
+  }
+
+  return (
+    <Fragment>
+      {radioButtons}
+      <FeedbackOnboardingLayout
+        docsConfig={newDocs}
+        dsn={dsn}
+        activeProductSelection={[]}
+        platformKey={currentPlatform.id}
+        project={currentProject}
+        configType={getConfig()}
+        projectKeyId={projectKeyId}
+      />
+    </Fragment>
+  );
+}
+
+const Header = styled('div')`
+  padding: ${p => p.theme.space.md} 0;
+`;
+
+const TopRightBackgroundImage = styled('img')`
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60%;
+  user-select: none;
+`;
+
+const TaskList = styled('div')`
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-columns: 100%;
+  gap: ${p => p.theme.space.md};
+  margin: 50px ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']}
+    ${p => p.theme.space['3xl']};
+`;
+
+const Heading = styled('div')`
+  display: flex;
+  color: ${p => p.theme.tokens.interactive.link.accent.rest};
+  font-size: ${p => p.theme.font.size.xs};
+  text-transform: uppercase;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  line-height: 1;
+  margin-top: ${p => p.theme.space['2xl']};
+`;
+
+const StyledIdBadge = styled(IdBadge)`
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 1;
+`;

@@ -1,0 +1,65 @@
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilderAI,
+} from 'sentry/components/searchQueryBuilder/context';
+import {t} from 'sentry/locale';
+import {SavedSearchType} from 'sentry/types/group';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {IssueListSeerComboBox} from './issueListSeerComboBox';
+import {IssueListSearchBar, useIssueListSearchBarDataProvider} from './searchBar';
+
+type IssueSearchProps = {
+  onSearch: (query: string) => void;
+  query: string;
+  className?: string;
+};
+
+function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
+  const organization = useOrganization();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
+
+  if (displayAskSeer) {
+    return <IssueListSeerComboBox />;
+  }
+
+  return (
+    <IssueListSearchBar
+      className={className}
+      searchSource="main_search"
+      organization={organization}
+      initialQuery={query || ''}
+      onSearch={onSearch}
+      placeholder={t('Search for events, users, tags, and more')}
+    />
+  );
+}
+
+export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
+  const {selection: pageFilters} = usePageFilters();
+  const {getFilterKeys, getFilterKeySections, getTagValues} =
+    useIssueListSearchBarDataProvider({pageFilters});
+
+  const organization = useOrganization();
+  const hasTranslateEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
+
+  return (
+    <SearchQueryBuilderProvider
+      initialQuery={query || ''}
+      filterKeys={getFilterKeys()}
+      filterKeySections={getFilterKeySections()}
+      getTagValues={getTagValues}
+      searchSource="main_search"
+      enableAISearch={hasTranslateEndpoint}
+      aiSearchBadgeType="beta"
+      onSearch={onSearch}
+      recentSearches={SavedSearchType.ISSUE}
+      disallowLogicalOperators
+    >
+      <IssueSearchBar query={query} onSearch={onSearch} className={className} />
+    </SearchQueryBuilderProvider>
+  );
+}

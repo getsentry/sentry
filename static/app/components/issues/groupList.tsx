@@ -1,0 +1,399 @@
+import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
+import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
+
+import {Pagination} from '@sentry/scraps/pagination';
+
+import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {Placeholder} from 'sentry/components/placeholder';
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
+import {
+  DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  StreamGroup,
+} from 'sentry/components/stream/group';
+import {t} from 'sentry/locale';
+import type {Group, PriorityLevel} from 'sentry/types/group';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
+
+import {GroupListHeader} from './groupListHeader';
+
+export type GroupListColumn =
+  | 'graph'
+  | 'event'
+  | 'users'
+  | 'priority'
+  | 'assignee'
+  | 'lastTriggered'
+  | 'firstSeen'
+  | 'lastSeen';
+
+type Props = {
+  /**
+   * Number of placeholder rows to show during loading
+   */
+  numPlaceholderRows: number;
+  queryParams: Record<string, number | string | string[] | undefined | null>;
+  canSelectGroups?: boolean;
+  customStatsPeriod?: TimePeriodType;
+  /**
+   * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
+   */
+  endpoint?:
+    | {
+        path: '/organizations/$organizationIdOrSlug/issues/';
+      }
+    | {
+        path: '/organizations/$organizationIdOrSlug/releases/$version/resolved/';
+        version: string;
+      };
+  onFetchSuccess?: (
+    groupListState: State,
+    onCursor: (
+      cursor: string,
+      path: string,
+      query: Record<string, any>,
+      pageDiff: number
+    ) => void
+  ) => void;
+  /**
+   * Use `query` within `queryParams` for passing the parameter to the endpoint
+   */
+  query?: string;
+  queryFilterDescription?: string;
+  renderEmptyMessage?: () => React.ReactNode;
+  renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
+  // where the group list is rendered
+  source?: string;
+  useFilteredStats?: boolean;
+  useTintRow?: boolean;
+  withChart?: boolean;
+  withColumns?: GroupListColumn[];
+  withPagination?: boolean;
+};
+
+type State = {
+  error: boolean;
+  errorData: {detail: string} | null;
+  groups: Group[];
+  loading: boolean;
+  pageLinks: string | null;
+  memberList?: ReturnType<typeof indexMembersByProject>;
+};
+
+const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee'];
+
+export function GroupList({
+  queryParams,
+  endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
+  onFetchSuccess,
+  renderEmptyMessage,
+  renderErrorMessage,
+  customStatsPeriod,
+  queryFilterDescription,
+  source,
+  query,
+  numPlaceholderRows,
+  withColumns = DEFAULT_COLUMNS,
+  withChart = true,
+  withPagination = true,
+  canSelectGroups = true,
+  useFilteredStats = true,
+  useTintRow = true,
+}: Props) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const {data: memberList} = useQuery({
+    ...useProjectMembersQueryOptions(),
+    select: resp => indexMembersByProject(resp.json),
+  });
+
+  const getQueryParams = useCallback(() => {
+    const queryParamsFromLocation = {...location.query};
+    queryParamsFromLocation.limit = '50';
+    queryParamsFromLocation.sort = 'new';
+    queryParamsFromLocation.query = query;
+
+    return queryParamsFromLocation;
+  }, [location.query, query]);
+
+  const computedQueryParams = useMemo(
+    () => queryParams ?? getQueryParams(),
+    [getQueryParams, queryParams]
+  );
+
+  const handleCursorChange = useCallback(
+    (
+      cursor: string | undefined,
+      path: string,
+      queryParam: Record<string, any>,
+      pageDiff: number
+    ) => {
+      const queryPageInt = parseInt(queryParam.page, 10);
+      let nextPage: number | undefined = isNaN(queryPageInt)
+        ? pageDiff
+        : queryPageInt + pageDiff;
+
+      // unset cursor and page when we navigate back to the first page
+      // also reset cursor if somehow the previous button is enabled on
+      // first page and user attempts to go backwards
+      if (nextPage <= 0) {
+        cursor = undefined;
+        nextPage = undefined;
+      }
+
+      navigate({
+        pathname: path,
+        query: {...queryParam, cursor, page: nextPage},
+      });
+    },
+    [navigate]
+  );
+
+  const parsedQuery = useMemo(
+    () => parseSearch(String(computedQueryParams.query ?? '')),
+    [computedQueryParams.query]
+  );
+
+  // Issues API does not support AND/OR statements
+  const hasLogicBoolean = useMemo(
+    () =>
+      parsedQuery
+        ? treeResultLocator({
+            tree: parsedQuery,
+            noResultValue: false,
+            visitorTest: ({token, returnResult}) => {
+              return token.type === Token.LOGIC_BOOLEAN ? returnResult(true) : null;
+            },
+          })
+        : false,
+    [parsedQuery]
+  );
+
+  const queryClient = useQueryClient();
+
+  const issuesQueryOptions =
+    endpoint.path === '/organizations/$organizationIdOrSlug/issues/'
+      ? apiOptions.as<Group[]>()(endpoint.path, {
+          path: {organizationIdOrSlug: organization.slug},
+          query: computedQueryParams,
+          staleTime: 0,
+        })
+      : apiOptions.as<Group[]>()(endpoint.path, {
+          path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
+          query: computedQueryParams,
+          staleTime: 0,
+        });
+  const {
+    data,
+    dataUpdatedAt,
+    isPending,
+    isError: isQueryError,
+    isSuccess: isQuerySuccess,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    ...issuesQueryOptions,
+    select: selectJsonWithHeaders,
+    enabled: !hasLogicBoolean,
+  });
+  const groupsData = data?.json;
+
+  const updateQueryCacheAssigneeChange = (
+    groupId: string,
+    newAssignee: AssignableEntity | null
+  ) => {
+    queryClient.setQueryData(issuesQueryOptions.queryKey, prevData =>
+      prevData
+        ? {
+            ...prevData,
+            json: prevData.json.map(group => {
+              if (group.id === groupId) {
+                return {
+                  ...group,
+                  assignedTo: newAssignee
+                    ? {
+                        id: newAssignee.id,
+                        name: newAssignee.assignee.name,
+                        type: newAssignee.type,
+                      }
+                    : null,
+                };
+              }
+              return group;
+            }),
+          }
+        : prevData
+    );
+  };
+
+  const updateQueryCachePriorityChange = (
+    groupId: string,
+    newPriority: PriorityLevel
+  ) => {
+    queryClient.setQueryData(issuesQueryOptions.queryKey, prevData =>
+      prevData
+        ? {
+            ...prevData,
+            json: prevData.json.map(group => {
+              if (group.id === groupId) {
+                return {...group, priority: newPriority};
+              }
+              return group;
+            }),
+          }
+        : prevData
+    );
+  };
+
+  const pageLinks = data?.headers.Link ?? null;
+  const groups = groupsData ?? [];
+  const errorDetail = hasLogicBoolean
+    ? RELATED_ISSUES_BOOLEAN_QUERY_ERROR
+    : (() => {
+        const detail = (queryError as RequestError | undefined)?.responseJSON?.detail;
+        if (typeof detail === 'string') {
+          return detail;
+        }
+        if (detail?.message) {
+          return detail.message;
+        }
+        return (queryError as RequestError | undefined)?.message ?? null;
+      })();
+  const errorData = errorDetail ? {detail: errorDetail} : null;
+  const hasError = hasLogicBoolean || isQueryError;
+  const loading = !hasLogicBoolean && isPending;
+
+  const notifyFetchSuccess = useEffectEvent(() => {
+    onFetchSuccess?.(
+      {
+        error: false,
+        errorData: null,
+        groups: groupsData ?? [],
+        loading: false,
+        pageLinks,
+        memberList,
+      },
+      handleCursorChange
+    );
+  });
+
+  useEffect(() => {
+    if (isQuerySuccess) {
+      notifyFetchSuccess();
+    }
+  }, [
+    isQuerySuccess,
+    // Sometimes data is already cached, so we need to include this in order to
+    // trigger onFetchSuccess when new data is shown
+    dataUpdatedAt,
+  ]);
+
+  const columns = useMemo(
+    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
+    [withColumns]
+  );
+
+  if (hasError) {
+    if (typeof renderErrorMessage === 'function' && errorData) {
+      return renderErrorMessage(errorData, refetch);
+    }
+
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  if (!loading && groups.length === 0) {
+    if (typeof renderEmptyMessage === 'function') {
+      return renderEmptyMessage();
+    }
+    return (
+      <Panel>
+        <PanelBody>
+          <EmptyStateWarning>
+            <p>{t("There don't seem to be any events fitting the query.")}</p>
+          </EmptyStateWarning>
+        </PanelBody>
+      </Panel>
+    );
+  }
+
+  const statsPeriod =
+    computedQueryParams?.groupStatsPeriod === 'auto'
+      ? computedQueryParams?.groupStatsPeriod
+      : DEFAULT_STREAM_GROUP_STATS_PERIOD;
+
+  return (
+    <Fragment>
+      <PanelContainer>
+        <GroupListHeader withChart={!!withChart} withColumns={columns} />
+        <PanelBody>
+          {loading
+            ? [...Array.from({length: numPlaceholderRows})].map((_, i) => (
+                <GroupPlaceholder key={i}>
+                  <Placeholder height="50px" />
+                </GroupPlaceholder>
+              ))
+            : groups.map(group => {
+                const members =
+                  memberList && Object.hasOwn(memberList, group.project.slug)
+                    ? memberList[group.project.slug]
+                    : undefined;
+
+                return (
+                  <StreamGroup
+                    key={group.id}
+                    group={group}
+                    canSelect={canSelectGroups}
+                    withChart={withChart}
+                    withColumns={columns}
+                    memberList={members}
+                    useFilteredStats={useFilteredStats}
+                    useTintRow={useTintRow}
+                    customStatsPeriod={customStatsPeriod}
+                    statsPeriod={statsPeriod}
+                    queryFilterDescription={queryFilterDescription}
+                    source={source}
+                    query={query}
+                    onAssigneeChange={newAssignee =>
+                      updateQueryCacheAssigneeChange(group.id, newAssignee)
+                    }
+                    onPriorityChange={newPriority =>
+                      updateQueryCachePriorityChange(group.id, newPriority)
+                    }
+                  />
+                );
+              })}
+        </PanelBody>
+      </PanelContainer>
+      {withPagination && (
+        <Pagination pageLinks={pageLinks} onCursor={handleCursorChange} />
+      )}
+    </Fragment>
+  );
+}
+
+const GroupPlaceholder = styled('div')`
+  padding: ${p => p.theme.space.md};
+
+  &:not(:last-child) {
+    border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
+  }
+`;
+
+const PanelContainer = styled(Panel)`
+  container-type: inline-size;
+`;

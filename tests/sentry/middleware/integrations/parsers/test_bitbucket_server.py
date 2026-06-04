@@ -1,0 +1,55 @@
+from unittest import mock
+from unittest.mock import MagicMock
+
+from django.http import HttpResponse
+from django.test import RequestFactory, override_settings
+from django.urls import reverse
+
+from sentry.middleware.integrations.parsers.bitbucket_server import BitbucketServerRequestParser
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
+from sentry.testutils.outbox import assert_webhook_payloads_for_mailbox, outbox_runner
+from sentry.testutils.silo import control_silo_test
+from sentry.types.cell import Cell, RegionCategory
+
+
+@control_silo_test
+class BitbucketServerRequestParserTest(TestCase):
+    get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
+    factory = RequestFactory()
+    cell = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+    cell_config = (cell,)
+
+    @override_cells(cell_config)
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_routing_webhook(self) -> None:
+        cell_route = reverse(
+            "sentry-extensions-bitbucketserver-webhook",
+            kwargs={"organization_id": self.organization.id, "integration_id": self.integration.id},
+        )
+        with outbox_runner():
+            request = self.factory.post(cell_route)
+        parser = BitbucketServerRequestParser(request=request, response_handler=self.get_response)
+
+        # Missing cell
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="eu")
+        with mock.patch.object(
+            parser, "get_response_from_control_silo"
+        ) as get_response_from_control_silo:
+            parser.get_response()
+            assert get_response_from_control_silo.called
+
+        # Valid cell
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="us")
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 202
+        assert response.content == b""
+
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"bitbucket_server:{self.organization.id}",
+            cell_names=[self.cell.name],
+        )

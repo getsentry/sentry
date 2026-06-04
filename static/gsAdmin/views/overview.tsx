@@ -1,0 +1,277 @@
+import {useState} from 'react';
+import styled from '@emotion/styled';
+import moment from 'moment-timezone';
+
+import {
+  DocIntegrationAvatar,
+  OrganizationAvatar,
+  SentryAppAvatar,
+} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {IconSync} from 'sentry/icons';
+import type {DocIntegration} from 'sentry/types/integrations';
+
+import {CustomerContact} from 'admin/components/customerContact';
+import {CustomerStatus} from 'admin/components/customerStatus';
+import {PercentChange} from 'admin/components/percentChange';
+import {ResultGrid} from 'admin/components/resultGrid';
+
+/**
+ * DEPRECATION WARNING
+ * THIS COMPONENT WILL SOON BE REMOVED
+ */
+const getAppRow = (row: any) => [
+  <td key={`${row.name}-name`}>
+    <Flex align="center" gap="md">
+      <SentryAppAvatar size={16} sentryApp={row} />
+      {row.name}
+    </Flex>
+  </td>,
+  <td key={`${row.name}-value`} style={{textAlign: 'right'}}>
+    {row.installs.toLocaleString()}
+  </td>,
+];
+
+/**
+ * DEPRECATION WARNING
+ * THIS COMPONENT WILL SOON BE REMOVED
+ */
+const getDocIntegrationRow = (doc: DocIntegration) => [
+  <td key={`${doc.name}-name`}>
+    <Flex align="center" gap="md">
+      <DocIntegrationAvatar size={16} docIntegration={doc} />
+      {doc.name}
+    </Flex>
+  </td>,
+  <td key={`${doc.name}-value`} style={{textAlign: 'right'}}>
+    {doc.popularity}
+  </td>,
+];
+
+/**
+ * DEPRECATION WARNING
+ * THIS COMPONENT WILL SOON BE REMOVED
+ */
+function SentryAppList() {
+  return (
+    <ResultGrid
+      path="/_admin/"
+      endpoint="/sentry-apps-stats/"
+      defaultParams={{
+        per_page: 10,
+      }}
+      hasPagination={false}
+      method="GET"
+      columns={[
+        <th key="apps">Name</th>,
+        <th key="installs" style={{width: 150, textAlign: 'right'}}>
+          Installs
+        </th>,
+      ]}
+      columnsForRow={getAppRow}
+      inPanel
+    />
+  );
+}
+
+/**
+ * DEPRECATION WARNING
+ * THIS COMPONENT WILL SOON BE REMOVED
+ */
+function DocIntegrationList() {
+  return (
+    <ResultGrid
+      path="/_admin/"
+      endpoint="/doc-integrations/"
+      defaultParams={{
+        per_page: 10,
+      }}
+      hasPagination={false}
+      method="GET"
+      columns={[
+        <th key="apps">Name</th>,
+        <th key="popularity" style={{width: 150, textAlign: 'right'}}>
+          Popularity
+        </th>,
+      ]}
+      columnsForRow={getDocIntegrationRow}
+      inPanel
+    />
+  );
+}
+
+/**
+ * DEPRECATION WARNING
+ * THIS COMPONENT WILL SOON BE REMOVED
+ */
+const getCustomerRow = (row: any) => [
+  <td key="customer">
+    <CustomerName>
+      <OrganizationAvatar size={36} organization={row} />
+      <div>
+        <strong>
+          <Link to={`/_admin/customers/${row.slug}/`}>{row.name}</Link>
+        </strong>
+        <small> — {row.slug}</small>
+      </div>
+      <div>
+        <small>
+          {row.owner && (
+            <span>
+              <CustomerContact owner={row.owner} />
+            </span>
+          )}
+        </small>
+        {row.usageExceeded && <Tag variant="warning">Capacity Limit</Tag>}
+        {row.isSuspended && (
+          <Tooltip title={row.suspensionReason}>
+            <Tag variant="danger">Suspended</Tag>
+          </Tooltip>
+        )}
+      </div>
+    </CustomerName>
+  </td>,
+  <td key="events" style={{textAlign: 'center'}}>
+    {row.stats.events24h.toLocaleString()}
+    <br />
+    <small>
+      <PercentChange current={row.stats.events24h} prev={row.stats.eventsPrev24h} />
+    </small>
+  </td>,
+  <td key="members" style={{textAlign: 'center'}}>
+    {row.totalMembers.toLocaleString()}
+  </td>,
+  <td key="status" style={{textAlign: 'center'}}>
+    <CustomerStatus customer={row} />
+  </td>,
+  <td key="joined" style={{textAlign: 'right'}}>
+    {moment(row.dateJoined).format('MMMM YYYY')}
+    <br />
+    <small>{moment(row.dateJoined).fromNow()}</small>
+  </td>,
+];
+
+const CustomerName = styled('div')`
+  display: grid;
+  grid-template: max-content max-content / max-content 1fr;
+  gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+
+  > :first-child {
+    grid-row: 1 / 3;
+  }
+`;
+
+/**
+ * DEPRECATION WARNING
+ * THIS COMPONENT WILL SOON BE REMOVED
+ */
+
+function CustomersByVolume() {
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  return (
+    <Container column="1 / 3">
+      <SectionHeading>
+        <span>
+          Customers by Volume <small>(last 24h)</small>
+        </span>
+        <Button
+          size="xs"
+          onClick={() => setLastRefresh(new Date())}
+          icon={<IconSync size="xs" />}
+        >
+          Refresh
+        </Button>
+      </SectionHeading>
+
+      <ResultGrid
+        key={lastRefresh.toString()}
+        path="/_admin/"
+        endpoint="/customers/"
+        defaultParams={{
+          per_page: 10,
+        }}
+        defaultSort="events.24h"
+        hasPagination={false}
+        method="GET"
+        columns={[
+          <th key="customer">Customer</th>,
+          <th key="events" style={{width: 130, textAlign: 'center'}}>
+            Events (24h)
+          </th>,
+          <th key="members" style={{width: 100, textAlign: 'center'}}>
+            Members
+          </th>,
+          <th key="status" style={{width: 150, textAlign: 'center'}}>
+            Status
+          </th>,
+          <th key="joined" style={{width: 150, textAlign: 'right'}}>
+            Joined
+          </th>,
+        ]}
+        columnsForRow={getCustomerRow}
+        inPanel
+      />
+    </Container>
+  );
+}
+
+/**
+ * DEPRECATION WARNING
+ * THIS COMPONENT WILL SOON BE REMOVED
+ */
+export function Overview() {
+  return (
+    <OverviewContainer>
+      <CustomersByVolume />
+      <div>
+        <SectionHeading>
+          Integration Platform Apps{' '}
+          <LinkButton size="xs" to="/_admin/sentry-apps/">
+            More
+          </LinkButton>
+        </SectionHeading>
+        <SentryAppList />
+      </div>
+      <div>
+        <SectionHeading>
+          Document Integrations{' '}
+          <LinkButton size="xs" to="/_admin/doc-integrations/">
+            More
+          </LinkButton>
+        </SectionHeading>
+        <DocIntegrationList />
+      </div>
+      <Container column="1 / 3">
+        <SectionHeading>Signups</SectionHeading>
+        <p>
+          Go{' '}
+          <a href="https://redash.getsentry.net/embed/query/655/visualization/806">
+            here
+          </a>
+          .
+        </p>
+      </Container>
+    </OverviewContainer>
+  );
+}
+
+const OverviewContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-flow: row;
+  gap: 0 ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space['2xl']};
+`;
+
+const SectionHeading = styled('h3')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${p => p.theme.space.md};
+`;

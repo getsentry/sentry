@@ -1,0 +1,21 @@
+import {Alert} from '@sentry/scraps/alert';
+
+import {isOrphanSpan} from 'sentry/components/events/interfaces/spans/utils';
+import {t} from 'sentry/locale';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+
+export function Alerts({node}: {node: SpanNode}) {
+  if (!isOrphanSpan(node.value)) {
+    return null;
+  }
+
+  return (
+    <Alert.Container>
+      <Alert variant="info" system>
+        {t(
+          'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
+        )}
+      </Alert>
+    </Alert.Container>
+  );
+}

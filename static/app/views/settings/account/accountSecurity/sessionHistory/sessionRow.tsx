@@ -1,0 +1,52 @@
+import styled from '@emotion/styled';
+
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TimeSince} from 'sentry/components/timeSince';
+import type {InternetProtocol} from 'sentry/types/user';
+
+import {tableLayout} from './utils';
+
+export function SessionRow({
+  ipAddress,
+  lastSeen,
+  firstSeen,
+  countryCode,
+  regionCode,
+}: Omit<InternetProtocol, 'id'>) {
+  return (
+    <SessionPanelItem>
+      <IpAndLocation>
+        <IpAddress>{ipAddress}</IpAddress>
+        {countryCode && regionCode && (
+          <CountryCode>{`${countryCode} (${regionCode})`}</CountryCode>
+        )}
+      </IpAndLocation>
+      <div>
+        <StyledTimeSince date={firstSeen} />
+      </div>
+      <div>
+        <StyledTimeSince date={lastSeen} />
+      </div>
+    </SessionPanelItem>
+  );
+}
+
+const IpAddress = styled('div')`
+  margin-bottom: ${p => p.theme.space.xs};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+`;
+const CountryCode = styled('div')`
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+const IpAndLocation = styled('div')`
+  flex: 1;
+`;
+
+const SessionPanelItem = styled(PanelItem)`
+  ${tableLayout};
+`;

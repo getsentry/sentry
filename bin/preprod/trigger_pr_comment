@@ -1,0 +1,242 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import logging
+import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+logger = logging.getLogger(__name__)
+
+from sentry.models.commitcomparison import CommitComparison
+from sentry.models.project import Project
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
+    PreprodBuildConfiguration,
+)
+from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
+
+#################
+# Configuration #
+#################
+ORG_SLUG = "sentry"
+PROJECT_SLUG = "internal"
+REPO_NAME = "EmergeTools/hackernews"
+PR_NUMBER = 1
+COMMIT_SHA = "db2b4ae626b458b4be651019f1a7c112406c003e"
+
+# Build configurations - set to None to disable a build
+BUILDS = [
+    {
+        "artifact_id": 1,
+        "app_id": "com.emerge.hackernews.android",
+        "artifact_type": PreprodArtifact.ArtifactType.AAB,
+        "app_name": "HackerNews",
+        "build_version": "1.0.3",
+        "build_number": 42,
+        "build_configuration": "Debug",
+    },
+    {
+        "artifact_id": 6,
+        "app_id": "com.emerge.hackernews.ios",
+        "artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE,
+        "app_name": "HackerNews",
+        "build_version": "1.0.3",
+        "build_number": 15,
+        "build_configuration": "Release",
+    },
+    {
+        "artifact_id": 7,
+        "app_id": "com.emerge.hackernews.ios",
+        "artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE,
+        "app_name": "HackerNews",
+        "build_version": "1.0.3",
+        "build_number": 15,
+        "build_configuration": "Debug",
+    },
+]
+
+# Pass --concurrent to trigger all builds in parallel (tests lock serialization)
+CONCURRENT = "--concurrent" in sys.argv
+
+
+def get_or_create_build_configuration(
+    project: "Project", config_name: str
+) -> "PreprodBuildConfiguration | None":
+    if not config_name:
+        return None
+
+    build_config, created = PreprodBuildConfiguration.objects.get_or_create(
+        project=project,
+        name=config_name,
+    )
+    action = "Created" if created else "Found"
+    logger.info("  %s build configuration: %s", action, config_name)
+    return build_config
+
+
+def main() -> None:
+    try:
+        project = Project.objects.get(slug=PROJECT_SLUG, organization__slug=ORG_SLUG)
+        logger.info("Found project: %s (ID: %s)", project.name, project.id)
+
+        commit_comparison, created = CommitComparison.objects.get_or_create(
+            head_repo_name=REPO_NAME,
+            head_sha=COMMIT_SHA,
+            provider="github",
+            organization_id=project.organization.id,
+            defaults={
+                "head_ref": "main",
+                "base_ref": "main",
+                "pr_number": PR_NUMBER,
+            },
+        )
+        if not created and not commit_comparison.pr_number:
+            commit_comparison.pr_number = PR_NUMBER
+            commit_comparison.save(update_fields=["pr_number"])
+
+        logger.info(
+            "%s commit comparison: %s (pr_number=%s)",
+            "Created" if created else "Found",
+            commit_comparison.id,
+            commit_comparison.pr_number,
+        )
+
+        # Clean up existing artifacts for this commit
+        logger.info("\nCleaning up existing artifacts for commit %s...", COMMIT_SHA[:8])
+        existing = PreprodArtifact.objects.filter(
+            commit_comparison=commit_comparison,
+            project__organization_id=project.organization_id,
+        )
+        if existing.exists():
+            count = existing.count()
+            existing.delete()
+            logger.info("  Deleted %s existing artifacts", count)
+        else:
+            logger.info("  No existing artifacts (clean slate)")
+
+        def create_artifact(build_config):
+            build_conf = get_or_create_build_configuration(
+                project, build_config.get("build_configuration")
+            )
+
+            artifact_id = build_config.get("artifact_id")
+            PreprodArtifact.objects.filter(id=artifact_id).delete()
+
+            artifact = PreprodArtifact.objects.create(
+                id=artifact_id,
+                project=project,
+                artifact_type=build_config["artifact_type"],
+                app_id=build_config["app_id"],
+                commit_comparison=commit_comparison,
+                state=PreprodArtifact.ArtifactState.PROCESSED,
+                build_configuration=build_conf,
+                installable_app_file_id=1,
+            )
+            PreprodArtifactMobileAppInfo.objects.create(
+                preprod_artifact=artifact,
+                app_name=build_config["app_name"],
+                build_version=build_config["build_version"],
+                build_number=build_config["build_number"],
+            )
+            logger.info(
+                "  Created artifact %s: %s (%s)",
+                artifact.id,
+                build_config["app_id"],
+                artifact.get_platform_label(),
+            )
+            return artifact
+
+        if CONCURRENT:
+            logger.info(
+                "\nTriggering %s builds with 60s delays (testing lock serialization)...",
+                len(BUILDS),
+            )
+
+            def run_build(build_config: dict, delay: int) -> int:
+                import time
+
+                from django import db
+
+                if delay:
+                    logger.info(
+                        "  Build %s waiting %ss...",
+                        build_config["app_id"],
+                        delay,
+                    )
+                    time.sleep(delay)
+                db.connections.close_all()
+                artifact = create_artifact(build_config)
+                create_preprod_pr_comment_task(preprod_artifact_id=artifact.id)
+                return artifact.id
+
+            artifact_ids = []
+            with ThreadPoolExecutor(max_workers=len(BUILDS)) as pool:
+                futures = {
+                    pool.submit(run_build, build, i * 60): build["artifact_id"]
+                    for i, build in enumerate(BUILDS)
+                }
+                for future in as_completed(futures):
+                    aid = futures[future]
+                    try:
+                        artifact_ids.append(future.result())
+                        logger.info("  Task for artifact %s completed", aid)
+                    except Exception:
+                        logger.exception("  Task for artifact %s failed", aid)
+        else:
+            import time
+
+            artifact_ids = []
+            for i, build_config in enumerate(BUILDS):
+                if i > 0:
+                    logger.info("  Waiting 60s before next build...")
+                    time.sleep(60)
+                logger.info(
+                    "\nBuild %s/%s:",
+                    i + 1,
+                    len(BUILDS),
+                )
+                artifact = create_artifact(build_config)
+                artifact_ids.append(artifact.id)
+                create_preprod_pr_comment_task(preprod_artifact_id=artifact.id)
+
+        logger.info("Done!")
+
+        # Show results
+        commit_comparison.refresh_from_db()
+        cc_extras = commit_comparison.extras or {}
+        build_dist = cc_extras.get("pr_comments", {}).get("build_distribution", {})
+        comment_ids = {build_dist["comment_id"]} if build_dist.get("success") else set()
+
+        if comment_ids:
+            logger.info(
+                "\nComment posted! Check: https://github.com/%s/pull/%s",
+                REPO_NAME,
+                PR_NUMBER,
+            )
+            logger.info("  Unique comment IDs: %s", comment_ids)
+            if CONCURRENT and len(comment_ids) > 1:
+                logger.warning(
+                    "  RACE CONDITION: %s comments were created instead of 1!",
+                    len(comment_ids),
+                )
+            elif CONCURRENT:
+                logger.info("  Lock serialization working: only 1 comment created")
+        else:
+            logger.info("\nComment was NOT posted. Check logs above for early-return reasons.")
+
+    except Project.DoesNotExist:
+        logger.exception("Project not found: %s/%s", ORG_SLUG, PROJECT_SLUG)
+        for p in Project.objects.select_related("organization").all()[:10]:
+            logger.info("  - %s/%s", p.organization.slug, p.slug)
+        sys.exit(1)
+    except Exception:
+        logger.exception("Error running trigger_pr_comment")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

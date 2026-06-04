@@ -1,0 +1,174 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Access} from 'sentry/components/acl/access';
+import {Confirm} from 'sentry/components/confirm';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
+import {HighlightsSettingsForm} from 'sentry/components/events/highlights/highlightsSettingsForm';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconDelete} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {TagWithTopValues} from 'sentry/types/group';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+type DeleteTagResponse = unknown;
+type DeleteTagVariables = {key: TagWithTopValues['key']};
+
+export default function ProjectTags() {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  const {
+    data: tags,
+    isPending,
+    isError,
+  } = useApiQuery<TagWithTopValues[]>(
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/', {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
+    {staleTime: 0}
+  );
+
+  const {mutate} = useMutation<DeleteTagResponse, RequestError, DeleteTagVariables>({
+    mutationFn: ({key}: DeleteTagVariables) =>
+      api.requestPromise(`/projects/${organization.slug}/${project.slug}/tags/${key}/`, {
+        method: 'DELETE',
+      }),
+    onSuccess: (_, {key}) => {
+      setApiQueryData<TagWithTopValues[]>(
+        queryClient,
+        [
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }),
+        ],
+        oldTags => oldTags?.filter(tag => tag.key !== key)
+      );
+    },
+    onError: () => {
+      addErrorMessage(t('An error occurred while deleting the tag'));
+    },
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError />;
+  }
+
+  const isEmpty = !tags?.length;
+  return (
+    <Fragment>
+      <SentryDocumentTitle
+        title={routeTitleGen(t('Tags & Context'), project.slug, false)}
+      />
+      <SettingsPageHeader
+        title={t('Tags & Context')}
+        subtitle={t(
+          'Setup Highlights to promote your event data to the top of the issue page for quicker debugging.'
+        )}
+      />
+      <ProjectPermissionAlert project={project} />
+      <HighlightsSettingsForm projectSlug={project.slug} />
+      <TextBlock>
+        {tct(
+          `Each event in Sentry may be annotated with various tags (key and value pairs).
+                 Learn how to [link:add custom tags].`,
+          {
+            link: <ExternalLink href={TAGS_DOCS_LINK} />,
+          }
+        )}
+      </TextBlock>
+      <Panel>
+        <PanelHeader>{t('Tags')}</PanelHeader>
+        <PanelBody>
+          {isEmpty ? (
+            <EmptyMessage>
+              {tct('There are no tags, [link:learn how to add tags]', {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/enrich-data/" />
+                ),
+              })}
+            </EmptyMessage>
+          ) : (
+            <Access access={['project:write']} project={project}>
+              {({hasAccess}) =>
+                tags.map(({key, canDelete}) => {
+                  const enabled = canDelete && hasAccess;
+                  return (
+                    <TagPanelItem key={key} data-test-id="tag-row">
+                      <TagName>{key}</TagName>
+                      <Flex align="center" padding="xl">
+                        <Confirm
+                          message={t('Are you sure you want to remove this tag?')}
+                          onConfirm={() => mutate({key})}
+                          disabled={!enabled}
+                        >
+                          <Button
+                            size="xs"
+                            tooltipProps={{
+                              title: enabled
+                                ? t('Remove tag')
+                                : hasAccess
+                                  ? t('This tag cannot be deleted.')
+                                  : t('You do not have permission to remove tags.'),
+                            }}
+                            aria-label={t('Remove tag')}
+                            icon={<IconDelete />}
+                            data-test-id="delete"
+                          />
+                        </Confirm>
+                      </Flex>
+                    </TagPanelItem>
+                  );
+                })
+              }
+            </Access>
+          )}
+        </PanelBody>
+      </Panel>
+    </Fragment>
+  );
+}
+
+const TagPanelItem = styled(PanelItem)`
+  padding: 0;
+  align-items: center;
+`;
+
+const TagName = styled('div')`
+  flex: 1;
+  padding: ${p => p.theme.space.xl};
+`;

@@ -1,0 +1,533 @@
+from __future__ import annotations
+
+import logging
+from collections import defaultdict
+from collections.abc import Iterator, Mapping, Sequence
+from datetime import datetime, timedelta
+
+import sentry_sdk
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    LimitBy,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
+from taskbroker_client.retry import Retry
+
+from sentry import options, quotas
+from sentry.constants import ObjectStatus
+from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
+from sentry.dynamic_sampling.models.projects_rebalancing import (
+    ProjectsRebalancingInput,
+    ProjectsRebalancingModel,
+)
+from sentry.dynamic_sampling.rules.utils import (
+    DecisionDropCount,
+    DecisionKeepCount,
+    OrganizationId,
+    ProjectId,
+    get_redis_client_for_ds,
+)
+from sentry.dynamic_sampling.tasks.common import (
+    MEASURE_CONFIGS,
+    GetActiveOrgs,
+    are_equal_with_epsilon,
+    sample_rate_to_float,
+)
+from sentry.dynamic_sampling.tasks.constants import (
+    CHUNK_SIZE,
+    DEFAULT_REDIS_CACHE_KEY_TTL,
+    MAX_PROJECTS_PER_QUERY,
+    MAX_TRANSACTIONS_PER_PROJECT,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    generate_boost_low_volume_projects_cache_key,
+)
+from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
+from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
+from sentry.models.options import OrganizationOption
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.sentry_metrics import indexer
+from sentry.silo.base import SiloMode
+from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.referrer import Referrer
+from sentry.tasks.base import instrumented_task
+from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.utils import metrics
+from sentry.utils.snuba import raw_snql_query
+
+# This set contains all the projects for which we want to start extracting the sample rate over time. This is done
+# as a temporary solution to dogfood our own product without exploding the cardinality of the project_id tag.
+PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
+logger = logging.getLogger(__name__)
+
+# a tuple type alias of project_id, root_count, keep_count, drop_count, to be used in extraction of metrics for a specific project
+ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+
+# the same as ProjectVolumes, but with the organization ID added
+OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount]
+
+
+@metrics.wraps("dynamic_sampling.partition_by_measure")
+def _partition_orgs_by_measure(
+    org_ids: list[int],
+) -> dict[SamplingMeasure, list[int]]:
+    """
+    Partition organizations by their sampling measure.
+    Project-mode orgs are filtered out. SPANS orgs (AM3/project-mode) are
+    split off when the check_span_feature_flag option is enabled.
+    All remaining orgs use SEGMENTS.
+    """
+    modes_per_org = OrganizationOption.objects.get_value_bulk_id(org_ids, "sentry:sampling_mode")
+    filtered_org_ids = {
+        org_id for org_id, mode in modes_per_org.items() if mode != DynamicSamplingMode.PROJECT
+    }
+
+    if not options.get("dynamic-sampling.check_span_feature_flag"):
+        return {
+            SamplingMeasure.SEGMENTS: sorted(filtered_org_ids),
+        }
+
+    span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
+    filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
+    remaining_org_ids: set[int] = filtered_org_ids - filtered_span_org_ids
+    return {
+        SamplingMeasure.SEGMENTS: sorted(remaining_org_ids),
+        SamplingMeasure.SPANS: sorted(filtered_span_org_ids),
+    }
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=20 * 60 + 5,
+    retry=Retry(times=5, delay=5),
+    silo_mode=SiloMode.CELL,
+)
+@dynamic_sampling_task
+def boost_low_volume_projects() -> None:
+    """
+    Task to adjusts the sample rates of all projects in all active organizations.
+    """
+    for orgs in GetActiveOrgs(
+        max_projects=MAX_PROJECTS_PER_QUERY,
+        granularity=Granularity(60),
+        measure=SamplingMeasure.SEGMENTS,
+    ):
+        orgs_by_measure = _partition_orgs_by_measure(orgs)
+
+        for measure, org_ids in orgs_by_measure.items():
+            _record_partitioning_metrics({measure: org_ids})
+            _process_orgs_for_boost(org_ids, measure)
+
+
+def _process_orgs_for_boost(
+    org_ids: list[int],
+    measure: SamplingMeasure,
+) -> None:
+    """
+    Process organizations for boost_low_volume_projects.
+
+    Dispatches to the per-org task for each org with project volume data.
+    """
+    if not org_ids:
+        return
+
+    metrics.incr(
+        "dynamic_sampling.boost_low_volume_projects.orgs_processed",
+        amount=len(org_ids),
+        tags={"measure": str(measure.value)},
+    )
+
+    for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
+        org_ids=org_ids, measure=measure
+    ).items():
+        boost_low_volume_projects_of_org.apply_async(
+            kwargs={
+                "org_id": org_id,
+                "projects_with_tx_count_and_rates": projects,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
+
+
+def _record_partitioning_metrics(orgs_by_measure: dict[SamplingMeasure, list[int]]) -> None:
+    for measure, org_ids in orgs_by_measure.items():
+        metrics.incr(
+            "dynamic_sampling.partition_by_measure.measure",
+            amount=len(org_ids),
+            tags={"measure": measure.value},
+            sample_rate=1,
+        )
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.boost_low_volume_projects_of_org_with_query",
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=3 * 60 + 5,
+    retry=Retry(times=5, delay=5),
+    silo_mode=SiloMode.CELL,
+)
+@dynamic_sampling_task
+def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
+    """
+    Task to adjust the sample rates of the projects of a single organization specified by an
+    organization ID. Transaction counts and rates are fetched within this task.
+    """
+    logger.info(
+        "boost_low_volume_projects_of_org_with_query",
+        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
+    )
+
+    org = Organization.objects.get_from_cache(id=org_id)
+    if is_project_mode_sampling(org):
+        return
+
+    orgs_by_measure = _partition_orgs_by_measure([org_id])
+    measures: dict[int, SamplingMeasure] = {}
+    for m, org_ids in orgs_by_measure.items():
+        for oid in org_ids:
+            measures[oid] = m
+    measure = measures.get(org_id, SamplingMeasure.SEGMENTS)
+
+    projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
+        org_ids=[org_id],
+        measure=measure,
+    )[org_id]
+    rebalanced_projects = calculate_sample_rates_of_projects(
+        org_id, projects_with_tx_count_and_rates
+    )
+    if rebalanced_projects is not None:
+        store_rebalanced_projects(org_id, rebalanced_projects)
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.boost_low_volume_projects_of_org",
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=3 * 60 + 5,
+    retry=Retry(times=5, delay=5),
+    silo_mode=SiloMode.CELL,
+)
+@dynamic_sampling_task
+def boost_low_volume_projects_of_org(
+    org_id: OrganizationId,
+    projects_with_tx_count_and_rates: Sequence[ProjectVolumes],
+) -> None:
+    """
+    Task to adjust the sample rates of the projects of a single organization specified by an
+    organization ID. Transaction counts and rates have to be provided.
+    """
+
+    try:
+        rebalanced_projects = calculate_sample_rates_of_projects(
+            org_id, projects_with_tx_count_and_rates
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise
+
+    logger.info(
+        "boost_low_volume_projects_of_org",
+        extra={
+            "traceparent": sentry_sdk.get_traceparent(),
+            "baggage": sentry_sdk.get_baggage(),
+            "org_id": org_id,
+        },
+    )
+    if rebalanced_projects is not None:
+        store_rebalanced_projects(org_id, rebalanced_projects)
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_projects_of_org.success",
+            tags={"type": "rebalanced"},
+            sample_rate=1,
+        )
+    else:
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_projects_of_org.success",
+            tags={"type": "not_rebalanced"},
+            sample_rate=1,
+        )
+
+
+@metrics.wraps("dynamic_sampling.fetch_projects_with_total_root_transaction_count_and_rates")
+def fetch_projects_with_total_root_transaction_count_and_rates(
+    org_ids: list[int],
+    measure: SamplingMeasure,
+    query_interval: timedelta | None = None,
+) -> Mapping[OrganizationId, Sequence[ProjectVolumes]]:
+    """
+    Fetches for each org and each project the total root transaction count and how many transactions were kept and
+    dropped.
+    """
+    aggregated_projects = defaultdict(list)
+    project_count_query_iter = query_project_counts_by_org(org_ids, measure, query_interval)
+    for chunk in project_count_query_iter:
+        for org_id, project_id, root_count_value, keep_count, drop_count in chunk:
+            aggregated_projects[org_id].append(
+                (
+                    project_id,
+                    root_count_value,
+                    keep_count,
+                    drop_count,
+                )
+            )
+
+    return aggregated_projects
+
+
+@dynamic_sampling_task
+def query_project_counts_by_org(
+    org_ids: list[int], measure: SamplingMeasure, query_interval: timedelta | None = None
+) -> Iterator[Sequence[OrgProjectVolumes]]:
+    """Queries the total root transaction count and how many transactions were kept and dropped
+    for each project in a given interval (defaults to the last hour).
+
+    Yields chunks of result rows, to allow timeouts to be handled in the caller.
+    """
+    if not org_ids:
+        return
+
+    if query_interval is None:
+        query_interval = timedelta(hours=1)
+
+    if query_interval > timedelta(days=1):
+        granularity = Granularity(24 * 3600)
+    else:
+        granularity = Granularity(60)
+
+    metrics.incr(
+        "dynamic_sampling.query_project_counts_by_org.count",
+        amount=len(org_ids),
+        tags={"measure": str(measure.value)},
+    )
+
+    org_ids = list(org_ids)
+    project_ids = list(
+        Project.objects.filter(organization_id__in=org_ids, status=ObjectStatus.ACTIVE).values_list(
+            "id", flat=True
+        )
+    )
+    decision_string_id = indexer.resolve_shared_org("decision")
+    decision_tag = f"tags_raw[{decision_string_id}]"
+
+    config = MEASURE_CONFIGS.get(measure)
+    if config is None:
+        raise ValueError(f"Unsupported measure: {measure}")
+
+    metric_id = indexer.resolve_shared_org(str(config["mri"]))
+    use_case_id = config["use_case_id"]
+
+    where_conditions = [
+        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
+        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+        Condition(Column("org_id"), Op.IN, org_ids),
+        Condition(Column("project_id"), Op.IN, project_ids),
+    ]
+
+    # Add tag filters from config
+    for tag_name, tag_value in config["tags"].items():
+        tag_string_id = indexer.resolve_shared_org(tag_name)
+        tag_column = f"tags_raw[{tag_string_id}]"
+        where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))
+
+    query = Query(
+        match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+        select=[
+            Function("sum", [Column("value")], "root_count_value"),
+            Column("org_id"),
+            Column("project_id"),
+            Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function("equals", [Column(decision_tag), "keep"]),
+                ],
+                alias="keep_count",
+            ),
+            Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function("equals", [Column(decision_tag), "drop"]),
+                ],
+                alias="drop_count",
+            ),
+        ],
+        groupby=[Column("org_id"), Column("project_id")],
+        where=where_conditions,
+        granularity=granularity,
+        orderby=[
+            OrderBy(Column("org_id"), Direction.ASC),
+            OrderBy(Column("project_id"), Direction.ASC),
+        ],
+        limitby=LimitBy(
+            columns=[Column("org_id"), Column("project_id")],
+            count=MAX_TRANSACTIONS_PER_PROJECT,
+        ),
+        # we are fetching one more than the chunk size to determine if there are more results
+        limit=Limit(CHUNK_SIZE + 1),
+    )
+
+    offset = 0
+    more_results: bool = True
+    while more_results:
+        with metrics.timer(
+            "dynamic_sampling.query_project_counts_by_org.query_time",
+            tags={"measure": str(measure.value)},
+        ):
+            request = Request(
+                dataset=Dataset.PerformanceMetrics.value,
+                app_id="dynamic_sampling",
+                query=query.set_offset(offset),
+                tenant_ids={"use_case_id": use_case_id.value, "cross_org_query": 1},
+            )
+            data = raw_snql_query(
+                request,
+                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
+            )["data"]
+
+        more_results = len(data) > CHUNK_SIZE
+        offset += CHUNK_SIZE
+
+        # re-adjust, for the extra row we fetched
+        if more_results:
+            data = data[:-1]
+
+        yield [
+            (
+                row["org_id"],
+                row["project_id"],
+                row["root_count_value"],
+                row["keep_count"],
+                row["drop_count"],
+            )
+            for row in data
+        ]
+
+
+@dynamic_sampling_task
+def calculate_sample_rates_of_projects(
+    org_id: int,
+    projects_with_tx_count: Sequence[ProjectVolumes],
+) -> list[RebalancedItem] | None:
+    """
+    Calculates the sample rates of projects belonging to a specific org.
+    """
+    try:
+        # We need the organization object for the feature flag.
+        organization = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        # In case an org is not found, it might be that it has been deleted in the time between
+        # the query triggering this job and the actual execution of the job.
+        organization = None
+
+    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    if not has_dynamic_sampling(organization):
+        return None
+
+    # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
+    # issues.
+
+    default_sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
+    sample_rate, success = get_org_sample_rate(
+        org_id=org_id,
+        default_sample_rate=default_sample_rate,
+    )
+
+    # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
+    if sample_rate is None:
+        sentry_sdk.capture_message(
+            "Sample rate of org not found when trying to adjust the sample rates of its projects"
+        )
+        return None
+
+    projects_with_counts = {
+        project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
+    }
+
+    # The rebalancing will not work (or would make sense) when we have only projects with zero-counts.
+    if not any(projects_with_counts.values()):
+        return None
+
+    # Since we don't mind about strong consistency, we query a replica of the main database with the possibility of
+    # having out of date information. This is a trade-off we accept, since we work under the assumption that eventually
+    # the projects of an org will be replicated consistently across replicas, because no org should continue to create
+    # new projects.
+    all_projects_ids = (
+        Project.objects.using_replica()
+        .filter(organization=organization)
+        .values_list("id", flat=True)
+    )
+    for project_id in all_projects_ids:
+        # In case a specific project has not been considered in the count query, it means that no metrics were extracted
+        # for it, thus we consider it as having 0 transactions for the query's time window.
+        if project_id not in projects_with_counts:
+            projects_with_counts[project_id] = 0
+
+    projects = []
+    for project_id, count_per_root in projects_with_counts.items():
+        projects.append(
+            RebalancedItem(
+                id=project_id,
+                count=count_per_root,
+            )
+        )
+
+    model = ProjectsRebalancingModel()
+    rebalanced_projects: list[RebalancedItem] | None = guarded_run(
+        model, ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
+    )
+
+    return rebalanced_projects
+
+
+@dynamic_sampling_task
+def store_rebalanced_projects(org_id: int, rebalanced_projects: list[RebalancedItem]) -> None:
+    """Stores the rebalanced projects in the cache and invalidates the project configs."""
+    redis_client = get_redis_client_for_ds()
+    with redis_client.pipeline(transaction=False) as pipeline:
+        for rebalanced_project in rebalanced_projects:
+            cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
+            # We want to get the old sample rate, which will be None in case it was not set.
+            old_sample_rate = sample_rate_to_float(
+                redis_client.hget(cache_key, str(rebalanced_project.id))
+            )
+
+            if rebalanced_project.id in PROJECTS_WITH_METRICS:
+                metrics.gauge(
+                    "dynamic_sampling.project_sample_rate",
+                    rebalanced_project.new_sample_rate * 100,
+                    tags={"project_id": rebalanced_project.id},
+                    unit="percent",
+                )
+
+            # We want to store the new sample rate as a string.
+            pipeline.hset(
+                cache_key,
+                str(rebalanced_project.id),
+                rebalanced_project.new_sample_rate,  # redis stores is as string
+            )
+            pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
+
+            # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
+            # system with project config invalidations, especially for projects with no volume.
+            if not are_equal_with_epsilon(old_sample_rate, rebalanced_project.new_sample_rate):
+                schedule_invalidate_project_config(
+                    project_id=rebalanced_project.id,
+                    trigger="dynamic_sampling_boost_low_volume_projects",
+                )
+
+        pipeline.execute()

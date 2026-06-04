@@ -1,0 +1,113 @@
+import {Fragment, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
+import styled from '@emotion/styled';
+
+import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
+
+import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
+import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
+import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
+import {IconPlay} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+
+type StaticReplayPreviewProps = {
+  analyticsContext: string;
+  initialTimeOffsetMs: number;
+  isFetching: boolean;
+  replay: ReplayReader | null;
+  replayId: string;
+  focusTab?: TabKey;
+  fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
+};
+
+export function StaticReplayPreview({
+  analyticsContext,
+  initialTimeOffsetMs,
+  isFetching,
+  focusTab,
+  replayId,
+  fullReplayButtonProps,
+  replay,
+}: StaticReplayPreviewProps) {
+  const organization = useOrganization();
+  const matches = useMatches();
+  const fullReplayUrl = {
+    pathname: makeReplaysPathname({
+      path: `/${replayId}/`,
+      organization,
+    }),
+    query: {
+      referrer: getRouteStringFromRoutes({matches}),
+      t_main: focusTab ?? TabKey.ERRORS,
+      t: initialTimeOffsetMs / 1000,
+    },
+  };
+
+  const offset = useMemo(
+    () => ({
+      offsetMs: initialTimeOffsetMs,
+    }),
+    [initialTimeOffsetMs]
+  );
+
+  return (
+    <ReplayContextProvider
+      analyticsContext={analyticsContext}
+      initialTimeOffsetMs={offset}
+      isFetching={isFetching}
+      replay={replay}
+    >
+      <PlayerContainer data-test-id="player-container">
+        {replay?.hasProcessingErrors() ? (
+          <ReplayProcessingError />
+        ) : (
+          <Fragment>
+            <StaticPanel>
+              <ReplayPlayer isPreview />
+            </StaticPanel>
+
+            <CTAOverlay>
+              <LinkButton
+                {...fullReplayButtonProps}
+                icon={<IconPlay />}
+                variant="primary"
+                to={fullReplayUrl}
+              >
+                {t('Open Replay')}
+              </LinkButton>
+            </CTAOverlay>
+          </Fragment>
+        )}
+      </PlayerContainer>
+    </ReplayContextProvider>
+  );
+}
+
+const PlayerContainer = styled(FluidHeight)`
+  position: relative;
+  background: ${p => p.theme.tokens.background.primary};
+  gap: ${p => p.theme.space.md};
+  max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
+`;
+
+const StaticPanel = styled(FluidHeight)`
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
+const CTAOverlay = styled('div')`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.5);
+`;

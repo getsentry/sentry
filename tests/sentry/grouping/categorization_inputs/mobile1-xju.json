@@ -1,0 +1,208 @@
+{
+  "event_id": "97509e964c0c48f0be36d758221b2859",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "module": "android.os.Handler"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "Activity.java",
+              "filename": "Activity.java",
+              "function": "runOnUiThread",
+              "module": "android.app.Activity"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "ImageView.java",
+              "filename": "ImageView.java",
+              "function": "setImageResource",
+              "module": "android.widget.ImageView"
+            },
+            {
+              "abs_path": "ImageView.java",
+              "filename": "ImageView.java",
+              "function": "resolveUri",
+              "module": "android.widget.ImageView"
+            },
+            {
+              "abs_path": "Context.java",
+              "filename": "Context.java",
+              "function": "getDrawable",
+              "module": "android.content.Context"
+            },
+            {
+              "abs_path": "Resources.java",
+              "filename": "Resources.java",
+              "function": "getDrawable",
+              "module": "android.content.res.Resources"
+            },
+            {
+              "abs_path": "VivoResources.java",
+              "filename": "VivoResources.java",
+              "function": "loadDrawable",
+              "module": "android.content.res.VivoResources"
+            },
+            {
+              "abs_path": "Resources.java",
+              "filename": "Resources.java",
+              "function": "loadDrawable",
+              "module": "android.content.res.Resources"
+            },
+            {
+              "abs_path": "Resources.java",
+              "filename": "Resources.java",
+              "function": "loadDrawableForCookie",
+              "module": "android.content.res.Resources"
+            },
+            {
+              "abs_path": "Resources.java",
+              "filename": "Resources.java",
+              "function": "createFromResourceStream",
+              "module": "android.content.res.Resources"
+            },
+            {
+              "abs_path": "Drawable.java",
+              "filename": "Drawable.java",
+              "function": "createFromResourceStream",
+              "module": "android.graphics.drawable.Drawable"
+            },
+            {
+              "abs_path": "BitmapFactory.java",
+              "filename": "BitmapFactory.java",
+              "function": "decodeResourceStream",
+              "module": "android.graphics.BitmapFactory"
+            },
+            {
+              "abs_path": "BitmapFactory.java",
+              "filename": "BitmapFactory.java",
+              "function": "decodeStream",
+              "module": "android.graphics.BitmapFactory"
+            },
+            {
+              "abs_path": "BitmapFactory.java",
+              "filename": "BitmapFactory.java",
+              "function": "nativeDecodeAsset",
+              "module": "android.graphics.BitmapFactory"
+            },
+            {
+              "abs_path": "VMRuntime.java",
+              "filename": "VMRuntime.java",
+              "function": "newNonMovableArray",
+              "module": "dalvik.system.VMRuntime"
+            }
+          ]
+        },
+        "type": "OutOfMemoryError",
+        "value": "Failed to allocate a 17203212 byte allocation with 4193728 free bytes and 7MB until OOM"
+      }
+    ]
+  },
+  "platform": "java"
+}

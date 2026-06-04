@@ -1,0 +1,99 @@
+import {useRef} from 'react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {FeedbackActions} from 'sentry/components/feedback/feedbackItem/feedbackActions';
+import {FeedbackShortId} from 'sentry/components/feedback/feedbackItem/feedbackShortId';
+import {FeedbackViewers} from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {useDimensions} from 'sentry/utils/useDimensions';
+
+interface Props {
+  eventData: Event | undefined;
+  feedbackItem: FeedbackIssue;
+  onBackToList?: () => void;
+}
+
+type Dimensions = ReturnType<typeof useDimensions>;
+function dimensionsToSize({width}: Dimensions) {
+  if (width < 600) {
+    return 'small';
+  }
+  if (width < 800) {
+    return 'medium';
+  }
+  return 'large';
+}
+
+export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Props) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const dimensions = useDimensions({elementRef: wrapperRef});
+
+  return (
+    <VerticalSpacing ref={wrapperRef}>
+      <Flex wrap="wrap" flex="1 1 auto" gap="md" justify="between">
+        <Flex gap="md" align="center">
+          {onBackToList && (
+            <Button
+              variant="primary"
+              icon={<IconArrow direction="left" size="xs" />}
+              onClick={onBackToList}
+              size="zero"
+              aria-label={t('Back to list')}
+            />
+          )}
+          <FeedbackShortId feedbackItem={feedbackItem} />
+        </Flex>
+        <FeedbackActions
+          eventData={eventData}
+          feedbackItem={feedbackItem}
+          size={dimensionsToSize(dimensions)}
+          style={{lineHeight: 1}}
+        />
+      </Flex>
+
+      {eventData && feedbackItem.project ? (
+        <ErrorBoundary mini>
+          <Flex wrap="wrap" justify="between" align="center" gap="md">
+            <Flex direction="row" gap="md">
+              <ExternalIssueList
+                group={feedbackItem as unknown as Group}
+                project={feedbackItem.project}
+                event={eventData}
+              />
+            </Flex>
+            {feedbackItem.seenBy.length ? (
+              <Flex justify="end">
+                <Flex gap="md" align="center">
+                  <SeenBy>{t('Seen by')}</SeenBy>
+                  <FeedbackViewers feedbackItem={feedbackItem} />
+                </Flex>
+              </Flex>
+            ) : null}
+          </Flex>
+        </ErrorBoundary>
+      ) : null}
+    </VerticalSpacing>
+  );
+}
+
+const VerticalSpacing = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+`;
+
+const SeenBy = styled('span')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+`;

@@ -1,0 +1,289 @@
+5,Neveljaven argument ali klic procedure
+6,Prekoračitev obsega
+7,Zmanjkalo je pomnilnika
+9,Indeks je zunaj obsega
+10,To polje je nespremenljivo ali pa je začasno zaklenjeno
+11,Deljenje z nič
+13,Neujemanje tipov
+14,Zmanjkalo je prostora za nize
+17,Zahtevane operacije ni mogoče opraviti
+28,Zmanjkalo je prostora za sklad
+35,Podprogram ali funkcija ni definirana
+48,Napaka med nalaganjem DLL
+51,Notranja napaka
+52,Napačno ime datoteke ali število
+53,Datoteke ni mogoče najti
+54,Napačen datotečni način
+55,Datoteka je že odprta
+57,Vhodno/izhodna napaka naprave
+58,Datoteka že obstaja
+61,Disk je poln
+62,Vnos prek konca datoteke
+67,Preveč datotek
+68,Naprava ni na voljo
+70,Dostop zavrnjen
+71,Disk ni pripravljen
+74,Preimenovanje pogona ni mogoče
+75,Napaka pri dostopu do poti/datoteke
+76,Poti ni mogoče najti
+91,Spremenljivka predmeta ali bloka »With« ne obstaja
+92,Zanka »For« ni inicializirana
+94,Neveljavna uporaba izraza »Null«
+322,Potrebne začasne datoteke ni mogoče ustvariti
+424,Zahtevan je predmet
+429,Avtomatizacijski strežnik ne more ustvariti predmeta
+430,Razred ne podpira avtomatizacije
+432,Med izvajanjem avtomatizacije ni bilo mogoče najti imena datoteke ali razreda
+438,Predmet ne podpira te lastnosti ali metode
+440,Napaka avtomatizacije
+445,Predmet ne podpira tega dejanja
+446,Predmet ne podpira imenovanih argumentov
+447,Predmet ne podpira trenutnih področnih nastavitev
+448,Imenovanega argumenta ni bilo mogoče najti
+449,Argument je obvezen
+450,Napačno število argumentov ali neveljavna dodelitev lastnosti
+451,Predmet ni zbirka
+453,Navedene funkcije iz DLL-a ni bilo mogoče najti
+458,Spremenljivka uporablja vrsto avtomatizacije, ki je JScript ne podpira
+462,Oddaljeni strežnik ne obstaja ali pa ni na voljo
+501,Ni mogoče prirediti spremenljivki
+502,Predmeta ni varno uporabljati v skriptih
+503,Predmeta ni varno inicializirati
+504,Predmeta ni varno ustvariti
+507,Prišlo je do izjemne napake
+1001,Zmanjkalo je pomnilnika
+1002,Napaka v sintaksi
+1003,Pričakovan znak ':'
+1004,Pričakovan znak ';'
+1005,Pričakovan znak '('
+1006,Pričakovan zank ')'
+1007,Pričakovan znak ']'
+1008,Pričakovan znak '{'
+1009,Pričakovan znak '}'
+1010,Pričakovan identifikator
+1011,Pričakovan znak '='
+1012,Pričakovan znak '/'
+1013,Neveljavno število
+1014,Neveljaven znak
+1015,Nedokončana nizovna konstanta
+1016,Nedokončan komentar
+1018,Stavek 'return' zunaj funkcije
+1019,'break' ne more biti zunaj zanke
+1020,'continue' ne more biti zunaj zanke
+1023,Pričakovana šestnajstiška števka
+1024,Pričakovan niz 'while'
+1025,Oznaka predefinirana
+1026,Oznake ni bilo mogoče najti
+1027,'default' se lahko v stavku 'switch' pojavi le enkrat
+1028,Pričakovana je oznaka, niz ali številka
+1029,Pričakovan niz '@end'
+1030,Pogojno prevajanje je izklopljeno
+1031,Pričakovana konstanta
+1032,Pričakovan znak '@'
+1033,Pričakovan niz 'catch'
+1034,Pričakovan niz 'var'
+1035,Izjavi »throw« mora slediti izraz v isti izvorni vrstici
+1037,Izjave »with« niso dovoljene v strogem načinu
+1038,Podvojena uradna imena parametrov v strogem načinu niso dovoljena
+1039,Osmiški številčni nizi in ubežni znaki v strogem načinu niso dovoljeni
+1041,Neveljavna uporaba izraza »eval« v strogem načinu
+1042,Neveljavna uporaba argumentov v strogem načinu
+1045,Priklic brisanja za izraz v strogem načinu ni dovoljen
+1046,Več definicij lastnosti v strogem načinu ni dovoljenih
+1047,V strogem načinu deklaracij funkcije ni mogoče ugnezditi znotraj izjave ali bloka. Prikažejo se lahko le na najvišji ravni ali neposredno v telesu funkcije.
+1048,Uporaba ključne besede za identifikator je neveljavna
+1049,Uporaba prihodnje rezervirane besede za identifikator je neveljavna
+1050,Uporaba prihodnje rezervirane besede za identifikator je neveljavna. Ime identifikatorja je rezervirano v strogem načinu.
+1051,Funkcije nastavljalnika »setter« morajo imeti en argument
+4096,Napaka pri prevajanju skripta JavaScript
+4097,Napaka pri izvajanju skripta JavaScript
+4098,Neznana napaka pri izvajanju
+5000,Ni mogoče prirediti 'this'
+5001,Pričakovana številka
+5002,Pričakovana funkcija
+5003,Ni mogoče prirediti rezultatu funkcije
+5004,Predmeta ni mogoče indeksirati
+5005,Pričakovan niz
+5006,Pričakovan je datumski predmet
+5007,Pričakovan predmet
+5008,Neveljavna leva stran v dodelitvi
+5009,Nedefiniran identifikator
+5010,Pričakovan je »Boolean«
+5011,Kode iz sproščenega skripta ni mogoče izvršiti
+5012,Pričakovan član predmeta
+5013,Pričakovan VBArray
+5014,Predmet JavaScript je pričakovan
+5015,Pričakovan enumeracijski predmet
+5016,Pričakovan predmet regularni izraz
+5017,Napaka v sintaksi regularnega izraza
+5018,Nepričakovani kvantifikator
+5019,V regularnem izrazu je pričakovan znak ']'
+5020,V regularnem izrazu je pričakovan znak ')'
+5021,Neveljaven obseg v naboru znakov
+5022,Prišlo je do izjeme, ki ni bila prestrežena
+5023,Funkcija nima veljavnega prototipnega predmeta
+5024,URI, ki ga nameravate kodirati, vsebuje neveljaven znak
+5025,URI, ki ga nameravate dekodirati, ni pravilno kodiran
+5026,Število mest v števcu oz. v imenovalcu je zunaj obsega
+5027,Natančnost je zunaj obsega
+5028,Pričakovan je predmet polja ali argumenotv
+5029,Dolžina polja mora biti končno pozitivno celo število
+5030,Dolžini polja mora biti prirejeno končno pozitivno celo število
+5031,Pričakovan je predmet Array
+5034,Krožno sklicevanje v argumentu vrednosti ni podprto
+5035,Neveljaven argument nadomestnega elementa
+5038,Seznam argumentov je prevelik za uporabo
+5039,Vnovična deklaracija lastnosti »const«
+5041,Člana predmeta ni mogoče nastaviti
+5042,Spremenljivka v strogem načinu ni določena
+5043,Dostop do lastnosti »caller« funkcijskega predmeta ali predmeta argumentov v strogem načinu ni dovoljen
+5044,Dostop do lastnosti »callee« predmeta argumentov v strogem načinu ni dovoljen
+5045,Dodelitev za lastnosti samo za branje v strogem načinu ni dovoljena
+5046,Ni mogoče ustvariti lastnosti za nerazširljiv predmet
+5047,Pričakovan predmet
+5048,Pričakovan predmet
+5049,Pričakovan predmet
+5050,Pričakovan predmet
+5051,Pričakovana funkcija
+5052,Pričakovana funkcija
+5053,Lastnost ne more imeti dostopnikov in vrednosti
+5054,'this' je nič ali nedoločeno
+5055,Pričakovan predmet
+5056,Pričakovana funkcija
+5057,Pričakovan niz
+5058,Pričakovan logični izraz
+5059,Pričakovani datum
+5060,Pričakovana številka
+5061,Pričakovan VBArray
+5062,Predmet JavaScript je pričakovan
+5063,Pričakovan enumeracijski predmet
+5064,Predmet RegExp je pričakovan
+5065,Neveljaven argument funkcije
+5066,Pričakovan predmet
+5067,Predmet JavaScript je pričakovan
+5068,Pričakovana funkcija
+5069,Pričakovan VBArray
+5070,Pričakovan predmet
+5071,Pričakovan predmet
+5072,Neveljavna lastnost »length«
+5073,Pričakovan je predmet polja ali argumentov
+5074,Neveljaven operand
+5075,Neveljaven operand
+5076,Neveljaven deskriptor lastnosti
+5077,Lastnosti ni mogoče določiti: predmeta ni mogoče razširiti
+5078,Lastnosti, ki je ni mogoče konfigurirati, ni mogoče znova določiti
+5079,Nezapisljive lastnosti ni mogoče spremeniti
+5080,Lastnosti ni mogoče spremeniti: »length« ni zapisljiva
+5081,Lastnosti ni mogoče določiti
+5082,Argument konstruktorja tipizirane matrike ni veljaven
+5083,»this« ni tipiziran predmet matrike
+5084,Neveljaven odmik/dolžina pri ustvarjanju tipizirane matrike
+5085,Neveljavna začetna/končna vrednost v metodi »subarray « tipizirane matrike
+5086,Neveljaven vir v tipizirani množici matrik
+5087,»this« ni predmet »DataView«
+5088,Neveljavni argumenti v predmetu »DataView«
+5089,Operacija predmeta »DataView« presega določeno dolžino medpomnilnika
+5090,Neveljavni argumenti v pogledu podatkov
+5091,neveljaven podpis funkcije
+5092,neveljaven podpis lastnosti
+5093,neveljavna vrsta vhodnega parametra
+5094,neveljaven izhodni parameter
+5095,V strogem načinu dostop do lastnosti »argumentov« funkcije ni dovoljen
+5096,Pričakovan je predmet, ki ga je mogoče pregledati
+5097,Argumenta ni bilo mogoče pretvoriti v vrsto »char«
+5098,Argumenta ni bilo mogoče pretvoriti v vrsto »GUID«
+5099,Pričakovana je vrsta »IInspectable«
+5100,Predmeta ni mogoče pretvoriti v »struct«: v predmetu manjka pričakovana lastnosti
+5101,Neznana vrsta
+5102,Funkcija je poklicana s premalo argumenti
+5103,Vrste ni mogoče graditi
+5104,Vrednosti ni mogoče pretvoriti v »PropertyValue«: »PropertyValue« ne podpira te vrste
+5105,Vrednosti ni mogoče pretvoriti v »IInspectable«: »IInspectable« ne podpira te vrste
+5106,Datuma ni mogoče pretvoriti v »Windows.Foundation.DateTime«: vrednost je izven veljavnega obsega
+5107,Vrednosti ni mogoče pretvoriti v »Windows.Foundation.TimeSpan«: vrednost je izven veljavnega obsega
+5108,Neveljaven dostop do že objavljenega predmeta za pregled
+5109,Ni mogoče objaviti že objavljenega predmeta za pregled
+5110,»this« ni pričakovana vrsta
+5111,Za polje sta določeni neveljavna dolžina in velikost
+5112,Pri pridobivanju informacij o metapodatkih je prišlo do nepričakovane napake
+5200,Stanje je »error«, vendar getResults ni vrnil napake
+5201,Manjkajoč ali neveljaven parameter stanja je prešel na dokončano rutino za obravnavo
+5202,Manjkajoč ali neveljaven parameter pošiljatelja je prešel na dokončano rutino za obravnavo
+6000,Neskončno
+6001,-Neskončno
+10438,Predmet ne podpira lastnosti ali metode »%s«
+10449,Argument funkcije »%s« ni izbiren
+15001,»%s« ni številka
+15002,»%s« ni funkcija
+15004,»%s« je predmet, ki ga ni mogoče indeksirati
+15005,»%s« ni niz
+15006,»%s« ni datumski predmet
+15007,»%s« ima vrednost »null« ali pa ni predmet
+15008,Ni mogoče dodeliti »%s«
+15009,»%s« ni določen
+15010,»%s« ni logična vrednost
+15012,»%s« ni mogoče izbrisati
+15013,»%s« ni predmet VBArray
+15014,»%s« ni predmet jezika JavaScript
+15015,»%s« ni predmet popisovalnika
+15016,»%s« ni predmet regularni izraz
+15028,%s ni predmet polja ali argumentov
+15031,%s ni predmet polja
+15036,Atributa »%s« v deskriptorju lastnosti tega predmeta ni mogoče nastaviti na vrednost »true«
+15037,Atributa »%s« v deskriptorju lastnosti tega predmeta ni mogoče nastaviti na vrednost »false«
+15039,Vnovična deklaracija konstante »%s«
+15041,Priklic brisanja za »%s« ni dovoljen v strogem načinu
+15047,Lastnosti »%s« nedoločenega ali ničnega sklica ni mogoče nastaviti
+15048,Lastnosti »%s« nedoločenega ali ničnega sklica ni mogoče pridobiti
+15049,Lastnosti »%s« nedoločenega ali ničnega sklica ni mogoče izbrisati
+15050,Dostopa do lastnosti »%s« ni mogoč: vrsta »VarDate« ne podpira uporabniško določenih lastnosti
+15051,Vrednost lastnosti »%s« ni predmet funkcije
+15052,Vrednost lastnosti »%s« je »null« ali ni določena in ni predmet funkcije
+15054,%s: 'this' je »null« ali ni določeno
+15055,%s: 'this' ni predmet
+15056,%s: 'this' ni predmet funkcije
+15057,%s: 'this' ni predmet niza
+15058,%s: 'this' ni logični predmet
+15059,%s: 'this' ni datumski predmet
+15060,%s: 'this' ni številski predmet
+15061,%s: 'this' ni predmet VBArray
+15062,%s: 'this' ni predmet jezika JavaScript
+15063,%s: 'this' ni predmet popisovalnika
+15064,%s: 'this' ni predmet regularni izraz
+15065,%s: neveljaven argument
+15066,%s: argument ni predmet
+15067,%s: argument is ni predmet jezika JavaScript
+15068,%s: argument ni predmet funkcije
+15069,%s: argument ni predmet VBArray
+15070,%s: argument je »null« ali ni določen
+15071,%s: argument ni predmet in ni »null«
+15072,%s: argument nima veljavne lastnosti »length«
+15073,%s: pričakovan je predmet polja ali argumentov
+15074,Neveljavni operand za »%s«: pričakovan je predmet
+15075,Neveljaven operand za »%s«: pričakovana je funkcija
+15076,Neveljaven deskriptor lastnosti »%s«
+15077,Lastnosti »%s« ni mogoče določiti: predmeta ni mogoče razširiti
+15078,Lastnosti »%s«, ki je ni mogoče konfigurirati, ni mogoče znova določiti
+15079,Nezapisljive lastnosti »%s« ni mogoče spremeniti
+15080,Lastnosti »%s« ni mogoče spremeniti: »length« ni zapisljiva
+15081,Lastnosti »%s« ni mogoče določiti
+15088,Obvezni argument %s metode predmeta »DataView« ni določen
+15090,Argument %s konstruktorja predmeta »DataView« ni veljaven
+15091,Podpis funkcije »%s« ni veljaven, zato je ni mogoče priklicati
+15092,Podpis lastnosti »%s« ni veljaven, zato dostop do nje ni mogoč
+15093,Izvajalni razred %s, ki ima Windows.Foundation.IPropertyValue za privzeti vmesnik, ni podprt kot tip vhodnega parametra
+15094,Predmet z vmesnikom Windows.Foundation.IPropertyValue, ki ima ime izvajalnega razreda %s, ni podprt kot izhodni parameter
+15096,%s: »this« ni predmet, ki ga je mogoče pregledati
+15097,%s: argumenta ni bilo mogoče pretvoriti v vrsto »char«
+15098,%s: argumenta ni bilo mogoče pretvoriti v vrsto »GUID«
+15099,%s: povratne vrednosti ni bilo mogoče pretvoriti v »IInspectable«
+15100,Predmeta ni bilo mogoče pretvoriti v »struct«: predmet nima pričakovane lastnosti »%s«
+15101,Vrste »%s« ni mogoče najti
+15102,%s: funkcija je poklicana s premalo argumenti
+15103,%s: vrste ni mogoče graditi
+15104,Vrednosti ni mogoče pretvoriti v »PropertyValue«: »PropertyValue« ne podpira %s
+15105,Vrednosti ni mogoče pretvoriti v »IInspectable«: »IInspectable« ne podpira %s
+15108,%s: predmet za pregled »this« je objavljen in ni mogoče dostopati do njega
+15110,»this« ni pričakovana vrsta: %s
+15112,%s: Pri pridobivanju informacij o metapodatkih je prišlo do nepričakovane napake
+32812,Navedeni datum ni na voljo v koledarju trenutnih področnih nastavitev.

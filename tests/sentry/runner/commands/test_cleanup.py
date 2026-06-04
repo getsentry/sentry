@@ -1,0 +1,471 @@
+from __future__ import annotations
+
+from datetime import timedelta
+from io import BytesIO
+from typing import Any
+from unittest.mock import patch
+
+import click
+import pytest
+
+from sentry.constants import ObjectStatus
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
+from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.runner.commands.cleanup import (
+    _cleanup,
+    generate_bulk_query_deletes,
+    models_which_use_expiry_deletions,
+    prepare_deletes_by_project,
+    remove_cross_project_bulk_query_models,
+    remove_old_notification_messages,
+    run_bulk_deletes_by_project,
+    task_execution,
+)
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
+from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+
+
+class SynchronousTaskQueue:
+    """Mock task queue that partially implements the _WorkQueue protocol but executes tasks synchronously."""
+
+    def __init__(self) -> None:
+        # You can use this to inspect the calls to the queue.
+        self.put_calls: list[tuple[str, tuple[int, ...], int | None]] = []
+
+    def put(self, item: tuple[str, tuple[int, ...], int | None]) -> None:
+        self.put_calls.append(item)
+        task_execution(item[0], item[1], item[2])
+
+    def join(self) -> None:
+        pass
+
+
+class PrepareDeletesByProjectTest(TestCase):
+    def test_no_filters(self) -> None:
+        """Test that without filters, all active projects are included."""
+        project1 = self.create_project()
+        project2 = self.create_project()
+        project3 = self.create_project()
+
+        query, _ = prepare_deletes_by_project(is_filtered=lambda model: False)
+
+        assert query is not None
+        project_ids = list(query.values_list("id", flat=True))
+        # We sort the project IDs since the query set is unordered.
+        # Adding an order would be useless since the query from prepare_deletes_by_project is used
+        # by RangeQuerySetWrapper, which ignores order_by.
+        assert sorted(project_ids) == [project1.id, project2.id, project3.id]
+
+    def test_with_specific_project(self) -> None:
+        """Test that when a specific project is provided, only that project is included."""
+        project1 = self.create_project()
+        self.create_project()
+
+        query, _ = prepare_deletes_by_project(
+            project_id=project1.id, is_filtered=lambda model: False
+        )
+
+        assert query is not None
+        project_ids = list(query.values_list("id", flat=True))
+        assert sorted(project_ids) == [project1.id]
+
+    def test_with_start_from_id(self) -> None:
+        """Test that when start_from_project_id is provided, projects >= that ID are included."""
+        # Create projects in specific order
+        self.create_project()
+        project2 = self.create_project()
+        project3 = self.create_project()
+
+        query, _ = prepare_deletes_by_project(
+            start_from_project_id=project2.id,
+            is_filtered=lambda model: False,
+        )
+
+        assert query is not None
+        project_ids = list(query.values_list("id", flat=True))
+        assert sorted(project_ids) == [project2.id, project3.id]
+
+    def test_specific_project_overrides_start_from(self) -> None:
+        """Test that specific project_id takes precedence over start_from_project_id."""
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        query, _ = prepare_deletes_by_project(
+            project_id=project1.id,
+            start_from_project_id=project2.id,  # This should be ignored
+            is_filtered=lambda model: False,
+        )
+
+        assert query is not None
+        project_ids = list(query.values_list("id", flat=True))
+        # Only project1 should be included, start_from_project_id is ignored
+        assert sorted(project_ids) == [project1.id]
+
+    def test_only_active_projects(self) -> None:
+        """Test that only active projects are included."""
+        active_project = self.create_project()
+        deleted_project = self.create_project()
+        # Mark one project as deleted
+        deleted_project.update(status=ObjectStatus.PENDING_DELETION)
+
+        query, _ = prepare_deletes_by_project(is_filtered=lambda model: False)
+
+        assert query is not None
+        project_ids = list(query.values_list("id", flat=True))
+        assert sorted(project_ids) == [active_project.id]
+
+    def test_control_silo_mode_returns_none(self) -> None:
+        """Test that in CONTROL silo mode, the function returns None for query and empty list."""
+        self.create_project()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            query, to_delete = prepare_deletes_by_project(is_filtered=lambda model: False)
+
+        assert query is None
+        assert to_delete == []
+
+    def test_region_silo_mode_returns_projects(self) -> None:
+        """Test that in REGION silo mode, the function returns projects as expected."""
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            query, to_delete = prepare_deletes_by_project(is_filtered=lambda model: False)
+
+        assert query is not None
+        project_ids = list(query.values_list("id", flat=True))
+        assert sorted(project_ids) == [project1.id, project2.id]
+        # Should have model tuples to delete
+        assert len(to_delete) > 0
+
+
+class RunBulkQueryDeletesByProjectTest(TestCase):
+    def test_run_bulk_query_deletes_by_project(self) -> None:
+        """Test that the function runs bulk query deletes by project as expected."""
+        days = 30
+        project = self.project  # Get the default project for verification
+        # Creating the groups in out of order to test that the chunks are created in the correct order.
+        self.create_group(last_seen=before_now(days=days + 4))
+        self.create_group()
+        self.create_group(last_seen=before_now(days=days + 2))
+        self.create_group(last_seen=before_now(days=days + 3))
+
+        assert Group.objects.count() == 4
+        assert Group.objects.filter(last_seen__lt=before_now(days=days)).count() == 3
+        ids = list(
+            Group.objects.filter(last_seen__lt=before_now(days=days)).values_list("id", flat=True)
+        )
+
+        with (
+            assume_test_silo_mode(SiloMode.CELL),
+            patch("sentry.runner.commands.cleanup.DELETES_BY_PROJECT_CHUNK_SIZE", 2),
+        ):
+            task_queue = SynchronousTaskQueue()
+
+            models_attempted: set[str] = set()
+            run_bulk_deletes_by_project(
+                task_queue=task_queue,  # type: ignore[arg-type]  # It partially implements the queue protocol
+                project_id=None,
+                start_from_project_id=None,
+                is_filtered=lambda model: False,
+                days=days,
+                models_attempted=models_attempted,
+            )
+            assert models_attempted == {"group", "projectdebugfile"}
+
+        assert len(task_queue.put_calls) == 2
+        # Verify we deleted all expected groups (order may vary due to non-unique last_seen)
+        all_deleted_ids: set[int] = set()
+        for call in task_queue.put_calls:
+            model_name, chunk_ids, call_project_id = call
+            assert model_name == "sentry.models.group.Group"
+            assert call_project_id == project.id
+            all_deleted_ids.update(chunk_ids)
+        assert all_deleted_ids == set(ids)
+
+        assert Group.objects.all().count() == 1
+
+    def test_project_id_passed_to_task_queue(self) -> None:
+        """Test that the correct project_id is passed for each chunk."""
+        days = 30
+        # Create two projects with groups
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        # Create groups for project1 (old enough to delete)
+        self.create_group(project=project1, last_seen=before_now(days=days + 1))
+        self.create_group(project=project1, last_seen=before_now(days=days + 2))
+
+        # Create groups for project2 (old enough to delete)
+        self.create_group(project=project2, last_seen=before_now(days=days + 1))
+
+        # Create a group that should NOT be deleted (too recent)
+        self.create_group(project=project1)
+
+        with (
+            assume_test_silo_mode(SiloMode.CELL),
+            patch("sentry.runner.commands.cleanup.DELETES_BY_PROJECT_CHUNK_SIZE", 10),
+        ):
+            task_queue = SynchronousTaskQueue()
+
+            models_attempted: set[str] = set()
+            run_bulk_deletes_by_project(
+                task_queue=task_queue,  # type: ignore[arg-type]
+                project_id=None,
+                start_from_project_id=None,
+                is_filtered=lambda model: False,
+                days=days,
+                models_attempted=models_attempted,
+            )
+
+        # Collect project_ids from task queue calls for Group model
+        group_calls = [call for call in task_queue.put_calls if "Group" in call[0]]
+
+        # Verify each call has the correct project_id
+        project_ids_seen: set[int] = set()
+        for call in group_calls:
+            model_name, chunk_ids, call_project_id = call
+            assert call_project_id is not None
+            project_ids_seen.add(call_project_id)
+
+        # Should have seen both projects
+        assert project1.id in project_ids_seen
+        assert project2.id in project_ids_seen
+
+
+class RemoveCrossProjectBulkQueryModelsTest(TestCase):
+    def test_removes_cross_project_models(self) -> None:
+        bulk_query_deletes = generate_bulk_query_deletes()
+        models_before = {m for m, _, _ in bulk_query_deletes}
+        assert GroupOpenPeriodActivity in models_before
+        assert WorkflowFireHistory in models_before
+
+        remove_cross_project_bulk_query_models(bulk_query_deletes)
+        models_after = {m for m, _, _ in bulk_query_deletes}
+        assert GroupOpenPeriodActivity not in models_after
+        assert WorkflowFireHistory not in models_after
+
+
+class UptimeResponseCaptureCleanupTest(TestCase):
+    def test_cleanup_deletes_file(self) -> None:
+        """Test that UptimeResponseCapture cleanup also deletes the associated File."""
+        subscription = UptimeSubscription.objects.create(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            url="https://example.com",
+            interval_seconds=60,
+            timeout_ms=5000,
+        )
+
+        file = File.objects.create(name="test-response", type="uptime.response")
+        file.putfile(BytesIO(b"test response content"))
+
+        capture = UptimeResponseCapture.objects.create(
+            uptime_subscription=subscription,
+            file_id=file.id,
+            scheduled_check_time_ms=1234567890,
+        )
+        capture_id = capture.id
+        file_id = file.id
+
+        assert UptimeResponseCapture.objects.filter(id=capture_id).exists()
+        assert File.objects.filter(id=file_id).exists()
+
+        task_execution("sentry.uptime.models.UptimeResponseCapture", (capture_id,), None)
+
+        assert not UptimeResponseCapture.objects.filter(id=capture_id).exists()
+        assert not File.objects.filter(id=file_id).exists()
+
+
+class PartitionValidationTest(TestCase):
+    """Tests for --partition-bucket and --partition-total flag validation in the cleanup command."""
+
+    def _run_cleanup_with_partition(
+        self,
+        partition_bucket: int | None = None,
+        partition_total: int | None = None,
+    ) -> None:
+        _cleanup(
+            model=(),
+            days=30,
+            concurrency=1,
+            silent=True,
+            router=None,
+            partition_bucket=partition_bucket,
+            partition_total=partition_total,
+            partition_key="id",
+        )
+
+    def test_partition_bucket_without_total(self) -> None:
+        with pytest.raises(
+            click.ClickException,
+            match="--partition-bucket and --partition-total must be used together",
+        ):
+            self._run_cleanup_with_partition(partition_bucket=0)
+
+    def test_partition_total_without_bucket(self) -> None:
+        with pytest.raises(
+            click.ClickException,
+            match="--partition-bucket and --partition-total must be used together",
+        ):
+            self._run_cleanup_with_partition(partition_total=4)
+
+    def test_partition_bucket_exceeds_total(self) -> None:
+        with pytest.raises(
+            click.ClickException,
+            match="--partition-bucket: 4 must be less than --partition-total 4",
+        ):
+            self._run_cleanup_with_partition(partition_bucket=4, partition_total=4)
+
+    def test_partition_negative_bucket(self) -> None:
+        with pytest.raises(click.ClickException, match="--partition-bucket: must be non-negative"):
+            self._run_cleanup_with_partition(partition_bucket=-1, partition_total=4)
+
+    def test_partition_zero_total(self) -> None:
+        with pytest.raises(click.ClickException, match="--partition-total: must be greater than 0"):
+            self._run_cleanup_with_partition(partition_bucket=0, partition_total=0)
+
+
+class ExpiryDeletionsCodePathTest(TestCase):
+    def test_event_attachment_in_expiry_path(self) -> None:
+        from sentry.models.eventattachment import EventAttachment
+
+        expiry_deletes = models_which_use_expiry_deletions()
+        models = [m for m, _, _ in expiry_deletes]
+        assert EventAttachment in models
+
+    def test_event_attachment_not_in_age_based_path(self) -> None:
+        from sentry.models.eventattachment import EventAttachment
+        from sentry.runner.commands.cleanup import models_which_use_deletions_code_path
+
+        age_deletes = models_which_use_deletions_code_path()
+        models = [m for m, _, _ in age_deletes]
+        assert EventAttachment not in models
+
+    def test_expiry_path_uses_date_expires_field(self) -> None:
+        expiry_deletes = models_which_use_expiry_deletions()
+        for _, dtfield, _ in expiry_deletes:
+            assert dtfield == "date_expires", f"Expected date_expires, got {dtfield}"
+
+    def test_expiry_cleanup_ignores_days_flag(self) -> None:
+        """Expiry-based models are deleted when expired regardless of --days."""
+        from django.utils import timezone
+
+        from sentry.models.eventattachment import EventAttachment
+        from sentry.runner.commands.cleanup import run_bulk_deletes_in_deletes
+
+        project = self.create_project()
+        event = self.store_event(data={}, project_id=project.id)
+
+        # Attachment that expired yesterday
+        expired = EventAttachment.objects.create(
+            project_id=project.id,
+            event_id=event.event_id,
+            name="expired.txt",
+            content_type="text/plain",
+            type="event.attachment",
+            date_expires=timezone.now() - timedelta(days=1),
+        )
+        # Attachment that expires in the future
+        fresh = EventAttachment.objects.create(
+            project_id=project.id,
+            event_id=event.event_id,
+            name="fresh.txt",
+            content_type="text/plain",
+            type="event.attachment",
+            date_expires=timezone.now() + timedelta(days=90),
+        )
+
+        queue = SynchronousTaskQueue()
+        run_bulk_deletes_in_deletes(
+            queue,  # type: ignore[arg-type]  # It partially implements the queue protocol
+            models_which_use_expiry_deletions(),
+            lambda model: False,  # nothing filtered
+            0,  # days=0: delete anything with date_expires < now()
+            None,
+            None,
+            set(),
+        )
+
+        assert not EventAttachment.objects.filter(id=expired.id).exists()
+        assert EventAttachment.objects.filter(id=fresh.id).exists()
+
+
+class RemoveOldNotificationMessagesTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.NOTIFICATION_MESSAGE_TTL_IN_DAYS = 90
+        self.NotificationMessage = NotificationMessage
+        self.action = self.create_action()
+        self.group = self.create_group()
+
+    def _create_message(self, days_old: int, **kwargs: Any) -> NotificationMessage:
+        from django.utils import timezone
+
+        kwargs.setdefault("action", self.action)
+        kwargs.setdefault("group", self.group)
+        message = self.NotificationMessage.objects.create(**kwargs)
+        self.NotificationMessage.objects.filter(id=message.id).update(
+            date_added=timezone.now() - timedelta(days=days_old)
+        )
+        message.refresh_from_db()
+        return message
+
+    def test_deletes_messages_older_than_retention(self) -> None:
+        self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 1)
+        self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 365)
+        recent = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS - 1)
+        brand_new = self._create_message(days_old=0)
+
+        remove_old_notification_messages(lambda model: False, set())
+
+        remaining_ids = set(self.NotificationMessage.objects.values_list("id", flat=True))
+        assert remaining_ids == {recent.id, brand_new.id}
+
+    def test_no_op_when_nothing_to_delete(self) -> None:
+        recent = self._create_message(days_old=1)
+
+        remove_old_notification_messages(lambda model: False, set())
+
+        assert self.NotificationMessage.objects.filter(id=recent.id).exists()
+
+    def test_cascades_self_reference(self) -> None:
+        parent = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 5)
+        child = self._create_message(
+            days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 5,
+            parent_notification_message=parent,
+        )
+
+        remove_old_notification_messages(lambda model: False, set())
+
+        assert not self.NotificationMessage.objects.filter(id__in=[parent.id, child.id]).exists()
+
+    def test_keeps_old_parent_with_in_retention_child(self) -> None:
+        parent = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 5)
+        child = self._create_message(
+            days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS - 1,
+            parent_notification_message=parent,
+        )
+
+        remove_old_notification_messages(lambda model: False, set())
+
+        remaining_ids = set(self.NotificationMessage.objects.values_list("id", flat=True))
+        assert remaining_ids == {parent.id, child.id}
+
+    def test_respects_is_filtered(self) -> None:
+        old = self._create_message(days_old=self.NOTIFICATION_MESSAGE_TTL_IN_DAYS + 1)
+
+        remove_old_notification_messages(lambda model: True, set())
+
+        assert self.NotificationMessage.objects.filter(id=old.id).exists()
+
+    def test_records_models_attempted(self) -> None:
+        models_attempted: set[str] = set()
+        remove_old_notification_messages(lambda model: False, models_attempted)
+
+        assert "notificationmessage" in models_attempted

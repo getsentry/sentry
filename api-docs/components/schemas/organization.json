@@ -1,0 +1,42 @@
+{
+  "Organization": {
+    "type": "object",
+    "required": [
+      "avatar",
+      "dateCreated",
+      "id",
+      "isEarlyAdopter",
+      "name",
+      "require2FA",
+      "slug",
+      "status"
+    ],
+    "properties": {
+      "avatar": {
+        "$ref": "avatar.json#/Avatar"
+      },
+      "dateCreated": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isEarlyAdopter": {
+        "type": "boolean"
+      },
+      "name": {
+        "type": "string"
+      },
+      "require2FA": {
+        "type": "boolean"
+      },
+      "slug": {
+        "type": "string"
+      },
+      "status": {
+        "$ref": "organization-status.json#/OrganizationStatus"
+      }
+    }
+  }
+}

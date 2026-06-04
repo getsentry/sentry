@@ -1,0 +1,3 @@
+{% autoescape off %}
+  at {{ function }} ({{ filename }}{% if lineno %}:{{ lineno }}{% endif %}{% if colno %}:{{ colno }}{% endif %})
+{% endautoescape %}

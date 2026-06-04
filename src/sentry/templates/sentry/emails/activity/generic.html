@@ -1,0 +1,73 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load sentry_helpers %}
+{% load sentry_assets %}
+{% load sentry_avatars %}
+
+{% block head %}
+  {{ block.super }}
+  <style type="text/css" inline="false">
+    @media only screen and (max-device-width: 480px) {
+      /* Hide CTA in header on mobile */
+      .header-buttons .integration-link {
+        display: none !important;
+      }
+      .banner {
+        display: none !important;
+      }
+    }
+    @media only screen and (max-device-width: 768px) {
+      .text-desktop-only {
+        display: none !important;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block header %}
+  <div class="header-with-buttons">
+    {{ block.super }}
+    <div class="header-buttons">
+      <a href="{{ link }}" class="btn view-on-sentry">View on Sentry</a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block preheader %}
+  {% if group and not enhanced_privacy %}
+    {% include "sentry/emails/_group.html" %}
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="inner">
+      {% block activity %}
+
+    <h2>{{ title }}</h2>
+
+    <p>{{ html_description }}</p>
+
+  {% endblock %}
+
+    {% if enhanced_privacy %}
+      <div class="notice">Details about this issue are not shown in this notification since enhanced privacy
+        controls are enabled. For more details about this issue, <a href="{{ link }}">view this issue on Sentry</a>.</div>
+    {% endif %}
+
+    {% if group and not enhanced_privacy %}
+      {% include "sentry/emails/group_header.html" %}
+    {% endif %}
+
+    {% include "sentry/emails/_suspect_commits.html" %}
+
+    {% if reason %}
+      <p class="info-box">
+        This email was triggered because you {{ reason }}.
+      </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

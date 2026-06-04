@@ -1,0 +1,374 @@
+{
+  "detection_time": "2023-01-19T20:53:49.386332Z",
+  "event": {
+    "debug_meta": {
+      "images": [
+        {
+          "type": "elf",
+          "image_addr": "0xe5d95000",
+          "image_size": 6975488,
+          "code_file": "/apex/com.android.runtime/lib/libart.so",
+          "code_id": "a0a062684495092d1756e30ba2dff37d",
+          "debug_id": "6862a0a0-9544-2d09-1756-e30ba2dff37d"
+        }
+      ]
+    },
+    "environment": "production",
+    "event_id": "066f15fe1cd2406aaa7c6a07471d7aef",
+    "platform": "cocoa",
+    "project_id": 1,
+    "received": "2023-01-19T20:53:44Z",
+    "release": "com.apple.dt.xctest.tool@14.1+21501",
+    "stacktrace": {
+      "frames": [
+        {
+          "function": "0x0",
+          "in_app": false
+        },
+        {
+          "function": "0x0",
+          "in_app": false
+        },
+        {
+          "function": "start_sim",
+          "in_app": false
+        },
+        {
+          "function": "main",
+          "in_app": false,
+          "package": "xctest"
+        },
+        {
+          "function": "_XCTestMain",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestDriver _runTests]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestObservationCenter _observeTestExecutionForBlock:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__25-[XCTestDriver _runTests]_block_invoke.184",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTExecutionWorker runWithError:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__72-[XCTExecutionWorker enqueueTestIdentifiersToRun:testIdentifiersToSkip:]_block_invoke_2",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTTestRunSession executeTestsWithIdentifiers:skippingTestsWithIdentifiers:completion:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTContext runInContextForTestCase:markAsReportingBase:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTContext _runInChildOfContext:forTestCase:markAsReportingBase:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__89-[XCTTestRunSession executeTestsWithIdentifiers:skippingTestsWithIdentifiers:completion:]_block_invoke",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTest runTest]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestSuite performTest:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestSuite _performProtectedSectionForTest:testSection:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTContext runInContextForTestCase:markAsReportingBase:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTContext _runInChildOfContext:forTestCase:markAsReportingBase:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__59-[XCTestSuite _performProtectedSectionForTest:testSection:]_block_invoke",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__27-[XCTestSuite performTest:]_block_invoke",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestSuite runTestBasedOnRepetitionPolicy:testRun:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTest runTest]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestSuite performTest:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestSuite _performProtectedSectionForTest:testSection:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTContext runInContextForTestCase:markAsReportingBase:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTContext _runInChildOfContext:forTestCase:markAsReportingBase:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__59-[XCTestSuite _performProtectedSectionForTest:testSection:]_block_invoke",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__27-[XCTestSuite performTest:]_block_invoke",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestSuite runTestBasedOnRepetitionPolicy:testRun:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTest runTest]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestSuite performTest:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestSuite _performProtectedSectionForTest:testSection:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTContext runInContextForTestCase:markAsReportingBase:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTContext _runInChildOfContext:forTestCase:markAsReportingBase:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__59-[XCTestSuite _performProtectedSectionForTest:testSection:]_block_invoke",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__27-[XCTestSuite performTest:]_block_invoke",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestSuite runTestBasedOnRepetitionPolicy:testRun:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTest runTest]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestCase performTest:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTContext runInContextForTestCase:markAsReportingBase:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTContext _runInChildOfContext:forTestCase:markAsReportingBase:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__26-[XCTestCase performTest:]_block_invoke.110",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestCase(XCTIssueHandling) _caughtUnhandledDeveloperExceptionPermittingControlFlowInterruptions:caughtInterruptionException:whileExecutingBlock:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__26-[XCTestCase performTest:]_block_invoke.119",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestCase invokeTest]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[XCTestCase(XCTIssueHandling) _caughtUnhandledDeveloperExceptionPermittingControlFlowInterruptions:caughtInterruptionException:whileExecutingBlock:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__24-[XCTestCase invokeTest]_block_invoke.78",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTFailableInvocation invokeInvocation:lastObservedErrorIssue:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTFailableInvocation invokeInvocation:withTestMethodConvention:lastObservedErrorIssue:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTFailableInvocation invokeWithAsynchronousWait:lastObservedErrorIssue:block:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTSwiftErrorObservation observeErrorsInBlock:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__81+[XCTFailableInvocation invokeWithAsynchronousWait:lastObservedErrorIssue:block:]_block_invoke.5",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "__90+[XCTFailableInvocation invokeInvocation:withTestMethodConvention:lastObservedErrorIssue:]_block_invoke_3",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "+[XCTFailableInvocation invokeStandardConventionInvocation:completion:]",
+          "in_app": false,
+          "package": "XCTestCore"
+        },
+        {
+          "function": "-[NSInvocation invoke]",
+          "in_app": false,
+          "package": "CoreFoundation"
+        },
+        {
+          "function": "__invoking___",
+          "in_app": false,
+          "package": "CoreFoundation"
+        },
+        {
+          "function": "@objc SentryProfilerSwiftTests.testMetricProfiler()",
+          "in_app": false,
+          "package": "SentryTests"
+        },
+        {
+          "function": "SentryProfilerSwiftTests.testMetricProfiler()",
+          "in_app": false,
+          "package": "SentryTests"
+        },
+        {
+          "function": "SentryProfilerSwiftTests.forceProfilerSample()",
+          "in_app": false,
+          "package": "SentryTests"
+        },
+        {
+          "function": "StringProtocol.appending<A>(A1)",
+          "in_app": false,
+          "package": "Foundation"
+        },
+        {
+          "function": "-[NSString stringByAppendingString:]",
+          "in_app": false,
+          "package": "Foundation"
+        },
+        {
+          "function": "_NSNewStringByAppendingStrings",
+          "in_app": false,
+          "package": "Foundation"
+        },
+        {
+          "function": "-[__NSCFString getCharacters:range:]",
+          "in_app": false,
+          "package": "CoreFoundation"
+        }
+      ]
+    },
+    "tags": {
+      "device_classification": "unclassified",
+      "device_locale": "en_US",
+      "device_manufacturer": "Apple",
+      "device_model": "iPhone15,2",
+      "device_os_build_number": "21G115",
+      "device_os_name": "iOS",
+      "device_os_version": "16.1"
+    },
+    "timestamp": "2023-01-04T16:55:42.289Z",
+    "transaction": "0c7337f294294267928df30293008acb"
+  },
+  "evidence_display": [
+    {
+      "name": "Suspect function",
+      "value": "free_large",
+      "important": true
+    },
+    {
+      "name": "Package",
+      "value": "libsystem_malloc.dylib",
+      "important": false
+    }
+  ],
+  "fingerprint": ["2ec9f0faba66dc0b356aebf1621fd25e"],
+  "id": "0c6d75ac-3969-41e0-bc4b-33c2ff7f3657",
+  "issue_title": "File I/O function called on main thread",
+  "subtitle": "Some Transaction",
+  "type": 2001,
+  "project_id": 1,
+  "payload_type": "occurrence"
+}

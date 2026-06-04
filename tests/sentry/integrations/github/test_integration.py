@@ -1,0 +1,2286 @@
+from __future__ import annotations
+
+from dataclasses import asdict
+from datetime import datetime, timezone
+from typing import Any
+from unittest import mock
+from unittest.mock import patch
+from urllib.parse import urlencode
+
+import orjson
+import pytest
+import responses
+from django.urls import reverse
+
+import sentry
+from sentry.constants import ObjectStatus
+from sentry.integrations.github import client
+from sentry.integrations.github.client import (
+    MINIMUM_REQUESTS,
+    GitHubApiClient,
+    GithubSetupApiClient,
+)
+from sentry.integrations.github.integration import (
+    API_ERRORS,
+    GitHubInstallationError,
+    GitHubIntegration,
+    GitHubIntegrationProvider,
+    _get_eligible_multi_org_installations,
+    _get_owner_github_organizations,
+)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
+from sentry.integrations.types import ExternalProviders
+from sentry.models.project import Project
+from sentry.models.repository import Repository
+from sentry.plugins.base import plugins
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.utils.cache import cache
+
+_ = sentry
+
+TREE_RESPONSES = {
+    "xyz": {"status_code": 200, "body": {"tree": [{"path": "src/xyz.py", "type": "blob"}]}},
+    "foo": {
+        "status_code": 200,
+        "body": {
+            # The latest sha for a specific branch
+            "sha": "a4e587563cb5dbb46192b5962cbadc8c532a8455",
+            "tree": [
+                {
+                    "path": ".artifacts",
+                    "mode": "040000",
+                    "type": "tree",  # A directory
+                    "sha": "44813f92a105143eff565d14d2054c2ea90eb62e",
+                    "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/44813f92a105143eff565d14d2054c2ea90eb62e",
+                },
+                {
+                    "path": "src/sentry/api/endpoints/auth_login.py",
+                    "mode": "100644",
+                    "type": "blob",  # A file
+                    "sha": "517899e22ada047336cab4ecbbf8c27b151f190c",
+                    "size": 2711,
+                    "url": "https://api.github.com/repos/Test-Organization/foo/git/blobs/517899e22ada047336cab4ecbbf8c27b151f190c",
+                },
+            ],
+            "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/a4e587563cb5dbb46192b5962cbadc8c532a8455",
+            "truncated": False,  # If this is True, we have reached the limit of what we can get with the recursive option
+        },
+    },
+    "bar": {
+        "status_code": 409,
+        "body": {"message": "Git Repository is empty."},
+    },
+    "baz": {
+        "status_code": 404,
+        "body": {"message": "Not Found"},
+    },
+}
+
+
+class GitHubPlugin(IssueTrackingPlugin2):
+    slug = "github"
+    name = "GitHub Mock Plugin"
+    conf_key = slug
+
+
+@control_silo_test
+class GitHubIntegrationTest(IntegrationTestCase):
+    provider = GitHubIntegrationProvider
+    base_url = "https://api.github.com"
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.installation_id = "install_1"
+        self.user_id = "user_1"
+        self.app_id = "app_1"
+        self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        self.expires_at = "3000-01-01T00:00:00Z"
+
+        self._stub_github()
+        plugins.register(GitHubPlugin)
+
+    def tearDown(self) -> None:
+        responses.reset()
+        plugins.unregister(GitHubPlugin)
+        super().tearDown()
+
+    def _setup_assignee_sync_test(
+        self,
+        user_email: str = "foo@example.com",
+        external_name: str = "@octocat",
+        external_id: str = "octocat",
+        issue_key: str = "Test-Organization/foo#123",
+        create_external_user: bool = True,
+    ) -> tuple:
+        """
+        Common setup for assignee sync tests.
+
+        Returns:
+            tuple: (user, installation, external_issue, integration, group)
+        """
+        user = serialize_rpc_user(self.create_user(email=user_email))
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        integration.metadata.update(
+            {
+                "access_token": self.access_token,
+                "expires_at": self.expires_at,
+            }
+        )
+        integration.save()
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        group = self.create_group()
+
+        if create_external_user:
+            self.create_external_user(
+                user=user,
+                organization=self.organization,
+                integration=integration,
+                provider=ExternalProviders.GITHUB.value,
+                external_name=external_name,
+                external_id=external_id,
+            )
+
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key=issue_key,
+        )
+
+        return user, installation, external_issue, integration, group
+
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt(self):
+        with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
+            yield
+
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt_function(self):
+        with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
+            yield
+
+    def _stub_github(self):
+        """This stubs the calls related to a Github App"""
+        self.gh_org = "Test-Organization"
+        pp = 1
+
+        access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        responses.add(
+            responses.POST,
+            "https://github.com/login/oauth/access_token",
+            body=f"access_token={access_token}",
+        )
+
+        responses.add(responses.GET, self.base_url + "/user", json={"login": "octocat"})
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={
+                "token": self.access_token,
+                "expires_at": self.expires_at,
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+                "repository_selection": "all",
+            },
+        )
+
+        repositories: dict[str, Any] = {
+            "xyz": {
+                "id": 1234567,
+                "name": "xyz",
+                "full_name": "Test-Organization/xyz",
+                "default_branch": "master",
+            },
+            "foo": {
+                "id": 1296269,
+                "name": "foo",
+                "full_name": "Test-Organization/foo",
+                "default_branch": "master",
+            },
+            "bar": {
+                "id": 9876574,
+                "name": "bar",
+                "full_name": "Test-Organization/bar",
+                "default_branch": "main",
+            },
+            "baz": {
+                "id": 1276555,
+                "name": "baz",
+                "full_name": "Test-Organization/baz",
+                "default_branch": "master",
+            },
+            "archived": {
+                "id": 9999999,
+                "name": "archived",
+                "full_name": "Test-Organization/archived",
+                "archived": True,
+            },
+        }
+        self.repositories = repositories
+        len_repos = len(repositories)
+        api_url = f"{self.base_url}/installation/repositories"
+        first = f'<{api_url}?per_page={pp}&page=1>; rel="first"'
+        last = f'<{api_url}?per_page={pp}&page={len_repos}>; rel="last"'
+
+        def gen_link(page: int, text: str) -> str:
+            return f'<{api_url}?per_page={pp}&page={page}>; rel="{text}"'
+
+        responses.add(
+            responses.GET,
+            url=api_url,
+            match=[responses.matchers.query_param_matcher({"per_page": pp})],
+            json={"total_count": len_repos, "repositories": [repositories["foo"]]},
+            headers={"link": ", ".join([gen_link(2, "next"), last])},
+        )
+        responses.add(
+            responses.GET,
+            url=self.base_url + "/installation/repositories",
+            match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 2})],
+            json={"total_count": len_repos, "repositories": [repositories["bar"]]},
+            headers={"link": ", ".join([gen_link(1, "prev"), gen_link(3, "next"), last, first])},
+        )
+        responses.add(
+            responses.GET,
+            url=self.base_url + "/installation/repositories",
+            match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 3})],
+            json={"total_count": len_repos, "repositories": [repositories["baz"]]},
+            headers={"link": ", ".join([gen_link(2, "prev"), first])},
+        )
+        # This is for when we're not testing the pagination logic
+        responses.add(
+            responses.GET,
+            url=self.base_url + "/installation/repositories",
+            match=[responses.matchers.query_param_matcher({"per_page": 100})],
+            json={
+                "total_count": len(repositories),
+                "repositories": [repo for repo in repositories.values()],
+            },
+        )
+
+        responses.add(
+            responses.GET,
+            self.base_url + f"/app/installations/{self.installation_id}",
+            json={
+                "id": self.installation_id,
+                "app_id": self.app_id,
+                "account": {
+                    "id": 60591805,
+                    "login": "Test Organization",
+                    "avatar_url": "http://example.com/avatar.png",
+                    "html_url": "https://github.com/Test-Organization",
+                    "type": "Organization",
+                },
+            },
+        )
+
+        responses.add(responses.GET, self.base_url + "/repos/Test-Organization/foo/hooks", json=[])
+
+        # Mock response from GH /users/memberships endpoint
+        # (what is this user's role in each org, with this integration installed on)
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/memberships/orgs",
+            json=[
+                {
+                    "state": "active",
+                    "role": "admin",
+                    "organization": {
+                        "login": "santry",
+                        "id": 1,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-adding-bugs-to-the-code.gif",
+                    },
+                },
+                {
+                    "state": "disabled",
+                    "role": "admin",
+                    "organization": {
+                        "login": "bufo-bot",
+                        "id": 2,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-achieving-coding-flow.png",
+                    },
+                },
+                {
+                    "state": "active",
+                    "role": "member",
+                    "organization": {
+                        "login": "poggers-org",
+                        "id": 3,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-bonk.png",
+                    },
+                },
+            ],
+        )
+
+        # Logic to get a tree for a repo
+        # https://api.github.com/repos/getsentry/sentry/git/trees/master?recursive=1
+        for repo_name, values in TREE_RESPONSES.items():
+            responses.add(
+                responses.GET,
+                f"{self.base_url}/repos/Test-Organization/{repo_name}/git/trees/{repositories[repo_name]['default_branch']}?recursive=1",
+                json=values["body"],
+                status=values["status_code"],
+            )
+
+    def _setup_with_existing_installations(self):
+        self.installation_info = {
+            "installations": [
+                {
+                    "id": 1,
+                    "target_type": "Organization",
+                    "account": {
+                        "login": "santry",
+                        "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                    },
+                },
+                {
+                    "id": 2,
+                    "target_type": "User",
+                    "account": {
+                        "login": "bufo-bot",
+                        "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                    },
+                },
+            ]
+        }
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/installations",
+            json=self.installation_info,
+        )
+
+    def assert_setup_flow(self):
+        """Create the Integration and OrganizationIntegration directly via ORM,
+        matching what the pipeline would have produced."""
+        integration = Integration.objects.create(
+            provider=self.provider.key,
+            external_id=self.installation_id,
+            name="Test Organization",
+            metadata={
+                "access_token": self.access_token,
+                "expires_at": self.expires_at[:-1],
+                "icon": "http://example.com/avatar.png",
+                "domain_name": "github.com/Test-Organization",
+                "account_type": "Organization",
+                "account_id": 60591805,
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+            },
+        )
+        integration.add_organization(self.organization)
+        return integration
+
+    @responses.activate
+    def test_plugin_migration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            accessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+            )
+
+            inaccessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Not-My-Org/other",
+                provider="github",
+                external_id=321,
+                config={"name": "Not-My-Org/other"},
+            )
+
+        integration = self.assert_setup_flow()
+
+        with self.tasks():
+            GitHubIntegrationProvider().post_install(
+                integration=integration,
+                organization=self.organization,
+                extra={"app_id": self.app_id},
+            )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            # Updates the existing Repository to belong to the new Integration
+            assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
+            # Doesn't touch Repositories not accessible by the new Integration
+            assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
+
+    @responses.activate
+    def test_disable_plugin_when_fully_migrated(self) -> None:
+        self._stub_github()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            project = Project.objects.create(organization_id=self.organization.id)
+
+            plugin = plugins.get("github")
+            plugin.enable(project)
+
+            # Accessible to new Integration - mocked in _stub_github
+            Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="github",
+                external_id="123",
+                config={"name": "Test-Organization/foo"},
+            )
+
+        # Enabled before
+        assert "github" in [p.slug for p in plugins.for_project(project)]
+
+        integration = self.assert_setup_flow()
+
+        with self.tasks():
+            GitHubIntegrationProvider().post_install(
+                integration=integration,
+                organization=self.organization,
+                extra={"app_id": self.app_id},
+            )
+
+        # Disabled after Integration installed
+        assert "github" not in [p.slug for p in plugins.for_project(project)]
+
+    @responses.activate
+    def test_get_repositories_search_param(self) -> None:
+        with self.tasks():
+            self.assert_setup_flow()
+
+        querystring = urlencode({"q": "fork:true org:Test Organization ex"})
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/search/repositories?{querystring}",
+            json={
+                "items": [
+                    {
+                        "id": 10,
+                        "name": "example",
+                        "full_name": "test/example",
+                        "default_branch": "master",
+                    },
+                    {
+                        "id": 11,
+                        "name": "exhaust",
+                        "full_name": "test/exhaust",
+                        "default_branch": "master",
+                    },
+                ]
+            },
+        )
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        # This searches for any repositories matching the term 'ex'
+        result = installation.get_repositories("ex")
+        assert result == [
+            {
+                "identifier": "test/example",
+                "name": "example",
+                "external_id": "10",
+                "default_branch": "master",
+            },
+            {
+                "identifier": "test/exhaust",
+                "name": "exhaust",
+                "external_id": "11",
+                "default_branch": "master",
+            },
+        ]
+
+    @responses.activate
+    def test_get_repositories_accessible_only(self) -> None:
+        """accessible_only+query filters cached repo list locally."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        result = installation.get_repositories("foo", accessible_only=True)
+        assert result == [
+            {
+                "name": "foo",
+                "identifier": "Test-Organization/foo",
+                "external_id": "1296269",
+                "default_branch": "master",
+            },
+        ]
+
+    @responses.activate
+    def test_get_repositories_accessible_only_no_match(self) -> None:
+        """accessible_only+query with no matching repos returns empty list."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        result = installation.get_repositories("nonexistent", accessible_only=True)
+        assert result == []
+
+    @responses.activate
+    def test_get_repositories_accessible_only_caches_repos(self) -> None:
+        """Second accessible_only call uses cached repos instead of re-fetching from GitHub."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        # First call: cache miss, fetches /installation/repositories
+        result1 = installation.get_repositories("foo", accessible_only=True, use_cache=True)
+        install_repo_calls = [
+            c for c in responses.calls if "/installation/repositories" in c.request.url
+        ]
+        first_fetch_count = len(install_repo_calls)
+        assert first_fetch_count > 0
+
+        # Second call: cache hit, no new /installation/repositories calls
+        result2 = installation.get_repositories("foo", accessible_only=True, use_cache=True)
+        install_repo_calls = [
+            c for c in responses.calls if "/installation/repositories" in c.request.url
+        ]
+        assert len(install_repo_calls) == first_fetch_count
+        assert result1 == result2
+
+    @responses.activate
+    def test_get_repositories_all_and_pagination(self) -> None:
+        """Fetch all repositories and test the pagination logic."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        with patch.object(client.GitHubBaseClient, "page_size", 1):
+            result = installation.get_repositories()
+            assert result == [
+                {
+                    "name": "foo",
+                    "identifier": "Test-Organization/foo",
+                    "external_id": "1296269",
+                    "default_branch": "master",
+                },
+                {
+                    "name": "bar",
+                    "identifier": "Test-Organization/bar",
+                    "external_id": "9876574",
+                    "default_branch": "main",
+                },
+                {
+                    "name": "baz",
+                    "identifier": "Test-Organization/baz",
+                    "external_id": "1276555",
+                    "default_branch": "master",
+                },
+            ]
+
+    @responses.activate
+    def test_get_repositories_only_first_page(self) -> None:
+        """Fetch all repositories and test the pagination logic."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        with (
+            patch.object(client.GitHubBaseClient, "page_number_limit", 1),
+            patch.object(client.GitHubBaseClient, "page_size", 1),
+        ):
+            result = installation.get_repositories()
+            assert result == [
+                {
+                    "name": "foo",
+                    "identifier": "Test-Organization/foo",
+                    "external_id": "1296269",
+                    "default_branch": "master",
+                },
+            ]
+
+    @responses.activate
+    def test_get_stacktrace_link_file_exists(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        path = "README.md"
+        version = "1234567"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+        )
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert result == "https://github.com/Test-Organization/foo/blob/1234567/README.md"
+
+    @responses.activate
+    def test_get_stacktrace_link_file_doesnt_exists(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        path = "README.md"
+        version = "master"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert not result
+
+    @responses.activate
+    def test_get_stacktrace_link_use_default_if_version_404(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        path = "README.md"
+        version = "12345678"
+        default = "master"
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
+            status=404,
+        )
+        responses.add(
+            responses.HEAD,
+            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
+        )
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        result = installation.get_stacktrace_link(repo, path, default, version)
+
+        assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
+
+    @responses.activate
+    def test_get_message_from_error(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        base_error = f"Error Communicating with GitHub (HTTP 404): {API_ERRORS[404]}"
+        assert (
+            installation.message_from_error(
+                ApiError("Not Found", code=404, url="https://api.github.com/repos/scefali")
+            )
+            == base_error
+        )
+        url = "https://api.github.com/repos/scefali/sentry-integration-example/compare/2adcab794f6f57efa8aa84de68a724e728395792...e208ee2d71e8426522f95efbdae8630fa66499ab"
+        assert (
+            installation.message_from_error(ApiError("Not Found", code=404, url=url))
+            == base_error
+            + f" Please also confirm that the commits associated with the following URL have been pushed to GitHub: {url}"
+        )
+
+    def set_rate_limit(
+        self, remaining=MINIMUM_REQUESTS + 100, limit=5000, json_body=None, status=200
+    ):
+        """Helper class to set the rate limit.
+        A status code different than 200 requires a json_body
+        """
+        response_json = (
+            json_body
+            if status != 200
+            else {
+                "resources": {
+                    "core": {"limit": limit, "remaining": remaining, "used": "foo", "reset": 123},
+                    "graphql": {
+                        "limit": limit,
+                        "remaining": remaining,
+                        "used": "foo",
+                        "reset": 123,
+                    },
+                }
+            }
+        )
+        # upsert: it calls add() if not existant, otherwise, it calls replace
+        responses.upsert(
+            responses.GET, "https://api.github.com/rate_limit", json=response_json, status=status
+        )
+
+    def get_installation_helper(self) -> GitHubIntegration:
+        with self.tasks():
+            self.assert_setup_flow()  # This somehow creates the integration
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        return installation
+
+    def _expected_trees(self, repo_info_list=None):
+        result = {}
+        repo_ids = {"xyz": "1234567", "foo": "1296269", "bar": "9876574", "baz": "1276555"}
+        # bar (409 empty repo) returns an empty RepoTree since we cache the result
+        # baz (404) also returns an empty RepoTree because we cache not-found outcomes
+        list = repo_info_list or [
+            ("xyz", "master", ["src/xyz.py"]),
+            ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+            ("bar", "main", []),
+            ("baz", "master", []),
+        ]
+        for repo, branch, files in list:
+            result[f"{self.gh_org}/{repo}"] = RepoTree(
+                RepoAndBranch(f"{self.gh_org}/{repo}", branch, str(repo_ids.get(repo, ""))), files
+            )
+        return result
+
+    def _expected_cached_repos(self):
+        return [
+            {
+                "full_name": f"{self.gh_org}/xyz",
+                "default_branch": "master",
+                "external_id": "1234567",
+            },
+            {
+                "full_name": f"{self.gh_org}/foo",
+                "default_branch": "master",
+                "external_id": "1296269",
+            },
+            {"full_name": f"{self.gh_org}/bar", "default_branch": "main", "external_id": "9876574"},
+            {
+                "full_name": f"{self.gh_org}/baz",
+                "default_branch": "master",
+                "external_id": "1276555",
+            },
+        ]
+
+    @responses.activate
+    def test_get_trees_for_org_works(self) -> None:
+        """Fetch the tree representation of a repo"""
+        installation = self.get_installation_helper()
+        cache.clear()
+        self.set_rate_limit()
+        expected_trees = self._expected_trees()
+        repos_key = f"githubtrees:repositories:{self.organization.id}"
+        repo_key = lambda x: f"github:repo:Test-Organization/{x}:source-code"
+        # Check that the cache is clear
+        assert cache.get(repos_key) is None
+        assert cache.get(repo_key("foo")) is None
+
+        trees = installation.get_trees_for_org()
+
+        assert cache.get(repos_key) == self._expected_cached_repos()
+        assert cache.get(repo_key("foo")) == ["src/sentry/api/endpoints/auth_login.py"]
+        assert trees == expected_trees
+
+        # Calling a second time should produce the same results
+        trees = installation.get_trees_for_org()
+        assert trees == expected_trees
+
+    @responses.activate
+    def test_get_trees_for_org_prevent_exhaustion_some_repos(self) -> None:
+        """Some repos will hit the network but the rest will grab from the cache."""
+        repos_key = f"githubtrees:repositories:{self.organization.id}"
+        cache.clear()
+        installation = self.get_installation_helper()
+        expected_trees = self._expected_trees(
+            [
+                ("xyz", "master", ["src/xyz.py"]),
+                # foo will have no files because we will hit the minimum remaining requests floor
+                ("foo", "master", []),
+                ("bar", "main", []),
+                ("baz", "master", []),
+            ]
+        )
+
+        with patch(
+            "sentry.integrations.source_code_management.repo_trees.MINIMUM_REQUESTS_REMAINING",
+            new=5,
+            autospec=False,
+        ):
+            # We start with one request left before reaching the minimum remaining requests floor
+            self.set_rate_limit(remaining=6)
+            assert cache.get(repos_key) is None
+            trees = installation.get_trees_for_org()
+
+            assert trees == expected_trees
+            assert cache.get(repos_key) == self._expected_cached_repos()
+
+            # Another call should not make us loose the files for xyz
+            self.set_rate_limit(remaining=5)
+            trees = installation.get_trees_for_org()
+            assert trees == expected_trees  # xyz will have files but not foo
+
+            # We reset the remaining values
+            self.set_rate_limit(remaining=20)
+            trees = installation.get_trees_for_org()
+            assert trees == self._expected_trees(
+                [
+                    ("xyz", "master", ["src/xyz.py"]),
+                    # Now that the rate limit is reset we should get files for foo
+                    ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                    ("bar", "main", []),
+                    ("baz", "master", []),
+                ]
+            )
+
+    @responses.activate
+    def test_get_trees_for_org_rate_limit_401(self) -> None:
+        """Sometimes the rate limit API fails from the get go."""
+        # Generic test set up
+        cache.clear()  # TODO: Investigate why it did not work in the setUp method
+        installation = self.get_installation_helper()
+
+        # None of the repos will have any files since rate limit will fail
+        # with a 401 response (which makes no sense)
+        self.set_rate_limit(json_body={"message": "Bad credentials"}, status=401)
+        trees = installation.get_trees_for_org()
+        assert trees == self._expected_trees(
+            [
+                ("xyz", "master", []),
+                ("foo", "master", []),
+                ("bar", "main", []),
+                ("baz", "master", []),
+            ]
+        )
+
+        # This time the rate limit will not fail, thus, it will fetch the trees
+        # bar (409 empty repo) now returns an empty RepoTree since we cache the empty result
+        self.set_rate_limit()
+        trees = installation.get_trees_for_org()
+        assert trees == self._expected_trees(
+            [
+                ("xyz", "master", ["src/xyz.py"]),
+                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                ("bar", "main", []),
+                ("baz", "master", []),
+            ]
+        )
+
+        # This time we will get a 401 but be will load from the cache (unlike the first time)
+        self.set_rate_limit(json_body={"message": "Bad credentials"}, status=401)
+        trees = installation.get_trees_for_org()
+        assert trees == self._expected_trees(
+            [
+                ("xyz", "master", ["src/xyz.py"]),
+                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                ("bar", "main", []),
+                ("baz", "master", []),
+            ]
+        )
+
+    @responses.activate
+    def test_get_trees_for_org_makes_API_requests_before_MAX_CONNECTION_ERRORS_is_hit(self) -> None:
+        """
+        If some requests fail, but `MAX_CONNECTION_ERRORS` isn't hit, requests will continue
+        to be made to the API.
+        """
+        installation = self.get_installation_helper()
+        self.set_rate_limit()
+
+        # Given that below we mock MAX_CONNECTION_ERRORS to be 2, the error we hit here
+        # should NOT force the remaining repos to pull from the cache.
+        responses.replace(
+            responses.GET,
+            f"{self.base_url}/repos/Test-Organization/xyz/git/trees/master?recursive=1",
+            body=ApiError("Server Error"),
+        )
+
+        # Clear the cache so we can tell when we're pulling from it rather than from an
+        # API call
+        cache.clear()
+
+        with patch(
+            "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
+            new=2,
+        ):
+            trees = installation.get_trees_for_org()
+            assert trees == self._expected_trees(
+                [
+                    # xyz is missing because its request errors
+                    # foo has data because its API request is made in spite of xyz's error
+                    ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                    # bar (409 empty repo) and baz (404) are present with empty files
+                    # since both outcomes are cached
+                    ("bar", "main", []),
+                    ("baz", "master", []),
+                ]
+            )
+
+    @responses.activate
+    def test_get_trees_for_org_falls_back_to_cache_once_MAX_CONNECTION_ERRORS_is_hit(self) -> None:
+        """Once `MAX_CONNECTION_ERRORS` requests fail, the rest will grab from the cache."""
+        installation = self.get_installation_helper()
+        self.set_rate_limit()
+
+        # Given that below we mock MAX_CONNECTION_ERRORS to be 1, the error we hit here
+        # should force the remaining repos to pull from the cache.
+        responses.replace(
+            responses.GET,
+            f"{self.base_url}/repos/Test-Organization/xyz/git/trees/master?recursive=1",
+            body=ApiError("Server Error"),
+        )
+
+        # Clear the cache so we can tell when we're pulling from it rather than from an
+        # API call
+        cache.clear()
+
+        with patch(
+            "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
+            new=1,
+        ):
+            trees = installation.get_trees_for_org()
+            assert trees == self._expected_trees(
+                [
+                    # xyz isn't here because the request errors out.
+                    # foo, bar, and baz are here but have no files, because xyz's error
+                    # caused us to pull from the empty cache
+                    ("foo", "master", []),
+                    ("bar", "main", []),
+                    ("baz", "master", []),
+                ]
+            )
+
+    @responses.activate
+    def test_get_commit_context_all_frames(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        self.set_rate_limit()
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        file = SourceLineInfo(
+            path="src/github.py",
+            lineno=10,
+            ref="master",
+            repo=repo,
+            code_mapping=None,  # type: ignore[arg-type]
+        )
+
+        responses.add(
+            responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": {
+                    "repository0": {
+                        "ref0": {
+                            "target": {
+                                "blame0": {
+                                    "ranges": [
+                                        {
+                                            "commit": {
+                                                "oid": "123",
+                                                "author": {
+                                                    "name": "Foo",
+                                                    "email": "foo@example.com",
+                                                },
+                                                "message": "hello",
+                                                "committedDate": "2023-01-01T00:00:00Z",
+                                            },
+                                            "startingLine": 10,
+                                            "endingLine": 15,
+                                            "age": 0,
+                                        },
+                                    ]
+                                },
+                            }
+                        }
+                    }
+                }
+            },
+            content_type="application/json",
+            status=200,
+        )
+
+        response = installation.get_commit_context_all_frames([file], extra={})
+
+        assert response == [
+            FileBlameInfo(
+                **asdict(file),
+                commit=CommitInfo(
+                    commitId="123",
+                    commitMessage="hello",
+                    committedDate=datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    commitAuthorEmail="foo@example.com",
+                    commitAuthorName="Foo",
+                ),
+            )
+        ]
+
+    @responses.activate
+    def test_source_url_matches(self) -> None:
+        installation = self.get_installation_helper()
+
+        test_cases = [
+            (
+                "https://github.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
+                True,
+            ),
+            (
+                "https://notgithub.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
+                False,
+            ),
+            ("https://jianyuan.io", False),
+        ]
+        for source_url, matches in test_cases:
+            assert installation.source_url_matches(source_url) == matches
+
+    @responses.activate
+    def test_extract_branch_from_source_url(self) -> None:
+        installation = self.get_installation_helper()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://github.com/Test-Organization/repo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://github.com/Test-Organization/repo/blob/master/src/sentry/integrations/github/integration.py"
+
+        assert installation.extract_branch_from_source_url(repo, source_url) == "master"
+
+    @responses.activate
+    def test_extract_source_path_from_source_url(self) -> None:
+        installation = self.get_installation_helper()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/repo",
+                url="https://github.com/Test-Organization/repo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/repo"},
+                integration_id=integration.id,
+            )
+        source_url = "https://github.com/Test-Organization/repo/blob/master/src/sentry/integrations/github/integration.py"
+
+        assert (
+            installation.extract_source_path_from_source_url(repo, source_url)
+            == "src/sentry/integrations/github/integration.py"
+        )
+
+    @responses.activate
+    def test_get_stacktrace_link_with_special_chars(self) -> None:
+        """Test that URLs with special characters (like square brackets) are properly encoded"""
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        filepath = "src/components/[id]/test.py"
+        branch = "master"
+        responses.add(
+            responses.HEAD,
+            f"{self.base_url}/repos/{repo.name}/contents/{filepath}?ref={branch}",
+        )
+        source_url = installation.get_stacktrace_link(repo, filepath, branch, branch)
+        assert (
+            source_url
+            == "https://github.com/Test-Organization/foo/blob/master/src/components/%5Bid%5D/test.py"
+        )
+
+    @responses.activate
+    def test_get_stacktrace_link_avoid_double_quote(self) -> None:
+        """Test that URLs with special characters (like square brackets) are properly encoded"""
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        filepath = "src/components/test%20id/test.py"
+        branch = "master"
+        responses.add(
+            responses.HEAD,
+            f"{self.base_url}/repos/{repo.name}/contents/{filepath}?ref={branch}",
+        )
+        source_url = installation.get_stacktrace_link(repo, filepath, branch, branch)
+        assert (
+            source_url
+            == "https://github.com/Test-Organization/foo/blob/master/src/components/test%20id/test.py"
+        )
+
+    @responses.activate
+    def test_get_account_id(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        assert installation.get_account_id() == 60591805
+
+    @responses.activate
+    def test_get_account_id_backfill_missing(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        del integration.metadata["account_id"]
+        integration.save()
+
+        integration_id = integration.id
+
+        # Checking that the account_id doesn't exist before we "backfill" it
+        integration = Integration.objects.get(id=integration_id)
+        assert integration.metadata.get("account_id") is None
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        assert installation.get_account_id() == 60591805
+
+        integration = Integration.objects.get(id=integration_id)
+        assert integration.metadata["account_id"] == 60591805
+
+    @with_feature("organizations:integrations-scm-multi-org")
+    @responses.activate
+    def test_github_installation_gets_owner_orgs(self) -> None:
+        self._setup_with_existing_installations()
+        client = GithubSetupApiClient(self.access_token)
+
+        owner_orgs = _get_owner_github_organizations(client)
+
+        assert owner_orgs == ["santry"]
+
+    @with_feature("organizations:integrations-scm-multi-org")
+    @responses.activate
+    def test_github_installation_filters_valid_installations(self) -> None:
+        self._setup_with_existing_installations()
+        client = GithubSetupApiClient(self.access_token)
+
+        owner_orgs = _get_owner_github_organizations(client)
+        assert owner_orgs == ["santry"]
+
+        installation_info = _get_eligible_multi_org_installations(client, owner_orgs)
+
+        assert installation_info == [
+            {
+                "installation_id": "1",
+                "github_account": "santry",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+            },
+            {
+                "installation_id": "2",
+                "github_account": "bufo-bot",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+            },
+        ]
+
+    @responses.activate
+    def test_get_organization_config(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        fields = installation.get_organization_config()
+
+        assert [field["name"] for field in fields] == [
+            "sync_status_forward",
+            "sync_status_reverse",
+            "sync_reverse_assignment",
+            "sync_forward_assignment",
+            "resolution_strategy",
+            "sync_comments",
+            "pr_comments",
+            "nudge_invite",
+        ]
+        # PR-comment / nudge-invite must never be disabled by the
+        # integrations-issue-sync gating.
+        for field in fields:
+            if field["name"] in ("pr_comments", "nudge_invite"):
+                assert "disabled" not in field
+
+    @responses.activate
+    def test_update_organization_config(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        # Initial config should be empty
+        assert org_integration.config == {}
+
+        # Update configuration
+        data = {"sync_reverse_assignment": True, "other_option": "test_value"}
+        installation.update_organization_config(data)
+
+        # Refresh from database
+        org_integration.refresh_from_db()
+
+        # Check that config was updated
+        assert org_integration.config["sync_reverse_assignment"] is True
+        assert org_integration.config["other_option"] == "test_value"
+
+    @responses.activate
+    def test_update_organization_config_preserves_existing(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        org_integration.config = {
+            "existing_key": "existing_value",
+            "sync_reverse_assignment": False,
+        }
+        org_integration.save()
+
+        # Update configuration with new data
+        data = {"sync_reverse_assignment": True, "new_key": "new_value"}
+        installation.update_organization_config(data)
+
+        org_integration.refresh_from_db()
+
+        # Check that config was updated and existing keys preserved
+        assert org_integration.config["existing_key"] == "existing_value"
+        assert org_integration.config["sync_reverse_assignment"] is True
+        assert org_integration.config["new_key"] == "new_value"
+
+    @responses.activate
+    def test_update_organization_config_no_org_integration(self) -> None:
+        # Create integration without organization integration
+        integration = self.create_provider_integration(
+            provider="github",
+            external_id="test_external_id",
+            metadata={
+                "access_token": self.access_token,
+                "expires_at": self.expires_at[:-1],
+                "icon": "http://example.com/avatar.png",
+                "domain_name": "github.com/Test-Organization",
+                "account_type": "Organization",
+            },
+        )
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        # update_organization_config should handle case where org_integration doesn't exist gracefully
+        # Based on the implementation, it returns early when org_integration is None
+        data = {"sync_reverse_assignment": True}
+
+        # The update_organization_config method checks for org_integration and returns early if it doesn't exist
+        # This shouldn't raise an error based on the implementation
+        try:
+            installation.update_organization_config(data)
+        except Exception:
+            # If an exception is raised, the method doesn't handle missing org_integration gracefully
+            pass
+
+        # No OrganizationIntegration should exist
+        assert not OrganizationIntegration.objects.filter(
+            integration=integration, organization_id=self.organization.id
+        ).exists()
+
+    @responses.activate
+    def test_sync_assignee_outbound(self) -> None:
+        """Test assigning a GitHub issue to a user with linked GitHub account"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test()
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"assignees": ["octocat"]},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.url == "https://api.github.com/repos/Test-Organization/foo/issues/123"
+        assert orjson.loads(request.body) == {"assignees": ["octocat"]}
+
+    @responses.activate
+    def test_sync_assignee_outbound_case_insensitive(self) -> None:
+        """Test assigning a GitHub issue to a user with linked GitHub account"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test(
+            external_name="@JohnDoe"
+        )
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"assignees": ["johndoe"]},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.url == "https://api.github.com/repos/Test-Organization/foo/issues/123"
+        assert orjson.loads(request.body) == {"assignees": ["johndoe"]}
+
+    @responses.activate
+    def test_sync_assignee_outbound_unassign(self) -> None:
+        """Test unassigning a GitHub issue"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test()
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"assignees": []},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_assignee_outbound(external_issue, user, assign=False)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert request.url == "https://api.github.com/repos/Test-Organization/foo/issues/123"
+        assert orjson.loads(request.body) == {"assignees": []}
+
+    @responses.activate
+    def test_sync_assignee_outbound_no_external_actor(self) -> None:
+        """Test that sync fails gracefully when user has no GitHub account linked"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test(
+            create_external_user=False
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_sync_assignee_outbound_invalid_key_format(self) -> None:
+        """Test that sync handles invalid external issue key format gracefully"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test(
+            issue_key="invalid-key-format"
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_sync_assignee_outbound_strips_at_symbol(self) -> None:
+        """Test that @ symbol is stripped from external_name when syncing"""
+
+        user, installation, external_issue, _, _ = self._setup_assignee_sync_test()
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"assignees": ["octocat"]},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_assignee_outbound(external_issue, user, assign=True)
+
+        assert len(responses.calls) == 1
+        request = responses.calls[0].request
+        assert orjson.loads(request.body) == {"assignees": ["octocat"]}
+
+    @responses.activate
+    def test_sync_assignee_outbound_with_none_user(self) -> None:
+        """Test that assigning with no user does not make an API call"""
+
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        integration.metadata.update(
+            {
+                "access_token": self.access_token,
+                "expires_at": self.expires_at,
+            }
+        )
+        integration.save()
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        group = self.create_group()
+
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key="Test-Organization/foo#123",
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_assignee_outbound(external_issue, None, assign=True)
+
+        # Should not make any API calls when user is None and assign=True
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_resolved(self) -> None:
+        """Test syncing resolved status to GitHub (close issue)."""
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="Test-Organization/foo#123",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="Test-Organization/foo",
+            resolved_status="closed",
+            unresolved_status="open",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "open", "number": 123},
+        )
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "closed", "number": 123},
+        )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_status_outbound(
+                external_issue, is_resolved=True, project_id=self.project.id
+            )
+
+        assert len(responses.calls) == 2
+        assert responses.calls[1].request.method == "PATCH"
+        request_body = orjson.loads(responses.calls[1].request.body)
+        assert request_body == {"state": "closed"}
+
+    @responses.activate
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_unresolved(self) -> None:
+        """Test syncing unresolved status to GitHub (reopen issue)."""
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="Test-Organization/foo#123",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="Test-Organization/foo",
+            resolved_status="closed",
+            unresolved_status="open",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "closed", "number": 123},
+        )
+
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "open", "number": 123},
+        )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_status_outbound(
+                external_issue, is_resolved=False, project_id=self.project.id
+            )
+
+        assert len(responses.calls) == 2
+        assert responses.calls[1].request.method == "PATCH"
+        request_body = orjson.loads(responses.calls[1].request.body)
+        assert request_body == {"state": "open"}
+
+    @responses.activate
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_unchanged(self) -> None:
+        """Test that no update is made when status is already in desired state."""
+
+        installation = self.integration.get_installation(self.organization.id)
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="Test-Organization/foo#123",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="Test-Organization/foo",
+            resolved_status="closed",
+            unresolved_status="open",
+        )
+
+        # Mock get issue to return closed status (already resolved)
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "closed", "number": 123},
+        )
+
+        # Test resolve when already closed - should not make update call
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_status_outbound(
+                external_issue, is_resolved=True, project_id=self.project.id
+            )
+
+        # Verify only GET was called, no PATCH
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.method == "GET"
+
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_no_external_project(self) -> None:
+        """Test that sync_status_outbound returns early if no external project mapping exists."""
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        # Create external issue without project mapping
+        with assume_test_silo_mode(SiloMode.CELL):
+            external_issue = self.create_integration_external_issue(
+                group=self.group,
+                integration=self.integration,
+                key="Test-Organization/foo#123",
+            )
+
+        # No responses needed - should return early
+        with assume_test_silo_mode(SiloMode.CELL):
+            # Should not raise an exception, just return early
+            installation.sync_status_outbound(
+                external_issue, is_resolved=True, project_id=self.project.id
+            )
+
+    @responses.activate
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_api_error_on_get(self) -> None:
+        """Test that API errors on get_issue are handled properly."""
+        from sentry.shared_integrations.exceptions import IntegrationError
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="Test-Organization/foo#123",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="Test-Organization/foo",
+            resolved_status="closed",
+            unresolved_status="open",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"message": "Not Found"},
+            status=404,
+        )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            with pytest.raises(IntegrationError):
+                installation.sync_status_outbound(
+                    external_issue, is_resolved=True, project_id=self.project.id
+                )
+
+    @responses.activate
+    @with_feature("organizations:integrations-github-outbound-status-sync")
+    def test_sync_status_outbound_api_error_on_update(self) -> None:
+        """Test that API errors on update_issue are handled properly."""
+        from sentry.shared_integrations.exceptions import IntegrationError
+
+        installation = self.integration.get_installation(self.organization.id)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            integration=self.integration,
+            key="Test-Organization/foo#123",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_id="Test-Organization/foo",
+            resolved_status="closed",
+            unresolved_status="open",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"state": "open", "number": 123},
+        )
+
+        # Mock update issue to return error
+        responses.add(
+            responses.PATCH,
+            "https://api.github.com/repos/Test-Organization/foo/issues/123",
+            json={"message": "Issues are disabled for this repo"},
+            status=410,
+        )
+
+        # Test that error is raised properly
+        with assume_test_silo_mode(SiloMode.CELL):
+            with pytest.raises(IntegrationError):
+                installation.sync_status_outbound(
+                    external_issue, is_resolved=True, project_id=self.project.id
+                )
+
+    def test_create_comment(self) -> None:
+        self.user.name = "Sentry Admin"
+        self.user.save()
+        installation = self.integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
+        group_note.data = {"text": comment}
+        with mock.patch.object(GitHubApiClient, "create_comment") as mock_create_comment:
+            installation.create_comment("Test-Organization/foo#123", self.user.id, group_note)
+            assert mock_create_comment.call_args[0][1] == "123"
+            assert mock_create_comment.call_args[0][2] == {
+                "body": "**Sentry Admin** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     Glad it's quoted"
+            }
+
+    def test_update_comment(self) -> None:
+        installation = self.integration.get_installation(self.organization.id)
+
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
+        group_note.data = {"text": comment, "external_id": "123"}
+        with mock.patch.object(GitHubApiClient, "update_comment") as mock_update_comment:
+            installation.update_comment("Test-Organization/foo#123", self.user.id, group_note)
+            assert mock_update_comment.call_args[0] == (
+                "Test-Organization/foo",
+                "123",
+                "123",
+                {
+                    "body": "**** wrote:\n\n> hello world\n> This is a comment.\n> \n> \n>     I've changed it"
+                },
+            )
+
+    @responses.activate
+    def test_get_debug_metadata(self) -> None:
+        installation = self.get_installation_helper()
+        metadata = installation.get_debug_metadata()
+
+        assert metadata == {
+            "account_type": "Organization",
+            "domain_name": "github.com/Test-Organization",
+            "permissions": {
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
+        }
+
+        del installation.model.metadata["permissions"]
+        metadata = installation.get_debug_metadata()
+        assert metadata == {
+            "account_type": "Organization",
+            "domain_name": "github.com/Test-Organization",
+            "permissions": None,
+        }
+
+
+@control_silo_test
+class GitHubPipelineAdvancerTest(IntegrationTestCase):
+    """Tests for PipelineAdvancerView behavior when GitHub redirects with setup_action=install.
+
+    This happens when a user installs the GitHub App directly from github.com
+    rather than from within Sentry's UI.
+    """
+
+    provider = GitHubIntegrationProvider
+
+    def _get_setup_install_url(self, installation_id: str = "12345") -> str:
+        return "{}?{}".format(
+            self.setup_path,
+            urlencode({"setup_action": "install", "installation_id": installation_id}),
+        )
+
+    def _get_expected_redirect(self, installation_id: str = "12345") -> str:
+        return reverse(
+            "sentry-integration-installation-link",
+            kwargs={"integration_slug": "github"},
+            query={"installationId": installation_id},
+        )
+
+    @responses.activate
+    def test_no_pipeline_redirects_to_org_picker(self) -> None:
+        """When there is no active pipeline, redirect to the org picker."""
+        # Clear the pipeline session that IntegrationTestCase.setUp created
+        self.session.clear()
+        self.save_session()
+
+        resp = self.client.get(self._get_setup_install_url())
+        assert resp.status_code == 302
+        assert resp["Location"] == self._get_expected_redirect()
+
+    @responses.activate
+    def test_api_pipeline_renders_trampoline(self) -> None:
+        """When an API pipeline is active, render the trampoline page. If the
+        popup has an opener it will postMessage back; if not (e.g. GitHub
+        direct install) the trampoline JS will redirect to the org picker."""
+        self.pipeline.set_api_mode()
+        self.save_session()
+
+        resp = self.client.get(self._get_setup_install_url())
+        assert resp.status_code == 200
+        assert b"window.opener" in resp.content
+        assert b'"/extensions/github/link/?installationId=12345"' in resp.content
+
+
+@control_silo_test
+class GitHubIntegrationApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    base_url = "https://api.github.com"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.installation_id = "install_1"
+        self.user_id = "user_1"
+        self.app_id = "app_1"
+        self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        self.expires_at = "3000-01-01T00:00:00Z"
+        self.login_as(self.user)
+        self._stub_github()
+
+    def tearDown(self) -> None:
+        responses.reset()
+        super().tearDown()
+
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt(self):
+        with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
+            yield
+
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt_function(self):
+        with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
+            yield
+
+    def _stub_github(self) -> None:
+        """Stubs GitHub API responses needed for the integration pipeline."""
+        self.gh_org = "Test-Organization"
+
+        responses.add(
+            responses.POST,
+            "https://github.com/login/oauth/access_token",
+            body=f"access_token={self.access_token}",
+        )
+        responses.add(responses.GET, self.base_url + "/user", json={"login": "octocat"})
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={
+                "token": self.access_token,
+                "expires_at": self.expires_at,
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+                "repository_selection": "all",
+            },
+        )
+
+        repositories: dict[str, Any] = {
+            "xyz": {
+                "id": 1234567,
+                "name": "xyz",
+                "full_name": "Test-Organization/xyz",
+                "default_branch": "master",
+            },
+            "foo": {
+                "id": 1296269,
+                "name": "foo",
+                "full_name": "Test-Organization/foo",
+                "default_branch": "master",
+            },
+        }
+
+        responses.add(
+            responses.GET,
+            url=self.base_url + "/installation/repositories",
+            json={
+                "total_count": len(repositories),
+                "repositories": list(repositories.values()),
+            },
+        )
+
+        responses.add(
+            responses.GET,
+            self.base_url + f"/app/installations/{self.installation_id}",
+            json={
+                "id": self.installation_id,
+                "app_id": self.app_id,
+                "account": {
+                    "id": 60591805,
+                    "login": "Test Organization",
+                    "avatar_url": "http://example.com/avatar.png",
+                    "html_url": "https://github.com/Test-Organization",
+                    "type": "Organization",
+                },
+            },
+        )
+
+        responses.add(responses.GET, self.base_url + "/repos/Test-Organization/foo/hooks", json=[])
+
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/memberships/orgs",
+            json=[
+                {
+                    "state": "active",
+                    "role": "admin",
+                    "organization": {
+                        "login": "santry",
+                        "id": 1,
+                        "avatar_url": "https://example.com/santry.png",
+                    },
+                },
+            ],
+        )
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        """POST action=initialize to start the pipeline, return the response."""
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "github"},
+            format="json",
+        )
+
+    def _get_step_info(self) -> Any:
+        """GET current step info."""
+        return self.client.get(self._get_pipeline_url())
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        """POST to advance the pipeline with step-specific data."""
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _get_pipeline_signature(self, init_resp: Any) -> str:
+        """Extract the pipeline signature (OAuth state) from an initialize response."""
+        return init_resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+
+    def _stub_user_installations(self, installations: list[dict[str, Any]] | None = None) -> None:
+        """Stub the GitHub /user/installations endpoint."""
+        if installations is None:
+            installations = [
+                {
+                    "id": self.installation_id,
+                    "target_type": "Organization",
+                    "account": {
+                        "login": "santry",
+                        "avatar_url": "https://example.com/santry.png",
+                    },
+                }
+            ]
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/installations",
+            json={"installations": installations},
+        )
+
+    def _complete_oauth_step(self, pipeline_signature: str, **extra: Any) -> Any:
+        """Submit the OAuth callback data to advance past the OAuth step."""
+        return self._advance_step(
+            {
+                "code": "12345678901234567890",
+                "state": pipeline_signature,
+                **extra,
+            }
+        )
+
+    def _advance_to_org_selection(self) -> str:
+        """Initialize pipeline and complete OAuth, returning the pipeline signature."""
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        self._stub_user_installations()
+
+        resp = self._complete_oauth_step(pipeline_signature)
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "org_selection"
+        return pipeline_signature
+
+    @responses.activate
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 2
+        assert resp.data["provider"] == "github"
+        assert "oauthUrl" in resp.data["data"]
+
+    @responses.activate
+    def test_get_oauth_step_info(self) -> None:
+        self._initialize_pipeline()
+        resp = self._get_step_info()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        assert "oauthUrl" in resp.data["data"]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert "github.com/login/oauth/authorize" in oauth_url
+        assert "client_id=" in oauth_url
+
+    @responses.activate
+    def test_oauth_step_advance(self) -> None:
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        self._stub_user_installations()
+
+        resp = self._complete_oauth_step(pipeline_signature)
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "org_selection"
+        assert resp.data["stepIndex"] == 1
+
+    @responses.activate
+    def test_oauth_step_invalid_state(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step(
+            {
+                "code": "12345678901234567890",
+                "state": "invalid_state_value",
+            }
+        )
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert GitHubInstallationError.INVALID_STATE in resp.data["data"]["detail"]
+
+    @responses.activate
+    def test_oauth_step_missing_fields(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({})
+        assert resp.status_code == 400
+
+    @responses.activate
+    def test_org_selection_get_with_installations(self) -> None:
+        self._advance_to_org_selection()
+        resp = self._get_step_info()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "org_selection"
+        data = resp.data["data"]
+        assert "installAppUrl" in data
+        assert "installationInfo" in data
+        assert len(data["installationInfo"]) > 0
+
+    @responses.activate
+    @with_feature("organizations:integrations-scm-multi-org")
+    def test_org_selection_choose_existing_installation(self) -> None:
+        self._advance_to_org_selection()
+
+        resp = self._advance_step(
+            {
+                "chosen_installation_id": self.installation_id,
+            }
+        )
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+    @responses.activate
+    @with_feature("organizations:integrations-scm-multi-org")
+    def test_org_selection_chosen_installation_blocked_by_pending_deletion(self) -> None:
+        """Choosing an existing installation should fail if there's a pending deletion."""
+        self._advance_to_org_selection()
+
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=self.installation_id,
+            metadata={"sender": {"login": "octocat"}},
+        )
+        oi = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+        oi.status = ObjectStatus.PENDING_DELETION
+        oi.save()
+
+        resp = self._advance_step(
+            {
+                "chosen_installation_id": self.installation_id,
+            }
+        )
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert GitHubInstallationError.PENDING_DELETION in resp.data["data"]["detail"]
+
+    @responses.activate
+    def test_org_selection_new_installation_from_popup(self) -> None:
+        """When user installs the app via the GitHub popup, installation_id comes in the POST."""
+        self._advance_to_org_selection()
+
+        resp = self._advance_step(
+            {
+                "installation_id": self.installation_id,
+            }
+        )
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+    @responses.activate
+    def test_full_api_pipeline_flow_new_installation(self) -> None:
+        """End-to-end: initialize -> OAuth -> skip org selection -> complete."""
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        self._stub_user_installations(installations=[])
+
+        resp = self._complete_oauth_step(pipeline_signature, installation_id=self.installation_id)
+        assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "org_selection"
+
+        resp = self._advance_step({"installation_id": self.installation_id})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="github")
+        assert integration.external_id == self.installation_id
+        assert integration.name == "Test Organization"
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    @responses.activate
+    @with_feature("organizations:integrations-scm-multi-org")
+    def test_full_api_pipeline_flow_existing_installation(self) -> None:
+        """End-to-end: initialize -> OAuth -> choose existing installation -> complete."""
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        self._stub_user_installations()
+
+        resp = self._complete_oauth_step(pipeline_signature)
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "org_selection"
+
+        resp = self._advance_step({"chosen_installation_id": self.installation_id})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="github")
+        assert integration.external_id == self.installation_id
+
+    @responses.activate
+    def test_oauth_exchange_failure(self) -> None:
+        """OAuth code exchange fails when GitHub returns no access_token."""
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        responses.replace(
+            responses.POST,
+            "https://github.com/login/oauth/access_token",
+            body="error=bad_verification_code",
+        )
+
+        resp = self._complete_oauth_step(pipeline_signature)
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+
+    @responses.activate
+    def test_org_selection_invalid_installation(self) -> None:
+        """Choosing an installation not in the user's list fails validation."""
+        self._advance_to_org_selection()
+
+        resp = self._advance_step(
+            {
+                "chosen_installation_id": "99999",
+            }
+        )
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+
+    @responses.activate
+    def test_initialize_with_installation_id_binds_to_state(self) -> None:
+        """When the GitHub app is installed from github.com the redirect
+        includes an installation_id. This verifies that passing it as
+        initialData during pipeline initialization binds it to pipeline
+        state so that subsequent steps can use it."""
+        resp = self.client.post(
+            self._get_pipeline_url(),
+            data={
+                "action": "initialize",
+                "provider": "github",
+                # The frontend sends installation_id as snake_case, which
+                # passes through CamelSnakeSerializer unchanged.
+                # TODO(epurkhiser): Change the frontend to send
+                # installationId (camelCase) once the API-driven github
+                # pipeline is fully rolled out and the legacy popup flow is
+                # removed.
+                "initialData": {"installation_id": self.installation_id},
+            },
+            format="json",
+        )
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+
+        # Verify installation_id was bound to the pipeline session
+        pipeline = IntegrationPipeline.get_for_request(resp.wsgi_request)
+        assert pipeline is not None
+        assert pipeline.fetch_state("installation_id") == self.installation_id

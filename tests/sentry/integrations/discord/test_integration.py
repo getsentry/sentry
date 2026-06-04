@@ -1,0 +1,539 @@
+from __future__ import annotations
+
+from typing import Any
+from unittest import mock
+from urllib.parse import parse_qs, urlparse
+
+import pytest
+import responses
+from django.urls import reverse
+from responses.matchers import header_matcher
+
+from sentry import options
+from sentry.integrations.discord.client import (
+    APPLICATION_COMMANDS_URL,
+    DISCORD_BASE_URL,
+    GUILD_URL,
+    DiscordClient,
+)
+from sentry.integrations.discord.integration import (
+    COMMANDS,
+    DiscordIntegration,
+    DiscordIntegrationProvider,
+)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.notifications.platform.discord.provider import DiscordRenderable
+from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationTargetResourceType,
+)
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationConfigurationError,
+    IntegrationError,
+)
+from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
+from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
+
+
+class DiscordIntegrationTest(IntegrationTestCase):
+    provider = DiscordIntegrationProvider
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application_id = "application-id"
+        self.public_key = "public-key"
+        self.bot_token = "bot-token"
+        self.client_secret = "client-secret"
+        options.set("discord.application-id", self.application_id)
+        options.set("discord.public-key", self.public_key)
+        options.set("discord.bot-token", self.bot_token)
+        options.set("discord.client-secret", self.client_secret)
+        self.token_url = f"{DISCORD_BASE_URL}/oauth2/token"
+        self.user_id = "user1234"
+        self.guild_id = "12345"
+        self.guild_name = "guild_name"
+
+    @responses.activate
+    def test_get_guild_name(self) -> None:
+        provider = self.provider()
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=self.guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json={
+                "id": self.guild_id,
+                "name": self.guild_name,
+            },
+        )
+        responses.add(
+            responses.POST,
+            url=self.token_url,
+            json={
+                "access_token": "access_token",
+            },
+        )
+        responses.add(
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": "user_1234"}
+        )
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={},
+        )
+
+        result = provider.build_integration({"guild_id": self.guild_id, "code": self.user_id})
+        assert result["name"] == self.guild_name
+
+    @responses.activate
+    def test_build_integration_no_code_in_state(self) -> None:
+        provider = self.provider()
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=self.guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json={
+                "id": self.guild_id,
+                "name": self.guild_name,
+            },
+        )
+        with pytest.raises(IntegrationError):
+            provider.build_integration({"guild_id": "guild_id", "code": ""})
+
+    @responses.activate
+    def test_get_guild_name_failure(self) -> None:
+        provider = self.provider()
+
+        (responses.add(responses.GET, f"{DISCORD_BASE_URL}/guilds/guild_name", status=500),)
+        responses.add(
+            responses.POST,
+            url=self.token_url,
+            json={
+                "access_token": "access_token",
+            },
+        )
+        responses.add(
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": self.user_id}
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={},
+        )
+
+        result = provider.build_integration({"guild_id": self.guild_id, "code": self.user_id})
+        assert result["name"] == self.guild_id
+
+    @responses.activate
+    def test_get_user_insufficient_permission(self) -> None:
+        provider = self.provider()
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=self.guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json={
+                "id": self.guild_id,
+                "name": self.guild_name,
+            },
+        )
+        responses.add(
+            responses.POST,
+            url=self.token_url,
+            json={
+                "access_token": "access_token",
+            },
+        )
+        responses.add(
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": self.user_id}
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={"code": 10004, "message": "Unknown guild"},
+            status=404,
+        )
+
+        with pytest.raises(IntegrationError):
+            provider.build_integration({"guild_id": self.guild_id, "code": self.user_id})
+
+    @responses.activate
+    def test_get_discord_user_id(self) -> None:
+        provider = self.provider()
+
+        responses.add(
+            responses.POST,
+            url=self.token_url,
+            json={
+                "access_token": "access_token",
+            },
+        )
+        responses.add(
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": self.user_id}
+        )
+
+        result = provider._get_discord_user_id("auth_code", "1")
+
+        assert result == self.user_id
+
+    @responses.activate
+    def test_get_discord_user_id_oauth_failure(self) -> None:
+        provider = self.provider()
+        responses.add(responses.POST, url=self.token_url, status=500)
+        with pytest.raises(IntegrationError):
+            provider._get_discord_user_id("auth_code", "1")
+
+    @responses.activate
+    def test_get_discord_user_id_oauth_no_token(self) -> None:
+        provider = self.provider()
+        responses.add(
+            responses.POST,
+            url=self.token_url,
+            json={},
+        )
+        with pytest.raises(IntegrationError):
+            provider._get_discord_user_id("auth_code", "1")
+
+    @responses.activate
+    def test_get_discord_user_id_request_fail(self) -> None:
+        provider = self.provider()
+        responses.add(
+            responses.POST,
+            url=self.token_url,
+            json={
+                "access_token": "access_token",
+            },
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me",
+            status=401,
+        )
+        with pytest.raises(IntegrationError):
+            provider._get_discord_user_id("auth_code", "1")
+
+    @responses.activate
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
+    def test_post_install(self, mock_set_application_command: mock.MagicMock) -> None:
+        provider = self.provider()
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json=[],
+        )
+        responses.add(
+            responses.POST,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            status=200,
+        )
+
+        provider.post_install(
+            integration=self.integration, organization=self.organization, extra={}
+        )
+        assert mock_set_application_command.call_count == 3  # one for each command
+
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
+    def test_post_install_missing_credentials(
+        self, mock_set_application_command: mock.MagicMock
+    ) -> None:
+        provider = self.provider()
+        provider.application_id = None
+        provider.post_install(
+            integration=self.integration, organization=self.organization, extra={}
+        )
+        assert mock_set_application_command.call_count == 0
+
+    @responses.activate
+    def test_set_commands_failure(self) -> None:
+        provider = self.provider()
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json=[],
+        )
+        responses.add(
+            responses.POST,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            body=ApiError("something wrong", 500),
+            status=500,
+        )
+        with pytest.raises(ApiError):
+            provider.post_install(
+                integration=self.integration, organization=self.organization, extra={}
+            )
+
+    @responses.activate
+    def test_get_commands_failure(self) -> None:
+        provider = self.provider()
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            body=ApiError("something wrong", 500),
+            status=500,
+        )
+        with pytest.raises(ApiError):
+            provider.post_install(
+                integration=self.integration, organization=self.organization, extra={}
+            )
+
+    def test_build_integration_invalid_guild_id(self) -> None:
+        provider = self.provider()
+
+        with pytest.raises(
+            IntegrationError,
+            match="Invalid guild ID. The Discord guild ID must be entirely numeric.",
+        ):
+            provider.build_integration(
+                {
+                    "guild_id": "123abc",  # Invalid guild ID (contains non-numeric characters)
+                    "code": "some_auth_code",
+                }
+            )
+
+
+@control_silo_test
+class DiscordIntegrationSendNotificationTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_provider_integration(
+            provider="discord", name="Discord", external_id="123456789"
+        )
+        self.installation = DiscordIntegration(self.integration, self.organization.id)
+        self.target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.DISCORD,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="987654321",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.send_message")
+    def test_send_notification_success(self, mock_send: mock.MagicMock) -> None:
+        payload: DiscordRenderable = {"content": "Test Discord message"}
+
+        self.installation.send_notification(target=self.target, payload=payload)
+
+        mock_send.assert_called_once_with(channel_id="987654321", message=payload)
+
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.send_message")
+    def test_send_notification_api_error(self, mock_send: mock.MagicMock) -> None:
+        error_payload = json.dumps({"code": 50001, "message": "Missing access"})
+        mock_send.side_effect = ApiError(text=error_payload)
+        payload: DiscordRenderable = {"content": "Test Discord message"}
+
+        with pytest.raises(IntegrationConfigurationError) as e:
+            self.installation.send_notification(target=self.target, payload=payload)
+
+        assert str(e.value) == error_payload
+
+
+@control_silo_test
+class DiscordApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    guild_id = "1234567890"
+    guild_name = "Cool server"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.application_id = "application-id"
+        self.public_key = "public-key"
+        self.bot_token = "bot-token"
+        self.client_secret = "client-secret"
+        options.set("discord.application-id", self.application_id)
+        options.set("discord.public-key", self.public_key)
+        options.set("discord.bot-token", self.bot_token)
+        options.set("discord.client-secret", self.client_secret)
+
+    def tearDown(self) -> None:
+        responses.reset()
+        super().tearDown()
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self, initial_data: dict[str, Any] | None = None) -> Any:
+        payload: dict[str, Any] = {"action": "initialize", "provider": "discord"}
+        if initial_data is not None:
+            payload["initialData"] = initial_data
+        return self.client.post(self._get_pipeline_url(), data=payload, format="json")
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _get_pipeline_signature(self, resp: Any) -> str:
+        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+
+    @responses.activate
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "discord"
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert "discord.com/api/oauth2/authorize" in oauth_url
+        assert "permissions=" in oauth_url
+
+        parsed = urlparse(oauth_url)
+        params = parse_qs(parsed.query)
+        assert params["client_id"] == [self.application_id]
+        assert params["permissions"] == [str(DiscordIntegrationProvider.bot_permissions)]
+        requested_scopes = set(params["scope"][0].split(" "))
+        assert requested_scopes == DiscordIntegrationProvider.oauth_scopes
+
+    @responses.activate
+    def test_oauth_step_missing_guild_id(self) -> None:
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        resp = self._advance_step({"code": "auth-code", "state": pipeline_signature})
+        assert resp.status_code == 400
+
+    @responses.activate
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
+    def test_full_pipeline_flow(self, mock_set_application_command: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=self.guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json={"id": self.guild_id, "name": self.guild_name},
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json=COMMANDS,
+        )
+        responses.add(
+            responses.POST,
+            url=f"{DISCORD_BASE_URL}/oauth2/token",
+            json={"access_token": "access_token"},
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me",
+            json={"id": "user_1234"},
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={},
+        )
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step(
+            {
+                "code": "discord-auth-code",
+                "state": pipeline_signature,
+                "guildId": self.guild_id,
+            }
+        )
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="discord")
+        assert integration.external_id == self.guild_id
+        assert integration.name == self.guild_name
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    @responses.activate
+    def test_app_directory_initialize_returns_auto_advance_data(self) -> None:
+        resp = self._initialize_pipeline(
+            initial_data={
+                "code": "discord-auth-code",
+                "guildId": self.guild_id,
+                "useConfigure": "1",
+            }
+        )
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        data = resp.data["data"]
+        assert data["appDirectoryInstall"] is True
+        assert data["code"] == "discord-auth-code"
+        assert data["guildId"] == self.guild_id
+        assert "state" in data
+        assert "oauthUrl" not in data
+
+    @responses.activate
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
+    def test_app_directory_full_flow(self, mock_set_application_command: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=self.guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json={"id": self.guild_id, "name": self.guild_name},
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json=COMMANDS,
+        )
+        responses.add(
+            responses.POST,
+            url=f"{DISCORD_BASE_URL}/oauth2/token",
+            json={"access_token": "access_token"},
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me",
+            json={"id": "user_1234"},
+        )
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}/users/@me/guilds/{self.guild_id}/member",
+            json={},
+        )
+
+        resp = self._initialize_pipeline(
+            initial_data={
+                "code": "discord-auth-code",
+                "guildId": self.guild_id,
+                "useConfigure": "1",
+            }
+        )
+        data = resp.data["data"]
+        assert data["appDirectoryInstall"] is True
+        pipeline_signature = data["state"]
+
+        resp = self._advance_step(
+            {
+                "code": data["code"],
+                "state": pipeline_signature,
+                "guildId": data["guildId"],
+            }
+        )
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        # Token exchange must echo `configure_url` as redirect_uri because OAuth
+        # was initiated from Discord's App Directory with that URL.
+        token_calls = [c for c in responses.calls if c.request.url.endswith("/oauth2/token")]
+        assert len(token_calls) == 1
+        token_body = token_calls[0].request.body
+        if isinstance(token_body, bytes):
+            token_body = token_body.decode()
+        assert "configure" in token_body

@@ -1,0 +1,112 @@
+import {GroupFixture} from 'sentry-fixture/group';
+
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from '@sentry/scraps/modal';
+
+import {ReprocessingEventModal} from 'sentry/components/modals/reprocessEventModal';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+
+const group = GroupFixture({
+  id: '1337',
+  pluginActions: [],
+  pluginIssues: [],
+});
+
+describe('ReprocessEventModal', () => {
+  it('form fields & info', () => {
+    const {organization} = initializeOrg({
+      organization: {
+        id: '4660',
+        slug: 'org',
+      },
+    });
+
+    render(
+      <ReprocessingEventModal
+        Body={ModalBody}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        Header={makeClosableHeader(jest.fn())}
+        Footer={ModalFooter}
+        groupId="1337"
+        organization={organization}
+      />
+    );
+
+    // Reprocess impacts
+    expect(
+      screen.getByText(
+        'Reprocessing applies new debug files and grouping enhancements to this Issue. Please consider these impacts:'
+      )
+    ).toBeInTheDocument();
+
+    // Reprocess impacts list
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+
+    // Docs info
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher('For more information, please refer to the documentation.')
+      )
+    ).toBeInTheDocument();
+
+    // Number of events to be reprocessed field
+    expect(
+      screen.getByRole('spinbutton', {name: 'Number of events to be reprocessed'})
+    ).toBeInTheDocument();
+
+    // Remaining events action field
+    expect(
+      screen.getByRole('radiogroup', {name: 'Remaining events'})
+    ).toBeInTheDocument();
+  });
+
+  it('reprocess all events', async () => {
+    const {organization} = initializeOrg({
+      organization: {
+        id: '4660',
+        slug: 'org',
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/reprocessing/`,
+      method: 'POST',
+      body: [],
+    });
+
+    const handleCloseModal = jest.fn();
+
+    render(
+      <ReprocessingEventModal
+        Body={ModalBody}
+        closeModal={handleCloseModal}
+        CloseButton={makeCloseButton(jest.fn())}
+        Header={makeClosableHeader(jest.fn())}
+        Footer={ModalFooter}
+        groupId="1337"
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByRole('heading', {name: 'Reprocess Events'})).toBeInTheDocument();
+
+    // Number of events to be reprocessed field
+    expect(
+      screen.getByRole('spinbutton', {name: 'Number of events to be reprocessed'})
+    ).toHaveAttribute('placeholder', 'Reprocess all events');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Reprocess Events'}));
+
+    await waitFor(() => expect(testableWindowLocation.reload).toHaveBeenCalled());
+    expect(handleCloseModal).toHaveBeenCalled();
+  });
+});

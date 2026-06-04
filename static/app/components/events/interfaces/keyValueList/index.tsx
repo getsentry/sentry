@@ -1,0 +1,155 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import classNames from 'classnames';
+import sortBy from 'lodash/sortBy';
+
+import {Flex} from '@sentry/scraps/layout';
+
+import {ValueLink} from 'sentry/components/keyValueData';
+import type {KeyValueListData} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
+
+import type {ValueProps} from './value';
+import {Value} from './value';
+
+interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
+  className?: string;
+  data?: KeyValueListData;
+  longKeys?: boolean;
+  shouldSort?: boolean;
+}
+
+export function KeyValueList({
+  data,
+  isContextData = false,
+  shouldSort = true,
+  raw = false,
+  longKeys = false,
+  className,
+  ...props
+}: Props) {
+  if (!defined(data) || data.length === 0) {
+    return null;
+  }
+
+  const keyValueData = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
+
+  return (
+    <Table className={classNames('table key-value', className)} {...props}>
+      <tbody>
+        {keyValueData.map(
+          (
+            {
+              key,
+              subject,
+              value = null,
+              meta,
+              subjectIcon,
+              subjectDataTestId,
+              action,
+              actionButton,
+              isContextData: valueIsContextData,
+              isMultiValue,
+            },
+            idx
+          ) => {
+            const valueProps = {
+              isContextData: valueIsContextData || isContextData,
+              meta,
+              subjectIcon,
+              value,
+              raw,
+            };
+
+            const valueItem = action?.link ? (
+              <ValueLink to={action.link}>{<Value {...valueProps} />}</ValueLink>
+            ) : (
+              <Value {...valueProps} />
+            );
+
+            const valueContainer =
+              isMultiValue && Array.isArray(value) ? (
+                <MultiValueContainer values={value} />
+              ) : (
+                valueItem
+              );
+
+            return (
+              <tr key={`${key}-${idx}`}>
+                <TableSubject className="key" wide={longKeys}>
+                  {subject}
+                </TableSubject>
+                <td className="val" data-test-id={subjectDataTestId}>
+                  <Tablevalue>
+                    {actionButton ? (
+                      <ValueWithButtonContainer>
+                        {valueContainer}
+                        <Flex align="start" height="100%">
+                          {actionButton}
+                        </Flex>
+                      </ValueWithButtonContainer>
+                    ) : (
+                      valueContainer
+                    )}
+                  </Tablevalue>
+                </td>
+              </tr>
+            );
+          }
+        )}
+      </tbody>
+    </Table>
+  );
+}
+
+function MultiValueContainer({values}: {values: string[]}): React.JSX.Element {
+  return (
+    <Fragment>
+      {values.map((val, idx) => (
+        <Value key={`${val}-${idx}`} value={val} />
+      ))}
+    </Fragment>
+  );
+}
+
+const TableSubject = styled('td')<{wide?: boolean}>`
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    max-width: ${p => (p.wide ? '620px !important' : 'none')};
+  }
+`;
+
+const Tablevalue = styled('div')`
+  pre {
+    && {
+      word-break: break-all;
+    }
+  }
+  pre > pre {
+    display: inline-block;
+  }
+`;
+const ValueWithButtonContainer = styled('div')`
+  display: grid;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.sm};
+  background: ${p => p.theme.tokens.background.secondary};
+  padding: ${p => p.theme.space.md} 10px;
+  margin: ${p => p.theme.space['2xs']} 0;
+  border-radius: ${p => p.theme.radius.md};
+  pre {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: 1fr max-content;
+  }
+`;
+
+const Table = styled('table')`
+  > * pre > pre {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+`;

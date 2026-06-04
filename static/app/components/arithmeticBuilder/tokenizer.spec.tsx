@@ -1,0 +1,754 @@
+import {
+  TokenAttribute,
+  TokenCloseParenthesis,
+  TokenFreeText,
+  TokenFunction,
+  TokenLiteral,
+  TokenOpenParenthesis,
+  TokenOperator,
+  TokenReference,
+  type Token,
+} from 'sentry/components/arithmeticBuilder/token';
+import {
+  makeTokenKey,
+  tokenizeExpression,
+  toOperator,
+} from 'sentry/components/arithmeticBuilder/tokenizer';
+
+function k<T extends Token>(i: number, token: T): T {
+  token.key = makeTokenKey(token.kind, i);
+  return token;
+}
+
+function po(i: number): TokenOpenParenthesis {
+  return k(i, new TokenOpenParenthesis(expect.objectContaining({})));
+}
+
+function pc(i: number): TokenCloseParenthesis {
+  return k(i, new TokenCloseParenthesis(expect.objectContaining({})));
+}
+
+function o(i: number, op: '+' | '-' | '*' | '/'): TokenOperator {
+  return k(i, new TokenOperator(expect.objectContaining({}), toOperator(op)));
+}
+
+function l(i: number, literal: string): TokenLiteral {
+  return k(i, new TokenLiteral(expect.objectContaining({}), literal));
+}
+
+function s(i: number, value = ''): TokenFreeText {
+  return k(i, new TokenFreeText(expect.objectContaining({}), value));
+}
+
+function a(i: number, attribute: string, type?: string): TokenAttribute {
+  return k(i, new TokenAttribute(expect.objectContaining({}), attribute, type));
+}
+
+function f(i: number, func: string, attributes: TokenAttribute[]): TokenFunction {
+  return k(i, new TokenFunction(expect.objectContaining({}), func, attributes));
+}
+
+function r(i: number, label: string): TokenReference {
+  return k(i, new TokenReference(expect.objectContaining({}), label));
+}
+
+describe('tokenizeExpression', () => {
+  it.each([
+    ['(', [s(0), po(0), s(1)]],
+    [')', [s(0), pc(0), s(1)]],
+  ])('tokenizes parenthesis `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual(expected);
+  });
+
+  it.each([
+    ['+', [s(0), o(0, '+'), s(1)]],
+    ['-', [s(0), o(0, '-'), s(1)]],
+    ['*', [s(0), o(0, '*'), s(1)]],
+    ['/', [s(0), o(0, '/'), s(1)]],
+  ])('tokenizes operator `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual(expected);
+  });
+
+  it.each([
+    ['0', l(0, '0')],
+    ['+0', l(0, '+0')],
+    ['-0', l(0, '-0')],
+    ['1', l(0, '1')],
+    ['+1', l(0, '+1')],
+    ['-1', l(0, '-1')],
+    ['0.', l(0, '0.')],
+    ['+0.', l(0, '+0.')],
+    ['-0.', l(0, '-0.')],
+    ['0.0', l(0, '0.0')],
+    ['+0.0', l(0, '+0.0')],
+    ['-0.0', l(0, '-0.0')],
+    ['1234567890', l(0, '1234567890')],
+    ['+1234567890', l(0, '+1234567890')],
+    ['-1234567890', l(0, '-1234567890')],
+    ['12345.67890', l(0, '12345.67890')],
+    ['+12345.67890', l(0, '+12345.67890')],
+    ['-12345.67890', l(0, '-12345.67890')],
+  ])('tokenizes literal `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual([s(0), expected, s(1)]);
+  });
+
+  it.each([
+    ['avg(span.duration)', f(0, 'avg', [a(0, 'span.duration')])],
+    ['avg(measurements.lcp)', f(0, 'avg', [a(0, 'measurements.lcp')])],
+    ['avg(tags[foo,number])', f(0, 'avg', [a(0, 'foo', 'number')])],
+    ['avg(tags[foo,  number])', f(0, 'avg', [a(0, 'foo', 'number')])],
+    ['avg(   tags[foo,  number]   )', f(0, 'avg', [a(0, 'foo', 'number')])],
+    ['epm()', f(0, 'epm', [])],
+    ['count_if(`test:foo`)', f(0, 'count_if', [a(0, '`test:foo`')])],
+    ['count_if(`test:"blah blah"`)', f(0, 'count_if', [a(0, '`test:"blah blah"`')])],
+  ])('tokenizes function `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual([s(0), expected, s(1)]);
+  });
+
+  it.each([
+    [
+      'avg(span.duration,greater,300)',
+      f(0, 'avg', [a(0, 'span.duration'), a(1, 'greater'), a(2, '300')]),
+    ],
+    [
+      'avg(span.duration, greater, 300)',
+      f(0, 'avg', [a(0, 'span.duration'), a(1, 'greater'), a(2, '300')]),
+    ],
+    [
+      'avg(   tags[foo,  number], equals,  30   )',
+      f(0, 'avg', [a(0, 'foo', 'number'), a(1, 'equals'), a(2, '30')]),
+    ],
+    [
+      'count_if(`test:"blah blah"`,test,test)',
+      f(0, 'count_if', [a(0, '`test:"blah blah"`'), a(1, 'test'), a(2, 'test')]),
+    ],
+    [
+      'sum_if(`agent_name:["Agent Run","Assisted Query Agent - Traces"]`,value,agent.invocations.error,counter,none)',
+      f(0, 'sum_if', [
+        a(0, '`agent_name:["Agent Run","Assisted Query Agent - Traces"]`'),
+        a(1, 'value'),
+        a(2, 'agent.invocations.error'),
+        a(3, 'counter'),
+        a(4, 'none'),
+      ]),
+    ],
+  ])('tokenizes multi-param function `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual([s(0), expected, s(1)]);
+  });
+
+  it.each([
+    ['span', [s(0, 'span')]],
+    ['span.', [s(0, 'span.')]],
+    ['span.duration', [s(0, 'span.duration')]],
+    ['tags', [s(0, 'tags')]],
+    ['tags[', [s(0, 'tags[')]],
+    ['tags[foo', [s(0, 'tags[foo')]],
+    ['tags[foo,', [s(0, 'tags[foo,')]],
+    ['tags[foo,number', [s(0, 'tags[foo,number')]],
+    ['tags[foo,number]', [s(0, 'tags[foo,number]')]],
+    ['tags[foo,   number', [s(0, 'tags[foo,   number')]],
+    ['tags[foo,   number]', [s(0, 'tags[foo,   number]')]],
+    ['avg', [s(0, 'avg')]],
+    ['avg(', [s(0, 'avg(')]],
+    ['avg(span', [s(0, 'avg(span')]],
+    ['avg(span.', [s(0, 'avg(span.')]],
+    ['avg(span.duration', [s(0, 'avg(span.duration')]],
+    ['avg(tags', [s(0, 'avg(tags')]],
+    ['avg(tags[', [s(0, 'avg(tags[')]],
+    ['avg(tags[foo', [s(0, 'avg(tags[foo')]],
+    ['avg(tags[foo,', [s(0, 'avg(tags[foo,')]],
+    ['avg(tags[foo,number', [s(0, 'avg(tags[foo,number')]],
+    ['avg(tags[foo,number]', [s(0, 'avg(tags[foo,number]')]],
+  ])('tokenizes partial function `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual(expected);
+  });
+
+  it.each([
+    ['1+1', [s(0), l(0, '1'), s(1), o(0, '+'), s(2), l(1, '1'), s(3)]],
+    [
+      '1+avg(span.duration)',
+      [
+        s(0),
+        l(0, '1'),
+        s(1),
+        o(0, '+'),
+        s(2),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(3),
+      ],
+    ],
+    [
+      '1 + avg(span.duration)',
+      [
+        s(0),
+        l(0, '1'),
+        s(1),
+        o(0, '+'),
+        s(2),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(3),
+      ],
+    ],
+    [
+      'avg(span.duration)+1',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '+'),
+        s(2),
+        l(0, '1'),
+        s(3),
+      ],
+    ],
+    [
+      'avg(span.duration) + 1',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '+'),
+        s(2),
+        l(0, '1'),
+        s(3),
+      ],
+    ],
+    [
+      'avg(span.duration)+avg(tags[foo,number])',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '+'),
+        s(2),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(3),
+      ],
+    ],
+    [
+      'avg(span.duration) + avg(tags[foo,number])',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '+'),
+        s(2),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(3),
+      ],
+    ],
+    [
+      'avg(span.duration)-avg(tags[foo,number])',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '-'),
+        s(2),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(3),
+      ],
+    ],
+    [
+      'avg(span.duration) - avg(tags[foo,number])',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '-'),
+        s(2),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(3),
+      ],
+    ],
+    [
+      'avg(span.duration)*avg(tags[foo,number])',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '*'),
+        s(2),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(3),
+      ],
+    ],
+    [
+      'avg(span.duration) * avg(tags[foo,number])',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '*'),
+        s(2),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(3),
+      ],
+    ],
+    [
+      'avg(span.duration)/avg(tags[foo,number])',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '/'),
+        s(2),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(3),
+      ],
+    ],
+    [
+      'avg(span.duration) / avg(tags[foo,number])',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '/'),
+        s(2),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(3),
+      ],
+    ],
+    [
+      'count_if(`test:foo`) + epm()',
+      [
+        s(0),
+        f(0, 'count_if', [a(0, '`test:foo`')]),
+        s(1),
+        o(0, '+'),
+        s(2),
+        f(1, 'epm', []),
+        s(3),
+      ],
+    ],
+    [
+      'count_if(`test:"blah blah"`) + epm()',
+      [
+        s(0),
+        f(0, 'count_if', [a(0, '`test:"blah blah"`')]),
+        s(1),
+        o(0, '+'),
+        s(2),
+        f(1, 'epm', []),
+        s(3),
+      ],
+    ],
+    [
+      'count_if(`test:"blah blah"`,test,test) + sum_if(`test:"blah\'blah\'blah"`)',
+      [
+        s(0),
+        f(0, 'count_if', [a(0, '`test:"blah blah"`'), a(1, 'test'), a(2, 'test')]),
+        s(1),
+        o(0, '+'),
+        s(2),
+        f(1, 'sum_if', [a(3, '`test:"blah\'blah\'blah"`')]),
+        s(3),
+      ],
+    ],
+  ])('tokenizes binary expressions `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual(expected);
+  });
+
+  it.each([
+    [
+      'avg(span.duration)+',
+      [s(0), f(0, 'avg', [a(0, 'span.duration')]), s(1), o(0, '+'), s(2)],
+    ],
+    [
+      'avg(span.duration) + ',
+      [s(0), f(0, 'avg', [a(0, 'span.duration')]), s(1), o(0, '+'), s(2)],
+    ],
+    [
+      'avg(span.duration)-',
+      [s(0), f(0, 'avg', [a(0, 'span.duration')]), s(1), o(0, '-'), s(2)],
+    ],
+    [
+      'avg(span.duration) - ',
+      [s(0), f(0, 'avg', [a(0, 'span.duration')]), s(1), o(0, '-'), s(2)],
+    ],
+    [
+      'avg(span.duration)*',
+      [s(0), f(0, 'avg', [a(0, 'span.duration')]), s(1), o(0, '*'), s(2)],
+    ],
+    [
+      'avg(span.duration) * ',
+      [s(0), f(0, 'avg', [a(0, 'span.duration')]), s(1), o(0, '*'), s(2)],
+    ],
+    [
+      'avg(span.duration)/',
+      [s(0), f(0, 'avg', [a(0, 'span.duration')]), s(1), o(0, '/'), s(2)],
+    ],
+    [
+      'avg(span.duration) / ',
+      [s(0), f(0, 'avg', [a(0, 'span.duration')]), s(1), o(0, '/'), s(2)],
+    ],
+  ])('tokenizes partial binary expressions `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual(expected);
+  });
+
+  it.each([
+    [
+      '(avg(span.duration)+avg(tags[foo,number]))',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '+'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(avg(span.duration) + avg(tags[foo,number]))',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '+'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(avg(span.duration)-avg(tags[foo,number]))',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '-'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(avg(span.duration) - avg(tags[foo,number]))',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '-'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(avg(span.duration)*avg(tags[foo,number]))',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '*'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(avg(span.duration) * avg(tags[foo,number]))',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '*'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(avg(span.duration)/avg(tags[foo,number]))',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '/'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(avg(span.duration) / avg(tags[foo,number]))',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '/'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(   avg(span.duration)+avg(tags[foo,number])   )',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '+'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(   avg(span.duration) + avg(tags[foo,number])   )',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '+'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(   avg(span.duration)-avg(tags[foo,number])   )',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '-'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(   avg(span.duration) - avg(tags[foo,number])   )',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '-'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(   avg(span.duration)*avg(tags[foo,number])   )',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '*'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(   avg(span.duration) * avg(tags[foo,number])   )',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '*'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(   avg(span.duration)/avg(tags[foo,number])   )',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '/'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+    [
+      '(   avg(span.duration) / avg(tags[foo,number])   )',
+      [
+        s(0),
+        po(0),
+        s(1),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(2),
+        o(0, '/'),
+        s(3),
+        f(1, 'avg', [a(1, 'foo', 'number')]),
+        s(4),
+        pc(0),
+        s(5),
+      ],
+    ],
+  ])('tokenizes parenthesized binary expressions `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual(expected);
+  });
+
+  it.each([
+    [
+      '( + avg(span.duration)',
+      [s(0), po(0), s(1), o(0, '+'), s(2), f(0, 'avg', [a(0, 'span.duration')]), s(3)],
+    ],
+    [
+      '( avg(span.duration) +',
+      [s(0), po(0), s(1), f(0, 'avg', [a(0, 'span.duration')]), s(2), o(0, '+'), s(3)],
+    ],
+    ['( avg(span   +', [s(0), po(0), s(1, 'avg(span'), o(0, '+'), s(2)]],
+    [
+      '( avg(span   + avg(span.duration) ) / ',
+      [
+        s(0),
+        po(0),
+        s(1, 'avg(span'),
+        o(0, '+'),
+        s(2),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(3),
+        pc(0),
+        s(4),
+        o(1, '/'),
+        s(5),
+      ],
+    ],
+    [
+      ' avg(span.duration) * ( p75(tags[foo, number]) + p50(tags[foo, )',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration')]),
+        s(1),
+        o(0, '*'),
+        s(2),
+        po(0),
+        s(3),
+        f(1, 'p75', [a(1, 'foo', 'number')]),
+        s(4),
+        o(1, '+'),
+        s(5, 'p50(tags[foo, )'),
+      ],
+    ],
+    [
+      ' avg(span.duration,greater,300)* ( p75(tags[foo, number]) + p50(tags[foo, )',
+      [
+        s(0),
+        f(0, 'avg', [a(0, 'span.duration'), a(1, 'greater'), a(2, '300')]),
+        s(1),
+        o(0, '*'),
+        s(2),
+        po(0),
+        s(3),
+        f(1, 'p75', [a(3, 'foo', 'number')]),
+        s(4),
+        o(1, '+'),
+        s(5, 'p50(tags[foo, )'),
+      ],
+    ],
+  ])('tokenizes complex partial expressions `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual(expected);
+  });
+
+  it.each([
+    ['', [s(0)]],
+    [' ', [s(0)]],
+    [',', [s(0, ',')]],
+    [',', [s(0, ',')]],
+    [', +', [s(0, ','), o(0, '+'), s(1)]],
+    [
+      ', + avg(span.duration)',
+      [s(0, ','), o(0, '+'), s(1), f(0, 'avg', [a(0, 'span.duration')]), s(2)],
+    ],
+    ['foo,bar(', [s(0, 'foo,bar(')]],
+    ['foo     bar(', [s(0, 'foo     bar(')]],
+    ['foo     bar(baz)     qux', [s(0, 'foo'), f(0, 'bar', [a(0, 'baz')]), s(1, 'qux')]],
+  ])('tokenizes bad expressions `%s`', (expression, expected) => {
+    expect(tokenizeExpression(expression)).toEqual(expected);
+  });
+
+  it.each([
+    ['A', new Set(['A']), [s(0), r(0, 'A'), s(1)]],
+    [
+      'A + B',
+      new Set(['A', 'B']),
+      [s(0), r(0, 'A'), s(1), o(0, '+'), s(2), r(1, 'B'), s(3)],
+    ],
+    ['A+1', new Set(['A']), [s(0), r(0, 'A'), s(1), o(0, '+'), s(2), l(0, '1'), s(3)]],
+    ['A-1', new Set(['A']), [s(0), r(0, 'A'), s(1), o(0, '-'), s(2), l(0, '1'), s(3)]],
+  ])('tokenizes references `%s`', (expression, references, expected) => {
+    expect(tokenizeExpression(expression, references)).toEqual(expected);
+  });
+
+  it.each([
+    ['A', new Set(['B']), [s(0, 'A')]],
+    ['A + B', new Set(['A']), [s(0), r(0, 'A'), s(1), o(0, '+'), s(2, 'B')]],
+    ['A + B', new Set(['B']), [s(0, 'A'), o(0, '+'), s(1), r(0, 'B'), s(2)]],
+    ['A + B', new Set<string>(), [s(0, 'A'), o(0, '+'), s(1, 'B')]],
+    ['A + B', undefined, [s(0, 'A'), o(0, '+'), s(1, 'B')]],
+  ])(
+    'treats missing references as free text `%s`',
+    (expression, references, expected) => {
+      expect(tokenizeExpression(expression, references)).toEqual(expected);
+    }
+  );
+});

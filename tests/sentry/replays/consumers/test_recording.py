@@ -1,0 +1,277 @@
+from __future__ import annotations
+
+import time
+import uuid
+import zlib
+from datetime import datetime
+from unittest.mock import ANY, MagicMock, patch
+
+import msgpack
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import BrokerValue, Message, Partition, Topic
+from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
+
+from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
+from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
+from sentry.replays.lib.storage import _make_recording_filename, storage_kv
+from sentry.replays.usecases.pack import unpack
+from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.utils import json
+from sentry.utils.projectflags import set_project_flag_and_signal
+
+
+class RecordingTestCase(TransactionTestCase):
+    replay_id = uuid.uuid4().hex
+    replay_recording_id = uuid.uuid4().hex
+    force_synchronous = True
+
+    def get_recording_data(self, segment_id: int) -> memoryview:
+        result = storage_kv.get(
+            _make_recording_filename(
+                project_id=self.project.id,
+                replay_id=self.replay_id,
+                segment_id=segment_id,
+                retention_days=30,
+            )
+        )
+        assert result is not None, "Expecting non-None result here"
+        return unpack(zlib.decompress(result))[1]
+
+    def get_video_data(self, segment_id: int) -> memoryview | None:
+        result = storage_kv.get(
+            _make_recording_filename(
+                project_id=self.project.id,
+                replay_id=self.replay_id,
+                segment_id=segment_id,
+                retention_days=30,
+            )
+        )
+        if result:
+            return unpack(zlib.decompress(result))[0]
+        return None
+
+    def processing_factory(self) -> ProcessReplayRecordingStrategyFactory:
+        return ProcessReplayRecordingStrategyFactory(
+            input_block_size=1,
+            max_batch_size=1,
+            max_batch_time=1,
+            num_processes=1,
+            num_threads=1,
+            output_block_size=1,
+            force_synchronous=self.force_synchronous,
+        )
+
+    def submit(self, messages: list[ReplayRecording]) -> None:
+        strategy = self.processing_factory().create_with_partitions(lambda x, force=False: None, {})
+        for message in messages:
+            strategy.submit(
+                Message(
+                    BrokerValue(
+                        KafkaPayload(b"key", msgpack.packb(message), [("should_drop", b"1")]),
+                        Partition(Topic("ingest-replay-recordings"), 1),
+                        1,
+                        datetime.now(),
+                    )
+                )
+            )
+        strategy.poll()
+        strategy.join(1)
+        strategy.terminate()
+
+    def nonchunked_messages(
+        self,
+        message: bytes = b'[{"hello":"world"}]',
+        segment_id: int = 0,
+        compressed: bool = False,
+        replay_event: bytes | None = None,
+        replay_video: bytes | None = None,
+    ) -> list[ReplayRecording]:
+        message = zlib.compress(message) if compressed else message
+        return [
+            {
+                "type": "replay_recording_not_chunked",
+                "replay_id": self.replay_id,
+                "org_id": self.organization.id,
+                "key_id": 123,
+                "project_id": self.project.id,
+                "received": int(time.time()),
+                "retention_days": 30,
+                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,  # type: ignore[typeddict-item]
+                "replay_event": replay_event,  # type: ignore[typeddict-item]
+                "replay_video": replay_video,  # type: ignore[typeddict-item]
+                "relay_snuba_publish_disabled": True,
+            }
+        ]
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.track_outcome")
+    @patch("sentry.replays.usecases.ingest.report_hydration_error")
+    @thread_leak_allowlist(reason="replays", issue=97033)
+    def test_end_to_end_consumer_processing_old(
+        self,
+        report_hydration_issue: MagicMock,
+        track_outcome: MagicMock,
+        mock_record: MagicMock,
+        mock_onboarding_task: MagicMock,
+    ) -> None:
+        data = [
+            {
+                "type": 5,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "category": "replay.hydrate-error",
+                        "timestamp": 1.0,
+                        "data": {"url": "https://sentry.io"},
+                    },
+                },
+            }
+        ]
+        segment_id = 0
+        self.submit(
+            self.nonchunked_messages(
+                message=json.dumps(data).encode(),
+                segment_id=segment_id,
+                compressed=True,
+                replay_event=json.dumps(
+                    {
+                        "type": "replay_event",
+                        "replay_id": self.replay_id,
+                        "timestamp": int(time.time()),
+                    }
+                ).encode(),
+                replay_video=b"hello, world!",
+            )
+        )
+
+        dat = self.get_recording_data(segment_id)
+        assert json.loads(bytes(dat).decode("utf-8")) == data
+        video_data = self.get_video_data(segment_id)
+        assert video_data is not None
+        assert bytes(video_data) == b"hello, world!"
+
+        self.project.refresh_from_db()
+        assert self.project.flags.has_replays
+
+        mock_onboarding_task.assert_called_with(
+            organization_id=self.project.organization_id,
+            task=OnboardingTask.SESSION_REPLAY,
+            status=OnboardingTaskStatus.COMPLETE,
+            date_completed=ANY,
+        )
+
+        assert_any_analytics_event(
+            mock_record,
+            FirstReplaySentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                platform=self.project.platform,
+                user_id=self.organization.default_owner_id,
+            ),
+        )
+
+        assert track_outcome.called
+        assert report_hydration_issue.called
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.track_outcome")
+    @patch("sentry.replays.usecases.ingest.report_hydration_error")
+    @patch(
+        "sentry.replays.usecases.ingest.set_project_flag_and_signal",
+        wraps=set_project_flag_and_signal,
+    )
+    @thread_leak_allowlist(reason="replays", issue=97033)
+    def test_end_to_end_consumer_processing_new(
+        self,
+        set_project_flag_and_signal: MagicMock,
+        report_hydration_issue: MagicMock,
+        track_outcome: MagicMock,
+        mock_record: MagicMock,
+        mock_onboarding_task: MagicMock,
+    ) -> None:
+        data = [
+            {
+                "type": 5,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "category": "replay.hydrate-error",
+                        "timestamp": 1.0,
+                        "data": {"url": "https://sentry.io"},
+                    },
+                },
+            }
+        ]
+        segment_id = 0
+
+        with self.options({"replay.consumer.enable_new_query_caching_system": True}):
+            self.submit(
+                [
+                    *self.nonchunked_messages(
+                        message=json.dumps(data).encode(),
+                        segment_id=segment_id,
+                        compressed=True,
+                        replay_event=json.dumps(
+                            {
+                                "type": "replay_event",
+                                "replay_id": self.replay_id,
+                                "timestamp": int(time.time()),
+                            }
+                        ).encode(),
+                        replay_video=b"hello, world!",
+                    ),
+                    *self.nonchunked_messages(
+                        message=json.dumps(data).encode(),
+                        segment_id=segment_id,
+                        compressed=True,
+                        replay_event=json.dumps(
+                            {
+                                "type": "replay_event",
+                                "replay_id": self.replay_id,
+                                "timestamp": int(time.time()),
+                            }
+                        ).encode(),
+                        replay_video=b"hello, world!",
+                    ),
+                ]
+            )
+
+            dat = self.get_recording_data(segment_id)
+            assert json.loads(bytes(dat).decode("utf-8")) == data
+            video_data = self.get_video_data(segment_id)
+            assert video_data is not None
+            assert bytes(video_data) == b"hello, world!"
+
+            self.project.refresh_from_db()
+            assert bool(self.project.flags.has_replays) is True
+
+            mock_onboarding_task.assert_called_with(
+                organization_id=self.project.organization_id,
+                task=OnboardingTask.SESSION_REPLAY,
+                status=OnboardingTaskStatus.COMPLETE,
+                date_completed=ANY,
+            )
+
+            assert_any_analytics_event(
+                mock_record,
+                FirstReplaySentEvent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    platform=self.project.platform,
+                    user_id=self.organization.default_owner_id,
+                ),
+            )
+
+            # We emit a new outcome because its a segment-0 event. We emit a hydration error because
+            # thats our cached configuration but we don't emit an onboarding metric because this is
+            # our second event.
+            assert track_outcome.called
+            assert track_outcome.call_count == 2
+            assert report_hydration_issue.called
+            assert report_hydration_issue.call_count == 2
+            assert set_project_flag_and_signal.call_count == 1

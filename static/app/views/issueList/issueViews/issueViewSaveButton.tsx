@@ -1,0 +1,227 @@
+import styled from '@emotion/styled';
+
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
+
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import Feature from 'sentry/components/acl/feature';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Hovercard} from 'sentry/components/hovercard';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
+import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
+import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
+import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
+import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
+import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
+import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
+import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+type IssueViewSaveButtonProps = {
+  query: string;
+  sort: IssueSortOptions;
+};
+
+function SegmentedIssueViewSaveButton({
+  openCreateIssueViewModal,
+}: {
+  openCreateIssueViewModal: () => void;
+}) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {hasUnsavedChanges} = useIssueViewUnsavedChanges();
+  const {data: view} = useSelectedGroupSearchView();
+  const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
+  const user = useUser();
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const canEdit = view
+    ? canEditIssueView({user, groupSearchView: view, organization})
+    : false;
+  const buttonPriority =
+    hasPageFrameFeature || hasUnsavedChanges ? 'primary' : 'secondary';
+  const discardUnsavedChanges = () => {
+    if (view) {
+      trackAnalytics('issue_views.reset.clicked', {organization});
+      navigate({
+        pathname: location.pathname,
+        query: getIssueViewQueryParams({view}),
+      });
+    }
+  };
+
+  const saveView = () => {
+    if (view) {
+      trackAnalytics('issue_views.save.clicked', {organization, source: 'button'});
+      updateGroupSearchView(
+        {
+          id: view.id,
+          name: view.name,
+          ...createIssueViewFromUrl({query: location.query}),
+        },
+        {
+          onSuccess: () => {
+            addSuccessMessage(t('Saved changes'));
+          },
+        }
+      );
+    }
+  };
+
+  return (
+    <Feature
+      features="organizations:issue-views"
+      overrideName="feature-disabled:issue-views"
+      renderDisabled={props => (
+        <Hovercard
+          body={
+            <FeatureDisabled
+              features={props.features}
+              hideHelpToggle
+              featureName={t('Issue Views')}
+            />
+          }
+        >
+          {typeof props.children === 'function' ? props.children(props) : props.children}
+        </Hovercard>
+      )}
+    >
+      {({hasFeature}) => (
+        <ButtonBar>
+          <PrimarySaveButton
+            variant={buttonPriority}
+            data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
+            onClick={() => {
+              if (canEdit) {
+                saveView();
+              } else {
+                openCreateIssueViewModal();
+              }
+            }}
+            disabled={isSaving || !hasFeature}
+          >
+            {canEdit ? t('Save') : t('Save as')}
+          </PrimarySaveButton>
+          <DropdownMenu
+            items={[
+              {
+                key: 'reset',
+                label: t('Reset'),
+                disabled: !hasUnsavedChanges,
+                onAction: () => {
+                  discardUnsavedChanges();
+                },
+              },
+              {
+                key: 'save-as',
+                label: t('Save as new view'),
+                onAction: () => {
+                  openCreateIssueViewModal();
+                },
+                hidden: !canEdit,
+              },
+            ]}
+            trigger={props => (
+              <DropdownTrigger
+                {...props}
+                disabled={!hasFeature || isSaving}
+                icon={
+                  <IconChevron
+                    direction="down"
+                    variant={buttonPriority === 'primary' ? undefined : 'muted'}
+                  />
+                }
+                aria-label={t('More save options')}
+                variant={buttonPriority}
+              />
+            )}
+            position="bottom-end"
+          />
+        </ButtonBar>
+      )}
+    </Feature>
+  );
+}
+
+export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
+  const {openModal} = useModal();
+
+  const {viewId} = useParams();
+  const {selection} = usePageFilters();
+  const {data: view} = useSelectedGroupSearchView();
+  const organization = useOrganization();
+
+  const openCreateIssueViewModal = () => {
+    trackAnalytics('issue_views.save_as.clicked', {organization, source: 'button'});
+    openModal(props => (
+      <CreateIssueViewModal
+        {...props}
+        analyticsSurface={viewId ? 'issue-view-details' : 'issues-feed'}
+        name={view ? `${view.name} (Copy)` : undefined}
+        query={query}
+        querySort={sort}
+        projects={selection.projects}
+        environments={selection.environments}
+        timeFilters={selection.datetime}
+      />
+    ));
+  };
+
+  if (!viewId) {
+    return (
+      <Feature
+        features="organizations:issue-views"
+        overrideName="feature-disabled:issue-views"
+        renderDisabled={props => (
+          <Hovercard
+            body={
+              <FeatureDisabled
+                features={props.features}
+                hideHelpToggle
+                featureName={t('Issue Views')}
+              />
+            }
+          >
+            {typeof props.children === 'function'
+              ? props.children(props)
+              : props.children}
+          </Hovercard>
+        )}
+      >
+        {({hasFeature}) => (
+          <Button
+            variant="primary"
+            onClick={openCreateIssueViewModal}
+            disabled={!hasFeature}
+          >
+            {t('Save as')}
+          </Button>
+        )}
+      </Feature>
+    );
+  }
+
+  return (
+    <SegmentedIssueViewSaveButton openCreateIssueViewModal={openCreateIssueViewModal} />
+  );
+}
+
+const PrimarySaveButton = Button;
+
+const DropdownTrigger = styled(Button)`
+  box-shadow: none;
+  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.md};
+  border-left: none;
+`;

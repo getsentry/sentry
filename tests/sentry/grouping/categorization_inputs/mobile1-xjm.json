@@ -1,0 +1,71 @@
+{
+  "event_id": "c397dc1cb5294071b76d72612bb7e60c",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "Thread.java",
+              "filename": "Thread.java",
+              "function": "run",
+              "module": "java.lang.Thread"
+            },
+            {
+              "function": "run",
+              "module": "com.google.android.gms.common.util.a.d"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "run",
+              "module": "java.util.concurrent.ThreadPoolExecutor$Worker"
+            },
+            {
+              "abs_path": "ThreadPoolExecutor.java",
+              "filename": "ThreadPoolExecutor.java",
+              "function": "runWorker",
+              "module": "java.util.concurrent.ThreadPoolExecutor"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "Intent.java",
+              "filename": "Intent.java",
+              "function": "<init>",
+              "module": "android.content.Intent"
+            },
+            {
+              "abs_path": "ComponentName.java",
+              "filename": "ComponentName.java",
+              "function": "<init>",
+              "module": "android.content.ComponentName"
+            }
+          ]
+        },
+        "type": "NullPointerException",
+        "value": "Attempt to invoke virtual method 'java.lang.String java.lang.Class.getName()' on a null object reference"
+      }
+    ]
+  },
+  "platform": "java"
+}

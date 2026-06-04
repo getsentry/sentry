@@ -1,0 +1,129 @@
+import {Fragment, useCallback, useState} from 'react';
+import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
+
+import {DrawerHeader} from '@sentry/scraps/drawer';
+
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
+import {t} from 'sentry/locale';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
+import {automationsApiOptions} from 'sentry/views/automations/hooks';
+import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
+
+function ConnectedAutomations({
+  automationIds,
+  toggleConnected,
+}: {
+  automationIds: string[];
+  toggleConnected: (params: {automation: Automation}) => void;
+}) {
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+
+  return (
+    <DetailSection title={t('Connected Alerts')}>
+      <ConnectedAutomationsList
+        data-test-id="drawer-connected-automations-list"
+        automationIds={automationIds}
+        connectedAutomationIds={new Set(automationIds)}
+        toggleConnected={toggleConnected}
+        cursor={cursor}
+        onCursor={setCursor}
+        limit={null}
+        openInNewTab
+      />
+    </DetailSection>
+  );
+}
+
+function AllAutomations({
+  automationIds,
+  toggleConnected,
+}: {
+  automationIds: string[];
+  toggleConnected: (params: {automation: Automation}) => void;
+}) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const onSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setCursor(undefined);
+  }, []);
+
+  return (
+    <DetailSection title={t('All Alerts')}>
+      <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
+      <ConnectedAutomationsList
+        data-test-id="drawer-all-automations-list"
+        automationIds={null}
+        connectedAutomationIds={new Set(automationIds)}
+        toggleConnected={toggleConnected}
+        emptyMessage={t('No alerts found')}
+        cursor={cursor}
+        onCursor={setCursor}
+        query={searchQuery}
+        openInNewTab
+      />
+    </DetailSection>
+  );
+}
+
+export function ConnectAutomationsDrawer({
+  initialWorkflowIds,
+  setWorkflowIds,
+}: {
+  initialWorkflowIds: string[];
+  setWorkflowIds: (workflowIds: string[]) => void;
+}) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const [localWorkflowIds, setLocalWorkflowIds] = useState(initialWorkflowIds);
+
+  const toggleConnected = ({automation}: {automation: Automation}) => {
+    const oldAutomationsData =
+      queryClient.getQueryData(
+        automationsApiOptions(organization, {
+          ids: localWorkflowIds,
+        }).queryKey
+      )?.json ?? [];
+
+    const newAutomations = (
+      oldAutomationsData.some(a => a.id === automation.id)
+        ? oldAutomationsData.filter(a => a.id !== automation.id)
+        : [...oldAutomationsData, automation]
+    ).sort((a, b) => a.id.localeCompare(b.id));
+    const newWorkflowIds = newAutomations.map(a => a.id);
+
+    queryClient.setQueryData(
+      automationsApiOptions(organization, {ids: newWorkflowIds}).queryKey,
+      old => ({headers: old?.headers ?? {}, json: newAutomations})
+    );
+
+    setLocalWorkflowIds(newWorkflowIds);
+    setWorkflowIds(newWorkflowIds);
+  };
+
+  return (
+    <Fragment>
+      <DrawerHeader hideBar />
+      <DrawerContent>
+        <ConnectedAutomations
+          automationIds={localWorkflowIds}
+          toggleConnected={toggleConnected}
+        />
+        <AllAutomations
+          automationIds={localWorkflowIds}
+          toggleConnected={toggleConnected}
+        />
+      </DrawerContent>
+    </Fragment>
+  );
+}
+
+const DrawerContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
+`;

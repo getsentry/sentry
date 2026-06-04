@@ -1,0 +1,246 @@
+import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
+import type {Location} from 'history';
+import pick from 'lodash/pick';
+
+import {AlertBadge} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingError} from 'sentry/components/loadingError';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
+import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import type {Incident} from 'sentry/views/alerts/types';
+import {IncidentStatus} from 'sentry/views/alerts/types';
+
+import {MissingAlertsButtons} from './missingFeatureButtons/missingAlertsButtons';
+import {SectionHeadingWrapper, SidebarSection} from './styles';
+
+const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
+
+interface AlertRowProps {
+  alert: Incident;
+}
+
+function AlertRow({alert}: AlertRowProps) {
+  const organization = useOrganization();
+  const {status, identifier, title, dateClosed, dateStarted} = alert;
+  const isResolved = status === IncidentStatus.CLOSED;
+  const isWarning = status === IncidentStatus.WARNING;
+
+  const Icon = isResolved ? IconCheckmark : isWarning ? IconExclamation : IconFire;
+
+  const variant = isResolved ? 'success' : isWarning ? 'warning' : 'danger';
+
+  return (
+    <AlertRowLink
+      aria-label={title}
+      to={makeAlertsPathname({
+        path: `/${identifier}/`,
+        organization,
+      })}
+    >
+      <AlertBadgeWrapper icon={Icon}>
+        <AlertBadge status={status} />
+      </AlertBadgeWrapper>
+      <AlertDetails>
+        <AlertTitle>{title}</AlertTitle>
+        <Text variant={variant}>
+          {isResolved ? t('Resolved') : t('Triggered')}{' '}
+          {isResolved ? (
+            dateClosed ? (
+              <TimeSince date={dateClosed} variant={variant} />
+            ) : null
+          ) : (
+            <TimeSince date={dateStarted} variant={variant} />
+          )}
+        </Text>
+      </AlertDetails>
+    </AlertRowLink>
+  );
+}
+
+interface ProjectLatestAlertsProps {
+  isProjectStabilized: boolean;
+  location: Location;
+  organization: Organization;
+  projectSlug: string;
+}
+
+export function ProjectLatestAlerts({
+  location,
+  organization,
+  isProjectStabilized,
+  projectSlug,
+}: ProjectLatestAlertsProps) {
+  const query = {
+    ...pick(location.query, Object.values(URL_PARAM)),
+    per_page: 3,
+  };
+  const {
+    data: unresolvedAlerts = [],
+    isPending: unresolvedAlertsIsLoading,
+    isError: unresolvedAlertsIsError,
+  } = useApiQuery<Incident[]>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/incidents/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {...query, status: 'open'}},
+    ],
+    {staleTime: 0, enabled: isProjectStabilized}
+  );
+  const {
+    data: resolvedAlerts = [],
+    isPending: resolvedAlertsIsLoading,
+    isError: resolvedAlertsIsError,
+  } = useApiQuery<Incident[]>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/incidents/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {...query, status: 'closed'}},
+    ],
+    {staleTime: 0, enabled: isProjectStabilized}
+  );
+
+  const alertsUnresolvedAndResolved = [...unresolvedAlerts, ...resolvedAlerts];
+  const shouldLoadAlertRules =
+    alertsUnresolvedAndResolved.length === 0 &&
+    !unresolvedAlertsIsLoading &&
+    !resolvedAlertsIsLoading;
+  // This is only used to determine if we should show the "Create Alert" button
+  const {data: hasAlertRules, isPending: alertRulesLoading} = useQuery({
+    ...apiOptions.as<unknown[]>()('/organizations/$organizationIdOrSlug/alert-rules/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 0,
+      query: {
+        ...pick(location.query, Object.values(URL_PARAM)),
+        // Sort by name
+        asc: 1,
+        per_page: 1,
+      },
+    }),
+    enabled: shouldLoadAlertRules,
+    select: data => data.json.length > 0,
+  });
+
+  function renderAlertRules() {
+    if (unresolvedAlertsIsError || resolvedAlertsIsError) {
+      return <LoadingError message={t('Unable to load latest alerts')} />;
+    }
+
+    const isLoading = unresolvedAlertsIsLoading || resolvedAlertsIsLoading;
+    if (isLoading || (shouldLoadAlertRules && alertRulesLoading)) {
+      return <Placeholder height={PLACEHOLDER_AND_EMPTY_HEIGHT} />;
+    }
+
+    const hasAlertRule = alertsUnresolvedAndResolved.length > 0 || hasAlertRules;
+    if (!hasAlertRule) {
+      return (
+        <MissingAlertsButtons organization={organization} projectSlug={projectSlug} />
+      );
+    }
+
+    if (alertsUnresolvedAndResolved.length === 0) {
+      return (
+        <StyledEmptyStateWarning small>{t('No alerts found')}</StyledEmptyStateWarning>
+      );
+    }
+
+    return alertsUnresolvedAndResolved
+      .slice(0, 3)
+      .map(alert => <AlertRow key={alert.id} alert={alert} />);
+  }
+
+  return (
+    <SidebarSection>
+      <SectionHeadingWrapper>
+        <SectionHeading>{t('Latest Alerts')}</SectionHeading>
+        {/* as this is a link to latest alerts, we want to only preserve project and environment */}
+        <StyledIconLink
+          to={{
+            pathname: makeAlertsPathname({
+              path: '/',
+              organization,
+            }),
+            query: {
+              ...extractSelectionParameters(location.query),
+              statsPeriod: undefined,
+              start: undefined,
+              end: undefined,
+              utc: undefined,
+            },
+          }}
+        >
+          <IconOpen aria-label={t('Metric Alert History')} />
+        </StyledIconLink>
+      </SectionHeadingWrapper>
+
+      <div>{renderAlertRules()}</div>
+    </SidebarSection>
+  );
+}
+
+const StyledIconLink = styled(Link)`
+  display: flex;
+`;
+
+const AlertRowLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  height: 40px;
+  margin-bottom: ${p => p.theme.space['2xl']};
+  margin-left: ${p => p.theme.space.xs};
+  &,
+  &:hover,
+  &:focus {
+    color: inherit;
+  }
+  &:first-child {
+    margin-top: ${p => p.theme.space.md};
+  }
+`;
+
+const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* icon warning needs to be treated differently to look visually centered */
+  line-height: ${p => (p.icon === IconExclamation ? undefined : 1)};
+`;
+
+const AlertDetails = styled('div')`
+  font-size: ${p => p.theme.font.size.md};
+  margin-left: ${p => p.theme.space.lg};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+`;
+
+const AlertTitle = styled('div')`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: ${PLACEHOLDER_AND_EMPTY_HEIGHT};
+  justify-content: center;
+`;

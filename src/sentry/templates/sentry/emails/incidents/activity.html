@@ -1,0 +1,33 @@
+{% extends "sentry/emails/activity/generic.html" %}
+
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block activity %}
+  <h3>{{ user_name }} {{ action }}</h3>
+
+  {% if enhanced_privacy %}
+    <div class="notice">
+      Details about this activity are not shown in this email since enhanced privacy
+      controls are enabled. For more details about this activity, <a href="{{ link }}">view on Sentry.</a>
+    </div>
+
+  {% else %}
+    {% if comment %}
+      <table class="note">
+        <tr>
+          <td class="avatar-column">
+            {% email_avatar user_name user_email 48 %}
+          </td>
+          <td class="notch-column">
+            <img width="7" height="48" src="{% absolute_asset_url 'sentry' 'images/email/avatar-notch.png' %}">
+          </td>
+          <td>
+            <div class="note-body">{{ comment|urlize|linebreaks }}</div>
+          </td>
+        </tr>
+      </table>
+    {% endif %}
+  {% endif %}
+{% endblock %}

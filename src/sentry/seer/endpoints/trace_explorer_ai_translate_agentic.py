@@ -1,0 +1,157 @@
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from django.conf import settings
+from rest_framework import serializers, status
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases import OrganizationEndpoint
+from sentry.models.organization import Organization
+from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
+from sentry.seer.models import SeerApiError
+from sentry.seer.seer_setup import has_seer_access_with_detail
+from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
+    TranslateAgenticRequest,
+    make_translate_agentic_request,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class SearchAgentTranslateSerializer(serializers.Serializer):
+    project_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        allow_empty=False,
+        help_text="List of project IDs to search in.",
+    )
+    natural_language_query = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        help_text="Natural language query to translate.",
+    )
+    strategy = serializers.CharField(
+        required=False,
+        default="Traces",
+        help_text="Search strategy to use.",
+    )
+    options = serializers.DictField(
+        required=False,
+        allow_null=True,
+        help_text="Optional configuration options.",
+    )
+
+    def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        if value is None:
+            return None
+        if "model_name" in value and not isinstance(value["model_name"], str):
+            raise serializers.ValidationError("model_name must be a string")
+        return value
+
+
+def send_translate_agentic_request(
+    org_id: int,
+    org_slug: str,
+    project_ids: list[int],
+    natural_language_query: str,
+    strategy: str = "Traces",
+    model_name: str | None = None,
+    metric_context: dict[str, Any] | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> Any:
+    """
+    Sends a request to seer to translate a natural language query using the agentic search API.
+    """
+    body = TranslateAgenticRequest(
+        org_id=org_id,
+        org_slug=org_slug,
+        project_ids=project_ids,
+        natural_language_query=natural_language_query,
+        strategy=strategy,
+    )
+    options: dict[str, Any] = {}
+    if model_name is not None:
+        options["model_name"] = model_name
+    if metric_context is not None:
+        options["metric_context"] = metric_context
+    if options:
+        body["options"] = options
+
+    response = make_translate_agentic_request(body, timeout=10, viewer_context=viewer_context)
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
+    return response.json()
+
+
+@cell_silo_endpoint
+class SearchAgentTranslateEndpoint(OrganizationEndpoint):
+    """
+    Endpoint to call Seer's agentic search API for translating natural language queries.
+    """
+
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.ML_AI
+
+    permission_classes = (OrganizationTraceExplorerAIPermission,)
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        """
+        Request to translate a natural language query using the agentic search API.
+        """
+        serializer = SearchAgentTranslateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+        natural_language_query = validated_data["natural_language_query"]
+        strategy = validated_data.get("strategy", "Traces")
+        options = validated_data.get("options") or {}
+        model_name = options.get("model_name")
+        metric_context = options.get("metric_context")
+
+        projects = self.get_projects(
+            request, organization, project_ids=set(validated_data["project_ids"])
+        )
+        project_ids = [project.id for project in projects]
+
+        if not features.has("organizations:seer-explorer", organization, actor=request.user):
+            return Response(
+                {"detail": "Feature flag not enabled"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
+        if not has_seer_access:
+            return Response(
+                {"detail": detail},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if not settings.SEER_AUTOFIX_URL:
+            return Response(
+                {"detail": "Seer is not properly configured."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        data = send_translate_agentic_request(
+            organization.id,
+            organization.slug,
+            project_ids,
+            natural_language_query,
+            strategy=strategy,
+            model_name=model_name,
+            metric_context=metric_context,
+            viewer_context=viewer_context,
+        )
+        return Response(data)

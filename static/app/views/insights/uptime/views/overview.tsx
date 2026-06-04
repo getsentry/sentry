@@ -1,0 +1,218 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
+
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
+
+import {hasEveryAccess} from 'sentry/components/acl/access';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {Panel} from 'sentry/components/panels/panel';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconAdd} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
+import {makeMonitorTypePathname} from 'sentry/views/detectors/pathnames';
+import {OverviewTimeline} from 'sentry/views/insights/uptime/components/overviewTimeline';
+import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/uptime/settings';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+export default function UptimeOverview() {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const project = decodeList(location.query?.project);
+  const {projects} = useProjects();
+
+  const {data, isPending} = useQuery({
+    ...detectorListApiOptions(organization, {
+      type: 'uptime',
+      query: decodeScalar(location.query.query),
+      cursor: decodeScalar(location.query.cursor),
+      projects: project.map(Number),
+    }),
+    select: selectJsonWithHeaders,
+  });
+  const detectors = data?.json;
+
+  useRouteAnalyticsEventNames('uptime.page_viewed', 'Uptime: Page Viewed');
+  useRouteAnalyticsParams({empty_state: !detectors || detectors.length === 0});
+
+  const uptimeListPageLinks = data?.headers.Link;
+
+  const canCreateAlert =
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+  );
+
+  const page = (
+    <Fragment>
+      <Layout.Header unified>
+        <Layout.HeaderContent>
+          <Layout.Title>
+            {t('Uptime Monitors')}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
+          </Layout.Title>
+        </Layout.HeaderContent>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="actions">
+              <LinkButton
+                variant="primary"
+                to={makeAlertsPathname({path: '/new/uptime/', organization})}
+                icon={<IconAdd />}
+                disabled={!canCreateAlert}
+                tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
+              >
+                {t('Add Uptime Monitor')}
+              </LinkButton>
+            </TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.HeaderActions>
+            <Grid flow="column" align="center" gap="md">
+              <FeedbackButton />
+              <LinkButton
+                size="sm"
+                variant="primary"
+                to={makeAlertsPathname({path: '/new/uptime/', organization})}
+                icon={<IconAdd />}
+                disabled={!canCreateAlert}
+                tooltipProps={{title: canCreateAlert ? undefined : permissionTooltipText}}
+              >
+                {t('Add Uptime Monitor')}
+              </LinkButton>
+            </Grid>
+          </Layout.HeaderActions>
+        )}
+      </Layout.Header>
+      <Layout.Body>
+        <Layout.Main width="full">
+          <Filters>
+            <PageFilterBar>
+              <ProjectPageFilter resetParamsOnChange={['cursor']} />
+              <DatePageFilter />
+            </PageFilterBar>
+            <DetectorSearch
+              initialQuery=""
+              placeholder={t('Filter uptime monitors')}
+              excludeKeys={['type']}
+              onSearch={query => {
+                navigate(
+                  {
+                    ...location,
+                    query: {...location.query, query, cursor: undefined},
+                  },
+                  {replace: true}
+                );
+              }}
+            />
+          </Filters>
+          {organization.features.includes('workflow-engine-ui') && (
+            <Alert.Container>
+              <Alert variant="info" showIcon>
+                {tct(
+                  'Uptime Monitors are moving to [link:Monitors]. Head over there for the same functionality in a new home.',
+                  {
+                    link: (
+                      <Link
+                        to={{
+                          pathname: makeMonitorTypePathname(
+                            organization.slug,
+                            'uptime_domain_failure'
+                          ),
+                          query: extractSelectionParameters(location.query),
+                        }}
+                      />
+                    ),
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
+          )}
+          {isPending ? (
+            <LoadingIndicator />
+          ) : detectors?.length ? (
+            <Fragment>
+              <OverviewTimeline uptimeDetectors={detectors} />
+              {uptimeListPageLinks && <Pagination pageLinks={uptimeListPageLinks} />}
+            </Fragment>
+          ) : (
+            <Panel>
+              <EmptyMessage
+                title={t('The selected projects have no uptime monitors')}
+                action={
+                  <LinkButton
+                    size="sm"
+                    variant="primary"
+                    to={makeAlertsPathname({path: '/new/uptime/', organization})}
+                    icon={<IconAdd />}
+                  >
+                    {t('Add Uptime Monitor')}
+                  </LinkButton>
+                }
+              />
+            </Panel>
+          )}
+        </Layout.Main>
+      </Layout.Body>
+    </Fragment>
+  );
+
+  return (
+    <NoProjectMessage organization={organization}>
+      <SentryDocumentTitle title={t('Uptime Monitors')} orgSlug={organization.slug}>
+        <PageFiltersContainer>{page}</PageFiltersContainer>
+      </SentryDocumentTitle>
+    </NoProjectMessage>
+  );
+}
+
+const Filters = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
+
+  > :last-child {
+    flex-grow: 1;
+  }
+`;

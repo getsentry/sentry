@@ -1,0 +1,263 @@
+import {GroupFixture} from 'sentry-fixture/group';
+import {GroupStatsFixture} from 'sentry-fixture/groupStats';
+import {MemberFixture} from 'sentry-fixture/member';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TagsFixture} from 'sentry-fixture/tags';
+
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {StreamGroup} from 'sentry/components/stream/group';
+import {TagStore} from 'sentry/stores/tagStore';
+import type {Group} from 'sentry/types/group';
+import IssueList from 'sentry/views/issueList/overview';
+
+jest.mock('sentry/views/issueList/filters', () => ({
+  IssueListFilters: jest.fn(() => null),
+}));
+jest.mock('sentry/components/stream/group', () => ({
+  __esModule: true,
+  StreamGroup: jest.fn(({group}: {group: Group}) => <div data-test-id={group.id} />),
+  LoadingStreamGroup: jest.fn(() => <div data-test-id="loading-group" />),
+}));
+
+jest.mock('js-cookie', () => ({
+  get: jest.fn(),
+  set: jest.fn(),
+}));
+
+const PREVIOUS_PAGE_CURSOR = '1443575731';
+const DEFAULT_LINKS_HEADER =
+  `<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1>; rel="previous"; results="false"; cursor="${PREVIOUS_PAGE_CURSOR}:0:1", ` +
+  '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
+
+describe('IssueList -> Polling', () => {
+  let issuesRequest: jest.Mock;
+  let pollRequest: jest.Mock;
+
+  afterEach(() => {
+    jest.useRealTimers();
+    MockApiClient.clearMockResponses();
+  });
+
+  const project = ProjectFixture();
+  const group = GroupFixture({project});
+  const group2 = GroupFixture({project, id: '2'});
+
+  /* helpers */
+  const renderComponent = async () => {
+    render(<IssueList />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/',
+          query: {query: 'is:unresolved'},
+        },
+      },
+    });
+
+    await Promise.resolve();
+    jest.runAllTimers();
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+
+    // The tests fail because we have a "component update was not wrapped in act" error.
+    // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
+
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+
+    MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      method: 'GET',
+      body: [{}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/processingissues/',
+      method: 'GET',
+      body: [
+        {
+          project: 'test-project',
+          numIssues: 1,
+          hasIssues: true,
+          lastSeen: '2019-01-16T15:39:11.081Z',
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      method: 'GET',
+      body: TagsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      method: 'GET',
+      body: [MemberFixture({projects: [project.slug]})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'GET',
+      body: [],
+    });
+    issuesRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [group],
+      headers: {
+        Link: DEFAULT_LINKS_HEADER,
+        'X-Hits': '1',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-stats/',
+      body: [GroupStatsFixture()],
+    });
+    pollRequest = MockApiClient.addMockResponse({
+      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      body: [],
+      headers: {
+        Link: DEFAULT_LINKS_HEADER,
+        'X-Hits': '1',
+      },
+    });
+
+    jest.mocked(StreamGroup).mockClear();
+    TagStore.init();
+  });
+
+  it('toggles polling for new issues', async () => {
+    await renderComponent();
+
+    await waitFor(() => {
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          // Should be called with default query
+          data: expect.stringContaining('is%3Aunresolved'),
+        })
+      );
+    });
+
+    // Enable realtime updates
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
+
+    // Each poll request gets delayed by additional 3s, up to max of 60s
+    jest.advanceTimersByTime(3001);
+    expect(pollRequest).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(6001);
+    expect(pollRequest).toHaveBeenCalledTimes(2);
+
+    // Pauses
+    await userEvent.click(screen.getByRole('button', {name: 'Pause real-time updates'}), {
+      delay: null,
+    });
+
+    jest.advanceTimersByTime(12001);
+    expect(pollRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('displays new group and pagination caption correctly', async () => {
+    pollRequest = MockApiClient.addMockResponse({
+      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      body: [group2],
+      headers: {
+        Link: DEFAULT_LINKS_HEADER,
+        'X-Hits': '2',
+      },
+    });
+
+    await renderComponent();
+    expect(
+      await screen.findByText(textWithMarkupMatcher('1-1 of 1'))
+    ).toBeInTheDocument();
+
+    // Enable realtime updates
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
+
+    jest.advanceTimersByTime(3001);
+    expect(pollRequest).toHaveBeenCalledTimes(1);
+
+    // We mock out the stream group component and only render the ID as a testid
+    await screen.findByTestId('2');
+
+    expect(screen.getByText(textWithMarkupMatcher('1-2 of 2'))).toBeInTheDocument();
+  });
+
+  it('stops polling for new issues when endpoint returns a 401', async () => {
+    pollRequest = MockApiClient.addMockResponse({
+      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      body: [],
+      statusCode: 401,
+    });
+
+    await renderComponent();
+
+    // Enable real time control
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
+
+    // Each poll request gets delayed by additional 3s, up to max of 60s
+    jest.advanceTimersByTime(3001);
+    expect(pollRequest).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(9001);
+    expect(pollRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops polling for new issues when endpoint returns a 403', async () => {
+    pollRequest = MockApiClient.addMockResponse({
+      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      body: [],
+      statusCode: 403,
+    });
+
+    await renderComponent();
+
+    // Enable real time control
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
+
+    // Each poll request gets delayed by additional 3s, up to max of 60s
+    jest.advanceTimersByTime(3001);
+    expect(pollRequest).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(9001);
+    expect(pollRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops polling for new issues when endpoint returns a 404', async () => {
+    pollRequest = MockApiClient.addMockResponse({
+      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      body: [],
+      statusCode: 404,
+    });
+
+    await renderComponent();
+
+    // Enable real time control
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
+
+    // Each poll request gets delayed by additional 3s, up to max of 60s
+    jest.advanceTimersByTime(3001);
+    expect(pollRequest).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(9001);
+    expect(pollRequest).toHaveBeenCalledTimes(1);
+  });
+});

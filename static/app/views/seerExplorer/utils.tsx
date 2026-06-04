@@ -1,0 +1,1143 @@
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {useMatches} from 'react-router-dom';
+import type {LocationDescriptor} from 'history';
+import queryString from 'query-string';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
+import {
+  LOGS_GROUP_BY_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {
+  defaultAggregateSortBys,
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+  type TraceMetric,
+} from 'sentry/views/explore/metrics/metricQuery';
+import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import type {
+  Block,
+  ToolCall,
+  ToolLink,
+  ToolResult,
+} from 'sentry/views/seerExplorer/types';
+
+/**
+ * Tool formatter function type.
+ * Takes parsed args, loading state, and optional tool link metadata.
+ * Implement one for each tool that needs custom display.
+ */
+type ToolFormatter = (
+  args: Record<string, any>,
+  isLoading: boolean,
+  toolLinkParams?: Record<string, any> | null
+) => string;
+
+export const makeSeerExplorerQueryKey = (
+  orgSlug: string,
+  runId: number | null
+): ApiQueryKey => [
+  runId
+    ? getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
+        path: {organizationIdOrSlug: orgSlug, runId},
+      })
+    : getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+
+  {},
+];
+
+/**
+ * Registry of custom tool formatters.
+ * Add new tools here to customize their display.
+ */
+const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
+  telemetry_index_list_nodes: (args, isLoading) => {
+    const keyword = args.keyword || 'items';
+    return isLoading ? `Scanning for ${keyword}...` : `Scanned for ${keyword}`;
+  },
+
+  telemetry_index_dependencies: (args, isLoading) => {
+    const title = args.title || 'item';
+    return isLoading ? `Tracing the flow of ${title}...` : `Traced the flow of ${title}`;
+  },
+
+  google_search: (args, isLoading) => {
+    const question = args.question || 'query';
+    return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
+  },
+
+  telemetry_live_search: (args, isLoading, resultMetadata) => {
+    const question = args.question || 'data';
+    const dataset = args.dataset || 'spans';
+    const projectSlugs = args.project_slugs;
+
+    const projectInfo =
+      projectSlugs && projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
+
+    if (dataset === 'issues') {
+      return isLoading
+        ? `Searching for issues${projectInfo}: '${question}'...`
+        : `Searched for issues${projectInfo}: '${question}'`;
+    }
+
+    if (dataset === 'errors') {
+      return isLoading
+        ? `Searching for errors${projectInfo}: '${question}'...`
+        : `Searched for errors${projectInfo}: '${question}'`;
+    }
+
+    if (dataset === 'logs') {
+      return isLoading
+        ? `Querying logs${projectInfo}: '${question}'...`
+        : `Queried logs${projectInfo}: '${question}'`;
+    }
+
+    if (dataset === 'metrics' || dataset === 'tracemetrics') {
+      return isLoading
+        ? `Querying metrics${projectInfo}: '${question}'...`
+        : `Queried metrics${projectInfo}: '${question}'`;
+    }
+
+    // Default to spans dataset
+    return isLoading
+      ? `Querying spans${projectInfo}: '${question}'...`
+      : resultMetadata?.mode === 'traces'
+        ? `Queried traces${projectInfo}: '${question}'...`
+        : `Queried spans${projectInfo}: '${question}'`;
+  },
+
+  get_trace_waterfall: (args, isLoading) => {
+    const traceId = args.trace_id || '';
+    const spanId = args.span_id;
+    if (spanId) {
+      return isLoading
+        ? `Digging into span ${spanId.slice(0, 8)}...`
+        : `Dug into span ${spanId.slice(0, 8)}`;
+    }
+    return isLoading
+      ? `Viewing waterfall for trace ${traceId.slice(0, 8)}...`
+      : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
+  },
+
+  get_issue_details: (args, isLoading, resultMetadata) => {
+    const {issue_id, start, end, event_id} = args;
+
+    if (event_id) {
+      // For backwards compatibility. event_id arg only present in an older version (issue_and_event_details)
+      return isLoading
+        ? `Analyzing event ${event_id.slice(0, 8)}...`
+        : `Analyzed event ${event_id.slice(0, 8)}`;
+    }
+
+    if (issue_id) {
+      if (start && end) {
+        return isLoading
+          ? `Inspecting issue ${issue_id} between ${start} to ${end}...`
+          : `Inspected issue ${resultMetadata?.short_id || issue_id} between ${start} to ${end}`;
+      }
+      return isLoading
+        ? `Inspecting issue ${issue_id}...`
+        : `Inspected issue ${resultMetadata?.short_id || issue_id}`;
+    }
+
+    // shouldn't happen (issue_id required)
+    return isLoading ? 'Inspecting issue...' : 'Inspected issue';
+  },
+
+  get_event_details: (args, isLoading, resultMetadata) => {
+    const {event_id, issue_id, start, end} = args;
+
+    // event ID mode
+    if (event_id) {
+      return isLoading
+        ? `Analyzing event ${event_id.slice(0, 8)}...`
+        : `Analyzed event ${event_id.slice(0, 8)}`;
+    }
+
+    // recommended event mode
+    if (issue_id) {
+      if (start && end) {
+        return isLoading
+          ? `Analyzing recommended event for issue ${issue_id}, sampled from ${start} to ${end}...`
+          : `Analyzed recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}, sampled from ${start} to ${end}`;
+      }
+      return isLoading
+        ? `Analyzing recommended event for issue ${issue_id}...`
+        : `Analyzed recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}`;
+    }
+
+    // shouldn't happen (either event_id or issue_id required)
+    return isLoading ? 'Analyzing event...' : 'Analyzed event';
+  },
+
+  code_search: (args, isLoading) => {
+    const repoName = args.repo_name || 'repository';
+    const mode = args.mode || 'search';
+    const path = args.path;
+    const pattern = args.pattern;
+
+    switch (mode) {
+      case 'read_file':
+        if (path) {
+          return isLoading
+            ? `Reading ${path} from ${repoName}...`
+            : `Read ${path} from ${repoName}`;
+        }
+        return isLoading
+          ? `Reading file from ${repoName}...`
+          : `Read file from ${repoName}`;
+
+      case 'find_files':
+        if (pattern) {
+          return isLoading
+            ? `Finding files matching '${pattern}' in ${repoName}...`
+            : `Found files matching '${pattern}' in ${repoName}`;
+        }
+        return isLoading
+          ? `Finding files in ${repoName}...`
+          : `Found files in ${repoName}`;
+
+      case 'search_content':
+        if (pattern) {
+          return isLoading
+            ? `Searching for '${pattern}' in ${repoName}...`
+            : `Searched for '${pattern}' in ${repoName}`;
+        }
+        return isLoading
+          ? `Searching code in ${repoName}...`
+          : `Searched code in ${repoName}`;
+
+      default:
+        return isLoading
+          ? `Searching code in ${repoName}...`
+          : `Searched code in ${repoName}`;
+    }
+  },
+
+  git_search: (args, isLoading) => {
+    const repoName = args.repo_name || 'repository';
+    const sha = args.sha;
+    const filePath = args.file_path;
+    const startDate = args.start_date;
+    const endDate = args.end_date;
+
+    if (sha) {
+      const shortSha = sha.slice(0, 7);
+      return isLoading
+        ? `Digging up commit ${shortSha} from ${repoName}...`
+        : `Dug up commit ${shortSha} from ${repoName}`;
+    }
+
+    // Build date range string if dates are provided
+    let dateRangeStr = '';
+    if (startDate || endDate) {
+      if (startDate && endDate) {
+        dateRangeStr = ` from ${startDate} to ${endDate}`;
+      } else if (startDate) {
+        dateRangeStr = ` since ${startDate}`;
+      } else if (endDate) {
+        dateRangeStr = ` until ${endDate}`;
+      }
+    }
+
+    if (filePath) {
+      return isLoading
+        ? `Excavating commits affecting '${filePath}'${dateRangeStr} in ${repoName}...`
+        : `Excavated commits affecting '${filePath}'${dateRangeStr} in ${repoName}`;
+    }
+
+    return isLoading
+      ? `Excavating commit history${dateRangeStr} in ${repoName}...`
+      : `Excavated commit history${dateRangeStr} in ${repoName}`;
+  },
+
+  get_replay_details: (args, isLoading) => {
+    const replayId = args.replay_id || '';
+    const shortReplayId = replayId.slice(0, 8);
+    return isLoading
+      ? `Watching replay ${shortReplayId}...`
+      : `Watched replay ${shortReplayId}`;
+  },
+
+  get_profile_flamegraph: (args, isLoading) => {
+    const profileId = args.profile_id || '';
+    const shortProfileId = profileId.slice(0, 8);
+    return isLoading
+      ? `Sampling profile ${shortProfileId}...`
+      : `Sampled profile ${shortProfileId}`;
+  },
+
+  get_metric_attributes: (args, isLoading) => {
+    const metricName = args.metric_name || '';
+    const traceId = args.trace_id || '';
+    const shortTraceId = traceId.slice(0, 8);
+    return isLoading
+      ? `Double-clicking on metric '${metricName}' in trace ${shortTraceId}...`
+      : `Double-clicked on metric '${metricName}' in trace ${shortTraceId}`;
+  },
+
+  get_log_attributes: (args, isLoading) => {
+    const message = args.log_message_substring || '';
+    const traceId = args.trace_id || '';
+    const shortTraceId = traceId.slice(0, 8);
+    return isLoading
+      ? `Examining logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}...`
+      : `Examined logs matching '*${message.slice(0, 20)}*' in trace ${shortTraceId}`;
+  },
+
+  code_file_edit: (args, isLoading, toolLinkParams) => {
+    const repoName = args.repo_name || 'repository';
+    const path = args.path || 'file';
+
+    if (toolLinkParams?.empty_results) {
+      return `Edit to ${path} in ${repoName} was rejected`;
+    }
+    if (toolLinkParams?.pending_approval) {
+      return `Edit to ${path} in ${repoName} is pending your approval`;
+    }
+    return isLoading
+      ? `Editing ${path} in ${repoName}...`
+      : `Edited ${path} in ${repoName}`;
+  },
+
+  code_file_write: (args, isLoading, toolLinkParams) => {
+    const repoName = args.repo_name || 'repository';
+    const path = args.path || 'file';
+    const content = args.content;
+
+    // Determine action based on content
+    const isDelete = content === '';
+    const action = isDelete ? 'Delete' : 'Write';
+    const actionPast = isDelete ? 'Deleted' : 'Wrote';
+    const actionPresent = isDelete ? 'Deleting' : 'Writing';
+    const actionPending = isDelete ? 'Delete' : 'Write';
+
+    if (toolLinkParams?.empty_results) {
+      return `${action} to ${path} in ${repoName} was rejected`;
+    }
+    if (toolLinkParams?.pending_approval) {
+      return `${actionPending} to ${path} in ${repoName} is pending your approval`;
+    }
+
+    return isLoading
+      ? `${actionPresent} ${path} in ${repoName}...`
+      : `${actionPast} ${path} in ${repoName}`;
+  },
+
+  search_sentry_docs: (args, isLoading) => {
+    const question = args.question || 'query';
+    return isLoading
+      ? `Scouring Sentry docs: '${question}'...`
+      : `Scoured Sentry docs: '${question}'`;
+  },
+
+  todo_write: (args, isLoading, toolLinkParams) => {
+    if (isLoading) {
+      const count = args.todos?.length || 0;
+      return count === 1 ? 'Updating todo list...' : `Updating ${count} todos...`;
+    }
+    // Use the summary from metadata if available
+    return toolLinkParams?.summary || 'Updated todo list';
+  },
+
+  ask_user_question: (args, isLoading, toolLinkParams) => {
+    const count = Array.isArray(args.questions) ? args.questions.length : 1;
+    const questionWord = count === 1 ? 'question' : 'questions';
+
+    // Show pending state when awaiting user response
+    if (toolLinkParams?.pending_question) {
+      return `Asking ${count} ${questionWord}...`;
+    }
+
+    return isLoading
+      ? `Asking ${count} ${questionWord}...`
+      : `Asked ${count} ${questionWord}`;
+  },
+};
+
+/**
+ * Parse JSON args safely, returning empty object on failure
+ */
+function parseToolArgs(argsString: string): Record<string, any> {
+  try {
+    return JSON.parse(argsString);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Get display strings for all tool calls in a block.
+ * Uses custom formatters from TOOL_FORMATTERS registry, falls back to generic message.
+ * Tool links are aligned with tool calls by index and contain metadata like rejection status.
+ */
+export function getToolsStringFromBlock(block: Block): string[] {
+  const tools: string[] = [];
+  const isLoading = block.loading ?? false;
+  const toolCalls = block.message.tool_calls || [];
+  const toolLinks = block.tool_links || [];
+  const toolResults = block.tool_results || [];
+
+  const toolLinkByCallId = new Map<string, ToolLink | null>();
+  toolResults.forEach((result, idx) => {
+    if (result?.tool_call_id) {
+      toolLinkByCallId.set(result.tool_call_id, toolLinks[idx] ?? null);
+    }
+  });
+
+  for (const tool of toolCalls) {
+    const toolLink = (tool.id ? toolLinkByCallId.get(tool.id) : undefined) ?? null;
+    const formatter = TOOL_FORMATTERS[tool.function];
+
+    if (formatter) {
+      // Use custom formatter with tool link params for metadata like rejection status
+      const args = parseToolArgs(tool.args);
+      tools.push(formatter(args, isLoading, toolLink?.params));
+    } else if (tool.function.startsWith('artifact_write_')) {
+      // Handle artifact_write_<artifact_name> tools
+      const artifactName = tool.function
+        .replace('artifact_write_', '')
+        .replace(/_/g, ' ');
+      tools.push(
+        isLoading
+          ? `Submitting ${artifactName} artifact...`
+          : `Submitted ${artifactName} artifact`
+      );
+    } else {
+      // Fall back to generic message
+      const verb = isLoading ? 'Using' : 'Used';
+      tools.push(`${verb} ${tool.function} tool`);
+    }
+  }
+
+  return tools;
+}
+
+/**
+ * Validate an ISO string and return it with 'Z' suffix stripped.
+ * Returns undefined if invalid.
+ */
+function validateIso(val: unknown): string | undefined {
+  if (!val || typeof val !== 'string') {
+    return undefined;
+  }
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? undefined : d.toISOString().replace(/Z$/, '');
+}
+
+function getStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+  return typeof value === 'string' ? [value] : [];
+}
+
+function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | null {
+  const rawTraceMetric = params.trace_metric;
+  if (
+    !rawTraceMetric ||
+    typeof rawTraceMetric !== 'object' ||
+    typeof rawTraceMetric.name !== 'string' ||
+    typeof rawTraceMetric.type !== 'string'
+  ) {
+    return null;
+  }
+
+  const traceMetric: TraceMetric = {
+    name: rawTraceMetric.name,
+    type: rawTraceMetric.type,
+  };
+  if (typeof rawTraceMetric.unit === 'string') {
+    traceMetric.unit = rawTraceMetric.unit;
+  }
+  return traceMetric;
+}
+
+function getMetricYAxis(yAxis: string, traceMetric: TraceMetric): string {
+  const visualize = new VisualizeFunction(yAxis);
+  const aggregate = visualize.parsedFunction?.name;
+  if (!aggregate) {
+    return yAxis;
+  }
+
+  return makeMetricsAggregate({aggregate, traceMetric});
+}
+
+function getDefaultMetricYAxis(traceMetric: TraceMetric): string {
+  return makeMetricsAggregate({
+    aggregate: DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'sum',
+    traceMetric,
+  });
+}
+
+function parseMetricsSort(
+  sort: unknown,
+  normalizedYAxesByOriginal: Map<string, string>
+): Sort | undefined {
+  if (typeof sort !== 'string' || !sort) {
+    return undefined;
+  }
+
+  const kind = sort.startsWith('-') ? 'desc' : 'asc';
+  const sortField = sort.replace(/^-/, '');
+  const normalizedYAxis = normalizedYAxesByOriginal.get(sortField);
+  if (normalizedYAxis) {
+    return {field: normalizedYAxis, kind};
+  }
+
+  const sortFunction = new VisualizeFunction(sortField).parsedFunction;
+  if (sortFunction) {
+    for (const mappedYAxis of normalizedYAxesByOriginal.values()) {
+      const yAxisFunction = new VisualizeFunction(mappedYAxis).parsedFunction;
+      if (yAxisFunction?.name === sortFunction.name) {
+        return {field: mappedYAxis, kind};
+      }
+    }
+  }
+
+  return {field: sortField, kind};
+}
+
+function buildMetricsQueryParam(params: Record<string, any>): string[] | undefined {
+  const traceMetric = getTraceMetricFromParams(params);
+  if (!traceMetric) {
+    return undefined;
+  }
+
+  const mode = params.mode === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES;
+  const base = defaultMetricQuery();
+
+  // Seer y-axes use short names like "avg(duration)"; normalize them to fully
+  // qualified metric aggregates like "avg(metrics.foo.duration)".
+  const yAxes = getStringArray(params.y_axes);
+  const resolvedYAxes = yAxes.length ? yAxes : [getDefaultMetricYAxis(traceMetric)];
+  const normalizedYAxesByOriginal = resolvedYAxes.reduce((map, yAxis) => {
+    map.set(yAxis, getMetricYAxis(yAxis, traceMetric));
+    return map;
+  }, new Map<string, string>());
+  // VisualizeFunction instances that the Explore page uses to render charts.
+  const visualizes = resolvedYAxes.map(
+    yAxis => new VisualizeFunction(normalizedYAxesByOriginal.get(yAxis)!)
+  );
+
+  const aggregateFields: AggregateField[] = [
+    ...getStringArray(params.group_by).map(groupBy => ({groupBy})),
+    ...visualizes,
+  ];
+  const sortBys = parseMetricsSort(params.sort, normalizedYAxesByOriginal);
+
+  const queryParams = base.queryParams.replace({
+    query: typeof params.query === 'string' ? params.query : '',
+    mode,
+    aggregateFields,
+    aggregateSortBys:
+      mode === Mode.AGGREGATE && sortBys
+        ? [sortBys]
+        : defaultAggregateSortBys(aggregateFields),
+    sortBys: mode === Mode.SAMPLES && sortBys ? [sortBys] : base.queryParams.sortBys,
+  });
+
+  return [encodeMetricQueryParams({metric: traceMetric, queryParams})];
+}
+
+/**
+ * Build a URL/LocationDescriptor for a tool link based on its kind and params
+ */
+export function buildToolLinkUrl(
+  toolLink: ToolLink | undefined,
+  organization: Organization,
+  projects?: Array<{id: string; slug: string}>
+): LocationDescriptor | null {
+  if (!toolLink) {
+    return null;
+  }
+
+  const orgSlug = organization.slug;
+
+  switch (toolLink.kind) {
+    case 'telemetry_live_search': {
+      const {dataset, project_slugs, query, sort, stats_period, start, end} =
+        toolLink.params;
+
+      const queryParams: Record<string, any> = {
+        query: query || '',
+        project: null,
+      };
+      if (stats_period) {
+        queryParams.statsPeriod = stats_period;
+      }
+      if (sort) {
+        queryParams.sort = sort;
+      }
+
+      // page filter expects no timezone (treated as UTC) or +HH:MM offset.
+      if (start) {
+        queryParams.start = start.replace(/Z$/, '');
+      }
+      if (end) {
+        queryParams.end = end.replace(/Z$/, '');
+      }
+
+      // If project_slugs is provided, look up the IDs and include them in qparams
+      if (project_slugs && project_slugs.length > 0 && projects) {
+        const projectIds = project_slugs
+          .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+          .filter((id: string | undefined) => id !== undefined);
+        if (projectIds.length > 0) {
+          queryParams.project = projectIds;
+        }
+      }
+
+      if (dataset === 'issues') {
+        return {
+          pathname: `/organizations/${orgSlug}/issues/`,
+          query: queryParams,
+        };
+      }
+
+      if (dataset === 'errors') {
+        queryParams.dataset = 'errors';
+        queryParams.queryDataset = 'error-events';
+
+        const {y_axes, group_by} = toolLink.params;
+        if (y_axes) {
+          queryParams.yAxis = y_axes;
+        }
+
+        // In Discover, group_by values become selected columns (field param)
+        // along with the y_axes aggregates
+        const fields: string[] = [];
+        if (group_by) {
+          const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
+          fields.push(...groupByArray);
+        }
+        if (y_axes) {
+          const yAxesArray = Array.isArray(y_axes) ? y_axes : [y_axes];
+          fields.push(...yAxesArray);
+        }
+
+        // make sure we always force some fields as discover will re-route to the
+        // saved default query in the event that no fields are specified
+        if (fields.length === 0) {
+          const defaultErrorView = DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS];
+          fields.push(...defaultErrorView.fields);
+        }
+
+        queryParams.field = fields;
+
+        // Discover sort strips parentheses from aggregates: -count() -> -count
+        if (queryParams.sort) {
+          queryParams.sort = queryParams.sort.replace(/\(\)/g, '');
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/discover/homepage/`,
+          query: queryParams,
+        };
+      }
+
+      if (dataset === 'logs') {
+        queryParams[LOGS_QUERY_KEY] = query || '';
+        delete queryParams.query;
+
+        if (sort) {
+          queryParams[LOGS_SORT_BYS_KEY] = sort;
+          delete queryParams.sort;
+        }
+
+        const {group_by, mode} = toolLink.params;
+        if (group_by) {
+          const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
+          queryParams[LOGS_GROUP_BY_KEY] = groupByArray;
+        }
+        if (mode) {
+          queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/logs/`,
+          query: queryParams,
+        };
+      }
+
+      if (dataset === 'metrics' || dataset === 'tracemetrics') {
+        const metric = buildMetricsQueryParam(toolLink.params);
+        if (!metric) {
+          return null;
+        }
+        queryParams.metric = metric;
+
+        return {
+          pathname: `/organizations/${orgSlug}/explore/metrics/`,
+          query: queryParams,
+        };
+      }
+
+      // Default to spans (traces) search
+      const {y_axes, group_by, mode} = toolLink.params;
+      const aggregateFields: string[] = [];
+
+      if (y_axes) {
+        const axes = Array.isArray(y_axes) ? y_axes : [y_axes];
+        const stringifiedAxes = axes.map(axis => JSON.stringify(axis));
+        queryParams.visualize = stringifiedAxes;
+        queryParams.yAxes = stringifiedAxes;
+        aggregateFields.push(JSON.stringify({yAxes: axes}));
+      }
+      if (group_by) {
+        const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
+        // Each groupBy value becomes a separate query param and aggregateField entry
+        queryParams.groupBy = groupByArray;
+        for (const groupByValue of groupByArray) {
+          aggregateFields.push(JSON.stringify({groupBy: groupByValue}));
+        }
+      }
+      if (mode) {
+        queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
+      }
+      if (mode === 'traces') {
+        queryParams.table = 'trace';
+      }
+
+      if (aggregateFields.length > 0) {
+        queryParams.aggregateField = aggregateFields;
+      }
+
+      return {
+        pathname: `/organizations/${orgSlug}/traces/`,
+        query: queryParams,
+      };
+    }
+    case 'get_trace_waterfall': {
+      const {trace_id, span_id, timestamp} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      const pathname = `/explore/traces/trace/${trace_id}/`;
+      const query: Record<string, string> = {};
+
+      if (span_id) {
+        query.node = `span-${span_id}`;
+      }
+
+      if (timestamp) {
+        query.timestamp = timestamp;
+      }
+
+      return {
+        pathname,
+        query,
+      };
+    }
+    case 'get_issue_details': {
+      const {issue_id, start, end, event_id} = toolLink.params;
+      const query = {
+        start: validateIso(start),
+        end: validateIso(end),
+      };
+
+      if (issue_id) {
+        if (event_id) {
+          // Should only be present in older version (get_issue_and_event_details)
+          return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
+        }
+        return {pathname: `/issues/${issue_id}/`, query};
+      }
+
+      return null;
+    }
+    case 'get_event_details': {
+      const {event_id, issue_id, start, end} = toolLink.params;
+
+      if (event_id && issue_id) {
+        const query = {
+          start: validateIso(start),
+          end: validateIso(end),
+        };
+        return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
+      }
+
+      return null;
+    }
+    case 'get_replay_details': {
+      const {replay_id} = toolLink.params;
+      if (!replay_id) {
+        return null;
+      }
+
+      return {
+        pathname: makeReplaysPathname({
+          path: `/${replay_id}/`,
+          organization,
+        }),
+      };
+    }
+    case 'get_profile_flamegraph': {
+      const {profile_id, project_id, is_continuous, start_ts, end_ts, thread_id} =
+        toolLink.params;
+      if (!profile_id || !project_id) {
+        return null;
+      }
+
+      // Look up project slug from project_id
+      const project = projects?.find(p => p.id === String(project_id));
+      if (!project) {
+        return null;
+      }
+
+      if (is_continuous) {
+        // Continuous profiles need start/end timestamps as query params
+        if (!start_ts || !end_ts) {
+          return null;
+        }
+
+        // Convert Unix timestamps to ISO date strings
+        const startDate = new Date(start_ts * 1000).toISOString();
+        const endDate = new Date(end_ts * 1000).toISOString();
+
+        return {
+          pathname: `/explore/profiles/profile/${project.slug}/flamegraph/`,
+          query: {
+            start: startDate,
+            end: endDate,
+            profilerId: profile_id,
+            ...(thread_id && {tid: thread_id}),
+          },
+        };
+      }
+
+      // Transaction profiles use profile_id in the path
+      return {
+        pathname: `/organizations/${orgSlug}/explore/profiles/profile/${project.slug}/${profile_id}/flamegraph/`,
+        ...(thread_id && {query: {tid: thread_id}}),
+      };
+    }
+    case 'get_log_attributes': {
+      const {trace_id} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      // TODO: Currently no way to pass substring filter to this page, update with params.log_message_substring when it's supported.
+      return {
+        pathname: `/organizations/${orgSlug}/explore/logs/trace/${trace_id}/`,
+        query: {tab: 'logs'},
+      };
+    }
+    case 'get_metric_attributes': {
+      const {trace_id} = toolLink.params;
+      if (!trace_id) {
+        return null;
+      }
+
+      // TODO: Currently no way to pass name filter to this page, update with params.metric_name when it's supported.
+      return {
+        pathname: `/organizations/${orgSlug}/explore/metrics/trace/${trace_id}/`,
+        query: {tab: 'metrics'},
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+export function getValidToolLinks(
+  tool_links: Array<ToolLink | null>,
+  tool_results: Array<ToolResult | null>,
+  tool_calls: ToolCall[],
+  organization: Organization,
+  projects?: Array<{id: string; slug: string}>
+) {
+  // Get valid tool links sorted by their corresponding tool call indices
+  // Also create a mapping from tool call index to sorted link index
+  const mappedLinks = tool_links
+    .map((link, idx) => {
+      if (!link) {
+        return null;
+      }
+
+      // Don't show links for tools that returned errors, but do show for empty results
+      if (link.params?.is_error === true) {
+        return null;
+      }
+
+      // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
+      const toolCallId = tool_results[idx]?.tool_call_id;
+      const toolCallIndex = toolCallId
+        ? tool_calls.findIndex(call => call.id === toolCallId)
+        : -1;
+      const canBuildUrl = buildToolLinkUrl(link, organization, projects) !== null;
+
+      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
+        return {link, toolCallIndex};
+      }
+      return null;
+    })
+    .filter(item => item !== null)
+    .sort((a, b) => a.toolCallIndex - b.toolCallIndex);
+
+  // Create mapping from tool call index to sorted link index
+  const toolCallToLinkMap = new Map<number, number>();
+  mappedLinks.forEach((item, sortedIndex) => {
+    toolCallToLinkMap.set(item.toolCallIndex, sortedIndex);
+  });
+
+  return {
+    sortedToolLinks: mappedLinks.map(item => item.link),
+    toolCallToLinkIndexMap: toolCallToLinkMap,
+  };
+}
+
+/**
+ * Returns a callback to get the route string (normalized path) of the current page for analytics, e.g. /issues/:groupId/.
+ * This callback is stable to avoid triggering analytics and re-renders when the location changes.
+ */
+export function usePageReferrer(): {getPageReferrer: () => string} {
+  // Track the normalized path of the current page (e.g. /issues/:groupId/) for analytics.
+  const matches = useMatches();
+  const routeString = getRouteStringFromRoutes({matches});
+  const routeStringRef = useRef(routeString);
+
+  useEffect(() => {
+    routeStringRef.current = routeString;
+  }, [routeString]);
+
+  // Must remain stable.
+  const getPageReferrer = useCallback(() => routeStringRef.current, []);
+
+  return {getPageReferrer};
+}
+
+export function useCopySessionDataToClipboard({
+  blocks,
+  status,
+  organization,
+  projects,
+  enabled,
+}: {
+  blocks: Block[] | undefined;
+  enabled: boolean;
+  organization: Organization | null;
+  status: string | undefined;
+  projects?: Array<{id: string; slug: string}>;
+}) {
+  const [isError, setIsError] = useState(false);
+
+  const copySessionToClipboard = useCallback(async () => {
+    if (!enabled || !organization) {
+      return;
+    }
+    setIsError(false);
+    try {
+      const text = blocks
+        ? formatSessionData(blocks, organization, projects)
+        : `No data available. Status: ${status ?? 'unknown'}`;
+      await navigator.clipboard.writeText(text);
+      addSuccessMessage('Copied conversation to clipboard');
+    } catch (err) {
+      setIsError(true);
+      addErrorMessage('Failed to copy conversation to clipboard');
+    }
+
+    trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});
+  }, [enabled, blocks, status, organization, projects]);
+
+  return {copySessionToClipboard, isError};
+}
+
+function formatSessionData(
+  blocks: Block[],
+  organization: Organization,
+  projects?: Array<{id: string; slug: string}>
+): string {
+  const formatBlock = (block: Block): string => {
+    const {message, timestamp, tool_links, tool_results} = block;
+
+    const {content: messageContent, role, tool_calls, thinking_content} = message;
+
+    const {sortedToolLinks, toolCallToLinkIndexMap} = getValidToolLinks(
+      tool_links || [],
+      tool_results || [],
+      tool_calls || [],
+      organization,
+      projects
+    );
+
+    const toolCallsWithLinks: Array<{
+      metadata: Record<string, any> | null;
+      tool_call: ToolCall;
+      url: string | null;
+    }> = (tool_calls || []).map((tool_call, idx) => {
+      // Build URL if a valid tool link exists for this call.
+      const validLinkIdx = toolCallToLinkIndexMap.get(idx);
+      const validLink =
+        validLinkIdx === undefined ? null : (sortedToolLinks[validLinkIdx] ?? null);
+      const location = validLink
+        ? buildToolLinkUrl(validLink, organization, projects)
+        : null;
+      const url = location ? locationToUrl(location) : null;
+
+      // Get metadata from raw tool_links array.
+      const metadata = tool_links?.[idx]?.params || null;
+
+      return {metadata, tool_call, url};
+    });
+
+    const lines: string[] = [];
+    lines.push(`# ${role.toUpperCase()} ${timestamp}`);
+    if (messageContent) {
+      lines.push(messageContent);
+    }
+    if (thinking_content) {
+      lines.push('', '## THINKING CONTENT', thinking_content);
+    }
+
+    if (toolCallsWithLinks.length > 0) {
+      lines.push('', '## TOOL CALLS');
+      toolCallsWithLinks.forEach((item, idx) => {
+        const isError = !!item.metadata?.is_error;
+        const emptyResults = !!item.metadata?.empty_results;
+        const status = isError ? 'ERRORED' : emptyResults ? 'EMPTY RESULTS' : 'SUCCESS';
+
+        lines.push(
+          `${item.tool_call.function} (${status})${item.tool_call.id ? ` (${item.tool_call.id})` : ''}:`,
+          `args: ${item.tool_call.args}`
+        );
+        if (item.url) {
+          lines.push(`URL: ${item.url}`);
+        }
+
+        if (idx < toolCallsWithLinks.length - 1) {
+          lines.push('');
+        }
+      });
+    }
+    lines.push('');
+    return lines.join('\n');
+  };
+
+  return blocks
+    .map(block => formatBlock(block))
+    .join('\n--------------------------------------------------\n\n');
+}
+
+function locationToUrl(location: LocationDescriptor): string | null {
+  if (typeof location === 'string') {
+    const hasOrigin = /^https?:\/\//.test(location);
+    return hasOrigin ? location : `${window.location.origin}${location}`;
+  }
+
+  const {pathname = '', hash, query} = location;
+  const base = `${window.location.origin}${pathname}`;
+
+  const queryPart = query ? `?${queryString.stringify(query)}` : '';
+
+  const hashPart = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
+
+  return `${base}${queryPart}${hashPart}`;
+}
+
+const RUN_ID_QUERY_PARAM = 'explorerRunId';
+
+/**
+ * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
+ */
+export function useSeerExplorerDeepLink({
+  callback,
+  enabled = true,
+}: {
+  callback: (runId: number) => void;
+  enabled?: boolean;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (!paramValue || typeof paramValue !== 'string') {
+      return;
+    }
+
+    const parsedRunId = Number(paramValue);
+    if (!Number.isNaN(parsedRunId)) {
+      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+      navigate({...location, query: restQuery}, {replace: true});
+      callback(parsedRunId);
+    }
+  }, [location, navigate, callback, enabled]);
+}
+
+/**
+ * Returns the URL of the current window with the run ID query param set.
+ */
+export function getExplorerUrl(runId: number | string): string {
+  const url = new URL(window.location.href);
+  url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
+  return url.toString();
+}
+
+export function getLangfuseUrl(runId: number | string): string {
+  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
+}
+
+export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOptions {
+  return {
+    formTitle: 'Seer Agent Feedback',
+    messagePlaceholder: 'How can we make Seer better for you?',
+    tags: {
+      ['feedback.source']: 'seer_explorer',
+      ['feedback.owner']: 'ml-ai',
+      ...(runId === null ? {} : {['seer.run_id']: runId.toString()}),
+      ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+      ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
+      ...(runId === null
+        ? {}
+        : {['conversations_url']: getConversationsUrlForExternalUse('sentry', runId)}),
+    },
+  };
+}
+
+/**
+ * Checks if Seer Explorer is enabled for the organization.
+ * Requires the rollout flag and:
+ * - 'gen-ai-features' feature flag
+ * - Organization has not disabled open membership
+ * - Organization has not disabled AI features (hideAiFeatures is false)
+ */
+export function isSeerExplorerEnabled(organization: Organization | null): boolean {
+  if (!organization) {
+    return false;
+  }
+
+  return (
+    organization.openMembership &&
+    !organization.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('seer-explorer')
+  );
+}

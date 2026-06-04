@@ -1,0 +1,15 @@
+---
+created: '2020-10-13T11:56:18.196473Z'
+creator: sentry
+source: tests/sentry/event_manager/interfaces/test_csp.py
+---
+errors: null
+metadata:
+  directive: img-src
+  message: XXX CSP MESSAGE NOT THROUGH RELAY XXX
+  uri: google.com
+title: XXX CSP MESSAGE NOT THROUGH RELAY XXX
+to_json:
+  blocked_uri: http://google.com/foo
+  document_uri: http://example.com/foo
+  effective_directive: img-src

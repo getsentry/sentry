@@ -1,0 +1,225 @@
+from rest_framework.views import APIView
+
+from sentry.api.permissions import (
+    DemoSafePermission,
+    DisallowImpersonatedTokenCreation,
+    SentryIsAuthenticated,
+    StaffPermission,
+    SuperuserOrStaffFeatureFlaggedPermission,
+    SuperuserPermission,
+)
+from sentry.demo_mode.utils import READONLY_SCOPES
+from sentry.organizations.services.organization import organization_service
+from sentry.testutils.cases import DRFPermissionTestCase
+from sentry.testutils.helpers.options import override_options
+
+
+class PermissionsTest(DRFPermissionTestCase):
+    superuser_permission = SuperuserPermission()
+    staff_permission = StaffPermission()
+    superuser_staff_flagged_permission = SuperuserOrStaffFeatureFlaggedPermission()
+
+    def test_superuser_permission(self) -> None:
+        assert self.superuser_permission.has_permission(self.superuser_request, APIView())
+
+    def test_staff_permission(self) -> None:
+        assert self.staff_permission.has_permission(self.staff_request, APIView())
+
+    @override_options({"staff.ga-rollout": True})
+    def test_superuser_or_staff_feature_flagged_permission_active_option(self) -> None:
+        # With active superuser
+        assert not self.superuser_staff_flagged_permission.has_permission(
+            self.superuser_request, APIView()
+        )
+
+        # With active staff
+        assert self.superuser_staff_flagged_permission.has_permission(self.staff_request, APIView())
+
+    def test_superuser_or_staff_feature_flagged_permission_inactive_option(self) -> None:
+        # With active staff
+        assert not self.superuser_staff_flagged_permission.has_permission(
+            self.staff_request, APIView()
+        )
+
+        # With active superuser
+        assert self.superuser_staff_flagged_permission.has_permission(
+            self.superuser_request, APIView()
+        )
+
+
+class DisallowImpersonatedTokenCreationTest(DRFPermissionTestCase):
+    permission = DisallowImpersonatedTokenCreation()
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.normal_user = self.create_user()
+        self.impersonator = self.create_user(is_superuser=True)
+
+    def test_safe_methods_allowed_during_impersonation(self) -> None:
+        for method in ("GET", "HEAD", "OPTIONS"):
+            request = self.make_request(user=self.normal_user, method=method)
+            request.actual_user = self.impersonator  # type: ignore[attr-defined]
+            assert self.permission.has_permission(request, APIView())
+
+    def test_unsafe_methods_blocked_during_impersonation(self) -> None:
+        for method in ("POST", "PUT", "DELETE"):
+            request = self.make_request(user=self.normal_user, method=method)
+            request.actual_user = self.impersonator  # type: ignore[attr-defined]
+            assert not self.permission.has_permission(request, APIView())
+
+    def test_unsafe_methods_allowed_without_impersonation(self) -> None:
+        for method in ("POST", "PUT", "DELETE"):
+            request = self.make_request(user=self.normal_user, method=method)
+            assert self.permission.has_permission(request, APIView())
+
+
+class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
+    user_permission = SentryIsAuthenticated()
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.normal_user = self.create_user()
+        self.readonly_user = self.create_user()
+
+    def test_has_permission(self) -> None:
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            assert self.user_permission.has_permission(
+                self.make_request(self.normal_user), APIView()
+            )
+            assert not self.user_permission.has_permission(
+                self.make_request(self.readonly_user), APIView()
+            )
+
+    def test_has_object_permission(self) -> None:
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            assert self.user_permission.has_object_permission(
+                self.make_request(self.normal_user), APIView(), None
+            )
+            assert not self.user_permission.has_object_permission(
+                self.make_request(self.readonly_user), APIView(), None
+            )
+
+
+class DemoSafePermissionsTest(DRFPermissionTestCase):
+    user_permission = DemoSafePermission()
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.normal_user = self.create_user()
+        self.readonly_user = self.create_user()
+        self.organization = self.create_organization(owner=self.normal_user)
+        self.org_member_scopes = self.create_member(
+            organization_id=self.organization.id, user_id=self.readonly_user.id
+        ).get_scopes()
+
+    def _get_rpc_context(self, user):
+        rpc_context = organization_service.get_organization_by_id(
+            id=self.organization.id, user_id=user.id
+        )
+
+        assert rpc_context
+        return rpc_context
+
+    def test_safe_methods(self) -> None:
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            for method in ("GET", "HEAD", "OPTIONS"):
+                assert self.user_permission.has_permission(
+                    self.make_request(self.readonly_user, method=method), APIView()
+                )
+                assert self.user_permission.has_permission(
+                    self.make_request(self.normal_user, method=method), APIView()
+                )
+
+    def test_unsafe_methods(self) -> None:
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            for method in ("POST", "PUT", "PATCH", "DELETE"):
+                assert not self.user_permission.has_permission(
+                    self.make_request(self.readonly_user, method=method), APIView()
+                )
+                assert self.user_permission.has_permission(
+                    self.make_request(self.normal_user, method=method), APIView()
+                )
+
+    def test_safe_method_demo_mode_disabled(self) -> None:
+        with override_options(
+            {"demo-mode.enabled": False, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            for method in ("GET", "HEAD", "OPTIONS"):
+                assert not self.user_permission.has_permission(
+                    self.make_request(self.readonly_user, method=method), APIView()
+                )
+                assert self.user_permission.has_permission(
+                    self.make_request(self.normal_user, method=method), APIView()
+                )
+
+    def test_unsafe_methods_demo_mode_disabled(self) -> None:
+        with override_options(
+            {"demo-mode.enabled": False, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            for method in ("POST", "PUT", "PATCH", "DELETE"):
+                assert not self.user_permission.has_permission(
+                    self.make_request(self.readonly_user, method=method), APIView()
+                )
+                assert self.user_permission.has_permission(
+                    self.make_request(self.normal_user, method=method), APIView()
+                )
+
+    def test_determine_access_disabled(self) -> None:
+        with override_options(
+            {"demo-mode.enabled": False, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            self.user_permission.determine_access(
+                request=self.make_request(self.normal_user),
+                organization=self._get_rpc_context(self.normal_user),
+            )
+
+            readonly_rpc_context = self._get_rpc_context(self.readonly_user)
+
+            self.user_permission.determine_access(
+                request=self.make_request(self.readonly_user),
+                organization=readonly_rpc_context,
+            )
+
+            assert readonly_rpc_context.member.scopes == list(self.org_member_scopes)
+
+    def test_determine_access(self) -> None:
+        with override_options(
+            {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+        ):
+            self.user_permission.determine_access(
+                request=self.make_request(self.normal_user),
+                organization=self._get_rpc_context(self.normal_user),
+            )
+
+            readonly_rpc_context = self._get_rpc_context(self.readonly_user)
+
+            self.user_permission.determine_access(
+                request=self.make_request(self.readonly_user),
+                organization=readonly_rpc_context,
+            )
+
+            assert readonly_rpc_context.member.scopes == sorted(READONLY_SCOPES)
+
+    def test_determine_access_no_demo_users(self) -> None:
+        with override_options({"demo-mode.enabled": False, "demo-mode.users": []}):
+            self.user_permission.determine_access(
+                request=self.make_request(self.normal_user),
+                organization=self._get_rpc_context(self.normal_user),
+            )
+
+            readonly_rpc_context = self._get_rpc_context(self.readonly_user)
+
+            self.user_permission.determine_access(
+                request=self.make_request(self.readonly_user),
+                organization=readonly_rpc_context,
+            )
+
+            assert readonly_rpc_context.member.scopes == list(self.org_member_scopes)

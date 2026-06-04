@@ -1,0 +1,231 @@
+import {useEffect, useMemo, useRef, useState} from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
+import isEqual from 'lodash/isEqual';
+
+import {Stack} from '@sentry/scraps/layout';
+
+import {NotFound} from 'sentry/components/errors/notFound';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
+
+import {mergeGlobalFilters} from './globalFilter/utils';
+import {assignTempId} from './layoutUtils';
+import type {DashboardDetails, DashboardListItem} from './types';
+import {getCurrentPageFilters, hasSavedPageFilters} from './utils';
+
+type OrgDashboardsChildrenProps = {
+  dashboard: DashboardDetails | null;
+  dashboards: DashboardListItem[];
+  error: boolean;
+  onDashboardUpdate: (updatedDashboard: DashboardDetails) => void;
+};
+
+interface OrgDashboardsProps {
+  children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
+  /**
+   * Initial dashboard state to use for optimistic updates.
+   * This is used when navigating from widget builder to show the new widget immediately
+   * since there are scenarios where the component fully remounts and loses its modified state.
+   */
+  initialDashboard?: DashboardDetails;
+}
+
+export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const {dashboardId} = useParams<{dashboardId: string}>();
+  const dashboardRedirectRef = useRef<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // The currently selected dashboard. Use initialDashboard for optimistic updates
+  // when navigating from widget builder (passed via location.state).
+  const [selectedDashboardState, setSelectedDashboardState] = useState(
+    initialDashboard ?? null
+  );
+
+  const {
+    data: dashboards,
+    isPending: isDashboardsPending,
+    isError: isDashboardsError,
+    error: dashboardsError,
+  } = useQuery({
+    ...dashboardsApiOptions(organization),
+    retry: false,
+  });
+
+  const {
+    data: fetchedSelectedDashboard,
+    isLoading: isSelectedDashboardLoading,
+    isError: isSelectedDashboardError,
+    error: selectedDashboardError,
+  } = useApiQuery<DashboardDetails>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+        path: {organizationIdOrSlug: organization.slug, dashboardId},
+      }),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!dashboardId,
+      retry: false,
+    }
+  );
+
+  let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
+
+  const {dashboard: prebuiltDashboard, isLoading: isPrebuiltDashboardLoading} =
+    useGetPrebuiltDashboard(selectedDashboard?.prebuiltId);
+
+  // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard.
+  // Preserve user-saved state (filters and page filters) from the DB record so changes persist.
+  if (selectedDashboard?.prebuiltId) {
+    const prebuiltGlobalFilters = prebuiltDashboard?.filters?.globalFilter ?? [];
+    const savedGlobalFilters = selectedDashboard.filters?.globalFilter ?? [];
+    const globalFilter = mergeGlobalFilters(prebuiltGlobalFilters, savedGlobalFilters);
+
+    selectedDashboard = {
+      ...selectedDashboard,
+      ...prebuiltDashboard,
+      id: selectedDashboard.id,
+      filters: {...selectedDashboard.filters, globalFilter},
+      projects: selectedDashboard.projects,
+      environment: selectedDashboard.environment,
+      period: selectedDashboard.period,
+      start: selectedDashboard.start,
+      end: selectedDashboard.end,
+      utc: selectedDashboard.utc,
+    };
+  }
+
+  // Clear optimistic dashboard state when the URL changes
+  useEffect(() => {
+    if (dashboardId && !isEqual(dashboardId, selectedDashboard?.id)) {
+      setSelectedDashboardState(null);
+    }
+  }, [dashboardId, selectedDashboard?.id]);
+
+  useEffect(() => {
+    // Only redirect if there are saved filters and none of the filters
+    // appear in the query params
+
+    // current filters based on location
+    const locationFilters = getCurrentPageFilters(location);
+
+    if (!selectedDashboard) {
+      // Still loading.
+      return;
+    }
+
+    if (
+      !hasSavedPageFilters(selectedDashboard) ||
+      // Apply redirect once for each dashboard id
+      dashboardRedirectRef.current === selectedDashboard.id ||
+      hasSavedPageFilters(locationFilters)
+    ) {
+      // Mark the redirect check complete even though we didn't redirect (so
+      // that switching to another dashboard reruns the check.)
+      dashboardRedirectRef.current = selectedDashboard.id;
+      return;
+    }
+
+    dashboardRedirectRef.current = selectedDashboard.id;
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          project: selectedDashboard.projects,
+          environment: selectedDashboard.environment,
+          statsPeriod: selectedDashboard.period,
+          start: selectedDashboard.start,
+          end: selectedDashboard.end,
+          utc: selectedDashboard.utc,
+        },
+      },
+      {replace: true}
+    );
+  }, [location, navigate, selectedDashboard]);
+
+  useEffect(() => {
+    // Clean up the query cache when the dashboard unmounts to prevent
+    // a flicker from stale data on refetch
+    return () => {
+      queryClient.removeQueries({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+            path: {organizationIdOrSlug: organization.slug, dashboardId},
+          }),
+        ],
+      });
+    };
+  }, [dashboardId, organization.slug, queryClient]);
+
+  const childrenProps = useMemo(
+    () => ({
+      error: Boolean(dashboardsError || selectedDashboardError),
+      dashboard: selectedDashboard
+        ? {
+            ...selectedDashboard,
+            widgets: selectedDashboard.widgets.map(assignTempId),
+          }
+        : null,
+      dashboards: Array.isArray(dashboards) ? dashboards : [],
+      onDashboardUpdate: setSelectedDashboardState,
+    }),
+    [dashboardsError, selectedDashboardError, selectedDashboard, dashboards]
+  );
+
+  if (isDashboardsPending || isSelectedDashboardLoading || isPrebuiltDashboardLoading) {
+    return (
+      <Stack flex={1} padding="2xl 3xl">
+        <LoadingIndicator />
+      </Stack>
+    );
+  }
+
+  if (
+    (isDashboardsPending || isSelectedDashboardLoading) &&
+    selectedDashboard &&
+    hasSavedPageFilters(selectedDashboard) &&
+    Object.keys(location.query).length === 0
+  ) {
+    // Block dashboard from rendering if the dashboard has filters and
+    // the URL does not contain filters yet. The filters can either match the
+    // saved filters, or can be different (i.e. sharing an unsaved state)
+    return (
+      <Stack flex={1} padding="2xl 3xl">
+        <LoadingIndicator />
+      </Stack>
+    );
+  }
+
+  if (isDashboardsError || isSelectedDashboardError) {
+    const notFound =
+      (dashboardsError instanceof RequestError && dashboardsError.status === 404) ||
+      selectedDashboardError?.status === 404;
+
+    if (notFound) {
+      return <NotFound />;
+    }
+
+    return <LoadingError />;
+  }
+
+  return (
+    <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
+      {children(childrenProps)}
+    </SentryDocumentTitle>
+  );
+}

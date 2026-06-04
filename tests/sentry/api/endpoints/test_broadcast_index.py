@@ -1,0 +1,267 @@
+from django.urls import reverse
+
+from sentry.models.broadcast import Broadcast, BroadcastSeen
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
+
+
+@control_silo_test
+class BroadcastListTest(APITestCase):
+    def test_simple(self) -> None:
+        broadcast1 = Broadcast.objects.create(message="bar", is_active=True)
+        Broadcast.objects.create(message="foo", is_active=False)
+
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user)
+
+        response = self.client.get("/api/0/broadcasts/")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(broadcast1.id)
+
+    def test_superuser_with_all(self) -> None:
+        Broadcast.objects.create(message="bar", is_active=True)
+        Broadcast.objects.create(message="foo", is_active=False)
+
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.get("/api/0/broadcasts/?show=all")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        response = self.client.get("/api/0/broadcasts/?show=all&query=status:active")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        response = self.client.get("/api/0/broadcasts/?show=all&query=status:inactive")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        response = self.client.get("/api/0/broadcasts/?show=all&query=status:zzz")
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+        response = self.client.get("/api/0/broadcasts/?show=all&query=foo")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+        response = self.client.get("/api/0/broadcasts/?show=all&query=zzz")
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+    def test_basic_user_with_all(self) -> None:
+        broadcast1 = Broadcast.objects.create(message="bar", is_active=True)
+        Broadcast.objects.create(message="foo", is_active=False, created_by_id=self.user)
+
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=False)
+
+        response = self.client.get("/api/0/broadcasts/?show=all")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(broadcast1.id)
+        assert "createdBy" not in response.data[0]
+
+    def test_show_latest_returns_only_active(self) -> None:
+        active_broadcast = Broadcast.objects.create(message="active", is_active=True)
+        Broadcast.objects.create(message="inactive", is_active=False)
+
+        self.login_as(user=self.user)
+
+        response = self.client.get("/api/0/broadcasts/?show=latest")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(active_broadcast.id)
+
+    def test_show_latest_default_limit(self) -> None:
+        for i in range(5):
+            Broadcast.objects.create(message=f"broadcast {i}", is_active=True)
+
+        self.login_as(user=self.user)
+
+        response = self.client.get("/api/0/broadcasts/?show=latest")
+        assert response.status_code == 200
+        assert len(response.data) == 3
+
+    def test_show_latest_custom_limit(self) -> None:
+        for i in range(5):
+            Broadcast.objects.create(message=f"broadcast {i}", is_active=True)
+
+        self.login_as(user=self.user)
+
+        response = self.client.get("/api/0/broadcasts/?show=latest&per_page=2")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+    def test_show_latest_invalid_limit(self) -> None:
+        self.login_as(user=self.user)
+
+        response = self.client.get("/api/0/broadcasts/?show=latest&per_page=abc")
+        assert response.status_code == 400
+
+    def test_show_latest_negative_limit(self) -> None:
+        self.login_as(user=self.user)
+
+        response = self.client.get("/api/0/broadcasts/?show=latest&per_page=-1")
+        assert response.status_code == 400
+
+    def test_show_latest_does_not_require_admin(self) -> None:
+        Broadcast.objects.create(message="active", is_active=True)
+
+        self.login_as(user=self.user)
+
+        response = self.client.get("/api/0/broadcasts/?show=latest")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+    def test_organization_filtering(self) -> None:
+        broadcast1 = Broadcast.objects.create(message="foo", is_active=True)
+        broadcast2 = Broadcast.objects.create(message="bar", is_active=True)
+
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user)
+
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert str(broadcast1.id) in [str(broadcast["id"]) for broadcast in response.data]
+        assert str(broadcast2.id) in [str(broadcast["id"]) for broadcast in response.data]
+
+
+@control_silo_test
+class BroadcastCreateTest(APITestCase):
+    def test_basic_user(self) -> None:
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=False)
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "announcement",
+            },
+        )
+
+        assert response.status_code == 401
+
+    def test_superuser(self) -> None:
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "announcement",
+            },
+        )
+
+        assert response.status_code == 200, response.data
+
+        broadcast = Broadcast.objects.get(id=response.data["id"])
+        assert broadcast.title == "bar"
+        assert broadcast.message == "foo"
+        assert broadcast.media_url == "http://example.com/image.png"
+        assert broadcast.category == "announcement"
+        assert broadcast.created_by_id == self.user
+
+    def test_validation(self) -> None:
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "this is not a url",
+                "category": "announcement",
+            },
+        )
+
+        assert response.status_code == 400, response.data
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "this is not a category",
+            },
+        )
+
+        assert response.status_code == 400, response.data
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "announcement",
+            },
+        )
+
+        assert response.status_code == 200, response.data
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "cta": "Read More",
+            },
+        )
+
+        assert response.status_code == 200, response.data
+
+    def test_not_required_cta(self) -> None:
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.post(
+            "/api/0/broadcasts/",
+            {
+                "title": "bar",
+                "message": "foo",
+                "link": "http://example.com",
+                "mediaUrl": "http://example.com/image.png",
+                "category": "announcement",
+            },
+        )
+
+        assert response.status_code == 200, response.data
+
+
+@control_silo_test
+class BroadcastUpdateTest(APITestCase):
+    def test_simple(self) -> None:
+        broadcast1 = Broadcast.objects.create(message="bar", is_active=True)
+        broadcast2 = Broadcast.objects.create(message="foo", is_active=False)
+
+        self.login_as(user=self.user)
+        response = self.client.put("/api/0/broadcasts/", {"hasSeen": "1"})
+        assert response.status_code == 200
+        assert response.data["hasSeen"]
+
+        assert BroadcastSeen.objects.filter(user=self.user, broadcast=broadcast1).exists()
+        assert not BroadcastSeen.objects.filter(user=self.user, broadcast=broadcast2).exists()

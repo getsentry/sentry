@@ -1,0 +1,151 @@
+import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
+import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
+import {hasEveryAccess} from 'sentry/components/acl/access';
+import {Confirm} from 'sentry/components/confirm';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import type {Monitor} from 'sentry/views/insights/crons/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+import {StatusToggleButton} from './statusToggleButton';
+
+type Props = {
+  monitor: Monitor;
+  onUpdate: (data: Monitor) => void;
+  orgSlug: string;
+};
+
+export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
+  const api = useApi();
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
+
+  const endpointOptions = {
+    query: {
+      project: selection.projects,
+      environment: selection.environments,
+    },
+  };
+
+  const handleDelete = async () => {
+    await deleteMonitor(api, orgSlug, monitor);
+    navigate(
+      normalizeUrl({
+        pathname: `/organizations/${orgSlug}/insights/crons/`,
+        query: endpointOptions.query,
+      })
+    );
+  };
+
+  const handleUpdate = async (data: Partial<Monitor>) => {
+    const resp = await updateMonitor(api, orgSlug, monitor, data);
+
+    if (resp !== null) {
+      onUpdate?.(resp);
+    }
+  };
+
+  const canEdit = hasEveryAccess(['alerts:write'], {
+    organization,
+    project: monitor.project,
+  });
+  const permissionTooltipText = tct(
+    'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+    {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
+  );
+
+  const disableProps: Pick<ButtonProps, 'disabled' | 'tooltipProps'> = {
+    disabled: !canEdit,
+  };
+
+  if (!canEdit) {
+    disableProps.tooltipProps = {title: permissionTooltipText};
+  }
+
+  const hasEnvironments = monitor.environments.length > 0;
+  const muteDisableProps = {...disableProps};
+
+  if (!hasEnvironments) {
+    muteDisableProps.disabled = true;
+    muteDisableProps.tooltipProps = {
+      title: t('Muting is only available when there are monitor environments'),
+    };
+  }
+
+  return (
+    <Flex direction="row" align="center" gap="md" wrap="wrap">
+      {hasPageFrameFeature ? (
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+      ) : (
+        <FeedbackButton />
+      )}
+      <Button
+        size="sm"
+        icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
+        onClick={() => handleUpdate({isMuted: !monitor.isMuted})}
+        {...muteDisableProps}
+      >
+        {monitor.isMuted ? t('Unmute') : t('Mute')}
+      </Button>
+      <StatusToggleButton
+        size="sm"
+        monitor={monitor}
+        onToggleStatus={status => handleUpdate({status})}
+        {...disableProps}
+      />
+      <Confirm
+        onConfirm={handleDelete}
+        message={t('Are you sure you want to permanently delete this cron monitor?')}
+        disabled={!canEdit}
+      >
+        <Button
+          size="sm"
+          icon={<IconDelete size="xs" />}
+          aria-label={t('Delete')}
+          tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
+        />
+      </Confirm>
+      <LinkButton
+        size="sm"
+        icon={<IconEdit />}
+        to={{
+          pathname: makeAlertsPathname({
+            path: `/crons-rules/${monitor.project.slug}/${monitor.slug}/`,
+            organization,
+          }),
+          // TODO(davidenwang): Right now we have to pass the environment
+          // through the URL so that when we save the monitor and are
+          // redirected back to the details page it queries the backend
+          // for a monitor environment with check-in data
+          query: {
+            environment: selection.environments,
+            project: selection.projects,
+          },
+        }}
+        {...disableProps}
+      >
+        {t('Edit Monitor')}
+      </LinkButton>
+    </Flex>
+  );
+}

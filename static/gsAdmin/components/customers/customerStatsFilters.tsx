@@ -1,0 +1,167 @@
+import {Fragment, useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
+import moment from 'moment-timezone';
+
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {DateTime} from 'sentry/components/dateTime';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectTrigger,
+  type ChangeData,
+} from 'sentry/components/timeRangeSelector';
+import {DATA_CATEGORY_INFO, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {DataCategoryExact} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+
+const ON_DEMAND_PERIOD_KEY = 'onDemand';
+
+type Props = {
+  dataType: DataCategoryExact;
+  onChange: (dataType: DataCategoryExact) => void;
+  organization: Organization;
+  onDemandPeriodEnd?: string;
+  onDemandPeriodStart?: string;
+};
+
+export function CustomerStatsFilters({
+  dataType,
+  onChange,
+  onDemandPeriodStart,
+  onDemandPeriodEnd,
+}: Props) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const onDemand = !!onDemandPeriodStart && !!onDemandPeriodEnd;
+
+  const pageDateTime = useMemo((): DateTimeObject => {
+    const {start, end, statsPeriod} = normalizeDateTimeParams(location.query, {
+      allowEmptyPeriod: true,
+      allowAbsoluteDatetime: true,
+      allowAbsolutePageDatetime: true,
+    });
+
+    if (statsPeriod) {
+      return {period: statsPeriod};
+    }
+
+    if (start && end) {
+      return {
+        start: moment.utc(start).format(),
+        end: moment.utc(end).format(),
+      };
+    }
+
+    return {};
+  }, [location.query]);
+
+  const handleDateChange = useCallback(
+    (datetime: ChangeData) => {
+      const {start, end, relative, utc} = datetime;
+
+      if (start && end) {
+        const parser = utc ? moment.utc : moment;
+
+        navigate({
+          ...location,
+          query: {
+            ...location.query,
+            statsPeriod: undefined,
+            start: parser(start).format(),
+            end: parser(end).format(),
+            utc: utc ?? undefined,
+          },
+        });
+        return;
+      }
+
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          statsPeriod: relative === ON_DEMAND_PERIOD_KEY ? undefined : relative,
+          start: undefined,
+          end: undefined,
+          utc: undefined,
+        },
+      });
+    },
+    [location, navigate]
+  );
+
+  const {start, end, period, utc} = pageDateTime;
+
+  // TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods?
+  const onDemandLabel = (
+    <Fragment>
+      On-Demand (
+      <DateTime date={onDemandPeriodStart} /> - <DateTime date={onDemandPeriodEnd} />)
+    </Fragment>
+  );
+
+  return (
+    <Flex wrap="wrap" marginBottom="2xl" gap="xl" width="100%">
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix="Data Type" />
+        )}
+        value={dataType}
+        options={Object.entries(DATA_CATEGORY_INFO)
+          .filter(([_, categoryInfo]) => categoryInfo.statsInfo.showInternalStats)
+          .map(([category, categoryInfo]) => ({
+            value: categoryInfo.name,
+            label:
+              category === DataCategoryExact.SPAN
+                ? 'Accepted Spans'
+                : categoryInfo.titleName,
+          }))}
+        onChange={opt => onChange(opt.value)}
+      />
+      <DateTimeRange
+        trigger={triggerProps => (
+          <TimeRangeSelectTrigger {...triggerProps} prefix="Date Range">
+            {!period && !start && !end
+              ? onDemand
+                ? onDemandLabel
+                : DEFAULT_RELATIVE_PERIODS['90d']
+              : triggerProps.children}
+          </TimeRangeSelectTrigger>
+        )}
+        relative={period ?? ''}
+        start={start ?? null}
+        end={end ?? null}
+        utc={utc ?? null}
+        onChange={handleDateChange}
+        relativeOptions={({defaultOptions, arbitraryOptions}) =>
+          onDemand
+            ? {
+                [ON_DEMAND_PERIOD_KEY]: onDemandLabel,
+                ...defaultOptions,
+                ...arbitraryOptions,
+              }
+            : {...defaultOptions, ...arbitraryOptions}
+        }
+        defaultPeriod={onDemand ? ON_DEMAND_PERIOD_KEY : '90d'}
+        defaultAbsolute={
+          onDemand
+            ? {
+                start: moment(onDemandPeriodStart).toDate(),
+                end: moment(onDemandPeriodEnd).toDate(),
+              }
+            : undefined
+        }
+      />
+    </Flex>
+  );
+}
+
+const DateTimeRange = styled(TimeRangeSelector)`
+  flex: 1;
+  white-space: nowrap;
+`;

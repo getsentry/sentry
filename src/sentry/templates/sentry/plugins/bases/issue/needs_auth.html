@@ -1,0 +1,16 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ block.super }}{% endblock %}
+
+{% block main %}
+    <div class="page-header">
+        <h3>{{ title }}</h3>
+    </div>
+    <div class="alert alert-block">
+        {% url 'socialauth_associate' plugin.auth_provider as link %}
+        <p>{% blocktrans %}You still need to <a href="{{ link }}">associate an identity</a> with {{ title }} before you can
+        create issues with this service.{% endblocktrans %}</p>
+    </div>
+{% endblock %}

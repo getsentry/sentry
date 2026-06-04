@@ -1,0 +1,63 @@
+import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
+import {
+  AssigneeSelector,
+  useHandleAssigneeChange,
+} from 'sentry/components/group/assigneeSelector';
+import type {Group} from 'sentry/types/group';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {FeedbackEvent} from 'sentry/utils/feedback/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {EventOwners} from 'sentry/views/issueDetails/header/getOwnerList';
+import {getOwnerList} from 'sentry/views/issueDetails/header/getOwnerList';
+
+interface Props {
+  feedbackEvent: FeedbackEvent;
+  feedbackIssue: Group;
+}
+
+export function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props) {
+  const organization = useOrganization();
+  const project = feedbackIssue.project;
+
+  const {data: eventOwners} = useApiQuery<EventOwners>(
+    [
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/owners/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            eventId: feedbackEvent?.id,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+      enabled: Boolean(feedbackEvent),
+    }
+  );
+  const {updateCached} = useFeedbackCache();
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
+    organization,
+    group: feedbackIssue,
+    onSuccess: assignedTo => {
+      updateCached([feedbackIssue.id], {assignedTo});
+    },
+  });
+
+  const owners = getOwnerList([], eventOwners, feedbackIssue.assignedTo);
+
+  return (
+    <AssigneeSelector
+      showLabel
+      group={feedbackIssue}
+      owners={owners}
+      assigneeLoading={assigneeLoading}
+      handleAssigneeChange={e => {
+        handleAssigneeChange(e);
+      }}
+    />
+  );
+}

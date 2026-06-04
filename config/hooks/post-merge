@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+red="$(tput setaf 1)"
+yellow="$(tput setaf 3)"
+bold="$(tput bold)"
+reset="$(tput sgr0)"
+
+files_changed_upstream="$(mktemp)"
+# shellcheck disable=SC2064
+trap "rm -f $files_changed_upstream" EXIT
+
+git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD >"$files_changed_upstream"
+
+grep_pattern="uv.lock|migrations"
+if [[ "$SENTRY_DEVENV_SKIP_FRONTEND" != "1" ]]; then
+  grep_pattern+="|pnpm-lock.yaml"
+fi
+
+if grep -E --quiet "$grep_pattern" "$files_changed_upstream"; then
+  cat <<EOF
+
+[${red}${bold}!!!${reset}] ${red} It looks like some dependencies have changed. Run devenv sync to resync your environment.${reset}
+
+EOF
+
+  if [[ "$SENTRY_POST_MERGE_AUTO_UPDATE" ]]; then
+    if [ -f .venv/bin/devenv ]; then
+        DEVENV=.venv/bin/devenv
+    else
+        DEVENV=devenv
+    fi
+    echo "${yellow}Automatically running devenv sync because SENTRY_POST_MERGE_AUTO_UPDATE is set.${reset}"
+    if ! command -v "$DEVENV" >/dev/null 2>&1; then
+        echo "devenv not found! install: https://github.com/getsentry/devenv#install"
+        exit 1
+    fi
+    "$DEVENV" sync
+  else
+    echo "${yellow}If you want devenv sync to be executed automatically after pulling code, you can export the SENTRY_POST_MERGE_AUTO_UPDATE variable.${reset}"
+  fi
+fi

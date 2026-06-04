@@ -1,0 +1,206 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Access} from 'sentry/components/acl/access';
+import {useRole} from 'sentry/components/acl/useRole';
+import {Confirm} from 'sentry/components/confirm';
+import {FileSize} from 'sentry/components/fileSize';
+import {TimeSince} from 'sentry/components/timeSince';
+import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {DebugFile} from 'sentry/types/debugFiles';
+import type {DetailedProject} from 'sentry/types/project';
+
+import {getFeatureTooltip, getPrettyFileType} from './utils';
+
+type Props = {
+  debugFile: DebugFile;
+  downloadUrl: string;
+  onDelete: (id: string) => void;
+  orgSlug: string;
+  project: DetailedProject;
+  showDetails: boolean;
+};
+
+export function DebugFileRow({
+  debugFile,
+  showDetails,
+  downloadUrl,
+  onDelete,
+  orgSlug,
+  project,
+}: Props) {
+  const {hasRole, roleRequired: downloadRole} = useRole({
+    role: 'debugFilesRole',
+    project,
+  });
+  const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
+    debugFile;
+  const {features} = data || {};
+
+  return (
+    <Fragment>
+      <Stack align="start">
+        <div>
+          <DebugId>{debugId || uuid}</DebugId>
+        </div>
+        <TimeAndSizeWrapper>
+          <StyledFileSize bytes={size} />
+          <TimeWrapper>
+            <IconClock size="xs" />
+            <TimeSince date={dateCreated} />
+          </TimeWrapper>
+        </TimeAndSizeWrapper>
+      </Stack>
+      <Stack align="start">
+        <Name>
+          {symbolType === 'proguard' && objectName === 'proguard-mapping'
+            ? '\u2015'
+            : objectName}
+        </Name>
+        <Description>
+          <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
+
+          {features && (
+            <FeatureTags>
+              {features.map(feature => (
+                <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
+                  <StyledTag variant="muted">{feature}</StyledTag>
+                </Tooltip>
+              ))}
+            </FeatureTags>
+          )}
+          {showDetails && (
+            <div>
+              {/* there will be more stuff here in the future */}
+              {codeId && (
+                <DetailsItem>
+                  {t('Code ID')}: {codeId}
+                </DetailsItem>
+              )}
+            </div>
+          )}
+        </Description>
+      </Stack>
+      <Flex justify="end" align="start" marginTop="md">
+        <Grid flow="column" align="center" gap="xs">
+          <Tooltip
+            disabled={hasRole}
+            title={tct(
+              'Debug files can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+              {
+                downloadRole,
+                orHigher: downloadRole === 'owner' ? '' : ` ${t('or higher')}`,
+                settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+              }
+            )}
+            isHoverable
+          >
+            <LinkButton
+              size="xs"
+              icon={<IconDownload />}
+              href={downloadUrl}
+              disabled={!hasRole}
+            >
+              {t('Download')}
+            </LinkButton>
+          </Tooltip>
+          <Access access={['project:write']} project={project}>
+            {({hasAccess}) => (
+              <Tooltip
+                disabled={hasAccess}
+                title={t('You do not have permission to delete debug files.')}
+              >
+                <Confirm
+                  confirmText={t('Delete')}
+                  message={t('Are you sure you wish to delete this file?')}
+                  onConfirm={() => onDelete(id)}
+                  disabled={!hasAccess}
+                >
+                  <Button
+                    variant="danger"
+                    icon={<IconDelete />}
+                    size="xs"
+                    disabled={!hasAccess}
+                    data-test-id="delete-dif"
+                    aria-label={t('Delete')}
+                  />
+                </Confirm>
+              </Tooltip>
+            )}
+          </Access>
+        </Grid>
+      </Flex>
+    </Fragment>
+  );
+}
+
+const DescriptionText = styled('span')`
+  display: inline-flex;
+  margin: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
+`;
+
+const FeatureTags = styled('div')`
+  display: inline-flex;
+  flex-wrap: wrap;
+  margin: -${p => p.theme.space.xs};
+`;
+
+const StyledTag = styled(Tag)`
+  padding: ${p => p.theme.space.xs};
+`;
+
+const DebugId = styled('code')`
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+const TimeAndSizeWrapper = styled('div')`
+  width: 100%;
+  display: flex;
+  font-size: ${p => p.theme.font.size.sm};
+  margin-top: ${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  align-items: center;
+`;
+
+const StyledFileSize = styled(FileSize)`
+  flex: 1;
+  padding-left: ${p => p.theme.space.xs};
+`;
+
+const TimeWrapper = styled('div')`
+  display: grid;
+  gap: ${p => p.theme.space.xs};
+  grid-template-columns: min-content 1fr;
+  flex: 2;
+  align-items: center;
+  padding-left: ${p => p.theme.space.xs};
+`;
+
+const Name = styled('div')`
+  font-size: ${p => p.theme.font.size.md};
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const Description = styled('div')`
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    line-height: 1.7;
+  }
+`;
+
+const DetailsItem = styled('div')`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: ${p => p.theme.space.md};
+`;

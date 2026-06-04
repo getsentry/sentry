@@ -1,0 +1,10 @@
+# Ideally we could enable this only for Sentry staff. The reason we enable it
+# (vs. linking out to ./new in a contact_link as a hack) is to reduce friction
+# for Sentry staff creating issues from project boards, now that that flow
+# enforces issue templates. The trade-off is worse reports from non-staff. 🤷
+blank_issues_enabled: true
+
+contact_links:
+  - name: Discuss self-hosted
+    url: https://github.com/getsentry/self-hosted/issues/new
+    about: Please use the `self-hosted` repo for questions about self-hosted Sentry.

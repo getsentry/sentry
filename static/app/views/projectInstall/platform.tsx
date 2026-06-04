@@ -1,0 +1,159 @@
+import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
+import type {LocationDescriptorObject} from 'history';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
+import Feature from 'sentry/components/acl/feature';
+import {NotFound} from 'sentry/components/errors/notFound';
+import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
+import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {performance as performancePlatforms} from 'sentry/data/platformCategories';
+import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeList} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {OtherPlatformsInfo} from './otherPlatformsInfo';
+import {PlatformDocHeader} from './platformDocHeader';
+
+const ProductUnavailableCTA = OverrideOrDefault({
+  overrideName: 'component:product-unavailable-cta',
+});
+
+type Props = {
+  platform: PlatformIntegration | undefined;
+  project: Project;
+};
+
+export function ProjectInstallPlatform({project, platform}: Props) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+
+  const products = useMemo(
+    () => decodeList(location.query.product ?? []) as ProductSolution[],
+    [location.query.product]
+  );
+
+  const redirectWithProjectSelection = (to: LocationDescriptorObject) => {
+    if (!project?.id) {
+      return;
+    }
+    // We need to persist and pin the project filter
+    // so the selection does not reset on further navigation
+    PageFiltersStore.updateProjects([Number(project?.id)], null);
+    PageFiltersStore.pin('projects', true);
+    setPageFiltersStorage(organization.slug, new Set(['projects']));
+
+    navigate({
+      ...to,
+      query: {
+        ...to.query,
+        project: project?.id,
+      },
+    });
+  };
+
+  if (!platform) {
+    return <NotFound />;
+  }
+
+  const issueStreamLink = `/organizations/${organization.slug}/issues/`;
+  const showPerformancePrompt = performancePlatforms.includes(platform.id);
+  const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
+  const showDocsWithProductSelection =
+    (platformProductAvailability[platform.id] ?? []).length > 0;
+
+  return (
+    <Fragment>
+      {!isSelfHosted && showDocsWithProductSelection && (
+        <ProductUnavailableCTA organization={organization} />
+      )}
+      <PlatformDocHeader projectSlug={project.slug} platform={platform} />
+      {platform.id === 'other' ? (
+        <OtherPlatformsInfo
+          projectSlug={project.slug}
+          platform={platform.name ?? 'other'}
+        />
+      ) : (
+        <SdkDocumentation
+          platform={platform}
+          organization={organization}
+          project={project}
+          activeProductSelection={products}
+        />
+      )}
+      <div>
+        {isGettingStarted && showPerformancePrompt && (
+          <Feature
+            features="performance-view"
+            overrideName="feature-disabled:performance-new-project"
+          >
+            {({hasFeature}) => {
+              if (hasFeature) {
+                return null;
+              }
+              return (
+                <Alert.Container>
+                  <StyledAlert variant="info">
+                    {t(
+                      'Your selected platform supports performance, but your organization does not have performance enabled.'
+                    )}
+                  </StyledAlert>
+                </Alert.Container>
+              );
+            }}
+          </Feature>
+        )}
+        <StyledButtonBar>
+          <Button
+            variant="primary"
+            onClick={() => {
+              trackAnalytics('onboarding.take_me_to_issues_clicked', {
+                organization,
+                platform: platform.name ?? 'unknown',
+                project_id: project.id,
+                products,
+              });
+              redirectWithProjectSelection({
+                pathname: issueStreamLink,
+              });
+            }}
+          >
+            {t('Take me to Issues')}
+          </Button>
+        </StyledButtonBar>
+      </div>
+    </Fragment>
+  );
+}
+
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
+  margin-top: ${p => p.theme.space['2xl']};
+  width: max-content;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    width: auto;
+    grid-row-gap: ${p => p.theme.space.md};
+    grid-auto-flow: row;
+  }
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-top: ${p => p.theme.space.xl};
+`;

@@ -1,0 +1,51 @@
+import styled from '@emotion/styled';
+
+import type {FlexProps} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
+export function ContextContainer(props: FlexProps) {
+  return <Stack {...props} />;
+}
+
+export const ContextHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${p => p.theme.space.sm};
+`;
+
+export const ContextTitle = styled('h6')`
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-bottom: 0 !important;
+`;
+
+export const ContextBody = styled('div')`
+  width: 100%;
+  text-align: left;
+  font-size: ${p => p.theme.font.size.lg};
+  display: flex;
+  align-items: center;
+`;
+
+export const Wrapper = styled('div')`
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  width: 320px;
+  padding: ${p => p.theme.space.lg};
+`;
+
+export const NoContextWrapper = styled('div')`
+  color: ${p => p.theme.tokens.content.secondary};
+  height: 50px;
+  padding: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.md};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  min-width: 320px;
+`;
+
+export function ContextRow(props: FlexProps) {
+  return <Flex justify="between" {...props} />;
+}

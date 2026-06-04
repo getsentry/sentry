@@ -1,0 +1,225 @@
+import {useEffect, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Input} from '@sentry/scraps/input';
+import {Slider} from '@sentry/scraps/slider';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
+
+import {SliderAndInputWrapper} from './sliderAndInputWrapper';
+import {SliderLabel} from './sliderLabel';
+
+type SliderProps = {
+  name: string;
+
+  /**
+   * String is a valid type here only for empty string
+   * Otherwise react complains:
+   * "`value` prop on `input` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components."
+   *
+   * And we want this to be a controlled input when value is empty
+   */
+  value: number | '';
+
+  /**
+   * Array of allowed values. Make sure `value` is in this list.
+   * THIS NEEDS TO BE SORTED
+   */
+  allowedValues?: number[];
+
+  'aria-label'?: string;
+
+  className?: string;
+
+  disabled?: boolean;
+
+  disabledReason?: React.ReactNode;
+  /**
+   * Render prop for slider's label
+   * Is passed the value as an argument
+   */
+  formatLabel?: (value: number | '') => React.ReactNode;
+
+  /**
+   * HTML id of the range input
+   */
+  id?: string;
+
+  /**
+   * max allowed value, not needed if using `allowedValues`
+   */
+  max?: number;
+  /**
+   * min allowed value, not needed if using `allowedValues`
+   */
+  min?: number;
+
+  onChange?: (
+    value: SliderProps['value'],
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => void;
+
+  /**
+   * This is called when *any* MouseUp or KeyUp event happens.
+   * Used for "smart" Fields to trigger a "blur" event. `onChange` can
+   * be triggered quite frequently
+   */
+  onChangeEnd?: (value: number) => void;
+  /**
+   * Placeholder for custom input
+   */
+  placeholder?: string;
+  ref?: React.Ref<HTMLDivElement>;
+  /**
+   * Show input control for custom values
+   */
+  showCustomInput?: boolean;
+  /**
+   * Show label with current value
+   */
+  showLabel?: boolean;
+  step?: number;
+};
+
+export function RangeSlider({
+  id,
+  value,
+  allowedValues,
+  showCustomInput,
+  name,
+  disabled,
+  placeholder,
+  formatLabel,
+  className,
+  onChange,
+  onChangeEnd,
+  ref,
+  disabledReason,
+  showLabel = true,
+  ...props
+}: SliderProps) {
+  const [sliderValue, setSliderValue] = useState(
+    allowedValues ? allowedValues.indexOf(Number(value || 0)) : value
+  );
+
+  useEffect(() => {
+    updateSliderValue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  function updateSliderValue() {
+    if (!defined(value)) {
+      return;
+    }
+
+    const newSliderValueIndex = allowedValues?.indexOf(Number(value || 0)) ?? -1;
+
+    // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
+    if (newSliderValueIndex > -1) {
+      setSliderValue(newSliderValueIndex);
+      return;
+    }
+
+    setSliderValue(value);
+  }
+
+  function getActualValue(newSliderValue: number): number {
+    if (!allowedValues) {
+      return newSliderValue;
+    }
+
+    // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
+    return allowedValues[newSliderValue]!;
+  }
+
+  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const newSliderValue = e.currentTarget.valueAsNumber;
+    setSliderValue(newSliderValue);
+    onChange?.(getActualValue(newSliderValue), e);
+  }
+
+  function handleSliderChange(newSliderValue: number) {
+    setSliderValue(newSliderValue);
+    // Legacy onChange takes (value, event) but the new Slider no longer provides an event.
+    // Pass a synthetic-like object for backward compat with callers that destructure the event.
+    onChange?.(getActualValue(newSliderValue), {
+      currentTarget: {valueAsNumber: newSliderValue},
+    } as React.ChangeEvent<HTMLInputElement>);
+  }
+
+  function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setSliderValue(parseFloat(e.target.value) || 0);
+  }
+
+  function getSliderData() {
+    if (!allowedValues) {
+      const {min, max, step} = props;
+      return {
+        min,
+        max,
+        step,
+        actualValue: sliderValue,
+        displayValue: sliderValue,
+      };
+    }
+
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+    const actualValue = allowedValues[sliderValue];
+
+    return {
+      step: 1,
+      min: 0,
+      max: allowedValues.length - 1,
+      actualValue,
+      displayValue: defined(actualValue) ? actualValue : t('Invalid value'),
+    };
+  }
+
+  const {min, max, step, actualValue, displayValue} = getSliderData();
+  const labelText = formatLabel?.(actualValue) ?? displayValue;
+
+  return (
+    <div className={className} ref={ref}>
+      {!showCustomInput && showLabel && <SliderLabel>{labelText}</SliderLabel>}
+      <Tooltip title={disabledReason} disabled={!disabled} skipWrapper isHoverable>
+        <SliderAndInputWrapper showCustomInput={showCustomInput}>
+          <StyledSlider
+            name={name}
+            id={id}
+            min={min}
+            max={max}
+            step={step}
+            disabled={disabled}
+            onChange={handleSliderChange}
+            onChangeEnd={onChangeEnd}
+            value={sliderValue}
+            aria-valuetext={labelText}
+            aria-label={props['aria-label']}
+            formatOptions={showLabel ? undefined : 'hidden'}
+          />
+          {showCustomInput && (
+            <StyledInput
+              hasLabel={!showCustomInput}
+              placeholder={placeholder}
+              value={sliderValue}
+              onChange={handleCustomInputChange}
+              onBlur={handleInput}
+              // Do not forward required to avoid default browser behavior
+              required={undefined}
+            />
+          )}
+        </SliderAndInputWrapper>
+      </Tooltip>
+    </div>
+  );
+}
+
+const StyledSlider = styled(Slider)`
+  margin: ${p => p.theme.space.md} 0;
+`;
+
+const StyledInput = styled(Input)<{hasLabel: boolean}>`
+  margin-top: ${p => (p.hasLabel ? p.theme.space.xl : p.theme.space.md)};
+`;

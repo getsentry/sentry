@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="robots" content="NONE,NOARCHIVE" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= htmlWebpackPlugin.options.title || 'Sentry Dev'%></title>
+    <script>
+      function __sentryMark(name) {
+        if (!window.performance || typeof window.performance.mark !== 'function') { return; }
+        window.performance.mark(name);
+      }
+      __sentryMark('head-start');
+    </script>
+    <link rel="preload" href="/api/client-config/" as="fetch" crossorigin />
+    <script>
+      // Django inlines a class for the user theme, but SPA mode requires manual init.
+      // Default to `.theme-system` and replace with user theme as soon as possible.
+      const BOOTSTRAP_URL = '/api/client-config/';
+      async function applySpaTheme() {
+        const res = await fetch(BOOTSTRAP_URL);
+        if (res.ok) {
+          const data = await res.json();
+          const theme = data.user?.options?.theme;
+          if (theme) {
+            document.body.classList.replace('theme-system', `theme-${theme}`);
+            return;
+          }
+        }
+        document.body.classList.remove('theme-system');
+      }
+      applySpaTheme();
+    </script>
+  </head>
+  <body class="theme-system">
+    <% if (htmlWebpackPlugin.options.unsupportedBrowser) { %>
+    <style>.unsupported-browser { display: none; }</style>
+    <div class="unsupported-browser">
+      Sorry, your browser is not supported.  Please upgrade to
+      the latest version or switch your browser to use this site.
+      See <a href="http://outdatedbrowser.com/">outdatedbrowser.com</a>
+      for options.
+    </div>
+    <% } %>
+
+    <div id="blk_router">
+      <div id="loader-default" class="splash-loader">
+        <div class="loading-mask"></div>
+        <div class="loading-indicator" data-test-id="loading-indicator">
+            <svg
+      width="256"
+      height="256"
+      viewBox="0 0 400 400"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <style>
+        .theme-light #base {
+          fill: #f0f0f2;
+        }
+        .theme-dark #base {
+          fill: #24202b;
+        }
+        .theme-system {
+          @media (prefers-color-scheme: dark) {
+            #base {
+              fill: #24202b;
+            }
+          }
+        }
+        :root {
+          --loop: 2350ms;
+        }
+
+        g[data-index] path {
+          stroke-dasharray: 1150;
+          stroke-dashoffset: 1150;
+          animation-duration: var(--loop);
+          animation-iteration-count: infinite;
+          animation-fill-mode: both;
+          animation-timing-function: linear;
+        }
+
+        [data-index='0'] {
+          stroke: #f0369a;
+        }
+        [data-index='1'] {
+          stroke: #67c800;
+        }
+        [data-index='2'] {
+          stroke: #7553ff;
+        }
+
+        g[data-index='0'] > path:nth-of-type(1) {
+          animation-name: draw_g0_p1;
+        }
+        g[data-index='0'] > path:nth-of-type(2) {
+          animation-name: draw_g0_p0;
+        }
+        g[data-index='0'] > path:nth-of-type(3) {
+          animation-name: draw_g0_p2;
+        }
+
+        g[data-index='1'] > path:nth-of-type(1) {
+          animation-name: draw_g1_p2;
+        }
+        g[data-index='1'] > path:nth-of-type(2) {
+          animation-name: draw_g1_p0;
+        }
+        g[data-index='1'] > path:nth-of-type(3) {
+          animation-name: draw_g1_p1;
+        }
+
+        g[data-index='2'] > path:nth-of-type(1) {
+          animation-name: draw_g2_p0;
+        }
+        g[data-index='2'] > path:nth-of-type(2) {
+          animation-name: draw_g2_p3;
+        }
+        g[data-index='2'] > path:nth-of-type(3) {
+          animation-name: draw_g2_p1;
+        }
+
+        /*
+          Each baked timeline:
+          - Hold at 1150 until its start %
+          - Ease-out into 0 by its 40% point
+          - Ease-out to -1150 by end of loop
+          - Snap back to 1150 at 100% so the loop repeats cleanly
+        */
+        @keyframes draw_g0_p2 {
+          /* start=  50ms =>  2.1%, 40% point=41.3% */
+          0%,
+          2.1% {
+            stroke-dashoffset: 1150;
+          }
+          2.1% {
+            animation-timing-function: ease-out;
+          }
+          41.3% {
+            stroke-dashoffset: 0;
+            animation-timing-function: ease-out;
+          }
+          99.99% {
+            stroke-dashoffset: -1150;
+          }
+          100% {
+            stroke-dashoffset: 1150;
+          }
+        }
+        @keyframes draw_g0_p1 {
+          /* start= 100ms => 4.3%, 40% point=42.6% */
+          0%,
+          4.3% {
+            stroke-dashoffset: 1150;
+          }
+          4.3% {
+            animation-timing-function: ease-out;
+          }
+          42.6% {
+            stroke-dashoffset: 0;
+            animation-timing-function: ease-out;
+          }
+          99.99% {
+            stroke-dashoffset: -1150;
+          }
+          100% {
+            stroke-dashoffset: 1150;
+          }
+        }
+        @keyframes draw_g0_p0 {
+          /* start= 150ms =>  6.4%, 40% point=43.8% */
+          0%,
+          6.4% {
+            stroke-dashoffset: 1150;
+          }
+          6.4% {
+            animation-timing-function: ease-out;
+          }
+          43.8% {
+            stroke-dashoffset: 0;
+            animation-timing-function: ease-out;
+          }
+          99.99% {
+            stroke-dashoffset: -1150;
+          }
+          100% {
+            stroke-dashoffset: 1150;
+          }
+        }
+
+        @keyframes draw_g1_p2 {
+          /* start= 230ms =>  9.8%, 40% point=45.9% */
+          0%,
+          9.8% {
+            stroke-dashoffset: 1150;
+          }
+          9.8% {
+            animation-timing-function: ease-out;
+          }
+          45.9% {
+            stroke-dashoffset: 0;
+            animation-timing-function: ease-out;
+          }
+          99.99% {
+            stroke-dashoffset: -1150;
+          }
+          100% {
+            stroke-dashoffset: 1150;
+          }
+        }
+        @keyframes draw_g1_p1 {
+          /* start= 280ms => 11.9%, 40% point=47.1% */
+          0%,
+          11.9% {
+            stroke-dashoffset: 1150;
+          }
+          11.9% {
+            animation-timing-function: ease-out;
+          }
+          47.1% {
+            stroke-dashoffset: 0;
+            animation-timing-function: ease-out;
+          }
+          99.99% {
+            stroke-dashoffset: -1150;
+          }
+          100% {
+            stroke-dashoffset: 1150;
+          }
+        }
+        @keyframes draw_g1_p0 {
+          /* start= 330ms => 14%, 40% point=48.4% */
+          0%,
+          14% {
+            stroke-dashoffset: 1150;
+          }
+          14% {
+            animation-timing-function: ease-out;
+          }
+          48.4% {
+            stroke-dashoffset: 0;
+            animation-timing-function: ease-out;
+          }
+          99.99% {
+            stroke-dashoffset: -1150;
+          }
+          100% {
+            stroke-dashoffset: 1150;
+          }
+        }
+
+        @keyframes draw_g2_p3 {
+          /* start= 400ms => 17%, 40% point=50.2% */
+          0%,
+          17% {
+            stroke-dashoffset: 1150;
+          }
+          17% {
+            animation-timing-function: ease-out;
+          }
+          50.2% {
+            stroke-dashoffset: 0;
+            animation-timing-function: ease-out;
+          }
+          99.99% {
+            stroke-dashoffset: -1150;
+          }
+          100% {
+            stroke-dashoffset: 1150;
+          }
+        }
+        @keyframes draw_g2_p1 {
+          /* start= 500ms => 21.3%, 40% point=52.8% */
+          0%,
+          21.3% {
+            stroke-dashoffset: 1150;
+          }
+          21.3% {
+            animation-timing-function: ease-out;
+          }
+          52.8% {
+            stroke-dashoffset: 0;
+            animation-timing-function: ease-out;
+          }
+          99.99% {
+            stroke-dashoffset: -1150;
+          }
+          100% {
+            stroke-dashoffset: 1150;
+          }
+        }
+        @keyframes draw_g2_p0 {
+          /* start= 550ms => 23.4%, 40% point=54% */
+          0%,
+          23.4% {
+            stroke-dashoffset: 1150;
+          }
+          23.4% {
+            animation-timing-function: ease-out;
+          }
+          54% {
+            stroke-dashoffset: 0;
+            animation-timing-function: ease-out;
+          }
+          99.99% {
+            stroke-dashoffset: -1150;
+          }
+          100% {
+            stroke-dashoffset: 1150;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          g[data-index] path {
+            animation: none;
+            stroke-dashoffset: 0;
+          }
+        }
+      </style>
+
+      <defs>
+        <filter id="goo">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
+          <feColorMatrix
+            in="blur"
+            mode="matrix"
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 36 -4"
+            result="goo"
+          />
+          <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+        </filter>
+      </defs>
+
+      <mask
+        id="loader-mask"
+        width="300"
+        height="265"
+        x="50"
+        y="72"
+        maskUnits="userSpaceOnUse"
+        style="mask-type: alpha"
+      >
+        <path
+          fill="#24202B"
+          d="M223.687 85.56a28.02 28.02 0 0 0-24-13.559 28.02 28.02 0 0 0-24 13.559l-39.48 67.62a193.26 193.26 0 0 1 106.5 159.96h-27.72a166.07 166.07 0 0 0-92.76-136.32L85.687 240a95.52 95.52 0 0 1 55.38 73.02h-63.66a4.55 4.55 0 0 1-3.659-2.325 4.56 4.56 0 0 1-.06-4.335l17.64-30a64.4 64.4 0 0 0-20.16-11.4l-17.46 30a27.24 27.24 0 0 0 2.023 30.435 27.2 27.2 0 0 0 8.116 7.005 27.96 27.96 0 0 0 13.56 3.6h87.18a116.41 116.41 0 0 0-48-103.86l13.86-24a143.22 143.22 0 0 1 61.8 127.86h73.86a215.28 215.28 0 0 0-98.46-190.8l28.02-48a4.62 4.62 0 0 1 6.3-1.62c3.18 1.74 121.74 208.62 123.96 211.02a4.562 4.562 0 0 1-4.08 6.78h-28.56q.54 11.46 0 22.86h28.68a27.54 27.54 0 0 0 27.72-27.66 26.94 26.94 0 0 0-3.72-13.68z"
+        />
+      </mask>
+
+      <path
+        id="base"
+        fill="#F0F0F2"
+        d="M223.687 85.56a28.02 28.02 0 0 0-24-13.559 28.02 28.02 0 0 0-24 13.559l-39.48 67.62a193.26 193.26 0 0 1 106.5 159.96h-27.72a166.07 166.07 0 0 0-92.76-136.32L85.687 240a95.52 95.52 0 0 1 55.38 73.02h-63.66a4.55 4.55 0 0 1-3.659-2.325 4.56 4.56 0 0 1-.06-4.335l17.64-30a64.4 64.4 0 0 0-20.16-11.4l-17.46 30a27.24 27.24 0 0 0 2.023 30.435 27.2 27.2 0 0 0 8.116 7.005 27.96 27.96 0 0 0 13.56 3.6h87.18a116.41 116.41 0 0 0-48-103.86l13.86-24a143.22 143.22 0 0 1 61.8 127.86h73.86a215.28 215.28 0 0 0-98.46-190.8l28.02-48a4.62 4.62 0 0 1 6.3-1.62c3.18 1.74 121.74 208.62 123.96 211.02a4.562 4.562 0 0 1-4.08 6.78h-28.56q.54 11.46 0 22.86h28.68a27.54 27.54 0 0 0 27.72-27.66 26.94 26.94 0 0 0-3.72-13.68z"
+      />
+      <g
+        id="root"
+        mask="url(#loader-mask)"
+        filter="url('#goo')"
+        stroke-width="5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <g data-index="0">
+          <path
+            d="m82.8 253.5-12.7 22-12.5 21.2-.2.3v.1l-.2.2v.3a24 24 0 00.3 22.4l.3.6A24 24 0 0076.4 332h87l-3.2-21.8A115 115 0 00112 233l17.6-30.4a147 147 0 0166.8 112l1.3 17.5h65.6l-1.3-20.2a212 212 0 00-99.3-165.8l29.6-50.8a9 9 0 013.3-3.1 9 9 0 0112.1 3.1l122.2 209.2h.1a8 8 0 011 4v.2a8.5 8.5 0 01-8.6 8.5h-38.9"
+          />
+          <path
+            d="M92.5 268.7 88 276.6 71.4 305v.1a8 8 0 000 7.2l.2.4a8 8 0 006 3.4h67.3l-.6-3.4A99 99 0 0097.2 242.5l-6.8-4 33.4-57.8 6.9 4a163 163 0 0181.6 128.8l.2 2.7h33.7L246 313A196 196 0 00147.8 155.7l-7-4L178.6 87v-.1a25 25 0 0133-9.1l.8.3a25 25 0 019 8.9h.1v.2L343.7 296.4a24 24 0 013.3 12v.4a24.5 24.5 0 01-24.6 24.4H291.5"
+          />
+          <path
+            d="M85.7 264.5l-8.7 15-12.5 21.3-.1.2-.1.3A15.6 15.6 0 0076.9 324h77.2l-1.8-12.6a107 107 0 00-51-75.8l25.5-44.1A155 155 0 01204.3 314l.8 10.1h49.7l-.8-11.7A204 204 0 00151.8 148.9l33.6-57.7a17 17 0 0129.2 0L336.8 300.4a16 16 0 012.2 8.2 16.5 16.5 0 01-16.6 16.6H291.5"
+          />
+        </g>
+
+        <g data-index="1">
+          <path
+            d="m82.8 253.5-12.7 22-12.5 21.2-.2.3v.1l-.2.2v.3a24 24 0 00.3 22.4l.3.6A24 24 0 0076.4 332h87l-3.2-21.8A115 115 0 00112 233l17.6-30.4a147 147 0 0166.8 112l1.3 17.5h65.6l-1.3-20.2a212 212 0 00-99.3-165.8l29.6-50.8a9 9 0 013.3-3.1 9 9 0 0112.1 3.1l122.2 209.2h.1a8 8 0 011 4v.2a8.5 8.5 0 01-8.6 8.5h-38.9"
+          />
+          <path
+            d="M92.5 268.7 88 276.6 71.4 305v.1a8 8 0 000 7.2l.2.4a8 8 0 006 3.4h67.3l-.6-3.4A99 99 0 0097.2 242.5l-6.8-4 33.4-57.8 6.9 4a163 163 0 0181.6 128.8l.2 2.7h33.7L246 313A196 196 0 00147.8 155.7l-7-4L178.6 87v-.1a25 25 0 0133-9.1l.8.3a25 25 0 019 8.9h.1v.2L343.7 296.4a24 24 0 013.3 12v.4a24.5 24.5 0 01-24.6 24.4H291.5"
+          />
+          <path
+            d="M85.7 264.5l-8.7 15-12.5 21.3-.1.2-.1.3A15.6 15.6 0 0076.9 324h77.2l-1.8-12.6a107 107 0 00-51-75.8l25.5-44.1A155 155 0 01204.3 314l.8 10.1h49.7l-.8-11.7A204 204 0 00151.8 148.9l33.6-57.7a17 17 0 0129.2 0L336.8 300.4a16 16 0 012.2 8.2 16.5 16.5 0 01-16.6 16.6H291.5"
+          />
+        </g>
+
+        <g data-index="2">
+          <path
+            d="m82.8 253.5-12.7 22-12.5 21.2-.2.3v.1l-.2.2v.3a24 24 0 00.3 22.4l.3.6A24 24 0 0076.4 332h87l-3.2-21.8A115 115 0 00112 233l17.6-30.4a147 147 0 0166.8 112l1.3 17.5h65.6l-1.3-20.2a212 212 0 00-99.3-165.8l29.6-50.8a9 9 0 013.3-3.1 9 9 0 0112.1 3.1l122.2 209.2h.1a8 8 0 011 4v.2a8.5 8.5 0 01-8.6 8.5h-38.9"
+          />
+          <path
+            d="M92.5 268.7 88 276.6 71.4 305v.1a8 8 0 000 7.2l.2.4a8 8 0 006 3.4h67.3l-.6-3.4A99 99 0 0097.2 242.5l-6.8-4 33.4-57.8 6.9 4a163 163 0 0181.6 128.8l.2 2.7h33.7L246 313A196 196 0 00147.8 155.7l-7-4L178.6 87v-.1a25 25 0 0133-9.1l.8.3a25 25 0 019 8.9h.1v.2L343.7 296.4a24 24 0 013.3 12v.4a24.5 24.5 0 01-24.6 24.4H291.5"
+          />
+          <path
+            d="M85.7 264.5l-8.7 15-12.5 21.3-.1.2-.1.3A15.6 15.6 0 0076.9 324h77.2l-1.8-12.6a107 107 0 00-51-75.8l25.5-44.1A155 155 0 01204.3 314l.8 10.1h49.7l-.8-11.7A204 204 0 00151.8 148.9l33.6-57.7a17 17 0 0129.2 0L336.8 300.4a16 16 0 012.2 8.2 16.5 16.5 0 01-16.6 16.6H291.5"
+          />
+        </g>
+      </g>
+    </svg>
+        </div>
+
+        <div class="loading-message">
+          <p>Loading a <scraps-bleep>$#!%</scraps-bleep>-ton of JavaScript&hellip;</p>
+          <p><small>You may need to disable adblocking extensions to load Sentry.</small></p>
+        </div>
+      </div>
+
+      <div id="loader-pride" class="splash-loader" style="display:none">
+        <div class="loading-mask"></div>
+        <div class="loading-indicator" data-test-id="loading-indicator">
+          <svg
+            width="256"
+            height="256"
+            viewBox="0 0 128 128"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <style>
+              :root {
+                --pride-loop: 2350ms;
+              }
+
+              #loader-pride .loading-indicator {
+                scale: 0.8;
+              }
+
+              #pride-mask g[data-index] path {
+                stroke-dasharray: 522;
+                stroke-dashoffset: 522;
+                animation-duration: var(--pride-loop);
+                animation-iteration-count: infinite;
+                animation-fill-mode: both;
+                animation-timing-function: cubic-bezier(0.455, 0.03, 0.515, 0.955);
+              }
+
+              #pride-mask path:nth-of-type(3) { animation-name: pride_draw_p3; }
+              #pride-mask path:nth-of-type(2) { animation-name: pride_draw_p2; }
+              #pride-mask path:nth-of-type(1) { animation-name: pride_draw_p1; }
+
+              @keyframes pride_draw_p3 {
+                0%, 3% { stroke-dashoffset: 522; }
+                43% { stroke-dashoffset: 0; }
+                100% { stroke-dashoffset: -522; }
+              }
+              @keyframes pride_draw_p2 {
+                0%, 5% { stroke-dashoffset: 522; }
+                42% { stroke-dashoffset: 0; }
+                100% { stroke-dashoffset: -522; }
+              }
+              @keyframes pride_draw_p1 {
+                0%, 7% { stroke-dashoffset: 522; }
+                43% { stroke-dashoffset: 0; }
+                100% { stroke-dashoffset: -522; }
+              }
+
+              @supports (color: color(display-p3 0 0 0)) {
+                .pride-red { fill: color(display-p3 1 0 0.1686); }
+                .pride-orange { fill: color(display-p3 1 0.5961 0.2196); }
+                .pride-yellow { fill: color(display-p3 1 0.8078 0); }
+                .pride-green { fill: color(display-p3 0 0.62 0.0827); }
+                .pride-blue { fill: color(display-p3 0.16 0.342 1); }
+                .pride-purple { fill: color(display-p3 0.4863 0.1333 0.5098); }
+              }
+
+              @media (prefers-reduced-motion: reduce) {
+                #pride-mask g[data-index] path {
+                  animation: none;
+                  stroke-dashoffset: 0;
+                }
+              }
+            </style>
+
+            <defs>
+              <filter id="pride-goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 30 -5" result="goo" />
+                <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+              </filter>
+
+              <mask id="pride-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128" style="mask-type: alpha">
+                <g
+                  stroke-width="4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke="white"
+                  fill="none"
+                  data-index="0"
+                  filter="url(#pride-goo)"
+                >
+                  <path d="M11 108.76 20.35 92.64M11 108.76H47.49A37.4 37.4 0 0029.69 76.53L38.5 61.33A55 55 0 0165.07 108.75H81.18A71 71 0 0046.48 47.55L64 17.33 117 108.76H99.1"/>
+                  <path d="M13.96 87.73 4.1 104.75a8 8 0 0 0 6.92 12h36.33c1.59-9.77-2.3-19.24-7.9-27.72-4.33-6.58-11.74-10.48-19.15-12.96l10.34-15.38c9.62 3.9 16.91 10.65 22.7 19.43a51.7 51.7 0 0 1 7.89 36.64H86.7a77 77 0 0 0-12.27-50.8C68.6 58 54.06 41.29 42.66 38.23l14.44-24.9a8 8 0 0 1 13.84 0l53 91.43a8 8 0 0 1-6.91 12H98.49"/>
+                  <path d="M18.82 87.29 8.4 105.25a5 5 0 0 0 4.33 7.5h28.96a31.8 31.8 0 0 0-18.42-33.14L34.3 56.24c8.8 4.5 18.43 12 23.96 20.38 7.08 10.72 9.33 23.45 8.37 36.14h17.96a74.6 74.6 0 0 0-12.2-45.46c-6.99-10.6-19.67-18.25-30.7-24.06L59.55 16.1a5 5 0 0 1 8.5.25l51.55 88.9a5 5 0 0 1-4.33 7.5H98.95"/>
+                </g>
+              </mask>
+            </defs>
+
+            <g id="base" fill="#F0F0F2">
+              <path d="m5.45 101.3 7.68-13.2c2.95 1 5.7 2.57 8.07 4.58l-7.71 13.29a1.32 1.32 0 0 0 1.15 1.99h25.91a36.2 36.2 0 0 0-17.9-27.16c-2.1-1.2-3.04-3.88-1.82-5.98l2.4-4.11 8.18-14.1a3.8 3.8 0 0 1 5.15-1.5q2.45 1.36 4.76 2.92c14.8 10 27.42 31.88 28.53 49.93h10.64c-1.25-23.34-14-46.36-33.82-59.13a100 100 0 0 0-4.29-2.65 4.17 4.17 0 0 1-1.62-5.68l14.06-24.21c4.02-6.9 14.34-6.9 18.36 0l49.37 85.01a10.62 10.62 0 0 1-9.19 15.96h-13q.26-4.64.06-9.29h12.94a1.33 1.33 0 0 0 1.15-2L65.15 20.95c-.5-.86-1.8-.86-2.3 0L51.34 40.78c23.42 15.28 37.05 38.74 38.45 66.99.1 2.01.1 4.06.07 5.74a3.85 3.85 0 0 1-3.9 3.75H64.83a4.25 4.25 0 0 1-4.16-4.39q.05-2.45-.13-4.91v.01a56.2 56.2 0 0 0-23.9-41.87v-.01L31.3 75.3c11 7.94 17.38 19.16 18.58 32.61q.26 2.9.14 5.81a3.76 3.76 0 0 1-3.83 3.54H14.64c-1.91.01-3.8-.5-5.44-1.47a10.77 10.77 0 0 1-3.75-14.49"/>
+            </g>
+
+            <g mask="url(#pride-mask)">
+              <path class="pride-red" fill="#FF002B" d="M44.37 117.26q.69-4.66.18-9.3H14.64a1.3 1.3 0 0 1-1.15-.66 1.3 1.3 0 0 1 0-1.33l7.71-13.29a25 25 0 0 0-8.07-4.58l-7.68 13.2c-2 3.46-1.81 7.35-.14 10.42a10.5 10.5 0 0 0 9.33 5.54z"/>
+              <path class="pride-orange" fill="#FF9838" d="M46.2 117.26a3.76 3.76 0 0 0 3.82-3.54 45 45 0 0 0-6.01-24.34H44A45 45 0 0 0 31.3 75.3c-5.19-3.74-.01.01-.01.01-3.96-3.07-7.71-4.47-8.06-4.62l-2.4 4.13c-1.22 2.1-.29 4.78 1.82 5.98q2.05 1.16 3.94 2.59l.01.01a36 36 0 0 1 9.37 10.62 36 36 0 0 1 4.58 13.94c.55 4.91 0 9.3 0 9.3z"/>
+              <path class="pride-purple" fill="#7C2282" d="M113.36 117.26c8.2 0 13.3-8.87 9.19-15.96L94.44 52.89l-8.04 4.66 28.11 48.42c.52.89-.12 2-1.15 2h-12.94q.2 4.65-.06 9.29z"/>
+              <path class="pride-blue" fill="#2957FF" d="M73.18 16.29a10.62 10.62 0 0 0-18.36 0L43.29 36.14a85 85 0 0 1 8.05 4.64l11.51-19.83a1.33 1.33 0 0 1 2.3 0l22.35 38.5a4.65 4.65 0 1 0 8.03-4.67z"/>
+              <path class="pride-green" fill="#009E15" d="M85.96 117.26a3.85 3.85 0 0 0 3.9-3.76A85 85 0 0 0 78.5 69.47v-.01a85 85 0 0 0-35.21-33.32l-2.53 4.36a4.17 4.17 0 0 0 1.62 5.68 96 96 0 0 1 4.29 2.65c6.24 4.02 17.92 15.13 23.79 25.28a76 76 0 0 1 10.03 33.85H69.85l-.1 9.3z"/>
+              <path class="pride-yellow" fill="#FFCE00" d="M41.32 58.03a65 65 0 0 0-4.76-2.92 3.8 3.8 0 0 0-5.15 1.5l-2.82 4.85-5.36 9.25a45 45 0 0 1 8.06 4.62l5.35-9.24v.01a56 56 0 0 1 16.57 17.97 56 56 0 0 1 7.33 23.9v-.01q.18 2.45.13 4.91a4.25 4.25 0 0 0 4.16 4.39h4.93q.37-4.65.1-9.3h-.01a65 65 0 0 0-8.6-28.54h.01a65 65 0 0 0-19.94-21.39"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="loading-message">
+          <p>You&rsquo;re valid. Your code, however&hellip;</p>
+          <p><small>You may need to disable adblocking extensions to load Sentry.</small></p>
+        </div>
+      </div>
+
+      <script>
+        (function() {
+          if (new Date().getMonth() === 5) {
+            var d = document.getElementById('loader-default');
+            var p = document.getElementById('loader-pride');
+            if (d) d.style.display = 'none';
+            if (p) p.style.display = '';
+          }
+        })();
+      </script>
+    </div>
+
+    <% if (htmlWebpackPlugin.options.window) { %>
+    <script>
+      <% for (var varName in htmlWebpackPlugin.options.window) { %>
+          window['<%=varName%>'] = <%= JSON.stringify(htmlWebpackPlugin.options.window[varName]) %>;
+        <% } %>
+    </script>
+    <% } %>
+  </body>
+</html>

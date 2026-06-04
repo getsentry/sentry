@@ -1,0 +1,155 @@
+/**
+* Auth Styles
+* ============================================================================
+*/
+
+.auth {
+  h3 {
+    font-size: 24px;
+    margin: 10px 0 30px;
+  }
+
+  .form-actions {
+    margin-top: 20px;
+  }
+
+  .form-actions-samlidp {
+    margin: 10px 0;
+  }
+}
+
+section.org-login {
+  h3 {
+    margin: 0 0 20px;
+  }
+  .org-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 3px;
+    margin-bottom: 20px;
+  }
+}
+
+.provider-logo {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  vertical-align: text-top;
+  margin-right: 4px;
+  border-radius: 2px;
+  position: relative;
+  top: 1px;
+  background-size: cover;
+
+  &.google {
+    background-image: url(sentry-logos/logo-google.svg);
+  }
+
+  &.github {
+    background-image: url(sentry-logos/logo-github.svg);
+  }
+
+  &.onelogin {
+    background-image: url(sentry-logos/logo-onelogin.svg);
+  }
+
+  &.auth0 {
+    background-image: url(sentry-logos/logo-auth0.svg);
+  }
+
+  &.okta {
+    background-image: url(sentry-logos/logo-okta.svg);
+  }
+
+  &.jumpcloud {
+    background-image: url(sentry-logos/logo-jumpcloud.svg);
+  }
+
+  &.rippling {
+    background-image: url(sentry-logos/logo-rippling.svg);
+  }
+
+  &.active-directory {
+    background-image: url(sentry-logos/logo-microsoft.svg);
+  }
+
+  &.saml2 {
+    background-image: url(sentry-logos/logo-saml2.svg);
+  }
+
+  &.slack {
+    background-image: url(sentry-logos/logo-slack.svg);
+  }
+
+  &.vsts {
+    background-image: url(sentry-logos/logo-azure.svg);
+  }
+
+  &.fly {
+    background-image: url(sentry-logos/logo-fly.svg);
+  }
+
+  &.discord {
+    background-image: url(sentry-logos/logo-discord.svg);
+  }
+}
+
+.btn-default > .provider-logo {
+  margin-right: 8px;
+}
+
+.sso-link {
+  text-align: center;
+  margin-bottom: 24px;
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+.sso-grid {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-column-gap: 15px;
+
+  &.flex {
+    grid-template-columns: auto auto;
+  }
+
+  .column {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .left-column {
+    text-align: right;
+  }
+
+  .right-column {
+    text-align: left;
+  }
+
+  .avatar-row {
+    margin: 4px 0 16px;
+  }
+
+  .email-truncate {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 270px;
+  }
+}
+
+@keyframes blink {
+  0% {
+    opacity: 0.1;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.1;
+  }
+}

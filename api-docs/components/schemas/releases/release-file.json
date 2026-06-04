@@ -1,0 +1,44 @@
+{
+  "ReleaseFile": {
+    "type": "object",
+    "required": [
+      "sha1",
+      "dist",
+      "name",
+      "dateCreated",
+      "headers",
+      "id",
+      "size"
+    ],
+    "properties": {
+      "sha1": {
+        "type": "string"
+      },
+      "dist": {
+        "type": "string",
+        "nullable": true
+      },
+      "name": {
+        "type": "string"
+      },
+      "dateCreated": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "headers": {
+        "type": "object",
+        "properties": {
+          "Content-Type": {
+            "type": "string"
+          }
+        }
+      },
+      "id": {
+        "type": "string"
+      },
+      "size": {
+        "type": "integer"
+      }
+    }
+  }
+}

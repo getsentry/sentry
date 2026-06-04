@@ -1,0 +1,151 @@
+from typing import Any, Literal, NamedTuple
+
+from sentry import tagstore
+from sentry.models.environment import Environment
+from sentry.models.release import Release
+from sentry.rules.filters.latest_adopted_release_filter import (
+    get_project_release_cache_key as latest_adopted_release_cache_key,
+)
+from sentry.rules.filters.latest_release import (
+    get_project_release_cache_key as latest_release_cache_key,
+)
+from sentry.search.utils import get_latest_release
+from sentry.services.eventstore.models import GroupEvent
+from sentry.utils import metrics
+from sentry.workflow_engine.caches import CacheMapping
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+
+CACHE_TTL_SECONDS = 600
+
+
+class _LatestReleaseCacheKey(NamedTuple):
+    project_id: int
+    environment_id: int | None
+
+
+class _LatestAdoptedReleaseCacheKey(NamedTuple):
+    project_id: int
+    environment_id: int
+
+
+# Cache mappings for latest release lookups.
+# Values are Release objects, or False if no release exists (to cache negative lookups).
+_latest_release_cache = CacheMapping[_LatestReleaseCacheKey, Release | Literal[False]](
+    lambda key: latest_release_cache_key(key.project_id, key.environment_id),
+    ttl_seconds=CACHE_TTL_SECONDS,
+)
+_latest_adopted_release_cache = CacheMapping[
+    _LatestAdoptedReleaseCacheKey, Release | Literal[False]
+](
+    lambda key: latest_adopted_release_cache_key(key.project_id, key.environment_id),
+    ttl_seconds=CACHE_TTL_SECONDS,
+)
+
+
+def get_latest_adopted_release_for_env(
+    environment: Environment, event: GroupEvent
+) -> Release | None:
+    """
+    Get the latest adopted release for a project in an environment.
+    """
+    cache_key = _LatestAdoptedReleaseCacheKey(event.group.project_id, environment.id)
+    return _get_latest_release_for_env_impl(
+        environment,
+        event,
+        only_adopted=True,
+        mapping=_latest_adopted_release_cache,
+        cache_key=cache_key,
+    )
+
+
+def get_latest_release_for_env(
+    environment: Environment | None,
+    event: GroupEvent,
+) -> Release | None:
+    """
+    Get the latest release for a project in an environment.
+    NOTE: This is independent of whether it has been adopted or not.
+    """
+    cache_key = _LatestReleaseCacheKey(
+        event.group.project_id, environment.id if environment else None
+    )
+    return _get_latest_release_for_env_impl(
+        environment,
+        event,
+        only_adopted=False,
+        mapping=_latest_release_cache,
+        cache_key=cache_key,
+    )
+
+
+def _get_latest_release_for_env_impl[K](
+    environment: Environment | None,
+    event: GroupEvent,
+    only_adopted: bool,
+    mapping: CacheMapping[K, Release | Literal[False]],
+    cache_key: K,
+) -> Release | None:
+    latest_release = mapping.get(cache_key)
+    if latest_release is not None:
+        if latest_release is False:
+            return None
+        return latest_release
+
+    organization_id = event.group.project.organization_id
+    environments = [environment] if environment else None
+
+    def record_get_latest_release_result(result: str) -> None:
+        metrics.incr(
+            "workflow_engine.latest_release.get_latest_release",
+            tags={
+                "has_environment": str(environment is not None),
+                "result": result,
+                "only_adopted": str(only_adopted),
+            },
+        )
+
+    try:
+        latest_release_version = get_latest_release(
+            [event.group.project],
+            environments,
+            organization_id,
+            adopted=only_adopted,
+        )[0]
+        record_get_latest_release_result("success")
+    except Release.DoesNotExist:
+        record_get_latest_release_result("does_not_exist")
+        mapping.set(cache_key, False)
+        return None
+    latest_release = Release.objects.get(
+        version=latest_release_version, organization_id=organization_id
+    )
+    mapping.set(cache_key, latest_release or False)
+    return latest_release
+
+
+@condition_handler_registry.register(Condition.LATEST_RELEASE)
+class LatestReleaseConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
+    comparison_json_schema = {"type": "boolean"}
+    label_template = "The event is from the latest release"
+
+    @staticmethod
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        event = event_data.event
+        if not isinstance(event, GroupEvent):
+            return False
+
+        latest_release = get_latest_release_for_env(event_data.workflow_env, event)
+        if not latest_release:
+            return False
+
+        releases = (
+            v.lower()
+            for k, v in event.tags
+            if k.lower() == "release" or tagstore.backend.get_standardized_key(k) == "release"
+        )
+
+        return any(release == latest_release.version.lower() for release in releases)

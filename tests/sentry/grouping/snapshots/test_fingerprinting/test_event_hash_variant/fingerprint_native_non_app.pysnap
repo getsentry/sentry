@@ -1,0 +1,35 @@
+---
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - symcache-error
+    matchers:
+    - - function
+      - symbolicator::actors::symcaches::*
+    - - app
+      - 'false'
+    text: function:"symbolicator::actors::symcaches::*" app:"false" -> "symcache-error"
+  version: 1
+fingerprint:
+- '{{ default }}'
+title: 'SymCacheError: failed to parse symcache'
+variants:
+  app:
+    component:
+      contributes: true
+      hint: null
+    contributes: true
+    hint: null
+    key: app_chained_exception_stacktrace
+    type: component
+  system:
+    component:
+      contributes: true
+      hint: null
+    contributes: true
+    hint: null
+    key: system_chained_exception_stacktrace
+    type: component

@@ -1,0 +1,85 @@
+import styled from '@emotion/styled';
+
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
+import {PanelBody} from 'sentry/components/panels/panelBody';
+
+export const SubscriptionBody = styled(PanelBody)`
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: space-between;
+  gap: ${p => p.theme.space['3xl']};
+
+  h3 {
+    margin-bottom: ${p => p.theme.space.md};
+    font-size: ${p => p.theme.font.size.xl};
+    font-weight: 400;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-auto-flow: row;
+    grid-auto-columns: 1fr;
+    gap: ${p => p.theme.space.md};
+  }
+`;
+
+export const ButtonWrapper = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
+  align-self: center;
+  justify-self: end;
+`;
+
+export const StripedTable = styled('table')`
+  width: 100%;
+  font-size: ${p => p.theme.font.size.md};
+  margin: 0;
+
+  tr:nth-child(2n + 1) td {
+    background-color: ${p => p.theme.tokens.background.secondary};
+  }
+`;
+
+export const AlertStripedTable = styled(StripedTable)`
+  text-align: center;
+  color: ${p => p.theme.tokens.content.secondary};
+
+  th {
+    text-transform: uppercase;
+    text-align: center;
+    font-size: ${p => p.theme.font.size.sm};
+  }
+
+  td:first-child,
+  th:first-child {
+    text-align: left;
+  }
+
+  td:last-child,
+  th:last-child {
+    text-align: right;
+    font-weight: bold;
+  }
+
+  td,
+  th {
+    padding: ${p => p.theme.space.md};
+  }
+`;
+
+export const PanelBodyWithTable = styled(PanelBody)`
+  display: grid;
+  gap: ${p => p.theme.space['2xl']};
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    grid-auto-flow: row;
+  }
+
+  h4 {
+    font-weight: 400;
+    font-size: ${p => p.theme.font.size.xl};
+  }
+`;

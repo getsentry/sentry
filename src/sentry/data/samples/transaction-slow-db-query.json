@@ -1,0 +1,154 @@
+{
+  "platform": "python",
+  "logentry": {},
+  "tags": [
+    ["browser", "Safari 15.5"],
+    ["browser.name", "Safari"],
+    ["client_os", "Mac OS X 10.15.7"],
+    ["client_os.name", "Mac OS X"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["environment", "production"],
+    ["sentry:release", "0.1"],
+    ["http.status_code", "200"],
+    ["level", "info"],
+    ["runtime", "CPython 3.8.9"],
+    ["runtime.name", "CPython"],
+    ["user", "ip:127.0.0.1"],
+    ["transaction", "/api/marketing-info/"],
+    ["url", "http://service.io/api/marketing-info/"]
+  ],
+  "_metrics": { "bytes.ingested.event": 45944, "bytes.stored.event": 48948 },
+  "breakdowns": {
+    "span_ops": {
+      "ops.db": { "value": 509.444952, "unit": "millisecond" },
+      "total.time": { "value": 2065.712928, "unit": "millisecond" }
+    }
+  },
+  "contexts": {
+    "browser": { "name": "Safari", "version": "15.5", "type": "browser" },
+    "client_os": { "name": "Mac OS X", "type": "os" },
+    "response": { "status_code": 200, "type": "response" },
+    "runtime": {
+      "name": "CPython",
+      "version": "3.11.6",
+      "build": "3.11.6 (main, Nov 29 2023)",
+      "type": "runtime"
+    },
+    "trace": {
+      "trace_id": "544bb57898d8452a55baff3a83e373",
+      "span_id": "9d3a7889de40f396",
+      "op": "http.server",
+      "status": "ok",
+      "exclusive_time": 1.35088,
+      "client_sample_rate": 1.0,
+      "hash": "4c65d02b403d7cfd",
+      "type": "trace"
+    }
+  },
+  "culprit": "/api/marketing-info/",
+  "environment": "production",
+  "extra": { "sys.argv": ["uwsgi"] },
+  "grouping_config": {
+    "enhancements": "KLUv_SCrDQQAgoccI7CnDVQUpQkWg3WZl4GVObL7IItQShcbOqCaSEq4PSwiGyEBCboIuvZFbwr9z_Jm0b8YezsLrsfvusXHrAUeVApY43fPPDSqTdBF0LUp8bc786Nk1pj6hP1s8OeUpKNahVKKWpQBszCEdnQ-oiGjAhIBBBAFLNdQx6dwQXVn",
+    "id": "newstyle:2023-01-11"
+  },
+  "key_id": "7531",
+  "level": "info",
+  "location": "/api/marketing-info/",
+  "logger": "",
+  "measurements": { "num_of_spans": { "value": 2.0, "unit": "none" } },
+  "metadata": {
+    "location": "/api/marketing-info/",
+    "title": "/api/marketing-info/"
+  },
+  "nodestore_insert": 1709676070.473263,
+  "received": 1709676065.739439,
+  "request": {
+    "url": "http://service.io/api/marketing-info/",
+    "method": "GET",
+    "data": {},
+    "headers": [
+      ["Accept", "application/json; charset=utf-8"],
+      ["Accept-Encoding", "gzip, deflate, br, zstd"],
+      ["Accept-Language", "en-US,en;q=0.9"],
+      ["Content-Length", "0"],
+      ["Content-Type", "application/json"],
+      ["Host", "service.io"]
+    ],
+    "env": {
+      "REMOTE_ADDR": "127.0.0.1",
+      "SERVER_NAME": "myserver.local",
+      "SERVER_PORT": "9000"
+    },
+    "inferred_content_type": "application/json"
+  },
+  "sdk": {
+    "name": "sentry.python.django",
+    "version": "1.39.2",
+    "integrations": ["django"],
+    "packages": [{ "name": "pypi:sentry-sdk", "version": "1.39.2" }]
+  },
+  "span_grouping_config": { "id": "default:2022-10-27" },
+  "spans": [
+    {
+      "timestamp": 1709676065.721245,
+      "start_timestamp": 1709676065.192259,
+      "exclusive_time": 0.072002,
+      "description": "django.middleware",
+      "op": "middleware.django",
+      "span_id": "aeba241186079368",
+      "parent_span_id": "9d3a7889de40f396",
+      "trace_id": "544bb57898d8452a55baff3a83e373",
+      "hash": "410f212e9e071c82",
+      "same_process_as_parent": true
+    },
+    {
+      "timestamp": 1709676065.710968,
+      "start_timestamp": 1709676065.21067,
+      "exclusive_time": 500.298023,
+      "description": "SELECT \"marketing_information\".\"id\", \"marketing_information\".\"email\", \"marketing_information\".\"subscribed\", \"marketing_information\".\"updated_at\", \"marketing_information\".\"category\", \"marketing_information\".\"opted_out\" FROM \"marketing_information\" WHERE \"marketing_information\".\"email\" IN (SELECT U0.\"email\" FROM \"users\" U0 WHERE U0.\"user_id\" = %s)",
+      "op": "db",
+      "span_id": "b3da1046fed392a3",
+      "trace_id": "544bb57898d8452a55baff3a83e373",
+      "data": {
+        "code.filepath": "src/marketing.py",
+        "code.function": "do_marketing",
+        "code.lineno": 111,
+        "code.namespace": "marketing",
+        "db.name": "control",
+        "db.system": "postgresql",
+        "server.address": "127.0.0.1",
+        "server.port": "6432"
+      },
+      "sentry_tags": {
+        "action": "SELECT",
+        "browser.name": "Google Chrome",
+        "category": "db",
+        "description": "SELECT .. FROM marketing_information WHERE email IN (SELECT email FROM users AS U0 WHERE user_id = %s)",
+        "domain": ",marketing_information,users,",
+        "environment": "prod",
+        "group": "e1d1cce539387892",
+        "op": "db",
+        "platform": "python",
+        "sdk.name": "sentry.python.django",
+        "sdk.version": "1.39.2",
+        "system": "postgresql",
+        "transaction": "/api/marketing-info/",
+        "transaction.method": "GET",
+        "transaction.op": "http.server",
+        "user": "id:1"
+      },
+      "hash": "34d43cb5d9e46c99",
+      "same_process_as_parent": true
+    }
+  ],
+  "title": "/api/marketing-info/",
+  "transaction": "/api/marketing-info/",
+  "transaction_info": { "source": "route" },
+  "type": "transaction",
+  "user": {
+    "ip_address": "127.0.0.1"
+  },
+  "version": "7"
+}

@@ -1,0 +1,138 @@
+import {useMemo, useState} from 'react';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
+import {DropdownButton} from 'sentry/components/dropdownButton';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {t} from 'sentry/locale';
+import type {
+  AvailableNotificationAction,
+  NotificationAction,
+} from 'sentry/types/notificationActions';
+
+type OnCallServiceFormProps = {
+  /**
+   * Map of pagerduty/opsgenie integration IDs to available actions for those IDs
+   */
+  Integrations: Record<number, AvailableNotificationAction[]>;
+  /**
+   * The notification action being represented
+   */
+  action: Partial<NotificationAction>;
+  /**
+   * The type of on-call service (Pagerduty or Opsgenie)
+   */
+  onCallService: string;
+  onCancel: () => void;
+  onChange: (names: string[], values: any[]) => void;
+  onSave: () => void;
+};
+
+export function OnCallServiceForm({
+  action,
+  onCallService,
+  onCancel,
+  onChange,
+  onSave,
+  Integrations,
+}: OnCallServiceFormProps) {
+  const [selectedAccount, setSelectedAccount] = useState(
+    action.integrationId
+      ? Integrations[action.integrationId]![0]!.action.integrationName
+      : ''
+  );
+  const [selectedDisplay, setSelectedDisplay] = useState(action.targetDisplay ?? '');
+
+  const accountOptions = useMemo(() => {
+    return Object.keys(Integrations).map<MenuItemProps>(integrationId => {
+      // Get the name of the integration for the integrationId from the first
+      // AvailableNotificationAction element in the array
+      // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+      const integrationName = Integrations[integrationId][0].action.integrationName;
+      return {
+        key: integrationName,
+        label: integrationName,
+        onAction: () => {
+          onChange(['integrationId'], [integrationId]);
+          setSelectedAccount(integrationName);
+        },
+      };
+    });
+  }, [Integrations, onChange]);
+
+  // Each Pagerduty/Opsgenie account has its own list of services/teams
+  const getServiceOptions = (): MenuItemProps[] => {
+    if (!action.integrationId) {
+      return [];
+    }
+    const services = Integrations[action.integrationId]!;
+    return services.map<MenuItemProps>(service => ({
+      key: service.action.targetDisplay ?? '',
+      label: service.action.targetDisplay,
+      onAction: () => {
+        const display = service.action.targetDisplay ?? '';
+        onChange(
+          ['targetIdentifier', 'targetDisplay'],
+          [service.action.targetIdentifier, display]
+        );
+        setSelectedDisplay(display);
+      },
+    }));
+  };
+  const keySelectionText =
+    onCallService === 'pagerduty'
+      ? t('account with the service')
+      : t('account with the team');
+
+  const dropdownText =
+    onCallService === 'pagerduty' ? t('Select Service') : t('Select Team');
+
+  return (
+    <Flex justify="between" width="100%">
+      <Flex align="center" wrap="wrap" gap="xs">
+        <div>{t('Send a notification to the')}</div>
+        <DropdownMenu
+          items={accountOptions}
+          trigger={(triggerProps, isOpen) => (
+            <DropdownButton
+              {...triggerProps}
+              isOpen={isOpen}
+              aria-label={t('Select Account')}
+              size="xs"
+              data-test-id="on-call-account-dropdown"
+            >
+              {selectedAccount}
+            </DropdownButton>
+          )}
+        />
+
+        <div>{keySelectionText}</div>
+
+        <DropdownMenu
+          items={getServiceOptions()}
+          trigger={triggerProps => (
+            <DropdownButton
+              {...triggerProps}
+              aria-label={dropdownText}
+              size="xs"
+              data-test-id="target-display-dropdown"
+            >
+              {selectedDisplay}
+            </DropdownButton>
+          )}
+        />
+      </Flex>
+
+      <Grid flow="column" align="center" gap="xs">
+        <Button onClick={onCancel} size="xs">
+          {t('Cancel')}
+        </Button>
+        <Button variant="primary" size="xs" onClick={onSave}>
+          {t('Save')}
+        </Button>
+      </Grid>
+    </Flex>
+  );
+}

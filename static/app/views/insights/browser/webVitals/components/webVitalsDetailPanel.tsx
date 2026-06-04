@@ -1,0 +1,347 @@
+import {useEffect, useMemo} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {DrawerHeader} from '@sentry/scraps/drawer';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import type {
+  GridColumnHeader,
+  GridColumnOrder,
+  GridColumnSortBy,
+} from 'sentry/components/tables/gridEditable';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {decodeList} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {DashboardFilters} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {getLinkedDashboardUrl} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
+import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
+import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {WebVitalDescription} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+import type {
+  Row,
+  RowWithScoreAndOpportunity,
+  WebVitals,
+} from 'sentry/views/insights/browser/webVitals/types';
+import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
+
+type Column = GridColumnHeader;
+
+const columnOrder: GridColumnOrder[] = [
+  {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
+  {key: 'count', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
+  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: 'Web Vital'},
+  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'opportunity', width: COL_WIDTH_UNDEFINED, name: 'Opportunity'},
+];
+
+const sort: GridColumnSortBy<keyof Row> = {key: 'count()', order: 'desc'};
+
+const MAX_ROWS = 10;
+
+export function WebVitalsDetailPanel({
+  webVital,
+  dashboardFilters,
+}: {
+  webVital: WebVitals | null;
+  dashboardFilters?: DashboardFilters;
+}) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const moduleUrl = useModuleURL(ModuleName.VITAL);
+  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
+  const subregions = decodeList(
+    location.query[SpanFields.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
+
+  const {dashboard: linkedWebVitalsSummaryDashboard} = useGetPrebuiltDashboard(
+    dashboardFilters === undefined ? undefined : PrebuiltDashboardId.WEB_VITALS_SUMMARY
+  );
+
+  const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});
+  const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
+    weightWebVital: webVital ?? 'total',
+    browserTypes,
+    subregions,
+  });
+
+  const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.[0]);
+  const {data, isPending} = useTransactionWebVitalsScoresQuery({
+    limit: 100,
+    webVital: webVital ?? 'total',
+    ...(webVital
+      ? {
+          query: `count_scores(measurements.score.${webVital}):>0`,
+          defaultSort: {
+            field: `opportunity_score(measurements.score.${webVital})`,
+            kind: 'desc',
+          },
+        }
+      : {}),
+    enabled: webVital !== null,
+    sortName: 'webVitalsDetailPanelSort',
+    browserTypes,
+    subregions,
+  });
+
+  const dataByOpportunity = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+    const sumWeights = 1;
+
+    return data
+      .map(row => ({
+        ...row,
+        opportunity: Math.round(((row.opportunity ?? 0) * 100 * 100) / sumWeights) / 100,
+      }))
+      .sort((a, b) => {
+        if (a.opportunity === undefined) {
+          return 1;
+        }
+        if (b.opportunity === undefined) {
+          return -1;
+        }
+        return b.opportunity - a.opportunity;
+      })
+      .slice(0, MAX_ROWS);
+  }, [data]);
+
+  useEffect(() => {
+    if (webVital !== null) {
+      trackAnalytics('insight.vital.vital_sidebar_opened', {
+        organization,
+        vital: webVital,
+      });
+    }
+  }, [organization, webVital]);
+
+  const renderHeadCell = (col: Column) => {
+    if (col.key === 'transaction') {
+      return <NoOverflow>{col.name}</NoOverflow>;
+    }
+    if (col.key === 'webVital') {
+      return <AlignRight>{`${webVital} P75`}</AlignRight>;
+    }
+    if (col.key === 'score') {
+      return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+    }
+    if (col.key === 'opportunity') {
+      return (
+        <Tooltip
+          isHoverable
+          showUnderline
+          title={
+            <span>
+              {tct(
+                "A number rating how impactful a performance improvement on this page would be to your application's [webVital] Performance Score.",
+                {webVital: webVital?.toUpperCase() ?? ''}
+              )}
+              <br />
+              <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
+                {t('How is this calculated?')}
+              </ExternalLink>
+            </span>
+          }
+        >
+          {col.name}
+        </Tooltip>
+      );
+    }
+    if (col.key === 'count') {
+      if (webVital === 'inp') {
+        return <AlignRight>{t('Interactions')}</AlignRight>;
+      }
+    }
+    return <AlignRight>{col.name}</AlignRight>;
+  };
+
+  const getFormattedDuration = (value: number) => {
+    if (value < 1000) {
+      return getDuration(value / 1000, 0, true);
+    }
+    return getDuration(value / 1000, 2, true);
+  };
+
+  const renderBodyCell = (col: Column, row: RowWithScoreAndOpportunity) => {
+    const {key} = col;
+    if (key === 'score') {
+      return (
+        <AlignCenter>
+          <PerformanceBadge score={row[`${webVital!}Score`]} />
+        </AlignCenter>
+      );
+    }
+    if (col.key === 'webVital') {
+      let value: string | number = row[mapWebVitalToColumn(webVital)];
+      if (webVital && ['lcp', 'fcp', 'ttfb', 'inp'].includes(webVital)) {
+        value = getFormattedDuration(value);
+      } else if (webVital === 'cls') {
+        value = value?.toFixed(2);
+      }
+      return <AlignRight>{value}</AlignRight>;
+    }
+    if (key === 'transaction') {
+      const linkedDashboardUrl =
+        dashboardFilters !== undefined && linkedWebVitalsSummaryDashboard?.id
+          ? getLinkedDashboardUrl({
+              linkedDashboard: {
+                dashboardId: linkedWebVitalsSummaryDashboard.id,
+                field: SpanFields.TRANSACTION,
+                additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
+              },
+              organizationSlug: organization.slug,
+              field: 'transaction',
+              value: row.transaction,
+              widgetType: WidgetType.SPANS,
+              dashboardFilters,
+              locationQuery: location.query,
+              projectIdOverride: String(row['project.id']),
+            })
+          : undefined;
+
+      return (
+        <NoOverflow>
+          <Link
+            to={
+              linkedDashboardUrl || {
+                ...location,
+                pathname: `${moduleUrl}/overview/`,
+                query: {
+                  ...location.query,
+                  transaction: row.transaction,
+                  webVital,
+                  project: row['project.id'],
+                },
+              }
+            }
+          >
+            {row.transaction}
+          </Link>
+        </NoOverflow>
+      );
+    }
+    if (key === 'count') {
+      const count =
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        webVital === 'inp' ? row['count_scores(measurements.score.inp)'] : row['count()'];
+      return <AlignRight>{formatAbbreviatedNumber(count)}</AlignRight>;
+    }
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    return <AlignRight>{row[key]}</AlignRight>;
+  };
+
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const webVitalScore = projectScore[`${webVital}Score`];
+  const webVitalValue = projectData?.[0]?.[mapWebVitalToColumn(webVital)];
+
+  return (
+    <PageAlertProvider>
+      <DrawerHeader />
+
+      <SampleDrawerBody>
+        {webVital && (
+          <WebVitalDescription
+            value={
+              webVitalValue === undefined
+                ? undefined
+                : webVital === 'cls'
+                  ? webVitalValue?.toFixed(2)
+                  : getDuration(webVitalValue / 1000, 2, true)
+            }
+            webVital={webVital}
+            score={webVitalScore}
+          />
+        )}
+        <ChartContainer>
+          {webVital && (
+            <WebVitalStatusLineChart
+              webVital={webVital}
+              browserTypes={browserTypes}
+              subregions={subregions}
+            />
+          )}
+        </ChartContainer>
+
+        <TableContainer>
+          <GridEditable
+            data={dataByOpportunity}
+            isLoading={isPending}
+            columnOrder={columnOrder}
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+          />
+        </TableContainer>
+        <PageAlert />
+      </SampleDrawerBody>
+    </PageAlertProvider>
+  );
+}
+
+const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
+  switch (webVital) {
+    case 'lcp':
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_LCP_VALUE})`;
+    case 'fcp':
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_FCP_VALUE})`;
+    case 'cls':
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_CLS_VALUE})`;
+    case 'ttfb':
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE})`;
+    case 'inp':
+      return `p75(${SpanFields.BROWSER_WEB_VITAL_INP_VALUE})`;
+    default:
+      return 'count()';
+  }
+};
+
+const NoOverflow = styled('span')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const AlignRight = styled('span')<{color?: string}>`
+  text-align: right;
+  width: 100%;
+  ${p =>
+    p.color
+      ? css`
+          color: ${p.color};
+        `
+      : ''}
+`;
+
+const ChartContainer = styled('div')`
+  position: relative;
+  flex: 1;
+`;
+
+const AlignCenter = styled('span')`
+  text-align: center;
+  width: 100%;
+`;
+
+const TableContainer = styled('div')`
+  margin-bottom: 80px;
+`;

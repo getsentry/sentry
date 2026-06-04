@@ -1,0 +1,221 @@
+import type {Query} from 'history';
+import * as qs from 'query-string';
+
+import type {EventTag} from 'sentry/types/event';
+import {escapeDoubleQuotes} from 'sentry/utils';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {
+  ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
+  type FieldKey,
+} from 'sentry/utils/fields';
+import {safeURL} from 'sentry/utils/url/safeURL';
+
+// Create a string representation of the regex so we need to create a new regex
+// for each use to avoid carrying over state
+export const TAG_VALUE_ESCAPE_PATTERN = '[:\\s\\(\\)\\\\"]';
+
+export function addQueryParamsToExistingUrl(
+  origUrl: string,
+  queryParams: Record<PropertyKey, unknown>
+): string {
+  const url = safeURL(origUrl);
+
+  if (!url) {
+    return '';
+  }
+
+  const searchEntries = url.searchParams.entries();
+  // Order the query params alphabetically.
+  // Otherwise ``queryString`` orders them randomly and it's impossible to test.
+  const params = JSON.parse(JSON.stringify(queryParams));
+  const query = {...Object.fromEntries(searchEntries), ...params};
+
+  return `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(query)}`;
+}
+
+export type QueryValue = string | string[] | undefined | null;
+
+/**
+ * Append a tag key:value to a query string.
+ *
+ * Handles spacing and quoting if necessary.
+ */
+export function appendTagCondition(
+  query: QueryValue,
+  key: string,
+  value: null | string
+): string {
+  let currentQuery = Array.isArray(query)
+    ? query.pop()
+    : typeof query === 'string'
+      ? query
+      : '';
+
+  if (
+    typeof value === 'string' &&
+    // TODO(JoshuaKGoldberg):
+    //   Unnecessary escape character: \(  regexp/no-useless-escape
+    //   Unnecessary escape character: \)  regexp/no-useless-escape
+    // eslint-disable-next-line regexp/no-useless-escape
+    new RegExp(TAG_VALUE_ESCAPE_PATTERN).test(value)
+  ) {
+    value = `"${escapeDoubleQuotes(value)}"`;
+  }
+  if (currentQuery) {
+    currentQuery += ` ${key}:${value}`;
+  } else {
+    currentQuery = `${key}:${value}`;
+  }
+
+  return currentQuery;
+}
+
+export function appendExcludeTagValuesCondition(
+  query: QueryValue,
+  key: string,
+  values: string[]
+): string {
+  let currentQuery = Array.isArray(query)
+    ? query.pop()
+    : typeof query === 'string'
+      ? query
+      : '';
+  const filteredValuesCondition = `[${values
+    .map(value => {
+      if (typeof value === 'string' && /[\s"]/.test(value)) {
+        value = `"${escapeDoubleQuotes(value)}"`;
+      }
+      return value;
+    })
+    .join(', ')}]`;
+
+  if (currentQuery) {
+    currentQuery += ` !${key}:${filteredValuesCondition}`;
+  } else {
+    currentQuery = `!${key}:${filteredValuesCondition}`;
+  }
+
+  return currentQuery;
+}
+
+// This function has multiple signatures to help with typing in callers.
+export function decodeScalar(value: QueryValue): string | undefined;
+export function decodeScalar(value: QueryValue, fallback: string): string;
+export function decodeScalar(value: QueryValue, fallback?: string): string | undefined {
+  if (!value) {
+    return fallback;
+  }
+  const unwrapped =
+    Array.isArray(value) && value.length > 0
+      ? value[0]
+      : typeof value === 'string'
+        ? value
+        : fallback;
+  return typeof unwrapped === 'string' ? unwrapped : fallback;
+}
+
+export function decodeList(value: string[] | string | undefined | null): string[] {
+  if (!value) {
+    return [];
+  }
+  return Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+}
+
+// This function has multiple signatures to help with typing in callers.
+export function decodeInteger(value: QueryValue): number | undefined;
+export function decodeInteger(value: QueryValue, fallback: number): number;
+export function decodeInteger(value: QueryValue, fallback?: number): number | undefined {
+  const unwrapped = decodeScalar(value);
+
+  if (unwrapped === undefined) {
+    return fallback;
+  }
+
+  const parsed = parseInt(unwrapped, 10);
+  if (isFinite(parsed)) {
+    return parsed;
+  }
+  return fallback;
+}
+
+export function decodeSorts(value: QueryValue): Sort[];
+export function decodeSorts(value: QueryValue, fallback: string): Sort[];
+export function decodeSorts(value: QueryValue, fallback?: string): Sort[] {
+  const sorts = decodeList(value).filter(Boolean);
+  if (!sorts.length) {
+    return fallback ? decodeSorts(fallback) : [];
+  }
+  return sorts.map(sort =>
+    sort.startsWith('-')
+      ? {kind: 'desc', field: sort.substring(1)}
+      : {kind: 'asc', field: sort}
+  );
+}
+
+export function decodeBoolean(value: QueryValue): boolean | undefined;
+export function decodeBoolean(value: QueryValue, fallback: boolean): boolean;
+export function decodeBoolean(
+  value: QueryValue,
+  fallback?: boolean
+): boolean | undefined {
+  const unwrapped = decodeScalar(value);
+
+  if (unwrapped === 'true') {
+    return true;
+  }
+
+  if (unwrapped === 'false') {
+    return false;
+  }
+
+  return fallback;
+}
+
+/**
+ * If a tag conflicts with a reserved keyword, change it to `tags[key]:value`
+ */
+export function escapeIssueTagKey(key: string) {
+  if (key === '') {
+    return '""';
+  }
+
+  // Environment and project should be handled by the page filter
+  if (key === 'environment' || key === 'project') {
+    return key;
+  }
+
+  // Reserved keywords that conflict with issue search query
+  if (['project.name', 'project_id'].includes(key)) {
+    return `tags[${key}]`;
+  }
+
+  if (ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS.has(key as FieldKey)) {
+    return `tags[${key}]`;
+  }
+
+  return key;
+}
+
+export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
+  const query = {...prevQuery};
+
+  // some tags are dedicated query strings since other parts of the app consumes this,
+  // for example, the global selection header.
+  switch (tag.key) {
+    case 'environment':
+      query.environment = tag.value;
+      break;
+    case 'project':
+      query.project = tag.value;
+      break;
+    default:
+      query.query = appendTagCondition(query.query, tag.key, tag.value);
+  }
+
+  // Checking for the absence of a tag value.
+  if (tag.value === '') {
+    query.query = `!has:${tag.key}`;
+  }
+
+  return query;
+}

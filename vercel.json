@@ -1,0 +1,34 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+
+  "rewrites": [
+    {
+      "source": "/(api|organization-avatar|avatar)/(.*)",
+      "destination": "https://sentry.io/$1/$2"
+    },
+    {
+      "source": "/region/(\\w+)/(.*)",
+      "destination": "https://$1.sentry.io/$2"
+    },
+    {"source": "/_assets/(.*)", "destination": "/$1"},
+    {"source": "/(.*)", "destination": "/index.html"}
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [{"key": "Referer", "value": "https://sentry.io/"}]
+    },
+    {
+      "source": "/_assets/(chunks|assets)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "github": {"silent": true},
+  "ignoreCommand": "git rev-parse -q --verify HEAD^&& ! git diff --name-only HEAD^|grep -qE '^(static|build-utils|src/sentry/(locale|static/sentry/images))|^(package\\.json|pnpm-lock\\.yaml|tsconfig\\.json|rspack\\.config\\.ts|vercel\\.json|\\.vercelignore)$'"
+}

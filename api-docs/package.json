@@ -1,0 +1,32 @@
+{
+  "name": "@sentry-internal/api-docs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sentry API docs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "openapi-examples-validator": "openapi-examples-validator"
+  },
+  "author": "sentry.io",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "js-yaml": "^3.14.0",
+    "json-diff": "^0.7.1",
+    "json-refs": "^3.0.15",
+    "openapi-examples-validator": "^6.0.2",
+    "sane": "^5.0.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.5",
+    "@types/json-diff": "^0.7.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "lodash": ">=4.17.23",
+      "form-data": ">=4.0.2",
+      "glob>minimatch": "5.1.9"
+    }
+  }
+}

@@ -1,0 +1,290 @@
+from __future__ import annotations
+
+from django.urls import re_path
+
+from sentry.preprod.api.endpoints.builds import BuildsEndpoint
+from sentry.preprod.api.endpoints.project_preprod_artifact_image import (
+    ProjectPreprodArtifactImageEndpoint,
+)
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare import (
+    ProjectPreprodArtifactSizeAnalysisCompareEndpoint,
+)
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_download import (
+    ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint,
+)
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_download import (
+    ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
+)
+
+from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
+from .organization_preprod_quota import OrganizationPreprodQuotaEndpoint
+from .organization_preprod_retention import OrganizationPreprodRetentionEndpoint
+from .preprod_artifact_admin_batch_delete import PreprodArtifactAdminBatchDeleteEndpoint
+from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
+from .preprod_artifact_approve import OrganizationPreprodArtifactApproveEndpoint
+from .preprod_artifact_rerun_analysis import (
+    PreprodArtifactAdminBatchRerunAnalysisEndpoint,
+    PreprodArtifactAdminRerunAnalysisEndpoint,
+    PreprodArtifactRerunAnalysisEndpoint,
+)
+from .preprod_artifact_rerun_status_checks import PreprodArtifactRerunStatusChecksEndpoint
+from .project_installable_preprod_artifact_download import (
+    ProjectInstallablePreprodArtifactDownloadEndpoint,
+)
+from .project_preprod_artifact_assemble_generic import ProjectPreprodArtifactAssembleGenericEndpoint
+from .project_preprod_artifact_delete import ProjectPreprodArtifactDeleteEndpoint
+from .project_preprod_artifact_download import ProjectPreprodArtifactDownloadEndpoint
+from .project_preprod_artifact_install_details import ProjectPreprodInstallDetailsEndpoint
+from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoint
+from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
+from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
+from .project_preprod_distribution import ProjectPreprodDistributionEndpoint
+from .project_preprod_size import (
+    ProjectPreprodSizeEndpoint,
+    ProjectPreprodSizeWithIdentifierEndpoint,
+)
+from .project_preprod_upload_options import ProjectPreprodUploadOptionsEndpoint
+from .public.organization_preprod_artifact_install_details import (
+    OrganizationPreprodArtifactPublicInstallDetailsEndpoint,
+)
+from .public.organization_preprod_size_analysis import OrganizationPreprodPublicSizeAnalysisEndpoint
+from .public.project_preprod_build_distribution_latest import (
+    ProjectPreprodBuildDistributionLatestEndpoint,
+)
+from .public.project_preprod_size_analysis_status_check_rules import (
+    ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint,
+)
+from .public.project_preprod_snapshot_status_check_rules import (
+    ProjectPreprodSnapshotStatusCheckRulesEndpoint,
+)
+from .snapshots.preprod_artifact_snapshot import (
+    OrganizationPreprodSnapshotEndpoint,
+    ProjectPreprodSnapshotEndpoint,
+)
+from .snapshots.preprod_artifact_snapshot_archive import (
+    OrganizationPreprodSnapshotArchiveEndpoint,
+)
+from .snapshots.preprod_artifact_snapshot_download import (
+    OrganizationPreprodSnapshotDownloadEndpoint,
+)
+from .snapshots.preprod_artifact_snapshot_image_detail import (
+    OrganizationPreprodSnapshotImageDetailEndpoint,
+)
+from .snapshots.preprod_artifact_snapshot_latest_base import (
+    OrganizationPreprodLatestBaseSnapshotEndpoint,
+)
+from .snapshots.preprod_snapshot_recompare import PreprodSnapshotRecompareEndpoint
+
+__all__ = [
+    "preprod_project_urlpatterns",
+    "preprod_organization_urlpatterns",
+    "preprod_internal_urlpatterns",
+]
+
+preprod_project_urlpatterns = [
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/assemble/$",
+        ProjectPreprodArtifactAssembleEndpoint.as_view(),
+        name="sentry-api-0-assemble-preprod-artifact-files",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/snapshots/$",
+        ProjectPreprodSnapshotEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshots-create",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/snapshots/upload-options/$",
+        ProjectPreprodUploadOptionsEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshots-upload-options",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/check-for-updates/$",
+        ProjectPreprodArtifactCheckForUpdatesEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-check-for-updates",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/installablepreprodartifact/(?P<url_path>[^/]+)/$",
+        ProjectInstallablePreprodArtifactDownloadEndpoint.as_view(),
+        name="sentry-api-0-installable-preprod-artifact-download",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/images/(?P<image_id>.+)/$",
+        ProjectPreprodArtifactImageEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-image",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_size_metric_id>[^/]+)/(?P<base_size_metric_id>[^/]+)/download/$",
+        ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size-analysis-compare-download",
+    ),
+    # Public API endpoints
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/build-distribution/latest/$",
+        ProjectPreprodBuildDistributionLatestEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-public-builds",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod/size-analysis/status-check-rules/$",
+        ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-size-analysis-status-check-rules",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod/snapshots/status-check-rules/$",
+        ProjectPreprodSnapshotStatusCheckRulesEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshot-status-check-rules",
+    ),
+]
+
+preprod_organization_urlpatterns = [
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprod/quota/$",
+        OrganizationPreprodQuotaEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-quota",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprod/retention/$",
+        OrganizationPreprodRetentionEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-retention",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/build-details/$",
+        ProjectPreprodBuildDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-build-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/private-install-details/$",
+        ProjectPreprodInstallDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-private-install-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/delete/$",
+        ProjectPreprodArtifactDeleteEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-delete",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/size-analysis/$",
+        ProjectPreprodArtifactSizeAnalysisDownloadEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-size-analysis-download",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/size-analysis/compare/(?P<head_artifact_id>[^/]+)/(?P<base_artifact_id>[^/]+)/$",
+        ProjectPreprodArtifactSizeAnalysisCompareEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-size-analysis-compare",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprod-artifact/rerun-analysis/(?P<head_artifact_id>[^/]+)/$",
+        PreprodArtifactRerunAnalysisEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-rerun-analysis",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprod-artifact/rerun-status-checks/(?P<head_artifact_id>[^/]+)/$",
+        PreprodArtifactRerunStatusChecksEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-rerun-status-checks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/builds/$",
+        BuildsEndpoint.as_view(),
+        name="sentry-api-0-organization-builds",
+    ),
+    # Public API endpoints
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/install-details/$",
+        OrganizationPreprodArtifactPublicInstallDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-public-install-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/size-analysis/$",
+        OrganizationPreprodPublicSizeAnalysisEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-public-size-analysis",
+    ),
+    # Approvals
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<artifact_id>[^/]+)/approve/$",
+        OrganizationPreprodArtifactApproveEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-approve",
+    ),
+    # Snapshots
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/latest-base/$",
+        OrganizationPreprodLatestBaseSnapshotEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-snapshots-latest-base",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/$",
+        OrganizationPreprodSnapshotEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshots-detail",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/recompare/$",
+        PreprodSnapshotRecompareEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-snapshots-recompare",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/download/$",
+        OrganizationPreprodSnapshotDownloadEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-snapshots-download",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/archive/$",
+        OrganizationPreprodSnapshotArchiveEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-snapshots-archive",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/images/(?P<image_identifier>.+)/$",
+        OrganizationPreprodSnapshotImageDetailEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-snapshots-image-detail",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/distribution/$",
+        ProjectPreprodDistributionEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-distribution",
+    ),
+]
+
+preprod_internal_urlpatterns = [
+    re_path(
+        r"^preprod-artifact/rerun-analysis/$",
+        PreprodArtifactAdminRerunAnalysisEndpoint.as_view(),
+        name="sentry-admin-preprod-artifact-rerun-analysis",
+    ),
+    re_path(
+        r"^preprod-artifact/batch-rerun-analysis/$",
+        PreprodArtifactAdminBatchRerunAnalysisEndpoint.as_view(),
+        name="sentry-admin-preprod-artifact-batch-rerun-analysis",
+    ),
+    re_path(
+        r"^preprod-artifact/(?P<head_artifact_id>[^/]+)/info/$",
+        PreprodArtifactAdminInfoEndpoint.as_view(),
+        name="sentry-admin-preprod-artifact-info",
+    ),
+    re_path(
+        r"^preprod-artifact/batch-delete/$",
+        PreprodArtifactAdminBatchDeleteEndpoint.as_view(),
+        name="sentry-admin-preprod-artifact-batch-delete",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/$",
+        ProjectPreprodArtifactDownloadEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-download",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/update/$",
+        ProjectPreprodArtifactUpdateEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-update",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/assemble-generic/$",
+        ProjectPreprodArtifactAssembleGenericEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-assemble-generic",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/size/$",
+        ProjectPreprodSizeEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<head_artifact_id>[^/]+)/size/(?P<identifier>[^/]+)/$",
+        ProjectPreprodSizeWithIdentifierEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-artifact-size-identifier",
+    ),
+]

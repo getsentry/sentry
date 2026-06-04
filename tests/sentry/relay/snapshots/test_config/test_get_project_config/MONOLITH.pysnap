@@ -1,0 +1,130 @@
+---
+created: '2023-10-31T14:18:43.292106Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+config:
+  allowedDomains:
+  - '*'
+  breakdownsV2:
+    span_ops:
+      matches:
+      - http
+      - db
+      - browser
+      - resource
+      - ui
+      type: spanOperations
+  datascrubbingSettings:
+    excludeFields: []
+    scrubData: true
+    scrubDefaults: true
+    sensitiveFields: []
+  features:
+  - organizations:transaction-name-mark-scrubbed-as-sanitized
+  - organizations:transaction-name-normalize
+  filterSettings:
+    csp:
+      disallowedSources:
+      - about
+      - ms-browser-extension
+      - chrome://*
+      - chrome-extension://*
+      - chromeinvokeimmediate://*
+      - chromenull://*
+      - data:text/html,chromewebdata
+      - safari-extension://*
+      - mxaddon-pkg://*
+      - jar://*
+      - webviewprogressproxy://*
+      - ms-browser-extension://*
+      - tmtbff://*
+      - mbinit://*
+      - symres://*
+      - resource://*
+      - moz-extension://*
+      - '*.metrext.com'
+      - static.image2play.com
+      - '*.tlscdn.com'
+      - 73a5b0806e464be8bd4e694c744624f0.com
+      - 020dfefc4ac745dab7594f2f771c1ded.com
+      - '*.superfish.com'
+      - addons.mozilla.org
+      - v.zilionfast.in
+      - widgets.amung.us
+      - '*.superfish.com'
+      - xls.searchfun.in
+      - istatic.datafastguru.info
+      - v.zilionfast.in
+      - localhost
+      - resultshub-a.akamaihd.net
+      - pulseadnetwork.com
+      - gateway.zscalertwo.net
+      - www.passpack.com
+      - middlerush-a.akamaihd.net
+      - www.websmartcenter.com
+      - a.linkluster.com
+      - saveyoutime.ru
+      - cdncache-a.akamaihd.net
+      - x.rafomedia.com
+      - savingsslider-a.akamaihd.net
+      - injections.adguard.com
+      - icontent.us
+      - amiok.org
+      - connectionstrenth.com
+      - siteheart.net
+      - netanalitics.space
+      - printapplink.com
+      - godlinkapp.com
+      - devappstor.com
+      - hoholikik.club
+      - smartlink.cool
+      - promfflinkdev.com
+    errorMessages:
+      patterns:
+      - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
+      - '*https://react.dev/errors/{418,419,422,423,425}*'
+      - 'ChunkLoadError: Loading chunk *'
+    ignoreTransactions:
+      isEnabled: true
+      patterns:
+      - '*healthcheck*'
+      - '*heartbeat*'
+      - '*/health'
+      - '*/healthy'
+      - '*/healthz'
+      - '*/_health'
+      - '*/\[_health\]'
+      - '*/live'
+      - '*/livez'
+      - '*/ready'
+      - '*/readyz'
+      - '*/ping'
+  groupingConfig:
+    enhancements: eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeEEAHJMCAM
+    id: newstyle:2023-01-11
+  piiConfig:
+    applications:
+      $string:
+      - organization:remove_ips_and_macs
+      - project:remove_ips_and_macs
+    rules:
+      organization:remove_ips_and_macs:
+        redaction:
+          method: remove
+        rules:
+        - '@ip'
+        - '@mac'
+        type: multiple
+      project:remove_ips_and_macs:
+        redaction:
+          method: remove
+        rules:
+        - '@ip'
+        - '@mac'
+        type: multiple
+  spanAttributes:
+  - exclusive-time
+  trustedRelays: []
+disabled: false
+slug: bar

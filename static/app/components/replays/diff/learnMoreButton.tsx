@@ -1,0 +1,112 @@
+import type {ComponentProps, ReactNode} from 'react';
+import {ClassNames, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
+import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {Hovercard} from 'sentry/components/hovercard';
+import {IconOpen, IconQuestion} from 'sentry/icons';
+import {t} from 'sentry/locale';
+
+function Resource({
+  title,
+  subtitle,
+  link,
+}: {
+  link: string;
+  subtitle: ReactNode;
+  title: string;
+}) {
+  const analyticsArea = useAnalyticsArea();
+  return (
+    <StyledLinkButton
+      icon={<IconOpen />}
+      variant="transparent"
+      external
+      href={link}
+      analyticsEventKey="learn-more-resource.clicked"
+      analyticsEventName="Clicked learn more resource"
+      analyticsParams={{surface: analyticsArea, title}}
+    >
+      <ButtonContent>
+        <ButtonTitle>{title}</ButtonTitle>
+        <ButtonSubtitle>{subtitle}</ButtonSubtitle>
+      </ButtonContent>
+    </StyledLinkButton>
+  );
+}
+
+function Buttons() {
+  return (
+    <Stack align="start" gap="md">
+      <Resource
+        title={t('Debugging Hydration Errors')}
+        subtitle={t(
+          'Learn about the tools Sentry offers to help debug why a Hydration Error is happening.'
+        )}
+        link="https://docs.sentry.io/product/issues/issue-details/replay-issues/hydration-error/#debugging-hydration-errors"
+      />
+      <Resource
+        title={t('Fixing Hydration Errors')}
+        subtitle={t(
+          'Read more about why Hydration Errors occur, and how to prevent them.'
+        )}
+        link="https://sentry.io/answers/hydration-error-nextjs/"
+      />
+    </Stack>
+  );
+}
+
+export function LearnMoreButton(
+  hoverCardProps: Partial<ComponentProps<typeof Hovercard>>
+) {
+  const theme = useTheme();
+  return (
+    <ClassNames>
+      {({css}) => (
+        <AnalyticsArea name="learn-more">
+          <Hovercard
+            {...hoverCardProps}
+            body={<Buttons />}
+            bodyClassName={css`
+              padding: ${theme.space.md};
+            `}
+          >
+            <Button
+              size="sm"
+              icon={<IconQuestion />}
+              aria-label={t('learn more about hydration errors')}
+            >
+              {t('Learn More')}
+            </Button>
+          </Hovercard>
+        </AnalyticsArea>
+      )}
+    </ClassNames>
+  );
+}
+
+const ButtonContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  white-space: pre-line;
+  gap: ${p => p.theme.space['2xs']};
+`;
+
+const ButtonTitle = styled('div')`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
+
+const ButtonSubtitle = styled('div')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+const StyledLinkButton = styled(LinkButton)`
+  padding: ${p => p.theme.space.md};
+  height: auto;
+`;

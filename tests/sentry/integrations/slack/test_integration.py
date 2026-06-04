@@ -1,0 +1,628 @@
+from __future__ import annotations
+
+from typing import Any
+from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlparse
+
+import orjson
+import pytest
+import responses
+from django.urls import reverse
+from responses.matchers import query_string_matcher
+from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
+
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
+from sentry.integrations.slack.utils.constants import SlackScope
+from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
+from sentry.notifications.platform.slack.provider import SlackNotificationProvider
+from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.types import (
+    NotificationCategory,
+    NotificationProviderKey,
+    NotificationTargetResourceType,
+)
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
+from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityStatus
+
+
+@patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+@control_silo_test
+class SlackIntegrationPostInstallTest(APITestCase):
+    def setUp(self) -> None:
+        self.user2 = self.create_user("foo@example.com")
+        self.member = self.create_member(
+            user=self.user2,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+        self.user3 = self.create_user("hellboy@example.com")
+        self.member = self.create_member(
+            user=self.user3,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+        self.user4 = self.create_user("ialreadyexist@example.com")
+        self.member = self.create_member(
+            user=self.user4,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
+        Identity.objects.create(
+            external_id="UXXXXXXX4",
+            idp=self.idp,
+            user=self.user4,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+
+        self.response_json = {
+            "ok": True,
+            "members": [
+                {
+                    "id": "UXXXXXXX1",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": self.user.email,
+                        "team": "TXXXXXXX1",
+                    },
+                },
+                {
+                    "id": "UXXXXXXX2",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": self.user2.email,
+                        "team": "TXXXXXXX1",
+                    },
+                },
+                {
+                    "id": "UXXXXXXX3",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": "wrongemail@example.com",
+                        "team": "TXXXXXXX1",
+                    },
+                },
+                {
+                    "id": "UXXXXXXX4",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": "ialreadyexist@example.com",
+                        "team": "TXXXXXXX1",
+                    },
+                },
+            ],
+            "response_metadata": {"next_cursor": ""},
+        }
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/users.list",
+            match=[query_string_matcher(f"limit={SLACK_GET_USERS_PAGE_SIZE}")],
+            json=self.response_json,
+        )
+
+    @responses.activate
+    def test_link_multiple_users(self, mock_api_call: MagicMock) -> None:
+        """
+        Test that with an organization with multiple users, we create Identity records for them
+        if their Sentry email matches their Slack email
+        """
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        with self.tasks():
+            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
+
+        user1_identity = Identity.objects.get(user=self.user)
+        assert user1_identity
+        assert user1_identity.external_id == "UXXXXXXX1"
+        assert user1_identity.user.email == "admin@localhost"
+
+        user2_identity = Identity.objects.get(user=self.user2)
+        assert user2_identity
+        assert user2_identity.external_id == "UXXXXXXX2"
+        assert user2_identity.user.email == "foo@example.com"
+
+    @responses.activate
+    def test_link_multiple_users_pagination(self, mock_api_call: MagicMock) -> None:
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
+        mock_api_call.side_effect = [
+            {
+                "body": orjson.dumps(
+                    self.response_json,
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+            {
+                "body": orjson.dumps(
+                    {
+                        "ok": True,
+                        "members": [
+                            {
+                                "id": "UXXXXXXX5",
+                                "team_id": "TXXXXXXX1",
+                                "deleted": False,
+                                "profile": {
+                                    "email": "hello@example.com",
+                                    "team": "TXXXXXXX1",
+                                },
+                            }
+                        ],
+                    },
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+        ]
+
+        user5 = self.create_user("hello@example.com")
+        self.create_member(
+            user=user5,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+
+        with self.tasks():
+            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
+
+        user5_identity = Identity.objects.get(user=user5)
+        assert user5_identity
+        assert user5_identity.external_id == "UXXXXXXX5"
+        assert user5_identity.user.email == "hello@example.com"
+
+    @responses.activate
+    def test_link_multiple_users_pagination_error(self, mock_api_call: MagicMock) -> None:
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
+        mock_api_call.side_effect = [
+            {
+                "body": orjson.dumps(
+                    self.response_json,
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+            {
+                "body": orjson.dumps({"ok": False}).decode(),
+                "headers": {},
+                "status": 200,
+            },
+        ]
+
+        user5 = self.create_user("hello@example.com")
+        self.create_member(
+            user=user5,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+
+        with self.tasks(), pytest.raises(SlackApiError):
+            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
+
+        user5_identity = Identity.objects.filter(user=user5).first()
+        assert user5_identity is None
+
+    @responses.activate
+    def test_email_no_match(self, mock_api_call: MagicMock) -> None:
+        """
+        Test that a user whose email does not match does not have an Identity created
+        """
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        with self.tasks():
+            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
+
+        identities = Identity.objects.all()
+        assert identities.count() == 3
+
+    @responses.activate
+    def test_update_identity(self, mock_api_call: MagicMock) -> None:
+        """
+        Test that when an additional user who already has an Identity's Slack external ID
+        changes, that we update the Identity's external ID to match
+        """
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        with self.tasks():
+            SlackIntegrationProvider().post_install(self.integration, self.organization, extra={})
+
+        user3_identity = Identity.objects.get(user=self.user4)
+        assert user3_identity
+        assert user3_identity.external_id == "UXXXXXXX4"
+        assert user3_identity.user.email == "ialreadyexist@example.com"
+
+
+@control_silo_test
+class SlackIntegrationConfigTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_provider_integration(
+            provider="slack", name="Slack", metadata={}
+        )
+        self.installation = SlackIntegration(self.integration, self.organization.id)
+
+    def test_config_data_workspace_app(self) -> None:
+        assert self.installation.get_config_data()["installationType"] == "workspace_app"
+
+    def test_config_data_user_token(self) -> None:
+        self.integration.metadata["user_access_token"] = "token"
+        assert self.installation.get_config_data()["installationType"] == "classic_bot"
+
+    def test_config_data_born_as_bot(self) -> None:
+        self.integration.metadata["installation_type"] = "born_as_bot"
+        assert self.installation.get_config_data()["installationType"] == "born_as_bot"
+
+
+@control_silo_test
+class SlackIntegrationNotificationPlatformTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_provider_integration(
+            provider="slack",
+            name="Slack",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        self.installation = SlackIntegration(self.integration, self.organization.id)
+        self.channel_id = "C1234567890"
+        self.thread_ts = "1712345678.987654"
+        self.slack_user_id = "U9876543210"
+        self.target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id=self.channel_id,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+        data = MockNotification(message="test")
+        rendered_template = MockNotificationTemplate().render(data)
+        renderer = SlackNotificationProvider.get_renderer(
+            data=data, category=NotificationCategory.DEBUG
+        )
+        self.slack_renderable = renderer.render(data=data, rendered_template=rendered_template)
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_send_notification_success(self, mock_chat_post: MagicMock) -> None:
+        self.installation.send_notification(target=self.target, payload=self.slack_renderable)
+
+        mock_chat_post.assert_called_once_with(
+            channel="C1234567890",
+            blocks=self.slack_renderable.get("blocks", []),
+            text="Mock Notification",
+            attachments=None,
+            unfurl_links=False,
+            unfurl_media=False,
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_send_notification_api_error(self, mock_chat_post: MagicMock) -> None:
+        mock_response = MagicMock()
+        mock_response.status_code = 400
+        mock_response.data = {"error": "channel_not_found"}
+        mock_response.api_url = "https://slack.com/api/chat.postMessage"
+
+        mock_chat_post.side_effect = SlackApiError("channel_not_found", mock_response)
+
+        with pytest.raises(IntegrationConfigurationError):
+            self.installation.send_notification(target=self.target, payload=self.slack_renderable)
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_send_threaded_message_success(self, mock_chat_post: MagicMock) -> None:
+        self.installation.send_threaded_message(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            renderable=self.slack_renderable,
+        )
+        mock_chat_post.assert_called_once_with(
+            channel=self.channel_id,
+            thread_ts=self.thread_ts,
+            blocks=self.slack_renderable.get("blocks", []),
+            attachments=self.slack_renderable.get("attachments"),
+            text=self.slack_renderable.get("text", ""),
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_send_threaded_message_error(self, mock_chat_post: MagicMock) -> None:
+        error_message = "thread_not_found"
+        mock_chat_post.side_effect = SlackApiError(error_message, MagicMock())
+
+        with pytest.raises(IntegrationError, match=error_message):
+            self.installation.send_threaded_message(
+                channel_id=self.channel_id,
+                thread_ts=self.thread_ts,
+                renderable=self.slack_renderable,
+            )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postEphemeral")
+    def test_send_threaded_ephemeral_message_success(self, mock_chat_ephemeral: MagicMock) -> None:
+        self.installation.send_threaded_ephemeral_message(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            renderable=self.slack_renderable,
+            slack_user_id=self.slack_user_id,
+        )
+
+        mock_chat_ephemeral.assert_called_once_with(
+            channel=self.channel_id,
+            thread_ts=self.thread_ts,
+            attachments=self.slack_renderable.get("attachments"),
+            user=self.slack_user_id,
+            blocks=self.slack_renderable.get("blocks", []),
+            text=self.slack_renderable.get("text", ""),
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postEphemeral")
+    def test_send_threaded_ephemeral_message_error(self, mock_chat_ephemeral: MagicMock) -> None:
+        error_message = "user_not_in_channel"
+        mock_chat_ephemeral.side_effect = SlackApiError(error_message, MagicMock())
+
+        with pytest.raises(IntegrationError, match=error_message):
+            self.installation.send_threaded_ephemeral_message(
+                channel_id=self.channel_id,
+                thread_ts=self.thread_ts,
+                renderable=self.slack_renderable,
+                slack_user_id=self.slack_user_id,
+            )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_get_thread_history_missing_scope_returns_empty(
+        self, mock_conversations_info: MagicMock
+    ) -> None:
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
+        )
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+        )
+        assert result == []
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_get_thread_history_success(
+        self, mock_conversations_info: MagicMock, mock_conversations_replies: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
+        )
+        mock_conversations_replies.return_value = {
+            "ok": True,
+            "messages": [
+                {"ts": self.thread_ts, "text": "Original message"},
+                {"ts": "1712345679.000001", "text": "Reply 1"},
+                {"ts": "1712345680.000002", "text": "Reply 2"},
+            ],
+        }
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+        )
+        assert len(result) == 3
+        assert result[0]["text"] == "Original message"
+        mock_conversations_replies.assert_called_once_with(
+            channel=self.channel_id,
+            ts=self.thread_ts,
+            latest=None,
+            oldest=None,
+            inclusive=None,
+            limit=None,
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_get_thread_history_private_channel_missing_groups_history(
+        self, mock_conversations_info: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": True}}
+        )
+        result = self.installation.get_thread_history(
+            channel_id="G1234567890",
+            thread_ts=self.thread_ts,
+        )
+        assert result == []
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_get_thread_history_private_channel_with_groups_history(
+        self, mock_conversations_info: MagicMock, mock_conversations_replies: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.GROUPS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": True}}
+        )
+        mock_conversations_replies.return_value = {
+            "ok": True,
+            "messages": [{"ts": self.thread_ts, "text": "Private message"}],
+        }
+        result = self.installation.get_thread_history(
+            channel_id="G1234567890",
+            thread_ts=self.thread_ts,
+        )
+        assert len(result) == 1
+        assert result[0]["text"] == "Private message"
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_has_history_scope_public_channel(self, mock_conversations_info: MagicMock) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
+        )
+        assert self.installation.has_history_scope("C1234567890") is True
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_has_history_scope_private_channel_missing(
+        self, mock_conversations_info: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": True}}
+        )
+        assert self.installation.has_history_scope("G1234567890") is False
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_info")
+    def test_get_thread_history_error_returns_empty_list(
+        self, mock_conversations_info: MagicMock, mock_conversations_replies: MagicMock
+    ) -> None:
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
+        mock_conversations_info.return_value = MagicMock(
+            data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
+        )
+        mock_conversations_replies.side_effect = SlackApiError("channel_not_found", MagicMock())
+        result = self.installation.get_thread_history(
+            channel_id=self.channel_id, thread_ts=self.thread_ts
+        )
+        assert result == []
+
+
+@control_silo_test
+class SlackApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def tearDown(self) -> None:
+        responses.reset()
+        super().tearDown()
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "slack"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    def _get_pipeline_signature(self, resp: Any) -> str:
+        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+
+    @responses.activate
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "slack"
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert "slack.com/oauth/v2/authorize" in oauth_url
+        assert "user_scope=" in oauth_url
+
+        # Verify the OAuth URL requests the correct bot scopes, not the
+        # identity provider's default scopes
+        parsed = urlparse(oauth_url)
+        params = parse_qs(parsed.query)
+        requested_scopes = set(params["scope"][0].split(" "))
+        assert requested_scopes == SlackIntegrationProvider.identity_oauth_scopes
+
+    @responses.activate
+    def test_oauth_step_missing_code(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({})
+        assert resp.status_code == 400
+
+    @responses.activate
+    @patch("sentry.integrations.slack.integration.WebClient")
+    def test_full_pipeline_flow(self, mock_web_client_cls: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_web_client_cls.return_value = mock_client
+        mock_client.team_info.return_value = SlackResponse(
+            client=mock_client,
+            http_verb="GET",
+            api_url="https://slack.com/api/team.info",
+            req_args={},
+            data={
+                "ok": True,
+                "team": {
+                    "name": "Test Team",
+                    "id": "T1234",
+                    "domain": "test-team",
+                    "icon": {"image_132": "https://example.com/icon.png"},
+                },
+            },
+            headers={},
+            status_code=200,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://slack.com/api/oauth.v2.access",
+            json={
+                "ok": True,
+                "access_token": "xoxb-test-token",
+                "scope": "channels:read,chat:write",
+                "team": {"name": "Test Team", "id": "T1234"},
+                "authed_user": {"id": "U1234"},
+            },
+        )
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "slack-auth-code", "state": pipeline_signature})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert "data" in resp.data
+
+        integration = Integration.objects.get(provider="slack")
+        assert integration.external_id == "T1234"
+        assert integration.name == "Test Team"
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()

@@ -1,0 +1,274 @@
+from typing import Any
+
+from django.db import router, transaction
+from django.dispatch import receiver
+from pydantic import ValidationError
+from sentry_sdk import capture_exception
+
+from sentry import options
+from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.outbox.signals import process_control_outbox
+from sentry.hybridcloud.services.cell_organization_provisioning import (
+    cell_organization_provisioning_rpc_service,
+)
+from sentry.models.organizationslugreservation import (
+    OrganizationSlugReservation,
+    OrganizationSlugReservationType,
+)
+from sentry.options.rollout import in_random_rollout
+from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.services.organization.model import OrganizationProvisioningOptions
+from sentry.silo.base import SiloMode
+from sentry.types.cell import get_local_cell, get_new_org_cell_for_locality
+
+
+class OrganizationProvisioningException(Exception):
+    pass
+
+
+class OrganizationProvisioningService:
+    def _validate_or_default_cell(self, cell_name: str | None):
+        silo_mode = SiloMode.get_current_mode()
+        if cell_name is None and silo_mode == SiloMode.CONTROL:
+            raise OrganizationProvisioningException(
+                "A cell name must be provided when provisioning an organization from the Control Silo"
+            )
+        elif silo_mode != SiloMode.CONTROL:
+            local_cell = get_local_cell()
+
+            assert not cell_name or cell_name == local_cell.name, (
+                "Cannot provision an organization in another cell"
+            )
+
+            cell_name = local_cell.name
+
+        return cell_name
+
+    def provision_organization_in_cell(
+        self,
+        provisioning_options: OrganizationProvisioningOptions,
+        cell_name: str,
+    ) -> RpcOrganization:
+        """
+        Creates a new Organization in the destination cell. If called from a
+        cell silo without a cell_name, the local cell name will be used.
+
+        :param provisioning_options: A provisioning payload containing all the necessary
+        data to fully provision an organization within the cell.
+
+        :param cell_name: The cell to provision the organization in
+        :return: RpcOrganization of the newly created org
+        """
+        from sentry.hybridcloud.services.control_organization_provisioning import (
+            RpcOrganizationSlugReservation,
+            control_organization_provisioning_rpc_service,
+        )
+
+        rpc_org_slug_reservation: RpcOrganizationSlugReservation = (
+            control_organization_provisioning_rpc_service.provision_organization(
+                cell_name=cell_name, org_provision_args=provisioning_options
+            )
+        )
+
+        rpc_org = organization_service.get(id=rpc_org_slug_reservation.organization_id)
+        if rpc_org is None:
+            raise OrganizationProvisioningException("Provisioned organization was not found")
+
+        return rpc_org
+
+    def change_organization_slug(
+        self,
+        organization_id: int,
+        slug: str,
+    ) -> None:
+        """
+        Updates an organization with the given slug if available.
+
+         This is currently database backed, but will be switched to be
+         RPC based in the near future.
+        :param organization_id: the ID of the organization whose slug to change
+        :param slug: The desired slug for the organization
+        :return:
+        """
+        destination_cell_name = self._validate_or_default_cell(cell_name=None)
+
+        from sentry.hybridcloud.services.control_organization_provisioning import (
+            control_organization_provisioning_rpc_service,
+        )
+
+        rpc_slug_reservation = (
+            control_organization_provisioning_rpc_service.update_organization_slug(
+                organization_id=organization_id,
+                desired_slug=slug,
+                require_exact=True,
+                cell_name=destination_cell_name,
+            )
+        )
+
+        rpc_org = organization_service.get(id=rpc_slug_reservation.organization_id)
+
+        if rpc_org is None:
+            raise OrganizationProvisioningException(
+                "Organization not found despite slug change succeeding"
+            )
+
+    def bulk_create_organization_slugs(self, slug_mapping: dict[int, str]) -> None:
+        """
+        CAUTION: DO NOT USE THIS OUTSIDE OF THE IMPORT/RELOCATION CONTEXT
+
+        Organizations are meant to be provisioned via the
+         `provision_organization_in_cell` method, which handles both slug
+         reservation and organization creation.
+
+        Bulk creates slug reservations for imported organizations that already
+        exist on the cell. Each target organization is provided as a tuple of
+        Organization ID (int) and base slug (str).
+
+        :param org_ids_and_slugs: A set of tuples containing an organization ID
+        and base slug.
+        :return:
+        """
+        destination_cell_name = self._validate_or_default_cell(cell_name=None)
+
+        from sentry.hybridcloud.services.control_organization_provisioning import (
+            control_organization_provisioning_rpc_service,
+        )
+
+        control_organization_provisioning_rpc_service.bulk_create_organization_slug_reservations(
+            slug_mapping=slug_mapping, cell_name=destination_cell_name
+        )
+
+
+organization_provisioning_service = OrganizationProvisioningService()
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.PROVISION_ORGANIZATION)
+def process_provision_organization_outbox(
+    object_identifier: int, cell_name: str, payload: Any, **kwds: Any
+):
+    """
+    Outbox handler for PROVISION_ORGANIZATION
+
+    Commits the slug reservation to the control database, and then uses RPC
+    to create the organization in the target cell.
+    """
+    try:
+        provisioning_payload = OrganizationProvisioningOptions.parse_obj(payload)
+    except ValidationError as e:
+        # The provisioning payload is likely malformed and cannot be processed.
+        capture_exception(e)
+        return
+
+    organization_id = object_identifier
+    org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
+        organization_id=organization_id, slug=provisioning_payload.provision_options.slug
+    )
+
+    slug_res_count = org_slug_reservation_qs.count()
+    if slug_res_count != 1:
+        capture_exception(
+            OrganizationProvisioningException(
+                f"Expected there to be a single slug reservation, {slug_res_count} were found"
+            )
+        )
+        return
+
+    org_slug_reservation = org_slug_reservation_qs.get()
+
+    able_to_provision = cell_organization_provisioning_rpc_service.create_organization_in_cell(
+        organization_id=organization_id,
+        provision_payload=provisioning_payload,
+        cell_name=cell_name,
+    )
+
+    if not able_to_provision:
+        # If the cell returns false when validating provisioning information,
+        # it's likely a conflict has occurred (e.g. an org create locally).
+        # This means we need to delete the old org slug reservation as it
+        # can no longer be assumed to be valid.
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
+            org_slug_reservation.delete()
+        return
+
+
+def handle_possible_organization_slug_swap(*, cell_name: str, org_slug_reservation_id: int):
+    """
+    CAUTION: THIS IS ONLY INTENDED TO BE USED BY THE `organization_provisioning` RPC SERVICE.
+    DO NOT USE THIS FOR LOCAL SLUG SWAPS.
+
+    :param cell_name: The cell where the organization is located
+    :param org_slug_reservation_id: the id of the organization slug reservation ID being updated
+    :return:
+    """
+
+    org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
+        id=org_slug_reservation_id,
+        reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
+    )
+
+    # Only process temporary aliases for slug swaps
+    if not org_slug_reservation_qs.exists():
+        return
+
+    org_slug_reservation = org_slug_reservation_qs.first()
+    assert org_slug_reservation is not None
+
+    from sentry.hybridcloud.services.control_organization_provisioning import (
+        serialize_slug_reservation,
+    )
+
+    able_to_update_slug = (
+        cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
+            cell_name=cell_name,
+            org_slug_temporary_alias_res=serialize_slug_reservation(
+                slug_reservation=org_slug_reservation
+            ),
+        )
+    )
+
+    with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))):
+        # Even if we aren't able to update the slug on the cell,
+        # we roll back the temporary alias as it's either be completed, or no longer valid
+        org_slug_reservation.delete()
+
+        if able_to_update_slug:
+            primary_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
+                organization_id=org_slug_reservation.organization_id,
+                reservation_type=OrganizationSlugReservationType.PRIMARY.value,
+            )
+
+            if primary_slug_reservation_qs.exists():
+                primary_slug_reservation = primary_slug_reservation_qs.get()
+                primary_slug_reservation.slug = org_slug_reservation.slug
+                primary_slug_reservation.save(unsafe_write=True)
+            else:
+                # If the organization is missing a primary slug reservation, we want to write one
+                OrganizationSlugReservation(
+                    slug=org_slug_reservation.slug,
+                    organization_id=org_slug_reservation.organization_id,
+                    reservation_type=OrganizationSlugReservationType.PRIMARY,
+                    user_id=org_slug_reservation.user_id,
+                    cell_name=cell_name,
+                ).save(unsafe_write=True)
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE)
+def update_organization_slug_reservation(
+    object_identifier: int, cell_name: str, **kwds: Any
+) -> None:
+    handle_possible_organization_slug_swap(
+        cell_name=cell_name,
+        org_slug_reservation_id=object_identifier,
+    )
+
+
+def resolve_provisioning_cell(locality_name: str) -> str:
+    """
+    Resolve the cell that a new organization should be created in.
+    """
+    if in_random_rollout("provision_organization.override.rate"):
+        override_map = options.get("provision_organization.override.mapping")
+        if locality_name in override_map:
+            locality_name = override_map[locality_name]
+    return get_new_org_cell_for_locality(locality_name).name

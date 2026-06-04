@@ -1,0 +1,54 @@
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {HighlightComponent} from 'sentry/components/highlight';
+
+describe('Highlight', () => {
+  it('highlights text', () => {
+    const wrapper = render(
+      <HighlightComponent text="ILL">billy@sentry.io</HighlightComponent>
+    );
+    expect(wrapper.container.childNodes).toHaveLength(3);
+    expect(wrapper.container.childNodes[0]).toHaveTextContent('b');
+    expect(wrapper.container.childNodes[1]).toHaveTextContent('ill');
+    expect(wrapper.container.childNodes[2]).toHaveTextContent('y@sentry.io');
+  });
+
+  it('highlights with a case-insensitive match when caseSensitive is falsy', () => {
+    const wrapper = render(
+      <HighlightComponent text="Apple">apple Apple APPLE</HighlightComponent>
+    );
+    expect(wrapper.container.childNodes).toHaveLength(2);
+    expect(wrapper.container.childNodes[0]).toHaveTextContent('apple');
+    expect(wrapper.container.childNodes[1]).toHaveTextContent('Apple APPLE');
+  });
+
+  it('highlights with a case-sensitive match when caseSensitive is true', () => {
+    const wrapper = render(
+      <HighlightComponent caseSensitive text="Apple">
+        apple Apple APPLE
+      </HighlightComponent>
+    );
+    expect(wrapper.container.childNodes).toHaveLength(3);
+    expect(wrapper.container.childNodes[0]).toHaveTextContent('apple');
+    expect(wrapper.container.childNodes[1]).toHaveTextContent('Apple');
+    expect(wrapper.container.childNodes[2]).toHaveTextContent('APPLE');
+  });
+
+  it('does not have highlighted text if `text` prop is not found in main text', () => {
+    render(<HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>);
+
+    expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
+  });
+
+  it('does not have highlighted text if `text` prop is empty', () => {
+    render(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
+
+    expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
+  });
+
+  it('does not have highlighted text if `disabled` prop is true', () => {
+    render(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
+
+    expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
+  });
+});

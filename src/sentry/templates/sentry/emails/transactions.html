@@ -1,0 +1,103 @@
+{% load i18n %}
+{% load sentry_helpers %}
+<table>
+    <colgroup>
+      <col style="width:130px;">
+    </colgroup>
+    <tbody>
+        {% if span_evidence_key_value %}
+        {% for item in span_evidence_key_value %}
+            {% if item.is_multi_value %}
+            <tr>
+                <th>{{ item.key }}</th>
+                <td>
+                    <code>{{ item.value.0|truncatechars:100 }}</code>
+                </td>
+            </tr>
+            {% for val in item.value|slice:"1:" %}
+            <tr>
+                <th></th>
+                <td>
+                    <code>{{ val|truncatechars:100 }}</code>
+                </td>
+            </tr>
+            {% endfor %}
+
+            {% else %}
+            <tr>
+                <th>{{ item.key }}</th>
+                <td>
+                    <code>{{ item.value|truncatechars:100 }}</code>
+                </td>
+            </tr>
+            {% endif %}
+        {% endfor %}
+        {% endif %}
+        {% if transaction_name %}
+        <tr>
+            <th>{% trans "Transaction Name" %}</th>
+            <td>
+                <code>{{ transaction_name|truncatechars:50 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if parent_span %}
+        <tr>
+            <th>{% trans "Parent Span" %}</th>
+            <td>
+                <code>{{ parent_span|truncatechars:50 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if slow_span_description %}
+        <tr>
+            <th>{% trans "Slow Resource Span" %}</th>
+            <td>
+                <code>{{ slow_span_description|truncatechars:50 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if preceding_span %}
+        <tr>
+            <th>{% trans "Preceding Span" %}</th>
+            <td>
+                <code>{{ preceding_span|truncatechars:50 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if repeating_spans and num_repeating_spans %}
+        <tr>
+            <th>{% blocktrans %} Repeating Spans ({{ num_repeating_spans }}) {% endblocktrans %}</th>
+            <td>
+                <code>{{ repeating_spans|truncatechars:75 }}{% if parameters %}<span class="parameter-placeholder">[{% trans "Parameters" %}]</span>{% endif %}</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if transaction_duration and fcp %}
+        <tr>
+            <th>{% trans "FCP Delay" %}</th>
+            <td>
+                <code>{{ fcp|duration }} ({% percent fcp transaction_duration %}% of {{ transaction_duration|duration }})</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if transaction_duration and slow_span_duration %}
+        <tr>
+            <th>{% trans "Duration Impact" %}</th>
+            <td>
+                <code>{% percent slow_span_duration transaction_duration %}% ({{ slow_span_duration|duration }}/{{ transaction_duration|duration }})</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if parameters %}
+        <tr>
+            <th>{% trans "Parameters" %}</th>
+            {% for parameter in parameters %}
+            <td>
+                <code>{{ parameter|truncatechars:100 }}</code>
+            </td>
+            {% endfor %}
+        </tr>
+        {% endif %}
+    </tbody>
+</table>

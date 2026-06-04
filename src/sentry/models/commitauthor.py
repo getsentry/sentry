@@ -1,0 +1,86 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, ClassVar
+
+from django.db import models
+
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
+from sentry.db.models.manager.base import BaseManager
+
+if TYPE_CHECKING:
+    from sentry.users.services.user import RpcUser
+
+
+class CommitAuthorManager(BaseManager["CommitAuthor"]):
+    def get_or_create(
+        self, defaults: Mapping[str, Any] | None = None, **kwargs: Any
+    ) -> tuple[CommitAuthor, bool]:
+        # Force email address to lowercase because many providers do this. Note though that this isn't technically
+        # to spec; only the domain part of the email address is actually case-insensitive.
+        # See: https://stackoverflow.com/questions/9807909/are-email-addresses-case-sensitive
+        email = kwargs.pop("email").lower()
+        return super().get_or_create(defaults=defaults, email=email, **kwargs)
+
+
+@cell_silo_model
+class CommitAuthor(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+    # display name
+    name = models.CharField(max_length=128, null=True)
+    email = models.CharField(max_length=200)
+
+    # Format varies by provider:
+    # - GitHub/GitHub Enterprise: "github:username", "github_enterprise:username"
+    # - Other providers: null
+    # - Legacy data(?): integer (rare)
+    external_id = models.CharField(max_length=164, null=True)
+
+    # Last time we queried the author's public profile email from the SCM API
+    # (e.g. GitHub) in an attempt to create an ExternalActor mapping. Null means
+    # never queried. Used to rate-limit these expensive lookups so we only retry
+    # stale authors. See sentry.integrations.github.tasks.query_commit_author_public_emails.
+    public_email_queried_at = models.DateTimeField(null=True)
+
+    objects: ClassVar[CommitAuthorManager] = CommitAuthorManager()
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_commitauthor"
+        unique_together = (("organization_id", "email"), ("organization_id", "external_id"))
+
+    __repr__ = sane_repr("organization_id", "email", "name")
+
+    users: list[RpcUser] | None = None
+
+    def preload_users(self) -> list[RpcUser]:
+        self.users = None
+        self.users = self.find_users()
+        return self.users
+
+    def find_users(self) -> list[RpcUser]:
+        from sentry.models.organizationmember import OrganizationMember
+        from sentry.users.services.user.service import user_service
+
+        if self.users is not None:
+            return self.users
+        users = user_service.get_many_by_email(emails=[self.email], is_verified=True)
+        org_member_user_ids = set(
+            OrganizationMember.objects.filter(
+                organization_id=self.organization_id, user_id__in={u.id for u in users}
+            ).values_list("user_id", flat=True)
+        )
+        return [u for u in users if u.id in org_member_user_ids]
+
+    def get_username_from_external_id(self) -> str | None:
+        """
+        Note: only works for GitHub and GitHub Enterprise
+        """
+        return (
+            self.external_id.split(":", 1)[1]
+            if self.external_id and ":" in self.external_id
+            else None
+        )

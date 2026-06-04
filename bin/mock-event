@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import argparse
+import sys
+
+from django.utils import timezone
+
+from sentry.models.project import Project
+from sentry.utils.samples import create_sample_event
+
+
+def main(project, sample_type):
+    org_slug, project_slug = project.split("/", 1)
+
+    project = Project.objects.get(organization__slug=org_slug, slug=project_slug)
+
+    event = create_sample_event(project=project, platform=sample_type)
+    if not event:
+        sys.stderr.write("ERR: No event created. Was the sample type valid?\n")
+        sys.exit(1)
+
+    if not project.first_event:
+        project.update(first_event=timezone.now())
+
+    sys.stdout.write(f"> Created event {event.event_id}\n")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project")
+    parser.add_argument("sample_type")
+    args = parser.parse_args()
+
+    main(project=args.project, sample_type=args.sample_type)

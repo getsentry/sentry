@@ -1,0 +1,77 @@
+import styled from '@emotion/styled';
+
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {t} from 'sentry/locale';
+import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {
+  useUpdateQueryAtIndex,
+  type ReadableExploreQueryParts,
+} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {
+  Section,
+  SectionHeader,
+  SectionLabel,
+} from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
+
+type Props = {index: number; query: ReadableExploreQueryParts};
+
+export function GroupBySection({query, index}: Props) {
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
+
+  const updateGroupBys = useUpdateQueryAtIndex(index);
+
+  const enabledOptions = useGroupByFields({
+    groupBys: [],
+    numberTags,
+    stringTags,
+    booleanTags,
+    traceItemType: TraceItemDataset.SPANS,
+    hideEmptyOption: true,
+  });
+
+  return (
+    <Section data-test-id={`section-group-by-${index}`}>
+      <SectionHeader>
+        <Tooltip
+          title={t(
+            'Aggregate data by a key attribute to calculate averages, percentiles, count and more.'
+          )}
+        >
+          <SectionLabel>{t('Group By')}</SectionLabel>
+        </Tooltip>
+      </SectionHeader>
+      <StyledCompactSelect
+        multiple
+        options={enabledOptions}
+        value={query.groupBys}
+        clearable
+        search={{
+          filter: (option, searchText) => {
+            return sortSearchedAttributes({
+              fieldDefinitionType: TraceItemDataset.SPANS,
+              option,
+              searchText,
+            });
+          },
+        }}
+        onChange={options =>
+          updateGroupBys({groupBys: options.map(value => value.value.toString())})
+        }
+      />
+    </Section>
+  );
+}
+
+const StyledCompactSelect = styled(CompactSelect)`
+  width: 100%;
+  > button {
+    width: 100%;
+  }
+`;

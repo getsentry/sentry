@@ -1,0 +1,289 @@
+5,Argument ou appel de procédure incorrect
+6,Dépassement de capacité
+7,Mémoire insuffisante
+9,Indice en dehors de la plage
+10,Tableau fixe ou temporairement verrouillé
+11,Division par zéro
+13,Type incompatible
+14,Espace de chaîne insuffisant
+17,Impossible d'exécuter l'opération requise
+28,Espace pile insuffisant
+35,Sub ou Function non définie
+48,Erreur de chargement de la DLL
+51,Erreur interne
+52,Nom ou numéro de fichier incorrect
+53,Fichier introuvable
+54,Mode fichier incorrect
+55,Fichier déjà ouvert
+57,Erreur d'entrée/sortie de périphérique
+58,Ce fichier existe déjà
+61,Disque plein
+62,L'entrée dépasse la fin du fichier
+67,Trop de fichiers
+68,Périphérique non disponible
+70,Permission refusée
+71,Disque non prêt
+74,Impossible d'attribuer un nom de lecteur différent
+75,Chemin d'accès erroné
+76,Chemin d'accès introuvable
+91,Variable objet ou variable de bloc With non définie
+92,Boucle For non initialisée
+94,Utilisation non autorisée de Null
+322,Impossible de créer le fichier temporaire nécessaire
+424,Objet requis
+429,Un composant ActiveX ne peut pas créer un objet
+430,Cette classe ne gère pas Automation
+432,Nom du fichier ou de la classe introuvable lors de l'opération Automation
+438,Cet objet ne gère pas cette propriété ou cette méthode
+440,Erreur Automation
+445,Cet objet ne gère pas cette action
+446,Cet objet ne gère pas les arguments nommés
+447,Cet objet ne gère pas les paramètres régionaux en cours
+448,Argument nommé introuvable
+449,Argument obligatoire
+450,Nombre d'arguments ou affectation de propriété incorrects
+451,Cet objet n'est pas une collection
+453,Fonction de DLL spécifiée introuvable
+458,Cette variable utilise un type Automation non géré par JavaScript
+462,Le serveur distant n'existe pas ou n'est pas disponible
+501,Affectation à la variable impossible
+502,Objet non sécurisé pour le script
+503,Objet non sécurisé pour l'initialisation
+504,Objet non sécurisé pour la création
+507,Une exception est survenue
+1001,Mémoire insuffisante
+1002,Erreur de syntaxe
+1003,':' attendu
+1004,';' attendu
+1005,'(' attendu
+1006,')' attendu
+1007,']' attendu
+1008,'{' attendu
+1009,'}' attendu
+1010,Identificateur attendu
+1011,'=' attendu
+1012,'/' attendu
+1013,Nombre incorrect
+1014,Caractère incorrect
+1015,Constante chaîne non terminée
+1016,Commentaire non terminé
+1018,Instruction 'return' en dehors d'une fonction
+1019,Un 'break' doit se trouver à l'intérieur d'une boucle
+1020,Un 'continue' doit se trouver à l'intérieur d'une boucle
+1023,Caractère hexadécimal attendu
+1024,'while' attendu
+1025,Étiquette redéfinie
+1026,Étiquette introuvable
+1027,'default' ne peut apparaître qu'une fois dans une instruction 'switch'
+1028,Identificateur, chaîne ou nombre attendu
+1029,'@end' attendu
+1030,La compilation conditionnelle est désactivée
+1031,Constante attendue
+1032,'@' attendu
+1033,'catch' attendu
+1034,'var' attendu
+1035,« throw » doit être suivi par une expression sur la même ligne source
+1037,les instructions « with » ne sont pas autorisées en mode strict
+1038,La duplication de noms de paramètre formels n’est pas autorisée en mode strict
+1039,Les littéraux numériques octaux et les caractères d’échappement ne sont pas autorisés en mode strict
+1041,Utilisation non valide de l’« évaluation » en mode strict
+1042,Utilisation non valide d’« arguments » en mode strict
+1045,Appel de la fonction delete non autorisé en mode strict
+1046,Plusieurs définitions d’une propriété ne sont pas autorisées en mode strict
+1047,En mode strict, les déclarations de fonction ne peuvent pas être imbriquées dans une instruction ou un bloc. Elles peuvent uniquement apparaître au niveau supérieur ou directement dans le corps d’une fonction.
+1048,L’utilisation d’un mot clé pour un identificateur n’est pas valide
+1049,L’utilisation d’un mot réservé futur pour un identificateur n’est pas valide
+1050,L’utilisation d’un mot réservé futur pour un identificateur n’est pas valide. Le nom d’identificateur est réservé en mode strict.
+1051,Les fonctions setter doivent avoir un argument
+4096,Erreur de compilation JavaScript
+4097,Erreur d’exécution JavaScript
+4098,Erreur d'exécution inconnue
+5000,Impossible d'affecter à 'this'
+5001,Nombre attendu
+5002,Fonction attendue
+5003,Impossible d'affecter à un résultat de fonction
+5004,Impossible d'indexer l'objet
+5005,Chaîne attendue
+5006,Objet date attendu
+5007,Objet attendu
+5008,Côté gauche non valide dans l’affectation
+5009,Identificateur non défini
+5010,Booléen attendu
+5011,Impossible d'exécuter le code à partir d'un script libéré
+5012,Membre d'objet attendu
+5013,VBArray attendu
+5014,Objet JavaScript attendu
+5015,Objet d'énumération attendu
+5016,Objet d'expression régulière attendu
+5017,Erreur de syntaxe dans l'expression régulière
+5018,Quantificateur inattendu
+5019,']' attendu dans l'expression régulière
+5020,')' attendu dans l'expression régulière
+5021,Plage incorrecte dans le jeu de caractères
+5022,Exception levée mais non décelée
+5023,La fonction ne possède pas d'objet prototype valide
+5024,L'URI à coder contient un caractère incorrect
+5025,L'URI à décoder contient un caractère incorrect
+5026,Le nombre de fractions est en dehors de la plage
+5027,La précision est en dehors de la plage
+5028,Objet Array ou Arguments attendu
+5029,La longueur du tableau doit être un entier positif fini
+5030,Un nombre positif fini doit être attribué à la longueur du tableau
+5031,Objet Array attendu
+5034,Référence circulaire dans l'argument de valeur non prise en charge
+5035,Argument de remplacement incorrect
+5038,Liste d’arguments trop importante pour être appliquée
+5039,Redéclaration d’une propriété const
+5041,Membre d’objet non configurable
+5042,Variable non définie en mode strict
+5043,Accès à la propriété « caller » d’une fonction ou d’un objet arguments non autorisé en mode strict
+5044,Accès à la propriété « callee » d’un objet arguments non autorisé en mode strict
+5045,Affectation aux propriétés en lecture seule non autorisée en mode strict
+5046,Impossible de créer une propriété pour un objet non extensible
+5047,Objet attendu
+5048,Objet attendu
+5049,Objet attendu
+5050,Objet attendu
+5051,Fonction attendue
+5052,Fonction attendue
+5053,Une propriété ne peut pas avoir des accesseurs et une valeur
+5054,'this' est null ou non défini
+5055,Objet attendu
+5056,Fonction attendue
+5057,Chaîne attendue
+5058,Booléen attendu
+5059,Date attendue
+5060,Nombre attendu
+5061,VBArray attendu
+5062,Objet JavaScript attendu
+5063,Objet d’énumération attendu
+5064,Objet RegExp attendu
+5065,Argument de fonction non valide
+5066,Objet attendu
+5067,Objet JavaScript attendu
+5068,Fonction attendue
+5069,VBArray attendu
+5070,Objet attendu
+5071,Objet attendu
+5072,Propriété de « longueur » non valide
+5073,Objet Array ou Arguments attendu
+5074,Opérande non valide
+5075,Opérande non valide
+5076,Descripteur de propriété non valide
+5077,Impossible de définir une propriété : objet non extensible
+5078,Impossible de redéfinir une propriété non configurable
+5079,Impossible de modifier une propriété non accessible en écriture
+5080,Impossible de modifier une propriété : « length » n’est pas accessible en écriture
+5081,Impossible de définir une propriété
+5082,L’argument du constructeur de tableau typé n’est pas valide
+5083,« this » n’est pas un objet de tableau typé
+5084,Décalage/longueur non valide lors de la création du tableau typé
+5085,Valeur de début/fin non valide dans la méthode sous-tableau du tableau typé
+5086,Source non valide dans l’ensemble de tableaux typés
+5087,« this » n’est pas un objet DataView
+5088,Arguments non valides dans DataView
+5089,Accès à l’opération DataView au-delà de la longueur de tampon spécifiée
+5090,Arguments non valides dans DataView
+5091,Signature de fonction non valide
+5092,Signature de propriété non valide
+5093,type de paramètre d’entrée non valide
+5094,paramètre de sortie non valide
+5095,Accès à la propriété « arguments » d’une fonction non autorisé en mode strict
+5096,Objet Inspectable attendu
+5097,Impossible de convertir l’argument en type « char »
+5098,Impossible de convertir l’argument en type « GUID »
+5099,IInspectable attendu
+5100,Impossible de convertir l’objet en struct : propriété attendue manquante pour l’objet
+5101,Type inconnu
+5102,Fonction appelée avec trop peu d’arguments
+5103,Type non constructible
+5104,Impossible de convertir la valeur en PropertyValue : type non pris en charge par PropertyValue
+5105,Impossible de convertir la valeur en IInspectable : type non pris en charge par IInspectable
+5106,Impossible de convertir Date en Windows.Foundation.DateTime : valeur située en dehors de la plage valide
+5107,Impossible de convertir la valeur en Windows.Foundation.TimeSpan : valeur située en dehors de la plage valide
+5108,Accès non valide à un objet Inspectable déjà libéré
+5109,Impossible de libérer un objet Inspectable déjà libéré
+5110,« this » n’est pas du type attendu
+5111,Longueur et taille non autorisées spécifiées pour le tableau
+5112,Une défaillance inattendue s’est produite lors de la tentative d’obtention d’informations de métadonnées.
+5200,L’état a la valeur Erreur, mais getResults n’a pas retourné d’erreur.
+5201,Paramètre d’état manquant ou non valide passé au gestionnaire completed
+5202,Paramètre d’expéditeur manquant ou non valide passé au gestionnaire completed
+6000,Infini
+6001,-Infini
+10438,L’objet ne gère pas la propriété ou la méthode « %s »
+10449,L’argument pour la fonction « %s » n’est pas facultatif
+15001,« %s » n’est pas un nombre
+15002,« %s » n’est pas une fonction
+15004,« %s » n’est pas un objet indexable
+15005,« %s » n’est pas une chaîne
+15006,« %s » n’est pas un objet de date
+15007,« %s » a la valeur null ou n’est pas un objet
+15008,Impossible d’affecter à « %s »
+15009,« %s » est indéfini
+15010,« %s » n’est pas un opérateur booléen
+15012,Impossible de supprimer « %s »
+15013,« %s » n’est pas un VBArray
+15014,« %s » n’est pas un objet JavaScript
+15015,« %s » n’est pas un objet d’énumération
+15016,« %s » n’est pas un objet d’expression régulière
+15028,%s n’est pas un objet Array ou Arguments
+15031,%s n’est pas un objet Array
+15036,L’attribut « %s » du descripteur de propriété ne peut pas être défini à « true » sur cet objet
+15037,L’attribut « %s » du descripteur de propriété ne peut pas avoir la valeur « false » sur cet objet
+15039,Redéclaration de const « %s »
+15041,Appel de la fonction delete sur « %s » non autorisé en mode strict
+15047,Impossible de définir la propriété « %s » d’une référence null ou non définie
+15048,Impossible d’obtenir la propriété  « %s » d’une référence null ou non définie
+15049,Impossible de supprimer la propriété « %s » d’une référence null ou non définie
+15050,Impossible d’accéder à la propriété « %s » : le type « VarDate » ne prend pas en charge les propriétés définies par l’utilisateur
+15051,La valeur de la propriété « %s » n’est pas un objet Function
+15052,La valeur de la propriété « %s » est null ou non définie, pas un objet Function
+15054,%s : 'this' est null ou non défini
+15055,%s : 'this' n’est pas un objet Object
+15056,%s : 'this' n’est pas un objet Function
+15057,%s : 'this' n’est pas un objet String
+15058,%s : 'this' n’est pas un objet booléen
+15059,%s : 'this' n’est pas un objet Date
+15060,%s : 'this' n’est pas un objet Number
+15061,%s : 'this' n’est pas un objet VBArray
+15062,%s : 'this' n’est pas un objet JavaScript
+15063,%s : 'this' n’est pas un objet Enumerator
+15064,%s : 'this' n’est pas un objet RegExp
+15065,%s : argument non valide
+15066,%s : l’argument n’est pas un objet Object
+15067,%s : l’argument n’est pas un objet JavaScript
+15068,%s : l’argument n’est pas un objet Function
+15069,%s : l’argument n’est pas un objet VBArray
+15070,%s : l’argument est null ou non défini
+15071,%s : l’argument n’est pas un objet Object et est non null
+15072,%s : l’argument n’a pas une propriété de « longueur » valide
+15073,%s : Objet Array ou Arguments attendu
+15074,Opérande non valide pour « %s » : objet Object attendu
+15075,Opérande non valide pour « %s » : objet Function attendu
+15076,Descripteur non valide pour la propriété « %s »
+15077,Impossible de définir une propriété « %s » : objet non extensible
+15078,Impossible de redéfinir une propriété non configurable « %s »
+15079,Impossible de modifier une propriété non accessible en écriture « %s »
+15080,Impossible de modifier la propriété « %s » : « length » n’est pas accessible en écriture
+15081,Impossible de définir une propriété « %s »
+15088,L’argument obligatoire %s dans la méthode DataView n’est pas spécifié
+15090,L’argument %s du constructeur DataView n’est pas valide
+15091,La signature de la fonction « %s » n’est pas valide et ne peut pas être appelée
+15092,La signature de la propriété « %s » n’est pas valide et n’est pas accessible
+15093,La classe runtime %s avec Windows.Foundation.IPropertyValue comme interface par défaut n’est pas prise en charge en tant que type de paramètre d’entrée
+15094,L’objet avec l’interface Windows.Foundation.IPropertyValue avec le nom runtimeclass %s n’est pas pris en charge en tant que paramètre de sortie
+15096,%s : « this » n’est pas un objet Inspectable
+15097,%s : impossible de convertir l’argument en type « char »
+15098,%s : impossible de convertir l’argument en type « GUID »
+15099,%s : impossible de convertir la valeur renvoyée en IInspectable
+15100,Impossible de convertir l’objet en struct : propriété attendue « %s » manquante pour l’objet
+15101,Type « %s » introuvable
+15102,%s : fonction appelée avec trop peu d’arguments
+15103,%s : type non constructible
+15104,Impossible de convertir la valeur en PropertyValue : %s non pris en charge par PropertyValue
+15105,Impossible de convertir la valeur en IInspectable : %s non pris en charge par IInspectable
+15108,%s : l’objet Inspectable « this » est libéré et inaccessible.
+15110,« this » n’est pas du type attendu : %s
+15112,%s : une défaillance inattendue s’est produite lors de la tentative d’obtention d’informations de métadonnées.
+32812,La date spécifiée n'est pas disponible dans le calendrier régional actuel

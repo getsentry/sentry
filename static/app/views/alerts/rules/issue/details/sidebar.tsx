@@ -1,0 +1,251 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
+import {ActorAvatar} from '@sentry/scraps/avatar';
+
+import {SectionHeading} from 'sentry/components/charts/styles';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {TimeSince} from 'sentry/components/timeSince';
+import {IconChevron} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {Actor} from 'sentry/types/core';
+import type {Member, Team} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {TextAction, TextCondition} from './textRule';
+
+type Props = {
+  projectSlug: string;
+  rule: IssueAlertRule;
+  teams: Team[];
+};
+
+function Conditions({rule, teams, projectSlug}: Props) {
+  const organization = useOrganization();
+  const {data: memberList} = useApiQuery<Member[]>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/users/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {projectSlug}},
+    ],
+    {staleTime: 60000}
+  );
+
+  return (
+    <ConditionsContainer>
+      <Step>
+        <StepContainer>
+          <ChevronContainer>
+            <IconChevron variant="muted" direction="right" size="sm" />
+          </ChevronContainer>
+          <StepContent>
+            <StepLead>
+              {tct('[when:When] an event is captured [selector]', {
+                when: <Badge />,
+                selector: rule.conditions.length ? t('and %s...', rule.actionMatch) : '',
+              })}
+            </StepLead>
+            {rule.conditions.map((condition, idx) => (
+              <ConditionsBadge key={idx}>
+                <TextCondition condition={condition} />
+              </ConditionsBadge>
+            ))}
+          </StepContent>
+        </StepContainer>
+      </Step>
+      {rule.filters.length ? (
+        <Step>
+          <StepContainer>
+            <ChevronContainer>
+              <IconChevron variant="muted" direction="right" size="sm" />
+            </ChevronContainer>
+            <StepContent>
+              <StepLead>
+                {tct('[if:If] [selector] of these filters match', {
+                  if: <Badge />,
+                  selector: rule.filterMatch,
+                })}
+              </StepLead>
+              {rule.filters.map((filter, idx) => (
+                <ConditionsBadge key={idx}>
+                  {filter.time ? filter.name + '(s)' : filter.name}
+                </ConditionsBadge>
+              ))}
+            </StepContent>
+          </StepContainer>
+        </Step>
+      ) : null}
+      <Step>
+        <StepContainer>
+          <ChevronContainer>
+            <IconChevron variant="muted" direction="right" size="sm" />
+          </ChevronContainer>
+          <div>
+            <StepLead>
+              {tct('[then:Then] perform these actions', {
+                then: <Badge />,
+              })}
+            </StepLead>
+            {rule.actions.length ? (
+              rule.actions.map((action, idx) => {
+                return (
+                  <ConditionsBadge key={idx}>
+                    <TextAction
+                      action={action}
+                      memberList={memberList ?? []}
+                      teams={teams}
+                    />
+                  </ConditionsBadge>
+                );
+              })
+            ) : (
+              <ConditionsBadge>{t('Do nothing')}</ConditionsBadge>
+            )}
+          </div>
+        </StepContainer>
+      </Step>
+    </ConditionsContainer>
+  );
+}
+
+export function Sidebar({rule, teams, projectSlug}: Props) {
+  const ownerId = rule.owner?.split(':')[1];
+  const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
+
+  return (
+    <Fragment>
+      <StatusContainer>
+        <SectionHeading>{t('Last Triggered')}</SectionHeading>
+        <Status>
+          {rule.lastTriggered ? (
+            <TimeSince date={rule.lastTriggered} />
+          ) : (
+            t('No alerts triggered')
+          )}
+        </Status>
+      </StatusContainer>
+      <SectionHeading>{t('Alert Conditions')}</SectionHeading>
+      <Conditions rule={rule} teams={teams} projectSlug={projectSlug} />
+      <SectionHeading>{t('Alert Rule Details')}</SectionHeading>
+      <KeyValueTable>
+        <KeyValueTableRow
+          keyName={t('Environment')}
+          value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
+        />
+        {rule.dateCreated && (
+          <KeyValueTableRow
+            keyName={t('Date created')}
+            value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
+          />
+        )}
+        {rule.createdBy && (
+          <KeyValueTableRow
+            keyName={t('Created by')}
+            value={<OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>}
+          />
+        )}
+        <KeyValueTableRow
+          keyName={t('Team')}
+          value={
+            teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
+          }
+        />
+      </KeyValueTable>
+    </Fragment>
+  );
+}
+
+const Status = styled('div')`
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.lg};
+`;
+
+const StatusContainer = styled('div')`
+  margin-bottom: ${p => p.theme.space.xl};
+
+  h4 {
+    margin-top: 0;
+  }
+`;
+
+const ConditionsContainer = styled('div')`
+  margin-bottom: ${p => p.theme.space.xl};
+`;
+
+const Step = styled('div')`
+  position: relative;
+  margin-top: ${p => p.theme.space['3xl']};
+
+  :first-child {
+    margin-top: ${p => p.theme.space.md};
+  }
+`;
+
+const StepContainer = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  flex-grow: 1;
+`;
+
+const StepContent = styled('div')`
+  &::before {
+    content: '';
+    position: absolute;
+    height: 100%;
+    top: 28px;
+    left: ${p => p.theme.space.sm};
+    border-right: 1px ${p => p.theme.colors.gray200} dashed;
+  }
+`;
+
+const StepLead = styled('div')`
+  margin-bottom: ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
+
+const ChevronContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs} 0;
+`;
+
+const Badge = styled('span')`
+  display: inline-block;
+  background-color: ${p => p.theme.tokens.background.accent.vibrant};
+  padding: 0 ${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.colors.white};
+  text-transform: uppercase;
+  text-align: center;
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  line-height: 1.5;
+`;
+
+const ConditionsBadge = styled('span')`
+  display: block;
+  background-color: ${p => p.theme.tokens.background.secondary};
+  padding: 0 ${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
+  margin-bottom: ${p => p.theme.space.md};
+  width: fit-content;
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
+
+const OverflowTableValue = styled('div')`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;

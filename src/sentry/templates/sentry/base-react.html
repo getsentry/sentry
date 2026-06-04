@@ -1,0 +1,11 @@
+{% extends "sentry/layout.html" %}
+
+{% load sentry_api sentry_assets sentry_helpers %}
+
+{% block body %}
+  <div id="blk_router">
+    {% loader %}
+  </div>
+{% endblock %}
+
+{% block wrapperclass %}{{ user_theme }}{% endblock %}

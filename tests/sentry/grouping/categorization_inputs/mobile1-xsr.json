@@ -1,0 +1,72 @@
+{
+  "event_id": "bad92bc2d6464c8b35263d247b91a1db",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGABRT",
+              "number": 6
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "oatexec",
+              "package": "/system/framework/arm64/boot-conscrypt.oat"
+            },
+            {
+              "package": "/system/lib64/libjavacrypto.so"
+            },
+            {
+              "package": "/system/lib64/libjavacrypto.so"
+            },
+            {
+              "package": "/system/lib64/libjavacrypto.so"
+            },
+            {
+              "package": "/system/lib64/libart.so"
+            },
+            {
+              "function": "art::ClassLinker::FindClass",
+              "package": "/system/lib64/libart.so"
+            },
+            {
+              "function": "art::Thread::AssertNoPendingException",
+              "package": "/system/lib64/libart.so"
+            },
+            {
+              "function": "android::base::LogMessage::~LogMessage",
+              "package": "/system/lib64/libart.so"
+            },
+            {
+              "package": "/system/lib64/libart.so"
+            },
+            {
+              "package": "/system/lib64/libart.so"
+            },
+            {
+              "function": "abort",
+              "package": "/system/lib64/libc.so"
+            },
+            {
+              "function": "tgkill",
+              "package": "/system/lib64/libc.so"
+            }
+          ]
+        },
+        "type": "SIGABRT",
+        "value": "Abort"
+      }
+    ]
+  },
+  "platform": "native"
+}

@@ -1,0 +1,11 @@
+{
+  "stacktrace": {
+    "frames": [
+      {
+        "abs_path": "/data/foo/releases/20140114151955/app/views/foo.html.erb",
+        "context_line": "<% if @hotels.size > 0 %>",
+        "filename": "/data/foo/releases/20140114151955/app/views/foo.html.erb"
+      }
+    ]
+  }
+}

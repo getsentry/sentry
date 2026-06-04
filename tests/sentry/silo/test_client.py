@@ -1,0 +1,477 @@
+import ipaddress
+import socket
+from hashlib import sha256
+from unittest import mock
+from unittest.mock import MagicMock, patch
+
+import responses
+from django.test import RequestFactory, override_settings
+from pytest import raises
+
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError
+from sentry.shared_integrations.response.base import BaseApiResponse
+from sentry.silo.base import SiloMode
+from sentry.silo.client import (
+    CACHE_TIMEOUT,
+    REQUEST_ATTEMPTS_LIMIT,
+    CellSiloClient,
+    SiloClientError,
+    get_cell_ip_addresses,
+    validate_cell_ip_address,
+)
+from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
+from sentry.testutils.hybrid_cloud import override_allowed_cell_silo_ip_addresses
+from sentry.types.cell import Cell, CellResolutionError, RegionCategory
+from sentry.utils import json
+
+
+class SiloClientTest(TestCase):
+    dummy_address = "http://eu.testserver"
+    cell = Cell("eu", 1, dummy_address, RegionCategory.MULTI_TENANT)
+    cell_config = (cell,)
+
+    def setUp(self) -> None:
+        self.factory = RequestFactory()
+
+    @override_settings(SILO_MODE=SiloMode.MONOLITH)
+    def test_init_clients_from_monolith(self) -> None:
+        with raises(SiloClientError):
+            CellSiloClient(self.cell)
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_init_clients_from_control(self) -> None:
+        with override_cells(self.cell_config):
+            with raises(SiloClientError):
+                CellSiloClient("atlantis")  # type: ignore[arg-type]
+
+            with raises(CellResolutionError):
+                cell = Cell("atlantis", 1, self.dummy_address, RegionCategory.MULTI_TENANT)
+                CellSiloClient(cell)
+
+            client = CellSiloClient(self.cell)
+            assert client.base_url is not None
+            assert self.cell.address in client.base_url
+
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    @override_settings(SENTRY_CONTROL_ADDRESS=dummy_address)
+    def test_init_clients_from_region(self) -> None:
+        with raises(SiloClientError):
+            CellSiloClient(self.cell)
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @mock.patch("sentry.silo.client.cache")
+    def test_client_request_success(self, mock_cache: MagicMock) -> None:
+        with override_cells(self.cell_config):
+            client = CellSiloClient(self.cell)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.GET,
+                f"{self.dummy_address}{path}",
+                json={"ok": True},
+            )
+
+            response = client.request("GET", path)
+
+            assert len(responses.calls) == 1
+            assert isinstance(response, BaseApiResponse)
+
+            assert response.status_code == 200
+            assert response.body.get("ok")
+
+            assert mock_cache.get.call_count == 0
+            assert mock_cache.set.call_count == 0
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @mock.patch("sentry.silo.client.cache")
+    def test_client_request_success_with_retry(self, mock_cache: MagicMock) -> None:
+        with override_cells(self.cell_config):
+            client = CellSiloClient(self.cell)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.GET,
+                f"{self.dummy_address}{path}",
+                json={"ok": True},
+            )
+            prefix_hash = "123"
+
+            response = client.request("GET", path, prefix_hash=prefix_hash)
+
+            assert len(responses.calls) == 1
+            assert isinstance(response, BaseApiResponse)
+
+            assert response.status_code == 200
+            assert response.body.get("ok")
+
+            assert mock_cache.get.call_count == 1
+            assert mock_cache.set.call_count == 1
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @mock.patch("sentry.silo.client.cache")
+    def test_client_request_retry_limit_reached(self, mock_cache: MagicMock) -> None:
+        with override_cells(self.cell_config):
+            client = CellSiloClient(self.cell)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.POST,
+                f"{self.dummy_address}{path}",
+                json={"error": "bad request"},
+                status=400,
+            )
+
+            prefix_hash = "123"
+            hash = sha256(f"{prefix_hash}{self.cell.name}POST{path}".encode()).hexdigest()
+            cache_key = f"region_silo_client:request_attempts:{hash}"
+            num_of_request_attempts = 0
+
+            while num_of_request_attempts <= REQUEST_ATTEMPTS_LIMIT:
+                mock_cache.reset_mock()
+                responses.calls.reset()
+
+                if num_of_request_attempts == 0:
+                    mock_cache.get.return_value = None
+                else:
+                    mock_cache.get.return_value = num_of_request_attempts
+
+                parent_mock = mock.Mock()
+                parent_mock.attach_mock(mock_cache.get, "cache_get")
+                parent_mock.attach_mock(mock_cache.set, "cache_set")
+
+                if num_of_request_attempts == REQUEST_ATTEMPTS_LIMIT:
+                    with raises(SiloClientError) as exception_info:
+                        client.request("POST", path, prefix_hash=prefix_hash)
+                    assert len(responses.calls) == 0
+                    assert (
+                        exception_info.value.args[0]
+                        == f"Request attempts limit reached for: POST {path}"
+                    )
+
+                    assert mock_cache.get.call_count == 1
+                    assert mock_cache.set.call_count == 1
+                else:
+                    with raises(ApiError):
+                        client.request("POST", path, prefix_hash=prefix_hash)
+                    assert len(responses.calls) == 1
+                    resp = responses.calls[0].response
+                    assert resp.status_code == 400
+
+                    assert mock_cache.get.call_count == 1
+                    assert mock_cache.set.call_count == 1
+
+                num_of_request_attempts += 1
+                # Assert order of cache method calls
+                expected_calls = [
+                    mock.call.cache_get(cache_key),
+                    mock.call.cache_set(cache_key, num_of_request_attempts, timeout=CACHE_TIMEOUT),
+                ]
+                assert parent_mock.mock_calls == expected_calls
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @mock.patch("sentry.silo.client.cache")
+    def test_client_request_retry_within_limit(self, mock_cache: MagicMock) -> None:
+        with override_cells(self.cell_config):
+            client = CellSiloClient(self.cell)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.POST,
+                f"{self.dummy_address}{path}",
+                json={"error": "bad request"},
+                status=400,
+            )
+
+            prefix_hash = "123"
+            hash = sha256(f"{prefix_hash}{self.cell.name}POST{path}".encode()).hexdigest()
+            cache_key = f"region_silo_client:request_attempts:{hash}"
+            num_of_request_attempts = 0
+
+            while num_of_request_attempts < REQUEST_ATTEMPTS_LIMIT:
+                mock_cache.reset_mock()
+                responses.calls.reset()
+
+                if num_of_request_attempts == (REQUEST_ATTEMPTS_LIMIT - 1):
+                    responses.replace(
+                        responses.POST,
+                        f"{self.cell.address}{path}",
+                        status=200,
+                        json={"ok": True},
+                    )
+                if num_of_request_attempts == 0:
+                    mock_cache.get.return_value = None
+                else:
+                    mock_cache.get.return_value = num_of_request_attempts
+
+                parent_mock = mock.Mock()
+                parent_mock.attach_mock(mock_cache.get, "cache_get")
+                parent_mock.attach_mock(mock_cache.set, "cache_set")
+
+                if num_of_request_attempts == (REQUEST_ATTEMPTS_LIMIT - 1):
+                    client.request("POST", path, prefix_hash=prefix_hash)
+                    assert len(responses.calls) == 1
+
+                else:
+                    with raises(ApiError):
+                        client.request("POST", path, prefix_hash=prefix_hash)
+
+                    assert len(responses.calls) == 1
+                    resp = responses.calls[0].response
+                    assert resp.status_code == 400
+
+                num_of_request_attempts += 1
+                assert mock_cache.get.call_count == 1
+                assert mock_cache.set.call_count == 1
+
+                # Assert order of cache method calls
+                expected_calls = [
+                    mock.call.cache_get(cache_key),
+                    mock.call.cache_set(cache_key, num_of_request_attempts, timeout=CACHE_TIMEOUT),
+                ]
+                assert parent_mock.mock_calls == expected_calls
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_client_request_on_3xx(self) -> None:
+        with override_cells(self.cell_config):
+            client = CellSiloClient(self.cell)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.POST,
+                f"{self.dummy_address}{path}",
+                json={"error": "redirect"},
+                status=300,
+            )
+
+            response = client.request("POST", path)
+            assert isinstance(response, BaseApiResponse)
+
+            assert response.status_code == 300
+            assert response.json == {"error": "redirect"}
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_client_request_on_4xx(self) -> None:
+        with override_cells(self.cell_config):
+            client = CellSiloClient(self.cell)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.POST,
+                f"{self.dummy_address}{path}",
+                json={"error": "bad request"},
+                status=400,
+            )
+
+            with raises(ApiError):
+                client.request("POST", path)
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_client_request_on_5xx(self) -> None:
+        with override_cells(self.cell_config):
+            client = CellSiloClient(self.cell)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.POST,
+                f"{self.dummy_address}{path}",
+                json={"error": "server exploded"},
+                status=500,
+            )
+
+            with raises(ApiError):
+                client.request("POST", path)
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_client_proxy_request(self) -> None:
+        with override_cells(self.cell_config):
+            client = CellSiloClient(self.cell)
+            path = f"{self.dummy_address}/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.GET,
+                path,
+                json={"ok": True},
+                headers={"X-Some-Header": "Some-Value", PROXY_SIGNATURE_HEADER: "123"},
+            )
+
+            request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
+            response = client.proxy_request(request)
+
+            assert response.status_code == 200
+            assert json.loads(response.content).get("ok")
+
+            assert response["X-Some-Header"] == "Some-Value"
+            assert response.get(PROXY_SIGNATURE_HEADER) is None
+            assert response[PROXY_DIRECT_LOCATION_HEADER] == path
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_invalid_cell_silo_ip_address(self) -> None:
+        cell = Cell("eu", 1, "http://172.31.255.31:9000", RegionCategory.MULTI_TENANT)
+
+        # Disallow any cell silo ip address by default.
+        with (
+            override_cells((cell,)),
+            patch("sentry_sdk.capture_exception") as mock_capture_exception,
+            raises(ApiHostError),
+        ):
+            assert mock_capture_exception.call_count == 0
+
+            client = CellSiloClient(cell)
+            client.base_url = "http://172.31.255.255:9000"
+            request = self.factory.get(
+                "/api/0/imaginary-public-endpoint/", HTTP_HOST="https://control.sentry.io"
+            )
+            client.proxy_request(request)
+
+        assert mock_capture_exception.call_count == 1
+        err = mock_capture_exception.call_args.args[0]
+        assert isinstance(err, CellResolutionError)
+        assert err.args == ("Disallowed Cell Silo IP address: 172.31.255.255",)
+
+        with (
+            override_cells((cell,)),
+            patch("sentry_sdk.capture_exception") as mock_capture_exception,
+            override_allowed_cell_silo_ip_addresses("172.31.255.255"),
+            raises(ApiHostError),
+        ):
+            assert mock_capture_exception.call_count == 0
+
+            client = CellSiloClient(cell)
+            request = self.factory.get(
+                "/api/0/imaginary-public-endpoint/", HTTP_HOST="https://control.sentry.io"
+            )
+            client.proxy_request(request)
+
+        assert mock_capture_exception.call_count == 1
+        err = mock_capture_exception.call_args.args[0]
+        assert isinstance(err, CellResolutionError)
+        assert err.args == ("Disallowed Cell Silo IP address: 172.31.255.31",)
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_allowed_cell_silo_ip_addresses("172.31.255.255")
+    def test_client_restricted_ip_address(self) -> None:
+        internal_cell_address = "http://172.31.255.255:9000"
+        cell = Cell("eu", 1, internal_cell_address, RegionCategory.MULTI_TENANT)
+        cell_config = (cell,)
+
+        with (
+            override_cells(cell_config),
+            patch("sentry.silo.client.validate_cell_ip_address") as mock_validate_cell_ip_address,
+        ):
+            client = CellSiloClient(cell)
+            path = f"{internal_cell_address}/api/0/imaginary-public-endpoint/"
+            request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
+
+            class BailOut(Exception):
+                pass
+
+            def test_validate_cell_ip_address(ip) -> None:
+                assert ip == "172.31.255.255"
+                # We can't use responses library for this unit test as it hooks Session.send. So we assert that the
+                # validate_cell_ip_address function is properly called for the proxy request code path.
+                raise BailOut()
+
+            mock_validate_cell_ip_address.side_effect = test_validate_cell_ip_address
+
+            assert mock_validate_cell_ip_address.call_count == 0
+            with raises(BailOut):
+                client.proxy_request(request)
+            assert mock_validate_cell_ip_address.call_count == 1
+
+
+def test_validate_cell_ip_address() -> None:
+    with (
+        patch("sentry_sdk.capture_exception") as mock_capture_exception,
+        override_allowed_cell_silo_ip_addresses(),
+    ):
+        assert validate_cell_ip_address("172.31.255.255") is False
+        assert mock_capture_exception.call_count == 1
+        err = mock_capture_exception.call_args.args[0]
+        assert isinstance(err, CellResolutionError)
+        assert err.args == ("allowed_cell_ip_addresses is empty for: 172.31.255.255",)
+
+    with (
+        patch("sentry_sdk.capture_exception") as mock_capture_exception,
+        override_allowed_cell_silo_ip_addresses("192.88.99.0"),
+    ):
+        assert validate_cell_ip_address("172.31.255.255") is False
+        assert mock_capture_exception.call_count == 1
+        err = mock_capture_exception.call_args.args[0]
+        assert isinstance(err, CellResolutionError)
+        assert err.args == ("Disallowed Cell Silo IP address: 172.31.255.255",)
+
+    with (
+        patch("sentry_sdk.capture_exception") as mock_capture_exception,
+        override_allowed_cell_silo_ip_addresses("192.88.99.0", "172.31.255.255"),
+    ):
+        assert validate_cell_ip_address("172.31.255.255") is True
+        assert mock_capture_exception.call_count == 0
+
+
+def test_get_cell_ip_addresses() -> None:
+    internal_cell_address = "http://i.am.an.internal.hostname:9000"
+    cell = Cell("eu", 1, internal_cell_address, RegionCategory.MULTI_TENANT)
+    cell_config = (cell,)
+
+    with (
+        override_cells(cell_config),
+        patch("socket.gethostbyname") as mock_gethostbyname,
+        patch("sentry_sdk.capture_exception") as mock_capture_exception,
+    ):
+        mock_gethostbyname.return_value = "172.31.255.255"
+        assert get_cell_ip_addresses() == frozenset([ipaddress.ip_address("172.31.255.255")])
+        assert mock_capture_exception.call_count == 0
+
+    with (
+        override_cells(cell_config),
+        patch("socket.gethostbyname") as mock_gethostbyname,
+        patch("urllib3.util.parse_url") as mock_parse_url,
+        patch("sentry_sdk.capture_exception") as mock_capture_exception,
+    ):
+        mock_parse_url.return_value = MagicMock(host=None)
+        assert get_cell_ip_addresses() == frozenset([])
+        assert mock_gethostbyname.call_count == 0
+        assert mock_capture_exception.call_count == 1
+
+
+@mock.patch("sentry.utils.metrics.incr")
+def test_get_cell_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) -> None:
+    us1_cell_address = "http://i.am.us1.internal.hostname:9000"
+    us1_cell = Cell("us1", 1, us1_cell_address, RegionCategory.MULTI_TENANT)
+
+    us2_cell_address = "http://i.am.us2.internal.hostname:9000"
+    us2_cell = Cell("us2", 1, us2_cell_address, RegionCategory.MULTI_TENANT)
+
+    dead_cell_address = "http://i.am.dead.internal.hostname:9000"
+    dead_cell = Cell("dead", 1, dead_cell_address, RegionCategory.MULTI_TENANT)
+
+    cell_config = (us1_cell, us2_cell, dead_cell)
+
+    def mock_gethostbyname_for_cells(hostname):
+        if hostname == us1_cell_address.split("//")[1].split(":")[0]:
+            return "172.31.10.1"
+        elif hostname == us2_cell_address.split("//")[1].split(":")[0]:
+            return "172.31.20.1"
+        elif hostname == dead_cell_address.split("//")[1].split(":")[0]:
+            raise socket.gaierror("no_such_host")
+        else:
+            raise Exception(f"Unexpected hostname: {hostname}")
+
+    with (
+        override_cells(cell_config),
+        patch("socket.gethostbyname") as mock_gethostbyname,
+        patch("sentry_sdk.capture_exception") as mock_capture_exception,
+    ):
+        mock_gethostbyname.side_effect = mock_gethostbyname_for_cells
+        result = get_cell_ip_addresses()
+        expected = frozenset(
+            [ipaddress.ip_address("172.31.10.1"), ipaddress.ip_address("172.31.20.1")]
+        )
+        assert result == expected
+        assert mock_capture_exception.call_count == 1
+
+        # Ensure we log a single metric when IP resolution fails
+        assert mock_incr.call_count == 1
+        assert mock_incr.call_args.args[0] == "hybrid_cloud.silo_client.ip_address_resolution_error"

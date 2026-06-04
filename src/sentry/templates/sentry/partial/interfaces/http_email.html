@@ -1,0 +1,36 @@
+{% load i18n %}
+<table>
+    <colgroup>
+      <col style="width:130px;">
+    </colgroup>
+    <tbody>
+        {% if short_url %}
+        <tr>
+            <th>{% trans "URL" %}</th>
+            <td><a href="{{ url }}">{{ short_url|truncatechars:75 }}</a></td>
+        </tr>
+        {% endif %}
+        {% if method %}
+        <tr>
+            <th>{% trans "Method" %}</th>
+            <td>{{ method }}</td>
+        </tr>
+        {% endif %}
+        {% if query_string %}
+        <tr>
+            <th>{% trans "Query" %}</th>
+            <td>
+                <code>{{ query_string|truncatechars:100 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if fragment %}
+        <tr>
+            <th>{% trans "Fragment" %}</th>
+            <td>
+                <code>{{ fragment|truncatechars:100 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>

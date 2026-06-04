@@ -1,0 +1,12 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Claim Account" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+	<h3>{% trans "Claim Account" %}</h3>
+
+	<p>This account has already been claimed - you should be able to log in as normal. You can always <a href="{% url 'sentry-account-recover' %}">reset your password</a> if you have forgotten it.</p>
+{% endblock %}

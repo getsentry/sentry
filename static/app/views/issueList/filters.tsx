@@ -1,0 +1,89 @@
+import styled from '@emotion/styled';
+
+import {Flex} from '@sentry/scraps/layout';
+
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {IssueListSortOptions} from 'sentry/views/issueList/actions/sortOptions';
+import {IssueSearch} from 'sentry/views/issueList/issueSearch';
+import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+interface Props {
+  onSearch: (query: string) => void;
+  onSortChange: (sort: string) => void;
+  query: string;
+  sort: IssueSortOptions;
+}
+
+const RESET_PARAMS_ON_CHANGE = ['page', 'cursor'];
+
+export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
+  return (
+    <FiltersContainer>
+      <StyledPageFilterBar>
+        <ProjectPageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+        <EnvironmentPageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+        <DatePageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+      </StyledPageFilterBar>
+
+      <Search {...{query, onSearch}} />
+
+      <Flex justifySelf="end" gap="md" area="sort-save" align="start">
+        <IssueListSortOptions
+          query={query}
+          sort={sort}
+          onSelect={onSortChange}
+          triggerSize="md"
+          showIcon={false}
+        />
+
+        <IssueViewSaveButton query={query} sort={sort} />
+      </Flex>
+    </FiltersContainer>
+  );
+}
+
+const FiltersContainer = styled('div')`
+  display: grid;
+  column-gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xl};
+  width: 100%;
+
+  grid-template-columns: 100%;
+  grid-template-areas:
+    'page-filters'
+    'search'
+    'sort-save';
+
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'page-filters sort-save'
+      'search search';
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: 'page-filters search sort-save';
+  }
+`;
+
+const Search = styled(IssueSearch)`
+  grid-area: search;
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  grid-area: page-filters;
+  display: flex;
+  flex-basis: content;
+  max-width: 100%;
+  justify-self: start;
+
+  > div > button {
+    width: 100%;
+  }
+`;

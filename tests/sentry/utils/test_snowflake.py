@@ -1,0 +1,104 @@
+from datetime import datetime
+
+import pytest
+from django.conf import settings
+from django.test import override_settings
+
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.types.cell import Cell, RegionCategory
+from sentry.users.models.user import User
+from sentry.utils import snowflake
+from sentry.utils.snowflake import (
+    _TTL,
+    MAX_AVAILABLE_CELL_SEQUENCES,
+    SnowflakeBitSegment,
+    generate_snowflake_id,
+    get_redis_cluster,
+    get_timestamp_redis_key,
+    uses_snowflake_id,
+)
+
+
+class SnowflakeUtilsTest(TestCase):
+    CURRENT_TIME = datetime(2022, 7, 21, 6, 0)
+
+    def test_uses_snowflake_id(self) -> None:
+        assert uses_snowflake_id(Organization)
+        assert uses_snowflake_id(Project)
+        assert uses_snowflake_id(Team)
+        assert not uses_snowflake_id(User)
+
+    @freeze_time(CURRENT_TIME)
+    def test_generate_correct_ids(self) -> None:
+        cell = Cell("test-cell", 0, "http://testserver", RegionCategory.MULTI_TENANT)
+        with override_settings(SILO_MODE=SiloMode.CELL), override_cells([cell], cell):
+            snowflake_id = generate_snowflake_id("test_redis_key")
+            expected_value = (16 << 48) + (
+                int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) << 16
+            )
+
+            assert snowflake_id == expected_value
+
+    @freeze_time(CURRENT_TIME)
+    def test_generate_correct_ids_with_cell_sequence(self) -> None:
+        cell = Cell("test-cell", 0, "http://testserver", RegionCategory.MULTI_TENANT)
+        with override_settings(SILO_MODE=SiloMode.CELL), override_cells([cell], cell):
+            snowflake_id = generate_snowflake_id("test_redis_key")
+
+            for _ in range(MAX_AVAILABLE_CELL_SEQUENCES - 1):
+                new_snowflake_id = generate_snowflake_id("test_redis_key")
+
+                assert new_snowflake_id - snowflake_id == 1
+                snowflake_id = new_snowflake_id
+
+            snowflake_id = generate_snowflake_id("test_redis_key")
+
+            expected_value = (16 << 48) + (
+                (int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) - 1)
+                << 16
+            )
+
+            assert snowflake_id == expected_value
+
+    @freeze_time(CURRENT_TIME)
+    def test_out_of_cell_sequences(self) -> None:
+        cluster = get_redis_cluster()
+        current_timestamp = int(datetime.now().timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START)
+        redis_key = "test_redis_key"
+
+        for i in range(int(_TTL.total_seconds())):
+            timestamp = current_timestamp - i
+            cluster.set(get_timestamp_redis_key(redis_key, timestamp), 16)
+
+        with pytest.raises(Exception) as context:
+            generate_snowflake_id(redis_key)
+
+        assert str(context.value) == "No available ID"
+
+    @freeze_time(CURRENT_TIME)
+    def test_generate_correct_ids_with_cell_id(self) -> None:
+        cells = [
+            c1 := Cell("test-cell-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
+            c2 := Cell("test-cell-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
+        ]
+        with override_settings(SILO_MODE=SiloMode.CELL):
+            with override_cells(cells, c1):
+                snowflake1 = generate_snowflake_id("test_redis_key")
+            with override_cells(cells, c2):
+                snowflake2 = generate_snowflake_id("test_redis_key")
+
+            def recover_segment_value(segment: SnowflakeBitSegment, value: int) -> int:
+                for s in reversed(snowflake.BIT_SEGMENT_SCHEMA):
+                    if s == segment:
+                        return value & ((1 << s.length) - 1)
+                    value >>= s.length
+                raise AssertionError("unreachable")
+
+            assert recover_segment_value(snowflake.CELL_ID, snowflake1) == c1.snowflake_id
+            assert recover_segment_value(snowflake.CELL_ID, snowflake2) == c2.snowflake_id

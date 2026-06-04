@@ -1,0 +1,7 @@
+Sentry received a login attempt for {{ organization }} authenticated by {{ provider }}, with the credentials {{ email }}.
+
+If this was you, and you wish to associate your existing Sentry account to the new {{ provider }} identity for {{ email }}, please click the link below.
+
+This authentication link will expire in 10 minutes.
+
+{{ url|safe }}

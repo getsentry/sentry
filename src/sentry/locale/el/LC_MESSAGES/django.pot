@@ -1,0 +1,167 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-02-18 08:01+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: constants.py:6
+msgid "Priority"
+msgstr ""
+
+#: constants.py:7 constants.py:35
+msgid "Last Seen"
+msgstr ""
+
+#: constants.py:8 constants.py:36
+msgid "First Seen"
+msgstr ""
+
+#: constants.py:9
+msgid "Frequency"
+msgstr ""
+
+#: constants.py:10
+msgid "Total Time Spent"
+msgstr ""
+
+#: constants.py:11
+msgid "Average Time Spent"
+msgstr ""
+
+#: constants.py:12 constants.py:13
+#, python-format
+msgid "Trending: %(minutes)d minutes"
+msgstr ""
+
+#: constants.py:34
+msgid "Score"
+msgstr ""
+
+#: constants.py:39
+msgid "All time"
+msgstr ""
+
+#: constants.py:40
+msgid "30 days"
+msgstr ""
+
+#: constants.py:41
+msgid "7 days"
+msgstr ""
+
+#: constants.py:42
+msgid "3 days"
+msgstr ""
+
+#: constants.py:43
+msgid "24 hours"
+msgstr ""
+
+#: models.py:41
+msgid "unresolved"
+msgstr ""
+
+#: models.py:42
+msgid "resolved"
+msgstr ""
+
+#: models.py:47
+msgid "server name"
+msgstr ""
+
+#: models.py:48
+msgid "logger"
+msgstr ""
+
+#: models.py:49
+msgid "site"
+msgstr ""
+
+#: models.py:56
+msgid "owner"
+msgstr ""
+
+#: models.py:57
+msgid "user"
+msgstr ""
+
+#: models.py:58
+msgid "system agent"
+msgstr ""
+
+#: models.py:294
+msgid "error"
+msgstr ""
+
+#: models.py:323
+msgid "grouped messages"
+msgstr ""
+
+#: models.py:324
+msgid "grouped message"
+msgstr ""
+
+#: models.py:396
+msgid "message"
+msgstr ""
+
+#: models.py:397
+msgid "messages"
+msgstr ""
+
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
+msgid "Server Name"
+msgstr ""
+
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:22
+msgid "Times Seen"
+msgstr ""
+
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:23
+msgid "First Seen"
+msgstr ""
+
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:24
+msgid "Last Seen"
+msgstr ""
+
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:41
+msgid "There are no records recorded for this event."
+msgstr ""
+
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/widget.html:5
+msgid "Servers"
+msgstr ""
+
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:21
+msgid "Site Name"
+msgstr ""
+
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:22
+msgid "Times Seen"
+msgstr ""
+
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:23
+msgid "First Seen"
+msgstr ""
+
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:24
+msgid "Last Seen"
+msgstr ""
+
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:41
+msgid "There are no records recorded for this event."
+msgstr ""

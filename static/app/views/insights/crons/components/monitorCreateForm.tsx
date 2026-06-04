@@ -1,0 +1,313 @@
+import {Fragment, useRef} from 'react';
+import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {Observer} from 'mobx-react-lite';
+
+import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {SentryMemberTeamSelectorField} from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
+import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {timezoneOptions} from 'sentry/data/timezones';
+import {t} from 'sentry/locale';
+import {getOverride} from 'sentry/overrideRegistry';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import type {Monitor} from 'sentry/views/insights/crons/types';
+import {ScheduleType} from 'sentry/views/insights/crons/types';
+import {getScheduleIntervals} from 'sentry/views/insights/crons/utils';
+import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
+
+import {MockTimelineVisualization} from './mockTimelineVisualization';
+import {
+  DEFAULT_CRONTAB,
+  DEFAULT_MONITOR_TYPE,
+  mapMonitorFormErrors,
+  transformMonitorFormData,
+} from './monitorForm';
+
+const DEFAULT_SCHEDULE_CONFIG = {
+  scheduleType: 'crontab',
+  cronSchedule: DEFAULT_CRONTAB,
+  intervalFrequency: '1',
+  intervalUnit: 'day',
+};
+
+export function MonitorCreateForm() {
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
+  const onMonitorCreated = getOverride('callback:on-monitor-created');
+
+  const form = useRef(
+    new FormModel({
+      transformData: transformMonitorFormData,
+    })
+  );
+  const {onFieldChange} = useFormEagerValidation(form.current);
+
+  const selectedProjectId = selection.projects[0];
+  const selectedProject = selectedProjectId
+    ? projects.find(p => p.id === selectedProjectId + '')
+    : null;
+
+  const isSuperuser = isActiveSuperuser();
+  const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
+
+  function onCreateMonitor(data: Monitor) {
+    const endpointOptions = {
+      query: {
+        project: selection.projects,
+        environment: selection.environments,
+      },
+    };
+    navigate(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/issues/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`,
+        query: endpointOptions.query,
+      })
+    );
+    onMonitorCreated?.(organization);
+  }
+
+  function changeScheduleType(type: ScheduleType) {
+    form.current.setValue('config.scheduleType', type);
+  }
+
+  return (
+    <Form
+      allowUndo
+      requireChanges
+      apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+      apiMethod="POST"
+      model={form.current}
+      onFieldChange={onFieldChange}
+      initialData={{
+        project: selectedProject ? selectedProject.slug : null,
+        type: DEFAULT_MONITOR_TYPE,
+        'config.scheduleType': DEFAULT_SCHEDULE_CONFIG.scheduleType,
+      }}
+      onSubmitSuccess={onCreateMonitor}
+      submitLabel={t('Create')}
+      mapFormErrors={mapMonitorFormErrors}
+    >
+      <FieldContainer>
+        <ProjectOwnerNameInputs>
+          <SentryProjectSelectorField
+            name="project"
+            projects={filteredProjects}
+            placeholder={t('Choose Project')}
+            disabledReason={t('Existing monitors cannot be moved between projects')}
+            valueIsSlug
+            required
+            stacked
+            inline={false}
+          />
+          <SentryMemberTeamSelectorField
+            name="owner"
+            placeholder={t('Assign Ownership')}
+            stacked
+            inline={false}
+          />
+          <TextField
+            name="name"
+            placeholder={t('My Cron Job')}
+            required
+            stacked
+            inline={false}
+          />
+        </ProjectOwnerNameInputs>
+        <SubHeading>{t('Schedule')}</SubHeading>
+        <ScheduleOptions>
+          <Observer>
+            {() => {
+              const currScheduleType = form.current.getValue('config.scheduleType');
+              const selectedCrontab = currScheduleType === ScheduleType.CRONTAB;
+              const parsedSchedule = form.current.getError('config.schedule')
+                ? null
+                : crontabAsText(
+                    form.current.getValue<string>('config.schedule')?.toString() ?? ''
+                  );
+
+              return (
+                <Fragment>
+                  <SchedulePanel
+                    highlighted={selectedCrontab}
+                    onClick={() => changeScheduleType(ScheduleType.CRONTAB)}
+                  >
+                    <PanelBody withPadding>
+                      <ScheduleLabel>{t('Crontab Schedule')}</ScheduleLabel>
+                      <CrontabInputs>
+                        <TextField
+                          name="config.schedule"
+                          placeholder="* * * * *"
+                          defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
+                          css={css`
+                            input {
+                              font-family: ${theme.font.family.mono};
+                            }
+                          `}
+                          required={selectedCrontab}
+                          stacked
+                          inline={false}
+                          hideControlState={!selectedCrontab}
+                        />
+                        <SelectField
+                          name="config.timezone"
+                          defaultValue="UTC"
+                          options={timezoneOptions}
+                          required={selectedCrontab}
+                          stacked
+                          inline={false}
+                        />
+                        <CronstrueText>
+                          {parsedSchedule ?? t('(invalid schedule)')}
+                        </CronstrueText>
+                      </CrontabInputs>
+                    </PanelBody>
+                  </SchedulePanel>
+                  <SchedulePanel
+                    highlighted={!selectedCrontab}
+                    onClick={() => changeScheduleType(ScheduleType.INTERVAL)}
+                  >
+                    <PanelBody withPadding>
+                      <ScheduleLabel>{t('Interval Schedule')}</ScheduleLabel>
+                      <IntervalInputs>
+                        <Label>{t('Every')}</Label>
+                        <NumberField
+                          name="config.schedule.frequency"
+                          placeholder="e.g. 1"
+                          defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalFrequency}
+                          required={!selectedCrontab}
+                          stacked
+                          inline={false}
+                          hideControlState={selectedCrontab}
+                        />
+                        <SelectField
+                          name="config.schedule.interval"
+                          options={getScheduleIntervals(
+                            Number(
+                              form.current.getValue('config.schedule.frequency') ?? 1
+                            )
+                          )}
+                          defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalUnit}
+                          required={!selectedCrontab}
+                          stacked
+                          inline={false}
+                        />
+                      </IntervalInputs>
+                    </PanelBody>
+                  </SchedulePanel>
+                </Fragment>
+              );
+            }}
+          </Observer>
+        </ScheduleOptions>
+        <Observer>
+          {() => {
+            const scheduleType = form.current.getValue('config.scheduleType');
+            const cronSchedule = form.current.getValue('config.schedule');
+            const timezone = form.current.getValue('config.timezone');
+            const intervalFrequency = form.current.getValue('config.schedule.frequency');
+            const intervalUnit = form.current.getValue('config.schedule.interval');
+
+            const schedule = {
+              scheduleType,
+              cronSchedule,
+              intervalFrequency,
+              intervalUnit,
+              timezone: typeof timezone === 'string' ? timezone : undefined,
+            };
+
+            return <MockTimelineVisualization schedule={schedule} />;
+          }}
+        </Observer>
+      </FieldContainer>
+    </Form>
+  );
+}
+
+const FieldContainer = styled('div')`
+  max-width: 800px;
+
+  ${FieldWrapper} {
+    padding: 0;
+  }
+`;
+
+const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
+  border-radius: 0 ${p => p.theme.space.sm} ${p => p.theme.space.sm} 0;
+
+  ${p =>
+    p.highlighted
+      ? css`
+          border: 2px solid ${p.theme.tokens.border.accent.vibrant};
+        `
+      : css`
+          padding: 1px;
+        `}
+
+  &:first-child {
+    border-radius: ${p => p.theme.space.sm} 0 0 ${p => p.theme.space.sm};
+  }
+`;
+
+const ScheduleLabel = styled('div')`
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  margin-bottom: ${p => p.theme.space.xl};
+`;
+
+const Label = styled('div')`
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const SubHeading = styled('div')`
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
+  text-transform: uppercase;
+`;
+
+const ScheduleOptions = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+`;
+
+const MultiColumnInput = styled('div')`
+  display: grid;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+`;
+
+const ProjectOwnerNameInputs = styled(MultiColumnInput)`
+  grid-template-columns: 230px 230px 1fr;
+`;
+
+const CrontabInputs = styled(MultiColumnInput)`
+  grid-template-columns: 1fr 1fr;
+`;
+
+const IntervalInputs = styled(MultiColumnInput)`
+  grid-template-columns: auto 1fr 2fr;
+`;
+
+const CronstrueText = styled('div')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
+  font-family: ${p => p.theme.font.family.mono};
+  grid-column: auto / span 2;
+`;

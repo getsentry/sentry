@@ -1,0 +1,207 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
+
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import * as orgsActionCreators from 'sentry/actionCreators/organizations';
+import {openSudo} from 'sentry/actionCreators/sudoModal';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
+import type {Organization} from 'sentry/types/organization';
+import * as intercom from 'sentry/utils/intercom';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {OrganizationContextProvider} from './organizationContext';
+
+jest.mock('sentry/actionCreators/sudoModal');
+
+describe('OrganizationContext', () => {
+  let getOrgMock: jest.Mock;
+  let getProjectsMock: jest.Mock;
+  let getTeamsMock: jest.Mock;
+
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
+  const team = TeamFixture();
+
+  const initialRouterConfig = {
+    route: '/organizations/:orgId/',
+    location: {
+      pathname: `/organizations/${organization.slug}/`,
+    },
+  };
+
+  function setupOrgMocks(org: Organization) {
+    const orgMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/`,
+      body: org,
+    });
+    const projectMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [project],
+    });
+    const teamMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/teams/`,
+      body: [team],
+    });
+
+    return {orgMock, projectMock, teamMock};
+  }
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+
+    const {orgMock, projectMock, teamMock} = setupOrgMocks(organization);
+    getOrgMock = orgMock;
+    getProjectsMock = projectMock;
+    getTeamsMock = teamMock;
+
+    TeamStore.reset();
+    ProjectsStore.reset();
+    ConfigStore.init();
+    OrganizationStore.reset();
+
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+  });
+
+  afterEach(() => {
+    // eslint-disable-next-line no-console
+    jest.mocked(console.error).mockRestore();
+  });
+
+  /**
+   * Used to test that the organization context is propegated
+   */
+  function OrganizationName() {
+    const org = useOrganization({allowNull: true});
+
+    return <div>{org?.slug ?? 'no-org'}</div>;
+  }
+
+  it('fetches org, projects, teams, and provides organization context', async () => {
+    render(
+      <OrganizationContextProvider>
+        <OrganizationName />
+      </OrganizationContextProvider>,
+      {initialRouterConfig}
+    );
+
+    expect(await screen.findByText(organization.slug)).toBeInTheDocument();
+    expect(getOrgMock).toHaveBeenCalled();
+    expect(getProjectsMock).toHaveBeenCalled();
+    expect(getTeamsMock).toHaveBeenCalled();
+  });
+
+  it('fetches new org when router params change', async () => {
+    // First render with org-slug
+    const {router: testRouter} = render(
+      <OrganizationContextProvider>
+        <OrganizationName />
+      </OrganizationContextProvider>,
+      {initialRouterConfig}
+    );
+
+    expect(await screen.findByText(organization.slug)).toBeInTheDocument();
+    expect(JSON.stringify(OrganizationStore.getState().organization)).toEqual(
+      JSON.stringify(organization)
+    );
+
+    const anotherOrg = OrganizationFixture({slug: 'another-org'});
+
+    const {orgMock, projectMock, teamMock} = setupOrgMocks(anotherOrg);
+
+    const switchOrganization = jest.spyOn(orgsActionCreators, 'switchOrganization');
+    const shutdownIntercom = jest.spyOn(intercom, 'shutdownIntercom');
+
+    // re-render with another-org
+    testRouter.navigate(`/organizations/${anotherOrg.slug}/`);
+
+    expect(await screen.findByText(anotherOrg.slug)).toBeInTheDocument();
+    expect(orgMock).toHaveBeenCalled();
+    expect(projectMock).toHaveBeenCalled();
+    expect(teamMock).toHaveBeenCalled();
+    expect(switchOrganization).toHaveBeenCalled();
+    expect(shutdownIntercom).toHaveBeenCalled();
+    expect(JSON.stringify(OrganizationStore.getState().organization)).toEqual(
+      JSON.stringify(anotherOrg)
+    );
+  });
+
+  it('opens sudo modal for superusers for nonmember org with active staff', async () => {
+    ConfigStore.set('user', UserFixture({isSuperuser: true, isStaff: true}));
+    organization.access = [];
+
+    getOrgMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+
+    render(
+      <OrganizationContextProvider>
+        <OrganizationName />
+      </OrganizationContextProvider>,
+      {initialRouterConfig}
+    );
+
+    await waitFor(() => !OrganizationStore.getState().loading);
+
+    await waitFor(() => expect(openSudo).toHaveBeenCalled());
+  });
+
+  it('opens sudo modal for superusers on 403s', async () => {
+    ConfigStore.set('user', UserFixture({isSuperuser: true}));
+
+    getOrgMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      statusCode: 403,
+    });
+
+    render(
+      <OrganizationContextProvider>
+        <OrganizationName />
+      </OrganizationContextProvider>,
+      {initialRouterConfig}
+    );
+
+    await waitFor(() => !OrganizationStore.getState().loading);
+
+    // eslint-disable-next-line no-console
+    await waitFor(() => expect(console.error).toHaveBeenCalled());
+    expect(openSudo).toHaveBeenCalled();
+  });
+
+  /**
+   * This test will rarely happen since most configurations are now using customer domains
+   */
+  it('uses last organization slug from ConfigStore', async () => {
+    const configStoreOrg = OrganizationFixture({slug: 'config-store-org'});
+
+    ConfigStore.set('lastOrganization', configStoreOrg.slug);
+
+    const {orgMock, projectMock, teamMock} = setupOrgMocks(configStoreOrg);
+
+    // orgId is not present in the router.
+    render(
+      <OrganizationContextProvider>
+        <OrganizationName />
+      </OrganizationContextProvider>,
+      {
+        initialRouterConfig: {
+          route: '/organizations/',
+          location: {
+            pathname: '/organizations/',
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText(configStoreOrg.slug)).toBeInTheDocument();
+    expect(orgMock).toHaveBeenCalled();
+    expect(projectMock).toHaveBeenCalled();
+    expect(teamMock).toHaveBeenCalled();
+  });
+});

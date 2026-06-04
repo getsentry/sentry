@@ -1,0 +1,237 @@
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
+
+import {ExternalLink} from '@sentry/scraps/link';
+import type {CursorHandler} from '@sentry/scraps/pagination';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {ListItem} from 'sentry/components/list/listItem';
+import {t, tct} from 'sentry/locale';
+import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
+import type {Group} from 'sentry/types/group';
+import type {Member} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {useApi} from 'sentry/utils/useApi';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {PreviewTable} from './previewTable';
+
+const SENTRY_ISSUE_ALERT_DOCS_URL =
+  'https://docs.sentry.io/product/alerts/alert-types/#issue-alerts';
+
+function PreviewText({issueCount, previewError}: any) {
+  if (previewError) {
+    return (
+      <Fragment>
+        {t("Select a condition above to see which issues would've triggered this alert")}
+      </Fragment>
+    );
+  }
+
+  return tct(
+    "[issueCount] issues would have triggered this rule in the past 14 days [approximately:approximately]. If you're looking to reduce noise then make sure to [link:read the docs].",
+    {
+      issueCount,
+      approximately: (
+        <Tooltip
+          title={t('Previews that include issue frequency conditions are approximated')}
+          showUnderline
+        />
+      ),
+      link: <ExternalLink href={SENTRY_ISSUE_ALERT_DOCS_URL} />,
+    }
+  );
+}
+
+interface PreviewIssuesProps {
+  members: Member[] | undefined;
+  project: Project;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
+}
+
+export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const isMounted = useIsMountedRef();
+  const [isLoading, setIsLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
+  const [previewGroups, setPreviewGroups] = useState<Group[]>([]);
+  const [previewPage, setPreviewPage] = useState(0);
+  const [pageLinks, setPageLinks] = useState('');
+  const [issueCount, setIssueCount] = useState(0);
+  const endDateRef = useRef<string | null>(null);
+
+  /**
+   * If any of this data changes we'll need to re-fetch the preview
+   */
+  const relevantRuleData = useMemo(
+    () =>
+      rule
+        ? {
+            conditions: rule.conditions || [],
+            filters: rule.filters || [],
+            actionMatch: rule.actionMatch || 'all',
+            filterMatch: rule.filterMatch || 'all',
+            frequency: rule.frequency || 60,
+          }
+        : {},
+    [rule]
+  );
+
+  /**
+   * Not using useApiQuery because it makes a post request
+   */
+  const fetchApiData = useCallback(
+    (ruleFields: any, cursor?: string | null, resetCursor?: boolean) => {
+      setIsLoading(true);
+      if (resetCursor) {
+        setPreviewPage(0);
+      }
+
+      // we currently don't have a way to parse objects from query params, so this method is POST for now
+      api
+        .requestPromise(`/projects/${organization.slug}/${project.slug}/rules/preview/`, {
+          method: 'POST',
+          includeAllArgs: true,
+          query: {
+            cursor,
+            per_page: 5,
+          },
+          data: {
+            ...ruleFields,
+            // so the end date doesn't change? Not sure.
+            endpoint: endDateRef.current,
+          },
+        })
+        .then(([data, _, resp]) => {
+          if (!isMounted.current) {
+            return;
+          }
+
+          const hits = resp?.getResponseHeader('X-Hits');
+          const count = hits !== undefined && hits ? parseInt(hits, 10) : 0;
+          setPreviewGroups(data);
+          setPreviewError(false);
+          setPageLinks(resp?.getResponseHeader('Link') ?? '');
+          setIssueCount(count);
+          setIsLoading(false);
+          endDateRef.current = resp?.getResponseHeader('Endpoint') ?? null;
+        })
+        .catch(_ => {
+          setPreviewError(true);
+          setIsLoading(false);
+        });
+    },
+    [
+      setIsLoading,
+      setPreviewError,
+      setPreviewGroups,
+      setIssueCount,
+      api,
+      project.slug,
+      organization.slug,
+      isMounted,
+    ]
+  );
+
+  const debouncedFetchApiData = useMemo(
+    () => debounce(fetchApiData, 500),
+    [fetchApiData]
+  );
+
+  useEffect(() => {
+    debouncedFetchApiData(relevantRuleData, null, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(relevantRuleData), debouncedFetchApiData]);
+
+  useEffect(() => {
+    return () => {
+      debouncedFetchApiData.cancel();
+    };
+  }, [debouncedFetchApiData]);
+
+  const onPreviewCursor: CursorHandler = (cursor, _1, _2, direction) => {
+    setPreviewPage(previewPage + direction);
+    debouncedFetchApiData.cancel();
+    fetchApiData(relevantRuleData, cursor);
+  };
+
+  const handleAssigneeChange = useCallback(
+    (groupId: string, newAssignee: AssignableEntity | null) => {
+      setPreviewGroups(prev =>
+        prev.map(group => {
+          if (group.id !== groupId) {
+            return group;
+          }
+          return {
+            ...group,
+            assignedTo: newAssignee
+              ? {
+                  id: newAssignee.id,
+                  name: newAssignee.assignee.name,
+                  type: newAssignee.type,
+                }
+              : null,
+          };
+        })
+      );
+    },
+    []
+  );
+
+  const errorMessage = previewError
+    ? rule?.conditions.length || rule?.filters.length
+      ? t('Preview is not supported for these conditions')
+      : t('Select a condition to generate a preview')
+    : null;
+
+  return (
+    <Fragment>
+      <StyledListItem>
+        <StepHeader>{t('Preview')}</StepHeader>
+        <StyledFieldHelp>
+          <PreviewText issueCount={issueCount} previewError={previewError} />
+        </StyledFieldHelp>
+      </StyledListItem>
+      <ContentIndent>
+        <PreviewTable
+          groups={previewGroups}
+          members={members}
+          pageLinks={pageLinks}
+          onCursor={onPreviewCursor}
+          onAssigneeChange={handleAssigneeChange}
+          issueCount={issueCount}
+          page={previewPage}
+          isLoading={isLoading}
+          error={errorMessage}
+        />
+      </ContentIndent>
+    </Fragment>
+  );
+}
+
+const StyledListItem = styled(ListItem)`
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
+  font-size: ${p => p.theme.font.size.xl};
+`;
+
+const StepHeader = styled('h5')`
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const StyledFieldHelp = styled(FieldHelp)`
+  margin-top: 0;
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    margin-left: -${p => p.theme.space['3xl']};
+  }
+`;
+
+const ContentIndent = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    margin-left: ${p => p.theme.space['3xl']};
+  }
+`;

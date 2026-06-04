@@ -1,0 +1,33 @@
+---
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - sdk-nextjs
+    matchers:
+    - - sdk
+      - sentry.javascript.nextjs
+    text: sdk:"sentry.javascript.nextjs" -> "sdk-nextjs"
+  version: 1
+fingerprint:
+- sdk-nextjs
+title: Es Dee Kay
+variants:
+  custom_server_fingerprint:
+    contributes: true
+    hint: null
+    key: custom_server_fingerprint
+    matched_rule: sdk:"sentry.javascript.nextjs" -> "sdk-nextjs"
+    type: custom_fingerprint
+    values:
+    - sdk-nextjs
+  default:
+    component:
+      contributes: false
+      hint: ignored because custom server fingerprint takes precedence
+    contributes: false
+    hint: ignored because custom server fingerprint takes precedence
+    key: message
+    type: component

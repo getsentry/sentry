@@ -1,0 +1,120 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps, Container} from '@sentry/scraps/layout';
+
+import {NoProjectEmptyState} from 'sentry/components/illustrations/NoProjectEmptyState';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
+import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
+import {useProjects} from 'sentry/utils/useProjects';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+type Props = {
+  organization: Organization;
+  children?: React.ReactNode;
+  superuserNeedsToBeProjectMember?: boolean;
+};
+
+export function NoProjectMessage({
+  children,
+  organization,
+  superuserNeedsToBeProjectMember,
+}: Props) {
+  const {projects} = useProjects();
+  const {hasProjectAccess, projectsLoaded} = useHasProjectAccess({
+    superuserNeedsToBeProjectMember,
+  });
+
+  const canUserCreateProject = useCanCreateProject();
+  const canJoinTeam = organization.access.includes('team:read');
+
+  const orgHasProjects = !!projects?.length;
+
+  if (hasProjectAccess || !projectsLoaded) {
+    return <Fragment>{children}</Fragment>;
+  }
+
+  // If the organization has some projects, but the user doesn't have access to
+  // those projects, the primary action is to Join a Team. Otherwise the primary
+  // action is to create a project.
+
+  const joinTeamAction = (
+    <LinkButton
+      tooltipProps={{
+        title: canJoinTeam ? undefined : t('You do not have permission to join a team.'),
+      }}
+      disabled={!canJoinTeam}
+      variant={orgHasProjects ? 'primary' : 'secondary'}
+      to={`/settings/${organization.slug}/teams/`}
+    >
+      {t('Join a Team')}
+    </LinkButton>
+  );
+
+  const createProjectAction = (
+    <LinkButton
+      tooltipProps={{
+        title: canUserCreateProject
+          ? undefined
+          : t('You do not have permission to create a project.'),
+      }}
+      disabled={!canUserCreateProject}
+      variant={orgHasProjects ? 'secondary' : 'primary'}
+      to={makeProjectsPathname({path: '/new/', organization})}
+    >
+      {t('Create project')}
+    </LinkButton>
+  );
+
+  return (
+    <Flex
+      flex="1"
+      align="center"
+      justify="center"
+      gap="3xl"
+      padding="lg"
+      direction={{xs: 'column', sm: 'row'}}
+    >
+      <Flex
+        align="center"
+        justify="center"
+        height="auto"
+        width={{xs: '300px', sm: 'auto'}}
+      >
+        <StyledNoProjectEmptyState />
+      </Flex>
+
+      <Flex direction="column" justify="center">
+        <Layout.Title>{t('Remain Calm')}</Layout.Title>
+        <Container marginBottom="xl">
+          {t('You need at least one project to use this view')}
+        </Container>
+        <Actions>
+          {orgHasProjects ? (
+            <Fragment>
+              {joinTeamAction}
+              {createProjectAction}
+            </Fragment>
+          ) : (
+            createProjectAction
+          )}
+        </Actions>
+      </Flex>
+    </Flex>
+  );
+}
+
+const StyledNoProjectEmptyState = styled(NoProjectEmptyState)`
+  width: 100%;
+  height: auto;
+`;
+
+const Actions = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
+  width: fit-content;
+`;

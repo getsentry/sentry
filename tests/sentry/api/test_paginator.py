@@ -1,0 +1,1066 @@
+import base64
+from datetime import UTC, datetime, timedelta
+from unittest import TestCase as SimpleTestCase
+
+import pytest
+from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Value
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, TraceItemFilter
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
+
+from sentry.api.paginator import (
+    BadPaginationError,
+    CallbackPaginator,
+    ChainPaginator,
+    CombinedQuerysetIntermediary,
+    CombinedQuerysetPaginator,
+    DateTimePaginator,
+    EAPPageTokenPaginator,
+    GenericOffsetPaginator,
+    OffsetPaginator,
+    Paginator,
+    SequencePaginator,
+    reverse_bisect_left,
+)
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
+from sentry.models.rule import Rule
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
+from sentry.utils.cursors import Cursor
+from sentry.utils.snuba import raw_snql_query
+
+
+@control_silo_test
+class PaginatorTest(TestCase):
+    cls = Paginator
+
+    def test_max_limit(self) -> None:
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        self.create_user("baz@example.com")
+
+        queryset = User.objects.all()
+
+        paginator = self.cls(queryset, "id", max_limit=10)
+        result = paginator.get_result(limit=2, cursor=None)
+        assert len(result) == 2
+
+        paginator = self.cls(queryset, "id", max_limit=1)
+        result = paginator.get_result(limit=2, cursor=None)
+        assert len(result) == 1
+
+    def test_count_hits(self) -> None:
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+
+        queryset = User.objects.filter(email="foo@example.com")
+        paginator = self.cls(queryset, "id")
+        result = paginator.count_hits(1000)
+        assert result == 1
+
+        queryset = User.objects.all()
+        paginator = self.cls(queryset, "id")
+        result = paginator.count_hits(1000)
+        assert result == 2
+
+        queryset = User.objects.none()
+        paginator = self.cls(queryset, "id")
+        result = paginator.count_hits(1000)
+        assert result == 0
+
+        queryset = User.objects.all()
+        paginator = self.cls(queryset, "id")
+        result = paginator.count_hits(1)
+        assert result == 1
+
+    def test_prev_emptyset(self) -> None:
+        queryset = User.objects.all()
+
+        paginator = self.cls(queryset, "id")
+        result1 = paginator.get_result(limit=1, cursor=None)
+
+        res1 = self.create_user("foo@example.com")
+
+        result2 = paginator.get_result(limit=1, cursor=result1.prev)
+        assert len(result2) == 1, (result2, list(result2))
+        assert result2[0] == res1
+
+        result3 = paginator.get_result(limit=1, cursor=result2.prev)
+        assert len(result3) == 0, (result3, list(result3))
+
+
+@control_silo_test
+class OffsetPaginatorTest(TestCase):
+    # offset paginator does not support dynamic limits on is_prev
+    def test_simple(self) -> None:
+        res1 = self.create_user("foo@example.com")
+        res2 = self.create_user("bar@example.com")
+        res3 = self.create_user("baz@example.com")
+
+        queryset = User.objects.all()
+
+        paginator = OffsetPaginator(queryset, "id")
+        result1 = paginator.get_result(limit=1, cursor=None)
+        assert len(result1) == 1, result1
+        assert result1[0] == res1
+        assert result1.next
+        assert not result1.prev
+
+        result2 = paginator.get_result(limit=1, cursor=result1.next)
+        assert len(result2) == 1, (result2, list(result2))
+        assert result2[0] == res2
+        assert result2.next
+        assert result2.prev
+
+        result3 = paginator.get_result(limit=1, cursor=result2.next)
+        assert len(result3) == 1, result3
+        assert result3[0] == res3
+        assert not result3.next
+        assert result3.prev
+
+        result4 = paginator.get_result(limit=1, cursor=result3.next)
+        assert len(result4) == 0, result4
+        assert not result4.next
+        assert result4.prev
+
+        result5 = paginator.get_result(limit=1, cursor=result4.prev)
+        assert len(result5) == 1, result5
+        assert result5[0] == res3
+        assert not result5.next
+        assert result5.prev
+
+    def test_negative_offset(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+        cursor = Cursor(10, -1)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+        cursor = Cursor(-10, 1)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_order_by_multiple(self) -> None:
+        res1 = self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        res3 = self.create_user("baz@example.com")
+
+        queryset = User.objects.all()
+
+        paginator = OffsetPaginator(queryset, "id")
+        result = paginator.get_result(limit=1, cursor=None)
+        assert len(result) == 1, result
+        assert result[0] == res1
+        assert result.next
+        assert not result.prev
+
+        res3.update(is_active=False)
+
+        paginator = OffsetPaginator(queryset, ("is_active", "id"))
+        result = paginator.get_result(limit=1, cursor=None)
+        assert len(result) == 1, result
+        assert result[0] == res3
+        assert result.next
+        assert not result.prev
+
+        result = paginator.get_result(limit=1, cursor=result.next)
+        assert len(result) == 1, (result, list(result))
+        assert result[0] == res1
+        assert result.next
+        assert result.prev
+
+    def test_max_offset(self) -> None:
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        self.create_user("baz@example.com")
+
+        queryset = User.objects.all()
+
+        paginator = OffsetPaginator(queryset, max_offset=10)
+        result1 = paginator.get_result(cursor=None)
+        assert len(result1) == 3, result1
+
+        paginator = OffsetPaginator(queryset, max_offset=0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result()
+
+
+@control_silo_test
+class DateTimePaginatorTest(TestCase):
+    def test_ascending(self) -> None:
+        joined = timezone.now()
+
+        # The DateTime pager only has accuracy up to 1000th of a second.
+        # Everything can't be added within less than 10 microseconds of each
+        # other. This is handled by the pager (see test_rounding_offset), but
+        # this case shouldn't rely on it.
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        res2 = self.create_user("bar@example.com", date_joined=joined + timedelta(seconds=1))
+        res3 = self.create_user("baz@example.com", date_joined=joined + timedelta(seconds=2))
+        res4 = self.create_user("qux@example.com", date_joined=joined + timedelta(seconds=3))
+
+        queryset = User.objects.all()
+
+        paginator = DateTimePaginator(queryset, "date_joined")
+        result1 = paginator.get_result(limit=2, cursor=None)
+        assert len(result1) == 2, result1
+        assert result1[0] == res1
+        assert result1[1] == res2
+        assert result1.next
+        assert not result1.prev
+
+        result2 = paginator.get_result(limit=2, cursor=result1.next)
+        assert len(result2) == 2, result2
+        assert result2[0] == res3
+        assert result2[1] == res4
+        assert not result2.next
+        assert result2.prev
+
+        result3 = paginator.get_result(limit=1, cursor=result2.prev)
+        assert len(result3) == 1, result3
+        assert result3[0] == res2
+        assert result3.next
+        assert result3.prev
+
+        result4 = paginator.get_result(limit=1, cursor=result3.prev)
+        assert len(result4) == 1, result4
+        assert result4[0] == res1
+        assert result4.next
+        assert not result4.prev
+
+    def test_descending(self) -> None:
+        joined = timezone.now()
+
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        res2 = self.create_user("bar@example.com", date_joined=joined + timedelta(seconds=1))
+        res3 = self.create_user("baz@example.com", date_joined=joined + timedelta(seconds=2))
+
+        queryset = User.objects.all()
+
+        paginator = DateTimePaginator(queryset, "-date_joined")
+        result1 = paginator.get_result(limit=1, cursor=None)
+        assert len(result1) == 1, result1
+        assert result1[0] == res3
+        assert result1.next
+        assert not result1.prev
+
+        result2 = paginator.get_result(limit=2, cursor=result1.next)
+        assert len(result2) == 2, result2
+        assert result2[0] == res2
+        assert result2[1] == res1
+        assert not result2.next
+        assert result2.prev
+
+        result3 = paginator.get_result(limit=2, cursor=result2.prev)
+        assert len(result3) == 1, result3
+        assert result3[0] == res3
+        assert result3.next
+        assert not result3.prev
+
+    def test_prev_descending_with_new(self) -> None:
+        joined = timezone.now()
+
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        res2 = self.create_user("bar@example.com", date_joined=joined + timedelta(seconds=1))
+
+        queryset = User.objects.all()
+
+        paginator = DateTimePaginator(queryset, "-date_joined")
+        result1 = paginator.get_result(limit=10, cursor=None)
+        assert len(result1) == 2, result1
+        assert result1[0] == res2
+        assert result1[1] == res1
+
+        res3 = self.create_user("baz@example.com", date_joined=joined + timedelta(seconds=2))
+        res4 = self.create_user("qux@example.com", date_joined=joined + timedelta(seconds=3))
+
+        result2 = paginator.get_result(limit=10, cursor=result1.prev)
+        assert len(result2) == 2, result2
+        assert result2[0] == res4
+        assert result2[1] == res3
+
+        result3 = paginator.get_result(limit=10, cursor=result2.prev)
+        assert len(result3) == 0, result3
+
+        result4 = paginator.get_result(limit=10, cursor=result1.next)
+        assert len(result4) == 0, result4
+
+    def test_rounding_offset(self) -> None:
+        joined = timezone.now()
+
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        res2 = self.create_user("bar@example.com", date_joined=joined + timedelta(microseconds=1))
+        res3 = self.create_user("baz@example.com", date_joined=joined + timedelta(microseconds=2))
+        res4 = self.create_user("qux@example.com", date_joined=joined + timedelta(microseconds=3))
+
+        queryset = User.objects.all()
+
+        paginator = DateTimePaginator(queryset, "date_joined")
+        result1 = paginator.get_result(limit=3, cursor=None)
+        assert len(result1) == 3, result1
+        assert result1[0] == res1
+        assert result1[1] == res2
+        assert result1[2] == res3
+
+        result2 = paginator.get_result(limit=10, cursor=result1.next)
+        assert len(result2) == 1, result2
+        assert result2[0] == res4
+
+        result3 = paginator.get_result(limit=2, cursor=result2.prev)
+        assert len(result3) == 2, result3
+        assert result3[0] == res2
+        assert result3[1] == res3
+
+        result4 = paginator.get_result(limit=1, cursor=result3.prev)
+        assert len(result4) == 1, result4
+        assert result4[0] == res1
+
+        result5 = paginator.get_result(limit=10, cursor=result4.prev)
+        assert len(result5) == 0, list(result5)
+
+    def test_same_row_updated(self) -> None:
+        joined = timezone.now()
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        queryset = User.objects.all()
+
+        paginator = DateTimePaginator(queryset, "-date_joined")
+        result1 = paginator.get_result(limit=3, cursor=None)
+        assert len(result1) == 1, result1
+        assert result1[0] == res1
+
+        # Prev page should return no results
+        result2 = paginator.get_result(limit=3, cursor=result1.prev)
+        assert len(result2) == 0, result2
+
+        # If the same row has an updated join date then it should
+        # show up on the prev page
+        res1.update(date_joined=joined + timedelta(seconds=1))
+        result3 = paginator.get_result(limit=3, cursor=result1.prev)
+        assert len(result3) == 1, result3
+        assert result3[0] == res1
+
+        # Make sure updates work as expected with extra rows
+        res1.update(date_joined=res1.date_joined + timedelta(seconds=1))
+        res2 = self.create_user(
+            "bar@example.com", date_joined=res1.date_joined + timedelta(seconds=1)
+        )
+        res3 = self.create_user(
+            "baz@example.com", date_joined=res1.date_joined + timedelta(seconds=2)
+        )
+        res4 = self.create_user(
+            "bat@example.com", date_joined=res1.date_joined + timedelta(seconds=3)
+        )
+        result4 = paginator.get_result(limit=1, cursor=result3.prev)
+        assert len(result4) == 1, result4
+        assert result4[0] == res1
+
+        result5 = paginator.get_result(limit=3, cursor=result3.prev)
+        assert len(result5) == 3, result5
+        assert result5[0] == res3
+        assert result5[1] == res2
+        assert result5[2] == res1
+
+        result6 = paginator.get_result(limit=3, cursor=result5.prev)
+        assert len(result6) == 1, result6
+        assert result6[0] == res4
+
+        res4.update(date_joined=res4.date_joined + timedelta(seconds=1))
+        result7 = paginator.get_result(limit=3, cursor=result6.prev)
+        assert len(result7) == 1, result7
+        assert result7[0] == res4
+
+
+def test_reverse_bisect_left() -> None:
+    assert reverse_bisect_left([], 0) == 0
+
+    assert reverse_bisect_left([1], -1) == 1
+    assert reverse_bisect_left([1], 0) == 1
+    assert reverse_bisect_left([1], 1) == 0
+    assert reverse_bisect_left([1], 2) == 0
+
+    assert reverse_bisect_left([2, 1], -1) == 2
+    assert reverse_bisect_left([2, 1], 0) == 2
+    assert reverse_bisect_left([2, 1], 1) == 1
+    assert reverse_bisect_left([2, 1], 2) == 0
+    assert reverse_bisect_left([2, 1], 3) == 0
+
+    assert reverse_bisect_left([3, 2, 1], -1) == 3
+    assert reverse_bisect_left([3, 2, 1], 0) == 3
+    assert reverse_bisect_left([3, 2, 1], 1) == 2
+    assert reverse_bisect_left([3, 2, 1], 2) == 1
+    assert reverse_bisect_left([3, 2, 1], 3) == 0
+    assert reverse_bisect_left([3, 2, 1], 4) == 0
+
+    assert reverse_bisect_left([4, 3, 2, 1], -1) == 4
+    assert reverse_bisect_left([4, 3, 2, 1], 0) == 4
+    assert reverse_bisect_left([4, 3, 2, 1], 1) == 3
+    assert reverse_bisect_left([4, 3, 2, 1], 2) == 2
+    assert reverse_bisect_left([4, 3, 2, 1], 3) == 1
+    assert reverse_bisect_left([4, 3, 2, 1], 4) == 0
+    assert reverse_bisect_left([4, 3, 2, 1], 5) == 0
+
+    assert reverse_bisect_left([1, 1], 0) == 2
+    assert reverse_bisect_left([1, 1], 1) == 0
+    assert reverse_bisect_left([1, 1], 2) == 0
+
+    assert reverse_bisect_left([2, 1, 1], 0) == 3
+    assert reverse_bisect_left([2, 1, 1], 1) == 1
+    assert reverse_bisect_left([2, 1, 1], 2) == 0
+
+    assert reverse_bisect_left([2, 2, 1], 0) == 3
+    assert reverse_bisect_left([2, 2, 1], 1) == 2
+    assert reverse_bisect_left([2, 2, 1], 2) == 0
+
+    assert reverse_bisect_left([3, 2, 1], 2, hi=10) == 1
+
+
+class SequencePaginatorTestCase(SimpleTestCase):
+    def test_empty_results(self) -> None:
+        paginator: SequencePaginator[None] = SequencePaginator([])
+        result = paginator.get_result(5)
+        assert list(result) == []
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(0, 0, False, False)
+
+        paginator = SequencePaginator([], reverse=True)
+        result = paginator.get_result(5)
+        assert list(result) == []
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(0, 0, False, False)
+
+    def test_ascending_simple(self) -> None:
+        paginator = SequencePaginator([(i, i) for i in range(10)], reverse=False)
+
+        result = paginator.get_result(5)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(5, 0, False, True)
+
+        result = paginator.get_result(5, result.next)
+        assert list(result) == [5, 6, 7, 8, 9]
+        assert result.prev == Cursor(5, 0, True, True)
+        assert result.next == Cursor(9, 1, False, False)
+
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(5, 0, False, True)
+
+        result = paginator.get_result(5, Cursor(100, 0, False))
+        assert list(result) == []
+        assert result.prev == Cursor(9, 1, True, True)
+        assert result.next == Cursor(9, 1, False, False)
+
+    def test_descending_simple(self) -> None:
+        paginator = SequencePaginator([(i, i) for i in range(10)], reverse=True)
+
+        result = paginator.get_result(5)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev == Cursor(9, 0, True, False)
+        assert result.next == Cursor(4, 0, False, True)
+
+        result = paginator.get_result(5, result.next)
+        assert list(result) == [4, 3, 2, 1, 0]
+        assert result.prev == Cursor(4, 0, True, True)
+        assert result.next == Cursor(0, 1, False, False)
+
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev == Cursor(9, 0, True, False)
+        assert result.next == Cursor(4, 0, False, True)
+
+        result = paginator.get_result(5, Cursor(-10, 0, False))
+        assert list(result) == []
+        assert result.prev == Cursor(0, 1, True, True)
+        assert result.next == Cursor(0, 1, False, False)
+
+    def test_ascending_repeated_scores(self) -> None:
+        paginator = SequencePaginator([(1, i) for i in range(10)], reverse=False)
+
+        result = paginator.get_result(5)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(1, 0, True, False)
+        assert result.next == Cursor(1, 5, False, True)
+
+        result = paginator.get_result(5, result.next)
+        assert list(result) == [5, 6, 7, 8, 9]
+        assert result.prev == Cursor(1, 5, True, True)
+        assert result.next == Cursor(1, 10, False, False)
+
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(1, 0, True, False)
+        assert result.next == Cursor(1, 5, False, True)
+
+        result = paginator.get_result(5, Cursor(100, 0, False))
+        assert list(result) == []
+        assert result.prev == Cursor(1, 10, True, True)
+        assert result.next == Cursor(1, 10, False, False)
+
+    def test_descending_repeated_scores(self) -> None:
+        paginator = SequencePaginator([(1, i) for i in range(10)], reverse=True)
+
+        result = paginator.get_result(5)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev == Cursor(1, 0, True, False)
+        assert result.next == Cursor(1, 5, False, True)
+
+        result = paginator.get_result(5, result.next)
+        assert list(result) == [4, 3, 2, 1, 0]
+        assert result.prev == Cursor(1, 5, True, True)
+        assert result.next == Cursor(1, 10, False, False)
+
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev == Cursor(1, 0, True, False)
+        assert result.next == Cursor(1, 5, False, True)
+
+        result = paginator.get_result(5, Cursor(-10, 0, False))
+        assert list(result) == []
+        assert result.prev == Cursor(1, 10, True, True)
+        assert result.next == Cursor(1, 10, False, False)
+
+    def test_hits(self) -> None:
+        n = 10
+        paginator = SequencePaginator([(i, i) for i in range(n)])
+        assert paginator.get_result(5, count_hits=True).hits == n
+
+
+class GenericOffsetPaginatorTest(SimpleTestCase):
+    def test_simple(self) -> None:
+        def data_fn(offset=None, limit=None):
+            return [i for i in range(offset, limit)]
+
+        paginator = GenericOffsetPaginator(data_fn=data_fn)
+
+        result = paginator.get_result(5)
+
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(0, 5, False, True)
+
+        result2 = paginator.get_result(5, result.next)
+
+        assert list(result2) == [5]
+        assert result2.prev == Cursor(0, 0, True, True)
+        assert result2.next == Cursor(0, 10, False, False)
+
+
+class CombinedQuerysetPaginatorTest(APITestCase):
+    def test_simple(self) -> None:
+        Rule.objects.all().delete()
+
+        alert_rule0 = self.create_alert_rule(name="alertrule0")
+        alert_rule1 = self.create_alert_rule(name="alertrule1")
+        rule1 = self.create_project_rule(name="rule1")
+        alert_rule2 = self.create_alert_rule(name="alertrule2")
+        alert_rule3 = self.create_alert_rule(name="alertrule3")
+        rule2 = self.create_project_rule(name="rule2")
+        rule3 = self.create_project_rule(name="rule3")
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            AlertRule.objects.all(), ["date_added"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), ["date_added"])
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        result = paginator.get_result(limit=3, cursor=None)
+        assert len(result) == 3
+        page1_results = list(result)
+        assert page1_results[0].id == rule3.id
+        assert page1_results[1].id == rule2.id
+        assert page1_results[2].id == alert_rule3.id
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 3
+        assert page2_results[0].id == alert_rule2.id
+        assert page2_results[1].id == rule1.id
+        assert page2_results[2].id == alert_rule1.id
+
+        next_cursor = result.next
+        prev_cursor = result.prev
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page3_results = list(result)
+        assert len(result) == 1
+        assert page3_results[0].id == alert_rule0.id
+
+        result = paginator.get_result(limit=3, cursor=prev_cursor)
+        assert list(result) == page1_results
+
+        # Test reverse sorting:
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+        )
+        result = paginator.get_result(limit=3, cursor=None)
+        assert len(result) == 3
+        page1_results = list(result)
+        assert page1_results[0].id == alert_rule0.id
+        assert page1_results[1].id == alert_rule1.id
+        assert page1_results[2].id == rule1.id
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 3
+        assert page2_results[0].id == alert_rule2.id
+        assert page2_results[1].id == alert_rule3.id
+        assert page2_results[2].id == rule2.id
+
+        next_cursor = result.next
+        prev_cursor = result.prev
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page3_results = list(result)
+        assert len(result) == 1
+        assert page3_results[0].id == rule3.id
+
+        result = paginator.get_result(limit=3, cursor=prev_cursor)
+        assert list(result) == page1_results
+
+    def test_order_by_invalid_key(self) -> None:
+        self.create_project_rule(name="rule1")
+        with pytest.raises(AssertionError):
+            CombinedQuerysetIntermediary(Rule.objects.all(), ["dontexist"])
+
+    def test_mix_date_and_not_date(self) -> None:
+        self.create_project_rule(name="rule1")
+        self.create_alert_rule(name="alertrule1")
+        with pytest.raises(AssertionError):
+            rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), ["date_added"])
+            alert_rule_intermediary = CombinedQuerysetIntermediary(
+                AlertRule.objects.all(), ["name"]
+            )
+            CombinedQuerysetPaginator(
+                intermediaries=[rule_intermediary, alert_rule_intermediary],
+            )
+
+    def test_only_issue_alert_rules(self) -> None:
+        Rule.objects.all().delete()
+        rule_ids = []
+
+        for i in range(1, 9):
+            rule = self.create_project_rule(name=f"rule{i}")
+            rule_ids.append(rule.id)
+
+        rules = Rule.objects.all()
+        far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
+        rules = rules.annotate(date_triggered=far_past_date)
+        incident_status_value = Value(-2, output_field=IntegerField())
+        rules = rules.annotate(incident_status=incident_status_value)
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            AlertRule.objects.all(), ["incident_status", "date_triggered"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(
+            rules, ["incident_status", "date_triggered"]
+        )
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        result = paginator.get_result(limit=5, cursor=None)
+        assert len(result) == 5
+        page1_results = list(result)
+        assert page1_results[0].id == rule_ids[0]
+        assert page1_results[4].id == rule_ids[4]
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=5, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 3
+        assert page2_results[-1].id == rule_ids[-1]
+
+        prev_cursor = result.prev
+        prev_results = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(prev_results) == 5
+        assert prev_results == page1_results
+
+    def test_only_metric_alert_rules(self) -> None:
+        project = self.project
+        AlertRule.objects.all().delete()
+        Rule.objects.all().delete()
+        alert_rule_ids = []
+
+        for i in range(1, 9):
+            alert_rule = self.create_alert_rule(name=f"alertrule{i}", projects=[project])
+            alert_rule_ids.append(alert_rule.id)
+
+        rules = AlertRule.objects.all()
+        far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
+        rules = rules.annotate(
+            date_triggered=Coalesce(
+                Subquery(
+                    Incident.objects.filter(alert_rule=OuterRef("pk"))
+                    .order_by("-date_started")
+                    .values("date_started")[:1]
+                ),
+                far_past_date,
+            ),
+        )
+        rules = rules.annotate(
+            incident_status=Coalesce(
+                Subquery(
+                    Incident.objects.filter(alert_rule=OuterRef("pk"))
+                    .order_by("-date_started")
+                    .values("status")[:1]
+                ),
+                Value(-1, output_field=IntegerField()),
+            )
+        )
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            rules, ["incident_status", "date_triggered"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(
+            Rule.objects.all(), ["incident_status", "date_triggered"]
+        )
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        result = paginator.get_result(limit=5, cursor=None)
+        assert len(result) == 5
+        page1_results = list(result)
+        assert page1_results[0].id == alert_rule_ids[0]
+        assert page1_results[4].id == alert_rule_ids[4]
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=5, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 3
+        assert page2_results[-1].id == alert_rule_ids[-1]
+
+        prev_cursor = result.prev
+        prev_results = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(prev_results) == 5
+        assert prev_results == page1_results
+
+    def test_issue_and_metric_alert_rules(self) -> None:
+        AlertRule.objects.all().delete()
+        Rule.objects.all().delete()
+        alert_rule_ids = []
+        rule_ids = []
+
+        for i in range(1, 4):
+            alert_rule = self.create_alert_rule(name=f"alertrule{i}")
+            alert_rule_ids.append(alert_rule.id)
+            rule = self.create_project_rule(name=f"rule{i}")
+            rule_ids.append(rule.id)
+
+        metric_alert_rules = AlertRule.objects.all()
+        issue_alert_rules = Rule.objects.all()
+
+        far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
+        issue_alert_rules = issue_alert_rules.annotate(date_triggered=far_past_date)
+        metric_alert_rules = metric_alert_rules.annotate(
+            date_triggered=Coalesce(
+                Subquery(
+                    Incident.objects.filter(alert_rule=OuterRef("pk"))
+                    .order_by("-date_started")
+                    .values("date_started")[:1]
+                ),
+                far_past_date,
+            ),
+        )
+        incident_status_value = Value(-2, output_field=IntegerField())
+        issue_alert_rules = issue_alert_rules.annotate(incident_status=incident_status_value)
+        metric_alert_rules = metric_alert_rules.annotate(
+            incident_status=Coalesce(
+                Subquery(
+                    Incident.objects.filter(alert_rule=OuterRef("pk"))
+                    .order_by("-date_started")
+                    .values("status")[:1]
+                ),
+                Value(-1, output_field=IntegerField()),
+            )
+        )
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            metric_alert_rules, ["incident_status", "date_triggered"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(
+            issue_alert_rules, ["incident_status", "date_triggered"]
+        )
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        result = paginator.get_result(limit=5, cursor=None)
+        page1_results = list(result)
+        assert len(result) == 5
+        assert result[0].id == alert_rule_ids[0]
+        assert result[4].id == rule_ids[1]
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=5, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 1
+        assert page2_results[0].id == rule_ids[2]
+
+        prev_cursor = result.prev
+        prev_results = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(prev_results) == 5
+        assert prev_results == page1_results
+
+    def test_prev_page_not_limited(self) -> None:
+        Rule.objects.all().delete()
+
+        rules = []
+        for i in range(10):
+            rules.append(self.create_project_rule(name=f"rule{i}"))
+
+        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), ["date_added"])
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[rule_intermediary],
+            desc=True,
+        )
+
+        # Page forward twice with limit=3 so we're on page 3.
+        page1 = paginator.get_result(limit=3, cursor=None)
+        page2 = paginator.get_result(limit=3, cursor=page1.next)
+        page3 = paginator.get_result(limit=3, cursor=page2.next)
+        assert len(page3) == 3
+
+        # Navigate back to page 2 via prev cursor.
+        prev_result = paginator.get_result(limit=3, cursor=page3.prev)
+        assert list(prev_result) == list(page2)
+
+    def test_individual_querysets_are_limited(self) -> None:
+        Rule.objects.all().delete()
+
+        for i in range(10):
+            self.create_alert_rule(name=f"alertrule{i}")
+            self.create_project_rule(name=f"rule{i}")
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            AlertRule.objects.all(), ["date_added"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), ["date_added"])
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        limit = 3
+        result = paginator.get_result(limit=limit, cursor=None)
+        assert len(result) == limit
+
+        # Each queryset has 10 rows but max_rows=4 (stop = offset + limit + 1)
+        # should limit each to 4, giving 8 total instead of 20.
+        stop = limit + 1
+        built = paginator._build_combined_querysets(is_prev=False, max_rows=stop)
+        assert len(built) == stop * 2
+
+
+class TestChainPaginator(SimpleTestCase):
+    cls = ChainPaginator
+
+    def test_simple(self) -> None:
+        sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
+        paginator = self.cls(sources=sources)
+        result = paginator.get_result(limit=5)
+        assert len(result.results) == 5
+        assert result.results == [1, 2, 3, 4, 5]
+        assert result.next.has_results
+        assert result.prev.has_results is False
+
+    def test_small_first(self) -> None:
+        sources = [[1, 2], [3, 4, 5, 6, 7, 8, 9, 10]]
+        paginator = self.cls(sources=sources)
+        first = paginator.get_result(limit=4)
+        assert first.results == [1, 2, 3, 4]
+        assert first.next.has_results
+        assert not first.prev.has_results
+
+        second = paginator.get_result(limit=4, cursor=first.next)
+        assert second.results == [5, 6, 7, 8]
+        assert second.prev.has_results
+        assert second.next.has_results
+
+    def test_results_from_two_sources(self) -> None:
+        sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
+        cursor = Cursor(3, 1)
+        paginator = self.cls(sources=sources)
+        result = paginator.get_result(limit=3, cursor=cursor)
+        assert len(result.results) == 3
+        assert result.results == [4, 5, 6]
+        assert result.next.has_results
+        assert result.prev.has_results
+
+    def test_results_from_last_source(self) -> None:
+        sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
+        cursor = Cursor(3, 2)
+        paginator = self.cls(sources=sources)
+        result = paginator.get_result(limit=3, cursor=cursor)
+        assert len(result.results) == 2
+        assert result.results == [7, 8]
+        assert result.next.has_results is False
+        assert result.prev.has_results
+
+    def test_no_duplicates_in_pagination(self) -> None:
+        sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
+        cursor = Cursor(3, 0)
+        paginator = self.cls(sources=sources)
+
+        first = paginator.get_result(limit=3, cursor=cursor)
+        assert len(first.results) == 3
+        assert first.results == [1, 2, 3]
+        assert first.next.has_results
+
+        second = paginator.get_result(limit=3, cursor=first.next)
+        assert len(second.results) == 3
+        assert second.results == [4, 5, 6]
+        assert second.next.has_results
+
+        third = paginator.get_result(limit=3, cursor=second.next)
+        assert len(third.results) == 2
+        assert third.results == [7, 8]
+        assert third.next.has_results is False
+
+
+def dummy_snuba_request_method(limit, offset, org_id, proj_id, timestamp):
+    referrer = "tests.sentry.api.test_paginator"
+    query = Query(
+        match=Entity("events"),
+        select=[Column("event_id")],
+        where=[
+            Condition(Column("project_id"), Op.EQ, proj_id),
+            Condition(Column("timestamp"), Op.GTE, timestamp - timedelta(days=1)),
+            Condition(Column("timestamp"), Op.LT, timestamp + timedelta(days=1)),
+        ],
+        orderby=[OrderBy(Column("event_id"), Direction.ASC)],
+        offset=Offset(offset),
+        limit=Limit(limit),
+    )
+    request = Request(
+        dataset="events",
+        app_id=referrer,
+        query=query,
+        tenant_ids={"referrer": referrer, "organization_id": org_id},
+    )
+    return raw_snql_query(request, referrer)["data"]
+
+
+class CallbackPaginatorTest(APITestCase, SnubaTestCase):
+    cls = CallbackPaginator
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.now = timezone.now()
+        self.project.date_added = self.now - timedelta(minutes=5)
+        for i in range(8):
+            self.store_event(
+                project_id=self.project.id,
+                data={
+                    "event_id": str(i) * 32,
+                    "timestamp": (self.now - timedelta(minutes=2)).isoformat(),
+                },
+            )
+
+    def test_simple(self) -> None:
+        paginator = self.cls(
+            callback=lambda limit, offset: dummy_snuba_request_method(
+                limit, offset, self.organization.id, self.project.id, self.now
+            ),
+        )
+        first_page = paginator.get_result(limit=3)
+        assert len(first_page.results) == 3
+        assert first_page.results == [{"event_id": str(i) * 32} for i in range(3)]
+        assert first_page.next.offset == 1
+        assert first_page.next.has_results
+        assert first_page.prev.has_results is False
+
+        second_page = paginator.get_result(limit=3, cursor=first_page.next)
+        assert len(second_page.results) == 3
+        assert second_page.results == [{"event_id": str(i) * 32} for i in range(3, 6)]
+        assert second_page.next.offset == 2
+        assert second_page.next.has_results
+        assert second_page.prev.offset == 0
+        assert second_page.prev.has_results
+
+        third_page = paginator.get_result(limit=3, cursor=second_page.next)
+        assert len(third_page.results) == 2
+        assert third_page.results == [{"event_id": str(i) * 32} for i in range(6, 8)]
+        assert third_page.next.has_results is False
+        assert third_page.prev.offset == 1
+        assert third_page.prev.has_results
+
+
+class TestEAPPageTokenPaginator:
+    cls = EAPPageTokenPaginator
+
+    def test_first_page_empty(self) -> None:
+        def data_fn(limit, page_token):
+            return {
+                "data": [],
+                "page_token": PageToken(end_pagination=True),
+            }
+
+        paginator = self.cls(data_fn=data_fn)
+        page = paginator.get_result(limit=3, cursor=None)
+        assert page["data"] == []
+        assert page.prev.has_results is False
+        assert page.next.has_results is False
+
+    def test_first_page_all_data(self) -> None:
+        def data_fn(limit, page_token):
+            return {
+                "data": [1, 2, 3],
+                "page_token": PageToken(end_pagination=True),
+            }
+
+        paginator = self.cls(data_fn=data_fn)
+        page = paginator.get_result(limit=3, cursor=None)
+        assert page["data"] == [1, 2, 3]
+        assert page.prev.has_results is False
+        assert page.next.has_results is False
+
+    def test_first_page_partial_data(self) -> None:
+        expected_page_token = PageToken(filter_offset=TraceItemFilter(and_filter=AndFilter()))
+
+        def data_fn(limit, page_token):
+            if page_token is None:
+                return {
+                    "data": [1, 2, 3],
+                    "page_token": expected_page_token,
+                }
+
+            return {
+                "data": [4, 5],
+                "page_token": PageToken(end_pagination=True),
+            }
+
+        paginator = self.cls(data_fn=data_fn)
+        page = paginator.get_result(limit=3, cursor=None)
+        assert page["data"] == [1, 2, 3]
+        assert page.prev.has_results is False
+        assert page.next.has_results is True
+
+        actual_page_token = PageToken()
+        actual_page_token.ParseFromString(base64.b64decode(page.next.value.encode("utf-8")))
+        assert actual_page_token == expected_page_token
+
+        page = paginator.get_result(limit=3, cursor=page.next)

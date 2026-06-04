@@ -1,0 +1,197 @@
+import {Fragment} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {IconBusiness, IconWarning} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+
+import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
+import {withSubscription} from 'getsentry/components/withSubscription';
+import type {Subscription} from 'getsentry/types';
+import {displayPlanName, getTrialDaysLeft, isTrialPlan} from 'getsentry/utils/billing';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+
+type Props = Pick<ModalRenderProps, 'closeModal'> & {
+  organization: Organization;
+  subscription: Subscription;
+};
+
+function WarningItem(text: string, index: number) {
+  return (
+    <Fragment key={index}>
+      <IconWarning size="sm" variant="warning" />
+      {text}
+    </Fragment>
+  );
+}
+
+function UpgradeItem(text: string, index: number) {
+  return (
+    <Fragment key={index}>
+      <IconBusiness size="sm" />
+      {text}
+    </Fragment>
+  );
+}
+
+function TrialEndingModal({organization, subscription, closeModal}: Props) {
+  const daysLeft = getTrialDaysLeft(subscription);
+
+  if (daysLeft < 0) {
+    return null;
+  }
+
+  // not a trial coming from a paid plan (ex: am1_team)
+  const isFreePlanTrial = isTrialPlan(subscription.plan);
+
+  const returnPlan = t(
+    '%s Plan',
+    isFreePlanTrial ? t('Developer') : displayPlanName(subscription.planDetails)
+  );
+
+  const leftColumnItems = isFreePlanTrial
+    ? [
+        t('Limited to one active user'),
+        t('Events retained for 30 days'),
+        t('Limited features & integrations'),
+      ]
+    : [
+        t('Single project views'),
+        t('Read-only dashboards'),
+        t('Limited features & integrations'),
+      ];
+
+  const rightColumnItems = isFreePlanTrial
+    ? [
+        t('Unlimited Users'),
+        t('Events retained for 90 days'),
+        t('Access all features & integrations'),
+      ]
+    : [
+        t('Cross-project visibility'),
+        t('Custom queries and dashboards'),
+        t('Access all features & integrations'),
+      ];
+
+  return (
+    <div data-test-id="trial-ending-modal">
+      <div>
+        <TrialEndInfo>
+          <h2 data-test-id="trial-end-header">
+            {tn('Trial Ends in %s Day', 'Trial Ends in %s Days', daysLeft)}
+          </h2>
+          <p data-test-id="trial-end-body">
+            {tct(
+              `Time flies when you're squashing bugs! Unless you say otherwise, we'll switch your account back to a
+              [planName] in [daysLeft]. This may impact your current workflow, see the differences below.`,
+              {planName: returnPlan, daysLeft: tn('%s day', '%s days', daysLeft)}
+            )}
+          </p>
+        </TrialEndInfo>
+        <PathWrapper>
+          <PathContainer>
+            <PathHeading>{returnPlan}</PathHeading>
+            <Bullets>{leftColumnItems.map(WarningItem)}</Bullets>
+
+            <Button
+              variant="secondary"
+              onClick={() => {
+                trackGetsentryAnalytics('trial_ended_notice.dismissed_understood', {
+                  organization,
+                  subscription,
+                });
+                closeModal();
+              }}
+            >
+              {t('I Understand the Changes')}
+            </Button>
+          </PathContainer>
+
+          <PathContainer>
+            <PathHeading>{t('Keep your Business Plan')}</PathHeading>
+            <Bullets>{rightColumnItems.map(UpgradeItem)}</Bullets>
+            <UpgradeOrTrialButton
+              source="trial_ending_modal"
+              action="upgrade"
+              subscription={subscription}
+              organization={organization}
+              onSuccess={closeModal}
+            >
+              {organization.access.includes('org:billing')
+                ? t('Upgrade Now')
+                : t('Request Upgrade')}
+            </UpgradeOrTrialButton>
+            <OtherPlanDetails>
+              {tct("Don't need our Business Plan? [link:See other options]", {
+                link: <ExternalLink href="https://sentry.io/pricing" />,
+              })}
+            </OtherPlanDetails>
+          </PathContainer>
+        </PathWrapper>
+      </div>
+    </div>
+  );
+}
+
+const TrialEndInfo = styled('div')`
+  padding: ${p => p.theme.space['2xl']} 0;
+
+  p {
+    font-size: ${p => p.theme.font.size.lg};
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.5em;
+  }
+`;
+
+const PathWrapper = styled('div')`
+  display: grid;
+  margin: 0 -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']};
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid ${p => p.theme.colors.gray200};
+`;
+
+const PathContainer = styled('div')`
+  padding: ${p => p.theme.space['3xl']};
+  display: grid;
+  grid-auto-rows: max-content;
+  gap: ${p => p.theme.space.lg};
+
+  &:first-of-type {
+    border-right: 1px solid ${p => p.theme.colors.gray200};
+  }
+`;
+
+const Bullets = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-auto-rows: max-content;
+  gap: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  align-items: center;
+  font-size: ${p => p.theme.font.size.md};
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const PathHeading = styled('h5')`
+  font-weight: 200;
+  margin-bottom: 0;
+`;
+
+const OtherPlanDetails = styled('div')`
+  font-size: ${p => p.theme.font.size.sm};
+  line-height: 1.5;
+`;
+
+export const modalCss = css`
+  width: 100%;
+  max-width: 680px;
+`;
+
+export default withSubscription(TrialEndingModal);

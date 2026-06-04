@@ -1,0 +1,732 @@
+import {
+  createContext,
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import * as React from 'react';
+import isPropValid from '@emotion/is-prop-valid';
+import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+import {FocusScope} from '@react-aria/focus';
+import {useKeyboard} from '@react-aria/interactions';
+import {mergeProps} from '@react-aria/utils';
+import type {OverlayTriggerState} from '@react-stately/overlays';
+
+import {Badge} from '@sentry/scraps/badge';
+import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {FormSize} from 'sentry/utils/theme';
+import type {UseOverlayProps} from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
+import {usePrevious} from 'sentry/utils/usePrevious';
+
+import type {SingleListProps} from './list';
+import type {
+  SearchConfig,
+  SearchMatchResult,
+  SelectKey,
+  SelectOptionOrSection,
+  SelectOptionWithKey,
+} from './types';
+import {getSearchConfig} from './utils';
+
+// autoFocus react attribute is sync called on render, this causes
+// layout thrashing and is bad for performance. This thin wrapper function
+// will defer the focus call until the next frame, after the browser and react
+// have had a chance to update the DOM, splitting the perf cost across frames.
+function nextFrameCallback(cb: () => void) {
+  if ('requestAnimationFrame' in window) {
+    window.requestAnimationFrame(() => cb());
+  } else {
+    setTimeout(() => {
+      cb();
+    }, 1);
+  }
+}
+
+interface ControlContextValue {
+  overlayIsOpen: boolean;
+  /**
+   * Search string to determine whether an option should be rendered in the select list.
+   */
+  search: string;
+  /**
+   * Whether the select has a search input field.
+   */
+  searchable: boolean;
+  disabled?: boolean;
+  /**
+   * The control's overlay state. Useful for opening/closing the menu from inside the
+   * selector.
+   */
+  overlayState?: OverlayTriggerState;
+  /**
+   * Custom function to determine whether an option matches the search query.
+   */
+  searchMatcher?: (
+    option: SelectOptionWithKey<SelectKey>,
+    search: string
+  ) => SearchMatchResult;
+  size?: FormSize;
+}
+
+export const ControlContext = createContext<ControlContextValue>({
+  overlayIsOpen: false,
+  search: '',
+  searchable: false,
+});
+
+export interface ControlProps
+  extends
+    Omit<
+      React.BaseHTMLAttributes<HTMLDivElement>,
+      // omit keys from SingleListProps because those will be passed to <List /> instead
+      | keyof Omit<SingleListProps<SelectKey>, 'children' | 'items' | 'grid' | 'label'>
+      | 'defaultValue'
+    >,
+    Pick<
+      UseOverlayProps,
+      | 'isOpen'
+      | 'onClose'
+      | 'offset'
+      | 'position'
+      | 'isDismissable'
+      | 'shouldCloseOnBlur'
+      | 'shouldCloseOnInteractOutside'
+      | 'onInteractOutside'
+      | 'preventOverflowOptions'
+      | 'flipOptions'
+      | 'strategy'
+    > {
+  children?: React.ReactNode;
+  className?: string;
+  /**
+   * If true, there will be a "Clear" button in the menu header.
+   */
+  clearable?: boolean;
+  disabled?: boolean;
+  /**
+   * Message to be displayed when all options have been filtered out (via search).
+   */
+  emptyMessage?: React.ReactNode;
+  /**
+   * Whether to render a grid list rather than a list box.
+   *
+   * Unlike list boxes, grid lists are two-dimensional. Users can press Arrow Up/Down to
+   * move between rows (options), and Arrow Left/Right to move between "columns". This
+   * is useful when the select options have smaller, interactive elements
+   * (buttons/links) inside. Grid lists allow users to focus on those child elements
+   * using the Arrow Left/Right keys and interact with them, which isn't possible with
+   * list boxes.
+   */
+  grid?: boolean;
+  /**
+   * If true, all select options will be hidden. This should only be used on a temporary
+   * basis in conjunction with `menuBody` to display special views/states (e.g. a
+   * secondary date range selector).
+   */
+  hideOptions?: boolean;
+  /**
+   * If true, there will be a loading indicator in the menu header.
+   */
+  loading?: boolean;
+  maxMenuHeight?: number | string;
+  /**
+   * Optional content to display below the menu's header and above the options.
+   */
+  menuBody?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.JSX.Element);
+  /**
+   * Footer to be rendered at the bottom of the menu.
+   */
+  menuFooter?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void; resetSearch: () => void}) => React.ReactNode);
+  /**
+   * Items to be displayed in the trailing (right) side of the menu's header.
+   */
+  menuHeaderTrailingItems?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  menuHeight?: number | string;
+  /**
+   * Minimum width for the menu overlay. When unset, the overlay's min-width matches
+   * the trigger's width (popper default). When set, this value is used instead —
+   * useful when the trigger is intentionally narrow but the options need more room.
+   */
+  menuMinWidth?: number | string;
+  /**
+   * Title to display in the menu's header. Keep the title as short as possible.
+   */
+  menuTitle?: React.ReactNode;
+  menuWidth?: number | string;
+  /**
+   * Called when the clear button is clicked (applicable only when `clearable` is
+   * true).
+   */
+  onClear?: (props: {overlayState: OverlayTriggerState}) => void;
+  /**
+   * Called when the menu is opened or closed.
+   */
+  onOpenChange?: (newOpenState: boolean) => void;
+  /**
+   * Search configuration. When provided, enables the search input.
+   * Pass `true` to enable search with default settings, or a config object
+   * to customise placeholder, filtering, or the onChange callback.
+   */
+  search?: boolean | SearchConfig<SelectKey>;
+  size?: FormSize;
+
+  /**
+   * Optional replacement for the default trigger button. Note that the replacement must
+   * forward `props` and `ref` its outer wrap, otherwise many accessibility features
+   * won't work correctly.
+   */
+  trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
+  triggerId?: string;
+}
+
+/**
+ * Controls Select's open state and exposes SelectContext to all chidlren.
+ */
+export function Control({
+  // Control props
+  autoFocus,
+  trigger,
+  triggerId,
+  isOpen,
+  onClose,
+  isDismissable,
+  onInteractOutside,
+  shouldCloseOnInteractOutside,
+  shouldCloseOnBlur,
+  preventOverflowOptions,
+  flipOptions,
+  disabled,
+  position = 'bottom-start',
+  strategy = 'absolute',
+  offset,
+  hideOptions,
+  menuTitle,
+  maxMenuHeight = '32rem',
+  menuWidth,
+  menuMinWidth,
+  menuHeight,
+  menuHeaderTrailingItems,
+  menuBody,
+  menuFooter,
+  onOpenChange,
+  items = [],
+  value,
+
+  // Select props
+  size = 'md',
+  search: searchConfig,
+  clearable = false,
+  onClear,
+  loading = false,
+  grid = false,
+  children,
+  menuRef,
+  ...wrapperProps
+}: ControlProps & {
+  items?: Array<SelectOptionOrSection<SelectKey>>;
+  menuRef?: React.Ref<HTMLDivElement>;
+  value?: SelectKey | SelectKey[] | undefined;
+}) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const normalizedSearch = getSearchConfig(searchConfig);
+  const searchEnabled = normalizedSearch !== undefined;
+  const searchFilter =
+    typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
+
+  /**
+   * Search/filter value, used to filter out the list of displayed elements
+   */
+  const [search, setSearch] = useState('');
+  const [searchInputValue, setSearchInputValue] = useState(search);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const updateSearch = (newValue: string) => {
+    normalizedSearch?.onChange?.(newValue);
+    setSearchInputValue(newValue);
+    if (normalizedSearch?.filter !== false) {
+      setSearch(newValue);
+    }
+  };
+
+  const {keyboardProps: searchKeyboardProps} = useKeyboard({
+    onKeyDown: e => {
+      // When the search input is focused, and the user presses Arrow Down,
+      // we should move the focus to the menu items list.
+      if (e.key === 'ArrowDown') {
+        e.preventDefault(); // Prevent scroll action
+        overlayRef.current
+          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+          ?.focus();
+      }
+
+      // Prevent form submissions on Enter key press in search box
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
+
+      // Continue propagation, otherwise the overlay won't close on Esc key press
+      e.continuePropagation();
+    },
+  });
+
+  const overflowBoundaryId = useBoundaryContext();
+  const overflowBoundary = overflowBoundaryId
+    ? document.getElementById(overflowBoundaryId)
+    : null;
+
+  // Manage overlay position
+  const {
+    isOpen: overlayIsOpen,
+    state: overlayState,
+    update: updateOverlay,
+    triggerRef,
+    triggerProps: overlayTriggerProps,
+    overlayRef,
+    overlayProps,
+  } = useOverlay({
+    disableTrigger: disabled,
+    type: grid ? 'menu' : 'listbox',
+    position,
+    offset,
+    isOpen,
+    isDismissable,
+    onInteractOutside,
+    shouldCloseOnInteractOutside,
+    shouldCloseOnBlur,
+    preventOverflowOptions: {
+      ...preventOverflowOptions,
+      boundary:
+        preventOverflowOptions?.boundary ??
+        overflowBoundary ??
+        document.querySelector('main') ??
+        document.getElementById('main') ??
+        undefined,
+    },
+    flipOptions,
+    strategy,
+    onOpenChange: open => {
+      onOpenChange?.(open);
+
+      nextFrameCallback(() => {
+        if (open) {
+          // Force a overlay update, as sometimes the overlay is misaligned when opened
+          updateOverlay?.();
+          // Focus on search box if present
+          if (searchEnabled) {
+            searchRef.current?.focus();
+            return;
+          }
+
+          const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
+            `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
+          );
+
+          // Focus on first selected item
+          if (firstSelectedOption) {
+            firstSelectedOption.focus();
+            return;
+          }
+
+          // If no item is selected, focus on first item instead
+          overlayRef.current
+            ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+            ?.focus();
+          return;
+        }
+
+        // On close
+        onClose?.();
+
+        // Clear search string
+        setSearchInputValue('');
+        setSearch('');
+
+        // Only restore focus if it's already here or lost to the body.
+        // This prevents focus from being stolen from other elements.
+        if (
+          document.activeElement === document.body ||
+          wrapperRef.current?.contains(document.activeElement)
+        ) {
+          triggerRef.current?.focus();
+        }
+      });
+    },
+  });
+
+  // Recalculate overlay position when its main content changes
+  const prevMenuBody = usePrevious(menuBody);
+  const prevHideOptions = usePrevious(hideOptions);
+  useEffect(() => {
+    if (
+      // Don't update when the content inside `menuBody` changes. We should only update
+      // when `menuBody` itself appears/disappears.
+      ((!prevMenuBody && !menuBody) || (!!prevMenuBody && !!menuBody)) &&
+      prevHideOptions === hideOptions
+    ) {
+      return;
+    }
+
+    updateOverlay?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuBody, hideOptions]);
+
+  const wasRefAvailable = useRef(false);
+  useEffect(() => {
+    // Trigger ref is set by a setState in useOverlay, so we need to wait for it to be available
+    // We also need to make sure we only focus once
+    if (!triggerRef.current || wasRefAvailable.current) {
+      return;
+    }
+    wasRefAvailable.current = true;
+
+    if (autoFocus && !disabled) {
+      triggerRef.current.focus();
+    }
+  }, [autoFocus, disabled, triggerRef]);
+
+  /**
+   * The menu's full width, before any option has been filtered out. Used to maintain a
+   * constant width while the user types into the search box.
+   */
+  const [menuFullWidth, setMenuFullWidth] = useState<number>();
+  // When search box is focused, read the menu's width and lock it at that value to
+  // prevent visual jumps during search
+  const onSearchFocus = useCallback(
+    () => setMenuFullWidth(overlayRef.current?.offsetWidth),
+    [overlayRef]
+  );
+  // When search box is blurred, release the lock the menu's width
+  const onSearchBlur = useCallback(
+    () => !search && setMenuFullWidth(undefined),
+    [search]
+  );
+
+  /**
+   * Trigger label, generated from current selection values. If more than one option is
+   * selected, then a count badge will appear.
+   */
+  const triggerLabel: React.ReactNode = useMemo(() => {
+    const values = Array.isArray(value) ? value : [value];
+    const options = items
+      .flatMap(item => {
+        if ('options' in item) {
+          return item.options;
+        }
+        return item;
+      })
+      .filter(item => values.includes(item.value));
+
+    if (options.length === 0) {
+      return <TriggerLabel>{t('None')}</TriggerLabel>;
+    }
+
+    return (
+      <Fragment>
+        <TriggerLabel>{options[0]?.label}</TriggerLabel>
+        {options.length > 1 && (
+          <StyledBadge variant="muted">{`+${options.length - 1}`}</StyledBadge>
+        )}
+      </Fragment>
+    );
+  }, [value, items]);
+
+  const {keyboardProps: triggerKeyboardProps} = useKeyboard({
+    onKeyDown: e => {
+      // Open the select menu when user presses Arrow Up/Down.
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault(); // Prevent scroll
+        overlayState.open();
+      } else {
+        e.continuePropagation();
+      }
+    },
+  });
+
+  const hasSelection = useMemo(() => {
+    if (value === undefined) {
+      return false;
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    return true;
+  }, [value]);
+
+  const contextValue = useMemo(() => {
+    return {
+      overlayState,
+      overlayIsOpen,
+      search,
+      searchable: searchEnabled,
+      size,
+      disabled,
+      searchMatcher: searchFilter,
+    };
+  }, [overlayState, overlayIsOpen, search, searchEnabled, size, disabled, searchFilter]);
+
+  const theme = useTheme();
+
+  const mergedTriggerProps = mergeProps(
+    {id: triggerId, children: triggerLabel},
+    triggerKeyboardProps,
+    overlayTriggerProps
+  );
+
+  return (
+    <ControlContext value={contextValue}>
+      <Container width="max-content" position="relative" {...wrapperProps}>
+        {trigger ? (
+          trigger(mergedTriggerProps, overlayIsOpen)
+        ) : (
+          <OverlayTrigger.Button {...mergedTriggerProps} />
+        )}
+        <StyledPositionWrapper
+          visible={overlayIsOpen}
+          zIndex={theme.zIndex?.dropdown}
+          {...overlayProps}
+        >
+          {overlayIsOpen && (
+            <StyledOverlay
+              ref={menuRef}
+              width={menuWidth ?? menuFullWidth}
+              height={menuHeight}
+              minWidth={menuMinWidth ?? overlayProps.style?.minWidth}
+              maxWidth={
+                overlayProps.style?.maxWidth
+                  ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
+                  : undefined
+              }
+              maxHeight={overlayProps.style?.maxHeight}
+              maxHeightProp={maxMenuHeight}
+              data-menu-has-header={!!menuTitle || clearable}
+              data-menu-has-search={searchEnabled}
+              data-menu-has-footer={!!menuFooter}
+            >
+              <FocusScope contain>
+                {(menuTitle ||
+                  menuHeaderTrailingItems ||
+                  (clearable && hasSelection)) && (
+                  <MenuHeader size={size}>
+                    <MenuTitle>{menuTitle}</MenuTitle>
+                    <MenuHeaderTrailingItems>
+                      {loading && <StyledLoadingIndicator size={12} />}
+                      {typeof menuHeaderTrailingItems === 'function'
+                        ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                        : menuHeaderTrailingItems}
+                      {clearable && hasSelection && (
+                        <ClearButton
+                          onClick={() => onClear?.({overlayState})}
+                          size="zero"
+                          variant="transparent"
+                        >
+                          {t('Clear')}
+                        </ClearButton>
+                      )}
+                    </MenuHeaderTrailingItems>
+                  </MenuHeader>
+                )}
+                {searchEnabled && (
+                  <InputGroup>
+                    <InputGroup.LeadingItems disablePointerEvents>
+                      <Flex
+                        paddingLeft="2xs"
+                        align="center"
+                        justify="center"
+                        // Center the icon by visual weight
+                        style={{transform: 'translateY(1px) translateX(1px)'}}
+                      >
+                        <IconSearch size="xs" variant="muted" />
+                      </Flex>
+                    </InputGroup.LeadingItems>
+                    <SearchInput
+                      ref={searchRef}
+                      placeholder={normalizedSearch?.placeholder ?? 'Search…'}
+                      value={searchInputValue}
+                      onFocus={onSearchFocus}
+                      onBlur={onSearchBlur}
+                      onChange={e => updateSearch(e.target.value)}
+                      size="xs"
+                      {...searchKeyboardProps}
+                    />
+                  </InputGroup>
+                )}
+                {typeof menuBody === 'function'
+                  ? menuBody({closeOverlay: overlayState.close})
+                  : menuBody}
+                {!hideOptions && <Stack minHeight="0">{children}</Stack>}
+                {menuFooter && (
+                  <MenuFooter>
+                    {typeof menuFooter === 'function'
+                      ? menuFooter({
+                          closeOverlay: overlayState.close,
+                          resetSearch: () => updateSearch(''),
+                        })
+                      : menuFooter}
+                  </MenuFooter>
+                )}
+              </FocusScope>
+            </StyledOverlay>
+          )}
+        </StyledPositionWrapper>
+      </Container>
+    </ControlContext>
+  );
+}
+
+export const TriggerLabel = styled('span')`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+`;
+
+const StyledBadge = styled(Badge)`
+  margin-left: ${p => p.theme.space.xs};
+  flex-shrink: 0;
+  top: auto;
+`;
+
+const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${p =>
+      p.size === 'xs'
+        ? p.theme.space['2xs']
+        : p.size === 'sm'
+          ? p.theme.space.xs
+          : p.theme.space.sm}
+    ${p => p.theme.space.lg};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+
+  [data-menu-has-search='true'] > & {
+    padding-bottom: 0;
+    box-shadow: none;
+  }
+
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
+  z-index: 2;
+
+  font-size: ${p => (p.size === 'xs' ? p.theme.font.size.xs : p.theme.font.size.sm)};
+  color: ${p => p.theme.tokens.content.primary};
+`;
+
+const MenuHeaderTrailingItems = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const MenuTitle = styled('span')`
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  white-space: nowrap;
+  margin-right: ${p => p.theme.space.xl};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: flex;
+  align-items: center;
+  && {
+    margin: 0;
+  }
+`;
+
+export const ClearButton = styled(Button)`
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  color: ${p => p.theme.tokens.content.secondary};
+  padding: 0 ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space['2xs']} -${p => p.theme.space.xs};
+`;
+
+const SearchInput = styled(InputGroup.Input)`
+  appearance: none;
+  width: calc(100% - ${p => p.theme.space.xs} * 2);
+  margin: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
+
+  /* Add 1px to top margin if immediately preceded by menu header, to account for the
+  header's shadow border. Account for InputGroup wrapper div. */
+  [data-menu-has-header='true'] > * > & {
+    margin-top: calc(${p => p.theme.space.xs} + 1px);
+  }
+`;
+const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
+
+const StyledOverlay = styled(Overlay, {
+  shouldForwardProp: prop => isPropValid(prop),
+})<{
+  maxHeightProp: string | number;
+  height?: string | number;
+  maxHeight?: string | number;
+  maxWidth?: string | number;
+  minWidth?: string | number;
+  width?: string | number;
+}>`
+  /* Should be a flex container so that when maxHeight is set (to avoid page overflow),
+  ListBoxWrap/GridListWrap will also shrink to fit */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  ${p =>
+    p.width &&
+    css`
+      width: ${withUnits(p.width)};
+    `}
+  ${p =>
+    p.height &&
+    css`
+      height: ${withUnits(p.height)};
+    `}
+  ${p =>
+    p.minWidth &&
+    css`
+      min-width: ${withUnits(p.minWidth)};
+    `}
+  max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : '100%')};
+  max-height: ${p =>
+    p.maxHeight
+      ? `min(${withUnits(p.maxHeight)}, ${withUnits(p.maxHeightProp)})`
+      : withUnits(p.maxHeightProp)};
+`;
+
+const StyledPositionWrapper = styled(PositionWrapper, {
+  shouldForwardProp: prop => isPropValid(prop),
+})<{visible?: boolean; zIndex?: number}>`
+  min-width: 100%;
+  display: ${p => (p.visible ? 'block' : 'none')};
+  z-index: ${p => p?.zIndex};
+`;
+
+const MenuFooter = styled('div')`
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  z-index: 2;
+`;

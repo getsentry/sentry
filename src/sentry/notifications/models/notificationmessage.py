@@ -1,0 +1,63 @@
+from __future__ import annotations
+
+from django.db import models
+from django.db.models import DateTimeField, IntegerField
+from django.utils import timezone
+
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import CharField, FlexibleForeignKey, Model, cell_silo_model, sane_repr
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
+
+
+@cell_silo_model
+class NotificationMessage(Model):
+    """
+    Data model represents the aggregate for an entire notification message.
+    A notification message must always have the resulting identifier that was sent back if there was no error.
+    When there is an error, there will be no identifier to leverage or store.
+
+    If a notification message has an error, the resulting error code and details will be saved.
+    This information will then be leveraged to show the user which notifications are consistently failing.
+    An example of this would be if a Slack channel no longer exists.
+
+    The data model hold the singular gateway for both Metric and Issue Alerts.
+    Following the specific data relationship, you should be able to find the specific rule, organization, project, and
+    incident or group event that this notification message was enacted.
+
+    If any notification message is in relation to another notification message, you should be able to find the original
+    notification message through the parent notification message relation.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    # Related information regarding failed notifications.
+    # Leveraged to help give the user visibility into notifications that are consistently failing.
+    error_details = LegacyTextJSONField(null=True)
+    error_code = IntegerField(null=True, db_index=True)
+
+    # Resulting identifier from the vendor that can be leveraged for future interaction with the notification.
+    message_identifier = CharField(null=True)
+    # Reference to another notification if we choose to modify the original message or reply to it (like start a thread)
+    parent_notification_message = FlexibleForeignKey("self", null=True)
+
+    date_added = DateTimeField(default=timezone.now)
+
+    # Related information regarding Action (Workflow Engine)
+    action = FlexibleForeignKey("workflow_engine.Action")
+    group = FlexibleForeignKey("sentry.Group")
+    # Key for a start of a specific open period of the group (e.g. metric/uptime issues)
+    # This doesn't have to be set for all actions, only for actions that are related to a group which has a defined open period
+    open_period_start = DateTimeField(null=True)
+
+    class Meta:
+        app_label = "notifications"
+        db_table = "sentry_notificationmessage"
+        indexes = [
+            models.Index(
+                fields=["group", "action", "date_added"],
+                name="idx_notifmsg_group_action_date",
+            ),
+            models.Index(fields=["date_added"]),
+        ]
+
+    __repr__ = sane_repr("id", "message_identifier", "error_code")

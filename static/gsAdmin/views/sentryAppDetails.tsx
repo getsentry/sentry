@@ -1,0 +1,189 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
+
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
+
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
+import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
+import {DetailsPage} from 'admin/components/detailsPage';
+import {SentryAppUpdateModal} from 'admin/components/sentryAppUpdateModal';
+
+export function SentryAppDetails() {
+  const {openModal} = useModal();
+
+  const {sentryAppSlug} = useParams<{sentryAppSlug: string}>();
+  const ENDPOINT = getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+    path: {sentryAppIdOrSlug: sentryAppSlug},
+  });
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  const {data, isPending, isError, refetch} = useApiQuery<any>([ENDPOINT], {
+    staleTime: 0,
+  });
+
+  const onUpdateMutation = useMutation({
+    mutationFn: (updatedData: Record<string, any>) => {
+      return api.requestPromise(ENDPOINT, {
+        method: 'PUT',
+        data: updatedData,
+      });
+    },
+    onMutate: () => {
+      addLoadingMessage('Saving Changes...');
+    },
+    onSuccess: updatedData => {
+      addSuccessMessage(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
+      clearIndicators();
+      setApiQueryData(queryClient, [ENDPOINT], updatedData);
+    },
+    onError: () => {
+      addErrorMessage('There was an internal error with updating the resource.');
+      clearIndicators();
+    },
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  let publishingAction: ActionItem | undefined;
+  switch (data.status) {
+    case 'unpublished':
+    case 'publish_request_inprogress':
+      publishingAction = {
+        key: 'publish',
+        name: 'Publish App',
+        help: 'Publishes this Sentry App',
+        onAction: () => onUpdateMutation.mutate({status: 'published'}),
+      };
+      break;
+    case 'published':
+      publishingAction = {
+        key: 'unpublish',
+        name: 'Unpublish App',
+        help: 'Unpublishes this Sentry App',
+        onAction: () => onUpdateMutation.mutate({status: 'unpublished'}),
+      };
+      break;
+    case 'internal':
+    default:
+      publishingAction = undefined;
+  }
+
+  const disableAction: ActionItem = data.isDisabled
+    ? {
+        key: 'enable',
+        name: 'Enable App',
+        help: 'Re-enables this Sentry App',
+        onAction: () => onUpdateMutation.mutate({isDisabled: false}),
+      }
+    : {
+        key: 'disable',
+        name: 'Disable App',
+        help: 'Disables this Sentry App, blocking all API access and webhook delivery',
+        onAction: () => onUpdateMutation.mutate({isDisabled: true}),
+      };
+
+  const updateDetailsAction = {
+    key: 'update-details',
+    name: 'Update Details',
+    help: 'Update the details of this Sentry App (e.g. popularity)',
+    skipConfirmModal: true,
+    onAction: () =>
+      openModal(deps => (
+        <SentryAppUpdateModal
+          {...deps}
+          sentryAppData={data}
+          onAction={onUpdateMutation.mutate}
+        />
+      )),
+  };
+
+  const actions =
+    publishingAction === undefined
+      ? [updateDetailsAction, disableAction]
+      : [updateDetailsAction, publishingAction, disableAction];
+  const sentryAppBadgeLevel: Partial<Record<string, NonNullable<BadgeItem['level']>>> = {
+    unpublished: 'danger',
+    internal: 'warning',
+  };
+
+  const overview = (
+    <DetailsContainer>
+      <DetailList>
+        <DetailLabel title="Name">{data.name}</DetailLabel>
+        <DetailLabel title="Slug">{data.slug}</DetailLabel>
+        <DetailLabel title="Status">{data.status}</DetailLabel>
+        <DetailLabel title="Owner">
+          <Link to={`/_admin/customers/${data.owner.slug}/`}>{data.owner.slug}</Link>
+        </DetailLabel>
+        <DetailLabel title="isAlertable" yesNo={data.isAlertable} />
+        <DetailLabel title="Enabled" yesNo={!data.isDisabled} />
+        <DetailLabel title="Popularity">{data.popularity}</DetailLabel>
+        <DetailLabel title="Scopes">
+          {data.scopes.map((scope: any) => (
+            <div key={scope}>
+              <code>{scope}</code>
+            </div>
+          ))}
+        </DetailLabel>
+        <DetailLabel title="Features">
+          {data.featureData?.map((feature: any) => (
+            <div key={feature.featureGate}>
+              {
+                <Tag variant="warning">
+                  {feature.featureGate.replace(/(^integrations-)/, '')}
+                </Tag>
+              }
+            </div>
+          ))}
+        </DetailLabel>
+      </DetailList>
+      <DetailList>
+        <DetailLabel title="Directory Logo" />
+        <SentryAppAvatar sentryApp={data} size={100} />
+        <br />
+        <DetailLabel title="UI Component Icon" />
+        <SentryAppAvatar sentryApp={data} size={30} isColor={false} />
+      </DetailList>
+    </DetailsContainer>
+  );
+
+  return (
+    <DetailsPage
+      rootName="Sentry Apps"
+      name={data.name}
+      badges={[
+        {
+          name: data.status,
+          level: sentryAppBadgeLevel[data.status] ?? 'success',
+        },
+        ...(data.isDisabled ? [{name: 'disabled', level: 'danger' as const}] : []),
+      ]}
+      actions={actions}
+      sections={[{content: overview}]}
+    />
+  );
+}

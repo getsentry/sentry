@@ -1,0 +1,14 @@
+
+Bring your full {{ provider }} team on board in Sentry
+
+You have developers committing code changes in your GitHub organization. Invite them to Sentry so that they can monitor their error and performance issues.
+
+Most Active Contributors
+
+{% for member in top_missing_members %}
+    {{ member.external_id }} {{ member.profile_link }}
+    {{ member.commit_count }} Recent Commits
+    {{ member.email }}
+{% endfor %}
+
+View Missing Members {{ members_list_url }}

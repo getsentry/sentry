@@ -1,0 +1,393 @@
+import {useState} from 'react';
+import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
+import type {Location} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
+
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {
+  updateDashboardFavorite,
+  updateDashboardPermissions,
+} from 'sentry/actionCreators/dashboards';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {Client} from 'sentry/api';
+import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
+import {openConfirmModal} from 'sentry/components/confirm';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {
+  COL_WIDTH_UNDEFINED,
+  GridEditable,
+  type GridColumnOrder,
+} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {TimeSince} from 'sentry/components/timeSince';
+import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {withApi} from 'sentry/utils/withApi';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
+import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
+import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
+import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardPermissions,
+} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+
+type Props = {
+  api: Client;
+  dashboards: DashboardListItem[] | undefined;
+  location: Location;
+  onDashboardsChange: () => void;
+  organization: Organization;
+  isLoading?: boolean;
+};
+
+enum ResponseKeys {
+  NAME = 'title',
+  WIDGETS = 'widgetDisplay',
+  OWNER = 'createdBy',
+  ACCESS = 'permissions',
+  CREATED = 'dateCreated',
+  FAVORITE = 'isFavorited',
+}
+
+const SortKeys = {
+  title: {asc: 'title', desc: '-title'},
+  dateCreated: {asc: 'dateCreated', desc: '-dateCreated'},
+  createdBy: {asc: 'mydashboards', desc: 'mydashboards'},
+};
+
+type FavoriteButtonProps = {
+  api: Client;
+  dashboardId: string;
+  isFavorited: boolean;
+  onDashboardsChange: () => void;
+  organization: Organization;
+};
+
+function FavoriteButton({
+  isFavorited,
+  api,
+  organization,
+  dashboardId,
+  onDashboardsChange,
+}: FavoriteButtonProps) {
+  const queryClient = useQueryClient();
+  const [favorited, setFavorited] = useState(isFavorited);
+  return (
+    <Button
+      aria-label={t('Favorite Button')}
+      size="zero"
+      variant="transparent"
+      icon={
+        <IconStar
+          variant={favorited ? 'warning' : 'muted'}
+          isSolid={favorited}
+          aria-label={favorited ? t('Unstar') : t('Star')}
+          size="sm"
+        />
+      }
+      onClick={async () => {
+        try {
+          setFavorited(!favorited);
+          await updateDashboardFavorite(
+            api,
+            queryClient,
+            organization,
+            dashboardId,
+            !favorited
+          );
+          onDashboardsChange();
+          trackAnalytics('dashboards_manage.toggle_favorite', {
+            organization,
+            dashboard_id: dashboardId,
+            favorited: !favorited,
+          });
+        } catch (error) {
+          // If the api call fails, revert the state
+          setFavorited(favorited);
+        }
+      }}
+    />
+  );
+}
+
+function DashboardTable({
+  api,
+  organization,
+  location,
+  dashboards,
+  onDashboardsChange,
+  isLoading,
+}: Props) {
+  const handleDuplicateDashboard = useDuplicateDashboard({
+    onSuccess: onDashboardsChange,
+  });
+  const handleDeleteDashboard = useDeleteDashboard({
+    onSuccess: onDashboardsChange,
+  });
+  const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
+    {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
+  ];
+
+  function renderHeadCell(column: GridColumnOrder<string>) {
+    if (column.key in SortKeys) {
+      const urlSort = decodeScalar(location.query.sort, 'mydashboards');
+      const isCurrentSort =
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        urlSort === SortKeys[column.key].asc || urlSort === SortKeys[column.key].desc;
+      const sortDirection =
+        !isCurrentSort || column.key === 'createdBy'
+          ? undefined
+          : urlSort.startsWith('-')
+            ? 'desc'
+            : 'asc';
+
+      return (
+        <SortLink
+          align="left"
+          title={column.name}
+          direction={sortDirection}
+          canSort
+          generateSortLink={() => {
+            const newSort = isCurrentSort
+              ? sortDirection === 'asc'
+                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  SortKeys[column.key].desc
+                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                  SortKeys[column.key].asc
+              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                SortKeys[column.key].asc;
+            return {
+              ...location,
+              query: {...location.query, sort: newSort},
+            };
+          }}
+        />
+      );
+    }
+    return column.name;
+  }
+
+  const renderBodyCell = (
+    column: GridColumnOrder<string>,
+    dataRow: DashboardListItem
+  ) => {
+    if (column.key === ResponseKeys.FAVORITE) {
+      return (
+        <FavoriteButton
+          isFavorited={dataRow[ResponseKeys.FAVORITE] ?? false}
+          api={api}
+          organization={organization}
+          dashboardId={dataRow.id}
+          onDashboardsChange={onDashboardsChange}
+          key={dataRow.id}
+        />
+      );
+    }
+
+    if (column.key === ResponseKeys.NAME) {
+      return (
+        <Text ellipsis variant="accent">
+          <Link to={`/organizations/${organization.slug}/dashboard/${dataRow.id}/`}>
+            {dataRow[ResponseKeys.NAME]}
+          </Link>
+        </Text>
+      );
+    }
+
+    if (column.key === ResponseKeys.WIDGETS) {
+      return dataRow[ResponseKeys.WIDGETS].length;
+    }
+
+    if (column.key === ResponseKeys.OWNER) {
+      return dataRow[ResponseKeys.OWNER] ? (
+        <Flex justify="between" align="center" gap="3xl">
+          <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
+        </Flex>
+      ) : (
+        <Flex justify="between" align="center" gap="3xl">
+          <Tooltip title={PREBUILT_DASHBOARD_LABEL}>
+            <ActivityAvatar type="system" size={26} />
+          </Tooltip>
+        </Flex>
+      );
+    }
+
+    if (column.key === ResponseKeys.ACCESS) {
+      /* Handles POST request for Edit Access Selector Changes */
+      const onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
+        const dashboardCopy = cloneDeep(dataRow);
+        dashboardCopy.permissions = newDashboardPermissions;
+
+        updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
+          (newDashboard: DashboardDetails) => {
+            onDashboardsChange();
+            addSuccessMessage(t('Dashboard Edit Access updated.'));
+            return newDashboard;
+          }
+        );
+      };
+
+      return (
+        <EditAccessSelector
+          dashboard={dataRow}
+          onChangeEditAccess={onChangeEditAccess}
+          listOnly
+          disabled={defined(dataRow.prebuiltId)} // Prebuilt dashboards cannot be edited
+        />
+      );
+    }
+
+    if (column.key === ResponseKeys.CREATED) {
+      return (
+        <Flex justify="between" align="center" gap="3xl">
+          <DateSelected>
+            {dataRow[ResponseKeys.CREATED] ? (
+              <DateStatus>
+                <TimeSince date={dataRow[ResponseKeys.CREATED]} />
+              </DateStatus>
+            ) : (
+              <DateStatus />
+            )}
+          </DateSelected>
+          <Flex gap="xs">
+            <DashboardCreateLimitWrapper>
+              {({
+                hasReachedDashboardLimit,
+                isLoading: isLoadingDashboardsLimit,
+                limitMessage,
+              }) => (
+                <StyledButton
+                  onClick={e => {
+                    e.stopPropagation();
+                    openConfirmModal({
+                      message: t('Are you sure you want to duplicate this dashboard?'),
+                      priority: 'primary',
+                      onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
+                    });
+                  }}
+                  variant="transparent"
+                  aria-label={t('Duplicate Dashboard')}
+                  data-test-id="dashboard-duplicate"
+                  icon={<IconCopy />}
+                  size="sm"
+                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+                  tooltipProps={{
+                    title: limitMessage,
+                  }}
+                />
+              )}
+            </DashboardCreateLimitWrapper>
+            <StyledButton
+              onClick={e => {
+                e.stopPropagation();
+                openConfirmModal({
+                  message: t('Are you sure you want to delete this dashboard?'),
+                  priority: 'danger',
+                  onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
+                });
+              }}
+              variant="transparent"
+              aria-label={t('Delete Dashboard')}
+              data-test-id="dashboard-delete"
+              icon={<IconDelete />}
+              size="sm"
+              disabled={defined(dataRow.prebuiltId)}
+              tooltipProps={{
+                title: defined(dataRow.prebuiltId)
+                  ? tct('[label] dashboards cannot be deleted', {
+                      label: PREBUILT_DASHBOARD_LABEL,
+                    })
+                  : undefined,
+              }}
+            />
+          </Flex>
+        </Flex>
+      );
+    }
+
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    return <span>{dataRow[column.key]}</span>;
+  };
+
+  return (
+    <GridEditable
+      data={dashboards ?? []}
+      columnOrder={columnOrder}
+      columnSortBy={[]}
+      grid={{
+        renderBodyCell,
+        renderHeadCell: column => renderHeadCell(column),
+        // favorite column
+        renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
+          const favoriteColumn = {
+            key: ResponseKeys.FAVORITE,
+            name: t('Favorite'),
+          };
+
+          if (isHeader) {
+            return [
+              <IconStar
+                variant="warning"
+                isSolid
+                aria-label={t('Star Column')}
+                key="favorite-header"
+              />,
+            ];
+          }
+          if (!dataRow) {
+            return [];
+          }
+          return [renderBodyCell(favoriteColumn, dataRow) as any];
+        },
+        prependColumnWidths: ['max-content'],
+      }}
+      isLoading={isLoading}
+      emptyMessage={
+        <EmptyStateWarning>
+          <p>{t('Sorry, no Dashboards match your filters.')}</p>
+        </EmptyStateWarning>
+      }
+    />
+  );
+}
+
+export default withApi(DashboardTable);
+
+const DateSelected = styled('div')`
+  font-size: ${p => p.theme.font.size.md};
+  grid-column-gap: ${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.content.primary};
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const DateStatus = styled('span')`
+  color: ${p => p.theme.tokens.content.primary};
+  padding-left: ${p => p.theme.space.md};
+`;
+
+const StyledButton = styled(Button)`
+  border: none;
+  box-shadow: none;
+`;

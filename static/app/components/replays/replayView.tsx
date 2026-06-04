@@ -1,0 +1,196 @@
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {CanvasSupportNotice} from 'sentry/components/replays/canvasSupportNotice';
+import {
+  JetpackComposePiiNotice,
+  useNeedsJetpackComposePiiNotice,
+} from 'sentry/components/replays/jetpackComposePiiNotice';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {ReplayController} from 'sentry/components/replays/replayController';
+import {ReplayCurrentScreen} from 'sentry/components/replays/replayCurrentScreen';
+import {ReplayCurrentUrl} from 'sentry/components/replays/replayCurrentUrl';
+import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
+import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
+import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconFatal} from 'sentry/icons/iconFatal';
+import {t, tct} from 'sentry/locale';
+import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
+import {Breadcrumbs} from 'sentry/views/explore/replays/detail/breadcrumbs';
+import {BrowserOSIcons} from 'sentry/views/explore/replays/detail/browserOSIcons';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
+import {ReplayViewScale} from 'sentry/views/explore/replays/detail/replayViewScale';
+
+type Props = {
+  isLoading: boolean;
+  layout: LayoutKey;
+  toggleFullscreen: () => void;
+  toggleLayout: () => void;
+};
+
+function FatalIconTooltip({error}: {error: Error | null}) {
+  return (
+    <Tooltip skipWrapper title={error?.message}>
+      <IconFatal size="sm" />
+    </Tooltip>
+  );
+}
+
+export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: Props) {
+  const isFullscreen = useIsFullscreen();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const replay = useReplayReader();
+  const {isFetching} = useReplayContext();
+  const isVideoReplay = replay?.isVideoReplay();
+  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
+    replays: replay ? [replay.getReplay()] : [],
+  });
+
+  return (
+    <Fragment>
+      <Flex flexGrow={1} gap="md">
+        <PlayerContainer>
+          <ContextContainer>
+            {isLoading ? (
+              <TextCopyInput size="sm" disabled>
+                {''}
+              </TextCopyInput>
+            ) : isVideoReplay ? (
+              <Flex align="center" flex="1" gap="md" width="100%">
+                {replay?.getReplay()?.sdk.name?.includes('flutter') ? (
+                  <QuestionTooltip
+                    isHoverable
+                    title={tct(
+                      'In order to see the correct screen name, you need to configure the [link:Sentry Routing Instrumentation].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/platforms/dart/guides/flutter/integrations/routing-instrumentation/" />
+                        ),
+                      }
+                    )}
+                    size="sm"
+                  />
+                ) : null}
+                <Container flex="1" width="100%">
+                  <ReplayCurrentScreen />
+                </Container>
+              </Flex>
+            ) : (
+              <ReplayCurrentUrl />
+            )}
+
+            <ErrorBoundary customComponent={FatalIconTooltip}>
+              <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
+            </ErrorBoundary>
+            <ErrorBoundary customComponent={FatalIconTooltip}>
+              <ReplayViewScale isLoading={isLoading} />
+            </ErrorBoundary>
+            {isFullscreen ? (
+              <ReplaySidebarToggleButton
+                isOpen={isSidebarOpen}
+                setIsOpen={setIsSidebarOpen}
+              />
+            ) : (
+              <Button
+                size="xs"
+                icon={
+                  <IconChevron
+                    direction={layout === LayoutKey.VIDEO_ONLY ? 'left' : 'right'}
+                    isDouble
+                  />
+                }
+                aria-label={
+                  layout === LayoutKey.VIDEO_ONLY
+                    ? t('Open Sidebar')
+                    : t('Collapse Sidebar')
+                }
+                onClick={toggleLayout}
+                tooltipProps={{
+                  title:
+                    layout === LayoutKey.VIDEO_ONLY
+                      ? t('Open Sidebar')
+                      : t('Collapse Sidebar'),
+                }}
+              />
+            )}
+          </ContextContainer>
+          {isLoading ? (
+            <FluidHeight>
+              <Panel>
+                <NegativeSpaceContainer />
+              </Panel>
+            </FluidHeight>
+          ) : !isFetching && replay?.hasProcessingErrors() ? (
+            <ReplayProcessingError />
+          ) : (
+            <FluidHeight>
+              {isVideoReplay && needsJetpackComposePiiWarning ? (
+                <JetpackComposePiiNotice />
+              ) : null}
+              <CanvasSupportNotice />
+              <Panel>
+                <ReplayPlayer inspectable />
+              </Panel>
+            </FluidHeight>
+          )}
+        </PlayerContainer>
+        {isFullscreen && isSidebarOpen ? (
+          <BreadcrumbContainer>
+            <Breadcrumbs />
+          </BreadcrumbContainer>
+        ) : null}
+      </Flex>
+      {isFullscreen ? (
+        <ReplayController
+          isLoading={isLoading}
+          toggleFullscreen={toggleFullscreen}
+          hideFastForward={isVideoReplay}
+        />
+      ) : null}
+    </Fragment>
+  );
+}
+
+const Panel = styled(FluidHeight)`
+  background: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  box-shadow: ${p => p.theme.shadow.medium};
+`;
+
+const ContextContainer = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 1fr max-content;
+  align-items: center;
+  gap: ${p => p.theme.space.lg};
+`;
+
+const PlayerContainer = styled('div')`
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-rows: auto 1fr;
+  gap: ${p => p.theme.space.md};
+  flex-grow: 1;
+`;
+
+const BreadcrumbContainer = styled('div')`
+  display: flex;
+  width: 25%;
+
+  & > div {
+    flex-grow: 1;
+  }
+`;

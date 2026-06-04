@@ -1,0 +1,224 @@
+{
+  "event_id": "bdf6052832614fea9e352eba18a83fb0",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
+              "filename": "functional",
+              "function": "std::__1::function<T>::operator()"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
+              "filename": "functional",
+              "function": "std::__1::__function::__value_func<T>::operator()"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
+              "filename": "functional",
+              "function": "std::__1::__function::__func<T>::operator()"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional",
+              "filename": "functional",
+              "function": "std::__1::__function::__alloc_func<T>::operator()"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/__functional_base",
+              "filename": "__functional_base",
+              "function": "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/type_traits",
+              "filename": "type_traits",
+              "function": "std::__1::__invoke<T>"
+            },
+            {
+              "filename": "Src/Initialize.cpp",
+              "function": "MZ::`anonymous namespace'::lambda::operator()"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "_objc_msgSend_uncached",
+              "package": "/usr/lib/libobjc.A.dylib"
+            },
+            {
+              "function": "lookUpImpOrForward",
+              "package": "/usr/lib/libobjc.A.dylib"
+            },
+            {
+              "function": "initializeAndMaybeRelock",
+              "package": "/usr/lib/libobjc.A.dylib"
+            },
+            {
+              "function": "initializeNonMetaClass",
+              "package": "/usr/lib/libobjc.A.dylib"
+            },
+            {
+              "function": "CALLING_SOME_+initialize_METHOD",
+              "package": "/usr/lib/libobjc.A.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "dlopen",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "dlopen_internal",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "dyld::runInitializers",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "ImageLoader::runInitializers",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "ImageLoader::processInitializers",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "ImageLoader::recursiveInitialization",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "ImageLoaderMachO::doInitialization",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "ImageLoaderMachO::doModInitFunctions",
+              "package": "/usr/lib/dyld"
+            },
+            {
+              "function": "__report_load",
+              "package": "/usr/lib/libcrypto.dylib"
+            },
+            {
+              "function": "abort",
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "function": "__abort",
+              "package": "/usr/lib/system/libsystem_c.dylib"
+            },
+            {
+              "function": "__pthread_kill",
+              "package": "/usr/lib/system/libsystem_kernel.dylib"
+            }
+          ]
+        },
+        "type": "0x00000000 / 0x00000000",
+        "value": "Fatal Error: 0x00000000 / 0x00000000"
+      }
+    ]
+  },
+  "platform": "native"
+}
