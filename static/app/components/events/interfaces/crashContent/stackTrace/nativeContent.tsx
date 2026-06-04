@@ -12,7 +12,7 @@ import {
 import {Panel} from 'sentry/components/panels/panel';
 import type {Event, Frame} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 

@@ -38,7 +38,8 @@ import {
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {SelectValue} from 'sentry/types/core';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useReplaysOnboardingDrawer() {

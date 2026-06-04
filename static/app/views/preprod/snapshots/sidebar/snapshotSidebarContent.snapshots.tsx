@@ -70,6 +70,7 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set()}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
@@ -89,6 +90,7 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set()}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
@@ -107,6 +109,7 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),
@@ -125,6 +128,7 @@ describe('SnapshotSidebarContent', () => {
             statusCounts={statusCounts}
             activeStatuses={new Set([DiffStatus.CHANGED, DiffStatus.UNCHANGED])}
             onToggleStatus={noop}
+            availableTags={new Map()}
           />
         </Wrapper>
       ),

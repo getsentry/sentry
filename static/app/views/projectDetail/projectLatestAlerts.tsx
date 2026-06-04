@@ -5,6 +5,7 @@ import pick from 'lodash/pick';
 
 import {AlertBadge} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -41,7 +42,7 @@ function AlertRow({alert}: AlertRowProps) {
 
   const Icon = isResolved ? IconCheckmark : isWarning ? IconExclamation : IconFire;
 
-  const statusProps = {isResolved, isWarning};
+  const variant = isResolved ? 'success' : isWarning ? 'warning' : 'danger';
 
   return (
     <AlertRowLink
@@ -56,21 +57,16 @@ function AlertRow({alert}: AlertRowProps) {
       </AlertBadgeWrapper>
       <AlertDetails>
         <AlertTitle>{title}</AlertTitle>
-        <AlertDate {...statusProps}>
+        <Text variant={variant}>
           {isResolved ? t('Resolved') : t('Triggered')}{' '}
           {isResolved ? (
             dateClosed ? (
-              <TimeSince date={dateClosed} />
+              <TimeSince date={dateClosed} variant={variant} />
             ) : null
           ) : (
-            <TimeSince
-              date={dateStarted}
-              tooltipUnderlineColor={
-                isResolved ? 'success' : isWarning ? 'warning' : 'danger'
-              }
-            />
+            <TimeSince date={dateStarted} variant={variant} />
           )}
-        </AlertDate>
+        </Text>
       </AlertDetails>
     </AlertRowLink>
   );
@@ -218,11 +214,6 @@ const AlertRowLink = styled(Link)`
   }
 `;
 
-type StatusColorProps = {
-  isResolved: boolean;
-  isWarning: boolean;
-};
-
 const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
   display: flex;
   align-items: center;
@@ -247,15 +238,6 @@ const AlertTitle = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   overflow: hidden;
   text-overflow: ellipsis;
-`;
-
-const AlertDate = styled('span')<StatusColorProps>`
-  color: ${p =>
-    p.isResolved
-      ? p.theme.tokens.content.success
-      : p.isWarning
-        ? p.theme.tokens.content.warning
-        : p.theme.tokens.content.danger};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

@@ -17,6 +17,7 @@ const productionEntryPoints = [
   // Only used in stories (so far)
   'static/app/components/core/quote/*.tsx',
   'static/app/components/core/markdown/**/*.{ts,tsx}',
+  'static/app/components/core/revealOnHover/*.tsx',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works

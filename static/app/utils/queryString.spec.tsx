@@ -7,7 +7,36 @@ import {
   decodeList,
   decodeScalar,
   decodeSorts,
+  escapeIssueTagKey,
+  generateQueryWithTag,
 } from './queryString';
+
+describe('escapeIssueTagKey', () => {
+  it('should escape conflicting tag keys', () => {
+    expect(escapeIssueTagKey('status')).toBe('tags[status]');
+    expect(escapeIssueTagKey('message')).toBe('tags[message]');
+  });
+
+  it('should not escape environment and project', () => {
+    expect(escapeIssueTagKey('environment')).toBe('environment');
+    expect(escapeIssueTagKey('project')).toBe('project');
+  });
+
+  it('escapes empty keys for missing tag labels', () => {
+    expect(escapeIssueTagKey('')).toBe('""');
+  });
+});
+
+describe('generateQueryWithTag', () => {
+  it('produces !has query when tag value missing', () => {
+    expect(
+      generateQueryWithTag({referrer: 'tag-details-drawer'}, {key: 'device', value: ''})
+    ).toEqual({
+      referrer: 'tag-details-drawer',
+      query: '!has:device',
+    });
+  });
+});
 
 describe('addQueryParamsToExistingUrl', () => {
   it('adds new query params to existing query params', () => {

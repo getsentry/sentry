@@ -1,8 +1,6 @@
-import hashlib
 import logging
 import types
 import uuid
-from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
@@ -40,6 +38,7 @@ from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.last_seen import LAST_SEEN_INTERVAL_SECONDS
+from sentry.utils.local_cache import LRUCache, SizedKeyCache, ThreadSafeCache
 from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
 
@@ -122,7 +121,7 @@ def _process_segment(
     # we follow the maximalist path. Models are created and onboarding signals issued.
     if cached_timestamp is None:
         _create_models(project, environment_name, release_name, dist_name, date)
-        cache.set(cache_key, timestamp)
+        cache[cache_key] = timestamp
         metrics.incr(cache_metric_name, tags={"outcome": "miss"})
     # If a cached value was found and the timestamp specified by the current event exceeds
     # the previously cached timestamp by at least `LAST_SEEN_INTERVAL_SECONDS` then we
@@ -133,7 +132,7 @@ def _process_segment(
     # observed.
     elif timestamp - LAST_SEEN_INTERVAL_SECONDS >= cached_timestamp:
         _bump_release_last_seen(project, environment_name, release_name, date)
-        cache.set(cache_key, timestamp)
+        cache[cache_key] = timestamp
         metrics.incr(cache_metric_name, tags={"action": "bump", "outcome": "hit"})
     # If a cached value was found and the timestamp does NOT exceed the interval then we
     # do nothing! This should be the majority of events.
@@ -409,62 +408,11 @@ def _to_string(s: Any) -> str:
     return s if isinstance(s, str) else ""
 
 
-class BoundedLRUCache:
-    """
-    A bounded, in-memory LRU cache.
-
-    :param max_size: The maximum number of keys the cache may contain.
-        The size of the cache is bounded to 100-bytes per entry. To determine how
-        much memory the cache will consume multiply `max_size` by 100. At a
-        `max_size` of one million entries the cache will consume 100 megabytes of
-        memory.
-    """
-
-    def __init__(self, max_size: int):
-        self.cache: OrderedDict[int, int] = OrderedDict()
-        self.max_size = max_size
-
-    def get(self, key: str) -> int | None:
-        k = self._hash_key(key)
-        if k in self.cache:
-            self.cache.move_to_end(k)
-            return self.cache[k]
-        else:
-            return None
-
-    def set(self, key: str, value: int) -> None:
-        k = self._hash_key(key)
-        self.cache[k] = value
-        self.cache.move_to_end(k)
-        if len(self.cache) > self.max_size:
-            self.cache.popitem(last=False)
-        return None
-
-    def _hash_key(self, key: str) -> int:
-        """
-        Return the hash of the `key` as an integer.
-
-        Cache keys are strings and technically unbounded, though its likely bounds on string length
-        are enforced upstream. Nevertheless strings consume more memory than we should be
-        reasonably willing to allocate to this job.
-
-        The `key` is hashed using `blake2b`. A digest-size of 11-bytes was chosen. 11-bytes is
-        significant because its the largest digest size before byte size increases to the next
-        4-byte boundary. The next smallest boundary was a digest size of 7 at time of testing.
-        For one billion unique cache key permutations there is a 1 in 600 million chance of
-        collision.
-
-        This method outputs a 36-byte integer.
-        """
-        digest = hashlib.blake2b(key.encode(), digest_size=11).digest()
-        return int.from_bytes(digest, "big")
-
-
-def _get_cache() -> BoundedLRUCache:
+def _get_cache() -> SizedKeyCache[int]:
     global cache
     if cache is None:
-        cache = BoundedLRUCache(max_size=100_000)
+        cache = SizedKeyCache[int](ThreadSafeCache(LRUCache(maxlen=100_000)))
     return cache
 
 
-cache: BoundedLRUCache | None = None
+cache: SizedKeyCache[int] | None = None

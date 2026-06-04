@@ -13,6 +13,7 @@ from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_re
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.services.assignment_source import AssignmentSource
+from sentry.issues.action_log import ActionType, publish_action_from_context
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
@@ -183,6 +184,13 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 data=data,
             )
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
+
+            publish_action_from_context(
+                action=ActionType.ASSIGN,
+                group_id=group.id,
+                organization_id=group.project.organization_id,
+                project_id=group.project_id,
+            )
             GroupOwner.invalidate_assignee_exists_cache(group.id)
 
             metrics.incr("group.assignee.change", instance="assigned", skip_internal=True)
@@ -224,6 +232,13 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             Activity.objects.create_group_activity(group, ActivityType.UNASSIGNED, user=acting_user)
 
             record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
+
+            publish_action_from_context(
+                action=ActionType.UNASSIGN,
+                group_id=group.id,
+                organization_id=group.project.organization_id,
+                project_id=group.project_id,
+            )
 
             # Clear ownership cache for the deassigned group
             ownership = ProjectOwnership.get_ownership_cached(group.project.id)
