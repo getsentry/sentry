@@ -348,7 +348,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 organization_id=group.organization.id,
                 project_id=group.project_id,
                 actor=GroupActionActor.user(request.user.id)
-                if getattr(request.user, "is_authenticated", False)
+                if request.user.is_authenticated
                 else SYSTEM_ACTOR,
             )
 
