@@ -107,7 +107,7 @@ class UrlTagDeriver(TagDeriver):
 class InterfaceTypeTagDeriver(TagDeriver):
     tag = "interface_type"
     option_key = "auto_tag:_interface_types:enabled"
-    default_enabled = False
+    default_enabled = True
 
     def get_tags(self, event: Any) -> list[tuple[str, str]]:
         return [

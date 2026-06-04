@@ -254,7 +254,7 @@ class TestGetEnabledDerivers(TestCase):
         assert "os" in tags
         assert "device" in tags
         assert "url" in tags
-        assert "interface_type" not in tags
+        assert "interface_type" in tags
 
     def test_disabling_default_on_deriver(self) -> None:
         project = self.create_project()
@@ -264,12 +264,12 @@ class TestGetEnabledDerivers(TestCase):
         assert "browser" not in tags
         assert "os" in tags
 
-    def test_enabling_default_off_deriver(self) -> None:
+    def test_disabling_interface_type_deriver(self) -> None:
         project = self.create_project()
-        ProjectOption.objects.set_value(project, "auto_tag:_interface_types:enabled", True)
+        ProjectOption.objects.set_value(project, "auto_tag:_interface_types:enabled", False)
         derivers = get_enabled_derivers(project)
         tags = {d.tag for d in derivers}
-        assert "interface_type" in tags
+        assert "interface_type" not in tags
 
     def test_all_disabled(self) -> None:
         project = self.create_project()
