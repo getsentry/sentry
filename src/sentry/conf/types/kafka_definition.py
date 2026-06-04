@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from enum import Enum
-from typing import Any, Required, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import click
 from sentry_kafka_schemas import get_codec
@@ -113,35 +113,35 @@ class Topic(Enum):
     TASKWORKER_WORKFLOWS_ENGINE_DLQ = "taskworker-workflows-engine-dlq"
 
 
-class ConsumerDefinition(TypedDict, total=False):
+class ConsumerDefinition(TypedDict):
     # Default topic
-    topic: Required[Topic]
+    topic: Topic
 
     # Schema validation will be run if true
-    validate_schema: bool | None
+    validate_schema: NotRequired[bool | None]
 
-    strategy_factory: Required[str]
+    strategy_factory: str
 
     # Additional CLI options the consumer should accept. These arguments are
     # passed as kwargs to the strategy_factory.
-    click_options: Sequence[click.Option]
+    click_options: NotRequired[Sequence[click.Option]]
 
     # Hardcoded additional kwargs for strategy_factory
-    static_args: Mapping[str, Any]
+    static_args: NotRequired[Mapping[str, Any]]
 
     # Pass optional kwargs to the strategy factory
-    pass_consumer_group: bool
-    pass_kafka_slice_id: bool
+    pass_consumer_group: NotRequired[bool]
+    pass_kafka_slice_id: NotRequired[bool]
 
-    require_synchronization: bool
-    synchronize_commit_group_default: str
-    synchronize_commit_log_topic_default: str
+    require_synchronization: NotRequired[bool]
+    synchronize_commit_group_default: NotRequired[str]
+    synchronize_commit_log_topic_default: NotRequired[str]
 
-    dlq_topic: Topic
-    dlq_max_invalid_ratio: float | None
-    dlq_max_consecutive_count: int | None
+    dlq_topic: NotRequired[Topic]
+    dlq_max_invalid_ratio: NotRequired[float | None]
+    dlq_max_consecutive_count: NotRequired[int | None]
 
-    stale_topic: Topic
+    stale_topic: NotRequired[Topic]
 
 
 def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> None:

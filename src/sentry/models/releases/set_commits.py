@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 import re
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from django.db import IntegrityError, router
 
@@ -38,10 +38,10 @@ from sentry.models.repository import Repository
 from sentry.plugins.providers.repository import RepositoryProvider
 
 
-class _CommitDataKwargs(TypedDict, total=False):
-    author: CommitAuthor
-    message: str
-    date_added: str
+class _CommitDataKwargs(TypedDict):
+    author: NotRequired[CommitAuthor]
+    message: NotRequired[str]
+    date_added: NotRequired[str]
 
 
 def set_commits(release, commit_list):

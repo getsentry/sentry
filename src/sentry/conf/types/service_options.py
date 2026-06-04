@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
-class ServiceOptions(TypedDict, total=False):
-    path: str
-    options: dict[str, object]
-    executor: ServiceOptions
+class ServiceOptions(TypedDict):
+    path: NotRequired[str]
+    options: NotRequired[dict[str, object]]
+    executor: NotRequired[ServiceOptions]

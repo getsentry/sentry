@@ -1,23 +1,23 @@
 from __future__ import annotations
 
-from typing import Any, Required, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 # Ideally this would be fully aligned with sentry_kafka_schemas, but many mutations
 # happen in the ingestion pipeline (adding new attributes and removing required
 # ones) and it's not clear we want to fully couple those types yet.
 
 
-class Span(TypedDict, total=False):
-    span_id: Required[str]
-    start_timestamp: Required[float]
-    timestamp: Required[float]
+class Span(TypedDict):
+    span_id: str
+    start_timestamp: float
+    timestamp: float
 
-    op: str
-    description: str
-    hash: str
-    parent_span_id: str
-    data: dict[str, Any] | None
-    sentry_tags: SentryTags
+    op: NotRequired[str]
+    description: NotRequired[str]
+    hash: NotRequired[str]
+    parent_span_id: NotRequired[str]
+    data: NotRequired[dict[str, Any] | None]
+    sentry_tags: NotRequired[SentryTags]
 
 
 #: Sentry tags used in performance issue detection.
@@ -30,12 +30,11 @@ class Span(TypedDict, total=False):
 SentryTags = TypedDict(
     "SentryTags",
     {
-        "description": str,
-        "environment": str,
-        "platform": str,
-        "release": str,
-        "sdk.name": str,
-        "system": str,
+        "description": NotRequired[str],
+        "environment": NotRequired[str],
+        "platform": NotRequired[str],
+        "release": NotRequired[str],
+        "sdk.name": NotRequired[str],
+        "system": NotRequired[str],
     },
-    total=False,
 )

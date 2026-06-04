@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 from django.core.cache import cache
 
@@ -84,8 +84,8 @@ class TrimmingConfig(TypedDict):
 
 # This mirrors the TrimmingConfigs struct in Relay
 # https://github.com/getsentry/relay/blob/73e5f9816b10c518b4451d46ebffa709f9f7e897/relay-dynamic-config/src/project.rs#L297-L301
-class TrimmingConfigs(TypedDict, total=False):
-    span: TrimmingConfig
+class TrimmingConfigs(TypedDict):
+    span: NotRequired[TrimmingConfig]
 
 
 def build_metric_abuse_quotas() -> list[AbuseQuota]:

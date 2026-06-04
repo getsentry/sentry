@@ -7,7 +7,7 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Never, Protocol, TypedDict
+from typing import Any, Never, NotRequired, Protocol, TypedDict
 
 import sentry_sdk
 from dateutil.parser import parse as parse_datetime
@@ -227,9 +227,9 @@ def _reasonable_group_tag_value_iter_match(
     return True
 
 
-class _OptimizeKwargs(TypedDict, total=False):
-    turbo: bool
-    sample: int
+class _OptimizeKwargs(TypedDict):
+    turbo: NotRequired[bool]
+    sample: NotRequired[int]
 
 
 class _KeyCallable[T, U](Protocol):

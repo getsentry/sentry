@@ -6,7 +6,7 @@ import uuid
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
 from time import time
-from typing import TYPE_CHECKING, Any, Callable, TypedDict
+from typing import TYPE_CHECKING, Any, Callable, NotRequired, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -63,13 +63,13 @@ ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
 
 
-class PostProcessJob(TypedDict, total=False):
-    event: GroupEvent
-    group_state: GroupState
-    is_reprocessed: bool
-    has_reappeared: bool
+class PostProcessJob(TypedDict):
+    event: NotRequired[GroupEvent]
+    group_state: NotRequired[GroupState]
+    is_reprocessed: NotRequired[bool]
+    has_reappeared: NotRequired[bool]
     # True when an issue transitions to the ESCALATING substatus for any reason.
-    has_escalated: bool
+    has_escalated: NotRequired[bool]
 
 
 def _should_send_error_created_hooks(project: Project) -> bool:

@@ -6,7 +6,17 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Sequence, TypeAlias, TypedDict, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    Generic,
+    NotRequired,
+    Sequence,
+    TypeAlias,
+    TypedDict,
+    TypeVar,
+)
 
 from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
@@ -96,8 +106,8 @@ class DetectorEvaluationResult:
     event_data: dict[str, Any] | None = None
 
 
-class _WorkflowEventLocalCache(TypedDict, total=False):
-    group_assignees: Sequence[GroupAssignee]
+class _WorkflowEventLocalCache(TypedDict):
+    group_assignees: NotRequired[Sequence[GroupAssignee]]
 
 
 @dataclass(frozen=True)
@@ -419,16 +429,16 @@ class DataConditionType(TypedDict):
 
 
 # TODO - Move this to snuba module
-class SnubaQueryDataSourceType(TypedDict, total=False):
-    query_type: SnubaQuery.Type
-    dataset: Dataset
-    query: str
-    aggregate: str
-    time_window: float
-    resolution: float
-    extrapolation_mode: ExtrapolationMode | None
-    environment: Environment | None
-    event_types: list[SnubaQueryEventType.EventType]
+class SnubaQueryDataSourceType(TypedDict):
+    query_type: NotRequired[SnubaQuery.Type]
+    dataset: NotRequired[Dataset]
+    query: NotRequired[str]
+    aggregate: NotRequired[str]
+    time_window: NotRequired[float]
+    resolution: NotRequired[float]
+    extrapolation_mode: NotRequired[ExtrapolationMode | None]
+    environment: NotRequired[Environment | None]
+    event_types: NotRequired[list[SnubaQueryEventType.EventType]]
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from django.db.models import F, Q
 from django.http import HttpResponse
@@ -50,12 +50,12 @@ if TYPE_CHECKING:
     from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
 
-class ReleaseThresholdStatusIndexData(TypedDict, total=False):
-    start: datetime
-    end: datetime
-    environment: list[str]
-    projectSlug: list[str]
-    release: list[str]
+class ReleaseThresholdStatusIndexData(TypedDict):
+    start: NotRequired[datetime]
+    end: NotRequired[datetime]
+    environment: NotRequired[list[str]]
+    projectSlug: NotRequired[list[str]]
+    release: NotRequired[list[str]]
 
 
 class ReleaseThresholdStatusIndexSerializer(

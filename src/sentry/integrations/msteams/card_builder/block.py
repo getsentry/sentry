@@ -79,15 +79,15 @@ class ActionSet(TypedDict):
     actions: list[Action]
 
 
-class _TextBlockNotRequired(TypedDict, total=False):
-    size: TextSize
-    weight: TextWeight
-    horizontalAlignment: ContentAlignment
-    spacing: Literal["None"]
-    isSubtle: bool
-    height: Literal["stretch"]
-    wrap: bool
-    fontType: Literal["Default"]
+class _TextBlockNotRequired(TypedDict):
+    size: NotRequired[TextSize]
+    weight: NotRequired[TextWeight]
+    horizontalAlignment: NotRequired[ContentAlignment]
+    spacing: NotRequired[Literal["None"]]
+    isSubtle: NotRequired[bool]
+    height: NotRequired[Literal["stretch"]]
+    wrap: NotRequired[bool]
+    fontType: NotRequired[Literal["Default"]]
 
 
 class TextBlock(_TextBlockNotRequired):
@@ -95,11 +95,11 @@ class TextBlock(_TextBlockNotRequired):
     text: str
 
 
-class _ImageBlockNotRequired(TypedDict, total=False):
-    size: ImageSize
-    height: str
-    width: str
-    altText: str
+class _ImageBlockNotRequired(TypedDict):
+    size: NotRequired[ImageSize]
+    height: NotRequired[str]
+    width: NotRequired[str]
+    altText: NotRequired[str]
 
 
 class ImageBlock(_ImageBlockNotRequired):
@@ -107,11 +107,11 @@ class ImageBlock(_ImageBlockNotRequired):
     url: str
 
 
-class _ColumnBlockNotRequired(TypedDict, total=False):
-    style: Literal["good", "warning", "attention"]
-    isSubtle: bool
-    spacing: str
-    verticalContentAlignment: ContentAlignment
+class _ColumnBlockNotRequired(TypedDict):
+    style: NotRequired[Literal["good", "warning", "attention"]]
+    isSubtle: NotRequired[bool]
+    spacing: NotRequired[str]
+    verticalContentAlignment: NotRequired[ContentAlignment]
 
 
 class ColumnBlock(_ColumnBlockNotRequired):
@@ -140,8 +140,8 @@ class InputChoice(TypedDict):
     value: object
 
 
-class _InputChoiceSetBlockNotRequired(TypedDict, total=False):
-    value: object
+class _InputChoiceSetBlockNotRequired(TypedDict):
+    value: NotRequired[object]
 
 
 class InputChoiceSetBlock(_InputChoiceSetBlockNotRequired):

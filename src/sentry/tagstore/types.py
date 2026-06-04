@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 from datetime import datetime
-from typing import Any, ClassVar, TypedDict
+from typing import Any, ClassVar, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.search.utils import convert_user_tag_to_query
@@ -129,10 +129,10 @@ class GroupTagValue(TagType):
         self.last_seen = last_seen
 
 
-class TagKeySerializerResponseOptional(TypedDict, total=False):
-    uniqueValues: int | None
-    totalValues: int | None
-    topValues: list[TagValueSerializerResponse] | None
+class TagKeySerializerResponseOptional(TypedDict):
+    uniqueValues: NotRequired[int | None]
+    totalValues: NotRequired[int | None]
+    topValues: NotRequired[list[TagValueSerializerResponse] | None]
 
 
 class TagKeySerializerResponse(TagKeySerializerResponseOptional):
@@ -159,8 +159,8 @@ class TagKeySerializer(Serializer[TagKeySerializerResponse]):
         return output
 
 
-class TagValueSerializerResponseOptional(TypedDict, total=False):
-    query: str | None
+class TagValueSerializerResponseOptional(TypedDict):
+    query: NotRequired[str | None]
 
 
 class TagValueSerializerResponse(TagValueSerializerResponseOptional):

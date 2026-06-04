@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
+from typing import TYPE_CHECKING, Any, ClassVar, NotRequired, TypedDict, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -133,11 +133,13 @@ class OnboardingTasksSerializerResponse(TypedDict):
     data: Any  # JSON objec
 
 
-class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
-    features: list[str]  # Only included if include_feature_flags is True
-    extraOptions: dict[str, dict[str, Any]]
-    access: frozenset[str]  # Only if access=... is passed
-    onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
+class OrganizationSummarySerializerResponseOptional(TypedDict):
+    features: NotRequired[list[str]]  # Only included if include_feature_flags is True
+    extraOptions: NotRequired[dict[str, dict[str, Any]]]
+    access: NotRequired[frozenset[str]]  # Only if access=... is passed
+    onboardingTasks: NotRequired[
+        list[OnboardingTasksSerializerResponse]
+    ]  # Only if access=... is passed
 
 
 class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
@@ -233,12 +235,12 @@ class BaseOrganizationSerializer(serializers.Serializer):
         return value
 
 
-class TrustedRelaySerializerResponse(TypedDict, total=False):
-    name: str
-    description: str
-    publicKey: str
-    created: datetime
-    lastModified: datetime
+class TrustedRelaySerializerResponse(TypedDict):
+    name: NotRequired[str]
+    description: NotRequired[str]
+    publicKey: NotRequired[str]
+    created: NotRequired[datetime]
+    lastModified: NotRequired[datetime]
 
 
 def _relay_internal_to_external(d: dict[str, Any]) -> TrustedRelaySerializerResponse:
@@ -633,17 +635,17 @@ class OnboardingTasksSerializer(Serializer[OnboardingTasksSerializerResponse]):
         }
 
 
-class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerResponse, total=False):
-    role: Any  # TODO: replace with enum/literal
-    orgRole: str
-    targetSampleRate: float
-    samplingMode: str
-    planSampleRate: float
-    desiredSampleRate: float
-    ingestThroughTrustedRelaysOnly: bool
-    enabledConsolePlatforms: list[str]
-    consoleSdkInviteQuota: int
-    dashboardsAsyncQueueParallelLimit: int
+class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerResponse):
+    role: NotRequired[Any]  # TODO: replace with enum/literal
+    orgRole: NotRequired[str]
+    targetSampleRate: NotRequired[float]
+    samplingMode: NotRequired[str]
+    planSampleRate: NotRequired[float]
+    desiredSampleRate: NotRequired[float]
+    ingestThroughTrustedRelaysOnly: NotRequired[bool]
+    enabledConsolePlatforms: NotRequired[list[str]]
+    consoleSdkInviteQuota: NotRequired[int]
+    dashboardsAsyncQueueParallelLimit: NotRequired[int]
 
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])

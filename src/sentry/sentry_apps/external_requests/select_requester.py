@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 
@@ -24,10 +24,10 @@ from sentry.utils import json
 FAILURE_REASON_BASE = f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{{}}"
 
 
-class SelectRequesterResult(TypedDict, total=False):
+class SelectRequesterResult(TypedDict):
     # Each contained Sequence of strings is of length 2 i.e ["label", "value"]
-    choices: Sequence[Annotated[Sequence[str], 2]]
-    defaultValue: str
+    choices: NotRequired[Sequence[Annotated[Sequence[str], 2]]]
+    defaultValue: NotRequired[str]
 
 
 @dataclass

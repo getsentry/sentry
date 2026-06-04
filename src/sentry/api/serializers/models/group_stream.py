@@ -178,8 +178,8 @@ class GroupStatsMixin:
             )
 
 
-class _MaybeStats(TypedDict, total=False):
-    stats: dict[str, dict[int, list[tuple[int, int]]]]
+class _MaybeStats(TypedDict):
+    stats: NotRequired[dict[str, dict[int, list[tuple[int, int]]]]]
 
 
 class StreamGroupSerializerResponse(BaseGroupSerializerResponse, _MaybeStats):

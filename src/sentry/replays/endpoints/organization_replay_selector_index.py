@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -66,12 +66,12 @@ ElementResponseType = TypedDict(
 )
 
 
-class ReplaySelectorResponseData(TypedDict, total=False):
-    count_dead_clicks: int
-    count_rage_clicks: int
-    dom_element: str
-    element: ElementResponseType
-    project_id: str
+class ReplaySelectorResponseData(TypedDict):
+    count_dead_clicks: NotRequired[int]
+    count_rage_clicks: NotRequired[int]
+    dom_element: NotRequired[str]
+    element: NotRequired[ElementResponseType]
+    project_id: NotRequired[str]
 
 
 class ReplaySelectorResponse(TypedDict):

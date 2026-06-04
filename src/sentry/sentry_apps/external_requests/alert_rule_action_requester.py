@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
@@ -30,13 +30,13 @@ FAILURE_REASON_BASE = f"{SentryAppEventType.ALERT_RULE_ACTION_REQUESTED}.{{}}"
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
 
 
-class SentryAppAlertRuleActionResult(TypedDict, total=False):
-    success: bool
-    message: str
-    error_type: SentryAppErrorType | None
-    webhook_context: dict[str, Any] | None
-    public_context: dict[str, Any] | None
-    status_code: int | None
+class SentryAppAlertRuleActionResult(TypedDict):
+    success: NotRequired[bool]
+    message: NotRequired[str]
+    error_type: NotRequired[SentryAppErrorType | None]
+    webhook_context: NotRequired[dict[str, Any] | None]
+    public_context: NotRequired[dict[str, Any] | None]
+    status_code: NotRequired[int | None]
 
 
 @dataclass

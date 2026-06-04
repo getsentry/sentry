@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, Required, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
@@ -90,10 +90,10 @@ class PrebuiltDashboardId(IntEnum):
     NODE_RUNTIME_METRICS = 29
 
 
-class PrebuiltDashboard(TypedDict, total=False):
-    prebuilt_id: Required[PrebuiltDashboardId]
-    title: Required[str]
-    hidden: bool
+class PrebuiltDashboard(TypedDict):
+    prebuilt_id: PrebuiltDashboardId
+    title: str
+    hidden: NotRequired[bool]
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are

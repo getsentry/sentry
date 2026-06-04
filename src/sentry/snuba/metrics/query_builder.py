@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, TypedDict, overload
+from typing import Any, NotRequired, TypedDict, overload
 
 import sentry_sdk
 from snuba_sdk import (
@@ -1239,9 +1239,9 @@ class SnubaQueryBuilder:
         return queries_dict, fields_in_entities
 
 
-class _SeriesTotals(TypedDict, total=False):
-    series: dict[str, list[Any]]
-    totals: dict[str, Any]
+class _SeriesTotals(TypedDict):
+    series: NotRequired[dict[str, list[Any]]]
+    totals: NotRequired[dict[str, Any]]
 
 
 class _BySeriesTotals(_SeriesTotals):

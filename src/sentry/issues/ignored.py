@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.utils import timezone
 
@@ -35,13 +35,13 @@ IGNORED_CONDITION_FIELDS = {
 }
 
 
-class IgnoredStatusDetails(TypedDict, total=False):
-    ignoreCount: int | None
-    ignoreUntil: datetime | None
-    ignoreUserCount: int | None
-    ignoreUserWindow: int | None
-    ignoreWindow: int | None
-    actor: User | None
+class IgnoredStatusDetails(TypedDict):
+    ignoreCount: NotRequired[int | None]
+    ignoreUntil: NotRequired[datetime | None]
+    ignoreUserCount: NotRequired[int | None]
+    ignoreUserWindow: NotRequired[int | None]
+    ignoreWindow: NotRequired[int | None]
+    actor: NotRequired[User | None]
 
 
 def handle_archived_until_escalating(

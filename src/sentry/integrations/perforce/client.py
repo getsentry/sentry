@@ -6,7 +6,7 @@ import tempfile
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 # Tell P4 to look for a ".p4config" file when resolving per-connection
 # settings like P4TRUST and P4TICKETS. Each _connect() call creates a temp
@@ -55,12 +55,12 @@ class P4DepotInfo(TypedDict):
     description: str
 
 
-class P4UserInfo(TypedDict, total=False):
+class P4UserInfo(TypedDict):
     """Type definition for Perforce user information."""
 
-    email: str
-    full_name: str
-    username: str
+    email: NotRequired[str]
+    full_name: NotRequired[str]
+    username: NotRequired[str]
 
 
 class P4CommitInfo(TypedDict):

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
@@ -15,13 +15,13 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 
 
-class ActionSerializerResponse(TypedDict, total=False):
-    id: str
-    type: str
-    integrationId: str | None
-    data: dict[str, str]
-    config: dict[str, Any]
-    status: str
+class ActionSerializerResponse(TypedDict):
+    id: NotRequired[str]
+    type: NotRequired[str]
+    integrationId: NotRequired[str | None]
+    data: NotRequired[dict[str, str]]
+    config: NotRequired[dict[str, Any]]
+    status: NotRequired[str]
 
 
 class ConditionSerializerResponse(TypedDict):
@@ -31,12 +31,12 @@ class ConditionSerializerResponse(TypedDict):
     conditionResult: bool
 
 
-class TriggerSerializerResponse(TypedDict, total=False):
-    id: str
-    organizationId: str
-    logicType: str
-    conditions: list[ConditionSerializerResponse] | list[Any]
-    actions: list[ActionSerializerResponse] | list[Any]
+class TriggerSerializerResponse(TypedDict):
+    id: NotRequired[str]
+    organizationId: NotRequired[str]
+    logicType: NotRequired[str]
+    conditions: NotRequired[list[ConditionSerializerResponse] | list[Any]]
+    actions: NotRequired[list[ActionSerializerResponse] | list[Any]]
 
 
 class WorkflowSerializerResponse(TypedDict):

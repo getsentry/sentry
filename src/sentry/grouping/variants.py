@@ -277,12 +277,12 @@ class SaltedComponentVariant(ComponentVariant):
         }
 
 
-class VariantsByDescriptor(TypedDict, total=False):
-    system: ComponentVariant
-    app: ComponentVariant
-    custom_fingerprint: CustomFingerprintVariant
-    built_in_fingerprint: CustomFingerprintVariant
-    checksum: ChecksumVariant
-    hashed_checksum: HashedChecksumVariant
-    default: ComponentVariant
-    fallback: FallbackVariant
+class VariantsByDescriptor(TypedDict):
+    system: NotRequired[ComponentVariant]
+    app: NotRequired[ComponentVariant]
+    custom_fingerprint: NotRequired[CustomFingerprintVariant]
+    built_in_fingerprint: NotRequired[CustomFingerprintVariant]
+    checksum: NotRequired[ChecksumVariant]
+    hashed_checksum: NotRequired[HashedChecksumVariant]
+    default: NotRequired[ComponentVariant]
+    fallback: NotRequired[FallbackVariant]

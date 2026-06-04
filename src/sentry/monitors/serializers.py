@@ -3,7 +3,7 @@ from collections.abc import MutableMapping, Sequence
 from datetime import datetime
 from itertools import groupby
 from operator import attrgetter
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
 from django.db.models import prefetch_related_objects
 
@@ -171,8 +171,8 @@ class MonitorAlertRuleSerializerResponse(TypedDict):
     environment: str
 
 
-class MonitorSerializerResponseOptional(TypedDict, total=False):
-    alertRule: MonitorAlertRuleSerializerResponse
+class MonitorSerializerResponseOptional(TypedDict):
+    alertRule: NotRequired[MonitorAlertRuleSerializerResponse]
 
 
 class MonitorSerializerResponse(MonitorSerializerResponseOptional):
@@ -322,8 +322,8 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
         return key in self.expand
 
 
-class MonitorCheckInSerializerResponseOptional(TypedDict, total=False):
-    groups: list[str]
+class MonitorCheckInSerializerResponseOptional(TypedDict):
+    groups: NotRequired[list[str]]
 
 
 class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional):

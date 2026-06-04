@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, Union
+from typing import Any, NotRequired, TypedDict, Union
 
 import orjson
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -52,11 +52,11 @@ from sentry.utils.strings import oxfordize_list
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
-class FilterConvertParams(TypedDict, total=False):
-    organization_id: int
-    project_id: Sequence[int]
-    environment: Sequence[str] | None
-    environment_id: list[int] | None
+class FilterConvertParams(TypedDict):
+    organization_id: NotRequired[int]
+    project_id: NotRequired[Sequence[int]]
+    environment: NotRequired[Sequence[str] | None]
+    environment_id: NotRequired[list[int] | None]
 
 
 def translate_transaction_status(val: str) -> int:

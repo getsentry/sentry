@@ -2653,17 +2653,17 @@ def _record_transaction_info(
             sentry_sdk.capture_exception()
 
 
-class PerformanceJob(TypedDict, total=False):
-    performance_problems: Sequence[PerformanceProblem]
-    event: Event
-    groups: list[GroupInfo]
-    culprit: str
-    received_timestamp: float
-    event_metadata: Mapping[str, Any]
-    platform: str
-    level: str
-    logger_name: str
-    release: Release
+class PerformanceJob(TypedDict):
+    performance_problems: NotRequired[Sequence[PerformanceProblem]]
+    event: NotRequired[Event]
+    groups: NotRequired[list[GroupInfo]]
+    culprit: NotRequired[str]
+    received_timestamp: NotRequired[float]
+    event_metadata: NotRequired[Mapping[str, Any]]
+    platform: NotRequired[str]
+    level: NotRequired[str]
+    logger_name: NotRequired[str]
+    release: NotRequired[Release]
 
 
 def save_grouphash_and_group(

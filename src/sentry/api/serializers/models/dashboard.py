@@ -59,8 +59,8 @@ class DashboardWidgetQueryResponse(TypedDict):
     linkedDashboards: list[LinkedDashboardResponse]
 
 
-class ThresholdTypeOptional(TypedDict, total=False):
-    preferredPolarity: str
+class ThresholdTypeOptional(TypedDict):
+    preferredPolarity: NotRequired[str]
 
 
 class ThresholdType(ThresholdTypeOptional):
@@ -458,12 +458,12 @@ class _Widget(TypedDict):
     last_visited: str | None
 
 
-class PageFiltersOptional(TypedDict, total=False):
-    period: str
-    utc: str
-    expired: bool
-    start: datetime
-    end: datetime
+class PageFiltersOptional(TypedDict):
+    period: NotRequired[str]
+    utc: NotRequired[str]
+    expired: NotRequired[bool]
+    start: NotRequired[datetime]
+    end: NotRequired[datetime]
 
 
 class PageFilters(PageFiltersOptional):
@@ -601,19 +601,19 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         }
 
 
-class DashboardFilters(TypedDict, total=False):
-    release: list[str]
-    releaseId: list[str]
-    globalFilter: list[dict[str, Any]]
+class DashboardFilters(TypedDict):
+    release: NotRequired[list[str]]
+    releaseId: NotRequired[list[str]]
+    globalFilter: NotRequired[list[dict[str, Any]]]
 
 
-class DashboardDetailsResponseOptional(TypedDict, total=False):
-    environment: list[str]
-    period: str
-    utc: str
-    expired: bool
-    start: datetime
-    end: datetime
+class DashboardDetailsResponseOptional(TypedDict):
+    environment: NotRequired[list[str]]
+    period: NotRequired[str]
+    utc: NotRequired[str]
+    expired: NotRequired[bool]
+    start: NotRequired[datetime]
+    end: NotRequired[datetime]
 
 
 class DashboardDetailsResponse(DashboardDetailsResponseOptional):

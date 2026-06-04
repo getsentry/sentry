@@ -4,7 +4,7 @@ import functools
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
-from typing import Any, Optional, Protocol, TypedDict, TypeGuard
+from typing import Any, NotRequired, Optional, Protocol, TypedDict, TypeGuard
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
@@ -66,8 +66,8 @@ GroupSearchStrategy = Callable[
 ]
 
 
-class MergeableRow(TypedDict, total=False):
-    group_id: int
+class MergeableRow(TypedDict):
+    group_id: NotRequired[int]
 
 
 class _IssueSearchFilterValue(Protocol):

@@ -1,75 +1,75 @@
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 
-class VcsInfoResponseDict(TypedDict, total=False):
-    head_sha: str | None
-    base_sha: str | None
-    provider: str | None
-    head_repo_name: str | None
-    base_repo_name: str | None
-    head_ref: str | None
-    base_ref: str | None
-    pr_number: int | None
+class VcsInfoResponseDict(TypedDict):
+    head_sha: NotRequired[str | None]
+    base_sha: NotRequired[str | None]
+    provider: NotRequired[str | None]
+    head_repo_name: NotRequired[str | None]
+    base_repo_name: NotRequired[str | None]
+    head_ref: NotRequired[str | None]
+    base_ref: NotRequired[str | None]
+    pr_number: NotRequired[int | None]
 
 
-class SnapshotImageResponseDict(TypedDict, total=False):
-    key: str
-    display_name: str | None
-    group: str | None
-    image_file_name: str
-    width: int
-    height: int
+class SnapshotImageResponseDict(TypedDict):
+    key: NotRequired[str]
+    display_name: NotRequired[str | None]
+    group: NotRequired[str | None]
+    image_file_name: NotRequired[str]
+    width: NotRequired[int]
+    height: NotRequired[int]
 
 
-class SnapshotDiffPairResponseDict(TypedDict, total=False):
-    base_image: SnapshotImageResponseDict
-    head_image: SnapshotImageResponseDict
-    diff_image_key: str | None
-    diff: float | None
+class SnapshotDiffPairResponseDict(TypedDict):
+    base_image: NotRequired[SnapshotImageResponseDict]
+    head_image: NotRequired[SnapshotImageResponseDict]
+    diff_image_key: NotRequired[str | None]
+    diff: NotRequired[float | None]
 
 
-class SnapshotApproverResponseDict(TypedDict, total=False):
-    id: str | None
-    name: str | None
-    email: str | None
-    username: str | None
-    avatar_url: str | None
-    approved_at: str | None
-    source: Literal["sentry", "github"]
+class SnapshotApproverResponseDict(TypedDict):
+    id: NotRequired[str | None]
+    name: NotRequired[str | None]
+    email: NotRequired[str | None]
+    username: NotRequired[str | None]
+    avatar_url: NotRequired[str | None]
+    approved_at: NotRequired[str | None]
+    source: NotRequired[Literal["sentry", "github"]]
 
 
-class SnapshotDetailsResponseDict(TypedDict, total=False):
-    head_artifact_id: str
-    base_artifact_id: str | None
-    project_id: str
-    comparison_type: str
-    state: str
-    vcs_info: VcsInfoResponseDict
-    app_id: str | None
-    is_selective: bool
-    images: list[SnapshotImageResponseDict]
-    image_count: int
-    added: list[SnapshotImageResponseDict]
-    added_count: int
-    removed: list[SnapshotImageResponseDict]
-    removed_count: int
-    renamed: list[SnapshotDiffPairResponseDict]
-    renamed_count: int
-    changed: list[SnapshotDiffPairResponseDict]
-    changed_count: int
-    unchanged: list[SnapshotImageResponseDict]
-    unchanged_count: int
-    errored: list[SnapshotDiffPairResponseDict]
-    errored_count: int
-    skipped: list[SnapshotImageResponseDict]
-    skipped_count: int
-    diff_threshold: float | None
-    comparison_state: str | None
-    approval_status: str | None
-    comparison_error_message: str | None
-    approvers: list[SnapshotApproverResponseDict]
+class SnapshotDetailsResponseDict(TypedDict):
+    head_artifact_id: NotRequired[str]
+    base_artifact_id: NotRequired[str | None]
+    project_id: NotRequired[str]
+    comparison_type: NotRequired[str]
+    state: NotRequired[str]
+    vcs_info: NotRequired[VcsInfoResponseDict]
+    app_id: NotRequired[str | None]
+    is_selective: NotRequired[bool]
+    images: NotRequired[list[SnapshotImageResponseDict]]
+    image_count: NotRequired[int]
+    added: NotRequired[list[SnapshotImageResponseDict]]
+    added_count: NotRequired[int]
+    removed: NotRequired[list[SnapshotImageResponseDict]]
+    removed_count: NotRequired[int]
+    renamed: NotRequired[list[SnapshotDiffPairResponseDict]]
+    renamed_count: NotRequired[int]
+    changed: NotRequired[list[SnapshotDiffPairResponseDict]]
+    changed_count: NotRequired[int]
+    unchanged: NotRequired[list[SnapshotImageResponseDict]]
+    unchanged_count: NotRequired[int]
+    errored: NotRequired[list[SnapshotDiffPairResponseDict]]
+    errored_count: NotRequired[int]
+    skipped: NotRequired[list[SnapshotImageResponseDict]]
+    skipped_count: NotRequired[int]
+    diff_threshold: NotRequired[float | None]
+    comparison_state: NotRequired[str | None]
+    approval_status: NotRequired[str | None]
+    comparison_error_message: NotRequired[str | None]
+    approvers: NotRequired[list[SnapshotApproverResponseDict]]
 
 
 class SnapshotCreateResponseDict(TypedDict):
@@ -79,55 +79,55 @@ class SnapshotCreateResponseDict(TypedDict):
     snapshotUrl: str
 
 
-class SnapshotImageDetailImageInfoResponseDict(TypedDict, total=False):
-    content_hash: str
-    display_name: str | None
-    group: str | None
-    image_file_name: str
-    width: int
-    height: int
-    diff_threshold: float | None
-    description: str | None
-    tags: dict[str, str] | None
-    image_url: str
+class SnapshotImageDetailImageInfoResponseDict(TypedDict):
+    content_hash: NotRequired[str]
+    display_name: NotRequired[str | None]
+    group: NotRequired[str | None]
+    image_file_name: NotRequired[str]
+    width: NotRequired[int]
+    height: NotRequired[int]
+    diff_threshold: NotRequired[float | None]
+    description: NotRequired[str | None]
+    tags: NotRequired[dict[str, str] | None]
+    image_url: NotRequired[str]
 
 
-class SnapshotImageDetailResponseDict(TypedDict, total=False):
-    image_file_name: str
-    comparison_status: str | None
-    head_image: SnapshotImageDetailImageInfoResponseDict | None
-    base_image: SnapshotImageDetailImageInfoResponseDict | None
-    diff_image_url: str | None
-    diff_percentage: float | None
-    previous_image_file_name: str | None
+class SnapshotImageDetailResponseDict(TypedDict):
+    image_file_name: NotRequired[str]
+    comparison_status: NotRequired[str | None]
+    head_image: NotRequired[SnapshotImageDetailImageInfoResponseDict | None]
+    base_image: NotRequired[SnapshotImageDetailImageInfoResponseDict | None]
+    diff_image_url: NotRequired[str | None]
+    diff_percentage: NotRequired[float | None]
+    previous_image_file_name: NotRequired[str | None]
 
 
-class LatestBaseSnapshotImageResponseDict(TypedDict, total=False):
-    key: str
-    display_name: str | None
-    group: str | None
-    image_file_name: str
-    width: int
-    height: int
-    image_url: str
+class LatestBaseSnapshotImageResponseDict(TypedDict):
+    key: NotRequired[str]
+    display_name: NotRequired[str | None]
+    group: NotRequired[str | None]
+    image_file_name: NotRequired[str]
+    width: NotRequired[int]
+    height: NotRequired[int]
+    image_url: NotRequired[str]
 
 
-class LatestBaseSnapshotVcsInfoResponseDict(TypedDict, total=False):
-    head_sha: str | None
-    base_sha: str | None
-    head_ref: str | None
-    base_ref: str | None
-    head_repo_name: str | None
-    pr_number: int | None
+class LatestBaseSnapshotVcsInfoResponseDict(TypedDict):
+    head_sha: NotRequired[str | None]
+    base_sha: NotRequired[str | None]
+    head_ref: NotRequired[str | None]
+    base_ref: NotRequired[str | None]
+    head_repo_name: NotRequired[str | None]
+    pr_number: NotRequired[int | None]
 
 
-class LatestBaseSnapshotResponseDict(TypedDict, total=False):
-    head_artifact_id: str
-    project_id: str
-    project_slug: str
-    app_id: str | None
-    image_count: int
-    images: list[LatestBaseSnapshotImageResponseDict]
-    diff_threshold: float | None
-    date_added: str
-    vcs_info: LatestBaseSnapshotVcsInfoResponseDict
+class LatestBaseSnapshotResponseDict(TypedDict):
+    head_artifact_id: NotRequired[str]
+    project_id: NotRequired[str]
+    project_slug: NotRequired[str]
+    app_id: NotRequired[str | None]
+    image_count: NotRequired[int]
+    images: NotRequired[list[LatestBaseSnapshotImageResponseDict]]
+    diff_threshold: NotRequired[float | None]
+    date_added: NotRequired[str]
+    vcs_info: NotRequired[LatestBaseSnapshotVcsInfoResponseDict]

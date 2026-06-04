@@ -3,7 +3,7 @@ NOTE: This circuit breaker implementation is deprecated and is slated to eventua
 the `CircuitBreaker` class found in `circuit_breaker2.py` instead.
 """
 
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from django.core.cache import cache
 
@@ -20,20 +20,20 @@ class CircuitBreakerPassthrough(TypedDict, total=True):
     window: int
 
 
-class CircuitBreakerConfig(TypedDict, total=False):
+class CircuitBreakerConfig(TypedDict):
     # The number of consecutive failures within a given window required to trigger the circuit breaker
-    error_limit: int
+    error_limit: NotRequired[int]
     # The window of time in which those errors must happen
-    error_limit_window: int
+    error_limit_window: NotRequired[int]
     # Allow a configurable subset of function calls to bypass the circuit breaker, for the purposes
     # of determining when the service is healthy again and requests to it can resume.
-    allow_passthrough: bool
+    allow_passthrough: NotRequired[bool]
     # The number of function calls allowed to bypass the circuit breaker every
     # `passthrough_interval` seconds
-    passthrough_attempts_per_interval: int
+    passthrough_attempts_per_interval: NotRequired[int]
     # The window of time, in seconds, during which to allow `passthrough_attempts_per_interval`
     # calls to bypass the circuit breaker
-    passthrough_interval: int
+    passthrough_interval: NotRequired[int]
 
 
 CIRCUIT_BREAKER_DEFAULTS = CircuitBreakerConfig(

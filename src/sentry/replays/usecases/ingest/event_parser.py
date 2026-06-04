@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterator, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Literal, TypedDict, TypeVar
+from typing import Any, Literal, NotRequired, TypedDict, TypeVar
 
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
@@ -692,15 +692,15 @@ def set_if(keys: list[str], data: dict[str, Any], value_fn: Callable[[Any], T]) 
 #
 
 
-class HighlightedEvents(TypedDict, total=False):
-    canvas_sizes: list[int]
-    hydration_errors: list[HydrationError]
-    mutations: list[MutationEvent]
-    clicks: list[ClickEvent]
-    multiclicks: list[MultiClickEvent]
-    request_response_sizes: list[tuple[int | None, int | None]]
-    options: list[dict[str, Any]]
-    taps: list[TapEvent]
+class HighlightedEvents(TypedDict):
+    canvas_sizes: NotRequired[list[int]]
+    hydration_errors: NotRequired[list[HydrationError]]
+    mutations: NotRequired[list[MutationEvent]]
+    clicks: NotRequired[list[ClickEvent]]
+    multiclicks: NotRequired[list[MultiClickEvent]]
+    request_response_sizes: NotRequired[list[tuple[int | None, int | None]]]
+    options: NotRequired[list[dict[str, Any]]]
+    taps: NotRequired[list[TapEvent]]
 
 
 class HighlightedEventsBuilder:

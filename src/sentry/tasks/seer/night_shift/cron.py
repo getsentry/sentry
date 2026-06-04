@@ -5,7 +5,7 @@ import logging
 import time
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from django.utils import timezone
@@ -84,16 +84,16 @@ class SeerNightShiftRunOptions(TypedDict):
     extra_triage_instructions: str
 
 
-class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
+class SeerNightShiftRunOptionsPartial(TypedDict):
     """Caller-facing options dict — every field is optional. Missing fields
     are filled in by build_run_options with shared defaults."""
 
-    source: NightShiftRunSource
-    max_candidates: int
-    dry_run: bool
-    intelligence_level: IntelligenceLevel
-    reasoning_effort: ReasoningEffort
-    extra_triage_instructions: str
+    source: NotRequired[NightShiftRunSource]
+    max_candidates: NotRequired[int]
+    dry_run: NotRequired[bool]
+    intelligence_level: NotRequired[IntelligenceLevel]
+    reasoning_effort: NotRequired[ReasoningEffort]
+    extra_triage_instructions: NotRequired[str]
 
 
 @instrumented_task(

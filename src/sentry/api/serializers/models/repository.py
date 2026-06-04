@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.repository import Repository
@@ -12,17 +12,17 @@ class RepositorySettingsSerializerResponse(TypedDict):
     codeReviewTriggers: list[str]
 
 
-class RepositorySerializerResponse(TypedDict, total=False):
-    id: str
-    name: str
-    url: str | None
-    provider: dict[str, str]
-    status: str
-    dateCreated: datetime
-    integrationId: str | None
-    externalSlug: str | None
-    externalId: str | None
-    settings: RepositorySettingsSerializerResponse | None
+class RepositorySerializerResponse(TypedDict):
+    id: NotRequired[str]
+    name: NotRequired[str]
+    url: NotRequired[str | None]
+    provider: NotRequired[dict[str, str]]
+    status: NotRequired[str]
+    dateCreated: NotRequired[datetime]
+    integrationId: NotRequired[str | None]
+    externalSlug: NotRequired[str | None]
+    externalId: NotRequired[str | None]
+    settings: NotRequired[RepositorySettingsSerializerResponse | None]
 
 
 @register(RepositorySettings)

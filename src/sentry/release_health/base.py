@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, TypedDict, TypeIs, TypeVar, Union
+from typing import TYPE_CHECKING, Literal, NotRequired, TypedDict, TypeIs, TypeVar, Union
 
 from sentry.utils.services import Service
 
@@ -64,8 +64,12 @@ ProjectWithCount = tuple[ProjectId, int]
 #: Group key as featured in output format
 GroupKeyDict = TypedDict(
     "GroupKeyDict",
-    {"project": int, "release": str, "environment": str, "session.status": str},
-    total=False,
+    {
+        "project": NotRequired[int],
+        "release": NotRequired[str],
+        "environment": NotRequired[str],
+        "session.status": NotRequired[str],
+    },
 )
 
 
@@ -150,26 +154,26 @@ class ReleaseAdoption(TypedDict):
 ReleasesAdoption = Mapping[tuple[ProjectId, ReleaseName], ReleaseAdoption]
 
 
-class ReleaseHealthOverview(TypedDict, total=False):
-    adoption: float | None
-    sessions_adoption: float | None
-    total_users_24h: int | None
-    total_project_users_24h: int | None
-    total_sessions_24h: int | None
-    total_project_sessions_24h: int | None
-    total_sessions: int | None
-    total_users: int | None
-    has_health_data: bool
-    sessions_crashed: int
-    crash_free_users: float | None
-    crash_free_sessions: float | None
-    sessions_errored: int
-    duration_p50: float | None
-    duration_p90: float | None
-    stats: Mapping[StatsPeriod, ReleaseHealthStats]
-    sessions_unhandled: int
-    unhandled_session_rate: float | None
-    unhandled_user_rate: float | None
+class ReleaseHealthOverview(TypedDict):
+    adoption: NotRequired[float | None]
+    sessions_adoption: NotRequired[float | None]
+    total_users_24h: NotRequired[int | None]
+    total_project_users_24h: NotRequired[int | None]
+    total_sessions_24h: NotRequired[int | None]
+    total_project_sessions_24h: NotRequired[int | None]
+    total_sessions: NotRequired[int | None]
+    total_users: NotRequired[int | None]
+    has_health_data: NotRequired[bool]
+    sessions_crashed: NotRequired[int]
+    crash_free_users: NotRequired[float | None]
+    crash_free_sessions: NotRequired[float | None]
+    sessions_errored: NotRequired[int]
+    duration_p50: NotRequired[float | None]
+    duration_p90: NotRequired[float | None]
+    stats: NotRequired[Mapping[StatsPeriod, ReleaseHealthStats]]
+    sessions_unhandled: NotRequired[int]
+    unhandled_session_rate: NotRequired[float | None]
+    unhandled_user_rate: NotRequired[float | None]
 
 
 class CrashFreeBreakdown(TypedDict):

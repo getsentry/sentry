@@ -4,7 +4,7 @@ import dataclasses
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count
@@ -122,10 +122,10 @@ def get_access_requests(
     return frozenset()
 
 
-class _TeamSerializerResponseOptional(TypedDict, total=False):
-    externalTeams: list[ExternalActorResponse]
-    organization: OrganizationSummarySerializerResponse
-    projects: list[ProjectSerializerResponse]
+class _TeamSerializerResponseOptional(TypedDict):
+    externalTeams: NotRequired[list[ExternalActorResponse]]
+    organization: NotRequired[OrganizationSummarySerializerResponse]
+    projects: NotRequired[list[ProjectSerializerResponse]]
 
 
 class BaseTeamSerializerResponse(TypedDict):
@@ -352,8 +352,8 @@ class OrganizationTeamSCIMSerializerRequired(TypedDict):
     meta: SCIMMeta
 
 
-class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequired, total=False):
-    members: list[SCIMTeamMemberListItem]
+class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequired):
+    members: NotRequired[list[SCIMTeamMemberListItem]]
 
 
 @dataclasses.dataclass

@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
 from functools import cached_property
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
@@ -1124,8 +1124,8 @@ class GitHubBaseClient(
         return self.get(endpoint, api_request_type=GitHubApiRequestType.GET_CHECK_RUNS)
 
 
-class _IntegrationIdParams(TypedDict, total=False):
-    integration_id: int
+class _IntegrationIdParams(TypedDict):
+    integration_id: NotRequired[int]
 
 
 # TODO: Emerge Team - Update to be -> {"emerge": 0.05}.

@@ -1,30 +1,30 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
 
 
-class AlertRuleSerializerResponseOptional(TypedDict, total=False):
-    environment: str | None
-    projects: list[str] | None
-    queryType: int | None
-    resolveThreshold: float | None
-    dataset: str | None
-    thresholdType: int | None
-    eventTypes: list[str] | None
-    owner: str | None
-    originalAlertRuleId: str | None
-    comparisonDelta: float | None
-    weeklyAvg: float | None
-    totalThisWeek: int | None
-    snooze: bool | None
-    latestIncident: datetime | None
-    errors: list[str] | None
-    sensitivity: str | None
-    seasonality: str | None
-    extrapolationMode: str | None
+class AlertRuleSerializerResponseOptional(TypedDict):
+    environment: NotRequired[str | None]
+    projects: NotRequired[list[str] | None]
+    queryType: NotRequired[int | None]
+    resolveThreshold: NotRequired[float | None]
+    dataset: NotRequired[str | None]
+    thresholdType: NotRequired[int | None]
+    eventTypes: NotRequired[list[str] | None]
+    owner: NotRequired[str | None]
+    originalAlertRuleId: NotRequired[str | None]
+    comparisonDelta: NotRequired[float | None]
+    weeklyAvg: NotRequired[float | None]
+    totalThisWeek: NotRequired[int | None]
+    snooze: NotRequired[bool | None]
+    latestIncident: NotRequired[datetime | None]
+    errors: NotRequired[list[str] | None]
+    sensitivity: NotRequired[str | None]
+    seasonality: NotRequired[str | None]
+    extrapolationMode: NotRequired[str | None]
 
 
 @extend_schema_serializer(
@@ -63,11 +63,11 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     detectionType: str
 
 
-class DetailedAlertRuleSerializerResponse(AlertRuleSerializerResponse, total=False):
+class DetailedAlertRuleSerializerResponse(AlertRuleSerializerResponse):
     """
     Response type that includes additional snooze-related fields beyond the base
     AlertRuleSerializerResponse.
     """
 
-    snoozeForEveryone: bool | None
-    snoozeCreatedBy: str | None
+    snoozeForEveryone: NotRequired[bool | None]
+    snoozeCreatedBy: NotRequired[str | None]

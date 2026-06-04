@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol, TypedDict, TypeGuard
+from typing import Any, NotRequired, Protocol, TypedDict, TypeGuard
 
 import sentry_sdk
 from django.conf import settings
@@ -79,19 +79,19 @@ class GroupAnnotation(TypedDict):
     url: str
 
 
-class GroupStatusDetailsResponseOptional(TypedDict, total=False):
-    autoResolved: bool
-    ignoreCount: int
-    ignoreUntil: datetime
-    ignoreUserCount: int
-    ignoreUserWindow: int
-    ignoreWindow: int
-    actor: UserSerializerResponse
-    inNextRelease: bool
-    inRelease: str
-    inCommit: str
-    pendingEvents: int
-    info: Any
+class GroupStatusDetailsResponseOptional(TypedDict):
+    autoResolved: NotRequired[bool]
+    ignoreCount: NotRequired[int]
+    ignoreUntil: NotRequired[datetime]
+    ignoreUserCount: NotRequired[int]
+    ignoreUserWindow: NotRequired[int]
+    ignoreWindow: NotRequired[int]
+    actor: NotRequired[UserSerializerResponse]
+    inNextRelease: NotRequired[bool]
+    inRelease: NotRequired[str]
+    inCommit: NotRequired[str]
+    pendingEvents: NotRequired[int]
+    info: NotRequired[Any]
 
 
 class GroupProjectResponse(TypedDict):
@@ -101,12 +101,12 @@ class GroupProjectResponse(TypedDict):
     platform: str | None
 
 
-class BaseGroupResponseOptional(TypedDict, total=False):
-    isUnhandled: bool
-    count: str
-    userCount: int
-    firstSeen: datetime | None
-    lastSeen: datetime | None
+class BaseGroupResponseOptional(TypedDict):
+    isUnhandled: NotRequired[bool]
+    count: NotRequired[str]
+    userCount: NotRequired[int]
+    firstSeen: NotRequired[datetime | None]
+    lastSeen: NotRequired[datetime | None]
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
@@ -142,19 +142,19 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     annotations: list[GroupAnnotation]
 
 
-class GroupDetailsResponseOptional(TypedDict, total=False):
+class GroupDetailsResponseOptional(TypedDict):
     # Included by default; removable via `?collapse=release|tags|stats`
-    firstRelease: dict[str, Any] | None
-    lastRelease: dict[str, Any] | None
-    tags: list[dict[str, Any]]
-    stats: dict[str, list[list[float]]]
+    firstRelease: NotRequired[dict[str, Any] | None]
+    lastRelease: NotRequired[dict[str, Any] | None]
+    tags: NotRequired[list[dict[str, Any]]]
+    stats: NotRequired[dict[str, list[list[float]]]]
     # Opt-in via `?expand=...`
-    inbox: dict[str, Any] | None
-    owners: list[dict[str, Any]] | None
-    forecast: dict[str, Any]
-    integrationIssues: list[dict[str, Any]]
-    sentryAppIssues: list[dict[str, Any]]
-    latestEventHasAttachments: bool
+    inbox: NotRequired[dict[str, Any] | None]
+    owners: NotRequired[list[dict[str, Any]] | None]
+    forecast: NotRequired[dict[str, Any]]
+    integrationIssues: NotRequired[list[dict[str, Any]]]
+    sentryAppIssues: NotRequired[list[dict[str, Any]]]
+    latestEventHasAttachments: NotRequired[bool]
 
 
 class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):

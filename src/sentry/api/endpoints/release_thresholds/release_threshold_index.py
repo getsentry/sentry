@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from django.db.models import Q
 from django.http import HttpResponse
@@ -16,9 +16,9 @@ from sentry.models.organization import Organization
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
-class ReleaseThresholdIndexGETData(TypedDict, total=False):
-    environment: list[str]
-    project: list[int]
+class ReleaseThresholdIndexGETData(TypedDict):
+    environment: NotRequired[list[str]]
+    project: NotRequired[list[int]]
 
 
 class ReleaseThresholdIndexGETValidator(serializers.Serializer[ReleaseThresholdIndexGETData]):

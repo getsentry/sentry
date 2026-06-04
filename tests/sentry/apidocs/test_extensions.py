@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import pytest
 from drf_spectacular.openapi import AutoSchema
@@ -21,8 +21,8 @@ class NestedDict(TypedDict):
     zz: str
 
 
-class BasicSerializerOptional(TypedDict, total=False):
-    a: int
+class BasicSerializerOptional(TypedDict):
+    a: NotRequired[int]
 
 
 @extend_schema_serializer(exclude_fields=["excluded"])

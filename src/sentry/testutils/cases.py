@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from io import BytesIO
-from typing import Any, Literal, TypedDict, Union
+from typing import Any, Literal, NotRequired, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
@@ -3262,8 +3262,8 @@ class UptimeTestCaseMixin:
         }
 
 
-class _OptionalCheckResult(TypedDict, total=False):
-    region: str
+class _OptionalCheckResult(TypedDict):
+    region: NotRequired[str]
 
 
 class UptimeTestCase(UptimeTestCaseMixin, TestCase):
@@ -3374,14 +3374,14 @@ class SpanTestCase(BaseTestCase):
         return span
 
 
-class _OptionalOurLogData(TypedDict, total=False):
-    body: str
-    trace_id: str
-    replay_id: str
-    severity_text: str
-    severity_number: int
-    trace_flags: int
-    item_id: int
+class _OptionalOurLogData(TypedDict):
+    body: NotRequired[str]
+    trace_id: NotRequired[str]
+    replay_id: NotRequired[str]
+    severity_text: NotRequired[str]
+    severity_number: NotRequired[int]
+    trace_flags: NotRequired[int]
+    item_id: NotRequired[int]
 
 
 def scalar_to_any_value(value: Any) -> AnyValue:

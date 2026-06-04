@@ -57,12 +57,12 @@ class AttachmentInfo(TypedDict):
     date_started: NotRequired[datetime | None]
 
 
-class TitleLinkParams(TypedDict, total=False):
-    alert: str
-    referrer: str
-    detection_type: str
-    notification_uuid: str
-    project_id: int | None
+class TitleLinkParams(TypedDict):
+    alert: NotRequired[str]
+    referrer: NotRequired[str]
+    detection_type: NotRequired[str]
+    notification_uuid: NotRequired[str]
+    project_id: NotRequired[int | None]
 
 
 def logo_url() -> str:

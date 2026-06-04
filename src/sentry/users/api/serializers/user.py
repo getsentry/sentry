@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Any, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -33,10 +33,10 @@ from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.serializers import manytoone_to_dict
 
 
-class SerializedAvatarFields(TypedDict, total=False):
-    avatarType: str
-    avatarUuid: str | None
-    avatarUrl: str | None
+class SerializedAvatarFields(TypedDict):
+    avatarType: NotRequired[str]
+    avatarUuid: NotRequired[str | None]
+    avatarUrl: NotRequired[str | None]
 
 
 class _UserEmails(TypedDict):
@@ -80,15 +80,15 @@ class _UserOptions(TypedDict):
     prefersIssueDetailsStreamlinedUI: bool | None
 
 
-class UserSerializerResponseOptional(TypedDict, total=False):
+class UserSerializerResponseOptional(TypedDict):
     # NOTE: There is a bug here where trying to move these fields to
     # UserSerializerResponse and using NotRequired. "identities" is marked as
     # required for places where UserSerializerResponse is used as a field (e.g
     # OrganizationMemberResponse).
-    identities: list[_Identity]
-    avatar: SerializedAvatarFields
-    authenticators: list[Any]  # TODO: find out what type this is
-    canReset2fa: bool
+    identities: NotRequired[list[_Identity]]
+    avatar: NotRequired[SerializedAvatarFields]
+    authenticators: NotRequired[list[Any]]  # TODO: find out what type this is
+    canReset2fa: NotRequired[bool]
 
 
 class UserSerializerResponse(UserSerializerResponseOptional):

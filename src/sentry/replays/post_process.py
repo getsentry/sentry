@@ -3,91 +3,91 @@ from __future__ import annotations
 import collections
 from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema_serializer
 
 
-class DeviceResponseType(TypedDict, total=False):
-    name: str | None
-    brand: str | None
-    model: str | None
-    family: str | None
+class DeviceResponseType(TypedDict):
+    name: NotRequired[str | None]
+    brand: NotRequired[str | None]
+    model: NotRequired[str | None]
+    family: NotRequired[str | None]
 
 
-class SDKResponseType(TypedDict, total=False):
-    name: str | None
-    version: str | None
+class SDKResponseType(TypedDict):
+    name: NotRequired[str | None]
+    version: NotRequired[str | None]
 
 
-class OSResponseType(TypedDict, total=False):
-    name: str | None
-    version: str | None
+class OSResponseType(TypedDict):
+    name: NotRequired[str | None]
+    version: NotRequired[str | None]
 
 
-class BrowserResponseType(TypedDict, total=False):
-    name: str | None
-    version: str | None
+class BrowserResponseType(TypedDict):
+    name: NotRequired[str | None]
+    version: NotRequired[str | None]
 
 
-class UserGeoResponseType(TypedDict, total=False):
-    city: str | None
-    country_code: str | None
-    region: str | None
-    subdivision: str | None
+class UserGeoResponseType(TypedDict):
+    city: NotRequired[str | None]
+    country_code: NotRequired[str | None]
+    region: NotRequired[str | None]
+    subdivision: NotRequired[str | None]
 
 
-class UserResponseType(TypedDict, total=False):
-    id: str | None
-    username: str | None
-    email: str | None
-    ip: str | None
-    display_name: str | None
-    geo: UserGeoResponseType
+class UserResponseType(TypedDict):
+    id: NotRequired[str | None]
+    username: NotRequired[str | None]
+    email: NotRequired[str | None]
+    ip: NotRequired[str | None]
+    display_name: NotRequired[str | None]
+    geo: NotRequired[UserGeoResponseType]
 
 
-class OTAUpdatesResponseType(TypedDict, total=False):
-    channel: str | None
-    runtime_version: str | None
-    update_id: str | None
+class OTAUpdatesResponseType(TypedDict):
+    channel: NotRequired[str | None]
+    runtime_version: NotRequired[str | None]
+    update_id: NotRequired[str | None]
 
 
 @extend_schema_serializer(exclude_fields=["info_ids", "warning_ids"])
-class ReplayDetailsResponse(TypedDict, total=False):
-    id: str
-    project_id: str
-    trace_ids: list[str]
-    error_ids: list[str]
-    environment: str | None
-    tags: dict[str, list[str]] | list
-    user: UserResponseType
-    sdk: SDKResponseType
-    os: OSResponseType
-    browser: BrowserResponseType
-    device: DeviceResponseType
-    ota_updates: OTAUpdatesResponseType
-    is_archived: bool | None
-    urls: list[str] | None
-    clicks: list[dict[str, Any]]
-    count_dead_clicks: int | None
-    count_rage_clicks: int | None
-    count_errors: int | None
-    duration: int | None
-    finished_at: str | None
-    started_at: str | None
-    activity: int | None
-    count_urls: int | None
-    replay_type: str
-    count_segments: int | None
-    platform: str | None
-    releases: list[str]
-    dist: str | None
-    warning_ids: list[str] | None
-    info_ids: list[str] | None
-    count_warnings: int | None
-    count_infos: int | None
-    has_viewed: bool
+class ReplayDetailsResponse(TypedDict):
+    id: NotRequired[str]
+    project_id: NotRequired[str]
+    trace_ids: NotRequired[list[str]]
+    error_ids: NotRequired[list[str]]
+    environment: NotRequired[str | None]
+    tags: NotRequired[dict[str, list[str]] | list]
+    user: NotRequired[UserResponseType]
+    sdk: NotRequired[SDKResponseType]
+    os: NotRequired[OSResponseType]
+    browser: NotRequired[BrowserResponseType]
+    device: NotRequired[DeviceResponseType]
+    ota_updates: NotRequired[OTAUpdatesResponseType]
+    is_archived: NotRequired[bool | None]
+    urls: NotRequired[list[str] | None]
+    clicks: NotRequired[list[dict[str, Any]]]
+    count_dead_clicks: NotRequired[int | None]
+    count_rage_clicks: NotRequired[int | None]
+    count_errors: NotRequired[int | None]
+    duration: NotRequired[int | None]
+    finished_at: NotRequired[str | None]
+    started_at: NotRequired[str | None]
+    activity: NotRequired[int | None]
+    count_urls: NotRequired[int | None]
+    replay_type: NotRequired[str]
+    count_segments: NotRequired[int | None]
+    platform: NotRequired[str | None]
+    releases: NotRequired[list[str]]
+    dist: NotRequired[str | None]
+    warning_ids: NotRequired[list[str] | None]
+    info_ids: NotRequired[list[str] | None]
+    count_warnings: NotRequired[int | None]
+    count_infos: NotRequired[int | None]
+    has_viewed: NotRequired[bool]
 
 
 @sentry_sdk.trace

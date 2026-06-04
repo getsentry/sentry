@@ -31,11 +31,11 @@ class LaunchFailure(TypedDict):
     github_installation_id: NotRequired[str]
 
 
-class LaunchResponse(TypedDict, total=False):
-    success: bool
-    launched_count: int
-    failed_count: int
-    failures: list[LaunchFailure]
+class LaunchResponse(TypedDict):
+    success: NotRequired[bool]
+    launched_count: NotRequired[int]
+    failed_count: NotRequired[int]
+    failures: NotRequired[list[LaunchFailure]]
 
 
 class OrganizationCodingAgentLaunchSerializer(serializers.Serializer[dict[str, object]]):

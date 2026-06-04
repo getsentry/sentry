@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 import sqlparse
@@ -41,8 +41,8 @@ MAX_SQL_FORMAT_OPS = 20
 MAX_SQL_FORMAT_LENGTH = 1500
 
 
-class EventTagOptional(TypedDict, total=False):
-    query: str
+class EventTagOptional(TypedDict):
+    query: NotRequired[str]
 
 
 class EventTag(EventTagOptional):
@@ -167,19 +167,19 @@ class BaseEventSerializerResponse(TypedDict):
     _meta: dict[str, Any]
 
 
-class ErrorEventFields(TypedDict, total=False):
-    crashFile: str | None
-    culprit: str | None
-    dateCreated: datetime
-    fingerprints: list[str]
-    groupingConfig: Any
+class ErrorEventFields(TypedDict):
+    crashFile: NotRequired[str | None]
+    culprit: NotRequired[str | None]
+    dateCreated: NotRequired[datetime]
+    fingerprints: NotRequired[list[str]]
+    groupingConfig: NotRequired[Any]
 
 
-class TransactionEventFields(TypedDict, total=False):
-    startTimestamp: datetime
-    endTimestamp: datetime
-    measurements: Any
-    breakdowns: Any
+class TransactionEventFields(TypedDict):
+    startTimestamp: NotRequired[datetime]
+    endTimestamp: NotRequired[datetime]
+    measurements: NotRequired[Any]
+    breakdowns: NotRequired[Any]
 
 
 class EventSerializerResponse(

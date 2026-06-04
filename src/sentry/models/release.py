@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar, Literal, TypedDict, cast
+from typing import Any, ClassVar, Literal, NotRequired, TypedDict, cast
 
 import orjson
 import sentry_sdk
@@ -52,10 +52,10 @@ from sentry.utils.sdk import set_span_attribute
 logger = logging.getLogger(__name__)
 
 
-class _CommitDataKwargs(TypedDict, total=False):
-    author: CommitAuthor
-    message: str
-    date_added: str
+class _CommitDataKwargs(TypedDict):
+    author: NotRequired[CommitAuthor]
+    message: NotRequired[str]
+    date_added: NotRequired[str]
 
 
 class ReleaseStatus:

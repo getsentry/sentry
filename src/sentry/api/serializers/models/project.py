@@ -273,10 +273,10 @@ def get_has_trace_metrics(project: Project) -> bool:
     return True
 
 
-class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
-    stats: Any
-    transactionStats: Any
-    sessionStats: Any
+class _ProjectSerializerOptionalBaseResponse(TypedDict):
+    stats: NotRequired[Any]
+    transactionStats: NotRequired[Any]
+    sessionStats: NotRequired[Any]
 
 
 class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
@@ -621,8 +621,8 @@ class TeamResponseDict(TypedDict):
     slug: str
 
 
-class _MaybeTeam(TypedDict, total=False):
-    team: TeamResponseDict
+class _MaybeTeam(TypedDict):
+    team: NotRequired[TeamResponseDict]
 
 
 class ProjectWithTeamResponseDict(ProjectSerializerResponse, _MaybeTeam):
@@ -676,9 +676,9 @@ class LatestReleaseDict(TypedDict):
     version: str
 
 
-class _OrganizationProjectOptionalResponse(TypedDict, total=False):
-    latestDeploys: dict[str, dict[str, str]] | None
-    options: dict[str, Any]
+class _OrganizationProjectOptionalResponse(TypedDict):
+    latestDeploys: NotRequired[dict[str, dict[str, str]] | None]
+    options: NotRequired[dict[str, Any]]
 
 
 class OrganizationProjectResponse(

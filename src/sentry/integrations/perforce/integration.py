@@ -4,7 +4,7 @@ import hashlib
 import logging
 from collections.abc import Mapping
 from types import SimpleNamespace
-from typing import Any, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.db import models
 from django.http import HttpRequest
@@ -39,17 +39,17 @@ from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, Int
 logger = logging.getLogger(__name__)
 
 
-class PerforceMetadata(TypedDict, total=False):
+class PerforceMetadata(TypedDict):
     """Type definition for Perforce integration metadata stored in Integration.metadata."""
 
-    p4port: str
-    user: str
-    password: str
-    auth_type: str
-    client: str
-    ssl_fingerprint: str
-    web_url: str
-    charset: str
+    p4port: NotRequired[str]
+    user: NotRequired[str]
+    password: NotRequired[str]
+    auth_type: NotRequired[str]
+    client: NotRequired[str]
+    ssl_fingerprint: NotRequired[str]
+    web_url: NotRequired[str]
+    charset: NotRequired[str]
 
 
 DESCRIPTION = """

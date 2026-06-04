@@ -28,12 +28,12 @@ WhereType = Union[Condition, BooleanCondition]
 
 
 # Replaced by SnubaParams
-class ParamsType(TypedDict, total=False):
-    project_id: Sequence[int]
-    projects: list[Project]
-    project_objects: list[Project]
-    start: datetime
-    end: datetime
+class ParamsType(TypedDict):
+    project_id: NotRequired[Sequence[int]]
+    projects: NotRequired[list[Project]]
+    project_objects: NotRequired[list[Project]]
+    start: NotRequired[datetime]
+    end: NotRequired[datetime]
     environment: NotRequired[str | list[str]]
     organization_id: NotRequired[int | None]
     use_case_id: NotRequired[str]

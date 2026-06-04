@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.db.models import Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
@@ -86,16 +86,16 @@ class _ErrorDict(TypedDict):
     detail: str
 
 
-class RuleSerializerResponseOptional(TypedDict, total=False):
-    owner: str | None
-    createdBy: RuleCreatedBy | None
-    environment: str | None
-    lastTriggered: str | None
-    snoozeCreatedBy: str | None
-    snoozeForEveryone: bool | None
-    disableReason: str
-    disableDate: str
-    errors: list[_ErrorDict]
+class RuleSerializerResponseOptional(TypedDict):
+    owner: NotRequired[str | None]
+    createdBy: NotRequired[RuleCreatedBy | None]
+    environment: NotRequired[str | None]
+    lastTriggered: NotRequired[str | None]
+    snoozeCreatedBy: NotRequired[str | None]
+    snoozeForEveryone: NotRequired[bool | None]
+    disableReason: NotRequired[str]
+    disableDate: NotRequired[str]
+    errors: NotRequired[list[_ErrorDict]]
 
 
 class RuleSerializerResponse(RuleSerializerResponseOptional):

@@ -78,12 +78,12 @@ class DetectedPlatform(TypedDict):
     priority: int  # Higher = more relevant for onboarding
 
 
-class DetectorRule(TypedDict, total=False):
-    path: str  # File must exist in root directory
-    match_content: str  # Regex pattern to match in file content (requires path)
-    match_package: str  # Package name in package.json/composer.json deps
-    match_dir: str  # Directory must exist in root
-    match_ext: str  # File extension must exist in root (e.g., ".csproj")
+class DetectorRule(TypedDict):
+    path: NotRequired[str]  # File must exist in root directory
+    match_content: NotRequired[str]  # Regex pattern to match in file content (requires path)
+    match_package: NotRequired[str]  # Package name in package.json/composer.json deps
+    match_dir: NotRequired[str]  # Directory must exist in root
+    match_ext: NotRequired[str]  # File extension must exist in root (e.g., ".csproj")
 
 
 class FrameworkDef(TypedDict):

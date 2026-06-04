@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypedDict, Union
+from typing import Any, NotRequired, TypedDict, Union
 
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -117,10 +117,10 @@ def apply_dataset_query_conditions(
     return event_type_conditions
 
 
-class _EntitySpecificParams(TypedDict, total=False):
-    org_id: int
-    extrapolation_mode: ExtrapolationMode | None
-    event_types: list[SnubaQueryEventType.EventType] | None
+class _EntitySpecificParams(TypedDict):
+    org_id: NotRequired[int]
+    extrapolation_mode: NotRequired[ExtrapolationMode | None]
+    event_types: NotRequired[list[SnubaQueryEventType.EventType] | None]
 
 
 @dataclass

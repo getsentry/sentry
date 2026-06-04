@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from pydantic import Field
 
@@ -27,8 +27,8 @@ class RpcUserSocialAuth(RpcModel):
         return tokens(instance=self)
 
 
-class UserSocialAuthFilterArgs(TypedDict, total=False):
-    id: int
-    user_id: int
-    provider: str
-    uid: str
+class UserSocialAuthFilterArgs(TypedDict):
+    id: NotRequired[int]
+    user_id: NotRequired[int]
+    provider: NotRequired[str]
+    uid: NotRequired[str]

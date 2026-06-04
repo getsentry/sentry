@@ -5,7 +5,7 @@
 
 import datetime
 from enum import IntEnum
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from pydantic.fields import Field
 
@@ -139,36 +139,38 @@ class UserSerializeType(IntEnum):  # annoying
     SELF_DETAILED = 2
 
 
-class UserFilterArgs(TypedDict, total=False):
-    user_ids: list[int]
+class UserFilterArgs(TypedDict):
+    user_ids: NotRequired[list[int]]
     """List of user ids to search with"""
 
-    is_active: bool
+    is_active: NotRequired[bool]
     """Whether the user needs to be active"""
 
-    organization_id: int
+    organization_id: NotRequired[int]
     """Organization to check membership in"""
 
-    emails: list[str]
+    emails: NotRequired[list[str]]
     """list of emails to match with"""
 
-    email_verified: bool
+    email_verified: NotRequired[bool]
     """Whether emails have to be verified or not"""
 
-    query: str
+    query: NotRequired[str]
     """Filter by email or name"""
 
-    authenticator_types: list[int] | None
+    authenticator_types: NotRequired[list[int] | None]
     """The type of MFA authenticator you want to query by"""
 
 
-class UserUpdateArgs(TypedDict, total=False):
-    avatar_url: str
-    avatar_type: int
-    actor_id: int  # TODO(hybrid-cloud): Remove this after the actor migration is complete
-    is_active: bool
-    is_superuser: bool
-    is_staff: bool
+class UserUpdateArgs(TypedDict):
+    avatar_url: NotRequired[str]
+    avatar_type: NotRequired[int]
+    actor_id: NotRequired[
+        int
+    ]  # TODO(hybrid-cloud): Remove this after the actor migration is complete
+    is_active: NotRequired[bool]
+    is_superuser: NotRequired[bool]
+    is_staff: NotRequired[bool]
 
 
 class UserIdEmailArgs(TypedDict):

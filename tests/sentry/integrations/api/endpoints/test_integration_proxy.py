@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 from unittest.mock import MagicMock, Mock, patch
 
 from django.http.request import HttpHeaders
@@ -42,11 +42,11 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import metrics
 
 
-class SiloHttpHeaders(TypedDict, total=False):
-    HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION: str
-    HTTP_X_SENTRY_SUBNET_SIGNATURE: str
-    HTTP_X_SENTRY_SUBNET_BASE_URL: str
-    HTTP_X_SENTRY_SUBNET_PATH: str
+class SiloHttpHeaders(TypedDict):
+    HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION: NotRequired[str]
+    HTTP_X_SENTRY_SUBNET_SIGNATURE: NotRequired[str]
+    HTTP_X_SENTRY_SUBNET_BASE_URL: NotRequired[str]
+    HTTP_X_SENTRY_SUBNET_PATH: NotRequired[str]
 
 
 def test_ensure_http_headers_match() -> None:

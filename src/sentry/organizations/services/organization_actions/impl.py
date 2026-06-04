@@ -1,5 +1,5 @@
 import hashlib
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -10,12 +10,12 @@ from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization, OrganizationStatus
 
 
-class OrganizationCreateAndUpdateOptions(TypedDict, total=False):
-    name: str
-    slug: str
-    status: OrganizationStatus
-    flags: CombinedExpression
-    default_role: int
+class OrganizationCreateAndUpdateOptions(TypedDict):
+    name: NotRequired[str]
+    slug: NotRequired[str]
+    status: NotRequired[OrganizationStatus]
+    flags: NotRequired[CombinedExpression]
+    default_role: NotRequired[int]
 
 
 def update_organization_with_outbox_message(

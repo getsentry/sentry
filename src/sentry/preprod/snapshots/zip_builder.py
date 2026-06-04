@@ -5,7 +5,7 @@ import zipfile
 from collections import defaultdict
 from collections.abc import Callable
 from concurrent.futures import as_completed
-from typing import IO, TypedDict, Unpack, cast
+from typing import IO, NotRequired, TypedDict, Unpack, cast
 
 from objectstore_client import Session
 
@@ -21,13 +21,13 @@ FETCH_MAX_WORKERS = 16
 ZIP_EXTRAS_KEY = "images_zip"
 
 
-class ZipState(TypedDict, total=False):
-    status: str
-    enqueued_at: str
-    file_id: int | None
-    size: int
-    built_at: str
-    progress: int
+class ZipState(TypedDict):
+    status: NotRequired[str]
+    enqueued_at: NotRequired[str]
+    file_id: NotRequired[int | None]
+    size: NotRequired[int]
+    built_at: NotRequired[str]
+    progress: NotRequired[int]
 
 
 class SnapshotZipBuildError(Exception):
