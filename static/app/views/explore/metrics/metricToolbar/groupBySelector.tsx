@@ -12,7 +12,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useMetricFallbackAttributes} from 'sentry/views/explore/metrics/metricToolbar/useMetricFallbackAttributes';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsGroupBys,
@@ -60,7 +59,6 @@ export function GroupBySelector({
   const isDisabled = disabledReason !== undefined;
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
-  const hasTraceMetricFilter = Boolean(traceMetricFilter);
 
   const {data, isLoading} = useQuery({
     ...traceItemAttributeKeysOptions({
@@ -70,41 +68,32 @@ export function GroupBySelector({
       query: skipTraceMetricFilter ? undefined : traceMetricFilter,
     }),
     select: selectTraceItemTagCollection(),
-    enabled: skipTraceMetricFilter || hasTraceMetricFilter,
+    enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
   });
-
-  const {attributes: fallbackAttributes, isLoading: isFallbackLoading} =
-    useMetricFallbackAttributes({
-      enabled: !skipTraceMetricFilter && hasTraceMetricFilter,
-      traceMetric,
-    });
 
   const visibleNumberTags = useMemo(() => {
     return Object.fromEntries(
-      Object.entries({
-        ...fallbackAttributes.numberAttributes,
-        ...data?.numberAttributes,
-      }).filter(([key]) => !HiddenTraceMetricGroupByFields.includes(key))
+      Object.entries(data?.numberAttributes ?? {}).filter(
+        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+      )
     );
-  }, [data?.numberAttributes, fallbackAttributes.numberAttributes]);
+  }, [data?.numberAttributes]);
 
   const visibleStringTags = useMemo(() => {
     return Object.fromEntries(
-      Object.entries({
-        ...fallbackAttributes.stringAttributes,
-        ...data?.stringAttributes,
-      }).filter(([key]) => !HiddenTraceMetricGroupByFields.includes(key))
+      Object.entries(data?.stringAttributes ?? {}).filter(
+        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+      )
     );
-  }, [data?.stringAttributes, fallbackAttributes.stringAttributes]);
+  }, [data?.stringAttributes]);
 
   const visibleBooleanTags = useMemo(() => {
     return Object.fromEntries(
-      Object.entries({
-        ...fallbackAttributes.booleanAttributes,
-        ...data?.booleanAttributes,
-      }).filter(([key]) => !HiddenTraceMetricGroupByFields.includes(key))
+      Object.entries(data?.booleanAttributes ?? {}).filter(
+        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+      )
     );
-  }, [data?.booleanAttributes, fallbackAttributes.booleanAttributes]);
+  }, [data?.booleanAttributes]);
 
   const enabledOptions = useGroupByFields({
     groupBys,
@@ -153,13 +142,8 @@ export function GroupBySelector({
       )}
       options={enabledOptions}
       value={[...groupBys]}
-      loading={isLoading || isFallbackLoading}
-      disabled={
-        isDisabled ||
-        isLoading ||
-        isFallbackLoading ||
-        (!skipTraceMetricFilter && !hasTraceMetricFilter)
-      }
+      loading={isLoading}
+      disabled={isDisabled || (!skipTraceMetricFilter && !traceMetricFilter)}
       onChange={handleChange}
       style={{width: '100%'}}
     />
