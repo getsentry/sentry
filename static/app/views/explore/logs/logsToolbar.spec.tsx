@@ -111,8 +111,8 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('button', {name: 'count unique'}));
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['avg(bar)'], visible: false}].map(aggregateField =>
-          JSON.stringify(aggregateField)
+        [{groupBy: ''}, {yAxes: ['avg(tags[bar,number])'], visible: false}].map(
+          aggregateField => JSON.stringify(aggregateField)
         )
       );
 
@@ -134,7 +134,7 @@ describe('LogsToolbar', () => {
       // count has no user changable argument
       expect(screen.getByRole('button', {name: 'logs'})).toBeDisabled();
 
-      // count unique only shows string attributes
+      // count unique can use all attribute types
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
       await userEvent.click(screen.getByRole('option', {name: 'count unique'}));
       await userEvent.click(screen.getByRole('button', {name: 'message'}));
@@ -156,8 +156,8 @@ describe('LogsToolbar', () => {
       expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('option', {name: 'foo'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['avg(foo)'], visible: false}].map(aggregateField =>
-          JSON.stringify(aggregateField)
+        [{groupBy: ''}, {yAxes: ['avg(tags[foo,number])'], visible: false}].map(
+          aggregateField => JSON.stringify(aggregateField)
         )
       );
     });
@@ -175,7 +175,7 @@ describe('LogsToolbar', () => {
       expect(router.location.query.aggregateField).toEqual(
         [
           {groupBy: ''},
-          {yAxes: ['avg(bar)'], visible: false},
+          {yAxes: ['avg(tags[bar,number])'], visible: false},
           {yAxes: ['count(message)']},
         ].map(aggregateField => JSON.stringify(aggregateField))
       );
