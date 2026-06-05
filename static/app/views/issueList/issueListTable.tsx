@@ -27,7 +27,6 @@ interface IssueListTableProps {
   groupIds: string[];
   issuesLoading: boolean;
   issuesSuccessfullyLoaded: boolean;
-  memberList: IndexedMembersByProject;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   onCursor: CursorHandler;
   onDelete: () => void;
@@ -43,6 +42,7 @@ interface IssueListTableProps {
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;
+  memberList?: IndexedMembersByProject;
   supergroupLookup?: SupergroupLookup;
 }
 
