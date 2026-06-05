@@ -26,6 +26,7 @@ export function useInitialSeerQuery(): string {
 
   const inputValue = currentInputValueRef.current.trim();
 
+  // Only filter out FREE_TEXT tokens if there's actual input value to filter by
   const filteredCommittedQuery = queryDetails?.parsedQuery
     ?.filter(
       token =>
@@ -37,6 +38,9 @@ export function useInitialSeerQuery(): string {
 
   let initialSeerQuery = '';
 
+  // Use filteredCommittedQuery if it has content.
+  // Only fall back to queryToUse when there's no inputValue to filter by.
+  // This prevents duplication when the entire query is free text matching inputValue.
   if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
     initialSeerQuery = filteredCommittedQuery;
   } else if (!inputValue && queryDetails?.queryToUse) {
@@ -137,6 +141,7 @@ export function buildSeerDateTimeSelection(
   let end: DateString = null;
 
   if (resultStart && resultEnd) {
+    // Strip 'Z' suffix to treat UTC dates as local time
     const startLocal = resultStart.endsWith('Z') ? resultStart.slice(0, -1) : resultStart;
     const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
     start = new Date(startLocal).toISOString();

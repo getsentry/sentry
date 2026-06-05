@@ -92,6 +92,7 @@ export function IssueListSeerComboBox() {
       let timeParams: Record<string, string | undefined> = {};
 
       if (resultStart && resultEnd) {
+        // Strip 'Z' suffix to treat UTC dates as local time
         const startLocal = resultStart.endsWith('Z')
           ? resultStart.slice(0, -1)
           : resultStart;
