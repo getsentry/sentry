@@ -26,6 +26,7 @@ from sentry.testutils.helpers.apigateway import (
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils import json
 
 proxy_request = async_to_sync(_proxy_request)
@@ -335,3 +336,33 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         resp = proxy_request(request, self.organization.slug, url_name)
         assert not any([header in resp for header in INVALID_OUTBOUND_HEADERS])
+
+
+api_gateway_address_cell = Cell(
+    name="us",
+    snowflake_id=1,
+    address="http://sentry-rpc:8999",
+    api_gateway_address="http://sentry-api-gateway-rpc:8999",
+    category=RegionCategory.MULTI_TENANT,
+)
+
+
+@control_silo_test(cells=[api_gateway_address_cell], include_monolith_run=True)
+class ApiGatewayAddressProxyTestCase(ApiGatewayTestCase):
+    @responses.activate
+    @override_options({"apigateway.proxy.use_gateway_address": 1.0})
+    def test_sync_post(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://sentry-api-gateway-rpc:8999/post",
+            body=json.dumps({"test": "header"}),
+        )
+        request = RequestFactory().post(
+            "http://sentry.io/post", data={"test": "header"}, content_type="application/json"
+        )
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        resp_json = json.loads(close_streaming_response(resp))
+
+        assert resp.status_code == 200
+        assert resp_json["test"]
+        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)

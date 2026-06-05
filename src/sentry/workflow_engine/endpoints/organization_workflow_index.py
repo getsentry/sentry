@@ -44,6 +44,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -236,7 +237,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[WorkflowSerializerResponse]] | Response[DetailResponse]:
         """
         Returns a list of alerts for a given organization
         """
@@ -356,7 +359,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         ),
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[list[WorkflowSerializerResponse]] | Response[DetailResponse]:
         """
         Bulk enable or disable alerts for a given Organization
         """

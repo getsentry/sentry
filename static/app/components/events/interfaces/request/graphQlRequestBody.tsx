@@ -9,8 +9,8 @@ import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {List} from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';
 import type {EntryRequestDataGraphQl, Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
+import {defined} from 'sentry/utils/defined';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 type GraphQlBodyProps = {data: EntryRequestDataGraphQl['data']; event: Event};

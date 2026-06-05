@@ -13,7 +13,7 @@ import type {
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
 import type {ParsedOwnershipRule} from './ownership';
-import type {PlatformKey} from './project';
+import type {PlatformKey} from './platform';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -144,10 +144,13 @@ export type CommitFile = {
 };
 
 export type PullRequest = {
+  dateCreated: string;
   externalUrl: string;
   id: string;
+  message: string | null;
   repository: Repository;
-  title: string;
+  title: string | null;
+  author?: CommitAuthor;
 };
 
 /**

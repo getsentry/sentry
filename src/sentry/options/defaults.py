@@ -281,11 +281,6 @@ register(
     default="signed-url-confirmation-emails-salt",
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "user-settings.signed-url-confirmation-emails",
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Staff
 register(
@@ -1186,6 +1181,12 @@ register(
     "seer.night_shift.issues_per_org",
     default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.use_feature_delivery",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -3701,6 +3702,14 @@ register(
 register(
     "issues.record-seer-actions-as-activities",
     default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When True, publish_action writes to the GroupActionLogEntry table.
+register(
+    "issues.action-log.write-to-db",
+    default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

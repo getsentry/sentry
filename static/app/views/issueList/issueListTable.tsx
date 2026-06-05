@@ -27,7 +27,7 @@ interface IssueListTableProps {
   groupIds: string[];
   issuesLoading: boolean;
   issuesSuccessfullyLoaded: boolean;
-  memberList: IndexedMembersByProject;
+  memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   onCursor: CursorHandler;
   onDelete: () => void;

@@ -57,7 +57,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[ServiceHookSerializerResponse]]:
         """
         Return a list of service hooks bound to a project.
 
@@ -100,7 +100,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project) -> Response[ServiceHookSerializerResponse]:
         """
         Register a new service hook on a project.
 

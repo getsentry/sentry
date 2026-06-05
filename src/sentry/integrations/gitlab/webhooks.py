@@ -38,6 +38,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.seer.code_review.webhooks.merge_request import (
     handle_merge_request_event,
     handle_merge_request_note_event,
@@ -371,7 +372,30 @@ class MergeEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
+            debug_log(
+                logger,
+                organization,
+                "gitlab.merge_request.repo_not_found",
+                {
+                    "integration_id": integration.id,
+                    "project_id": (event.get("project") or {}).get("id"),
+                },
+            )
             return
+
+        object_attributes = event.get("object_attributes") or {}
+        debug_log(
+            logger,
+            organization,
+            "gitlab.merge_request.received",
+            {
+                "organization_slug": organization.slug,
+                "integration_id": integration.id,
+                "repo_id": repo.id,
+                "pr_number": object_attributes.get("iid"),
+                "action": object_attributes.get("action"),
+            },
+        )
 
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)
@@ -400,6 +424,16 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         if not author_email:
+            debug_log(
+                logger,
+                organization,
+                "gitlab.merge_request.missing_author_email",
+                {
+                    "integration_id": integration.id,
+                    "repo_id": repo.id,
+                    "pr_number": number,
+                },
+            )
             raise Http404()
 
         author = CommitAuthor.objects.get_or_create(
@@ -423,6 +457,17 @@ class MergeEventWebhook(GitlabWebhook):
         except IntegrityError:
             pass
 
+        debug_log(
+            logger,
+            organization,
+            "gitlab.merge_request.dispatching_processors",
+            {
+                "integration_id": integration.id,
+                "repo_id": repo.id,
+                "pr_number": number,
+                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
+            },
+        )
         self._handle(
             integration=integration,
             event=event,
@@ -453,11 +498,47 @@ class NoteEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
+            debug_log(
+                logger,
+                organization,
+                "gitlab.note.repo_not_found",
+                {
+                    "integration_id": integration.id,
+                    "project_id": (event.get("project") or {}).get("id"),
+                },
+            )
             return
+
+        object_attributes = event.get("object_attributes") or {}
+        merge_request = event.get("merge_request") or {}
+        debug_log(
+            logger,
+            organization,
+            "gitlab.note.received",
+            {
+                "organization_slug": organization.slug,
+                "integration_id": integration.id,
+                "repo_id": repo.id,
+                "note_id": object_attributes.get("id"),
+                "noteable_type": object_attributes.get("noteable_type"),
+                "action": object_attributes.get("action"),
+                "mr_iid": merge_request.get("iid"),
+            },
+        )
 
         # Keep repo metadata fresh (url and path_with_namespace).
         self.update_repo_data(repo, event)
 
+        debug_log(
+            logger,
+            organization,
+            "gitlab.note.dispatching_processors",
+            {
+                "integration_id": integration.id,
+                "repo_id": repo.id,
+                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
+            },
+        )
         self._handle(
             integration=integration,
             event=event,

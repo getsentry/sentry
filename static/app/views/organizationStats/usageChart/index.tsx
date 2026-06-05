@@ -2,6 +2,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {Legend} from 'sentry/components/charts/components/legend';
@@ -14,7 +16,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types/core';
+import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {Theme} from 'sentry/utils/theme';
@@ -372,7 +374,6 @@ function UsageChartBody({
     BarSeries({
       name: SeriesTypes.ACCEPTED,
       data: chartData.accepted,
-      barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),
@@ -381,7 +382,6 @@ function UsageChartBody({
           BarSeries({
             name: SeriesTypes.ACCEPTED,
             data: chartData.accepted_stored,
-            barMinHeight: 1,
             barGap: '-100%',
             z: 3,
             silent: true,
@@ -401,14 +401,12 @@ function UsageChartBody({
     BarSeries({
       name: SeriesTypes.FILTERED,
       data: chartData.filtered,
-      barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),
     BarSeries({
       name: SeriesTypes.RATE_LIMITED,
       data: chartData.rateLimited,
-      barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),
@@ -427,7 +425,6 @@ function UsageChartBody({
     BarSeries({
       name: SeriesTypes.PROJECTED,
       data: chartData.projected,
-      barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),

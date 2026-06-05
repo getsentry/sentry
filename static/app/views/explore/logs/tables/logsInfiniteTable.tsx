@@ -27,13 +27,12 @@ import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {defined} from 'sentry/utils/defined';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   TableBodyCell,
   TableHead,
-  TableHeadCell,
   TableHeadCellContent,
   TableRow,
   TableStatus,
@@ -49,6 +48,7 @@ import {
 import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayTotalPayloadBytes';
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -57,6 +57,7 @@ import {
   LOGS_GRID_BODY_ROW_HEIGHT,
   LogTable,
   LogTableBody,
+  LogTableHeadCell,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
 import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
@@ -446,6 +447,7 @@ export function LogsInfiniteTable({
   }, []);
 
   const logsPinning = useLogsPinning();
+  const pinnedLogsQuery = usePinnedLogsQuery({allRows: data, logsPinning});
 
   const renderRow = useCallback(
     (dataRow: LogTableRowItem) => {
@@ -531,7 +533,12 @@ export function LogsInfiniteTable({
           />
         )}
         {!isPending && logsPinning && (
-          <PinnedLogs allRows={data} logsPinning={logsPinning} renderRow={renderRow} />
+          <PinnedLogs
+            allRows={data}
+            logsPinning={logsPinning}
+            query={pinnedLogsQuery}
+            renderRow={renderRow}
+          />
         )}
         <LogTableBody
           showHeader={!embedded}
@@ -660,6 +667,7 @@ function LogsTableHeader({
   const setSortBys = useSetQueryParamsSortBys();
 
   const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const pinningEnabled = !!useLogsPinning();
   return (
     <TableHead>
       <LogTableRow>
@@ -679,13 +687,20 @@ function LogsTableHeader({
           );
 
           if (isPending) {
-            return <TableHeadCell key={index} isFirst={index === 0} />;
+            return (
+              <LogTableHeadCell
+                key={index}
+                isFirst={index === 0}
+                reservePinGutter={pinningEnabled && index === fields.length - 1}
+              />
+            );
           }
           return (
-            <TableHeadCell
+            <LogTableHeadCell
               align={index === 0 ? 'left' : align}
               key={index}
               isFirst={index === 0}
+              reservePinGutter={pinningEnabled && index === fields.length - 1}
             >
               <TableHeadCellContent
                 onClick={
@@ -728,7 +743,7 @@ function LogsTableHeader({
                   onMouseDown={e => onResizeMouseDown(e, index)}
                 />
               )}
-            </TableHeadCell>
+            </LogTableHeadCell>
           );
         })}
       </LogTableRow>

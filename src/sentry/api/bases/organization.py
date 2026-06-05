@@ -361,8 +361,9 @@ class OrganizationEndpoint(Endpoint):
 
     def get_projects(
         self,
-        request: HttpRequest,
+        request: Request,
         organization: Organization | RpcOrganization,
+        *,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
         project_ids: set[int] | None = None,
@@ -653,13 +654,15 @@ class OrganizationEndpoint(Endpoint):
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
-    def get_projects(  # type: ignore[override]
+    def get_projects(
         self,
         request: Request,
         organization: Organization | RpcOrganization,
+        *,
+        force_global_perms: bool = False,
+        include_all_accessible: bool = True,
         project_ids: set[int] | None = None,
         project_slugs: set[str] | None = None,
-        include_all_accessible: bool = True,
     ) -> list[Project]:
         """
         Get all projects the current user or API token has access to. More
