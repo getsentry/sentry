@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from sentry.constants import MAX_TAG_VALUE_LENGTH
+from sentry.event_manager import _derive_tags_many, get_tag
 from sentry.event_manager_auto_tags import (
     ALL_TAG_DERIVERS,
     BrowserTagDeriver,
@@ -297,3 +298,67 @@ class TestAllTagDerivers:
 
     def test_deriver_count(self) -> None:
         assert len(ALL_TAG_DERIVERS) == 5
+
+
+def _make_job(event: MagicMock, project_id: int) -> dict[str, Any]:
+    return {
+        "data": {"tags": []},
+        "event": event,
+        "project_id": project_id,
+    }
+
+
+class TestDeriveTagsMany(TestCase):
+    def _make_url_event(self, url: str = "https://example.com/path") -> MagicMock:
+        http = _make_http_interface(url=url)
+        return _make_event(interfaces={"request": http})
+
+    def test_new_path_derives_tags(self) -> None:
+        project = self.create_project()
+        event = self._make_url_event()
+        job = _make_job(event, project.id)
+
+        with self.feature("organizations:derive-tags-without-plugins"):
+            _derive_tags_many([job], {project.id: project})
+
+        assert get_tag(job["data"], "url") == "https://example.com/path"
+
+    def test_legacy_path_derives_tags(self) -> None:
+        project = self.create_project()
+        event = self._make_url_event()
+        job = _make_job(event, project.id)
+
+        _derive_tags_many([job], {project.id: project})
+
+        assert get_tag(job["data"], "url") == "https://example.com/path"
+
+    def test_new_path_does_not_override_user_tags(self) -> None:
+        project = self.create_project()
+        event = self._make_url_event()
+        job = _make_job(event, project.id)
+        job["data"]["tags"] = [("url", "https://user-provided.com")]
+
+        with self.feature("organizations:derive-tags-without-plugins"):
+            _derive_tags_many([job], {project.id: project})
+
+        assert get_tag(job["data"], "url") == "https://user-provided.com"
+
+    def test_new_path_respects_project_option_disable(self) -> None:
+        project = self.create_project()
+        ProjectOption.objects.set_value(project, "auto_tag:_urls:enabled", False)
+        event = self._make_url_event()
+        job = _make_job(event, project.id)
+
+        with self.feature("organizations:derive-tags-without-plugins"):
+            _derive_tags_many([job], {project.id: project})
+
+        assert get_tag(job["data"], "url") is None
+
+    def test_new_path_handles_deriver_exception(self) -> None:
+        project = self.create_project()
+        event = _make_event(interfaces={"request": MagicMock(side_effect=Exception("boom"))})
+        event.interfaces.get = MagicMock(side_effect=Exception("boom"))
+        job = _make_job(event, project.id)
+
+        with self.feature("organizations:derive-tags-without-plugins"):
+            _derive_tags_many([job], {project.id: project})

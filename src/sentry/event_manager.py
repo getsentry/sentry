@@ -539,7 +539,7 @@ class EventManager:
             except ProjectKey.DoesNotExist:
                 pass
 
-        _derive_plugin_tags_many(jobs, projects)
+        _derive_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
         _derive_client_error_sampling_rate(jobs, projects)
 
@@ -782,8 +782,30 @@ def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None
 
 
 @sentry_sdk.tracing.trace
-def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    # XXX: We ought to inline or remove this one for sure
+def _derive_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    sample_project = next(iter(projects.values()))
+    if features.has("organizations:derive-tags-without-plugins", sample_project.organization):
+        _derive_tags_many_new(jobs, projects)
+    else:
+        _derive_tags_many_legacy(jobs, projects)
+
+
+def _derive_tags_many_new(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    from sentry.event_manager_auto_tags import get_enabled_derivers
+
+    derivers_for_projects = {p.id: get_enabled_derivers(p) for p in projects.values()}
+    for job in jobs:
+        data = job["data"]
+        for deriver in derivers_for_projects[job["project_id"]]:
+            try:
+                for key, value in deriver.get_tags(job["event"]):
+                    if get_tag(data, key) is None:
+                        set_tag(data, key, value)
+            except Exception:
+                logger.exception("auto_tag.derive_error")
+
+
+def _derive_tags_many_legacy(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
 
     for job in jobs:
@@ -2742,7 +2764,7 @@ def save_transaction_events(
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
-    _derive_plugin_tags_many(jobs, projects)
+    _derive_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
@@ -2781,7 +2803,7 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
 
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
-    _derive_plugin_tags_many(jobs, projects)
+    _derive_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
