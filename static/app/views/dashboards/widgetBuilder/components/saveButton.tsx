@@ -7,7 +7,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import {defined} from 'sentry/utils/defined';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,7 +45,7 @@ export function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
     setIsSaving(true);
     try {
       await validateWidget(api, organization.slug, widget);
-      onSave({index: defined(widgetIndex) ? Number(widgetIndex) : undefined, widget});
+      onSave({index: widgetIndex == null ? undefined : Number(widgetIndex), widget});
     } catch (error: any) {
       let errorMessage = t('Unable to save widget');
       setIsSaving(false);

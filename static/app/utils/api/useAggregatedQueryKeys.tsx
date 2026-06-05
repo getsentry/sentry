@@ -8,7 +8,6 @@ import {
   safeParseQueryKey,
 } from 'sentry/utils/api/apiQueryKey';
 import {uniq} from 'sentry/utils/array/uniq';
-import {defined} from 'sentry/utils/defined';
 
 const BUFFER_WAIT_MS = 20;
 
@@ -110,7 +109,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
         .getQueriesData<ApiResponse<ResponseData>>({
           predicate: ({queryKey}) => isApiQueryKeyForUrl(queryKey),
         })
-        .flatMap(([, val]) => (defined(val) ? [val] : []))
+        .flatMap(([, val]) => (val ? [val] : []))
         .reduce<Data | undefined>(
           (prevValue, val) => responseReducer(prevValue, val, aggregates),
           undefined

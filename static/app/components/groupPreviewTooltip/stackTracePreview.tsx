@@ -17,14 +17,13 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
     event.entries
       .find(e => e.type === EntryType.EXCEPTION)
-      ?.data?.values.filter(({stacktrace}: any) => defined(stacktrace)) ?? [];
+      ?.data?.values.filter(({stacktrace}: any) => stacktrace != null) ?? [];
 
   const exceptionStacktrace: StacktraceType | undefined = isStacktraceNewestFirst()
     ? exceptionsWithStacktrace[exceptionsWithStacktrace.length - 1]?.stacktrace

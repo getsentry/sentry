@@ -2,7 +2,6 @@ import {useCallback} from 'react';
 import {createParser, parseAsStringLiteral, useQueryState, useQueryStates} from 'nuqs';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {defined} from 'sentry/utils/defined';
 import {replayDetailFilterParsers} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -53,9 +52,7 @@ export function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boo
   const isAiTabAvailable = hasAiSummary && (!isVideoReplay || hasMobileSummary);
 
   const defaultTab =
-    defined(areAiFeaturesAllowed) && areAiFeaturesAllowed && isAiTabAvailable
-      ? TabKey.AI
-      : TabKey.BREADCRUMBS;
+    areAiFeaturesAllowed && isAiTabAvailable ? TabKey.AI : TabKey.BREADCRUMBS;
 
   const [tabParam, setTabParam] = useQueryState(
     't_main',

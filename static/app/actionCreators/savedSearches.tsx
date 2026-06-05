@@ -2,7 +2,6 @@ import type {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import type {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   useApiQuery,
@@ -128,7 +127,7 @@ export function useFetchRecentSearches(
     }),
     {
       staleTime: 0,
-      enabled: defined(savedSearchType),
+      enabled: savedSearchType != null,
       ...options,
     }
   );

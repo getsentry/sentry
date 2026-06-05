@@ -27,7 +27,6 @@ import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerDrawerNextStepProps {
@@ -41,7 +40,7 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
   const section = sections[sections.length - 1];
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
-  if (!defined(runId) || !defined(section)) {
+  if (runId == null || !section) {
     return null;
   }
 
@@ -129,7 +128,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
-  if (!defined(artifact)) {
+  if (!artifact) {
     return null;
   }
 
@@ -188,7 +187,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
-  if (!defined(artifact)) {
+  if (!artifact) {
     return null;
   }
 
@@ -239,7 +238,7 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
-  if (!defined(artifact)) {
+  if (!artifact) {
     return null;
   }
 

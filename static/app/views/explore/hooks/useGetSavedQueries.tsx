@@ -6,7 +6,6 @@ import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -85,7 +84,7 @@ class SavedQueryQuery {
       [];
     this.visualize =
       query.aggregateField?.filter<RawVisualize>(isRawVisualize) ?? query.visualize ?? [];
-    this.aggregateField = defined(query.aggregateField)
+    this.aggregateField = query.aggregateField
       ? query.aggregateField
       : [...this.groupby.map(groupBy => ({groupBy})), ...this.visualize];
   }
@@ -261,7 +260,7 @@ function savedQueryApiOptions({
   return apiOptions.as<ReadableSavedQuery>()(
     '/organizations/$organizationIdOrSlug/explore/saved/$id/',
     {
-      path: defined(id) ? {organizationIdOrSlug: organization.slug, id} : skipToken,
+      path: id == null ? skipToken : {organizationIdOrSlug: organization.slug, id},
       staleTime: 0,
     }
   );
@@ -271,7 +270,7 @@ export function useGetSavedQuery(id?: string) {
   const organization = useOrganization();
   const {data, isLoading, isFetched} = useQuery(savedQueryApiOptions({organization, id}));
   const savedQuery = useMemo(() => {
-    if (!defined(data)) {
+    if (!data) {
       return;
     }
     return Array.isArray(data.query) && data.query.length > 0
@@ -286,7 +285,7 @@ export function useInvalidateSavedQuery(id?: string) {
   const queryClient = useQueryClient();
 
   return useCallback(() => {
-    if (!defined(id)) {
+    if (id == null) {
       return;
     }
     queryClient.invalidateQueries({

@@ -3,7 +3,6 @@ import type {
   UptimeDetector,
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils/defined';
 import {createEmptyAssertionRoot} from 'sentry/views/alerts/rules/uptime/assertions/field';
 import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
@@ -62,7 +61,7 @@ export function useUptimeDetectorFormField<T extends UptimeDetectorFormFieldName
 ): UptimeDetectorFormData[T] {
   const value = useFormField(name);
 
-  if (value === '' || !defined(value)) {
+  if (value === '' || value == null) {
     return DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP[name];
   }
 

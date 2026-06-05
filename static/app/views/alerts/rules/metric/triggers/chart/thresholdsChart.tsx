@@ -14,7 +14,6 @@ import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils/defined';
 import {
   axisLabelFormatterUsingAggregateOutputType,
   getDurationUnit,
@@ -262,7 +261,7 @@ export class ThresholdsChart extends PureComponent<Props> {
         // to format all values similarly
         valueFormatter: (value: number) => {
           if (isSessionAggregate(aggregate)) {
-            return defined(value) ? `${value}%` : '\u2015';
+            return `${value}%`;
           }
           const type =
             timeseriesResultsTypes?.[aggregate] ?? aggregateOutputType(aggregate);

@@ -8,7 +8,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {useCanvasScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasZoomOrScroll';
-import {defined} from 'sentry/utils/defined';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -342,7 +341,7 @@ export function computePreviewConfigView(
 
   // If we were able to find a frame that is likely the parent of the span,
   // we should bias towards that frame.
-  if (defined(innerMostParentFrame)) {
+  if (innerMostParentFrame) {
     if (depth > innerMostParentFrame.depth) {
       // If we find the inner most parent frame, then we anchor it top the top
       // because there may be more frames out of view at the bottom, so if the

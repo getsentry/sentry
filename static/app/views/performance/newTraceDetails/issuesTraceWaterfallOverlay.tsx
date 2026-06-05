@@ -10,7 +10,6 @@ import {Link} from '@sentry/scraps/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isCollapsedNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -165,7 +164,7 @@ export function getTraceLinkForIssue(
 
   const searchParams: Record<string, string | string[]> = {};
   for (const key in traceTarget.query) {
-    if (defined(traceTarget.query[key])) {
+    if (traceTarget.query[key] != null) {
       searchParams[key] = traceTarget.query[key];
     }
   }

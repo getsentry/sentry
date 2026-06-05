@@ -9,7 +9,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
-import {defined} from 'sentry/utils/defined';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -56,7 +55,7 @@ export function Pagination({
     [navigate]
   );
 
-  if (!defined(pageLinks)) {
+  if (pageLinks == null) {
     return null;
   }
 

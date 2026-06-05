@@ -30,7 +30,6 @@ import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -140,7 +139,7 @@ class Chart extends Component<ChartProps, State> {
   getChartComponent(): ChartComponent {
     const {showDaily, timeseriesData, yAxis, chartComponent, forceChartType} = this.props;
 
-    if (defined(chartComponent)) {
+    if (chartComponent) {
       return chartComponent;
     }
 
@@ -218,7 +217,7 @@ class Chart extends Component<ChartProps, State> {
       ...(additionalSeries ? additionalSeries.map(series => series.name as string) : []),
     ];
 
-    if (defined(previousTimeseriesData)) {
+    if (previousTimeseriesData) {
       data.push(
         ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')])
       );

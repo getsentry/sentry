@@ -9,7 +9,6 @@ import {
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -51,7 +50,7 @@ function useActionableItems(props?: UseActionableItemsProps) {
       retry: false,
       refetchOnWindowFocus: false,
       notifyOnChangeProps: ['data'],
-      enabled: defined(props),
+      enabled: props != null,
     }
   );
 }

@@ -9,7 +9,6 @@ import {
   Parenthesis,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {defined} from 'sentry/utils/defined';
 
 export function validateTokens(tokens: Token[]): boolean {
   const validator = new ExpressionValidator();
@@ -38,7 +37,7 @@ export function computeNextAllowedTokenKinds(tokens: Array<Token | null>): Token
   const tokenKinds = [];
 
   for (const token of tokens) {
-    if (!defined(token)) {
+    if (!token) {
       // because of how react-stately works, the type here
       // is nullable so make sure to handle it
       tokenKinds.push([]);

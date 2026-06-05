@@ -1,7 +1,5 @@
 import {useCallback, useEffect, useRef, type UIEventHandler} from 'react';
 
-import {defined} from 'sentry/utils/defined';
-
 interface UseAutoScrollOptions {
   enabled: boolean;
   key: unknown;
@@ -15,7 +13,7 @@ export function useAutoScroll({enabled, key}: UseAutoScrollOptions) {
   useEffect(() => {
     const container = containerRef.current;
 
-    if (!enabled || !canAutoScroll.current || !defined(container)) {
+    if (!enabled || !canAutoScroll.current || !container) {
       return;
     }
 

@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -11,7 +10,7 @@ export const useInsightsEap = (): boolean => {
     return false;
   }
 
-  if (defined(location.query.useEap)) {
+  if (location.query.useEap != null) {
     return location.query.useEap === '1';
   }
 

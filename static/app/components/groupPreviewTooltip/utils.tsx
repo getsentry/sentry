@@ -2,7 +2,6 @@ import {useCallback, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import type {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
 import {getEventSearchFromIssueQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
@@ -65,7 +64,7 @@ export function usePreviewEvent<T = Event>({
   });
 
   // Prefetch the group as well, but don't use the result
-  useGroup({groupId, options: {enabled: defined(groupId)}});
+  useGroup({groupId, options: {enabled: groupId != null}});
 
   return eventQuery;
 }

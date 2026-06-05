@@ -10,7 +10,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -75,9 +74,9 @@ export function MetricDetails({
   const projectSlug = project?.slug ?? '';
 
   const enableQueries =
-    defined(dataRow[TraceMetricKnownFieldKey.ID]) &&
-    defined(dataRow[TraceMetricKnownFieldKey.PROJECT_ID]) &&
-    defined(dataRow[TraceMetricKnownFieldKey.TRACE]);
+    dataRow[TraceMetricKnownFieldKey.ID] != null &&
+    dataRow[TraceMetricKnownFieldKey.PROJECT_ID] != null &&
+    dataRow[TraceMetricKnownFieldKey.TRACE] != null;
   const timestamp = getTimeStampFromTableDateField(
     dataRow[TraceMetricKnownFieldKey.TIMESTAMP]
   );

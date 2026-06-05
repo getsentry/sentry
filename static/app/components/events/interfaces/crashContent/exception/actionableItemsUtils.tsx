@@ -21,7 +21,6 @@ import {EntryType} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
@@ -204,7 +203,7 @@ export const useFetchProguardMappingFiles = ({
   const proGuardImageUuid = proGuardImage?.uuid;
 
   const shouldFetch =
-    defined(proGuardImageUuid) &&
+    proGuardImageUuid != null &&
     event.platform === 'java' &&
     !hasEventErrorsProGuardMissingMapping &&
     !isShare;

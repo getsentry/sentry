@@ -39,7 +39,6 @@ import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -443,7 +442,7 @@ export function StreamGroup({
   };
 
   const renderReprocessingColumns = () => {
-    const {statusDetails, count} = group as GroupReprocessing;
+    const {statusDetails} = group as GroupReprocessing;
     const {info, pendingEvents} = statusDetails;
 
     if (!info) {
@@ -464,15 +463,13 @@ export function StreamGroup({
           <TimeSince date={dateCreated} />
         </StartedColumn>
         <EventsReprocessedColumn>
-          {defined(count) ? (
+          {
             <Fragment>
               <Count value={remainingEventsToReprocess} />
               {'/'}
               <Count value={totalEvents} />
             </Fragment>
-          ) : (
-            <Placeholder height="17px" />
-          )}
+          }
         </EventsReprocessedColumn>
         <ProgressColumn>
           <ProgressBar value={remainingEventsToReprocessPercent} />
@@ -584,16 +581,17 @@ export function StreamGroup({
     </Tooltip>
   );
 
-  const lastTriggered = defined(lastTriggeredDate) ? (
-    <PositionedTimeSince
-      tooltipPrefix={t('Last Triggered')}
-      date={lastTriggeredDate}
-      suffix={t('ago')}
-      unitStyle="short"
-    />
-  ) : (
-    <Placeholder height="18px" />
-  );
+  const lastTriggered =
+    lastTriggeredDate == null ? (
+      <Placeholder height="18px" />
+    ) : (
+      <PositionedTimeSince
+        tooltipPrefix={t('Last Triggered')}
+        date={lastTriggeredDate}
+        suffix={t('ago')}
+        unitStyle="short"
+      />
+    );
 
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (displayReprocessingLayout) {
@@ -667,7 +665,7 @@ export function StreamGroup({
 
       {withChart && !displayReprocessingLayout && (
         <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
-          {issueTypeConfig.stats.enabled && defined(groupStats) ? (
+          {issueTypeConfig.stats.enabled ? (
             <GroupStatusChart
               hideZeros
               stats={groupStats}
@@ -690,7 +688,7 @@ export function StreamGroup({
           )}
           {withColumns.includes('event') && (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              {issueTypeConfig.stats.enabled && defined(primaryCount) ? (
+              {issueTypeConfig.stats.enabled ? (
                 groupCount
               ) : issueTypeConfig.stats.enabled ? (
                 <Placeholder height="18px" width="40px" />
@@ -699,7 +697,7 @@ export function StreamGroup({
           )}
           {withColumns.includes('users') && (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              {issueTypeConfig.stats.enabled && defined(primaryUserCount) ? (
+              {issueTypeConfig.stats.enabled ? (
                 groupUsersCount
               ) : issueTypeConfig.stats.enabled ? (
                 <Placeholder height="18px" width="40px" />

@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,7 +44,7 @@ export function useLogsAggregatesTable({
     (results: ReturnType<typeof useLogsAggregatesTableImpl>['result']) => {
       const json = results.data?.json;
       const canGoToHigherAccuracyTier = json?.meta?.dataScanned === 'partial';
-      const hasData = defined(json?.data) && json.data.length > 0;
+      const hasData = json?.data != null && json.data.length > 0;
       return !hasData && canGoToHigherAccuracyTier;
     },
     []

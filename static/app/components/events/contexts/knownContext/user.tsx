@@ -1,7 +1,6 @@
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
-import {defined} from 'sentry/utils/defined';
 
 enum UserContextKeys {
   ID = 'id',
@@ -100,7 +99,7 @@ export function getUserContextData({
               value: data.email,
               action: {
                 link:
-                  defined(data.email) && EMAIL_REGEX.test(data.email)
+                  data.email != null && EMAIL_REGEX.test(data.email)
                     ? `mailto:${data.email}`
                     : undefined,
               },
@@ -122,6 +121,6 @@ export function getUserContextData({
       })
       // Since user context is generated separately from the rest, it has all known keys with those
       // unset appearing as `null`. We want to omit those unless they have annotations.
-      .filter(item => defined(item.value) || defined(meta?.[item.key]))
+      .filter(item => item.value != null || meta?.[item.key] != null)
   );
 }

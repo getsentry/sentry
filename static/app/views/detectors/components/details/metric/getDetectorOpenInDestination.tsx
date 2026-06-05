@@ -3,7 +3,6 @@ import type {LocationDescriptor} from 'history';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias, parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -226,7 +225,7 @@ export function getDetectorOpenInDestination(
 ): OpenInDestination | null {
   const {snubaQuery} = options;
 
-  if (!defined(snubaQuery)) {
+  if (!snubaQuery) {
     return null;
   }
 

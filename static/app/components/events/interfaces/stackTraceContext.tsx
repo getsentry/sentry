@@ -1,7 +1,6 @@
 import {createContext, useContext, useMemo, useState} from 'react';
 
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -103,7 +102,7 @@ export function StacktraceContext({
   const organization = useOrganization();
   const {data: detailedProject} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: projectSlug ?? ''},
-    {enabled: defined(projectSlug)}
+    {enabled: projectSlug != null}
   );
   const hasScmSourceContext = !!detailedProject?.scmSourceContextEnabled;
 

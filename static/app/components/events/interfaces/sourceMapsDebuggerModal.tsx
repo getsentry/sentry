@@ -36,7 +36,6 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
-import {defined} from 'sentry/utils/defined';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -200,8 +199,8 @@ function getPlatform({
   sdkName,
   projectPlatform,
 }: Pick<FrameSourceMapDebuggerData, 'sdkName' | 'projectPlatform'>) {
-  const platformBySdkName = defined(sdkName) ? sourceMapSdkDocsMap[sdkName] : undefined;
-  const platformByProjectName = defined(projectPlatform)
+  const platformBySdkName = sdkName == null ? undefined : sourceMapSdkDocsMap[sdkName];
+  const platformByProjectName = projectPlatform
     ? projectPlatformToDocsMap[projectPlatform]
     : undefined;
   return (
@@ -743,11 +742,12 @@ export function SourceMapsDebuggerModal({
                     {tct(
                       '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
                       {
-                        link: defined(sourceMapsDocLinks.debugIds) ? (
-                          <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
-                        ) : (
-                          <Fragment />
-                        ),
+                        link:
+                          sourceMapsDocLinks.debugIds == null ? (
+                            <Fragment />
+                          ) : (
+                            <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
+                          ),
                       }
                     )}
                   </p>
@@ -850,11 +850,14 @@ export function SourceMapsDebuggerModal({
                   {tct(
                     'Sentry will fetch your source files and source maps if you [link:host them publicly].',
                     {
-                      link: defined(sourceMapsDocLinks.hostingPublicly) ? (
-                        <ExternalLinkWithIcon href={sourceMapsDocLinks.hostingPublicly} />
-                      ) : (
-                        <Fragment />
-                      ),
+                      link:
+                        sourceMapsDocLinks.hostingPublicly == null ? (
+                          <Fragment />
+                        ) : (
+                          <ExternalLinkWithIcon
+                            href={sourceMapsDocLinks.hostingPublicly}
+                          />
+                        ),
                     }
                   )}
                 </p>
@@ -1252,7 +1255,7 @@ function HasDebugIdChecklistItem({
               />
             </Fragment>
           )}
-          {defined(sourceMapsDocLinks.sentryCli) && (
+          {sourceMapsDocLinks.sentryCli != null && (
             <SentryCliMessage
               sourceMapsDocLinks={{
                 ...sourceMapsDocLinks,
@@ -1482,7 +1485,7 @@ function EventHasReleaseNameChecklistItem({
   release: 'your-release-name'
 })`}
         </InstructionCodeSnippet>
-        {defined(sourceMapsDocLinks.sentryBundleSupport) && (
+        {sourceMapsDocLinks.sentryBundleSupport != null && (
           <p>
             {tct(
               'Alternatively, you can configure one of our build tools to automatically inject a release value into your code: [link:Sentry Bundler Support]',
@@ -1533,11 +1536,14 @@ function ReleaseHasUploadedArtifactsChecklistItem({
           {tct(
             'Read the [link:Sentry Source Maps Documentation] to learn how to upload your build artifacts to Sentry.',
             {
-              link: defined(sourceMapsDocLinks.legacyUploadingMethods) ? (
-                <ExternalLinkWithIcon href={sourceMapsDocLinks.legacyUploadingMethods} />
-              ) : (
-                <Fragment />
-              ),
+              link:
+                sourceMapsDocLinks.legacyUploadingMethods == null ? (
+                  <Fragment />
+                ) : (
+                  <ExternalLinkWithIcon
+                    href={sourceMapsDocLinks.legacyUploadingMethods}
+                  />
+                ),
             }
           )}
         </p>
@@ -1654,7 +1660,7 @@ function ReleaseSourceFileMatchingChecklistItem({
               )}
         </p>
         {/* TODO: Link to uploaded files for this release. */}
-        {defined(sourceMapsDocLinks.rewriteFrames) && (
+        {sourceMapsDocLinks.rewriteFrames != null && (
           <p>
             {tct(
               'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the stack frame path.',

@@ -27,7 +27,6 @@ import type {
   SnubaQuery,
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils/defined';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -83,7 +82,7 @@ function isMetricDetectorEvidenceData(
   evidenceData?: EventOccurrence['evidenceData']
 ): evidenceData is MetricDetectorEvidenceData {
   if (
-    !defined(evidenceData) ||
+    !evidenceData ||
     !('dataSources' in evidenceData) ||
     !Array.isArray(evidenceData.dataSources) ||
     evidenceData.dataSources.length === 0
@@ -161,9 +160,9 @@ function useZoomTimeRangeToOpenPeriod({
 
   const zoomTimeRangeToOpenPeriod = useEffectEvent(() => {
     const hasTimePeriod =
-      defined(location.query.statsPeriod) ||
-      defined(location.query.start) ||
-      defined(location.query.end);
+      location.query.statsPeriod != null ||
+      location.query.start != null ||
+      location.query.end != null;
 
     if (hasTimePeriod) {
       return;
@@ -386,7 +385,7 @@ function TriggeredConditionDetails({
     detectorDataset === DetectorDataset.RELEASES;
   const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
   const formattedEvaluatedValue = getFormattedEvaluatedValue({
-    value: defined(value) && typeof value === 'object' ? value.value : value,
+    value: typeof value === 'object' ? value.value : value,
     aggregate: snubaQuery.aggregate,
     detectionType,
   });

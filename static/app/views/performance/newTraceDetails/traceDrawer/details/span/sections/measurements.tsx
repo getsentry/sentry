@@ -10,7 +10,6 @@ import {
 } from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import {
   DURATION_UNITS,
   FIELD_FORMATTERS,
@@ -56,7 +55,7 @@ export function Measurements({
     const result = [];
     for (const name of measurementNames) {
       const {value, unit} = measurements?.[name] ?? {};
-      if (defined(value)) {
+      if (value != null) {
         const fieldType = getFieldTypeFromUnit(unit);
         const renderValue = fieldType === 'string' ? `${value} ${unit}` : value;
         const rendered = fieldType

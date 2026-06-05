@@ -21,7 +21,6 @@ import type {DataPoint, ECharts} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -734,7 +733,7 @@ export const CustomerStats = memo(
                       series={chartSeries}
                       colors={Object.values(series)
                         .map(serie => serie.color)
-                        .filter(defined)}
+                        .filter(x => x != null)}
                       tooltip={{subLabels}}
                       legend={Legend({
                         right: 10,

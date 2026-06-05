@@ -37,7 +37,6 @@ import type {Event, Frame} from 'sentry/types/event';
 import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/platform';
 import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
 import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
@@ -141,8 +140,8 @@ export function NativeFrame({
     frame.instructionAddr === prevFrame.instructionAddr;
 
   const functionNameHiddenDetails =
-    defined(frame.rawFunction) &&
-    defined(frame.function) &&
+    frame.rawFunction != null &&
+    frame.function != null &&
     frame.function !== frame.rawFunction;
 
   const [expanded, setExpanded] = useState(() => isFirstInAppFrame);
@@ -315,7 +314,7 @@ export function NativeFrame({
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
                 <PackageNote>
-                  {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+                  {getLeadHint({event, hasNextFrame: nextFrame != null})}
                 </PackageNote>
               </Fragment>
             )}
@@ -365,7 +364,7 @@ export function NativeFrame({
             {frame.filename && (
               <Tooltip
                 title={frame.absPath}
-                disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
+                disabled={!(frame.absPath != null && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
                 isHoverable
                 maxWidth={FRAME_TOOLTIP_MAX_WIDTH}

@@ -16,7 +16,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSetQueryParamsSavedQuery} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -58,7 +57,7 @@ function SaveQueryModal({
         setQueryParamsSavedQuery(id, name);
       }
       addSuccessMessage(t('Query saved successfully'));
-      if (defined(source)) {
+      if (source) {
         if (traceItemDataset === TraceItemDataset.LOGS) {
           trackAnalytics('logs.save_query_modal', {
             action: 'submit',
@@ -87,7 +86,7 @@ function SaveQueryModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{defined(initialName) ? t('Rename Query') : t('New Query')}</h4>
+        <h4>{initialName == null ? t('New Query') : t('Rename Query')}</h4>
       </Header>
       <Body>
         <Container marginBottom="xl">
@@ -95,16 +94,16 @@ function SaveQueryModal({
           <Input
             autoFocus
             placeholder={
-              defined(initialName)
-                ? t('Enter a name for your query')
-                : t('Enter a name for your new query')
+              initialName == null
+                ? t('Enter a name for your new query')
+                : t('Enter a name for your query')
             }
             onChange={e => setName(e.target.value)}
             value={name}
             title={
-              defined(initialName)
-                ? t('Enter a name for your query')
-                : t('Enter a name for your new query')
+              initialName == null
+                ? t('Enter a name for your new query')
+                : t('Enter a name for your query')
             }
           />
         </Container>
@@ -128,7 +127,7 @@ function SaveQueryModal({
             {t('Cancel')}
           </Button>
           <Button onClick={onSave} disabled={!name || isSaving} variant="primary">
-            {defined(initialName) ? t('Save Changes') : t('Create a New Query')}
+            {initialName == null ? t('Create a New Query') : t('Save Changes')}
           </Button>
         </StyledButtonBar>
       </Footer>

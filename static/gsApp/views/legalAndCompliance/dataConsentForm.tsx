@@ -8,7 +8,6 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -31,7 +30,7 @@ export function DataConsentForm({subscription}: {subscription: Subscription}) {
 
   const isTouchCustomer = subscription.type === BillingType.INVOICED;
   const hasMsaUpdated =
-    defined(subscription.msaUpdatedForDataConsent) &&
+    subscription.msaUpdatedForDataConsent != null &&
     subscription.msaUpdatedForDataConsent;
   const isTouchCustomerAndNeedsMsaUpdate = isTouchCustomer && !hasMsaUpdated;
   const hasBillingAccess = organization.access.includes('org:billing');

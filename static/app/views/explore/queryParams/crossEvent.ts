@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils/defined';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 export type CrossEventType = 'logs' | 'spans' | 'metrics';
@@ -21,7 +20,7 @@ export function getCrossEventsFromLocation(
 ): CrossEvent[] | undefined {
   let json: any;
 
-  if (!defined(location.query?.[key]) || Array.isArray(location.query?.[key])) {
+  if (location.query?.[key] == null || Array.isArray(location.query?.[key])) {
     return undefined;
   }
 
@@ -45,7 +44,7 @@ export function isCrossEventType(value: string): value is CrossEventType {
 
 function isCrossEvent(value: any): value is CrossEvent {
   if (
-    !defined(value) ||
+    value == null ||
     typeof value !== 'object' ||
     typeof value.query !== 'string' ||
     typeof value.type !== 'string' ||
@@ -56,7 +55,7 @@ function isCrossEvent(value: any): value is CrossEvent {
 
   if (value.type === 'metrics') {
     return (
-      defined(value.metric) &&
+      value.metric != null &&
       typeof value.metric === 'object' &&
       typeof value.metric.name === 'string' &&
       typeof value.metric.type === 'string' &&

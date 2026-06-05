@@ -10,7 +10,6 @@ import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function IssueStackTraceFrameContext() {
@@ -21,7 +20,7 @@ export function IssueStackTraceFrameContext() {
   const hasEmbeddedContext = hasContextSource(frame);
   const shouldFetchSourceContext =
     hasScmSourceContext &&
-    defined(project) &&
+    project != null &&
     !hasEmbeddedContext &&
     isExpanded &&
     hasPotentialSourceContext(frame);

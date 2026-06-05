@@ -112,7 +112,7 @@ export function ActionSet({
 
   const selectedIssues = [...issues]
     .map(issueId => GroupStore.get(issueId))
-    .filter(Boolean) as BaseGroup[];
+    .filter(Boolean);
 
   // Merges require multiple issues of a single project type
   const multipleIssueProjectsSelected = multiSelected && !selectedProjectSlug;

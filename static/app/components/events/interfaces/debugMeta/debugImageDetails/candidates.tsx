@@ -16,7 +16,6 @@ import type {Image} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 
 import {Status} from './candidate/status';
 import {Candidate} from './candidate';
@@ -106,7 +105,7 @@ export class Candidates extends Component<Props, State> {
         }
 
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        if (!defined(info) || !String(info).trim()) {
+        if (info == null || !String(info).trim()) {
           return false;
         }
 

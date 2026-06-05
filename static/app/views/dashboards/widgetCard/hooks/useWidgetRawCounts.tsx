@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils/defined';
 import {explodeFieldString, isEquation} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
@@ -51,7 +50,7 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
 
         const traceMetrics = functionAggregates
           .map(aggregate => extractTraceMetricFromColumn(explodeFieldString(aggregate)))
-          .filter(defined);
+          .filter(Boolean);
 
         const filters: string[] = [];
 

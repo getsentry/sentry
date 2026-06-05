@@ -9,7 +9,6 @@ import {
   type RootCauseArtifact,
   type SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {defined} from 'sentry/utils/defined';
 import {
   type Artifact,
   type ExplorerCodingAgentState,
@@ -49,7 +48,7 @@ function rootCauseArtifactToMarkdown(
   headingLevel: number
 ): string | null {
   const rootCause = artifact.data;
-  if (!defined(rootCause)) {
+  if (!rootCause) {
     return null;
   }
 
@@ -84,7 +83,7 @@ function solutionArtifactToMarkdown(
   headingLevel: number
 ): string | null {
   const solution = artifact.data;
-  if (!defined(solution)) {
+  if (!solution) {
     return null;
   }
 
@@ -156,7 +155,7 @@ function repoPRStatesToMarkdown(
         }
         return `[${pullRequest.repo_name}#${pullRequest.pr_number}](${pullRequest.pr_url})`;
       })
-      .filter(defined)
+      .filter(x => x != null)
   );
 
   return parts.join('\n');
@@ -188,7 +187,7 @@ function codingAgentsToMarkdown(
           `[${codingAgent.name}](${codingAgent.agent_url})`,
         ];
       })
-      .filter(defined)
+      .filter(Boolean)
       .flatMap(lines => lines)
   );
 

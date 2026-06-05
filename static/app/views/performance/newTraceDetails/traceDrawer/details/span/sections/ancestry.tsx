@@ -3,7 +3,6 @@ import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import {SpanFields} from 'sentry/views/insights/types';
 import {
   TraceDrawerComponents,
@@ -75,7 +74,7 @@ export function useSpanAncestryAndGroupingItems({
   }
 
   const childTransaction = childTransactions[0];
-  const spanGroup = defined(span.hash) ? String(span.hash) : null;
+  const spanGroup = span.hash == null ? null : String(span.hash);
   items.push({
     key: 'same_group',
     value: spanGroup,

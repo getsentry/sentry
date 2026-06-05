@@ -22,7 +22,6 @@ import type {
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
@@ -117,7 +116,7 @@ function calculateNextFocus(
   parameterIndex?: number
 ): FocusOverride | undefined {
   if (
-    defined(parameterIndex) &&
+    parameterIndex != null &&
     definition?.kind === FieldKind.FUNCTION &&
     definition.parameters?.length &&
     parameterIndex + 1 < definition.parameters.length
@@ -338,7 +337,7 @@ export function SearchQueryBuilderParametersCombobox({
         focusOverride,
       });
       updateInputValue(newValue);
-      if (!defined(focusOverride)) {
+      if (!focusOverride) {
         const newCursorPosition = getCursorPositionAtEndOfParameter(
           newValue,
           parameterIndex

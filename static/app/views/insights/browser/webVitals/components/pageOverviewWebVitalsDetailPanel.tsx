@@ -14,7 +14,6 @@ import type {
 } from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
@@ -93,7 +92,7 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
   const subregions = location.query[SpanFields.USER_GEO_SUBREGION] as SubregionCode[];
-  const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
+  const isSpansWebVital = webVital != null && ['inp', 'cls', 'lcp'].includes(webVital);
 
   const replayLinkGenerator = generateReplayLink(matches);
 
@@ -241,11 +240,7 @@ export function PageOverviewWebVitalsDetailPanel({
       );
     }
     if (key === 'profile.id') {
-      if (
-        !defined(project) ||
-        !defined(row['profile.id']) ||
-        !profileExists(row['profile.id'])
-      ) {
+      if (!project || !profileExists(row['profile.id'])) {
         return (
           <AlignCenter>
             <NoValue>{t('(no value)')}</NoValue>

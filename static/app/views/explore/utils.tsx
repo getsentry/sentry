@@ -14,7 +14,6 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -260,7 +259,7 @@ export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {
   // meaning we have possible undefined values. This typically happens in multi-yaxis
   // charts when we have a grouping so the data is positioned in such a way to make
   // series colors consistent when rendering
-  for (const s of series.filter(defined)) {
+  for (const s of series.filter(Boolean)) {
     const confidence = determineTimeSeriesConfidence(s);
     if (confidence === 'low') {
       lows += 1;
@@ -310,7 +309,7 @@ export function generateTargetQuery({
     // some fields require special handling so make sure to handle it here
     if (groupBy === 'project' && typeof value === 'string') {
       const project = projects.find(p => p.slug === value);
-      if (defined(project)) {
+      if (project) {
         location.query.project = project.id;
       }
     } else if (groupBy === 'project.id' && typeof value === 'number') {
@@ -325,7 +324,7 @@ export function generateTargetQuery({
       } else {
         search.setFilterValues(groupBy, [value]);
       }
-    } else if (!defined(value)) {
+    } else if (value == null) {
       search.addFilterValue('!has', groupBy);
     }
   }
@@ -463,7 +462,7 @@ export function computeVisualizeSampleTotals(
   isTopN: boolean
 ) {
   return yAxes.map(yAxis => {
-    const series = data?.[yAxis]?.filter(defined) ?? [];
+    const series = data?.[yAxis]?.filter(Boolean) ?? [];
     const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
     return sampleCount;
   });

@@ -2,7 +2,6 @@ import pick from 'lodash/pick';
 
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 
 import type {BreadcrumbWithMeta} from './types';
 
@@ -42,7 +41,7 @@ export function applyBreadcrumbSearch<T extends BreadcrumbListType>(
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const info = breadcrumb[key];
 
-      if (!defined(info) || !String(info).trim()) {
+      if (info == null || !String(info).trim()) {
         return false;
       }
 

@@ -13,7 +13,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegions} from 'sentry/utils/regions';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -155,7 +154,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
             plan={customer.planDetails}
           />
         </DetailLabel>
-        {defined(customer.msaUpdatedForDataConsent) && (
+        {customer.msaUpdatedForDataConsent != null && (
           <DetailLabel
             title="MSA Updated for Data Consent"
             yesNo={customer.msaUpdatedForDataConsent}
@@ -426,7 +425,7 @@ function DynamicSampling({organization}: {organization: Organization}) {
     return <ThresholdLabel positive={false}>Loading...</ThresholdLabel>;
   }
 
-  if (!defined(data.effectiveSampleRate)) {
+  if (data.effectiveSampleRate == null) {
     return <ThresholdLabel positive={false}>n/a</ThresholdLabel>;
   }
 

@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -129,12 +128,10 @@ export function ExploreParams({
   }
 
   const tokensToShow = calculateTokensToShow();
-  const visibleTokens = defined(tokensToShow)
-    ? tokens.slice(0, tokensToShow + 1)
-    : tokens;
-  const hiddenTokens = defined(tokensToShow) ? tokens.slice(tokensToShow + 1) : [];
+  const visibleTokens = tokensToShow == null ? tokens : tokens.slice(0, tokensToShow + 1);
+  const hiddenTokens = tokensToShow == null ? [] : tokens.slice(tokensToShow + 1);
 
-  if (defined(tokensToShow) && tokensToShow + 1 < tokens.length) {
+  if (tokensToShow != null && tokensToShow + 1 < tokens.length) {
     visibleTokens.push(
       <Tooltip
         key="more"

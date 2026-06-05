@@ -6,7 +6,6 @@ import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {fzf} from 'sentry/utils/search/fzf';
 
 import type {SelectProps} from './compactSelect';
@@ -444,7 +443,7 @@ export function shouldCloseOnSelect({
     // type assertions are necessary here because we don't have the discriminated union anymore
     return closeOnSelect((multiple ? selectedOptions : selectedOptions[0]) as never);
   }
-  if (defined(closeOnSelect)) {
+  if (closeOnSelect != null) {
     return closeOnSelect;
   }
   // By default, single-selection lists close on select, while multiple-selection

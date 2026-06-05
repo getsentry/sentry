@@ -366,7 +366,7 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
       ],
     },
-    ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
+    ...[getConsoleExtensions(params)].filter(Boolean),
     {
       title: t('Further Settings'),
       content: [

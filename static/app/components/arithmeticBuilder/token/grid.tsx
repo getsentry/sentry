@@ -26,7 +26,6 @@ import {ArithmeticBuilderTokenReference} from 'sentry/components/arithmeticBuild
 import {computeNextAllowedTokenKinds} from 'sentry/components/arithmeticBuilder/validator';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 
 interface TokenGridProps {
   tokens: Token[];
@@ -117,7 +116,7 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
       {[...state.collection].map((item, i) => {
         const token = item.value;
 
-        if (!defined(token)) {
+        if (!token) {
           return null;
         }
 

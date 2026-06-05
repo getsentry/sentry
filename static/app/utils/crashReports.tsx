@@ -1,11 +1,10 @@
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 
 export function formatStoreCrashReports(
   value: number | null | '',
   organizationValue?: number
 ): React.ReactNode {
-  if (value === null && defined(organizationValue)) {
+  if (value === null && organizationValue != null) {
     return tct('Inherit organization settings ([organizationValue])', {
       organizationValue: formatStoreCrashReports(organizationValue),
     });

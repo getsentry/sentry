@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 export function ProfileDetails({
@@ -25,7 +24,7 @@ export function ProfileDetails({
 }) {
   const {profile, frames} = useSpanProfileDetails(organization, project, event, span);
 
-  if (!defined(profile) || frames.length === 0) {
+  if (!profile || frames.length === 0) {
     return null;
   }
 

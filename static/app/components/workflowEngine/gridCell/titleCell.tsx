@@ -11,8 +11,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconSentry, IconWarning} from 'sentry/icons';
 import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
-import {defined} from 'sentry/utils/defined';
-
 export type TitleCellProps = {
   link: LocationDescriptor | null;
   name: string;
@@ -60,7 +58,7 @@ export function TitleCell({
           </Container>
         )}
       </Name>
-      {defined(details) && <DetailsWrapper>{details}</DetailsWrapper>}
+      {details && <DetailsWrapper>{details}</DetailsWrapper>}
     </Fragment>
   );
 

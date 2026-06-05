@@ -34,7 +34,6 @@ import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -172,7 +171,7 @@ function IssueStackTraceContent({
   const organization = useOrganization();
   const {data: detailedProject} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: projectSlug ?? ''},
-    {enabled: defined(projectSlug)}
+    {enabled: projectSlug != null}
   );
   const hasScmSourceContext = !!detailedProject?.scmSourceContextEnabled;
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
@@ -319,7 +318,7 @@ function IssueStackTraceContent({
             <Disclosure
               key={exceptionId ?? idx}
               defaultExpanded={idx === firstVisibleExceptionIndex}
-              id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
+              id={exceptionId == null ? undefined : `exception-${exceptionId}`}
             >
               <Disclosure.Title
                 trailingItems={

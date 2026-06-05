@@ -7,7 +7,6 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
@@ -217,7 +216,7 @@ function ViewHierarchy({
               </RenderedItemsContainer>
             </ScrollContainer>
           </TreeContainer>
-          {defined(selectedNode) && (
+          {selectedNode && (
             <DetailsContainer>
               <DetailsPanel
                 data={selectedNode}

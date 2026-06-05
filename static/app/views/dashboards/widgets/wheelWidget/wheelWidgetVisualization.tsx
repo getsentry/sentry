@@ -2,7 +2,6 @@ import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {
@@ -25,7 +24,7 @@ export function WheelWidgetVisualization({tableResults}: WheelWidgetVisualizatio
     : undefined;
   const score = projectScore?.totalScore;
 
-  if (!defined(projectScore)) {
+  if (!projectScore) {
     return null;
   }
 

@@ -10,7 +10,6 @@ import {List} from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';
 import type {EntryRequestDataGraphQl, Event} from 'sentry/types/event';
 import {uniq} from 'sentry/utils/array/uniq';
-import {defined} from 'sentry/utils/defined';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 type GraphQlBodyProps = {data: EntryRequestDataGraphQl['data']; event: Event};
@@ -55,7 +54,7 @@ function formatErrorAlertMessage(error: GraphQlError) {
   }
 
   const prefix = locations
-    .filter(loc => defined(loc.line) && defined(loc.column))
+    .filter(loc => loc.line != null && loc.column != null)
     .map(loc => t('Line %s Column %s', loc.line, loc.column))
     .join(', ');
 

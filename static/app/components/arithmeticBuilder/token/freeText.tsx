@@ -37,7 +37,6 @@ import {IconDivide} from 'sentry/icons/iconDivide';
 import {IconParenthesis} from 'sentry/icons/iconParenthesis';
 import {IconSubtract} from 'sentry/icons/iconSubtract';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 
 interface ArithmeticTokenFreeTextProps {
   item: Node<Token>;
@@ -135,7 +134,7 @@ function InternalInput({
 
   const getNextFocusOverride = useCallback(
     (focusToken?: FocusToken): string => {
-      if (defined(focusToken)) {
+      if (focusToken) {
         if (focusToken.kind === TokenKind.FUNCTION) {
           const definition = getFieldDefinition(focusToken.func);
           const parameterDefinitions = definition?.parameters ?? [];

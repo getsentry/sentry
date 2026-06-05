@@ -8,7 +8,6 @@ import {
 } from 'react';
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils/defined';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -28,7 +27,7 @@ export const MAX_METRICS_ALLOWED = 8;
 function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
   return metricQueries
     .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
-    .filter(defined)
+    .filter(x => x != null)
     .filter(Boolean);
 }
 
@@ -91,7 +90,7 @@ function getMultiMetricsQueryParamsFromLocation(
 
   const metricQueries = rawQueryParams
     .map(value => decodeMetricsQueryParams(value))
-    .filter(defined);
+    .filter(Boolean);
 
   const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
 

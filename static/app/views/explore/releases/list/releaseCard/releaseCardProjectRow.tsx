@@ -21,7 +21,6 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
-import {defined} from 'sentry/utils/defined';
 import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/explore/releases/list/releasesRequest';
 import {
@@ -178,20 +177,22 @@ export function ReleaseCardProjectRow({
         <CrashFreeRateColumn>
           {showPlaceholders ? (
             <StyledPlaceholder width="60px" />
-          ) : defined(crashFreeRate) ? (
+          ) : crashFreeRate == null ? (
+            <NotAvailable />
+          ) : (
             <CrashFreeWrapper>
               {getCrashFreeIcon(crashFreeRate)}
               {displayCrashFreePercent(crashFreeRate)}
             </CrashFreeWrapper>
-          ) : (
-            <NotAvailable />
           )}
         </CrashFreeRateColumn>
 
         <DisplaySmallCol>
           {showPlaceholders ? (
             <StyledPlaceholder width="30px" />
-          ) : defined(crashCount) ? (
+          ) : crashCount == null ? (
+            <NotAvailable />
+          ) : (
             <Tooltip title={t('Open in Issues')}>
               <Link
                 to={{
@@ -213,8 +214,6 @@ export function ReleaseCardProjectRow({
                 <Count value={crashCount} />
               </Link>
             </Tooltip>
-          ) : (
-            <NotAvailable />
           )}
         </DisplaySmallCol>
 

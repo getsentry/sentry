@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
@@ -59,13 +58,13 @@ export function ProfilePreview({
   }, [event]);
 
   const profile = useMemo(() => {
-    if (defined(spanThreadId)) {
+    if (spanThreadId != null) {
       return profileGroup.profiles.find(p => String(p.threadId) === spanThreadId) ?? null;
     }
 
     const activeThreadId =
       profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
-    if (defined(activeThreadId)) {
+    if (activeThreadId != null) {
       return profileGroup.profiles.find(p => p.threadId === activeThreadId) ?? null;
     }
 
@@ -145,11 +144,11 @@ export function ProfilePreview({
   // the next best thing.
   const startTimestamp = profile?.timestamp ?? event?.startTimestamp;
   const relativeStartTimestamp =
-    transactionHasProfile && defined(startTimestamp)
+    transactionHasProfile && startTimestamp != null
       ? missingInstrumentationNode.value.start_timestamp - startTimestamp
       : 0;
   const relativeStopTimestamp =
-    transactionHasProfile && defined(startTimestamp)
+    transactionHasProfile && startTimestamp != null
       ? missingInstrumentationNode.value.timestamp - startTimestamp
       : flamegraph.configSpace.width;
 

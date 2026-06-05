@@ -6,7 +6,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
@@ -111,7 +110,7 @@ function findFirstFunction(
 ): ParsedFunction | undefined {
   for (const yAxis of yAxes) {
     const parsed = parseFunction(yAxis);
-    if (defined(parsed)) {
+    if (parsed) {
       return parsed;
     }
   }

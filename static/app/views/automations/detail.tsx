@@ -23,7 +23,6 @@ import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -264,7 +263,7 @@ export default function AutomationDetail() {
     <VisuallyCompleteWithData
       id="AutomationDetails-Body"
       isLoading={isPending}
-      hasData={defined(automation)}
+      hasData={automation != null}
     >
       <AutomationDetailLoadingStates automationId={params.automationId} />
     </VisuallyCompleteWithData>

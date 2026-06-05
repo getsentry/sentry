@@ -1,5 +1,4 @@
 import {Duration} from 'sentry/components/duration';
-import {defined} from 'sentry/utils/defined';
 
 interface DurationProps {
   abbreviation?: boolean;
@@ -20,11 +19,11 @@ interface NanosecondsProps extends DurationProps {
 type PerformanceDurationProps = SecondsProps | MillisecondsProps | NanosecondsProps;
 
 function isMilliseconds(props: PerformanceDurationProps): props is MillisecondsProps {
-  return defined((props as MillisecondsProps).milliseconds);
+  return (props as MillisecondsProps).milliseconds != null;
 }
 
 function isNanoseconds(props: PerformanceDurationProps): props is NanosecondsProps {
-  return defined((props as NanosecondsProps).nanoseconds);
+  return (props as NanosecondsProps).nanoseconds != null;
 }
 
 export function PerformanceDuration(props: PerformanceDurationProps) {

@@ -9,7 +9,6 @@ import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import {LineSeries as lineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {
   ChartDataTransform,
@@ -428,7 +427,7 @@ export function mapCostStatsToChart({
     const accepted = stat.accepted ?? 0;
     let onDemand = 0;
 
-    if (defined(stat.onDemandCostRunningTotal)) {
+    if (stat.onDemandCostRunningTotal != null) {
       onDemand = isCumulative
         ? stat.onDemandCostRunningTotal
         : stat.onDemandCostRunningTotal - previousOnDemandCostRunningTotal;
@@ -500,7 +499,7 @@ export function mapReservedBudgetStatsToChart({
           const accepted = stat.accepted ?? 0;
           let onDemand = 0;
 
-          if (defined(stat.onDemandCostRunningTotal)) {
+          if (stat.onDemandCostRunningTotal != null) {
             onDemand = isCumulative
               ? stat.onDemandCostRunningTotal
               : stat.onDemandCostRunningTotal - previousOnDemandCostRunningTotal;

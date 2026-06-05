@@ -2,8 +2,6 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {defined} from 'sentry/utils/defined';
-
 interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   as?: React.ElementType;
   color?: string;
@@ -62,28 +60,21 @@ export const InteractionStateLayer = styled(
   opacity: 0;
 
   ${p =>
-    defined(p.isHovered)
-      ? p.isHovered &&
-        css`
-          opacity: ${p.higherOpacity ? 0.085 : 0.06};
-        `
-      : // If isHovered is undefined, then fallback to a default hover selector
-        css`
+    p.isHovered == null
+      ? css`
           *:hover:not(:focus-visible) > & {
             opacity: ${p.higherOpacity ? 0.085 : 0.06};
           }
+        `
+      : // If isHovered is undefined, then fallback to a default hover selector
+        p.isHovered &&
+        css`
+          opacity: ${p.higherOpacity ? 0.085 : 0.06};
         `}
 
   ${p =>
-    defined(p.isPressed)
-      ? p.isPressed &&
-        css`
-          &&& {
-            opacity: ${p.higherOpacity ? 0.12 : 0.09};
-          }
-        `
-      : // If isPressed is undefined, then fallback to default press selectors
-        css`
+    p.isPressed == null
+      ? css`
           *:active > && {
             opacity: ${p.higherOpacity ? 0.12 : 0.09};
           }
@@ -94,6 +85,13 @@ export const InteractionStateLayer = styled(
               opacity: ${p.higherOpacity ? 0.12 : 0.09};
             }
           `}
+        `
+      : // If isPressed is undefined, then fallback to default press selectors
+        p.isPressed &&
+        css`
+          &&& {
+            opacity: ${p.higherOpacity ? 0.12 : 0.09};
+          }
         `}
 
 

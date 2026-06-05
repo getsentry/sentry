@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils/defined';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 export function appendReleaseFilters(
@@ -10,7 +9,7 @@ export function appendReleaseFilters(
     primaryRelease && primaryRelease !== '' ? primaryRelease : undefined;
 
   let queryString = query.formatString();
-  if (defined(validPrimary)) {
+  if (validPrimary != null) {
     queryString = query.copy().addStringFilter(`release:${validPrimary}`).formatString();
   }
   return queryString;

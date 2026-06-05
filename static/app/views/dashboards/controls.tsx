@@ -17,7 +17,6 @@ import {IconAdd, IconCopy, IconDownload, IconEdit, IconStar} from 'sentry/icons'
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -102,7 +101,7 @@ export function Controls({
       },
     });
 
-  const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+  const isPrebuiltDashboard = dashboard.prebuiltId != null;
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (

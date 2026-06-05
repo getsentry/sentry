@@ -13,7 +13,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
@@ -79,7 +78,7 @@ export function useSaveAsItems({
   const saveAsQuery = useMemo(() => {
     const items = [];
 
-    if (defined(id) && savedQuery?.isPrebuilt === false) {
+    if (id != null && savedQuery?.isPrebuilt === false) {
       items.push({
         key: 'update-query',
         textValue: t('Existing Query'),
@@ -190,7 +189,7 @@ export function useSaveAsItems({
                     yAxis,
                     ...sortBys.map(sort => sort.field),
                   ]),
-                ].filter(defined);
+                ].filter(x => x != null);
 
           const discoverQuery: NewQuery = {
             name: DEFAULT_WIDGET_NAME,

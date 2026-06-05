@@ -6,8 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import {t} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
-
 type ExceptionGroupContextProps = {
   allExceptions: ExceptionValue[];
   onExceptionClick: (exceptionId: number) => void;
@@ -49,7 +47,7 @@ function ExceptionLink({exception, link, onExceptionClick}: ExceptionLinkProps) 
 
   const exceptionId = exception.mechanism?.exception_id;
 
-  if (!defined(exceptionId) || !link) {
+  if (exceptionId == null || !link) {
     return <div>{exceptionName}</div>;
   }
 

@@ -3,8 +3,6 @@ import type {Key} from '@react-types/shared';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
-import {defined} from 'sentry/utils/defined';
-
 type ArithmeticBuilderUpdateResetFocusOverrideAction = {
   type: 'RESET_FOCUS_OVERRIDE';
 };
@@ -85,14 +83,14 @@ export function useArithmeticBuilderAction({
         const newText = deleteTokenText(expressionString, action);
         setExpressionString(newText);
         updateExpression?.(new Expression(newText, references));
-        if (defined(action.focusOverride)) {
+        if (action.focusOverride) {
           setFocusOverride(action.focusOverride);
         }
       } else if (isArithmeticBuilderReplaceAction(action)) {
         const newText = replaceTokenText(expressionString, action);
         setExpressionString(newText);
         updateExpression?.(new Expression(newText, references));
-        if (defined(action.focusOverride)) {
+        if (action.focusOverride) {
           setFocusOverride(action.focusOverride);
         }
       }

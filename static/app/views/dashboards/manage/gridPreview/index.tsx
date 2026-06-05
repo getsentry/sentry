@@ -4,7 +4,6 @@ import GridLayout, {WidthProvider} from 'react-grid-layout';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {defined} from 'sentry/utils/defined';
 import {
   assignDefaultLayout,
   calculateColumnDepths,
@@ -45,7 +44,7 @@ export function GridPreview({widgetPreview}: Props) {
 
   const definedLayouts = widgetPreview
     .map(({layout}) => layout)
-    .filter((layout): layout is WidgetLayout => defined(layout));
+    .filter((layout): layout is WidgetLayout => layout != null);
   const columnDepths = calculateColumnDepths(definedLayouts);
   const renderPreview = assignDefaultLayout(widgetPreview, columnDepths);
 

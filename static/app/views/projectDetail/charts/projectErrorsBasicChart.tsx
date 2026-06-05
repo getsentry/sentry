@@ -11,7 +11,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project, ProjectStats} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const ERRORS_BASIC_CHART_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
@@ -48,7 +47,7 @@ export function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props)
         staleTime: 0,
       }
     ),
-    enabled: defined(projectId),
+    enabled: projectId != null,
   });
   const stats = useMemo(() => {
     return projects?.[0]?.stats ?? [];

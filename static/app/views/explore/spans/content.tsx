@@ -14,7 +14,6 @@ import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils/defined';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {
   useMaxPickableDays,
@@ -50,7 +49,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 function useHasCrossEvents() {
   const crossEvents = useQueryParamsCrossEvents();
-  return defined(crossEvents) && crossEvents.length > 0;
+  return crossEvents != null && crossEvents.length > 0;
 }
 
 export function ExploreContent() {
@@ -96,7 +95,7 @@ function ExploreContentInner() {
             <Stack flex={1}>
               <SpansTabWrapper>
                 <SpansTabHeader />
-                {defined(onboardingProject) ? (
+                {onboardingProject ? (
                   <SpansTabOnboarding
                     organization={organization}
                     project={onboardingProject}
@@ -162,7 +161,7 @@ function SpansTabHeader() {
   const {data: savedQuery} = useGetSavedQuery(id);
 
   const hasSavedQueryTitle =
-    defined(id) && defined(savedQuery) && savedQuery.name.length > 0;
+    id != null && savedQuery != null && savedQuery.name.length > 0;
 
   const documentTitle = hasSavedQueryTitle ? (
     <SentryDocumentTitle
@@ -181,7 +180,7 @@ function SpansTabHeader() {
     />
   );
 
-  const hasBreadcrumb = Boolean(title && defined(id));
+  const hasBreadcrumb = Boolean(title && id != null);
 
   return (
     <Fragment>
@@ -199,7 +198,7 @@ function SpansTabHeader() {
       </TopBar.Slot>
       <TopBar.Slot name="actions">
         <StarSavedQueryButton />
-        {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+        {id != null && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
       </TopBar.Slot>
       <TopBar.Slot name="feedback">
         <FeedbackButton

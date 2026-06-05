@@ -18,7 +18,6 @@ import {
 } from 'sentry/components/statusIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
@@ -187,7 +186,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
     <TimestampContainer>
       {completionStatus === CompletionStatus.COMPLETE ? (
         <DateTime date={dateUpdated} timeZone seconds />
-      ) : completionStatus === CompletionStatus.COMPLETE_TIMEOUT && defined(duration) ? (
+      ) : completionStatus === CompletionStatus.COMPLETE_TIMEOUT && duration != null ? (
         <Fragment>
           <DateTime date={dateUpdated} timeZone seconds />
           <CompletedLateIndicator checkIn={checkIn} />
@@ -202,15 +201,16 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
     </TimestampContainer>
   );
 
-  const durationColumn = defined(duration) ? (
-    <Flex align="center">
-      <Tooltip skipWrapper title={<Duration exact seconds={duration / 1000} />}>
-        <Duration seconds={duration / 1000} />
-      </Tooltip>
-    </Flex>
-  ) : (
-    emptyCell
-  );
+  const durationColumn =
+    duration == null ? (
+      emptyCell
+    ) : (
+      <Flex align="center">
+        <Tooltip skipWrapper title={<Duration exact seconds={duration / 1000} />}>
+          <Duration seconds={duration / 1000} />
+        </Tooltip>
+      </Flex>
+    );
 
   const groupsColumn =
     groups && groups.length > 0 ? (

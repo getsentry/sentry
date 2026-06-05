@@ -6,7 +6,6 @@ import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import {LoadingError} from 'sentry/components/loadingError';
 import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsData';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
-import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -128,7 +127,7 @@ function GroupEventDetails() {
     <AnalyticsArea name="issue_details">
       <VisuallyCompleteWithData
         id="IssueDetails-EventBody"
-        hasData={!isLoadingEvent && !isEventError && defined(eventWithMeta)}
+        hasData={!isLoadingEvent && !isEventError && eventWithMeta != null}
         isLoading={isLoadingEvent}
       >
         <div data-test-id="group-event-details">

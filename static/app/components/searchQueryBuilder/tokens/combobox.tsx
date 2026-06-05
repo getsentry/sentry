@@ -42,7 +42,6 @@ import {
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
@@ -513,7 +512,7 @@ export function SearchQueryBuilderCombobox<
     0
   );
 
-  const hasCustomMenu = defined(customMenu);
+  const hasCustomMenu = customMenu != null;
 
   const isOpen = menuIsOpen({
     state,
@@ -601,7 +600,7 @@ export function SearchQueryBuilderCombobox<
   useEffect(() => {
     if (isOpen) {
       return ariaHideOutside(
-        [inputRef.current, popoverRef.current, descriptionRef.current].filter(defined)
+        [inputRef.current, popoverRef.current, descriptionRef.current].filter(Boolean)
       );
     }
 

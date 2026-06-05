@@ -16,7 +16,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -290,7 +289,7 @@ export function useIsSampleEvent(): boolean {
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests
-    {enabled: defined(group)}
+    {enabled: group != null}
   );
   return data?.some(tag => tag.key === 'sample_event') ?? false;
 }
@@ -330,17 +329,17 @@ export function getUserTagValue(tagValue: TagValue): {
 } {
   let title: string | null = null;
   let subtitle: string | null = null;
-  if (defined(tagValue?.name)) {
+  if (tagValue?.name != null) {
     title = tagValue?.name;
-  } else if (defined(tagValue?.email)) {
+  } else if (tagValue?.email != null) {
     title = tagValue?.email;
-  } else if (defined(tagValue?.username)) {
+  } else if (tagValue?.username != null) {
     title = title ? title : tagValue?.username;
-  } else if (defined(tagValue?.ip_address) || (defined(tagValue?.ipAddress) && !title)) {
+  } else if (tagValue?.ip_address != null || (tagValue?.ipAddress != null && !title)) {
     title = tagValue?.ip_address ?? tagValue?.ipAddress;
   }
 
-  if (defined(tagValue?.id)) {
+  if (tagValue?.id != null) {
     title = title ? title : tagValue?.id;
     if (tagValue?.id && tagValue?.id !== 'None') {
       subtitle = tagValue?.id;

@@ -8,7 +8,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils/defined';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
@@ -60,7 +59,7 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
       {additionalColumns.map(col => (
         <Fragment key={col.id}>{col.renderCell(detector)}</Fragment>
       ))}
-      {defined(renderVisualization) && renderVisualization({detector})}
+      {renderVisualization?.({detector})}
     </DetectorSimpleTableRow>
   );
 }
@@ -100,7 +99,7 @@ export function DetectorListRowSkeleton() {
           )}
         </Fragment>
       ))}
-      {defined(renderVisualization) ? renderVisualization({detector: null}) : null}
+      {renderVisualization ? renderVisualization({detector: null}) : null}
     </DetectorSimpleTableRow>
   );
 }

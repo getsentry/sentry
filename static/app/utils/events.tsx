@@ -21,7 +21,6 @@ import type {
 import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {uniq} from 'sentry/utils/array/uniq';
-import {defined} from 'sentry/utils/defined';
 import {
   getExceptionGroupHeight,
   getExceptionGroupWidth,
@@ -120,7 +119,7 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | Simpl
       };
     case EventOrGroupType.TRANSACTION:
     case EventOrGroupType.GENERIC: {
-      const isIssue = !isTombstone(event) && defined(event.issueCategory);
+      const isIssue = !isTombstone(event) && event.issueCategory != null;
       return {
         title: customTitle ?? title,
         subtitle: isIssue ? culprit : '',
@@ -156,7 +155,7 @@ function hasTrace(event: Event) {
 }
 
 function hasProfile(event: Event) {
-  return defined(event.contexts?.profile);
+  return event.contexts?.profile != null;
 }
 
 /**
@@ -177,7 +176,7 @@ function eventHasSourceMaps(event: Event) {
  */
 function eventIsSymbolicated(event: Event) {
   const frames = getAllFrames(event, false);
-  const fromSymbolicator = frames.some(frame => defined(frame.symbolicatorStatus));
+  const fromSymbolicator = frames.some(frame => frame.symbolicatorStatus != null);
 
   if (fromSymbolicator) {
     // if the event goes through symbolicator and have in-app frames, we say it's symbolicated if
@@ -214,7 +213,7 @@ function eventIsSymbolicated(event: Event) {
 function eventHasSourceContext(event: Event) {
   const frames = getAllFrames(event, false);
 
-  return frames.some(frame => defined(frame.context) && !!frame.context.length);
+  return frames.some(frame => !!frame.context.length);
 }
 
 /**
@@ -223,7 +222,7 @@ function eventHasSourceContext(event: Event) {
 function eventHasLocalVariables(event: Event) {
   const frames = getAllFrames(event, false);
 
-  return frames.some(frame => defined(frame.vars));
+  return frames.some(frame => frame.vars != null);
 }
 
 /**
@@ -424,8 +423,8 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,
-    has_next_event: event ? defined(event.nextEventID) : false,
-    has_previous_event: event ? defined(event.previousEventID) : false,
+    has_next_event: event ? event.nextEventID != null : false,
+    has_previous_event: event ? event.previousEventID != null : false,
     is_symbolicated: event ? eventIsSymbolicated(event) : false,
     event_errors: event ? getEventErrorString(event) : '',
     frames_with_sourcemaps_percent: framesWithSourcemapsPercent,
@@ -436,7 +435,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     resolved_with: event?.resolvedWith ?? [],
     mobile: isMobilePlatform(event?.platform),
     error_has_replay: Boolean(getReplayIdFromEvent(event)),
-    error_has_user_feedback: defined(event?.userReport),
+    error_has_user_feedback: event?.userReport != null,
     has_otel: event?.contexts?.otel !== undefined,
     event_mechanism:
       event?.tags?.find(tag => tag.key === 'mechanism')?.value || undefined,

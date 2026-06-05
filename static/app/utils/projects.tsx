@@ -6,7 +6,6 @@ import uniqBy from 'lodash/uniqBy';
 import type {Client} from 'sentry/api';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarProject, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -164,7 +163,7 @@ class BaseProjects extends Component<Props, State> {
     if (slugs?.length) {
       // Extract the requested projects from the store based on props.slugs
       const projectsMap = this.getProjectsMap(projects);
-      const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(defined);
+      const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(Boolean);
       this.setState({projectsFromStore});
     }
   }
@@ -202,7 +201,7 @@ class BaseProjects extends Component<Props, State> {
     const [inStore, notInStore] = partition(slugs, slug => projectsMap.has(slug));
 
     // Get the actual summaries of projects that are in store
-    const projectsFromStore = inStore.map(slug => projectsMap.get(slug)).filter(defined);
+    const projectsFromStore = inStore.map(slug => projectsMap.get(slug)).filter(Boolean);
 
     // Add to queue
     notInStore.forEach(slug => this.fetchQueue.add(slug));
@@ -241,7 +240,7 @@ class BaseProjects extends Component<Props, State> {
     }
 
     // Get the actual summaries of projects that are in store
-    const projectsFromStore = inStore.map(id => projectsMap.get(id)).filter(defined);
+    const projectsFromStore = inStore.map(id => projectsMap.get(id)).filter(Boolean);
 
     this.setState({
       // set initiallyLoaded if any projects were fetched from store
@@ -290,7 +289,7 @@ class BaseProjects extends Component<Props, State> {
             ? {slug}
             : null
       )
-      .filter(defined);
+      .filter(Boolean);
 
     this.setState({
       fetchedProjects: projectsOrPlaceholder,

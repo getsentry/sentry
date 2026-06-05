@@ -6,7 +6,6 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {GridBody} from 'sentry/components/tables/gridEditable/styles';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {defined} from 'sentry/utils/defined';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -43,7 +42,7 @@ export function OurLogs() {
   const replayStartedAt = replay?.getReplay()?.started_at;
   const replayEndedAt = replay?.getReplay()?.finished_at;
 
-  if (!replay || !defined(replayStartedAt) || !defined(replayEndedAt) || !replayId) {
+  if (!replay || !replayStartedAt || !replayEndedAt || !replayId) {
     return (
       <BorderedSection isStatus>
         <GridBody>

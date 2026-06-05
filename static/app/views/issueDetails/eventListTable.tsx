@@ -15,7 +15,6 @@ import {
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
-import {defined} from 'sentry/utils/defined';
 import type {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -265,16 +264,16 @@ export function PaginationText({
       ? currentCursor.offset * currentCursor.value + pageCount
       : (currentCursor?.offset ?? 0) + pageCount;
 
-  return defined(totalCount)
-    ? tct('Showing [start]-[end] of [count] matching [tableUnits]', {
+  return totalCount == null
+    ? tct('Showing [start]-[end] matching [tableUnits]', {
+        start: start.toLocaleString(),
+        end: end.toLocaleString(),
+        tableUnits,
+      })
+    : tct('Showing [start]-[end] of [count] matching [tableUnits]', {
         start: start.toLocaleString(),
         end: end.toLocaleString(),
         count: totalCount.toLocaleString(),
-        tableUnits,
-      })
-    : tct('Showing [start]-[end] matching [tableUnits]', {
-        start: start.toLocaleString(),
-        end: end.toLocaleString(),
         tableUnits,
       });
 }

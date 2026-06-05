@@ -1,5 +1,3 @@
-import {defined} from 'sentry/utils/defined';
-
 export function getTransformedData(data: any, meta: Record<any, any> | undefined) {
   if (Array.isArray(data)) {
     return data
@@ -8,7 +6,7 @@ export function getTransformedData(data: any, meta: Record<any, any> | undefined
           return !!dataValue;
         }
 
-        return defined(dataValue);
+        return dataValue != null;
       })
       .map((dataValue, index) => {
         if (Array.isArray(dataValue)) {

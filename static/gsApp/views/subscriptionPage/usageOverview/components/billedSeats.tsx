@@ -14,7 +14,6 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
@@ -39,7 +38,7 @@ export function BilledSeats({
     selectedProduct
   );
   const shouldShowBilledSeats =
-    selectedProduct === AddOnCategory.SEER && defined(billedCategory) && isEnabled;
+    selectedProduct === AddOnCategory.SEER && billedCategory != null && isEnabled;
   const {
     data,
     isPending: seatsLoading,
@@ -78,9 +77,8 @@ export function BilledSeats({
           // and gifted volumes)
           (billedSeats?.length ?? 0) > 0 ||
           !!activeProductTrial ||
-          (defined(normalizedMetricHistory.prepaid) &&
-            (normalizedMetricHistory.prepaid > 0 ||
-              normalizedMetricHistory.prepaid === UNLIMITED_RESERVED))
+          normalizedMetricHistory.prepaid > 0 ||
+          normalizedMetricHistory.prepaid === UNLIMITED_RESERVED
         }
       >
         <SimpleTable.Header>

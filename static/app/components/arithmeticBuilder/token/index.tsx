@@ -1,7 +1,5 @@
 import type {Location, LocationRange} from 'peggy';
 
-import {defined} from 'sentry/utils/defined';
-
 export enum TokenKind {
   UNKNOWN = 'unknown',
   CLOSE_PARENTHESIS = 'close_paren',
@@ -82,7 +80,7 @@ export class TokenAttribute extends Token {
   type?: string;
 
   constructor(location: LocationRange, attribute: string, type?: string) {
-    const text = defined(type) ? `tags[${attribute},${type}]` : attribute;
+    const text = type == null ? attribute : `tags[${attribute},${type}]`;
     super(location, text);
     this.attribute = attribute;
     this.type = type;
@@ -152,7 +150,7 @@ export class TokenLiteral extends Token {
 
   split(): [TokenOperator, TokenLiteral] {
     const sign = this.sign;
-    if (!defined(sign)) {
+    if (!sign) {
       throw new Error('Literal does not contain a sign to be split.');
     }
 

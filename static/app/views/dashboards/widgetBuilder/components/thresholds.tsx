@@ -2,7 +2,6 @@ import {Fragment, useEffect, useRef} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {
   HighlightedText,
   Thresholds,
@@ -78,7 +77,7 @@ export function ThresholdsSection({
         onThresholdChange={(maxKey, value) => {
           let newThresholds = cloneDeep(state.thresholds);
 
-          if (!defined(newThresholds) && value) {
+          if (!newThresholds && value) {
             newThresholds = {max_values: {}, unit: null};
           }
 
@@ -94,7 +93,7 @@ export function ThresholdsSection({
           if (
             newThresholds &&
             Object.values(newThresholds.max_values).every(
-              nextMaxValue => !defined(nextMaxValue)
+              nextMaxValue => nextMaxValue == null
             )
           ) {
             const {preferredPolarity} = newThresholds;

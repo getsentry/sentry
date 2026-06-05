@@ -3,7 +3,6 @@ import moment from 'moment-timezone';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import {defined} from 'sentry/utils/defined';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType, EventView, MetaType} from 'sentry/utils/discover/eventView';
@@ -159,9 +158,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
   const organization = useOrganization();
 
   const usesRelativeDateRange =
-    !defined(eventView.start) &&
-    !defined(eventView.end) &&
-    defined(eventView.statsPeriod);
+    eventView.start == null && eventView.end == null && eventView.statsPeriod != null;
 
   const intervalInMilliseconds = eventView.interval
     ? intervalToMilliseconds(eventView.interval)
@@ -204,7 +201,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
       staleTime:
         staleTime ??
         (usesRelativeDateRange &&
-        defined(intervalInMilliseconds) &&
+        intervalInMilliseconds != null &&
         intervalInMilliseconds !== 0
           ? intervalInMilliseconds
           : Infinity),
@@ -489,7 +486,7 @@ function mergeIntervals(first: Interval[], second: Interval[]) {
 }
 
 function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
-  if (!defined(statsPeriod)) {
+  if (statsPeriod == null) {
     return Infinity;
   }
   const periodInMs = intervalToMilliseconds(statsPeriod);
@@ -515,9 +512,7 @@ function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
 
 export function getStaleTimeForEventView(eventView: EventView) {
   const usesRelativeDateRange =
-    !defined(eventView.start) &&
-    !defined(eventView.end) &&
-    defined(eventView.statsPeriod);
+    eventView.start == null && eventView.end == null && eventView.statsPeriod != null;
   if (usesRelativeDateRange) {
     return getStaleTimeForRelativePeriodTable(eventView.statsPeriod);
   }

@@ -25,7 +25,6 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
-import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {Projects} from 'sentry/utils/projects';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -185,7 +184,7 @@ export default function AlertRulesList() {
   const hasEditAccess = organization.access.includes('alerts:write');
   const hasMetricAlertsFeature = organization.features.includes('incidents');
 
-  const ruleList = ruleListResponse.filter(defined);
+  const ruleList = ruleListResponse.filter(Boolean);
   const hasAnyMetricAlerts = ruleList.some(
     rule => rule.type === CombinedAlertType.METRIC
   );

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {t} from 'sentry/locale';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
 
 import {getSortedRegisters} from './utils';
 import {FrameRegisterValue} from './value';
@@ -29,7 +28,7 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
         <RegistersTitle>{t('Registers')}</RegistersTitle>
         <Registers>
           {sortedRegisters.map(([name, value]) => {
-            if (!defined(value)) {
+            if (value == null) {
               return null;
             }
             return (

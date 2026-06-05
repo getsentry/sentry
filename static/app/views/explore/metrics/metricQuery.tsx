@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX, type Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SORTABLE_SAMPLE_COLUMNS} from 'sentry/views/explore/metrics/types';
@@ -23,7 +22,7 @@ export interface TraceMetric {
 }
 
 function isTraceMetric(value: unknown): value is TraceMetric {
-  if (value === null || !defined(value) || typeof value !== 'object') {
+  if (value === null || !value || typeof value !== 'object') {
     return false;
   }
 
@@ -179,7 +178,7 @@ function defaultAggregateEquation() {
 
 export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
   const visualize = aggregateFields.find(isVisualize);
-  if (!defined(visualize)) {
+  if (!visualize) {
     return [];
   }
   return [{field: visualize.yAxis, kind: 'desc'}];

@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
@@ -25,9 +24,7 @@ export function useStarredIssueViews() {
       // XXX (malwilley): Issue views without the nav require at least one issue view,
       // so they respond with "fake" issue views that do not have an ID.
       // We should remove this from the backend and here once we remove the tab-based views.
-      ?.filter(
-        (view): view is StarredGroupSearchView => defined(view) && defined(view.id)
-      )
+      ?.filter((view): view is StarredGroupSearchView => view?.id != null)
       .map(convertGSVtoIssueView) ?? [];
 
   const setStarredIssueViews = useCallback(

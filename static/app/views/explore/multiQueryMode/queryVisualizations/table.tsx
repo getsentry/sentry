@@ -16,7 +16,6 @@ import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import {
   fieldAlignment,
   parseFunction,
@@ -147,7 +146,7 @@ function AggregatesTable({
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
-                    {defined(direction) && (
+                    {direction && (
                       <IconArrow
                         size="xs"
                         direction={
@@ -266,7 +265,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
-                    {defined(direction) && (
+                    {direction && (
                       <IconArrow
                         size="xs"
                         direction={

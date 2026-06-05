@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
@@ -116,7 +115,7 @@ function getUpdatedValue<T>(
   newValue: T | null | undefined,
   defaultValue: T
 ): T | undefined {
-  if (defined(newValue)) {
+  if (newValue) {
     return newValue;
   }
 

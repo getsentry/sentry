@@ -20,7 +20,6 @@ import {isArrayOf, isString} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -68,7 +67,7 @@ export function isRootCauseArtifact(
   return (
     isString(data.one_line_description) &&
     isArrayOf(data.five_whys, isString) &&
-    (!defined(data.reproduction_steps) || isArrayOf(data.reproduction_steps, isString))
+    (data.reproduction_steps == null || isArrayOf(data.reproduction_steps, isString))
   );
 }
 
@@ -299,7 +298,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     // A step marker means this block starts a new section.
     // Finalize the previous section and start a fresh one.
     const metadata = message.metadata;
-    if (defined(metadata) && defined(metadata.step)) {
+    if (metadata?.step != null) {
       if (metadata.step !== section.step) {
         // since there's a new section coming up, this section must be compelete
         finalizeSection({forceCompletion: true});
@@ -502,11 +501,11 @@ export function useExplorerAutofix(
       try {
         const data: Record<string, any> = {step, referrer: 'api.web'};
 
-        if (defined(startStepOptions?.insertIndex)) {
+        if (startStepOptions?.insertIndex != null) {
           data.insert_index = startStepOptions.insertIndex;
         }
 
-        if (defined(startStepOptions?.runId)) {
+        if (startStepOptions?.runId != null) {
           data.run_id = startStepOptions.runId;
         }
 

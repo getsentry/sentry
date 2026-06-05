@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
@@ -58,7 +57,7 @@ export function useSaveMetricsMultiQuery() {
 
           const visualize = visualizes[0];
 
-          if (!defined(visualize) || !visualize) {
+          if (!visualize || !visualize) {
             Sentry.captureException(new Error('No visualize found for metric query'));
             return null;
           }
@@ -84,7 +83,7 @@ export function useSaveMetricsMultiQuery() {
             mode: metricQuery.queryParams.mode,
           };
         })
-        .filter(defined),
+        .filter(Boolean),
     };
   }, [title, start, end, period, interval, projects, environments, metricQueries]);
 

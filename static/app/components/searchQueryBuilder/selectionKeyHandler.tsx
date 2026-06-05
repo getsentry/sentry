@@ -9,7 +9,6 @@ import {
 import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
 import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
 type SelectionKeyHandlerProps = {
@@ -41,7 +40,7 @@ export function SelectionKeyHandler({
   const selectedTokens = [...state.collection.getKeys()]
     .filter(key => state.selectionManager.selectedKeys.has(key))
     .map(key => state.collection.getItem(key)?.value)
-    .filter(defined);
+    .filter(Boolean);
 
   const onPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();

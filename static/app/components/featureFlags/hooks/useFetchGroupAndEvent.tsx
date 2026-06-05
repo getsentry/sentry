@@ -1,6 +1,5 @@
 import type {Event} from 'sentry/types/event';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -55,7 +54,7 @@ export function useFetchGroupAndEvent({
   return {
     event,
     group,
-    eventFlags: event?.contexts?.flags?.values?.map(f => f?.flag).filter(defined),
+    eventFlags: event?.contexts?.flags?.values?.map(f => f?.flag).filter(x => x != null),
 
     isPending: isGroupPending || isEventPending,
     isGroupPending,

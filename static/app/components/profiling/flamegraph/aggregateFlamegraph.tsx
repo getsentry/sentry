@@ -14,7 +14,6 @@ import type {
   AggregateProfileSource,
   ProfileSource,
 } from 'sentry/utils/analytics/profilingAnalyticsEvents';
-import {defined} from 'sentry/utils/defined';
 import type {
   CanvasPoolManager,
   CanvasScheduler,
@@ -197,7 +196,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
   }, [colorCoding, flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   useEffect(() => {
-    if (defined(profiles.threadId)) {
+    if (profiles.threadId != null) {
       return;
     }
     const threadID =
@@ -206,7 +205,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
         : null;
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
-    if (defined(threadID)) {
+    if (threadID != null) {
       dispatch({
         type: 'set thread id',
         payload: threadID,

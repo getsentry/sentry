@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils/defined';
 import {
   generateFieldAsString,
   getEquation,
@@ -48,9 +47,9 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const datasetConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
   const defaultQuery = datasetConfig.defaultWidgetQuery;
 
-  const queries = defined(state.query) && state.query.length > 0 ? state.query : [''];
+  const queries = state.query && state.query.length > 0 ? state.query : [''];
   const legendAlias =
-    defined(state.legendAlias) && state.legendAlias.length > 0 ? state.legendAlias : [];
+    state.legendAlias && state.legendAlias.length > 0 ? state.legendAlias : [];
 
   const fieldAliases = state.fields?.map(field => field.alias ?? '');
   let aggregates: string[];
@@ -113,7 +112,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     }
   }
   const sort =
-    defined(state.sort) && state.sort.length > 0
+    state.sort && state.sort.length > 0
       ? serializeSorts(state.dataset)(state.sort)[0]!
       : defaultSort;
 

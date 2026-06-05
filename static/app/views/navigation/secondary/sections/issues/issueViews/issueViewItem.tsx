@@ -6,7 +6,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -33,7 +32,7 @@ export function IssueViewItem({view, isActive}: IssueViewItemProps) {
   const projectPlatforms = projects
     .filter(p => view.projects.map(String).includes(p.id))
     .map(p => p.platform)
-    .filter(defined);
+    .filter(Boolean);
 
   return (
     <SecondaryNavigation.ReorderableLink

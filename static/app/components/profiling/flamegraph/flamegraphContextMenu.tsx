@@ -25,7 +25,6 @@ import type {
   AggregateProfileSource,
   ProfileSource,
 } from 'sentry/utils/analytics/profilingAnalyticsEvents';
-import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import type {
   FlamegraphColorCodings,
@@ -120,9 +119,9 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
 
     // make a best effort to link to the exact line if we can
     const url =
-      defined(props.hoveredNode) && defined(props.hoveredNode.frame.line)
-        ? `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
-        : sourceCodeLink.data.sourceUrl;
+      props.hoveredNode?.frame.line == null
+        ? sourceCodeLink.data.sourceUrl
+        : `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`;
 
     window.open(url, '_blank', 'noopener,noreferrer');
   }, [props.hoveredNode, sourceCodeLink]);
@@ -398,9 +397,9 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
 
     // make a best effort to link to the exact line if we can
     const url =
-      defined(props.hoveredNode) && defined(props.hoveredNode.frame.line)
-        ? `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
-        : sourceCodeLink.data.sourceUrl;
+      props.hoveredNode?.frame.line == null
+        ? sourceCodeLink.data.sourceUrl
+        : `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`;
 
     window.open(url, '_blank', 'noopener,noreferrer');
   }, [organization, props.profileType, props.hoveredNode, sourceCodeLink]);

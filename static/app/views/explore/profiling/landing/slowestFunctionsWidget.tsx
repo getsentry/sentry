@@ -33,7 +33,6 @@ import {t, tct} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getShortEventId} from 'sentry/utils/events';
 import {Frame} from 'sentry/utils/profiling/frame';
@@ -359,7 +358,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
       s => s.axis === 'all_examples()' && s.label === String(func.fingerprint)
     );
 
-    if (!defined(rawExamples?.values)) {
+    if (!rawExamples?.values) {
       return [];
     }
 
@@ -489,7 +488,7 @@ function FunctionChart<F extends BreakdownFunction>({
       s => s.axis === breakdownFunction && s.label === String(func.fingerprint)
     );
 
-    if (!defined(rawData?.values)) {
+    if (!rawData?.values) {
       return [];
     }
 

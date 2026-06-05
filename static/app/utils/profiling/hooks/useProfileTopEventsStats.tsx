@@ -6,7 +6,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventsStatsSeries} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {transformSingleSeries} from 'sentry/utils/profiling/hooks/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -110,7 +109,7 @@ function transformTopEventsStatsResponse<F extends string>(
       if (yAxes.length > 1) {
         dataForYAxis = dataForYAxis[yAxis];
       }
-      if (!defined(dataForYAxis)) {
+      if (dataForYAxis == null) {
         continue;
       }
 

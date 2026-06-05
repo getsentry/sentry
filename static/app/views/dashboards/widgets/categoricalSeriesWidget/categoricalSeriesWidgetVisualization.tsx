@@ -19,7 +19,6 @@ import type {
   ReactEchartsRef,
 } from 'sentry/types/echarts';
 import {uniq} from 'sentry/utils/array/uniq';
-import {defined} from 'sentry/utils/defined';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {trimCommonAffixes} from 'sentry/utils/string/trimCommonAffixes';
@@ -282,7 +281,7 @@ export function CategoricalSeriesWidgetVisualization(
             if (Array.isArray(param.value)) {
               const [_categoryName, value] = param.value;
 
-              if (defined(value) && typeof value === 'number') {
+              if (value != null && typeof value === 'number') {
                 formattedValue = formatTooltipValue(
                   value,
                   dataType,
@@ -325,11 +324,7 @@ export function CategoricalSeriesWidgetVisualization(
     const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
     const affectedPlottable = affectedRange?.value;
 
-    if (
-      !defined(affectedRange) ||
-      !defined(affectedPlottable) ||
-      !defined(affectedPlottable[handlerName])
-    ) {
+    if (!affectedRange || !affectedPlottable?.[handlerName]) {
       return;
     }
 
@@ -348,7 +343,7 @@ export function CategoricalSeriesWidgetVisualization(
 
   const handleDownplay: EChartDownplayHandler = event => {
     for (const batch of event.batch ?? []) {
-      if (defined(batch.dataIndex) && defined(batch.seriesIndex)) {
+      if (batch.dataIndex != null && batch.seriesIndex != null) {
         runHandler(batch, 'onDownplay');
       }
     }

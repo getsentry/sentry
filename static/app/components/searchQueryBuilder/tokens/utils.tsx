@@ -13,7 +13,6 @@ import {
   WildcardOperators,
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils/defined';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 export function shiftFocusToChild(
@@ -80,7 +79,7 @@ export function getDefaultFilterValue({
     return '""';
   }
 
-  if (defined(fieldDefinition.defaultValue)) {
+  if (fieldDefinition.defaultValue != null) {
     return fieldDefinition.defaultValue;
   }
 
@@ -91,7 +90,7 @@ function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition |
   if (fieldDefinition?.kind === FieldKind.FUNCTION) {
     if (fieldDefinition.parameters) {
       const parametersText = fieldDefinition.parameters
-        .filter(param => defined(param.defaultValue))
+        .filter(param => param.defaultValue != null)
         .map(param => param.defaultValue)
         .join(',');
 

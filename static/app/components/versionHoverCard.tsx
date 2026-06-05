@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {defined} from 'sentry/utils/defined';
 import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
 import {uniqueId} from 'sentry/utils/guid';
 import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
@@ -89,7 +88,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
   );
 
   function getBody() {
-    if (release === undefined || !defined(deploys)) {
+    if (release === undefined || !deploys) {
       return null;
     }
 

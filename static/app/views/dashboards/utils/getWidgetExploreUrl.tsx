@@ -2,7 +2,6 @@ import trimStart from 'lodash/trimStart';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import {
   getAggregateAlias,
   getEquationAliasIndex,
@@ -227,7 +226,7 @@ function _getWidgetExploreUrl(
 
   const chartType = getChartType(widget.displayType);
   let exploreMode = preferMode;
-  if (!defined(exploreMode)) {
+  if (exploreMode == null) {
     switch (widget.displayType) {
       case DisplayType.BAR:
         exploreMode = Mode.AGGREGATE;
@@ -261,7 +260,7 @@ function _getWidgetExploreUrl(
   const query = widget.queries[0]!;
 
   let groupBy: string[] =
-    defined(query.fields) && widget.displayType === DisplayType.TABLE
+    query.fields && widget.displayType === DisplayType.TABLE
       ? query.fields.filter(
           field =>
             !isAggregateFieldOrEquation(field) &&
@@ -440,7 +439,7 @@ export function getWidgetTableRowExploreUrlFunction(
     const query = new MutableSearch(widget.queries[selectedQueryIndex]?.conditions ?? '');
     fields.map(field => {
       const value = dataRow[field];
-      if (!defined(value)) {
+      if (value == null) {
         return query.addFilterValue('!has', field);
       }
       if (Array.isArray(value)) {

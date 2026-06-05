@@ -15,7 +15,6 @@ import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {defined} from 'sentry/utils/defined';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -194,7 +193,9 @@ function getSelectedProjectIds({
   }
 
   const groups = selectedGroupIds.map(id => GroupStore.get(id));
-  const projectIds = new Set(groups.map(group => group?.project?.id).filter(defined));
+  const projectIds = new Set(
+    groups.map(group => group?.project?.id).filter(x => x != null)
+  );
 
   if (projectIds.size === 1) {
     return [...projectIds];

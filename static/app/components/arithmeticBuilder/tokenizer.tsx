@@ -19,7 +19,6 @@ import {
   type Token,
   type TokenParenthesis,
 } from 'sentry/components/arithmeticBuilder/token';
-import {defined} from 'sentry/utils/defined';
 
 import {parse} from './grammar.pegjs';
 
@@ -68,7 +67,7 @@ export function tokenizeExpression(
       prev.merge(token);
     } else if (
       isTokenLiteral(token) &&
-      defined(token.sign) &&
+      token.sign &&
       (isTokenLiteral(prev) || isTokenFunction(prev) || isTokenReference(prev))
     ) {
       // Because we're tokenizing expressions, we have to permit some intermedate
@@ -170,10 +169,10 @@ export function nextTokenKeyOfKind(
     }
   }
 
-  return defined(key)
-    ? nextSimilarTokenKey(key, offset)
+  return key == null
+    ? makeTokenKey(kind)
     : // unable to find any tokens of the given kind, so assume this will be the first one
-      makeTokenKey(kind);
+      nextSimilarTokenKey(key, offset);
 }
 
 class ArithmeticError extends Error {

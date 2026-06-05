@@ -6,7 +6,6 @@ import {
   getDeepestNodeAtPoint,
   getHierarchyDimensions,
 } from 'sentry/components/events/viewHierarchy/utils';
-import {defined} from 'sentry/utils/defined';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 const LEAF_NODE = {
@@ -142,7 +141,7 @@ describe('View Hierarchy Utils', () => {
         1
       );
 
-      if (!defined(actual)) {
+      if (!actual) {
         throw new Error('Expected a node to be returned');
       }
 
@@ -158,7 +157,7 @@ describe('View Hierarchy Utils', () => {
         0.5
       );
 
-      if (!defined(actual)) {
+      if (!actual) {
         throw new Error('Expected a node to be returned');
       }
 
@@ -174,7 +173,7 @@ describe('View Hierarchy Utils', () => {
         1
       );
 
-      if (!defined(actual)) {
+      if (!actual) {
         throw new Error('Expected a node to be returned');
       }
 
@@ -190,7 +189,7 @@ describe('View Hierarchy Utils', () => {
         1
       );
 
-      if (!defined(actual)) {
+      if (!actual) {
         throw new Error('Expected a node to be returned');
       }
 

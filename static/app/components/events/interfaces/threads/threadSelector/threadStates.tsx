@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 
 export enum ThreadStates {
   RUNNABLE = 'Runnable',
@@ -77,7 +76,7 @@ export function getThreadStateHelpText(state: keyof typeof THREAD_STATE_TERMS): 
 export function getMappedThreadState(
   state: string | undefined | null
 ): ThreadStates | undefined {
-  if (defined(state)) {
+  if (state != null) {
     return javaThreadStatesMap[state];
   }
   return undefined;

@@ -1,6 +1,5 @@
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {defined} from 'sentry/utils/defined';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 
 export function useDashboardWidgetSource(): DashboardWidgetSource | '' {
@@ -10,7 +9,7 @@ export function useDashboardWidgetSource(): DashboardWidgetSource | '' {
     DashboardWidgetSource
   ) satisfies DashboardWidgetSource[];
 
-  return defined(source) && validSources.includes(source as DashboardWidgetSource)
+  return source != null && validSources.includes(source as DashboardWidgetSource)
     ? (source as DashboardWidgetSource)
     : DashboardWidgetSource.DASHBOARDS;
 }

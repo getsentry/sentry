@@ -15,7 +15,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -166,7 +165,7 @@ export function ProjectAnrScoreCard({
 
   const Title = <Widget.WidgetTitle title={cardTitle} />;
 
-  if (!defined(value)) {
+  if (value == null) {
     return (
       <Widget
         Title={Title}

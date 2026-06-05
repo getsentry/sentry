@@ -15,7 +15,6 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
-import {defined} from 'sentry/utils/defined';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -162,7 +161,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
-                    {defined(direction) && (
+                    {direction && (
                       <IconArrow
                         size="xs"
                         direction={

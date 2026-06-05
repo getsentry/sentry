@@ -1,6 +1,5 @@
 import type {Theme} from '@emotion/react';
 
-import {defined} from 'sentry/utils/defined';
 import {type Widget} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
@@ -38,7 +37,7 @@ export const makeDashboardsWidgetCharts = (
       const {thresholds} = data.widget;
       if (
         thresholds &&
-        (defined(thresholds.max_values.max1) || defined(thresholds.max_values.max2))
+        (thresholds.max_values.max1 != null || thresholds.max_values.max2 != null)
       ) {
         extraPlottables.push(
           new Thresholds({

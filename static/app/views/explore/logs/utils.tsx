@@ -10,7 +10,6 @@ import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   CurrencyUnit,
@@ -214,7 +213,7 @@ export function getLogRowItem(
   dataRow: OurLogsResponseItem,
   meta: EventsMetaType | undefined
 ): LogRowItem {
-  if (!defined(dataRow[field])) {
+  if (dataRow[field] == null) {
     warn(fmt`Field ${field} in not defined in dataRow ${dataRow}`);
   }
 
@@ -425,22 +424,19 @@ export function getLogsUrlFromSavedQueryUrl({
   savedQuery: SavedQuery;
 }) {
   const firstQuery = savedQuery.query[0];
-  const visualize = firstQuery.visualize?.[0]?.yAxes?.[0];
-  const aggregateFn = visualize ? visualize.split('(')[0] : undefined;
-  const aggregateParam = visualize ? visualize.split('(')[1]?.split(')')[0] : undefined;
 
   return getLogsUrl({
     organization,
     field: firstQuery.fields,
-    groupBy: defined(firstQuery.aggregateField) ? undefined : firstQuery.groupby,
+    groupBy: undefined,
     sortBy: firstQuery.orderby,
     title: savedQuery.name,
     id: savedQuery.id,
     interval: savedQuery.interval,
     mode: firstQuery.mode,
     query: firstQuery.query,
-    aggregateFn: defined(firstQuery.aggregateField) ? undefined : aggregateFn,
-    aggregateParam: defined(firstQuery.aggregateField) ? undefined : aggregateParam,
+    aggregateFn: undefined,
+    aggregateParam: undefined,
     aggregateFields: firstQuery.aggregateField,
     selection: {
       datetime: {

@@ -17,7 +17,6 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
@@ -93,7 +92,7 @@ function DashboardGrid({
 
     const disableDuplicate = hasReachedDashboardLimit || isLoadingDashboardsLimit;
 
-    const disableDelete = defined(dashboard.prebuiltId);
+    const disableDelete = dashboard.prebuiltId != null;
 
     const menuItems: MenuItemProps[] = [
       {

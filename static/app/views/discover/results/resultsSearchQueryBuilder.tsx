@@ -29,7 +29,6 @@ import type {
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {defined} from 'sentry/utils/defined';
 import type {Field} from 'sentry/utils/discover/fields';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
@@ -405,7 +404,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
 
       try {
         const results = await fetchPromise;
-        return results.filter(({name}) => defined(name)).map(({name}) => name);
+        return results.filter(({name}) => name != null).map(({name}) => name);
       } catch (error) {
         throw new Error('Unable to fetch event field values');
       }

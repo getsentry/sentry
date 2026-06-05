@@ -143,7 +143,7 @@ describe('Discover -> ColumnEditModal', () => {
         initialData
       );
       // Should have fields equal to the columns.
-      expect((await findAllQueryFieldNthCell(0)).map(el => el!.textContent)).toEqual([
+      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
         'event.type',
         'browser.name',
         'count()',
@@ -181,12 +181,12 @@ describe('Discover -> ColumnEditModal', () => {
         initialData
       );
 
-      expect((await findAllQueryFieldNthCell(0)).map(el => el!.textContent)).toEqual([
+      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
         'count_unique(…)',
         'user-def',
       ]);
 
-      expect(getAllQueryFieldsNthCell(1).map(el => el!.textContent)).toEqual([
+      expect(getAllQueryFieldsNthCell(1).map(el => el.textContent)).toEqual([
         'user-defined',
       ]);
     });
@@ -214,7 +214,7 @@ describe('Discover -> ColumnEditModal', () => {
         initialData
       );
 
-      expect((await findAllQueryFieldNthCell(0)).map(el => el!.textContent)).toEqual([
+      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
         'project',
         'count',
       ]);
@@ -233,7 +233,7 @@ describe('Discover -> ColumnEditModal', () => {
         initialData
       );
 
-      expect((await findAllQueryFieldNthCell(0)).map(el => el!.textContent)).toEqual([
+      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
         'project',
         'count',
       ]);

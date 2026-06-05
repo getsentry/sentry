@@ -7,7 +7,6 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -114,7 +113,7 @@ function addToAttributeTree(
   originalAttribute: Attribute
 ): AttributesTree {
   const BRANCH_MATCHES_REGEX = /\./g;
-  if (!defined(attribute.attribute_key)) {
+  if (attribute.attribute_key == null) {
     return tree;
   }
 
@@ -232,7 +231,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
     // Convert attributes record to the format expected by addToAttributeTree
     const visibleAttributes = attributes
       .map(key => getAttribute(key, getAdjustedAttributeKey))
-      .filter(defined);
+      .filter(Boolean);
 
     // Create the AttributeTree data structure using all the given attributes
     const attributesTree = visibleAttributes.reduce<AttributesTree>(
@@ -456,7 +455,7 @@ function getAttribute(
   const attributeValue =
     attribute.type === 'bool' ? String(attribute.value) : attribute.value;
 
-  if (!defined(attributeValue)) {
+  if (attributeValue == null) {
     return undefined;
   }
 

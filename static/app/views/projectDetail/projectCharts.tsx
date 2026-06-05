@@ -29,7 +29,6 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -335,7 +334,9 @@ class ProjectCharts extends Component<Props, State> {
     return (
       <Panel>
         <ChartContainer>
-          {defined(hasSessions) ? (
+          {hasSessions == null ? (
+            <LoadingPanel />
+          ) : (
             <Fragment>
               {displayMode === DisplayModes.APDEX && (
                 <ProjectBaseEventsChart
@@ -512,13 +513,13 @@ class ProjectCharts extends Component<Props, State> {
                 />
               )}
             </Fragment>
-          ) : (
-            <LoadingPanel />
           )}
         </ChartContainer>
         <ChartControls>
           {/* if hasSessions is not yet defined, it means that request is still in progress and we can't decide what default chart to show */}
-          {defined(hasSessions) ? (
+          {hasSessions == null ? (
+            <Placeholder height="34px" />
+          ) : (
             <Fragment>
               <InlineContainer>
                 <SectionHeading>{this.summaryHeading}</SectionHeading>
@@ -537,8 +538,6 @@ class ProjectCharts extends Component<Props, State> {
                 />
               </InlineContainer>
             </Fragment>
-          ) : (
-            <Placeholder height="34px" />
           )}
         </ChartControls>
       </Panel>

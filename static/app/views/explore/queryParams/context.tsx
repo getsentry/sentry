@@ -9,7 +9,6 @@ import {
 } from 'react';
 import {parseAsString, useQueryStates} from 'nuqs';
 
-import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
@@ -112,11 +111,11 @@ export function useSetQueryParams() {
         writableQueryParams
       );
 
-      if (defined(updatedManagedFields)) {
+      if (updatedManagedFields) {
         setManagedFields(updatedManagedFields);
       }
 
-      if (defined(updatedFields)) {
+      if (updatedFields) {
         writableQueryParams.fields = updatedFields;
       }
 
@@ -134,11 +133,11 @@ export function useSetQueryParams() {
 
 function shouldResetCursors(queryParams: WritableQueryParams): boolean {
   return (
-    defined(queryParams.aggregateFields) ||
-    defined(queryParams.aggregateSortBys) ||
-    defined(queryParams.fields) ||
-    defined(queryParams.query) ||
-    defined(queryParams.sortBys)
+    queryParams.aggregateFields != null ||
+    queryParams.aggregateSortBys != null ||
+    queryParams.fields != null ||
+    queryParams.query != null ||
+    queryParams.sortBys != null
   );
 }
 

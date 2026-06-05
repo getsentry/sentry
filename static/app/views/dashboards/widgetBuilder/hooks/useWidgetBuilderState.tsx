@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import partition from 'lodash/partition';
 
-import {defined} from 'sentry/utils/defined';
 import {
   explodeField,
   generateFieldAsString,
@@ -398,9 +397,9 @@ export function useWidgetBuilderState(): {
       // if it hasn't been explicitly set.
       // For categorical bar, only count aggregate fields (FUNCTION/EQUATION), not the X-axis FIELD column
       selectedAggregate:
-        displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
+        displayType === DisplayType.BIG_NUMBER && fields && fields.length > 1
           ? (selectedAggregate ?? fields.length - 1)
-          : displayType === DisplayType.CATEGORICAL_BAR && defined(fields)
+          : displayType === DisplayType.CATEGORICAL_BAR && fields
             ? (() => {
                 const aggregateCount = fields.filter(
                   f =>
@@ -856,7 +855,7 @@ export function useWidgetBuilderState(): {
             }
           }
 
-          if (action.payload.length > 0 && (yAxis?.length ?? 0) > 0 && !defined(limit)) {
+          if (action.payload.length > 0 && (yAxis?.length ?? 0) > 0 && limit == null) {
             setLimit(
               Math.min(
                 DEFAULT_RESULTS_LIMIT,
@@ -1302,7 +1301,7 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
       }
       return;
     })
-    .filter(defined);
+    .filter(Boolean);
 }
 
 export function serializeSorts(dataset?: WidgetType) {

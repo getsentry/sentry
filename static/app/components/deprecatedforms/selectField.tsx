@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Select} from '@sentry/scraps/select';
 
 import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
-import {defined} from 'sentry/utils/defined';
 
 import {StyledForm} from './form';
 import {FormField, type FormFieldProps} from './formField';
@@ -43,7 +42,7 @@ export class SelectField extends FormField<SelectFieldProps> {
     if (newError !== this.state.error) {
       this.setState({error: newError});
     }
-    if (this.props.value !== nextProps.value || defined(nextProps.formContext.form)) {
+    if (this.props.value !== nextProps.value || nextProps.formContext.form) {
       const newValue = this.getValue(nextProps);
       // This is the only thing that is different from parent, we compare newValue against coerced value in state
       // To remain compatible with react-select, we need to store the option object that
@@ -70,13 +69,13 @@ export class SelectField extends FormField<SelectFieldProps> {
     // Don't use `isMultiple` here because we're taking props from args as well
     const defaultValue = this.isMultiple(props) ? [] : '';
 
-    if (defined(props.value)) {
+    if (props.value != null) {
       return props.value;
     }
     if (form && Object.hasOwn(form.data, props.name)) {
-      return defined(form.data[props.name]) ? form.data[props.name] : defaultValue;
+      return form.data[props.name] == null ? defaultValue : form.data[props.name];
     }
-    return defined(props.defaultValue) ? props.defaultValue : defaultValue;
+    return props.defaultValue == null ? defaultValue : props.defaultValue;
   }
 
   // We need this to get react-select's `Creatable` to work properly

@@ -7,7 +7,6 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
@@ -90,9 +89,7 @@ export const useSortedTimeSeries = <
   }
 
   const usesRelativeDateRange =
-    !defined(eventView.start) &&
-    !defined(eventView.end) &&
-    defined(eventView.statsPeriod);
+    eventView.start == null && eventView.end == null && eventView.statsPeriod != null;
 
   const intervalInMilliseconds = eventView.interval
     ? intervalToMilliseconds(eventView.interval)
@@ -122,7 +119,7 @@ export const useSortedTimeSeries = <
         enabled: enabled && pageFilters.isReady,
         staleTime:
           usesRelativeDateRange &&
-          defined(intervalInMilliseconds) &&
+          intervalInMilliseconds != null &&
           intervalInMilliseconds !== 0
             ? intervalInMilliseconds
             : Infinity,
@@ -247,17 +244,17 @@ export function convertEventsStatsToTimeSeriesData(
 
       if (seriesData.meta?.accuracy) {
         const confidenceItem = seriesData.meta.accuracy.confidence?.[index];
-        if (defined(confidenceItem) && Object.hasOwn(confidenceItem, 'value')) {
+        if (confidenceItem && Object.hasOwn(confidenceItem, 'value')) {
           item.confidence = confidenceItem.value;
         }
 
         const sampleCountItem = seriesData.meta.accuracy.sampleCount?.[index];
-        if (defined(sampleCountItem) && Object.hasOwn(sampleCountItem, 'value')) {
+        if (sampleCountItem && Object.hasOwn(sampleCountItem, 'value')) {
           item.sampleCount = sampleCountItem.value;
         }
 
         const sampleRateItem = seriesData.meta.accuracy.samplingRate?.[index];
-        if (defined(sampleRateItem) && Object.hasOwn(sampleRateItem, 'value')) {
+        if (sampleRateItem && Object.hasOwn(sampleRateItem, 'value')) {
           item.sampleRate = sampleRateItem.value;
         }
       }
@@ -279,7 +276,7 @@ export function convertEventsStatsToTimeSeriesData(
 
   const delayedTimeSeries = markDelayedData(timeSeries, 90);
 
-  if (defined(order)) {
+  if (order != null) {
     delayedTimeSeries.meta.order = order;
   }
 

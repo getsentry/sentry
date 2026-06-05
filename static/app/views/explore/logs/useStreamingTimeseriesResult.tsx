@@ -4,7 +4,6 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import type {
@@ -207,7 +206,7 @@ function createBufferFromTableData(
     !timeseriesStartTimestamp ||
     !timeseriesLastTimestamp ||
     !timeseriesIntervalDuration ||
-    !defined(timeseriesLastBucketIndex) ||
+    timeseriesLastBucketIndex == null ||
     !timeseriesValues ||
     !autoRefresh ||
     !aggregateKey

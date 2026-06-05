@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils/defined';
 import {decodeList} from 'sentry/utils/queryString';
 
 export interface GroupBy {
@@ -25,5 +24,5 @@ export function getGroupBysFromLocation(
 }
 
 export function isGroupBy(value: any): value is GroupBy {
-  return defined(value) && typeof value === 'object' && typeof value.groupBy === 'string';
+  return value != null && typeof value === 'object' && typeof value.groupBy === 'string';
 }

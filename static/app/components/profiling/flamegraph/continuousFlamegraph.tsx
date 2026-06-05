@@ -22,7 +22,6 @@ import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/f
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -248,7 +247,8 @@ export function ContinuousFlamegraph(): ReactElement {
 
   const profileTimestamp = useMemo(() => {
     return (
-      Math.min(...profileGroup.profiles.map(p => p.timestamp).filter(defined)) * 1000
+      Math.min(...profileGroup.profiles.map(p => p.timestamp).filter(x => x != null)) *
+      1000
     );
   }, [profileGroup]);
 
@@ -638,7 +638,7 @@ export function ContinuousFlamegraph(): ReactElement {
         }
       }
 
-      if (defined(highlightFrames)) {
+      if (highlightFrames) {
         let frames = flamegraph.findAllMatchingFrames(
           highlightFrames.name,
           highlightFrames.package
@@ -674,7 +674,7 @@ export function ContinuousFlamegraph(): ReactElement {
       // to have some heuristic when the data is fetched to determine if we should
       // initialize the config view to the full view or a predefined value
       else if (
-        !defined(highlightFrames) &&
+        highlightFrames == null &&
         position.view &&
         !position.view.isEmpty() &&
         previousView?.model === LOADING_OR_FALLBACK_FLAMEGRAPH
@@ -1351,7 +1351,7 @@ export function ContinuousFlamegraph(): ReactElement {
   );
 
   useEffect(() => {
-    if (defined(flamegraphProfiles.threadId)) {
+    if (flamegraphProfiles.threadId != null) {
       return;
     }
     const threadID =
@@ -1378,7 +1378,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
           const frame = findLongestMatchingFrame(graph, highlightFrames);
 
-          if (!defined(frame)) {
+          if (!frame) {
             return prevCandidate;
           }
 
@@ -1404,7 +1404,7 @@ export function ContinuousFlamegraph(): ReactElement {
         null
       );
 
-      if (defined(candidate)) {
+      if (candidate) {
         dispatch({
           type: 'set thread id',
           payload: candidate.threadId,
@@ -1415,7 +1415,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
-    if (defined(threadID)) {
+    if (threadID != null) {
       dispatch({
         type: 'set thread id',
         payload: threadID,

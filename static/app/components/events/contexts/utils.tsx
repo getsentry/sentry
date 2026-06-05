@@ -47,7 +47,6 @@ import type {Event} from 'sentry/types/event';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 
 /**
  * Generates the class name used for contexts
@@ -56,7 +55,7 @@ export function generateIconName(
   name?: string | boolean | null,
   version?: string
 ): string {
-  if (!defined(name) || typeof name === 'boolean') {
+  if (name == null || typeof name === 'boolean') {
     return '';
   }
 
@@ -109,7 +108,7 @@ export function getRelativeTimeFromEventDateCreated(
   timestamp?: string,
   showTimestamp = true
 ) {
-  if (!defined(timestamp)) {
+  if (timestamp == null) {
     return timestamp;
   }
 
@@ -180,7 +179,7 @@ export function getKnownData<Data, DataType>({
         value: knownDataDetails.value,
       };
     })
-    .filter(defined);
+    .filter(Boolean);
 }
 
 export function getKnownStructuredData(
@@ -201,7 +200,7 @@ export function getKnownStructuredData(
  * - 'alias' refers to the key on event.contexts. This can be set by the user, but we have to depend on it for some contexts.
  */
 export function getContextType({alias, type}: {alias: string; type?: string}): string {
-  if (!defined(type)) {
+  if (type == null) {
     return alias;
   }
   return type === 'default' ? alias : type;
@@ -233,7 +232,7 @@ export function getContextTitle({
   type: string;
   value?: Record<string, any>;
 }) {
-  if (defined(value.title) && typeof value.title !== 'object') {
+  if (value.title != null && typeof value.title !== 'object') {
     return value.title;
   }
 
@@ -521,10 +520,10 @@ export function getContextSummary({
           {deviceName => <span>{deviceName ? deviceName : data?.name}</span>}
         </DeviceName>
       );
-      if (defined(data?.arch)) {
+      if (data?.arch != null) {
         subtitle = data?.arch;
         subtitleType = t('Architecture');
-      } else if (defined(data?.model)) {
+      } else if (data?.model != null) {
         subtitle = data?.model;
         subtitleType = t('Model');
       }
@@ -532,7 +531,7 @@ export function getContextSummary({
 
     case 'gpu':
       title = data?.name ?? null;
-      if (defined(data?.vendor_name)) {
+      if (data?.vendor_name != null) {
         subtitle = data?.vendor_name;
         subtitleType = t('Vendor');
       }
@@ -544,25 +543,25 @@ export function getContextSummary({
       if (typeof data?.version === 'string') {
         subtitle = shortOperatingSystemVersion(data?.version);
         subtitleType = t('Version');
-      } else if (defined(data?.kernel_version)) {
+      } else if (data?.kernel_version != null) {
         subtitle = data?.kernel_version;
         subtitleType = t('Kernel');
       }
       break;
 
     case 'user':
-      if (defined(data?.email)) {
+      if (data?.email != null) {
         title = data?.email;
       }
-      if (defined(data?.ip_address) && !title) {
+      if (data?.ip_address != null && !title) {
         title = data?.ip_address;
       }
-      if (defined(data?.id)) {
+      if (data?.id != null) {
         title = title ? title : data?.id;
         subtitle = data?.id;
         subtitleType = t('ID');
       }
-      if (defined(data?.username)) {
+      if (data?.username != null) {
         title = title ? title : data?.username;
         subtitle = data?.username;
         subtitleType = t('Username');
@@ -583,7 +582,7 @@ export function getContextSummary({
       break;
     case 'browser':
       title = data?.name ?? null;
-      if (defined(data?.version)) {
+      if (data?.version != null) {
         subtitle = data?.version;
         subtitleType = t('Version');
       }

@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DERIVED_STATUS_METRICS_PATTERN} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {
@@ -75,7 +74,7 @@ export function transformSessionsResponseToSeries(
     // if session.status is a groupby, some post processing
     // is needed to calculate the status derived metrics
     // from grouped results of `sum(session)` or `count_unique(user)`
-    if (requestedStatusMetrics.length && defined(group.by['session.status'])) {
+    if (requestedStatusMetrics.length && group.by['session.status'] != null) {
       requestedStatusMetrics.forEach(status => {
         const result = status.match(DERIVED_STATUS_METRICS_PATTERN);
         if (result) {

@@ -22,7 +22,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -137,7 +136,7 @@ function useVisitExplore() {
   const id = useQueryParamsId();
   const visitQuery = useVisitQuery();
   useEffect(() => {
-    if (defined(id)) {
+    if (id != null) {
       visitQuery(id);
     }
   }, [id, visitQuery]);
@@ -275,7 +274,7 @@ function SpanTabContentSectionInner({
         const dedupedYAxes = [visualize.yAxis];
         const series = dedupedYAxes
           .flatMap(yAxis => timeseriesResult.data[yAxis])
-          .filter(defined);
+          .filter(Boolean);
         return combineConfidenceForSeries(series);
       }),
     [timeseriesResult.data, visualizes]
@@ -293,7 +292,7 @@ function SpanTabContentSectionInner({
     crossEventQueries,
   });
 
-  const error = defined(timeseriesResult.error)
+  const error = timeseriesResult.error
     ? null // if the timeseries errors, we prefer to show that error in the chart
     : queryType === 'samples'
       ? spansTableResult.result.error
@@ -331,10 +330,10 @@ function SpanTabContentSectionInner({
           <SettingsDropdown />
         </Flex>
       </OverChartButtonGroup>
-      {defined(id) && <DroppedFieldsAlert />}
+      {id != null && <DroppedFieldsAlert />}
       <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       <ExtrapolationEnabledAlert />
-      {defined(error) && (
+      {error && (
         <Alert.Container>
           <Alert variant="danger">{error.message}</Alert>
         </Alert.Container>

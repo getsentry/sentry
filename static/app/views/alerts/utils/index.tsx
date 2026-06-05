@@ -4,7 +4,6 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {toArray} from 'sentry/utils/array/toArray';
-import {defined} from 'sentry/utils/defined';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
@@ -120,7 +119,7 @@ export const SESSION_AGGREGATE_TO_FIELD: Record<string, SessionFieldWithOperatio
 
 export function alertAxisFormatter(value: number, seriesName: string, aggregate: string) {
   if (isSessionAggregate(aggregate)) {
-    return defined(value) ? `${round(value, 2)}%` : '\u2015';
+    return `${round(value, 2)}%`;
   }
 
   const type = aggregateOutputType(seriesName);
@@ -138,7 +137,7 @@ export function alertTooltipValueFormatter(
   aggregate: string
 ) {
   if (isSessionAggregate(aggregate)) {
-    return defined(value) ? `${value}%` : '\u2015';
+    return `${value}%`;
   }
 
   return tooltipFormatter(value, aggregateOutputType(seriesName));

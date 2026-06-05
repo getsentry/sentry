@@ -7,7 +7,6 @@ import {getKnownData} from 'sentry/components/events/contexts/utils';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
-import {defined} from 'sentry/utils/defined';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
@@ -50,7 +49,7 @@ export function hasAdditionalData(event: EventTransaction) {
 export function AdditionalData({event}: {event: EventTransaction}) {
   const [raw, setRaw] = useState(false);
 
-  if (!defined(event.context) || isEmptyObject(event.context)) {
+  if (!event.context || isEmptyObject(event.context)) {
     return null;
   }
 

@@ -8,7 +8,6 @@ import type {Project} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {defined} from 'sentry/utils/defined';
 import {FieldKind} from 'sentry/utils/fields';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
@@ -64,7 +63,7 @@ export function traceItemAttributeKeysOptions({
 }: TraceItemAttributeKeysOptions) {
   const projectIds =
     explicitProjectIds ??
-    (defined(projects) ? projects.map(project => project.id) : selection.projects);
+    (projects ? projects.map(project => project.id) : selection.projects);
 
   const substringMatch = search || undefined;
   const options: TraceItemAttributeKeyOptions = {

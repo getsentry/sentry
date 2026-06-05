@@ -19,7 +19,6 @@ import {tct, tn} from 'sentry/locale';
 import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -59,7 +58,7 @@ const useHiddenExceptions = (values?: ExceptionValue[]) => {
 
       return values
         .filter(
-          ({mechanism}) => mechanism?.is_exception_group && defined(mechanism.parent_id)
+          ({mechanism}) => mechanism?.is_exception_group && mechanism.parent_id != null
         )
         .reduce(
           (acc, next) => ({...acc, [next.mechanism?.exception_id ?? -1]: true}),
@@ -70,7 +69,7 @@ const useHiddenExceptions = (values?: ExceptionValue[]) => {
 
   const toggleRelatedExceptions = (exceptionId: number) => {
     setHiddenExceptions(old => {
-      if (!defined(old[exceptionId])) {
+      if (old[exceptionId] == null) {
         return old;
       }
 
@@ -84,7 +83,7 @@ const useHiddenExceptions = (values?: ExceptionValue[]) => {
         value => value.mechanism?.exception_id === exceptionId
       );
       const exceptionGroupId = exceptionValue?.mechanism?.parent_id;
-      if (!defined(exceptionGroupId) || !defined(old[exceptionGroupId])) {
+      if (exceptionGroupId == null || old[exceptionGroupId] == null) {
         return old;
       }
 
@@ -112,7 +111,7 @@ function ToggleExceptionButton({
 }) {
   const exceptionId = exception.mechanism?.exception_id;
 
-  if (!defined(exceptionId) || !defined(hiddenExceptions[exceptionId])) {
+  if (exceptionId == null || hiddenExceptions[exceptionId] == null) {
     return null;
   }
 
@@ -279,9 +278,10 @@ export function Content({
   const hasChainedExceptions = values.length > 1;
 
   const children = values.map((exc, excIdx) => {
-    const id = defined(exc.mechanism?.exception_id)
-      ? `exception-${exc.mechanism?.exception_id}`
-      : undefined;
+    const id =
+      exc.mechanism?.exception_id == null
+        ? undefined
+        : `exception-${exc.mechanism?.exception_id}`;
 
     if (
       exc.mechanism?.parent_id !== undefined &&
@@ -326,12 +326,12 @@ export function Content({
           dataTestId="exception-value"
           sectionKey={SectionKey.CHAINED_EXCEPTION}
           title={
-            defined(exceptionModule) ? (
+            exceptionModule == null ? (
+              <Title id={id}>{exceptionType}</Title>
+            ) : (
               <Tooltip title={tct('from [exceptionModule]', {exceptionModule})}>
                 <Title id={id}>{exceptionType}</Title>
               </Tooltip>
-            ) : (
-              <Title id={id}>{exceptionType}</Title>
             )
           }
           disableCollapsePersistence
@@ -347,12 +347,12 @@ export function Content({
 
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">
-        {defined(exceptionModule) ? (
+        {exceptionModule == null ? (
+          <Title id={id}>{exceptionType}</Title>
+        ) : (
           <Tooltip title={tct('from [exceptionModule]', {exceptionModule})}>
             <Title id={id}>{exceptionType}</Title>
           </Tooltip>
-        ) : (
-          <Title id={id}>{exceptionType}</Title>
         )}
         {innerContent}
       </div>

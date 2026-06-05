@@ -4,7 +4,6 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -35,7 +34,7 @@ export function metricHeatmapApiOptions({
 
   const intervalInMilliseconds = intervalToMilliseconds(interval);
   const {start, end, statsPeriod} = normalizeDateTimeParams(selection.datetime);
-  const usesRelativeDateRange = !defined(start) && !defined(end) && defined(statsPeriod);
+  const usesRelativeDateRange = start == null && end == null && statsPeriod != null;
 
   return apiOptions.as<HeatMapSeries>()(
     '/organizations/$organizationIdOrSlug/events-heatmap/',

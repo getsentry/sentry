@@ -11,7 +11,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
-import {defined} from 'sentry/utils/defined';
 import {releaseComparisonChartLabels} from 'sentry/views/explore/releases/detail/utils';
 
 import type {ReleaseComparisonRow} from '.';
@@ -71,7 +70,7 @@ export function ReleaseComparisonChartRow({
       <NumericCell>
         {showPlaceholders ? (
           <Placeholder height="20px" />
-        ) : defined(allReleases) ? (
+        ) : allReleases ? (
           allReleases
         ) : (
           <NotAvailable />
@@ -80,7 +79,7 @@ export function ReleaseComparisonChartRow({
       <NumericCell>
         {showPlaceholders ? (
           <Placeholder height="20px" />
-        ) : defined(thisRelease) ? (
+        ) : thisRelease ? (
           thisRelease
         ) : (
           <NotAvailable />
@@ -89,7 +88,7 @@ export function ReleaseComparisonChartRow({
       <NumericCell>
         {showPlaceholders ? (
           <Placeholder height="20px" />
-        ) : defined(diff) ? (
+        ) : diff ? (
           chartDiff
         ) : (
           <NotAvailable />

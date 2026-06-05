@@ -9,8 +9,6 @@ import SelectField from 'sentry/components/deprecatedforms/selectField';
 import TextareaField from 'sentry/components/deprecatedforms/textareaField';
 import TextField from 'sentry/components/deprecatedforms/textField';
 import type {FormState} from 'sentry/components/forms/state';
-import {defined} from 'sentry/utils/defined';
-
 type FieldType =
   | 'secret'
   | 'range'
@@ -63,7 +61,7 @@ export function GenericField({
   formState,
   onChange,
 }: Props) {
-  const required = defined(config.required) ? config.required : true;
+  const required = config.required == null ? true : config.required;
   const fieldProps = {
     ...config,
     value: formData[config.name],
@@ -77,7 +75,7 @@ export function GenericField({
     disabled: config.readonly,
     formState,
     help:
-      defined(config.help) && config.help !== '' ? (
+      config.help != null && config.help !== '' ? (
         <span dangerouslySetInnerHTML={{__html: config.help}} />
       ) : null,
   };

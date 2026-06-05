@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -131,7 +130,7 @@ export function ProjectApdexScoreCard(props: Props) {
     );
   }
 
-  if (isLoading || !defined(apdex)) {
+  if (isLoading || apdex == null) {
     return (
       <Widget
         Title={Title}

@@ -9,7 +9,6 @@ import type {
   SessionsOperation,
 } from 'sentry/types/sessions';
 import {SessionField} from 'sentry/types/sessions';
-import {defined} from 'sentry/utils/defined';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
@@ -346,7 +345,7 @@ export function generateReleaseWidgetFieldOptions(
       };
     });
 
-  if (defined(tagKeys)) {
+  if (tagKeys) {
     // Expose environment. session.status, project etc. as fields.
     tagKeys
       .sort((a, b) => a.localeCompare(b))

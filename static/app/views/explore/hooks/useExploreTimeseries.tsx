@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {defined} from 'sentry/utils/defined';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -144,7 +143,7 @@ function _checkCanQueryForMoreData(
 ) {
   return visualizes.some(visualize => {
     const dedupedYAxes = [visualize.yAxis];
-    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
+    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(Boolean);
     const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
     return dataScanned === 'partial';
   });

@@ -6,7 +6,6 @@ import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
@@ -40,13 +39,13 @@ interface SizeAnalysisEvidenceData {
 function isSizeAnalysisEvidenceData(
   evidenceData?: EventOccurrence['evidenceData']
 ): evidenceData is SizeAnalysisEvidenceData {
-  if (!defined(evidenceData) || !('config' in evidenceData)) {
+  if (!evidenceData || !('config' in evidenceData)) {
     return false;
   }
 
   const {config} = evidenceData;
   return (
-    defined(config) &&
+    config != null &&
     typeof config === 'object' &&
     'thresholdType' in config &&
     'measurement' in config &&
@@ -111,7 +110,7 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
   const headBuildPath = `/organizations/${organization.slug}/preprod/size/${headArtifactId}/`;
 
   const compareBuildPath =
-    hasDiffThreshold && defined(baseArtifactId)
+    hasDiffThreshold && baseArtifactId != null
       ? getCompareBuildPath({
           organizationSlug: organization.slug,
           headArtifactId: String(headArtifactId),

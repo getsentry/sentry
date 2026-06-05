@@ -28,7 +28,6 @@ import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {defined} from 'sentry/utils/defined';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   TableBodyCell,
@@ -344,7 +343,7 @@ export function LogsInfiniteTable({
   } = replayJumpButtons;
 
   const [paddingTop, paddingBottom] =
-    defined(firstItem) && defined(lastItem)
+    firstItem != null && lastItem != null
       ? [
           Math.max(0, firstItem - virtualizer.options.scrollMargin),
           Math.max(0, virtualizer.getTotalSize() - lastItem),
@@ -724,7 +723,7 @@ function LogsTableHeader({
                 <Tooltip showOnlyOnOverflow title={headerLabel}>
                   {headerLabel}
                 </Tooltip>
-                {defined(direction) && (
+                {direction && (
                   <IconArrow
                     size="xs"
                     direction={
@@ -776,7 +775,7 @@ export function LoadingRenderer({
       <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
-          {defined(bytesScanned) && bytesScanned > 0 && (
+          {bytesScanned != null && bytesScanned > 0 && (
             <Fragment>
               {t('Searching for a needle in a haystack. This could take a while.')}
               <br />

@@ -1,7 +1,6 @@
 import type {QueryClient} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 export async function fetchIssueStreamDetectorIdsForProjects({
@@ -27,5 +26,5 @@ export async function fetchIssueStreamDetectorIdsForProjects({
 
   return projectIds
     .map(projectId => detectors.find(detector => detector.projectId === projectId)?.id)
-    .filter(defined);
+    .filter(x => x != null);
 }

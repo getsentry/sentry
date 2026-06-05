@@ -5,7 +5,6 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -53,8 +52,8 @@ function metricOptionsQueryKey({
     dataset: DiscoverDatasets.TRACEMETRICS,
     field: queryFields,
     referrer: 'api.explore.metric-options',
-    query: defined(searchValue) ? searchValue.formatString() : undefined,
-    caseInsensitive: defined(searchValue) ? '1' : undefined,
+    query: searchValue ? searchValue.formatString() : undefined,
+    caseInsensitive: searchValue ? '1' : undefined,
     project: projectIds?.length ? projectIds?.map(String) : undefined,
     environment: environments?.length ? environments : undefined,
   };

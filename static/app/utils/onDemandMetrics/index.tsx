@@ -132,7 +132,7 @@ export function getSearchFilters(query: string): SearchFilter[] {
 }
 
 function getSearchFiltersFromTokens(tokens: ParseResult): SearchFilter[] {
-  return tokens.flatMap(getTokenKeyValuePair).filter(Boolean) as SearchFilter[];
+  return tokens.flatMap(getTokenKeyValuePair).filter(Boolean);
 }
 
 function getTokenKeyValuePair(

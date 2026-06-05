@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -397,7 +396,7 @@ function _enforceWidgetLimit(widget: Widget) {
 
   const hasColumns = widget.queries.some(query => query.columns.length > 0);
 
-  if (hasColumns && !defined(widget.limit)) {
+  if (hasColumns && widget.limit == null) {
     // The default we historically assign for charts with a grouping is 5,
     // continue using that default unless there are conditions which make 5
     // too large to automatically apply.
@@ -407,7 +406,7 @@ function _enforceWidgetLimit(widget: Widget) {
     };
   }
 
-  if (hasColumns && defined(widget.limit) && widget.limit > maxLimit) {
+  if (hasColumns && widget.limit != null && widget.limit > maxLimit) {
     return {...widget, limit: maxLimit};
   }
 

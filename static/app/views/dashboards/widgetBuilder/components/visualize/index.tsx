@@ -19,7 +19,6 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import {defined} from 'sentry/utils/defined';
 import {
   DEPRECATED_FIELDS,
   generateFieldAsString,
@@ -130,7 +129,7 @@ function _sortFn(
   if (typeof a.label !== 'string' || typeof b.label !== 'string') {
     return 0;
   }
-  if (!defined(a.label) || !defined(b.label)) {
+  if (a.label == null || b.label == null) {
     return 0;
   }
 

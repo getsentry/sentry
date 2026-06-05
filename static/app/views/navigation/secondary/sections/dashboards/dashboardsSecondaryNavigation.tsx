@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -127,7 +126,7 @@ function StarredDashboardItems({
     <SecondaryNavigation.List>
       {dashboards.map(dashboard => {
         const dashboardProjects = new Set((dashboard?.projects ?? []).map(String));
-        if (!defined(dashboard?.projects)) {
+        if (!dashboard?.projects) {
           Sentry.setTag('organization', organizationId);
           Sentry.setTag('dashboard.id', dashboard.id);
           Sentry.setTag('user.id', userId);
@@ -138,7 +137,7 @@ function StarredDashboardItems({
         const dashboardProjectPlatforms = projects
           .filter(p => dashboardProjects.has(p.id))
           .map(p => p.platform)
-          .filter(defined);
+          .filter(Boolean);
 
         return (
           <SecondaryNavigation.ListItem key={dashboard.id}>

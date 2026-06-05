@@ -4,8 +4,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ScoreBar} from 'sentry/components/scoreBar';
 import {tct} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
-
 type Props = {
   barHeight: number;
   bars: number;
@@ -29,7 +27,7 @@ export function UserMisery(props: Props) {
   const score = Math.round(adjustedMisery * palette.length);
 
   let title: React.ReactNode;
-  if (defined(miserableUsers) && defined(totalUsers) && defined(miseryLimit)) {
+  if (miserableUsers != null && totalUsers != null && miseryLimit != null) {
     title = tct(
       '[miserableUsers] out of [totalUsers] unique users waited more than [duration]ms (4x the response time threshold)',
       {
@@ -38,7 +36,7 @@ export function UserMisery(props: Props) {
         duration: 4 * miseryLimit,
       }
     );
-  } else if (defined(miseryLimit)) {
+  } else if (miseryLimit != null) {
     title = tct(
       'User Misery score is [userMisery], representing users who waited more than [duration]ms (4x the response time threshold)',
       {
@@ -46,7 +44,7 @@ export function UserMisery(props: Props) {
         userMisery: userMisery.toFixed(3),
       }
     );
-  } else if (defined(miserableUsers) && defined(totalUsers)) {
+  } else if (miserableUsers != null && totalUsers != null) {
     title = tct(
       'User Misery score is [userMisery], meaning [miserableUsers] out of [totalUsers] unique users had a miserable experience.',
       {

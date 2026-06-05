@@ -10,8 +10,6 @@ import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
 import {t, tct} from 'sentry/locale';
 import type {EntryException, Event, Frame, Lock, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {defined} from 'sentry/utils/defined';
-
 type SuspectFrame = {
   module: string | RegExp;
   resources: React.ReactNode;
@@ -221,7 +219,7 @@ export function analyzeFramesForRootCause(event: Event): {
   for (let index = exceptionFrames.length - 1; index >= 0; index--) {
     const frame = exceptionFrames[index]!;
     const rootCause = analyzeFrameForRootCause(frame, currentThread);
-    if (defined(rootCause)) {
+    if (rootCause) {
       return rootCause;
     }
   }
@@ -257,13 +255,13 @@ export function analyzeFrameForRootCause(
   culprit: string | Lock;
   resources: React.ReactNode;
 } | null {
-  if (defined(lockAddress) && frame.lock?.address === lockAddress) {
+  if (lockAddress != null && frame.lock?.address === lockAddress) {
     // if we are provided with a lockAddress, we just have to analyze if the frame's lock
     // address is equal to the one provided to mark the frame as suspect
     return lockRootCauseCulprit(frame.lock);
   }
   if (
-    defined(frame.lock) &&
+    frame.lock &&
     currentThread?.current &&
     satisfiesOffendingThreadCondition(currentThread?.state, [
       ThreadStates.WAITING,

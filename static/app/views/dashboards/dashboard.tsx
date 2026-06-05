@@ -19,7 +19,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
@@ -451,7 +450,7 @@ function DashboardInner({
               onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
               isEmbedded={isEmbedded}
               isPreview={isPreview}
-              isPrebuiltDashboard={defined(dashboard.prebuiltId)}
+              isPrebuiltDashboard={dashboard.prebuiltId != null}
               isGeneratedDashboard={isGeneratedDashboard}
               dashboardFilters={getMergedDashboardFilters(dashboard.filters, location)}
               dashboardPermissions={dashboard.permissions}

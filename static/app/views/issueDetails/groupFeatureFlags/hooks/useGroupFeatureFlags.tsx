@@ -1,5 +1,4 @@
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -41,7 +40,7 @@ export function useGroupFeatureFlags(
     }),
     {
       staleTime: 30000,
-      enabled: defined(parameters.groupId) && enabled,
+      enabled,
       ...options,
     }
   );

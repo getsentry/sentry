@@ -8,7 +8,6 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -30,7 +29,7 @@ export function EventTags({
   const organization = useOrganization();
   const meta = event._meta?.tags;
 
-  const tags = defined(filteredTags)
+  const tags = filteredTags
     ? filteredTags
     : associateTagsWithMeta({tags: event.tags ?? [], meta});
 

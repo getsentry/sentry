@@ -15,7 +15,6 @@ import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils/defined';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -85,7 +84,7 @@ function transformEventsChartRequest<T extends WidgetDataConstraint>(
     ...results,
     isLoading: results.loading || results.reloading,
     isErrored: results.errored,
-    hasData: defined(data) && !!data.length && !!data[0]!.data.length,
+    hasData: !!data.length && !!data[0]!.data.length,
     data,
     previousData: results.previousTimeseriesData ?? undefined,
 
@@ -260,7 +259,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
     const transformedReleaseSeries: Record<string, Series> = {};
 
     const series = provided.widgetData.chart.data;
-    if (defined(series)) {
+    if (series) {
       series.forEach(({seriesName: release, data}) => {
         const isPrimary = release === primaryRelease;
 

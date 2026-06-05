@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -171,7 +170,7 @@ export function ProjectVelocityScoreCard(props: Props) {
     );
   }
 
-  if (isLoading || !defined(currentReleases)) {
+  if (isLoading || !currentReleases) {
     return (
       <Widget
         Title={Title}

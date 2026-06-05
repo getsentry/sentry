@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 
-import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
@@ -51,7 +50,7 @@ export function useLogsTimeseries({
 
       return visualizes.some(visualize => {
         const dedupedYAxes = [visualize.yAxis];
-        const series = dedupedYAxes.flatMap(yAxis => result.data[yAxis]).filter(defined);
+        const series = dedupedYAxes.flatMap(yAxis => result.data[yAxis]).filter(Boolean);
         const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
         return dataScanned === 'partial';
       });

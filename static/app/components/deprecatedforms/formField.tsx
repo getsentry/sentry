@@ -5,8 +5,6 @@ import classNames from 'classnames';
 import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import type {Meta} from 'sentry/types/group';
-import {defined} from 'sentry/utils/defined';
-
 type Value = string | number | boolean;
 
 type DefaultProps = {
@@ -59,7 +57,7 @@ export abstract class FormField<
     if (newError !== this.state.error) {
       this.setState({error: newError});
     }
-    if (this.props.value !== nextProps.value || defined(nextProps.formContext.form)) {
+    if (this.props.value !== nextProps.value || nextProps.formContext.form) {
       const newValue = this.getValue(nextProps);
       if (newValue !== this.state.value) {
         this.setValue(newValue);
@@ -70,19 +68,19 @@ export abstract class FormField<
   getValue(props: Props) {
     const form = (props.formContext || this.props.formContext)?.form;
     props = props || this.props;
-    if (defined(props.value)) {
+    if (props.value != null) {
       return props.value;
     }
     if (form && Object.hasOwn(form.data, props.name)) {
-      return defined(form.data[props.name]) ? form.data[props.name] : '';
+      return form.data[props.name] == null ? '' : form.data[props.name];
     }
-    return defined(props.defaultValue) ? props.defaultValue : '';
+    return props.defaultValue == null ? '' : props.defaultValue;
   }
 
   getError(props: Props) {
     const form = (props.formContext || this.props.formContext)?.form;
     props = props || this.props;
-    if (defined(props.error)) {
+    if (props.error != null) {
       return props.error;
     }
     return form?.errors[props.name] || null;
@@ -154,7 +152,7 @@ export abstract class FormField<
           )}
           {this.getField()}
           {this.renderDisabledReason()}
-          {defined(help) && <p className="help-block">{help}</p>}
+          {help && <p className="help-block">{help}</p>}
           {shouldShowErrorMessage && <ErrorMessage>{error}</ErrorMessage>}
         </div>
       </div>

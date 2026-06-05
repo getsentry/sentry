@@ -9,7 +9,6 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -47,8 +46,8 @@ export function ThreadSelector({
   const [sortAttribute, setSortAttribute] = useState(SortAttribute.ID);
   const [isSortAscending, setIsSortAscending] = useState(true);
 
-  const hasThreadStates = threads.some(thread =>
-    defined(getMappedThreadState(thread.state))
+  const hasThreadStates = threads.some(
+    thread => getMappedThreadState(thread.state) != null
   );
 
   const items = useMemo((): Array<SelectOptionOrSection<number>> => {
@@ -220,7 +219,7 @@ export function ThreadSelector({
             is_crashed_thread: thread.crashed,
             is_current_thread: thread.current,
             thread_state: thread.state ?? '',
-            has_stacktrace: defined(thread.stacktrace),
+            has_stacktrace: thread.stacktrace != null,
             num_in_app_frames:
               thread.stacktrace?.frames?.filter((frame: Frame) => frame.inApp).length ??
               0,

@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils/defined';
 import {explodeField, isEquation} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {
@@ -48,7 +47,7 @@ export function convertWidgetToQueryParams(
       // as a sort field
       const equations = q.aggregates.filter(isEquation);
       const equationIndex = equations?.indexOf(decodedSort.field);
-      if (defined(equationIndex) && equationIndex >= 0) {
+      if (equationIndex >= 0) {
         return `${decodedSort.kind === 'desc' ? '-' : ''}equation[${equationIndex}]`;
       }
     }

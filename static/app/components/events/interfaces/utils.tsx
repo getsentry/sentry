@@ -9,7 +9,6 @@ import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {StacktraceOrder, type AvatarUser} from 'sentry/types/user';
-import {defined} from 'sentry/utils/defined';
 
 /**
  * Attempts to escape a string from any bash double quote special characters.
@@ -120,13 +119,13 @@ export function getLastFrameIndex(frames: Frame[]) {
 export function getCurlCommand(data: EntryRequest['data']) {
   let result = 'curl';
 
-  if (defined(data.method) && data.method !== 'GET') {
+  if (data.method != null && data.method !== 'GET') {
     result += ' \\\n -X ' + data.method;
   }
 
   const headers =
     data.headers
-      ?.filter(defined)
+      ?.filter(Boolean)
       // sort headers
       .sort((a, b) => {
         return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
@@ -144,7 +143,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeBashString(header[1] + '') + '"';
   }
 
-  if (defined(data.data)) {
+  if (data.data != null) {
     switch (data.inferredContentType) {
       case 'application/json':
         result += ' \\\n --data "' + escapeBashString(JSON.stringify(data.data)) + '"';
@@ -334,8 +333,8 @@ export function getStacktracePlatform(
   event: Event,
   stacktrace?: StacktraceType | null
 ): PlatformKey {
-  const overridePlatform = stacktrace?.frames?.find(frame =>
-    defined(frame.platform)
+  const overridePlatform = stacktrace?.frames?.find(
+    frame => frame.platform != null
   )?.platform;
 
   return overridePlatform ?? event.platform ?? 'other';

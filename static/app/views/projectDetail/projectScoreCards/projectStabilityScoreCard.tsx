@@ -10,7 +10,6 @@ import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -163,7 +162,7 @@ export function ProjectStabilityScoreCard(props: Props) {
     );
   }
 
-  if (isLoading || !defined(score)) {
+  if (isLoading || score == null) {
     return (
       <Widget
         Title={Title}

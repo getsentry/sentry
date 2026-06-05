@@ -6,7 +6,6 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import {IconClose} from 'sentry/icons';
-import {defined} from 'sentry/utils/defined';
 
 interface DeleteButtonProps {
   token: Token;
@@ -21,7 +20,7 @@ export function DeleteButton({token, focusOverrideKey, label}: DeleteButtonProps
     dispatch({
       type: 'DELETE_TOKEN',
       token,
-      focusOverride: defined(focusOverrideKey) ? {itemKey: focusOverrideKey} : undefined,
+      focusOverride: focusOverrideKey == null ? undefined : {itemKey: focusOverrideKey},
     });
   }, [dispatch, token, focusOverrideKey]);
 

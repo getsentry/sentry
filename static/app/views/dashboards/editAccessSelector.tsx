@@ -20,7 +20,6 @@ import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -65,7 +64,7 @@ export function EditAccessSelector({
 
   const derivedOptions = useMemo(() => {
     const teamIdsList: string[] = Object.values(teamsToRender).map(team => team.id);
-    return !defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone
+    return !dashboard.permissions || dashboard.permissions.isEditableByEveryone
       ? ['_creator', '_allUsers', ...teamIdsList]
       : ['_creator', ...(dashboard.permissions.teamsWithEditAccess?.map(String) ?? [])];
   }, [dashboard.permissions, teamsToRender]);
@@ -326,7 +325,7 @@ export function EditAccessSelector({
           <MenuComponents.ApplyButton
             onClick={() => {
               const isDefaultState =
-                !defined(dashboard.permissions) && selectedOptions.includes('_allUsers');
+                dashboard.permissions == null && selectedOptions.includes('_allUsers');
               const newDashboardPermissions = getDashboardPermissions();
               if (
                 !isDefaultState &&

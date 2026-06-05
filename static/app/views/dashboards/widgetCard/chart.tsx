@@ -17,7 +17,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
-import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
@@ -351,7 +350,7 @@ function BigNumberComponent({
     let field = fields[0]!;
     let selectedField = field;
 
-    if (defined(widget.queries[0]!.selectedAggregate)) {
+    if (widget.queries[0]!.selectedAggregate != null) {
       const index = widget.queries[0]!.selectedAggregate;
       selectedField = widget.queries[0]!.aggregates[index]!;
       if (fields.includes(selectedField)) {
@@ -368,7 +367,7 @@ function BigNumberComponent({
       !result.data?.length ||
       selectedField === 'equation|' ||
       selectedField === '' ||
-      !defined(value) ||
+      value == null ||
       !Number.isFinite(value) ||
       Number.isNaN(value)
     ) {

@@ -28,7 +28,6 @@ import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -233,7 +232,7 @@ function ActionButtons({
   return (
     <ButtonsWrapper ref={ref}>
       {trailingItems}
-      {defined(onCaseInsensitiveClick) ? (
+      {onCaseInsensitiveClick ? (
         <Tooltip title={caseInsensitiveLabel}>
           <ActionButton
             aria-label={caseInsensitiveLabel}

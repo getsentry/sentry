@@ -19,7 +19,6 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
 import type {CodeOwner} from 'sentry/types/integrations';
 import type {ParsedOwnershipRule} from 'sentry/types/ownership';
-import {defined} from 'sentry/utils/defined';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
@@ -88,7 +87,7 @@ export function OwnershipRulesTable({
   const memberIds = useMemo(
     () =>
       allActors.flatMap(actor =>
-        actor.type === 'user' && defined(actor.id) ? [actor.id] : []
+        actor.type === 'user' && actor.id != null ? [actor.id] : []
       ),
     [allActors]
   );
@@ -100,7 +99,7 @@ export function OwnershipRulesTable({
   const myTeams = useMemo(() => {
     const memberTeamsIds = teams.filter(team => team.isMember).map(team => team.id);
     return allActors.filter(actor => {
-      if (!defined(actor.id)) {
+      if (actor.id == null) {
         return false;
       }
 
@@ -161,7 +160,7 @@ export function OwnershipRulesTable({
     <RulesTableWrapper data-test-id="ownership-rules-table">
       <Flex align="center" gap="xl">
         <OwnershipOwnerFilter
-          actors={allActors.filter((actor): actor is Actor => defined(actor.id))}
+          actors={allActors.filter((actor): actor is Actor => actor.id != null)}
           selectedTeams={selectedActors ?? []}
           handleChangeFilter={handleChangeFilter}
           isMyTeams={
@@ -189,7 +188,7 @@ export function OwnershipRulesTable({
       >
         {chunkedRules[page]?.map((rule, index) => {
           const isExclusionRule = rule.owners.length === 0;
-          const hasUnknownOwners = rule.owners.some(owner => !defined(owner.id));
+          const hasUnknownOwners = rule.owners.some(owner => owner.id == null);
           const ownerNames = rule.owners.map(owner => {
             if (!owner.id) {
               return owner.name;

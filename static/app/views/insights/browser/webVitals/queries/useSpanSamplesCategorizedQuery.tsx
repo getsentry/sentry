@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils/defined';
 import {
   CLS_SPANS_FILTER,
   INTERACTION_SPANS_FILTER,
@@ -42,9 +41,9 @@ export function useSpanSamplesCategorizedQuery({
 
   const {data: goodData, isFetching: isGoodDataLoading} = useSpanSamplesWebVitalsQuery({
     transaction,
-    enabled: enabled && defined(webVital),
+    enabled: enabled && webVital != null,
     limit: 3,
-    filter: defined(webVital)
+    filter: webVital
       ? `${vitalField}:<${PERFORMANCE_SCORE_P90S[webVital]} ${webVitalFilter}`
       : undefined,
     browserTypes,
@@ -53,10 +52,10 @@ export function useSpanSamplesCategorizedQuery({
   });
   const {data: mehData, isFetching: isMehDataLoading} = useSpanSamplesWebVitalsQuery({
     transaction,
-    enabled: enabled && defined(webVital),
+    enabled: enabled && webVital != null,
     limit: 3,
     filter:
-      defined(webVital) && vitalField
+      webVital && vitalField
         ? `${vitalField}:>=${PERFORMANCE_SCORE_P90S[webVital]} ${vitalField}:<${PERFORMANCE_SCORE_MEDIANS[webVital]} ${webVitalFilter}`
         : undefined,
     browserTypes,
@@ -65,10 +64,10 @@ export function useSpanSamplesCategorizedQuery({
   });
   const {data: poorData, isFetching: isBadDataLoading} = useSpanSamplesWebVitalsQuery({
     transaction,
-    enabled: enabled && defined(webVital),
+    enabled: enabled && webVital != null,
     limit: 3,
     filter:
-      defined(webVital) && vitalField
+      webVital && vitalField
         ? `${vitalField}:>=${PERFORMANCE_SCORE_MEDIANS[webVital]} ${webVitalFilter}`
         : undefined,
     browserTypes,
@@ -80,7 +79,7 @@ export function useSpanSamplesCategorizedQuery({
 
   const isLoading = isGoodDataLoading || isMehDataLoading || isBadDataLoading;
 
-  const spanSamplesTableData = defined(webVital)
+  const spanSamplesTableData = webVital
     ? data.sort((a, b) => a[`${webVital}Score`] - b[`${webVital}Score`])
     : data.sort((a, b) => a.totalScore - b.totalScore);
 

@@ -16,7 +16,6 @@ import {Timeline} from 'sentry/components/timeline';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
-import {defined} from 'sentry/utils/defined';
 
 function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
   const currentTimezone = useTimezone();
@@ -104,7 +103,7 @@ export function BreadcrumbsTimeline({
   const items = virtualItems.map(virtualizedRow => {
     const {breadcrumb, raw, title, meta, iconComponent, colorConfig, levelComponent} =
       breadcrumbs[virtualizedRow.index]!;
-    const isVirtualCrumb = !defined(raw);
+    const isVirtualCrumb = raw == null;
 
     const timestamp = new Date(breadcrumb.timestamp ?? '');
     const startTimeDate = new Date(startTimeString ?? '');

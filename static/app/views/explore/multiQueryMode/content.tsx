@@ -24,7 +24,6 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -89,11 +88,11 @@ function Content({datePageFilterProps}: ContentProps) {
         ),
         !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
         !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
-        (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) !==
+        (savedQuery.start == null ? null : new Date(savedQuery.start).getTime()) !==
           (pageFilters.selection.datetime.start
             ? new Date(pageFilters.selection.datetime.start).getTime()
             : null),
-        (defined(savedQuery.end) ? new Date(savedQuery.end).getTime() : null) !==
+        (savedQuery.end == null ? null : new Date(savedQuery.end).getTime()) !==
           (pageFilters.selection.datetime.end
             ? new Date(pageFilters.selection.datetime.end).getTime()
             : null),

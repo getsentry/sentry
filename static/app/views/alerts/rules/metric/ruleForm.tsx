@@ -41,7 +41,6 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   parseFunction,
@@ -177,7 +176,7 @@ type State = {
   seriesSamplingInfo?: SeriesSamplingInfo;
 } & DeprecatedAsyncComponent['state'];
 
-const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
+const isEmpty = (str: unknown): boolean => str === '' || str == null;
 
 class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   form = new FormModel();

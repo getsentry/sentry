@@ -13,7 +13,6 @@ import type {
   MetricDetectorConfig,
   MetricDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils/defined';
 import {isEquation} from 'sentry/utils/discover/fields';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
@@ -224,7 +223,7 @@ export function createConditions(
     | 'resolutionValue'
   >
 ): NewConditionGroup['conditions'] {
-  if (!defined(data.conditionType) || !defined(data.highThreshold)) {
+  if (data.conditionType == null || data.highThreshold == null) {
     return [];
   }
 
@@ -238,7 +237,7 @@ export function createConditions(
   ];
 
   // Add MEDIUM condition if mediumThreshold is provided (optional medium priority row)
-  if (defined(data.mediumThreshold) && data.mediumThreshold !== '') {
+  if (data.mediumThreshold != null && data.mediumThreshold !== '') {
     conditions.push({
       type: data.conditionType,
       comparison: parseFloat(data.mediumThreshold) || 0,
@@ -255,10 +254,10 @@ export function createConditions(
 
   const resolutionComparison =
     data.resolutionStrategy === 'custom' &&
-    defined(data.resolutionValue) &&
+    data.resolutionValue != null &&
     data.resolutionValue !== ''
       ? parseFloat(data.resolutionValue) || 0
-      : defined(data.mediumThreshold) && data.mediumThreshold !== ''
+      : data.mediumThreshold != null && data.mediumThreshold !== ''
         ? parseFloat(data.mediumThreshold) || 0
         : parseFloat(data.highThreshold) || 0;
 
@@ -457,7 +456,7 @@ function processDetectorConditions(
   // Determine resolution strategy: automatic if OK threshold matches warning or critical
   const resolutionValue = okCondition?.comparison ?? undefined;
   const computedResolutionStrategy =
-    defined(resolutionValue) &&
+    resolutionValue != null &&
     ![highCondition?.comparison, mediumCondition?.comparison].includes(resolutionValue)
       ? 'custom'
       : 'default';
@@ -550,8 +549,7 @@ export function metricSavedDetectorToFormData(
 
     // Condition fields - get comparison delta from detector config (already in seconds)
     conditionComparisonAgo:
-      detector.config.detectionType === 'percent' &&
-      defined(detector.config.comparisonDelta)
+      detector.config.detectionType === 'percent'
         ? detector.config.comparisonDelta
         : DEFAULT_THRESHOLD_METRIC_FORM_DATA.conditionComparisonAgo,
 

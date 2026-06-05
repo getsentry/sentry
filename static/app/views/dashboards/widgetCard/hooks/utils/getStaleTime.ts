@@ -1,11 +1,10 @@
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils/defined';
 import {RangeMap} from 'sentry/utils/number/rangeMap';
 
 export function getWidgetStaleTime(pageFilters: PageFilters) {
   const {start, end, period} = pageFilters.datetime;
-  const usesRelativeDateRange = !defined(start) && !defined(end) && defined(period);
+  const usesRelativeDateRange = start == null && end == null && period != null;
 
   if (usesRelativeDateRange) {
     const selectionDuration = getDiffInMinutes(pageFilters.datetime);

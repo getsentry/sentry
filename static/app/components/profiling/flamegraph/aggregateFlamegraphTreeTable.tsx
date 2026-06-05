@@ -10,7 +10,6 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {AggregateProfileSource} from 'sentry/utils/analytics/profilingAnalyticsEvents';
-import {defined} from 'sentry/utils/defined';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
@@ -185,7 +184,7 @@ export function AggregateFlamegraphTreeTable({
   );
 
   useEffect(() => {
-    if (defined(profiles.threadId)) {
+    if (profiles.threadId != null) {
       return;
     }
     const threadID =
@@ -194,7 +193,7 @@ export function AggregateFlamegraphTreeTable({
         : null;
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
-    if (defined(threadID)) {
+    if (threadID != null) {
       dispatch({
         type: 'set thread id',
         payload: threadID,
@@ -257,12 +256,12 @@ export function AggregateFlamegraphTreeTable({
               }
               showAvg
               avgWeight={
-                defined(r.item.node.frame.averageCallDuration) ? (
+                r.item.node.frame.averageCallDuration == null ? undefined : (
                   <PerformanceDuration
                     nanoseconds={r.item.node.frame.averageCallDuration}
                     abbreviation
                   />
-                ) : undefined
+                )
               }
               selfWeight={r.item.node.node.totalWeight.toFixed(0)}
               relativeSelfWeight={relativeWeight(

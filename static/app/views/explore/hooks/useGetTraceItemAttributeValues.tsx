@@ -11,7 +11,6 @@ import type {GetTagValuesParams} from 'sentry/components/searchQueryBuilder';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {defined} from 'sentry/utils/defined';
 import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
@@ -96,7 +95,7 @@ export function useGetTraceItemAttributeValues({
       try {
         const {json} = await queryClient.fetchQuery(optionsWithPrefixCacheShortcut);
         return json
-          .filter((item: TraceItemAttributeValue) => defined(item.value))
+          .filter((item: TraceItemAttributeValue) => item.value != null)
           .map((item: TraceItemAttributeValue) => item.value);
       } catch (e) {
         throw new Error(`Unable to fetch trace item attribute values: ${e}`);

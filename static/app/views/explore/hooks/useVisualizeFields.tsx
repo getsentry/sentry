@@ -4,7 +4,6 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils/defined';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
@@ -49,7 +48,7 @@ export function useVisualizeFields({
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
     const seen = new Set<string>();
     const unknownOptions = [unknownField]
-      .filter(defined)
+      .filter(x => x != null)
       .filter(option => !Object.hasOwn(tags, option));
 
     return [

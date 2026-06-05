@@ -27,7 +27,6 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -178,15 +177,15 @@ function EventDisplay({
   );
 
   useEffect(() => {
-    if (defined(eventIds) && eventIds.length > 0 && !selectedEventId) {
+    if (eventIds && eventIds.length > 0 && !selectedEventId) {
       setSelectedEventId(eventIds[0]!);
     }
   }, [eventIds, selectedEventId]);
 
   const eventIdIndex = eventIds?.indexOf(selectedEventId);
   const hasNext =
-    defined(eventIdIndex) && defined(eventIds) && eventIdIndex + 1 < eventIds.length;
-  const hasPrev = defined(eventIdIndex) && eventIdIndex - 1 >= 0;
+    eventIdIndex != null && eventIds != null && eventIdIndex + 1 < eventIds.length;
+  const hasPrev = eventIdIndex != null && eventIdIndex - 1 >= 0;
 
   if (isError) {
     return null;
@@ -196,7 +195,7 @@ function EventDisplay({
     return <LoadingIndicator />;
   }
 
-  if (!defined(eventData) || !defined(eventIds)) {
+  if (!eventData || !eventIds) {
     return (
       <EmptyStateWrapper>
         <EmptyStateWarning withIcon>

@@ -40,7 +40,6 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {prettifyTagKey} from 'sentry/utils/fields';
 
 interface SearchQueryTokenProps {
@@ -235,8 +234,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     onKeyDown,
   });
 
-  const tokenHasError = 'invalid' in token && defined(token.invalid);
-  const tokenHasWarning = 'warning' in token && defined(token.warning);
+  const tokenHasError = 'invalid' in token && token.invalid != null;
+  const tokenHasWarning = 'warning' in token && token.warning != null;
   const isInvalidFilterKey = invalidFilterKeys.includes(getKeyName(token.key));
 
   return (

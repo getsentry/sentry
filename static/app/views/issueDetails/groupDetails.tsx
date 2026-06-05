@@ -26,7 +26,6 @@ import {GroupStatus, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import {
   getAnalyticsDataForEvent,
   getAnalyticsDataForGroup,
@@ -207,13 +206,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   useEffect(() => {
     return GroupStore.listen(() => {
       const [storeGroup] = GroupStore.getState();
-      if (
-        defined(storeGroup) &&
-        storeGroup.id === groupId &&
-        // Check for properties that are only set after the group has been loaded
-        defined(storeGroup.participants) &&
-        defined(storeGroup.activity)
-      ) {
+      if (storeGroup?.id === groupId) {
         queryClient.setQueryData(
           groupApiOptions({
             groupId: storeGroup.id,
@@ -312,7 +305,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const group = groupData ?? previousGroupData.cachedGroup ?? null;
 
   useEffect(() => {
-    if (defined(group)) {
+    if (group) {
       GroupStore.loadInitialData([group]);
     }
   }, [groupId, group]);
@@ -793,7 +786,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
       );
       setInjectedEvent(event);
     };
-    if (isRegressionIssue && !defined(props.event)) {
+    if (isRegressionIssue && !props.event) {
       fetchLatestEvent();
     }
   }, [
@@ -821,7 +814,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
     );
   }
 
-  const regressionIssueLoaded = defined(injectedEvent ?? props.event);
+  const regressionIssueLoaded = (injectedEvent ?? props.event) != null;
   if (
     !projectsLoaded ||
     !projectWithFallback ||

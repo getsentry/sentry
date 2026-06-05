@@ -9,7 +9,6 @@ import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -47,7 +46,7 @@ function TransactionThresholdButton({
   const project = useEventViewProject(projects, eventView);
 
   useEffect(() => {
-    if (!defined(project)) {
+    if (!project) {
       return;
     }
     const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
@@ -103,7 +102,7 @@ function TransactionThresholdButton({
     setTransactionThreshold(threshold);
     setTransactionThresholdMetric(metric);
 
-    if (defined(onChangeThreshold)) {
+    if (onChangeThreshold) {
       onChangeThreshold(threshold, metric);
     }
   }

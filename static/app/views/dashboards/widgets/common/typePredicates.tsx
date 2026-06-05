@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils/defined';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import type {PlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 
@@ -22,7 +21,7 @@ export function isAUnitConvertibleFieldType(
 export function isAPlottableTimeSeriesValueType(
   timeSeriesValueType?: string | null
 ): timeSeriesValueType is PlottableTimeSeriesValueType {
-  if (!defined(timeSeriesValueType)) {
+  if (timeSeriesValueType == null) {
     return false;
   }
 

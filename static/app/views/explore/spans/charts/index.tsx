@@ -10,7 +10,6 @@ import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -176,7 +175,7 @@ function Chart({
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
   const chartInfo: ChartInfo = useMemo(() => {
-    const isTopN = defined(topEvents) && topEvents > 0;
+    const isTopN = topEvents != null && topEvents > 0;
     const series = timeseriesResult.data[visualize.yAxis] ?? [];
 
     let confidenceSeries = series;
@@ -186,7 +185,7 @@ function Chart({
     // This implies that the sampling meta data is not available.
     // When this happens, we override it with the sampling meta
     // data from the DEFAULT_VISUALIZATION.
-    if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
+    if (samplingMeta.sampleCount === 0 && samplingMeta.isSampled == null) {
       confidenceSeries = timeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
       samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
     }

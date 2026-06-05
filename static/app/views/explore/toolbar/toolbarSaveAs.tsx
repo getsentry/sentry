@@ -18,7 +18,6 @@ import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
@@ -87,7 +86,7 @@ export function ToolbarSaveAs() {
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
-  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+  const hasCrossEvents = crossEvents != null && crossEvents.length > 0;
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(yAxis);
@@ -117,7 +116,7 @@ export function ToolbarSaveAs() {
   const items: MenuItemProps[] = [];
 
   // Explicitly check for false to account for loading state
-  if (defined(id) && savedQuery?.isPrebuilt === false) {
+  if (id != null && savedQuery?.isPrebuilt === false) {
     items.push({
       key: 'update-query',
       textValue: t('Existing Query'),
@@ -255,11 +254,11 @@ export function ToolbarSaveAs() {
       !valueIsEqual(savedQuery.crossEvents ?? [], crossEvents ?? [], true),
       !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
       !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
-      (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) !==
+      (savedQuery.start == null ? null : new Date(savedQuery.start).getTime()) !==
         (pageFilters.selection.datetime.start
           ? new Date(pageFilters.selection.datetime.start).getTime()
           : null),
-      (defined(savedQuery.end) ? new Date(savedQuery.end).getTime() : null) !==
+      (savedQuery.end == null ? null : new Date(savedQuery.end).getTime()) !==
         (pageFilters.selection.datetime.end
           ? new Date(pageFilters.selection.datetime.end).getTime()
           : null),

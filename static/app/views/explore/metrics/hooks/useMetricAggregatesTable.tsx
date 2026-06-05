@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -63,7 +62,7 @@ export function useMetricAggregatesTable({
       const countAggregate = makeCountAggregate(traceMetric);
       const canGoToHigherAccuracyTier = result.meta?.dataScanned === 'partial';
       const hasData =
-        defined(result.data) &&
+        result.data != null &&
         (result.data.length > 1 ||
           (result.data.length === 1 && Boolean(result.data[0][countAggregate])));
       return !hasData && canGoToHigherAccuracyTier;

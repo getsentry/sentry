@@ -17,7 +17,6 @@ import type {
 } from 'sentry/types/organization';
 import {SessionStatus} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
-import {defined} from 'sentry/utils/defined';
 import {
   getCrashFreePercent,
   getSessionStatusPercent,
@@ -50,7 +49,7 @@ export function getCrashFreeRate(
 ) {
   const crashedRate = getSessionStatusRate(groups, field, SessionStatus.CRASHED);
 
-  return defined(crashedRate) ? getCrashFreePercent(100 - crashedRate) : null;
+  return crashedRate == null ? null : getCrashFreePercent(100 - crashedRate);
 }
 
 export function getSeriesSum(
@@ -80,9 +79,7 @@ export function getSessionStatusRate(
     field
   );
 
-  return !defined(totalCount) || totalCount === 0
-    ? null
-    : percent(crashedCount ?? 0, totalCount ?? 0);
+  return totalCount === 0 ? null : percent(crashedCount ?? 0, totalCount ?? 0);
 }
 
 export function getCrashFreeRateSeries(

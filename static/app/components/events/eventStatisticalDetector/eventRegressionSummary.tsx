@@ -10,7 +10,6 @@ import type {Group, KeyValueListData} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -34,7 +33,7 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
     [organization, event, group.issueType]
   );
 
-  if (!defined(data)) {
+  if (!data) {
     return null;
   }
 
@@ -54,7 +53,7 @@ export function getKeyValueListData(
   event: Event
 ): KeyValueListData | null {
   const evidenceData = event.occurrence?.evidenceData;
-  if (!defined(evidenceData)) {
+  if (!evidenceData) {
     return null;
   }
 

@@ -28,7 +28,6 @@ import type {
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils/defined';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -268,7 +267,7 @@ export function SearchQueryBuilderProvider({
     firstRender.current = false;
 
     const warnings = parsedQuery?.filter(
-      token => 'warning' in token && defined(token.warning)
+      token => 'warning' in token && token.warning != null
     )?.length;
     if (warnings) {
       Sentry.metrics.distribution('search-query-builder.token.warnings', warnings, {
@@ -277,7 +276,7 @@ export function SearchQueryBuilderProvider({
     }
 
     const invalids = parsedQuery?.filter(
-      token => 'invalid' in token && defined(token.invalid)
+      token => 'invalid' in token && token.invalid != null
     )?.length;
     if (invalids) {
       Sentry.metrics.distribution('search-query-builder.token.invalids', invalids, {

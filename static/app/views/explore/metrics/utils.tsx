@@ -5,7 +5,6 @@ import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
@@ -110,7 +109,7 @@ export function hasDisplayMetricUnit(
 export function makeMetricSelectValue(metric: TraceMetric): string {
   // Coerce '-' to NONE_UNIT because we do not want to allow the UI to query '-' as a unit, it's a catch-all
   // that queries for all metrics with the same name and type regardless of the unit. These should be kept separate for now.
-  return `${metric.name}||${metric.type}||${defined(metric.unit) && metric.unit !== '-' ? metric.unit : NONE_UNIT}`;
+  return `${metric.name}||${metric.type}||${metric.unit != null && metric.unit !== '-' ? metric.unit : NONE_UNIT}`;
 }
 
 export function getMetricsUnit(
@@ -196,7 +195,7 @@ export function getMetricsUrlFromSavedQueryUrl({
 
     const aggregateFields = [...visualizes, ...groupBys];
 
-    const hasAggregateOrderby = defined(queryItem.aggregateOrderby);
+    const hasAggregateOrderby = queryItem.aggregateOrderby != null;
     let aggregateSortBys: Sort[] | undefined;
     if (hasAggregateOrderby) {
       aggregateSortBys = queryItem.aggregateOrderby

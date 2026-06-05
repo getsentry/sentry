@@ -7,7 +7,6 @@ import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEd
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStar} from 'sentry/icons';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
-import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -200,9 +199,9 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   let widths = Array.from<number>({length: numColumns}).fill(COL_WIDTH_UNDEFINED);
   const locationWidths = location.query?.width;
   // If at least one column has the width key and that key is defined, take that over url widths
-  if (columns?.some(column => defined(column.width))) {
+  if (columns?.some(column => column.width != null)) {
     widths = columns.map(column =>
-      defined(column.width) ? column.width : COL_WIDTH_UNDEFINED
+      column.width == null ? COL_WIDTH_UNDEFINED : column.width
     );
   } else if (
     resizable &&
@@ -335,9 +334,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           );
         },
         onResizeColumn: (columnIndex: number, nextColumn: TabularColumn) => {
-          widths[columnIndex] = defined(nextColumn.width)
-            ? nextColumn.width
-            : COL_WIDTH_UNDEFINED;
+          widths[columnIndex] =
+            nextColumn.width == null ? COL_WIDTH_UNDEFINED : nextColumn.width;
 
           columnOrder[columnIndex]!.width = widths[columnIndex];
 

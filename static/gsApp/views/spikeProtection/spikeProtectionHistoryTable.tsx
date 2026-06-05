@@ -18,7 +18,6 @@ import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
@@ -132,13 +131,13 @@ class SpikeProtectionHistoryTable extends Component<Props> {
     return [
       <SpikeProtectionTimeDetails spike={spike} key="time" />,
       <Flex align="center" key="threshold">
-        {defined(spike.threshold)
-          ? formatUsageWithUnits(
+        {spike.threshold == null
+          ? '-'
+          : formatUsageWithUnits(
               spike.threshold,
               dataCategoryInfo.plural,
               getFormatUsageOptions(dataCategoryInfo.plural)
-            )
-          : '-'}
+            )}
       </Flex>,
       <Flex align="center" key="duration">
         {duration ? getExactDuration(duration, true) : t('Ongoing')}

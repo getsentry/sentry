@@ -6,7 +6,6 @@ import {Text} from '@sentry/scraps/text';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils/defined';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -102,13 +101,13 @@ function UsageBreakdownInfo({
     !!formattedAdditionalReserved ||
     !!formattedGifted;
   const shouldShowReservedSpend =
-    defined(recurringReservedSpend) &&
+    recurringReservedSpend != null &&
     recurringReservedSpend > 0 &&
     subscription.canSelfServe;
   const shouldShowAdditionalSpend =
     shouldShowReservedSpend ||
     canUsePayg ||
-    defined(formattedSoftCapType) ||
+    formattedSoftCapType != null ||
     formattedOtherSpend;
 
   if (!shouldShowIncludedVolume && !shouldShowAdditionalSpend) {

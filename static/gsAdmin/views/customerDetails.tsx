@@ -21,7 +21,6 @@ import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
@@ -778,7 +777,7 @@ export function CustomerDetails() {
             key: 'confirmMSAUpdatedForDataConsent',
             name: 'Confirm MSA Updated for Data Consent',
             help: "Confirm that customer's MSA has been updated.",
-            visible: defined(subscription.msaUpdatedForDataConsent),
+            visible: subscription.msaUpdatedForDataConsent != null,
             disabled: !isPolicyAdmin,
             disabledReason: 'Requires policies:admin permissions.',
             skipConfirmModal: true,

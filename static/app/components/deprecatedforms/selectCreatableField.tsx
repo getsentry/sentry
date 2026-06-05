@@ -7,7 +7,6 @@ import {StyledForm} from 'sentry/components/deprecatedforms/form';
 import {SelectField} from 'sentry/components/deprecatedforms/selectField';
 import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
-import {defined} from 'sentry/utils/defined';
 
 // XXX: This is ONLY used in GenericField. If we can delete that this can go.
 
@@ -36,7 +35,7 @@ class SelectCreatableField extends SelectField {
     if (newError !== this.state.error) {
       this.setState({error: newError});
     }
-    if (this.props.value !== nextProps.value || defined(nextProps.formContext.form)) {
+    if (this.props.value !== nextProps.value || nextProps.formContext.form) {
       const newValue = this.getValue(nextProps);
       // This is the only thing that is different from parent, we compare newValue against coerced value in state
       // To remain compatible with react-select, we need to store the option object that

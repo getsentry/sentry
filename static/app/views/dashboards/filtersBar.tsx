@@ -26,7 +26,6 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -142,7 +141,7 @@ export function FiltersBar({
   const {teams: userTeams} = useUserTeams();
   const hasPageFrameFeature = useHasPageFrameFeature();
   const getSearchBarData = useDatasetSearchBarData();
-  const isPrebuiltDashboard = defined(prebuiltDashboardId);
+  const isPrebuiltDashboard = prebuiltDashboardId != null;
   const prebuiltDashboardFilters = prebuiltDashboardId
     ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
     : [];
@@ -263,8 +262,8 @@ export function FiltersBar({
     !isPrebuiltDashboard &&
     !isEditingDashboard &&
     !isPreview &&
-    defined(dashboard?.id) &&
-    defined(onAddWidget);
+    dashboard?.id != null &&
+    onAddWidget != null;
 
   return (
     <Wrapper>

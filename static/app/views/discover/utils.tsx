@@ -13,7 +13,6 @@ import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {
@@ -879,9 +878,7 @@ export function constructAddQueryToDashboardLink({
           widgetTypeUsesDisplayTypeDirectly(widgetType) ||
           displayType === DisplayType.TOP_N ||
           eventView.display === DisplayModes.DAILYTOP5
-            ? eventView
-                .getFields()
-                .filter(column => defined(column) && !isAggregateFieldOrEquation(column))
+            ? eventView.getFields().filter(column => !isAggregateFieldOrEquation(column))
             : [],
       },
     ],

@@ -17,7 +17,6 @@ import {t, tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScreenshotPagination} from './screenshotPagination';
@@ -80,7 +79,7 @@ export function ScreenshotModal({
   const {dateCreated, size, mimetype} = currentEventAttachment;
 
   let paginationProps: ComponentProps<typeof ScreenshotPagination> | null = null;
-  if (screenshots.length > 1 && defined(currentAttachmentIndex)) {
+  if (screenshots.length > 1) {
     paginationProps = {
       previousDisabled: currentAttachmentIndex === 0,
       nextDisabled: currentAttachmentIndex === screenshots.length - 1,
@@ -107,7 +106,7 @@ export function ScreenshotModal({
       </Header>
       <Body>
         <Flex direction="column" gap="lg">
-          {defined(paginationProps) && <ScreenshotPagination {...paginationProps} />}
+          {paginationProps && <ScreenshotPagination {...paginationProps} />}
           <AttachmentComponentWrapper>
             <AttachmentComponent
               attachment={currentEventAttachment}

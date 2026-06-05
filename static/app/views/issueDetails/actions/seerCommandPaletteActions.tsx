@@ -20,7 +20,6 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -100,10 +99,10 @@ export function SeerCommandPaletteActions({
   const {runState, isPolling} = autofix;
   const runId = runState?.run_id;
 
-  const canContinue = !isPolling && defined(runId);
+  const canContinue = !isPolling && runId != null;
 
   function handleCodingAgentHandoff(integration: CodingAgentIntegration) {
-    if (!defined(runId)) {
+    if (runId == null) {
       return;
     }
     if (integration.requires_identity && !integration.has_identity) {

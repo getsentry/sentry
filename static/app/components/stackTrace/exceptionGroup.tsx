@@ -7,8 +7,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
-import {defined} from 'sentry/utils/defined';
-
 type HiddenExceptionsState = Record<number, boolean>;
 
 /**
@@ -21,7 +19,7 @@ export function useHiddenExceptions(values: ExceptionValue[]) {
   const [hiddenExceptions, setHiddenExceptions] = useState<HiddenExceptionsState>(() =>
     values
       .filter(
-        ({mechanism}) => mechanism?.is_exception_group && defined(mechanism.parent_id)
+        ({mechanism}) => mechanism?.is_exception_group && mechanism.parent_id != null
       )
       .reduce<HiddenExceptionsState>(
         (acc, next) => ({...acc, [next.mechanism?.exception_id ?? -1]: true}),
@@ -31,7 +29,7 @@ export function useHiddenExceptions(values: ExceptionValue[]) {
 
   const toggleRelatedExceptions = (exceptionId: number) => {
     setHiddenExceptions(old => {
-      if (!defined(old[exceptionId])) {
+      if (old[exceptionId] == null) {
         return old;
       }
       return {...old, [exceptionId]: !old[exceptionId]};
@@ -45,7 +43,7 @@ export function useHiddenExceptions(values: ExceptionValue[]) {
           value => value.mechanism?.exception_id === exceptionId
         );
         const exceptionGroupId = exceptionValue?.mechanism?.parent_id;
-        if (!defined(exceptionGroupId) || !defined(old[exceptionGroupId])) {
+        if (exceptionGroupId == null || old[exceptionGroupId] == null) {
           return old;
         }
         return {...old, [exceptionGroupId]: false};
@@ -78,7 +76,7 @@ export function ToggleRelatedExceptionsButton({
   values,
 }: ToggleRelatedExceptionsButtonProps) {
   const exceptionId = exception.mechanism?.exception_id;
-  if (!defined(exceptionId) || !defined(hiddenExceptions[exceptionId])) {
+  if (exceptionId == null || hiddenExceptions[exceptionId] == null) {
     return null;
   }
 
@@ -196,7 +194,7 @@ function ExceptionTreeItem({
     <TreeItem level={level} data-test-id="exception-tree-item">
       {level > 0 && <TreeChildLine firstChild={firstChild} />}
       <Circle />
-      {link && defined(exceptionId) ? (
+      {link && exceptionId != null ? (
         <Button
           variant="link"
           size="zero"

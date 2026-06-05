@@ -10,7 +10,6 @@ import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -70,7 +69,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
 
     const items = [];
 
-    if (defined(id) && savedQuery?.isPrebuilt === false) {
+    if (id != null && savedQuery?.isPrebuilt === false) {
       items.push({
         key: 'update-query',
         textValue: t('Existing Query'),

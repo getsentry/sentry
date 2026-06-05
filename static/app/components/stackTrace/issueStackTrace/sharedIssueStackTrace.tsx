@@ -29,7 +29,6 @@ import {tn} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils/defined';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -252,7 +251,7 @@ function SharedIssueStackTraceContent({
             <Disclosure
               key={exceptionId ?? idx}
               defaultExpanded={idx === firstVisibleExceptionIndex}
-              id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
+              id={exceptionId == null ? undefined : `exception-${exceptionId}`}
             >
               <Disclosure.Title
                 trailingItems={

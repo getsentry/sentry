@@ -10,7 +10,6 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconLightning, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
-import {defined} from 'sentry/utils/defined';
 
 import {PlanTier} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
@@ -201,7 +200,7 @@ export function VolumeSliders({
                     value={currentSliderValues[category] ?? ''}
                     allowedValues={allowedValues}
                     onChange={value =>
-                      defined(value) && typeof value === 'number'
+                      typeof value === 'number'
                         ? onReservedChange(value, category)
                         : undefined
                     }

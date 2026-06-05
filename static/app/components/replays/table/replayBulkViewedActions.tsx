@@ -79,7 +79,7 @@ export function ReplayBulkViewedActions({
     const projectIds = new Set(
       selectedRows
         .map(replay => replay.project_id && String(replay.project_id))
-        .filter(Boolean) as string[]
+        .filter(Boolean)
     );
 
     trackAnalytics('replay.bulk_mark_viewed', {

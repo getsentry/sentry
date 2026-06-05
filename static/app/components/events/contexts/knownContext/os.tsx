@@ -1,8 +1,6 @@
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
-import {defined} from 'sentry/utils/defined';
-
 // https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/#os-context
 enum OperatingSystemContextKeys {
   NAME = 'name',
@@ -69,7 +67,7 @@ export function getOperatingSystemContextData({
         return {
           key: ctxKey,
           subject: t('Rooted'),
-          value: defined(data.rooted) ? (data.rooted ? t('yes') : t('no')) : null,
+          value: data.rooted == null ? null : data.rooted ? t('yes') : t('no'),
         };
       case OperatingSystemContextKeys.THEME:
         return {

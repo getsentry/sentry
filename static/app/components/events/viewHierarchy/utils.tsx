@@ -10,7 +10,6 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import {watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
@@ -79,7 +78,7 @@ export function getHierarchyDimensions(
     };
     nodes.push(node);
 
-    if (defined(child.children) && child.children.length) {
+    if (child.children?.length) {
       // Push the children into the queue in reverse order because the
       // output nodes should have early children before later children
       // i.e. we need to pop() off early children before ones that come after

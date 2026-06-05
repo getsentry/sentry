@@ -24,7 +24,6 @@ import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridList
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 
 interface ArithmeticTokenLiteralProps {
   item: Node<Token>;
@@ -228,7 +227,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
         dispatch({
           type: 'DELETE_TOKEN',
           token,
-          focusOverride: defined(itemKey) ? {itemKey} : undefined,
+          focusOverride: itemKey == null ? undefined : {itemKey},
         });
       }
 
@@ -242,7 +241,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
         dispatch({
           type: 'DELETE_TOKEN',
           token,
-          focusOverride: defined(itemKey) ? {itemKey} : undefined,
+          focusOverride: itemKey == null ? undefined : {itemKey},
         });
       }
     },

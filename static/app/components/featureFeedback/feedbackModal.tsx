@@ -25,7 +25,6 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -232,16 +231,16 @@ export function FeedbackModal<T extends Data>({
               tooltipProps={{
                 title:
                   props.children === undefined
-                    ? defined(state.subject)
-                      ? undefined
-                      : t('Required fields must be filled out')
+                    ? state.subject == null
+                      ? t('Required fields must be filled out')
+                      : undefined
                     : primaryDisabledReason,
               }}
               onClick={onNext ?? (() => handleSubmit(submitEventData))}
               disabled={
                 props.children === undefined
-                  ? !defined(state.subject)
-                  : defined(primaryDisabledReason)
+                  ? state.subject == null
+                  : primaryDisabledReason != null
               }
             >
               {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}

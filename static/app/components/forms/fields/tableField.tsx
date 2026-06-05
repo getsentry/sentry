@@ -11,7 +11,6 @@ import {FormField} from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
@@ -35,7 +34,7 @@ export interface TableFieldProps extends Omit<InputFieldProps, 'type'> {}
 interface RenderProps extends TableFieldProps, DefaultProps, Omit<TableType, 'type'> {}
 
 function hasValue(value: any) {
-  return defined(value) && !isEmptyObject(value);
+  return value != null && !isEmptyObject(value);
 }
 
 export function TableField({
@@ -148,7 +147,7 @@ export function TableField({
                 <RowInput>
                   <Input
                     onChange={v => setValue(rowIndex, fieldKey, v)}
-                    value={defined(row[fieldKey]) ? row[fieldKey] : ''}
+                    value={row[fieldKey] == null ? '' : row[fieldKey]}
                     // Do not forward required to `input` to avoid default browser behavior
                     required={undefined}
                   />

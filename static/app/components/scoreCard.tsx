@@ -6,8 +6,6 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Panel} from 'sentry/components/panels/panel';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {defined} from 'sentry/utils/defined';
-
 type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
@@ -50,7 +48,7 @@ export function ScoreCard({
 
       <ScoreWrapper>
         <Score>{displayScore}</Score>
-        {defined(trend) && (
+        {trend && (
           <Trend trendStatus={trendStatus}>
             <TextOverflow>{trend}</TextOverflow>
           </Trend>

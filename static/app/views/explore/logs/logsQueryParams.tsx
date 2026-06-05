@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -140,7 +139,7 @@ export function getTargetWithReadableQueryParams(
 
   // when using aggregate fields, we want to make sure to delete the params
   // used by the separate group by, aggregate fn and aggregate param
-  if (defined(writableQueryParams.aggregateFields)) {
+  if (writableQueryParams.aggregateFields) {
     delete target.query[LOGS_GROUP_BY_KEY];
     delete target.query[LOGS_AGGREGATE_FN_KEY];
     delete target.query[LOGS_AGGREGATE_PARAM_KEY];

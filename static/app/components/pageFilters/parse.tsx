@@ -9,7 +9,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 
 import type {PageFiltersState} from './types';
 
@@ -114,7 +113,7 @@ function getDateTimeString(maybe: Date | ParamValue) {
  * Normalize a UTC parameter
  */
 function parseUtcValue(utc: boolean | SingleParamValue) {
-  if (!defined(utc)) {
+  if (utc == null) {
     return;
   }
 
@@ -138,7 +137,7 @@ export function getUtcValue(maybe: boolean | ParamValue) {
  * Normalizes a string or string[] into the project list parameter
  */
 function getProject(maybe: ParamValue) {
-  if (!defined(maybe)) {
+  if (maybe == null) {
     return;
   }
 
@@ -154,7 +153,7 @@ function getProject(maybe: ParamValue) {
  * Normalizes a string or string[] into the environment list parameter
  */
 function getEnvironment(maybe: ParamValue) {
-  if (!defined(maybe)) {
+  if (maybe == null) {
     return;
   }
 
@@ -278,7 +277,7 @@ export function normalizeDateTimeParams(
   };
 
   // Filter null values
-  const paramEntries = Object.entries(object).filter(([_, value]) => defined(value));
+  const paramEntries = Object.entries(object).filter(([_, value]) => value != null);
 
   return Object.fromEntries(paramEntries);
 }

@@ -13,7 +13,6 @@ import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -199,13 +198,13 @@ export function useReplayData({
         )
       : [],
     combine: results => ({
-      pages: results.map(r => r.data).filter(defined),
+      pages: results.map(r => r.data).filter(Boolean),
       status: results.some(r => r.status === 'error')
         ? 'error'
         : results.some(r => r.status === 'pending')
           ? 'pending'
           : 'success',
-      errors: results.map(r => r.error).filter(defined),
+      errors: results.map(r => r.error).filter(Boolean),
     }),
   });
 
@@ -262,7 +261,7 @@ export function useReplayData({
         )
       : [],
     combine: results => ({
-      pages: results.map(r => r.data?.json).filter(defined),
+      pages: results.map(r => r.data?.json).filter(Boolean),
       status: results.some(r => r.status === 'error')
         ? 'error'
         : results.some(r => r.status === 'pending')

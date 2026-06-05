@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -238,7 +237,7 @@ export function getWidgetDiscoverUrl(
       : [discoverLocation.query.field];
 
   const query = widget.queries[0]!;
-  const queryFields = defined(query.fields)
+  const queryFields = query.fields
     ? query.fields
     : [...query.columns, ...query.aggregates];
 
@@ -319,7 +318,7 @@ export function flattenErrors(
 ): FlatValidationError {
   if (typeof data === 'string') {
     update.error = data;
-  } else if (defined(data)) {
+  } else if (data) {
     Object.keys(data).forEach((key: string) => {
       const value = data[key];
       if (typeof value === 'string') {
@@ -398,14 +397,14 @@ export function hasUnsavedFilterChanges(
     environment: new Set(currentFilters.environment),
   };
 
-  if (defined(location.query?.release)) {
+  if (location.query?.release != null) {
     // Release is only included in the comparison if it exists in the query
     // params, otherwise the dashboard should be using its saved state
     savedFilters.release = new Set(initialDashboard.filters?.release);
     currentFilters.release = new Set(location.query?.release);
   }
 
-  if (defined(location.query?.globalFilter)) {
+  if (location.query?.globalFilter != null) {
     savedFilters.globalFilter = new Set(
       initialDashboard.filters?.globalFilter?.map(filter => JSON.stringify(filter))
     );
@@ -471,9 +470,9 @@ export function getCurrentPageFilters(
           : project.map(Number),
     environment: decodeList(environment),
     period: statsPeriod as string | undefined,
-    start: defined(start) ? normalizeDateTimeString(start as string) : undefined,
-    end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
-    utc: defined(utc) ? utc === 'true' : undefined,
+    start: start == null ? undefined : normalizeDateTimeString(start as string),
+    end: end == null ? undefined : normalizeDateTimeString(end as string),
+    utc: utc == null ? undefined : utc === 'true',
   };
 }
 
@@ -493,7 +492,7 @@ export function getMergedDashboardFilters(
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
   const dashboardFilters: DashboardFilters = {};
   Object.values(DashboardFilterKeys).forEach(key => {
-    if (defined(location.query?.[key])) {
+    if (location.query?.[key] != null) {
       const queryFilters = decodeList(location.query?.[key]);
 
       if (key === DashboardFilterKeys.GLOBAL_FILTER) {

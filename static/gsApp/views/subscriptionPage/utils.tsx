@@ -1,6 +1,5 @@
 import type {DataCategory, Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 
 import {type Subscription} from 'getsentry/types';
 import {isPartOfReservedBudget} from 'getsentry/utils/dataCategory';
@@ -21,7 +20,7 @@ export function calculateCategorySpend(
 } {
   const categoryInfo = subscription.categories[category];
   const slots = subscription.planDetails.planCategories[category];
-  if (!defined(categoryInfo?.reserved) || !slots) {
+  if (categoryInfo?.reserved == null || !slots) {
     return {
       prepaidSpent: 0,
       onDemandSpent: 0,

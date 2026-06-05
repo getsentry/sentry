@@ -6,7 +6,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {
@@ -43,8 +42,7 @@ export function CrossEventQueryingDropdown() {
     }
   };
 
-  const isDisabled =
-    defined(crossEvents) && crossEvents.length >= MAX_CROSS_EVENT_QUERIES;
+  const isDisabled = crossEvents != null && crossEvents.length >= MAX_CROSS_EVENT_QUERIES;
   const tooltipTitle = isDisabled
     ? t('Maximum of %s cross event queries allowed.', MAX_CROSS_EVENT_QUERIES)
     : t('For more targeted results, you can also cross reference other datasets.');

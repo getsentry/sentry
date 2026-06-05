@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -22,7 +21,7 @@ export function updateLocationWithLogSortBys(
   location: Location,
   sortBys: Sort[] | null | undefined
 ) {
-  if (defined(sortBys)) {
+  if (sortBys) {
     location.query[LOGS_SORT_BYS_KEY] = sortBys.map(sortBy =>
       sortBy.kind === 'desc' ? `-${sortBy.field}` : sortBy.field
     );

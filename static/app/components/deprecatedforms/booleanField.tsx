@@ -4,8 +4,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {InputField} from 'sentry/components/deprecatedforms/inputField';
 import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 import {IconQuestion} from 'sentry/icons';
-import {defined} from 'sentry/utils/defined';
-
 type Props = InputField['props'];
 
 type State = InputField['state'] & {
@@ -58,7 +56,7 @@ class BooleanField extends InputField<Props, State> {
               </Tooltip>
             )}
           </label>
-          {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
+          {this.props.help && <p className="help-block">{this.props.help}</p>}
           {error && <p className="error">{error}</p>}
         </div>
       </div>

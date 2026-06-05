@@ -12,7 +12,6 @@ import {
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 
 /**
  * Legacy suspect flags implementation.
@@ -45,7 +44,7 @@ export function useLegacyEventSuspectFlags({
   const auditLogFlagNames = hydratedFlagData.map(f => f.name);
   const evaluatedFlagNames = event?.contexts?.flags?.values
     ?.map(f => f?.flag)
-    .filter(defined);
+    .filter(x => x != null);
   const intersectionFlags = useMemo(
     () => intersection(auditLogFlagNames, evaluatedFlagNames),
     [auditLogFlagNames, evaluatedFlagNames]

@@ -28,8 +28,6 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
-
 type SearchQueryBuilderBooleanProps = {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
@@ -97,8 +95,8 @@ export function SearchQueryBuilderBoolean({
   // values for the boolean operator
   const tokenText = token.text.toUpperCase();
 
-  const tokenHasError = 'invalid' in token && defined(token.invalid);
-  const tokenHasWarning = 'warning' in token && defined(token.warning);
+  const tokenHasError = 'invalid' in token && token.invalid != null;
+  const tokenHasWarning = 'warning' in token && token.warning != null;
 
   return (
     <FilterWrapper

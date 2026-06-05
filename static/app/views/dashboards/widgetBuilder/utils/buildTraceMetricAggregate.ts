@@ -1,4 +1,3 @@
-import {defined} from 'sentry/utils/defined';
 import type {
   AggregationKeyWithAlias,
   Column,
@@ -22,9 +21,7 @@ export function buildTraceMetricAggregate(
       'value',
       traceMetric.name,
       traceMetric.type,
-      defined(traceMetric.unit) && traceMetric.unit !== '-'
-        ? traceMetric.unit
-        : NONE_UNIT,
+      traceMetric.unit != null && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT,
     ],
   };
 }
@@ -39,7 +36,7 @@ export function extractTraceMetricFromColumn(column: Column): TraceMetric | unde
   if (column.kind === 'function' && column.function) {
     const [, , name, type, unit] = column.function;
     if (name && type) {
-      return {name, type, unit: defined(unit) && unit !== '-' ? unit : NONE_UNIT};
+      return {name, type, unit: unit != null && unit !== '-' ? unit : NONE_UNIT};
     }
   }
   return undefined;

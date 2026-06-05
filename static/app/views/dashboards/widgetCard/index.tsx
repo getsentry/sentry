@@ -332,7 +332,7 @@ function WidgetCard(props: Props) {
     transactionsDeprecationWarning,
     droppedColumnsWarning,
     conflictingFilterWarning,
-  ].filter(Boolean) as string[];
+  ].filter(Boolean);
 
   const actionsDisabled = Boolean(props.isPreview);
   const actionsMessage = actionsDisabled

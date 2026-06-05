@@ -4,7 +4,6 @@ import {useQueryClient} from '@tanstack/react-query';
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {defined} from 'sentry/utils/defined';
 import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 
 type TFeedbackIds = 'all' | string[];
@@ -43,7 +42,7 @@ export function useFeedbackCache() {
       } else {
         ids
           .map(id => getItemApiOptions(id).issueApiOptions?.queryKey)
-          .filter(defined)
+          .filter(Boolean)
           .forEach(queryKey => updateCachedQueryKey(queryKey, payload));
       }
     },
