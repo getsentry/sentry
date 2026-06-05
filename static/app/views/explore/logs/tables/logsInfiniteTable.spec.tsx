@@ -555,6 +555,74 @@ describe('LogsInfiniteTable', () => {
     );
   });
 
+  it('links the body instance hover state when the pinned instance is hovered', async () => {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
+        search: '?logsPinned=1',
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'severity:error',
+          logsPinning: 'true',
+          logsPinned: '1',
+        },
+      })
+    );
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
+    const rows = await screen.findAllByTestId('log-table-row');
+    const pinnedRow = rows.find(row => pinnedTableBody.contains(row))!;
+    const tbodyRow = rows.find(
+      row => !pinnedTableBody.contains(row) && within(row).queryByText('test log body 1')
+    )!;
+
+    await userEvent.hover(pinnedRow);
+
+    await waitFor(() => {
+      expect(tbodyRow).toHaveAttribute('data-row-hover-linked', 'true');
+    });
+    expect(pinnedRow).toHaveAttribute('data-row-hover-linked', 'true');
+  });
+
+  it('links the pinned instance hover state when the body instance is hovered', async () => {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: `/organizations/${organization.slug}/explore/logs/?end=2025-04-10T20%3A04%3A51&project=${project.id}&start=2025-04-10T14%3A37%3A55`,
+        search: '?logsPinned=1',
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'severity:error',
+          logsPinning: 'true',
+          logsPinned: '1',
+        },
+      })
+    );
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
+    const rows = await screen.findAllByTestId('log-table-row');
+    const pinnedRow = rows.find(row => pinnedTableBody.contains(row))!;
+    const tbodyRow = rows.find(
+      row => !pinnedTableBody.contains(row) && within(row).queryByText('test log body 1')
+    )!;
+
+    await userEvent.hover(tbodyRow);
+
+    await waitFor(() => {
+      expect(pinnedRow).toHaveAttribute('data-row-hover-linked', 'true');
+    });
+    expect(tbodyRow).toHaveAttribute('data-row-hover-linked', 'true');
+  });
+
   it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {
     // Start with severity sorted ascending (second click has already happened)
     mockUseLocation.mockReturnValue(
