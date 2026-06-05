@@ -6,7 +6,6 @@ from django.core.exceptions import PermissionDenied
 from sentry import http, options
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import (
     ExternalActorSource,
     ExternalProviders,
@@ -127,6 +126,11 @@ def ensure_external_actors_for_github_identity(
     """
     if not github_login:
         return
+
+    # Imported lazily to avoid a circular import: this module is imported during
+    # identity provider registration (sentry.identity), which runs before the
+    # integration service module has finished initializing.
+    from sentry.integrations.services.integration import integration_service
 
     try:
         org_ids = list(
