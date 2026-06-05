@@ -219,20 +219,12 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
       );
 
-      // Keep the panel's TraceMetric in sync with what Seer queried — otherwise
-      // the toolbar, samples table, and timeseries queries keep using the
-      // previously-selected metric.
-      //
-      // In aggregate mode the metric is embedded in the visualization aggregate
-      // (e.g. p75(value, metric.name, distribution, millisecond)), so we scan
-      // every y-axis we're about to encode (not just the first visualization's,
-      // since the metric-qualified aggregate may live in a later visualization).
-      //
-      // In samples mode there are no visualizations and the metric is expressed
-      // as `metric.name:...`/`metric.type:...`/`metric.unit:...` filters in the
-      // query instead. We pull them out of the query and always strip them from
-      // the outputted query, since the metric is tracked on the panel rather
-      // than the query.
+      // Keep the panel's TraceMetric in sync with what Seer queried. We parse
+      // the metric name/type/unit out of the visualize aggregate (e.g.
+      // p75(value, metric.name, distribution, millisecond)); if it's not there
+      // we read metric.name/type/unit filters from the query (typically only
+      // present in samples mode), always stripping them from the outputted
+      // query since the metric is tracked on the panel rather than the query.
       const search = new MutableSearch(queryToUse);
 
       const visualizationTraceMetric = visualizations
