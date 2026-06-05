@@ -260,6 +260,28 @@ def _delete_existing_reactions_and_add_reaction(
                 if (author := reaction.get("author")) is not None
                 and author["id"] == current_actor_id
             ]
+            # The add decision below hinges entirely on what this fetch returns: if the
+            # authenticated actor id is wrong (or pagination truncates the list) we can
+            # both fail to delete stale reactions and wrongly skip/duplicate the add.
+            # Log the resolved actor and our own reactions so a missing :eyes: can be
+            # traced to the actual reaction state we observed.
+            debug_log(
+                logger,
+                organization_id,
+                "gitlab.webhook.merge_request.reaction.existing_fetched",
+                {
+                    "organization_id": organization_id,
+                    "repo_id": repo.id,
+                    "mr_iid": mr_iid,
+                    "action": action_value,
+                    "current_actor_id": current_actor_id,
+                    "total_reaction_count": len(existing),
+                    "own_reaction_count": len(own_reactions),
+                    "own_reaction_contents": [
+                        reaction.get("content") for reaction in own_reactions
+                    ],
+                },
+            )
         except Exception:
             logger.warning("gitlab.webhook.merge_request.reaction.fetch_failed", exc_info=True)
             record_webhook_handler_error(
@@ -270,22 +292,63 @@ def _delete_existing_reactions_and_add_reaction(
         if reaction.get("content") in reactions_to_delete and reaction.get("id"):
             try:
                 scm_actions.delete_pull_request_reaction(scm, mr_iid, str(reaction["id"]))
+                debug_log(
+                    logger,
+                    organization_id,
+                    "gitlab.webhook.merge_request.reaction.deleted",
+                    {
+                        "organization_id": organization_id,
+                        "repo_id": repo.id,
+                        "mr_iid": mr_iid,
+                        "action": action_value,
+                        "reaction": reaction.get("content"),
+                    },
+                )
             except Exception:
                 logger.warning("gitlab.webhook.merge_request.reaction.delete_failed", exc_info=True)
                 record_webhook_handler_error(
                     GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
                 )
 
-    if reaction_to_add and not any(
-        reaction.get("content") == reaction_to_add for reaction in own_reactions
-    ):
-        try:
-            scm_actions.create_pull_request_reaction(scm, mr_iid, reaction_to_add)
-        except Exception:
-            logger.warning("gitlab.webhook.merge_request.reaction.add_failed", exc_info=True)
-            record_webhook_handler_error(
-                GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
-            )
+    if reaction_to_add is None:
+        return
+
+    # GitLab rejects a duplicate award_emoji POST, so we intentionally skip the add when
+    # our user already placed this reaction. This is the most common reason a re-review
+    # of an MR shows no *new* :eyes: — log it so the skip is not mistaken for a failure.
+    if any(reaction.get("content") == reaction_to_add for reaction in own_reactions):
+        debug_log(
+            logger,
+            organization_id,
+            "gitlab.webhook.merge_request.reaction.add_skipped_already_present",
+            {
+                "organization_id": organization_id,
+                "repo_id": repo.id,
+                "mr_iid": mr_iid,
+                "action": action_value,
+                "reaction": reaction_to_add,
+            },
+        )
+        return
+
+    try:
+        scm_actions.create_pull_request_reaction(scm, mr_iid, reaction_to_add)
+        debug_log(
+            logger,
+            organization_id,
+            "gitlab.webhook.merge_request.reaction.added",
+            {
+                "organization_id": organization_id,
+                "repo_id": repo.id,
+                "action": action_value,
+                "reaction": reaction_to_add,
+            },
+        )
+    except Exception:
+        logger.warning("gitlab.webhook.merge_request.reaction.add_failed", exc_info=True)
+        record_webhook_handler_error(
+            GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
+        )
 
 
 def handle_merge_request_event(
@@ -453,6 +516,13 @@ def handle_merge_request_event(
                 action_value=action_value,
                 reactions_to_delete=["hooray"],
                 reaction_to_add="eyes",
+            )
+        else:
+            # A non-close MR event with no iid should not happen, but if it does the
+            # reaction is silently skipped; log it so a missing :eyes: is explainable.
+            logger.warning(
+                "gitlab.webhook.merge_request.reaction.skipped_missing_iid",
+                extra={"organization_id": org.id, "repo_id": repo.id, "action": action_value},
             )
 
     debug_log(logger, organization, "scheduling_seer_task", base_log)
