@@ -7,6 +7,7 @@ import sentry.api.helpers.group_index.update
 import sentry.issues.endpoints.group_details
 import sentry.issues.priority
 import sentry.issues.status_change
+import sentry.models.group
 import sentry.models.groupassignee
 import sentry.models.groupinbox
 from sentry.issues.action_log import (
@@ -408,6 +409,21 @@ class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
         assert len(records) == 1
         assert records[0].action == "archive"
         assert records[0].source == ActionSource.SYSTEM
+
+    @patch.object(sentry.models.group, "publish_action_from_context", autospec=True)
+    def test_substatus_only_transition_emits_no_action(self, mock_publish: MagicMock) -> None:
+        # AUTO_SET_ONGOING moves a group NEW -> ONGOING but it stays UNRESOLVED; that
+        # substatus-only change must not be logged as an unresolve.
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            Group.objects.update_group_status(
+                groups=[group],
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ONGOING,
+                activity_type=ActivityType.AUTO_SET_ONGOING,
+                from_substatus=GroupSubStatus.NEW,
+            )
+        assert mock_publish.call_count == 0
 
 
 class TestPublishActionWrite(TestCase):

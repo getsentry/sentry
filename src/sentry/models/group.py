@@ -243,10 +243,15 @@ STATUS_UPDATE_CHOICES = {
     "muted": GroupStatus.IGNORED,
 }
 
-STATUS_TO_GROUP_ACTION: dict[int, type[GroupAction]] = {
-    GroupStatus.RESOLVED: ResolveAction,
-    GroupStatus.IGNORED: ArchiveAction,
-    GroupStatus.UNRESOLVED: UnresolveAction,
+# Maps the Activity type driving a status change to the action we record, mirroring
+# ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS. Substatus-only transitions (e.g.
+# AUTO_SET_ONGOING, SET_ESCALATING) have no entry and are intentionally not recorded.
+ACTIVITY_TYPE_TO_GROUP_ACTION: dict[int, type[GroupAction]] = {
+    ActivityType.SET_RESOLVED.value: ResolveAction,
+    ActivityType.SET_RESOLVED_IN_COMMIT.value: ResolveAction,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value: ResolveAction,
+    ActivityType.SET_IGNORED.value: ArchiveAction,
+    ActivityType.SET_UNRESOLVED.value: UnresolveAction,
 }
 
 
@@ -560,12 +565,14 @@ class GroupManager(BaseManager["Group"]):
             )
             record_group_history_from_activity_type(group, activity_type.value)
 
-            publish_action_from_context(
-                STATUS_TO_GROUP_ACTION.get(status, UnresolveAction)(),
-                group_id=group.id,
-                organization_id=group.project.organization_id,
-                project_id=group.project_id,
-            )
+            action_cls = ACTIVITY_TYPE_TO_GROUP_ACTION.get(activity_type.value)
+            if action_cls is not None:
+                publish_action_from_context(
+                    action_cls(),
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                )
 
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
