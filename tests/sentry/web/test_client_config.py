@@ -322,12 +322,37 @@ def test_client_config_with_staff_session_fills_cells() -> None:
 
     assert len(result["localities"]) == 2
     localities = result["localities"]
-    assert {r["name"] for r in localities} == {"us", "eu"}
+    assert [r["name"] for r in localities] == ["us", "eu"]
 
     assert len(result["cells"]) == 2
     cells = result["cells"]
-    assert {r["name"] for r in cells} == {"us", "eu"}
-    assert {r["locality_url"] for r in cells} == {"http://us.testserver", "http://eu.testserver"}
+    assert [r["name"] for r in cells] == ["eu", "us"]
+    assert [r["locality_url"] for r in cells] == ["http://eu.testserver", "http://us.testserver"]
+
+
+@control_silo_test(cells=hidden_regions)
+@django_db_all
+def test_client_config_with_staff_session_includes_hidden_cells() -> None:
+    request, user = make_user_request_from_org()
+    user.is_staff = True
+    request.user = user
+
+    # Simulate an active staff session
+    staff = Staff(request)
+    staff.set_logged_in(user)
+    request.staff = staff  # type: ignore[attr-defined]
+
+    result = get_client_config(request)
+
+    # Localities (customer facing) don't include hidden cells/localities
+    assert len(result["localities"]) == 1
+    localities = result["localities"]
+    assert [r["name"] for r in localities] == ["us"]
+
+    # Cells list includes hidden items
+    assert len(result["cells"]) == 2
+    cells = result["cells"]
+    assert [r["name"] for r in cells] == ["eu", "us"]
 
 
 @multiregion_client_config_test
