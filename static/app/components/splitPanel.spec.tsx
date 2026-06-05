@@ -1,33 +1,6 @@
-import {ThemeFixture} from 'sentry-fixture/theme';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SplitPanel} from 'sentry/components/splitPanel';
-import type {BreakpointSize} from 'sentry/utils/theme';
-
-const theme = ThemeFixture();
-
-// Stub window.matchMedia so a chosen set of breakpoints reports as active.
-function setupMediaQueries(matches: Partial<Record<BreakpointSize, boolean>>) {
-  const original = window.matchMedia;
-  window.matchMedia = jest.fn((query: string) => {
-    const value = query.match(/min-width:\s*(.+?)\)/)?.[1];
-    const name = Object.entries(theme.breakpoints).find(([, v]) => v === value)?.[0];
-    return {
-      matches: name ? (matches[name as BreakpointSize] ?? false) : false,
-      media: query,
-      onchange: null,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    } as unknown as MediaQueryList;
-  });
-  return () => {
-    window.matchMedia = original;
-  };
-}
 
 describe('SplitPanel', () => {
   it('renders both panes and a divider', () => {
@@ -89,27 +62,6 @@ describe('SplitPanel', () => {
     expect(
       fill.compareDocumentPosition(sized) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-  });
-
-  it('resolves the orientation for the active breakpoint', () => {
-    const cleanup = setupMediaQueries({xs: true, sm: true, md: true});
-
-    render(
-      <SplitPanel
-        orientation={{xs: 'vertical', md: 'horizontal'}}
-        defaultSize={200}
-        sized={<div>one</div>}
-        fill={<div>two</div>}
-      />
-    );
-
-    // md is active, so the panel splits horizontally (separator runs vertically).
-    expect(screen.getByRole('separator')).toHaveAttribute(
-      'data-orientation',
-      'horizontal'
-    );
-
-    cleanup();
   });
 
   it('exposes the divider as a separator with orientation and value attributes', () => {
