@@ -432,17 +432,14 @@ class _ClientConfig:
         ):
             return []
 
-        cell_names = find_all_cell_names()
-        if not cell_names:
-            cell_names = [settings.SENTRY_MONOLITH_REGION]
-
         def cell_display_order(cell: Cell) -> tuple[bool, bool, str]:
             return (
                 cell.category != RegionCategory.MULTI_TENANT,  # multi-tenant before single
-                cell.visible,  # visible cells first
+                not cell.visible,  # visible cells first
                 cell.name,  # then sort alphabetically
             )
 
+        cell_names = find_all_cell_names()
         cells = [get_cell_by_name(name) for name in cell_names]
         cells.sort(key=cell_display_order)
 
