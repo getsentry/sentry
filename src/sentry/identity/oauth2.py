@@ -353,24 +353,8 @@ class OAuth2ApiStep:
             "client_id": self.client_id,
             "client_secret": self.client_secret,
         }
-        return self._do_token_request(token_params)
-
-    def _do_token_request(
-        self,
-        token_params: dict[str, str],
-        headers: dict[str, str] | None = None,
-    ) -> dict[str, Any]:
-        """Send a token request and parse the response.
-
-        Raises OAuth2ApiStepError on failure.
-        """
         try:
-            req = safe_urlopen(
-                self.access_token_url,
-                data=token_params,
-                headers=headers,
-                verify_ssl=self.verify_ssl,
-            )
+            req = safe_urlopen(self.access_token_url, data=token_params, verify_ssl=self.verify_ssl)
             req.raise_for_status()
         except HTTPError as e:
             error_resp = e.response
