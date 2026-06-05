@@ -1,5 +1,6 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {EventsStats} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
