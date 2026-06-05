@@ -469,6 +469,7 @@ def handle_resolve_in_release(
             group=group,
             project=project_lookup[group.project_id],
             resolution_type=res_type_str,
+            commit_id=commit.id if commit else None,
             sender=update_groups,
         )
 

@@ -5,12 +5,17 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {
+  LLMContextProvider,
+  useLLMContext,
+} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 import {AutofixSection} from './autofixSection';
 
@@ -599,5 +604,92 @@ describe('AutofixSection', () => {
     expect(screen.getByText('Outline a plan')).toBeInTheDocument();
     expect(screen.getByText('Create a code fix')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+  });
+
+  it('pushes autofix data into LLM context when results are available', async () => {
+    const snapshotRef: {current: (() => LLMContextSnapshot) | null} = {current: null};
+
+    function ContextCapture() {
+      const {getLLMContext} = useLLMContext();
+      snapshotRef.current = getLLMContext;
+      return null;
+    }
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+          blocks: [
+            {
+              id: 'block-1',
+              message: {
+                content: 'Found root cause',
+                role: 'assistant',
+                metadata: {step: 'root_cause'},
+              },
+              timestamp: new Date().toISOString(),
+              artifacts: [
+                {
+                  key: 'root_cause',
+                  reason: 'Identified the issue',
+                  data: {
+                    one_line_description: 'Null pointer in user handler',
+                    five_whys: ['Missing guard clause'],
+                    reproduction_steps: ['Call /api/user with null id'],
+                  },
+                },
+              ],
+            },
+            {
+              id: 'block-2',
+              message: {
+                content: 'Made code changes',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
+              timestamp: new Date().toISOString(),
+              merged_file_patches: [
+                {
+                  diff: '--- a/src/handler.py\n+++ b/src/handler.py',
+                  repo_name: 'org/repo',
+                  patch: {
+                    path: 'src/handler.py',
+                    added: 2,
+                    removed: 1,
+                    hunks: [],
+                    source_file: 'src/handler.py',
+                    target_file: 'src/handler.py',
+                    type: DiffFileType.MODIFIED,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    render(
+      <LLMContextProvider>
+        <AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />
+        <ContextCapture />
+      </LLMContextProvider>,
+      {organization}
+    );
+
+    await waitFor(() => {
+      const node = snapshotRef.current?.().nodes.find(n => n.nodeType === 'autofix');
+      expect((node?.data as Record<string, string> | undefined)?.autofixStatus).toBe(
+        'completed'
+      );
+    });
+
+    const data = snapshotRef.current!().nodes.find(n => n.nodeType === 'autofix')!
+      .data as Record<string, string>;
+    expect(data.rootCause).toContain('Null pointer in user handler');
+    expect(data.codeChanges).toBe('org/repo: src/handler.py');
   });
 });

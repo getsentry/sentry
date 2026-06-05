@@ -3898,24 +3898,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert "queries" in response.data["widgets"][1], response.data
         assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
 
-    def test_put_creates_dashboard_revision_when_feature_enabled(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
-            )
-        assert response.status_code == 200, response.data
-        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 1
-
-    def test_put_does_not_create_revision_when_feature_disabled(self) -> None:
+    def test_put_creates_dashboard_revision(self) -> None:
         response = self.do_request(
             "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
         )
         assert response.status_code == 200, response.data
-        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 0
+        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 1
 
     def test_put_snapshot_contains_pre_save_state(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
+        self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         # Snapshot reflects the state before the update
@@ -3926,8 +3917,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert self.dashboard.title == "New Title"
 
     def test_put_snapshot_includes_widgets_and_queries(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
+        self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         snapshot_widgets = revision.snapshot["widgets"]
@@ -3944,20 +3934,19 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_put_snapshot_captures_widget_state_before_widget_edit(self) -> None:
         original_widget_title = self.widget_1.title
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request(
-                "put",
-                self.url(self.dashboard.id),
-                data={
-                    "title": self.dashboard.title,
-                    "widgets": [
-                        {"id": str(self.widget_1.id), "title": "Updated Widget Title"},
-                        {"id": str(self.widget_2.id)},
-                        {"id": str(self.widget_3.id)},
-                        {"id": str(self.widget_4.id)},
-                    ],
-                },
-            )
+        self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "title": self.dashboard.title,
+                "widgets": [
+                    {"id": str(self.widget_1.id), "title": "Updated Widget Title"},
+                    {"id": str(self.widget_2.id)},
+                    {"id": str(self.widget_3.id)},
+                    {"id": str(self.widget_4.id)},
+                ],
+            },
+        )
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         snapshot_widget = revision.snapshot["widgets"][0]
@@ -3969,30 +3958,27 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert self.widget_1.title == "Updated Widget Title"
 
     def test_put_revision_source_defaults_to_edit(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request("put", self.url(self.dashboard.id), data={"title": "Updated"})
+        self.do_request("put", self.url(self.dashboard.id), data={"title": "Updated"})
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         assert revision.source == "edit"
 
     def test_put_revision_source_edit_with_agent(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request(
-                "put",
-                self.url(self.dashboard.id),
-                data={"title": "Updated", "revisionSource": "edit-with-agent"},
-            )
+        self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={"title": "Updated", "revisionSource": "edit-with-agent"},
+        )
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         assert revision.source == "edit-with-agent"
 
     def test_put_revision_source_ignores_unknown_values(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request(
-                "put",
-                self.url(self.dashboard.id),
-                data={"title": "Updated", "revisionSource": "malicious-value"},
-            )
+        self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={"title": "Updated", "revisionSource": "malicious-value"},
+        )
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         assert revision.source == "edit"
