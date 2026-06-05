@@ -81,7 +81,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.END,
             GlobalParams.STATS_PERIOD,
             OrganizationParams.PROJECT,
-            OrganizationParams.PROJECT_ID_OR_SLUG,
+            OrganizationParams.PROJECT_SLUG,
             VisibilityParams.QUERY,
             ReplayParams.DATA_SOURCE,
             ReplayParams.RETURN_IDS,

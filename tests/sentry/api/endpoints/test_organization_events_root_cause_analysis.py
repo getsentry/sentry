@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
@@ -13,14 +14,14 @@ class RootCauseAnalysisQuerySerializerTest(APITestCase):
         self.access = MagicMock()
         self.access.has_any_project_scope.return_value = True
 
-    def _data(self, project):
+    def _data(self, project: str) -> dict[str, str]:
         return {
             "transaction": "GET /api/0/issues/",
             "project": project,
             "breakpoint": "2024-01-01T00:00:00Z",
         }
 
-    def _context(self):
+    def _context(self) -> dict[str, Any]:
         return {"access": self.access, "organization": self.organization}
 
     def test_accepts_project_id(self) -> None:

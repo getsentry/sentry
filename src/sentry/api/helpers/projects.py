@@ -54,7 +54,7 @@ def parse_id_or_slug_params(
 
 
 @extend_schema_field(field=OpenApiTypes.STR)
-class ProjectIdOrSlugField(serializers.Field[ProjectIdOrSlug]):
+class ProjectIdOrSlugField(serializers.Field[ProjectIdOrSlug, object, ProjectIdOrSlug, object]):
     default_error_messages = {
         "invalid": "Expected a project ID or slug.",
         "invalid_slug": DEFAULT_SLUG_ERROR_MESSAGE,
