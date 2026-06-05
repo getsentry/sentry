@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any, Final, Literal
 
 from sentry import analytics
@@ -25,6 +26,11 @@ CLOSE_ACTION_CLOSED: Final = "closed"
 CLOSE_ACTION_MERGED: Final = "merged"
 
 CloseAction = Literal["closed", "merged"]
+
+
+def _iso(value: datetime | None) -> str | None:
+    """Serialize a persisted datetime to an ISO-8601 string for the row, or None."""
+    return value.isoformat() if value is not None else None
 
 
 def needs_judge(pull_request: PullRequest) -> bool:
@@ -65,13 +71,18 @@ def build_pr_metrics_row(
 ) -> PrCloseMetricsEvent:
     """Assemble the provisional close/merge row from stored + payload data.
 
-    ``payload`` is the GitHub ``pull_request`` object from the webhook; we read
-    lifecycle facts from it directly rather than from the ``PullRequest`` row,
-    which isn't updated with close/merge state on this path. ``attributions`` is
-    the active-attribution snapshot (see ``_active_attributions``), passed in so
-    the caller's tracking gate and the emitted row read the same query.
+    ``payload`` is the GitHub ``pull_request`` object from the webhook and is the
+    primary source for lifecycle facts. The webhook also persists those facts on
+    the ``PullRequest`` row (``head_commit_sha``/``closed_at``/``merged_at``/
+    ``state``), so each field falls back to the stored value — that fallback is
+    what lets a caller without a fresh payload (e.g. the judge round-trip) still
+    build a complete row. ``attributions`` is the active-attribution snapshot
+    (see ``_active_attributions``), passed in so the caller's tracking gate and
+    the emitted row read the same query.
     """
-    is_merged = bool(payload.get("merged"))
+    # The caller already resolved merged-vs-closed; trust it over the payload so
+    # the fallback path (which may carry no ``merged`` flag) stays consistent.
+    is_merged = close_action == CLOSE_ACTION_MERGED
 
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
@@ -79,14 +90,20 @@ def build_pr_metrics_row(
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,
         close_action=close_action,
-        # Subscript (not .get) on always-present fields: a missing key raises and
-        # the webhook loop logs it, rather than emitting a row with null lifecycle.
-        head_commit_sha=payload["head"]["sha"],
+        # Payload first, persisted PR field as fallback.
+        head_commit_sha=(payload.get("head") or {}).get("sha") or pull_request.head_commit_sha,
+        # No persisted counterpart (the PR row's date_added is Sentry-side, not
+        # the GitHub open time): read fail-fast so a malformed payload errors and
+        # the webhook loop logs it, rather than emitting a null open time.
         opened_at=payload["created_at"],
-        closed_at=payload["closed_at"],
+        closed_at=payload.get("closed_at") or _iso(pull_request.closed_at),
         # Present only on a merge; null for a closed-but-unmerged PR.
-        merge_commit_sha=payload["merge_commit_sha"] if is_merged else None,
-        merged_at=payload["merged_at"] if is_merged else None,
+        merge_commit_sha=(
+            (payload.get("merge_commit_sha") or pull_request.merge_commit_sha)
+            if is_merged
+            else None
+        ),
+        merged_at=(payload.get("merged_at") or _iso(pull_request.merged_at)) if is_merged else None,
         draft=bool(payload.get("draft")),
         # GitHub includes these aggregate counts on the PR object in the
         # close/merge payload, so we get size/activity for free without an SCM

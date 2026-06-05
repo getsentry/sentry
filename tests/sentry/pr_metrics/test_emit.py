@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import patch
 
@@ -144,6 +145,45 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.merge_commit_sha is None
         assert row.head_commit_sha == HEAD_SHA
+
+    def test_build_row_falls_back_to_persisted_pr_fields(self) -> None:
+        # The judge round-trip rebuilds the row without the originating webhook
+        # payload; it relies on the lifecycle facts the webhook persisted.
+        ts = datetime(2026, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
+        self.pull_request.head_commit_sha = HEAD_SHA
+        self.pull_request.merge_commit_sha = MERGE_SHA
+        self.pull_request.closed_at = ts
+        self.pull_request.merged_at = ts
+
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            # Payload carries only the field with no persisted counterpart.
+            payload={"number": 42, "created_at": "2026-06-04T09:00:00Z"},
+            attributions=[],
+        )
+        assert row.head_commit_sha == HEAD_SHA
+        assert row.merge_commit_sha == MERGE_SHA
+        assert row.closed_at == ts.isoformat()
+        assert row.merged_at == ts.isoformat()
+
+    def test_build_row_prefers_payload_over_persisted_pr_fields(self) -> None:
+        # Stale persisted values must lose to the fresh webhook payload.
+        self.pull_request.head_commit_sha = "c" * 40
+        self.pull_request.merge_commit_sha = "d" * 40
+        self.pull_request.closed_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        self.pull_request.merged_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
+
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            payload=self._payload(merged=True),
+            attributions=[],
+        )
+        assert row.head_commit_sha == HEAD_SHA
+        assert row.merge_commit_sha == MERGE_SHA
+        assert row.closed_at == "2026-06-04T10:00:00Z"
+        assert row.merged_at == "2026-06-04T10:00:00Z"
 
     def test_active_attributions_only_includes_valid_signals(self) -> None:
         self._track(PullRequestAttributionSignalType.SENTRY_APP)
