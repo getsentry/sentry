@@ -12,8 +12,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import IntegrityError, models
 from django.db.models import F, Func, Value
 from django.utils import timezone
-from objectstore_client import Session
-from objectstore_client.client import RequestError
+from objectstore_client import RequestError, Session
 from pydantic import BaseModel, ValidationError
 from taskbroker_client.retry import Retry
 

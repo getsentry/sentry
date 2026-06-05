@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.http import HttpResponse
-from objectstore_client.client import RequestError
+from objectstore_client import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
