@@ -5,13 +5,14 @@ import type {AriaListBoxOptions} from '@react-aria/listbox';
 import type {ListProps} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {ControlContext} from './control';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
 import type {
+  ListItemBase,
   SelectKey,
   SelectOption,
   SelectOptionOrSectionWithKey,
@@ -184,7 +185,7 @@ export function List<Value extends SelectKey>({
   /**
    * Props to be passed into useListState()
    */
-  const listStateProps = useMemo<Partial<ListProps<any>>>(() => {
+  const listStateProps = useMemo<Partial<ListProps<ListItemBase>>>(() => {
     const disabledKeys = [
       ...getDisabledOptions(items, isOptionDisabled),
       ...hiddenOptions,
@@ -374,7 +375,7 @@ export function List<Value extends SelectKey>({
       )}
       {multiple &&
         sections.map(section =>
-          section.value.showToggleAllButton ? (
+          section.value?.showToggleAllButton ? (
             <HiddenSectionToggle
               key={section.key}
               item={section}

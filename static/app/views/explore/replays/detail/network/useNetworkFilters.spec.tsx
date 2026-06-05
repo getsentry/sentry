@@ -1,4 +1,3 @@
-import type {Location} from 'history';
 import {
   ReplayNavigationFrameFixture,
   ReplayNavigationPushFrameFixture,
@@ -7,20 +6,16 @@ import {
 } from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  renderHookWithProviders as renderHook,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
-import type {FilterFields, NetworkSelectOption} from './useNetworkFilters';
+import type {NetworkSelectOption} from './useNetworkFilters';
 import {useNetworkFilters} from './useNetworkFilters';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
-
-const mockUseNavigate = jest.mocked(useNavigate);
-const mockUseLocation = jest.mocked(useLocation);
 
 const [
   SPAN_0_NAVIGATE,
@@ -118,9 +113,7 @@ describe('useNetworkFilters', () => {
     SPAN_8_FETCH_POST!,
   ];
 
-  it('should update the url when setters are called', () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
+  it('should update the url when setters are called', async () => {
     const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
       label: 'resource.fetch',
@@ -133,72 +126,36 @@ describe('useNetworkFilters', () => {
     };
     const SEARCH_FILTER = 'pikachu';
 
-    mockUseLocation
-      .mockReturnValueOnce({
-        pathname: '/',
-        query: {},
-      } as Location<FilterFields>)
-      .mockReturnValueOnce({
-        pathname: '/',
-        query: {f_n_type: [TYPE_OPTION.value]},
-      } as Location<FilterFields>)
-      .mockReturnValueOnce({
-        pathname: '/',
-        query: {f_n_type: [TYPE_OPTION.value], f_n_status: [STATUS_OPTION.value]},
-      } as Location<FilterFields>);
-
-    const {result, rerender} = renderHook(useNetworkFilters, {
+    const {result, router} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 
-    result.current.setFilters([TYPE_OPTION]);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      {
-        pathname: '/',
-        query: {
-          f_n_method: [],
-          f_n_status: [],
-          f_n_type: [TYPE_OPTION.value],
-        },
-      },
-      {replace: true}
+    act(() => result.current.setFilters([TYPE_OPTION]));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        f_n_type: TYPE_OPTION.value,
+      })
     );
 
-    rerender({networkFrames});
-
-    result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      {
-        pathname: '/',
-        query: {
-          f_n_method: [],
-          f_n_status: [STATUS_OPTION.value],
-          f_n_type: [TYPE_OPTION.value],
-        },
-      },
-      {replace: true}
+    act(() => result.current.setFilters([TYPE_OPTION, STATUS_OPTION]));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        f_n_status: STATUS_OPTION.value,
+        f_n_type: TYPE_OPTION.value,
+      })
     );
 
-    rerender({networkFrames});
-
-    result.current.setSearchTerm(SEARCH_FILTER);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      {
-        pathname: '/',
-        query: {
-          f_n_type: [TYPE_OPTION.value],
-          f_n_status: [STATUS_OPTION.value],
-          f_n_search: SEARCH_FILTER,
-        },
-      },
-      {replace: true}
+    act(() => result.current.setSearchTerm(SEARCH_FILTER));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        f_n_search: SEARCH_FILTER,
+        f_n_status: STATUS_OPTION.value,
+        f_n_type: TYPE_OPTION.value,
+      })
     );
   });
 
-  it('should clear details params when setters are called', () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
+  it('should clear details params when setters are called', async () => {
     const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
       label: 'resource.fetch',
@@ -211,86 +168,45 @@ describe('useNetworkFilters', () => {
     };
     const SEARCH_FILTER = 'pikachu';
 
-    mockUseLocation
-      .mockReturnValueOnce({
-        pathname: '/',
-        query: {
-          n_detail_row: '0',
-          n_detail_tab: 'response',
-        },
-      } as Location<FilterFields>)
-      .mockReturnValueOnce({
-        pathname: '/',
-        query: {
-          f_n_type: [TYPE_OPTION.value],
-          n_detail_row: '0',
-          n_detail_tab: 'response',
-        },
-      } as Location<FilterFields>)
-      .mockReturnValueOnce({
-        pathname: '/',
-        query: {
-          f_n_type: [TYPE_OPTION.value],
-          f_n_status: [STATUS_OPTION.value],
-          n_detail_row: '0',
-          n_detail_tab: 'response',
-        },
-      } as Location<FilterFields>);
-
-    const {result, rerender} = renderHook(useNetworkFilters, {
+    const {result, router} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            n_detail_row: '0',
+            n_detail_tab: 'response',
+          },
+        },
+      },
     });
 
-    result.current.setFilters([TYPE_OPTION]);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      {
-        pathname: '/',
-        query: {
-          f_n_method: [],
-          f_n_status: [],
-          f_n_type: [TYPE_OPTION.value],
-        },
-      },
-      {replace: true}
+    act(() => result.current.setFilters([TYPE_OPTION]));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        f_n_type: TYPE_OPTION.value,
+      })
     );
 
-    rerender({networkFrames});
-
-    result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      {
-        pathname: '/',
-        query: {
-          f_n_method: [],
-          f_n_status: [STATUS_OPTION.value],
-          f_n_type: [TYPE_OPTION.value],
-        },
-      },
-      {replace: true}
+    act(() => result.current.setFilters([TYPE_OPTION, STATUS_OPTION]));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        f_n_status: STATUS_OPTION.value,
+        f_n_type: TYPE_OPTION.value,
+      })
     );
 
-    rerender({networkFrames});
-
-    result.current.setSearchTerm(SEARCH_FILTER);
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      {
-        pathname: '/',
-        query: {
-          f_n_status: [STATUS_OPTION.value],
-          f_n_type: [TYPE_OPTION.value],
-          f_n_search: SEARCH_FILTER,
-        },
-      },
-      {replace: true}
+    act(() => result.current.setSearchTerm(SEARCH_FILTER));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        f_n_search: SEARCH_FILTER,
+        f_n_status: STATUS_OPTION.value,
+        f_n_type: TYPE_OPTION.value,
+      })
     );
   });
 
   it('should not filter anything when no values are set', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {},
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
@@ -298,87 +214,93 @@ describe('useNetworkFilters', () => {
   });
 
   it('should filter by method', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_n_method: ['POST'],
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_n_method: ['POST'],
+          },
+        },
+      },
     });
     expect(result.current.items).toStrictEqual([SPAN_8_FETCH_POST]);
   });
 
   it('should include css/js/img when method GET is selected', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_n_method: ['GET'],
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_n_method: ['GET'],
+          },
+        },
+      },
     });
     expect(result.current.items).toHaveLength(8);
   });
 
   it('should filter by status', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_n_status: ['200'],
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_n_status: ['200'],
+          },
+        },
+      },
     });
     expect(result.current.items).toHaveLength(2);
   });
 
   it('should filter by type', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_n_type: ['resource.fetch'],
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_n_type: ['resource.fetch'],
+          },
+        },
+      },
     });
     expect(result.current.items).toHaveLength(3);
   });
 
   it('should filter by searchTerm', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_n_search: 'pikachu',
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_n_search: 'pikachu',
+          },
+        },
+      },
     });
     expect(result.current.items).toHaveLength(1);
   });
 
   it('should filter by type, searchTerm and logLevel', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {
-        f_n_status: ['200'],
-        f_n_type: ['resource.fetch'],
-        f_n_search: 'pokemon/',
-      },
-    } as Location<FilterFields>);
-
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            f_n_status: ['200'],
+            f_n_type: ['resource.fetch'],
+            f_n_search: 'pokemon/',
+          },
+        },
+      },
     });
     expect(result.current.items).toHaveLength(1);
   });

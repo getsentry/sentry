@@ -7,10 +7,14 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.environment import EnvironmentProjectSerializerResponse
+from sentry.api.serializers.models.environment import (
+    EnvironmentProjectSerializer,
+    EnvironmentProjectSerializerResponse,
+)
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.environment_examples import EnvironmentExamples
 from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.environment import EnvironmentProject
 
@@ -40,7 +44,9 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         },
         examples=EnvironmentExamples.GET_PROJECT_ENVIRONMENTS,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(
+        self, request: Request, project
+    ) -> Response[list[EnvironmentProjectSerializerResponse]] | Response[DetailResponse]:
         """
         Lists a project's environments.
         """
@@ -77,4 +83,5 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         add_visibility_filters = environment_visibility_filter_options[visibility]
         queryset = add_visibility_filters(queryset)
 
-        return Response(serialize(list(queryset), request.user))
+        items: list[EnvironmentProject] = list(queryset)
+        return Response(serialize(items, request.user, EnvironmentProjectSerializer()))

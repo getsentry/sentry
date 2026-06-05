@@ -21,8 +21,9 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import InviteStatus
 from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.organizations.services.organization.service import organization_service
-from sentry.seer.entrypoints.slack.entrypoint import SlackAgentEntrypoint
+from sentry.seer.entrypoints.operator import SeerAgentOperator
 from sentry.seer.entrypoints.slack.mention import _SLACK_URL_RE, build_thread_context
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.silo.base import SiloMode, all_silo_function
 from sentry.users.services.user.service import user_service
 
@@ -76,15 +77,12 @@ def _resolve_available_organizations(
             logger.info("_resolve_available_organizations.inactive_org", extra=logging_ctx)
             continue
 
-        # Since the getsentry FeatureHandler does _not_ add subscription context to CONTROL
-        # evaluations, we need to slim down the check to only cover the feature flag.
-        # This is actually fine, since after routing, this method is rerun at the CELL.
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            if not SlackAgentEntrypoint.has_feature_flag(ctx.organization):
-                logger.info("_resolve_available_organizations.no_feature_flag", extra=logging_ctx)
-                continue
-        else:
-            if not SlackAgentEntrypoint.has_access(ctx.organization):
+        # In CONTROL silo the getsentry FeatureHandler does _not_ add subscription
+        # context, so we skip the full access check — it is re-evaluated at CELL.
+        if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            if not SeerAgentOperator.has_access(
+                organization=ctx.organization, entrypoint_key=SeerEntrypointKey.SLACK
+            ):
                 logger.info("_resolve_available_organizations.no_access", extra=logging_ctx)
                 continue
 

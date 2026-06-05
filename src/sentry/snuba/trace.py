@@ -66,7 +66,7 @@ class SerializedIssue(SerializedEvent):
     end_timestamp: NotRequired[float]
     culprit: str | None
     short_id: str | None
-    issue_type: str
+    issue_type: int
 
 
 class SerializedSpan(SerializedEvent):
@@ -140,8 +140,8 @@ def _serialize_rpc_issue(
         else:
             try:
                 issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
-            except Group.DoesNotExist as e:
-                logger.error(e)
+            except Group.DoesNotExist:
+                logger.info("Group %s not found in _serialize_rpc_issue", issue_id)
                 return None
             group_cache[issue_id] = issue
         return SerializedIssue(
@@ -171,8 +171,8 @@ def _serialize_rpc_issue(
         else:
             try:
                 issue = Group.objects.get(id=issue_id, project__id=event["project.id"])
-            except Group.DoesNotExist as e:
-                logger.error(e)
+            except Group.DoesNotExist:
+                logger.info("Group %s not found in _serialize_rpc_issue", issue_id)
                 return None
             group_cache[issue_id] = issue
 
@@ -697,7 +697,7 @@ def query_trace_data(
             control_data=errors_data,
             experimental_data=eap_errors_data,
             callsite=callsite,
-            is_experimental_data_a_null_result=len(eap_errors_data) == 0,
+            is_experimental_data_nullish=len(eap_errors_data) == 0,
             reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
                 {e["id"] for e in snuba}
             ),

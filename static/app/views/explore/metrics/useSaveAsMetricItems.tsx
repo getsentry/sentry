@@ -9,8 +9,8 @@ import {
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -232,7 +232,6 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
                 if (isUnsupported) {
                   return;
                 }
-                // TODO: Handle sorting by equation better
                 addToDashboard(metricQuery);
               },
               disabled: isUnsupported,

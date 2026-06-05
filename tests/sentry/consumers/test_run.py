@@ -4,7 +4,8 @@ import pytest
 from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 
 from sentry import consumers
-from sentry.conf.types.kafka_definition import ConsumerDefinition
+from sentry.conf.types.kafka_definition import ConsumerDefinition, Topic
+from sentry.consumers import get_stream_processor
 from sentry.utils.imports import import_string
 
 
@@ -60,6 +61,36 @@ def test_dlq(consumer_def) -> None:
         + consumers_that_should_have_dlq_but_dont
     ):
         assert defn.get("dlq_topic") is not None, f"{consumer_name} consumer is missing DLQ"
+
+
+def test_commit_log_consumer_config_keyed_by_own_topic() -> None:
+    topics_seen: list[Topic | None] = []
+
+    def fake_cluster_options(cluster_name, override_params=None, topic=None):
+        topics_seen.append(topic)
+        return {"bootstrap.servers": "127.0.0.1:9092"}
+
+    with (
+        patch("sentry.consumers.KafkaConsumer"),
+        patch("sentry.consumers.StreamProcessor"),
+        patch("sentry.consumers.synchronized.SynchronizedConsumer"),
+        patch(
+            "sentry.utils.kafka_config.get_kafka_consumer_cluster_options",
+            side_effect=fake_cluster_options,
+        ),
+    ):
+        get_stream_processor(
+            consumer_name="post-process-forwarder-transactions",
+            consumer_args=["--mode=multithreaded"],
+            topic=None,
+            cluster=None,
+            group_id="test-group",
+            auto_offset_reset="earliest",
+            strict_offset_reset=False,
+            enable_dlq=False,
+        )
+
+    assert topics_seen == [Topic.TRANSACTIONS, Topic.TRANSACTIONS_COMMIT_LOG]
 
 
 def test_apply_processor_args_overrides() -> None:

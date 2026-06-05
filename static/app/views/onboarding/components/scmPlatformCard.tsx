@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {getPlatformKind, type PlatformKind} from 'sentry/data/platformKinds';
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 import {ScmCardButton} from './scmCardButton';
 import {ScmSelectableContainer} from './scmSelectableContainer';

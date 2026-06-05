@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Grid, type GridProps, Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {
   fetchDashboard,
@@ -22,7 +23,7 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -384,24 +385,27 @@ function AddToDashboardModal({
           disabled: hasReachedDashboardLimit || isLoading,
           tooltip: hasReachedDashboardLimit ? limitMessage : undefined,
           tooltipOptions: {position: 'right', isHoverable: true},
-        },
+        } satisfies SelectValue<string>,
         ...dashboards
           .filter(dashboard =>
             // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
             currentDashboardId ? dashboard.id !== currentDashboardId : true
           )
-          .map(({title, id, widgetDisplay}) => ({
-            label: title,
-            value: id,
-            disabled: widgetDisplay.length + widgets.length >= MAX_WIDGETS,
-            tooltip:
-              widgetDisplay.length + widgets.length >= MAX_WIDGETS &&
-              tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                maxWidgets: MAX_WIDGETS,
-              }),
-            tooltipOptions: {position: 'right'},
-          })),
-      ].filter(Boolean) as Array<SelectValue<string>>;
+          .map(
+            ({title, id, widgetDisplay}) =>
+              ({
+                label: title,
+                value: id,
+                disabled: widgetDisplay.length + widgets.length >= MAX_WIDGETS,
+                tooltip:
+                  widgetDisplay.length + widgets.length >= MAX_WIDGETS &&
+                  tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                    maxWidgets: MAX_WIDGETS,
+                  }),
+                tooltipOptions: {position: 'right'},
+              }) satisfies SelectValue<string>
+          ),
+      ].filter(Boolean);
     },
     [currentDashboardId, dashboards, widgets.length]
   );

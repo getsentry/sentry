@@ -1,5 +1,6 @@
 import type React from 'react';
 import {useCallback, useEffect, useMemo, useRef, type CSSProperties} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
@@ -14,7 +15,7 @@ import {
   GridHeadCell,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {
@@ -164,7 +165,11 @@ export const TableBodyCell = GridBodyCell;
 
 export const TableHead = GridHead;
 export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
-  ${p => p.align && `justify-content: ${p.align};`}
+  ${p =>
+    p.align &&
+    css`
+      justify-content: ${p.align};
+    `}
 `;
 export const TableHeadCellContent = styled('div')<{isFrozen?: boolean | undefined}>`
   display: flex;

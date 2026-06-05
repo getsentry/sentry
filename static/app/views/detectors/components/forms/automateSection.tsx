@@ -16,6 +16,10 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
+import {
+  getNoAlertWritePermissionTooltip,
+  useCanEditAutomation,
+} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
@@ -82,6 +86,10 @@ function AutomateSectionInner({
 }: AutomateSectionInnerProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
+  const canEditAutomation = useCanEditAutomation();
+  const permissionTooltipText = canEditAutomation
+    ? undefined
+    : getNoAlertWritePermissionTooltip();
 
   const toggleDrawer = () => {
     if (isDrawerOpen) {
@@ -140,10 +148,22 @@ function AutomateSectionInner({
           />
         </FormSection>
         <ButtonWrapper justify="between">
-          <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
+          <Button
+            size="sm"
+            icon={<IconAdd />}
+            onClick={openCreateDrawer}
+            disabled={!canEditAutomation}
+            tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          >
             {t('Create New Alert')}
           </Button>
-          <Button size="sm" icon={<IconEdit />} onClick={toggleDrawer}>
+          <Button
+            size="sm"
+            icon={<IconEdit />}
+            onClick={toggleDrawer}
+            disabled={!canEditAutomation}
+            tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          >
             {t('Edit Alerts')}
           </Button>
         </ButtonWrapper>
@@ -170,10 +190,17 @@ function AutomateSectionInner({
                   size="sm"
                   style={{width: 'min-content'}}
                   onClick={toggleDrawer}
+                  disabled={!canEditAutomation}
+                  tooltipProps={{title: permissionTooltipText, isHoverable: true}}
                 >
                   {t('Connect Existing Alerts')}
                 </Button>
-                <Button size="sm" onClick={openCreateDrawer}>
+                <Button
+                  size="sm"
+                  onClick={openCreateDrawer}
+                  disabled={!canEditAutomation}
+                  tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+                >
                   {t('Create New Alert')}
                 </Button>
                 <Text variant="muted" align="center" density="comfortable">

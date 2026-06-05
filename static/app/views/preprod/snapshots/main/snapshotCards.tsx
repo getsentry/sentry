@@ -8,7 +8,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconInfo, IconLightning, IconLink, IconMoon} from 'sentry/icons';
+import {IconFile, IconInfo, IconLightning, IconLink, IconMoon} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -20,9 +20,14 @@ import type {
   SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
-import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  DiffStatus,
+  getImageName,
+  getSnapshotImageUrl,
+} from 'sentry/views/preprod/types/snapshotTypes';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
+import {CollapsibleBadgeRow} from './collapsibleBadgeRow';
 import {
   ImageColumn,
   OnionCardBody,
@@ -78,8 +83,8 @@ export const PairCard = memo(function PairCard({
 }) {
   const [isDark, setIsDark] = useState(false);
   const image = pair.head_image;
-  const baseUrl = `${imageBaseUrl}${pair.base_image.key}/`;
-  const headUrl = `${imageBaseUrl}${image.key}/`;
+  const baseUrl = getSnapshotImageUrl(imageBaseUrl, pair.base_image);
+  const headUrl = getSnapshotImageUrl(imageBaseUrl, image);
 
   const handleSelect = onSelectSnapshot
     ? (e: React.MouseEvent) => {
@@ -136,6 +141,7 @@ export const PairCard = memo(function PairCard({
         <CardHeader
           displayName={image.display_name}
           fileName={image.image_file_name}
+          tags={image.tags}
           status={DiffStatus.CHANGED}
           diffPercent={pair.diff}
           isDark={isDark}
@@ -179,7 +185,7 @@ export const ImageCard = memo(function ImageCard({
   onSelectSnapshot?: (key: string | null) => void;
 }) {
   const [isDark, setIsDark] = useState(false);
-  const imageUrl = `${imageBaseUrl}${image.key}/`;
+  const imageUrl = getSnapshotImageUrl(imageBaseUrl, image);
   let status: DiffStatus | null;
   switch (cardType) {
     case 'solo':
@@ -220,6 +226,7 @@ export const ImageCard = memo(function ImageCard({
         <CardHeader
           displayName={image.display_name}
           fileName={image.image_file_name}
+          tags={image.tags}
           status={status}
           isDark={isDark}
           onToggleDark={() => setIsDark(v => !v)}
@@ -241,6 +248,7 @@ export const ImageCard = memo(function ImageCard({
 export const CardHeader = memo(function CardHeader({
   displayName,
   fileName,
+  tags,
   status,
   diffPercent,
   isDark,
@@ -264,45 +272,49 @@ export const CardHeader = memo(function CardHeader({
   onDoubleClick?: () => void;
   showBottomBorder?: boolean;
   status?: DiffStatus | null;
+  tags?: Record<string, string> | null;
 }) {
   const {copy} = useCopyToClipboard();
   return (
     <CardHeaderRow onDoubleClick={onDoubleClick} $showBottomBorder={showBottomBorder}>
-      <Stack gap="xs" minWidth="0" flex="1">
-        {displayName ? (
-          <Fragment>
-            <Text size="md" bold ellipsis>
-              {displayName}
-            </Text>
-            <Text size="xs" variant="muted" monospace ellipsis>
-              {fileName}
-            </Text>
-          </Fragment>
-        ) : (
-          <Text size="md" bold monospace ellipsis>
-            {fileName}
+      <Flex align="center" justify="between" gap="md">
+        <Flex align="center" width="fit-content" maxWidth="100%" minWidth="0">
+          <Text size="md" bold ellipsis>
+            {displayName ?? fileName}
           </Text>
-        )}
-      </Stack>
-      <Flex align="center" gap="sm" onClick={e => e.stopPropagation()}>
-        {status && <StatusBadge status={status} diffPercent={diffPercent} />}
-        <IconButton
-          aria-label={isDark ? t('Light preview') : t('Dark preview')}
-          tooltip={isDark ? t('Light preview') : t('Dark preview')}
-          icon={isDark ? <IconLightning size="sm" /> : <IconMoon size="sm" />}
-          onClick={onToggleDark}
-        />
-        <IconButton
-          aria-label={t('Copy link to this snapshot')}
-          tooltip={t('Copy link')}
-          icon={<IconLink size="sm" />}
-          onClick={() => {
-            copy(copyUrl, {successMessage: t('Copied link to this snapshot')});
-            onCopyLink?.();
-          }}
-        />
-        <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
+          {displayName && (
+            <IconButton
+              aria-label={t('Copy file name')}
+              tooltip={fileName}
+              icon={<IconFile size="xs" />}
+              onClick={e => {
+                e.stopPropagation();
+                copy(fileName, {successMessage: t('Copied file name')});
+              }}
+            />
+          )}
+        </Flex>
+        <Flex align="center" gap="sm" flex="0 0 auto" onClick={e => e.stopPropagation()}>
+          {status && <StatusBadge status={status} diffPercent={diffPercent} />}
+          <IconButton
+            aria-label={isDark ? t('Light preview') : t('Dark preview')}
+            tooltip={isDark ? t('Light preview') : t('Dark preview')}
+            icon={isDark ? <IconLightning size="sm" /> : <IconMoon size="sm" />}
+            onClick={onToggleDark}
+          />
+          <IconButton
+            aria-label={t('Copy link to this snapshot')}
+            tooltip={t('Copy link')}
+            icon={<IconLink size="sm" />}
+            onClick={() => {
+              copy(copyUrl, {successMessage: t('Copied link to this snapshot')});
+              onCopyLink?.();
+            }}
+          />
+          <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
+        </Flex>
       </Flex>
+      {tags && Object.keys(tags).length > 0 && <CollapsibleBadgeRow tags={tags} />}
     </CardHeaderRow>
   );
 });
@@ -405,7 +417,7 @@ function IconButton({
 }: {
   'aria-label': string;
   icon: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   tooltip?: string;
 }) {
   const button = (
@@ -431,9 +443,8 @@ const CardHeaderRow = styled('div')<{
   $showBottomBorder?: boolean;
 }>`
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
+  flex-direction: column;
+  gap: ${p => p.theme.space['2xs']};
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   border-bottom: ${p =>
     p.$showBottomBorder ? `1px solid ${p.theme.tokens.border.secondary}` : 0};

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 
 import {Button} from '@sentry/scraps/button';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
@@ -10,7 +11,6 @@ import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/aut
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {
   DataConditionType,
   type AttributeSubfilter,
