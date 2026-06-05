@@ -897,7 +897,7 @@ def report_metrics_for_detectors(
 
     try:
         # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
-        set_tag = sdk_span.containing_transaction.set_tag
+        set_tag = sdk_span._segment.set_attribute
     except AttributeError:
         set_tag = lambda *args: None
 
