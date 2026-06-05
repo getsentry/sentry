@@ -580,6 +580,17 @@ describe('SpanEvidenceKeyValueList', () => {
           filter: ['none'],
         });
       });
+
+      it('handles parameter names that match Object prototype properties', () => {
+        const URLs = [
+          new URL('http://service.io/items?constructor=4'),
+          new URL('http://service.io/items?constructor=5'),
+        ];
+
+        expect(extractQueryParameters(URLs)).toEqual({
+          constructor: ['4', '5'],
+        });
+      });
     });
   });
 
