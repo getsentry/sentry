@@ -322,10 +322,12 @@ def test_client_config_with_staff_session_fills_cells() -> None:
 
     assert len(result["localities"]) == 2
     localities = result["localities"]
+    # default historical cell (us) is first
     assert [r["name"] for r in localities] == ["us", "eu"]
 
     assert len(result["cells"]) == 2
     cells = result["cells"]
+    # visible cells sorted by name.
     assert [r["name"] for r in cells] == ["eu", "us"]
     assert [r["locality_url"] for r in cells] == ["http://eu.testserver", "http://us.testserver"]
 
@@ -349,10 +351,10 @@ def test_client_config_with_staff_session_includes_hidden_cells() -> None:
     localities = result["localities"]
     assert [r["name"] for r in localities] == ["us"]
 
-    # Cells list includes hidden items
+    # Cells list includes hidden items last
     assert len(result["cells"]) == 2
     cells = result["cells"]
-    assert [r["name"] for r in cells] == ["eu", "us"]
+    assert [r["name"] for r in cells] == ["us", "eu"]
 
 
 @multiregion_client_config_test
