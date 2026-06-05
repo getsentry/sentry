@@ -316,6 +316,7 @@ from sentry.issues.endpoints import (
     OrganizationGroupSearchViewsEndpoint,
     OrganizationGroupSearchViewsStarredEndpoint,
     OrganizationGroupSearchViewVisitEndpoint,
+    OrganizationIssueActionLogDebugEndpoint,
     OrganizationIssuesCountEndpoint,
     OrganizationIssuesWithSupergroupsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
@@ -1888,6 +1889,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues/$",
         OrganizationGroupIndexEndpoint.as_view(),
         name="sentry-api-0-organization-group-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/issue-action-log-debug/$",
+        OrganizationIssueActionLogDebugEndpoint.as_view(),
+        name="sentry-api-0-organization-issue-action-log-debug",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issues-count/$",
