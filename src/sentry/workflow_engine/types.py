@@ -406,7 +406,7 @@ class DataConditionHandler(Generic[T]):
         raise NotImplementedError
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         return cls.label_template.format(**condition_data)
 
 
