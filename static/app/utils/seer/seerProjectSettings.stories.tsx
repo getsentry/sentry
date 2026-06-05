@@ -129,7 +129,6 @@ export default Storybook.story('SeerProjectSettings', story => {
               <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Repos')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Agent')}</SimpleTable.HeaderCell>
-
               <SimpleTable.HeaderCell>{t('Stopping Point')}</SimpleTable.HeaderCell>
             </SimpleTable.Header>
             <SimpleTable.Row>
@@ -166,91 +165,15 @@ export default Storybook.story('SeerProjectSettings', story => {
     );
   });
 
-  story('Edit Agent', () => {
+  story('Edit Single Project Settings', () => {
     function Example({projectSlug}: {projectSlug: string}) {
       const organization = useOrganization();
       const queryClient = useQueryClient();
       const knownAgents = useKnownAgents();
 
       const agentSelectOptions = useAgentSelectOptions();
-      const {data, isPending, isError, error} = useQuery({
-        ...getSeerProjectSettingsQueryOptions({
-          organization,
-          project: {slug: projectSlug ?? ''},
-        }),
-        enabled: !!projectSlug,
-      });
-
-      if (isPending) {
-        return (
-          <Flex justify="center" padding="xl">
-            <LoadingIndicator />
-          </Flex>
-        );
-      }
-
-      if (isError) {
-        return (
-          <Flex justify="center" padding="xl">
-            <Text variant="muted">{t('Error: %s', error.message)}</Text>
-          </Flex>
-        );
-      }
-
-      if (!data) {
-        return (
-          <Flex justify="center" padding="xl">
-            <Text variant="muted">{t('No data found')}</Text>
-          </Flex>
-        );
-      }
-
-      return (
-        <FieldGroup>
-          <AutoSaveForm
-            name="agent"
-            schema={seerProjectSettingsSchema}
-            initialValue={data.agent}
-            mutationOptions={getMutateSeerProjectSettingsOptions({
-              organization,
-              project: {slug: projectSlug},
-              queryClient,
-              knownAgents,
-            })}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Agent')}
-                hintText={t('Select which agent should handle autofix for this project.')}
-              >
-                <field.Select
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  options={
-                    agentSelectOptions as Array<{
-                      label: string;
-                      value: SeerAgent;
-                    }>
-                  }
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-        </FieldGroup>
-      );
-    }
-
-    return (
-      <PickProject>{projectSlug => <Example projectSlug={projectSlug} />}</PickProject>
-    );
-  });
-
-  story('Edit Stopping Point', () => {
-    function Example({projectSlug}: {projectSlug: string}) {
-      const organization = useOrganization();
-      const queryClient = useQueryClient();
-
       const stoppingPointOptions = useStoppingPointSelectOptions();
+
       const {data, isPending, isError, error} = useQuery({
         ...getSeerProjectSettingsQueryOptions({
           organization,
@@ -284,33 +207,68 @@ export default Storybook.story('SeerProjectSettings', story => {
       }
 
       return (
-        <FieldGroup>
-          <AutoSaveForm
-            name="stoppingPoint"
-            schema={seerProjectSettingsSchema}
-            initialValue={getUserFacingStoppingPoint(data.stoppingPoint)}
-            mutationOptions={getMutateSeerProjectSettingsOptions({
-              organization,
-              project: {slug: projectSlug},
-              queryClient,
-            })}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Stopping Point')}
-                hintText={t(
-                  'Choose which step Seer should stop at when running automatically.'
-                )}
-              >
-                <field.Select
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  options={stoppingPointOptions}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-        </FieldGroup>
+        <Stack gap="lg">
+          <FieldGroup>
+            <AutoSaveForm
+              name="agent"
+              schema={seerProjectSettingsSchema}
+              initialValue={data.agent}
+              mutationOptions={getMutateSeerProjectSettingsOptions({
+                organization,
+                project: {slug: projectSlug},
+                queryClient,
+                knownAgents,
+              })}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Agent')}
+                  hintText={t(
+                    'Select which agent should handle autofix for this project.'
+                  )}
+                >
+                  <field.Select
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={
+                      agentSelectOptions as Array<{
+                        label: string;
+                        value: SeerAgent;
+                      }>
+                    }
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          </FieldGroup>
+          <FieldGroup>
+            <AutoSaveForm
+              name="stoppingPoint"
+              schema={seerProjectSettingsSchema}
+              initialValue={getUserFacingStoppingPoint(data.stoppingPoint)}
+              mutationOptions={getMutateSeerProjectSettingsOptions({
+                organization,
+                project: {slug: projectSlug},
+                queryClient,
+              })}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Stopping Point')}
+                  hintText={t(
+                    'Choose which step Seer should stop at when running automatically.'
+                  )}
+                >
+                  <field.Select
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={stoppingPointOptions}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          </FieldGroup>
+        </Stack>
       );
     }
 

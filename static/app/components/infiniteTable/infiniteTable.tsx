@@ -10,6 +10,7 @@ import styled from '@emotion/styled';
 import type {UseInfiniteQueryResult} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -51,17 +52,17 @@ const Header = styled(({children, ...rest}: HTMLAttributes<HTMLDivElement>) => (
   height: min-content;
 `;
 
-// const TableCellFirst = styled(SimpleTable.HeaderCell)`
-//   grid-column: 1;
-// `;
+const TableCellFirst = styled(SimpleTable.HeaderCell)`
+  grid-column: 1;
+`;
 
-// const TableCellsRemainingContent = styled(Flex)`
-//   grid-column: 2 / -1;
-// `;
+const TableCellsRemainingContent = styled(Flex)`
+  grid-column: 2 / -1;
+`;
 
-// const FullGridAlert = styled(Alert)`
-//   grid-column: 1 / -1;
-// `;
+const FullGridAlert = styled(Alert)`
+  grid-column: 1 / -1;
+`;
 
 const Scrollable = styled(({children, ...rest}: HTMLAttributes<HTMLDivElement>) => (
   <div ref={useContext(ScrollableRefContext)} {...rest}>
@@ -150,6 +151,9 @@ export const InfiniteTable = {
   Table,
   Header,
   HeaderCell: SimpleTable.HeaderCell,
+  HeaderCellFirst: TableCellFirst,
+  HeaderCellRemaining: TableCellsRemainingContent,
+  HeaderCellFull: FullGridAlert,
   Scrollable,
   Body,
   Empty: SimpleTable.Empty,
