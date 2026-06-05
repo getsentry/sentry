@@ -262,7 +262,9 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       allowActions={[]}
                       extraMenuItems={menuItems}
                     >
-                      <IconStack />
+                      <IconTriggerContent>
+                        <IconStack />
+                      </IconTriggerContent>
                     </CellAction>
                   </TableBodyCell>
                   {visibleAggregateFields.map((aggregateField, j) => {
@@ -324,6 +326,14 @@ const TopResultsIndicator = styled('div')<{color: string}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => p.color};
+`;
+
+const IconTriggerContent = styled('span')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  line-height: 0;
 `;
 
 const VIEW_SAMPLES_COLUMN: TableColumn<keyof TableDataRow> = {
