@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.helpers.projects import ProjectIdOrSlug, ProjectIdOrSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
@@ -18,16 +19,14 @@ from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 class ReleaseThresholdIndexGETData(TypedDict, total=False):
     environment: list[str]
-    project: list[int]
+    project: list[ProjectIdOrSlug]
 
 
 class ReleaseThresholdIndexGETValidator(serializers.Serializer[ReleaseThresholdIndexGETData]):
     environment = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField()
     )
-    project = serializers.ListField(
-        required=True, allow_empty=False, child=serializers.IntegerField()
-    )
+    project = serializers.ListField(required=True, allow_empty=False, child=ProjectIdOrSlugField())
 
 
 @cell_silo_endpoint

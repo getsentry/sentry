@@ -130,6 +130,9 @@ class ReleaseDetailsTest(APITestCase):
         response = self.client.get(url, {"project": self.project1.id})
         assert response.status_code == 200
 
+        response = self.client.get(url, {"project": self.project1.slug})
+        assert response.status_code == 200
+
     def test_project_from_another_org_is_rejected(self) -> None:
         """Supplying a project_id belonging to a different organization must not
         leak session health data (IDOR check)."""

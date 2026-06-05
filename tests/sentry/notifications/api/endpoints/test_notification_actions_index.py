@@ -27,7 +27,7 @@ ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
 
 class _Query(TypedDict, total=False):
     triggerType: str
-    project: int
+    project: int | str
 
 
 class _QueryResult(TypedDict):
@@ -131,6 +131,10 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "checks projects by default": {"query": {}, "result": {na1, na2, na3, na4}},
             "regular project": {
                 "query": {"project": project.id},
+                "result": {na2, na3},
+            },
+            "regular project slug": {
+                "query": {"project": project.slug},
                 "result": {na2, na3},
             },
             "regular trigger": {

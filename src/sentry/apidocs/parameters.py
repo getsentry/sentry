@@ -153,10 +153,11 @@ class OrganizationParams:
         location="query",
         required=False,
         many=True,
-        type=int,
-        description="""The IDs of projects to filter by. `-1` means all available projects.
+        type=str,
+        description="""The IDs or slugs of projects to filter by. `-1` means all available projects.
 For example, the following are valid parameters:
 - `/?project=1234&project=56789`
+- `/?project=android&project=javascript-react`
 - `/?project=-1`
 """,
     )
@@ -258,7 +259,7 @@ class ReleaseParams:
         location="query",
         required=False,
         type=str,
-        description="The project ID to filter by.",
+        description="The project ID or slug to filter by.",
     )
     HEALTH = OpenApiParameter(
         name="health",

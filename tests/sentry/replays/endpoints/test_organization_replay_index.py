@@ -12,6 +12,7 @@ from sentry.replays.testutils import (
     mock_replay_tap,
     mock_replay_viewed,
 )
+from sentry.replays.validators import ReplaySelectorValidator, ReplayValidator
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.utils.cursors import Cursor
 from sentry.utils.snuba import QueryMemoryLimitExceeded
@@ -24,6 +25,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
+
+    def test_replay_validators_accept_project_slugs(self) -> None:
+        replay_validator = ReplayValidator(data={"project": ["my-project"]})
+        selector_validator = ReplaySelectorValidator(data={"project": ["my-project"]})
+
+        assert replay_validator.is_valid(), replay_validator.errors
+        assert selector_validator.is_valid(), selector_validator.errors
 
     @property
     def features(self) -> dict[str, bool]:

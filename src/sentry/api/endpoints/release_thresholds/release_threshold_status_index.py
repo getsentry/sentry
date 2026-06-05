@@ -29,6 +29,7 @@ from sentry.api.endpoints.release_thresholds.utils import (
     get_errors_counts_timeseries_by_project_and_release,
     get_new_issue_counts,
 )
+from sentry.api.helpers.projects import ProjectIdOrSlug, ProjectIdOrSlugField
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples.release_threshold_examples import ReleaseThresholdExamples
@@ -54,6 +55,7 @@ class ReleaseThresholdStatusIndexData(TypedDict, total=False):
     start: datetime
     end: datetime
     environment: list[str]
+    project: list[ProjectIdOrSlug]
     projectSlug: list[str]
     release: list[str]
 
@@ -84,6 +86,12 @@ class ReleaseThresholdStatusIndexSerializer(
         allow_empty=True,
         child=serializers.CharField(),
         help_text=("A list of project slugs to filter your results by."),
+    )
+    project = serializers.ListField(
+        required=False,
+        allow_empty=True,
+        child=ProjectIdOrSlugField(),
+        help_text=("A list of project IDs or slugs to filter your results by."),
     )
     release = serializers.ListField(
         required=False,

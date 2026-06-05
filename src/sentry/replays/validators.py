@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from sentry.api.helpers.projects import ProjectIdOrSlugField
+
 VALID_FIELD_SET = (
     "activity",
     "browser",
@@ -66,8 +68,8 @@ UTC ISO8601 or epoch seconds. Use along with `start` instead of `statsPeriod`.
     )
     project = serializers.ListField(
         required=False,
-        help_text="The ID of the projects to filter by.",
-        child=serializers.IntegerField(),
+        help_text="The ID or slug of the projects to filter by.",
+        child=ProjectIdOrSlugField(),
     )
     projectSlug = serializers.ListField(
         required=False,
@@ -115,8 +117,8 @@ class ReplaySelectorValidator(serializers.Serializer):
     )
     project = serializers.ListField(
         required=False,
-        help_text="The ID of the projects to filter by.",
-        child=serializers.IntegerField(),
+        help_text="The ID or slug of the projects to filter by.",
+        child=ProjectIdOrSlugField(),
     )
     projectSlug = serializers.ListField(
         required=False,

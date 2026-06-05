@@ -67,7 +67,6 @@ from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.middleware import is_frontend_request
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.monitors.models import (
@@ -525,31 +524,10 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
         """
-        # Common setup: project resolution
-        project_ids = self.get_requested_project_ids_unchecked(request) or None
-        if project_ids == {-1}:  # All projects for org:
-            project_ids = set(
-                Project.objects.filter(
-                    organization=organization, status=ObjectStatus.ACTIVE
-                ).values_list("id", flat=True)
-            )
-        elif project_ids is None:  # All projects for user
-            org_team_list = Team.objects.filter(organization=organization).values_list(
-                "id", flat=True
-            )
-            user_team_list = OrganizationMemberTeam.objects.filter(
-                organizationmember__user_id=request.user.id, team__in=org_team_list
-            ).values_list("team", flat=True)
-            project_ids = set(
-                Project.objects.filter(
-                    teams__in=user_team_list, status=ObjectStatus.ACTIVE
-                ).values_list("id", flat=True)
-            )
-
         # Materialize the project ids here. This helps us to not overwhelm the query planner with
         # overcomplicated subqueries. Previously, this was causing Postgres to use a suboptimal
         # index to filter on. Also enforces permission checks.
-        projects = self.get_projects(request, organization, project_ids=project_ids)
+        projects = self.get_projects(request, organization)
 
         # Common setup: team parsing
         teams = request.GET.getlist("team", [])

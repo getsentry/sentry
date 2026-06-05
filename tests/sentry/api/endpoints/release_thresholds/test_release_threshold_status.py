@@ -425,6 +425,48 @@ class ReleaseThresholdStatusTest(APITestCase):
     @patch(
         "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_new_issue_count_healthy"
     )
+    def test_get_success_project_param_slug_filter(
+        self,
+        mock_is_new_issue_count_healthy: MagicMock,
+        mock_get_new_issue_counts: MagicMock,
+        mock_is_error_count_healthy: MagicMock,
+        mock_get_error_counts: MagicMock,
+        mock_is_crash_free_rate_healthy: MagicMock,
+        mock_fetch_sessions_data: MagicMock,
+    ) -> None:
+        now = datetime.now(UTC)
+        yesterday = now - timedelta(hours=24)
+        mock_is_error_count_healthy.return_value = True, 100
+        mock_is_new_issue_count_healthy.return_value = True, 100
+        mock_is_crash_free_rate_healthy.return_value = True, 100
+
+        project_slug_response = self.get_success_response(
+            self.organization.slug, start=yesterday, end=now, projectSlug=[self.project2.slug]
+        )
+        project_response = self.get_success_response(
+            self.organization.slug, start=yesterday, end=now, project=[self.project2.slug]
+        )
+
+        assert project_response.data == project_slug_response.data
+
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.fetch_sessions_data"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_crash_free_rate_healthy_check"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.get_errors_counts_timeseries_by_project_and_release"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_error_count_healthy"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.get_new_issue_counts"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_new_issue_count_healthy"
+    )
     def test_fetches_relevant_stats(
         self,
         mock_is_new_issue_count_healthy: MagicMock,

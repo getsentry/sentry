@@ -701,6 +701,20 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
+    def test_project_slug_filter_matches_project_id_filter(self) -> None:
+        query = {
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["sum(quantity)"],
+            "category": ["error"],
+        }
+
+        id_response = self.do_request({**query, "project": self.project2.id}, org=self.org)
+        slug_response = self.do_request({**query, "project": self.project2.slug}, org=self.org)
+
+        assert slug_response.data == id_response.data
+
+    @freeze_time(_now)
     def test_staff_project_filter(self) -> None:
         staff_user = self.create_user(is_staff=True, is_superuser=True)
         self.login_as(user=staff_user, superuser=True)

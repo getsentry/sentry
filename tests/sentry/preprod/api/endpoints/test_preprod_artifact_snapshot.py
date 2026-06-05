@@ -812,6 +812,11 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         return mock_session
 
     def test_query_params_document_project_slug(self):
+        assert LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS["project"] == {
+            "type": "string",
+            "required": False,
+            "description": "Project ID or slug to scope the lookup. Use either project or projectSlug when app_id is not unique across projects or project inference is unavailable.",
+        }
         assert LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS["projectSlug"] == {
             "type": "string",
             "required": False,
@@ -836,6 +841,42 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         assert response.data["project_slug"] == "sausage"
         assert response.data["image_count"] == 1
         assert response.data["images"][0]["image_file_name"] == "components/button.png"
+        mock_get_session.assert_called_once_with(self.org.id, self.project.id)
+
+    @patch(
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_preprod_session"
+    )
+    def test_get_latest_base_snapshot_scoped_by_project_param_slug(self, mock_get_session):
+        artifact, manifest_key, manifest_json = self._create_base_snapshot()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "project": self.project.slug},
+            )
+
+        assert response.status_code == 200
+        assert response.data["head_artifact_id"] == str(artifact.id)
+        assert response.data["project_slug"] == "sausage"
+        mock_get_session.assert_called_once_with(self.org.id, self.project.id)
+
+    @patch(
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_preprod_session"
+    )
+    def test_get_latest_base_snapshot_scoped_by_project_param_id(self, mock_get_session):
+        artifact, manifest_key, manifest_json = self._create_base_snapshot()
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "project": str(self.project.id)},
+            )
+
+        assert response.status_code == 200
+        assert response.data["head_artifact_id"] == str(artifact.id)
+        assert response.data["project_slug"] == "sausage"
         mock_get_session.assert_called_once_with(self.org.id, self.project.id)
 
 

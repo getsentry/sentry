@@ -16,12 +16,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.helpers.projects import ProjectIdOrSlugField
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -83,7 +83,8 @@ class OrgStatsSummaryQueryParamsSerializer(serializers.Serializer):
 
     project = serializers.ListField(
         required=False,
-        help_text="The ID of the projects to filter by.",
+        child=ProjectIdOrSlugField(),
+        help_text="The ID or slug of the projects to filter by.",
     )
 
     category = serializers.ChoiceField(
@@ -186,18 +187,13 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
         return QueryDefinition.from_query_dict(query_dict, params)
 
     def _get_projects_for_orgstats_query(self, request: Request, organization):
-        req_proj_ids = self.get_requested_project_ids_unchecked(request)
-
         # the projects table always filters by project
         # the projects in the table should be those the user has access to
 
-        projects = self.get_projects(request, organization, project_ids=req_proj_ids)
+        projects = self.get_projects(request, organization)
         if not projects:
             raise NoProjects("No projects available")
         return [p.id for p in projects]
-
-    def _is_org_total_query(self, project_ids):
-        return all([not project_ids or project_ids == ALL_ACCESS_PROJECTS])
 
     def _generate_csv(self, projects):
         if not len(projects):
