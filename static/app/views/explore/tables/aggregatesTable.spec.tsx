@@ -9,6 +9,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {AggregatesTable} from './aggregatesTable';
 
@@ -110,6 +111,8 @@ describe('AggregatesTable', () => {
           result: {
             data: [
               {
+                [`any(${SpanFields.TRACE})`]: 'trace-123',
+                [`any(${SpanFields.TIMESTAMP})`]: 1712002518,
                 'span.op': 'http',
                 'count()': 10,
               },
@@ -143,6 +146,24 @@ describe('AggregatesTable', () => {
     expect(viewSamplesItem).toHaveAttribute(
       'href',
       expect.stringContaining('query=span.op%3Ahttp')
+    );
+
+    const viewRandomTraceItem = screen.getByRole('menuitemradio', {
+      name: 'View Random Trace',
+    });
+    expect(viewRandomTraceItem).toHaveAttribute(
+      'href',
+      expect.stringContaining(
+        `/organizations/${organization.slug}/explore/traces/trace/trace-123/`
+      )
+    );
+    expect(viewRandomTraceItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('timestamp=1712002518')
+    );
+    expect(viewRandomTraceItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('source=traces')
     );
     expect(
       screen.queryByRole('menuitemradio', {name: 'Add to filter'})

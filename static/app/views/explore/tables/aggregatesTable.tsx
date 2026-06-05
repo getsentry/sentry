@@ -7,6 +7,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -20,6 +22,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {CellAction} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -52,6 +55,9 @@ import {
 import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
+import {SpanFields} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
@@ -74,6 +80,8 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const setSorts = useSetQueryParamsAggregateSortBys();
   const query = useQueryParamsQuery();
   const aggregateCursor = useQueryParamsAggregateCursor();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const visibleAggregateFields = useMemo(
     () =>
@@ -202,7 +210,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
-              const target = viewSamplesTarget({
+              const samplesTarget = viewSamplesTarget({
                 location,
                 query,
                 fields,
@@ -212,6 +220,18 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                 row,
                 projects,
               });
+
+              const randomTraceTarget = getTraceDetailsUrl({
+                organization,
+                traceSlug: row[`any(${SpanFields.TRACE})`],
+                timestamp: row[`any(${SpanFields.TIMESTAMP})`],
+                targetId: undefined,
+                eventId: undefined,
+                location,
+                source: TraceViewSources.TRACES,
+                dateSelection: normalizeDateTimeParams(selection.datetime),
+              });
+
               return (
                 <TableRow key={i}>
                   <TableBodyCell>
@@ -229,7 +249,12 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                         {
                           key: 'view-samples',
                           label: t('View Samples'),
-                          to: target,
+                          to: samplesTarget,
+                        },
+                        {
+                          key: 'view-random-trace',
+                          label: t('View Random Trace'),
+                          to: randomTraceTarget,
                         },
                       ]}
                     >
