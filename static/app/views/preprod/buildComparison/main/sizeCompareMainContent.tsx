@@ -14,6 +14,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconDownload, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
@@ -338,12 +339,16 @@ export function SizeCompareMainContent() {
               size="sm"
               icon={<IconDownload />}
               disabled={filteredDiffItems.length === 0}
-              onClick={() =>
+              onClick={() => {
                 downloadSizeCompareItemsAsCsv(
                   filteredDiffItems,
                   t('Size Compare Items Changed')
-                )
-              }
+                );
+                trackAnalytics('preprod.builds.compare.download_csv', {
+                  organization,
+                  item_count: filteredDiffItems.length,
+                });
+              }}
               aria-label={t('Download CSV')}
             >
               {t('Download CSV')}

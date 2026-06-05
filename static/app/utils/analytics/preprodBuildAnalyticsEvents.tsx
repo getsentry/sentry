@@ -25,6 +25,9 @@ export type PreprodBuildEventParameters = {
   'preprod.builds.compare.copy_insight_diff': BasePreprodBuildEvent & {
     insight_count: number;
   };
+  'preprod.builds.compare.download_csv': BasePreprodBuildEvent & {
+    item_count: number;
+  };
   'preprod.builds.compare.go_to_build_details': BasePreprodBuildEvent & {
     slot?: 'head' | 'base';
   };
@@ -135,6 +138,7 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
     'Preprod Build Details: Compare Clicked',
   'preprod.builds.compare.copy_insight_diff':
     'Preprod Build Comparison: Copy Insight Diff',
+  'preprod.builds.compare.download_csv': 'Preprod Build Comparison: Download CSV',
   'preprod.builds.compare.go_to_build_details':
     'Preprod Build Comparison: Go to Build Details',
   'preprod.builds.compare.select_base_build': 'Preprod Build Comparison: Base Selected',
