@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getOffsetRect} from 'sentry/utils/getOffsetRect';
 import type {SpaceSize} from 'sentry/utils/theme';
 import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 
@@ -38,25 +39,6 @@ const DEFAULT_VISIBLE_RATIO = 0.85;
  * when the arrow buttons are clicked
  */
 const DEFAULT_JUMP_ITEM_COUNT = 2;
-
-/**
- * Calculates the offset rectangle of an element relative to another element.
- */
-const getOffsetRect = (el: HTMLElement, relativeTo: HTMLElement) => {
-  const rect = el.getBoundingClientRect();
-  if (!relativeTo) {
-    return rect;
-  }
-  const relativeRect = relativeTo.getBoundingClientRect();
-  return {
-    left: rect.left - relativeRect.left,
-    top: rect.top - relativeRect.top,
-    right: rect.right - relativeRect.left,
-    bottom: rect.bottom - relativeRect.top,
-    width: rect.width,
-    height: rect.height,
-  };
-};
 
 export function ScrollCarousel({
   children,
