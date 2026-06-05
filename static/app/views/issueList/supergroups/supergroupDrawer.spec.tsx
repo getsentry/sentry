@@ -56,6 +56,7 @@ describe('SupergroupDetailDrawer', () => {
 
     render(
       <SupergroupDetailDrawer
+        memberList={undefined}
         supergroup={SupergroupDetailFixture({group_ids: memberIds})}
         filterWithCurrentSearch
       />,

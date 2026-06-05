@@ -26,12 +26,12 @@ type GroupListBodyProps = {
   groupIds: string[];
   groupStatsPeriod: string;
   loading: boolean;
+  memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   pageSize: number;
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
-  memberList?: IndexedMembersByProject;
   supergroupLookup?: SupergroupLookup;
 };
 
@@ -39,9 +39,9 @@ type GroupListProps = {
   displayReprocessingLayout: boolean;
   groupIds: string[];
   groupStatsPeriod: string;
+  memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
-  memberList?: IndexedMembersByProject;
   supergroupLookup?: SupergroupLookup;
 };
 
