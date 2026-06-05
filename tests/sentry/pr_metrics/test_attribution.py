@@ -197,7 +197,7 @@ class RecordAttributionSignalTest(TestCase):
     def _record_seer_signal(self, **kwargs: Any) -> PullRequestAttribution:
         return record_attribution_signal(
             pull_request=self.pull_request,
-            signal_type=PullRequestAttributionSignalType.SEER_APP,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
             source=PullRequestAttributionSource.SEER_DATA,
             **kwargs,
         )
@@ -247,16 +247,16 @@ class RecomputePullRequestAttributionTest(TestCase):
 
     def test_picks_highest_confidence_signal(self) -> None:
         self._add(PullRequestAttributionSignalType.REFERENCED_ISSUE)
-        self._add(PullRequestAttributionSignalType.SEER_APP)
+        self._add(PullRequestAttributionSignalType.SENTRY_APP)
         self._add(PullRequestAttributionSignalType.MCP)
 
         assert (
             recompute_pull_request_attribution(self.pull_request)
-            == PullRequestAttributionSignalType.SEER_APP
+            == PullRequestAttributionSignalType.SENTRY_APP
         )
 
     def test_ignores_invalid_signals(self) -> None:
-        self._add(PullRequestAttributionSignalType.SEER_APP, is_valid=False)
+        self._add(PullRequestAttributionSignalType.SENTRY_APP, is_valid=False)
         self._add(PullRequestAttributionSignalType.REFERENCED_ISSUE)
 
         assert (
