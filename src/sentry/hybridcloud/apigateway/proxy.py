@@ -165,7 +165,12 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
         host = cell.api_gateway_address
 
-    metric_tags = {"destination_cell": cell.name, "url_name": url_name, "destination_host": host}
+    metric_tags = {
+        "destination_cell": cell.name,
+        "url_name": url_name,
+        "destination_host": host,
+        "request_method": request.method,
+    }
     circuit_breaker: CircuitBreaker | None = None
     use_pooling = in_random_rollout("hybridcloud.apigateway.use_pooling.rate")
 
