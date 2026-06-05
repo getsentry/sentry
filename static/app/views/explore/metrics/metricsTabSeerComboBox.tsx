@@ -233,7 +233,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       const visualizationTraceMetric = visualizations
         .flatMap(viz => viz.yAxes)
         .map(yAxis => parseMetricAggregate(yAxis).traceMetric)
-        .find(metric => metric.name && metric.type);
+        .find(
+          metric => metric.name && metric.type && isTraceMetricTypeValue(metric.type)
+        );
 
       const queryMetricName = search.getFilterValues(
         TraceMetricKnownFieldKey.METRIC_NAME
@@ -249,9 +251,11 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       search.removeFilter(TraceMetricKnownFieldKey.METRIC_UNIT);
       const cleanedQuery = search.formatString();
 
-      // The metric Seer actually specified, if any. Left undefined when the
-      // response neither embeds a metric in a visualization nor names one in the
-      // query — in that case we keep the panel's existing metric untouched.
+      // The metric Seer actually specified, if any. We require a valid metric
+      // type and prefer the visualization metric, falling back to the query
+      // filters. Left undefined when neither source yields a valid metric — in
+      // that case we keep the panel's existing metric untouched rather than
+      // guessing a default aggregate.
       let resolvedMetric: TraceMetric | undefined;
       if (visualizationTraceMetric) {
         // parseMetricAggregate leaves unit undefined when the aggregate omits
@@ -261,19 +265,16 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           ...visualizationTraceMetric,
           unit: visualizationTraceMetric.unit ?? NONE_UNIT,
         };
-      } else if (queryMetricName && queryMetricType) {
+      } else if (
+        queryMetricName &&
+        queryMetricType &&
+        isTraceMetricTypeValue(queryMetricType)
+      ) {
         resolvedMetric = {
           name: queryMetricName,
           type: queryMetricType,
           unit: queryMetricUnit ?? NONE_UNIT,
         };
-      }
-
-      // We expect a valid metric type. If it's missing or unrecognized, leave
-      // the panel's metric and visualizes untouched rather than guessing a
-      // default aggregate.
-      if (resolvedMetric && !isTraceMetricTypeValue(resolvedMetric.type)) {
-        resolvedMetric = undefined;
       }
       const nextMetric = resolvedMetric ?? traceMetric;
 
@@ -284,17 +285,20 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         aggregateFields.push({groupBy});
       }
 
-      // Apply Seer's visualizes, re-qualifying each aggregate with the resolved
-      // metric so the chart targets the same metric as the toolbar/samples —
-      // Seer sometimes returns unqualified y-axes (e.g. p75(value)) while naming
-      // the metric only in the query. In samples mode there's no visualize, so
-      // build a default one from the metric's type. When Seer didn't resolve a
-      // valid metric, leave the existing visualizes untouched so we don't
-      // clobber a customized aggregate.
+      // Apply Seer's visualizes. Seer should return metric-qualified y-axes
+      // (e.g. p75(value, metric.name, distribution, millisecond)), which we pass
+      // through untouched — including conditional `_if` forms that carry a
+      // filter argument. Defensively, if a y-axis comes back unqualified we
+      // re-qualify it with the resolved metric so the chart stays aligned with
+      // the toolbar/samples. In samples mode there's no visualize, so build a
+      // default one from the metric's type. When Seer didn't resolve a valid
+      // metric, leave the existing visualizes untouched so we don't clobber a
+      // customized aggregate.
       if (seerVisualizes.length > 0) {
         for (const viz of seerVisualizes) {
-          if (resolvedMetric) {
-            const {aggregation} = parseMetricAggregate(viz.yAxis);
+          const {aggregation, traceMetric: vizMetric} = parseMetricAggregate(viz.yAxis);
+          const isQualified = Boolean(vizMetric.name && vizMetric.type);
+          if (!isQualified && resolvedMetric) {
             aggregateFields.push(
               viz.replace({
                 yAxis: makeMetricsAggregate({
