@@ -4,7 +4,6 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
-  encodeMetricQueryParams,
   type BaseMetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
@@ -68,11 +67,12 @@ interface ApplySeerMetricsResult {
    * was resolved). This is what gets applied to the panel.
    */
   cleanedQuery: string;
-  /**
-   * The URL-encoded `metric` query param values, one per metric query.
-   */
-  encodedMetrics: string[];
   groupBys: string[];
+  /**
+   * The panel's metric queries with the targeted one updated to the resolved
+   * metric and query params. Callers encode these for the URL.
+   */
+  metricQueries: BaseMetricQuery[];
   mode: Mode;
   selection: PageFilters;
   visualizeCount: number;
@@ -265,21 +265,16 @@ export function applySeerMetricsResult({
     mode,
   });
 
-  // Build encoded metric queries, updating the current metric's query params
-  // and trace metric (the metric is parsed out of the agent's visualization
-  // aggregate or query filters above so the panel matches what was queried).
-  const encodedMetrics = metricQueries
-    .map((mq: BaseMetricQuery) => {
-      if (mq.queryParams === queryParams) {
-        return encodeMetricQueryParams({
-          ...mq,
-          metric: nextMetric,
-          queryParams: newQueryParams,
-        });
-      }
-      return encodeMetricQueryParams(mq);
-    })
-    .filter(Boolean);
+  // Update the current metric's query params and trace metric (the metric is
+  // parsed out of the agent's visualization aggregate or query filters above so
+  // the panel matches what was queried). Other metric queries pass through
+  // unchanged.
+  const nextMetricQueries = metricQueries.map((mq: BaseMetricQuery) => {
+    if (mq.queryParams === queryParams) {
+      return {...mq, metric: nextMetric, queryParams: newQueryParams};
+    }
+    return mq;
+  });
 
   const nextSelection = {
     ...selection,
@@ -292,7 +287,7 @@ export function applySeerMetricsResult({
   };
 
   return {
-    encodedMetrics,
+    metricQueries: nextMetricQueries,
     selection: nextSelection,
     cleanedQuery,
     mode,

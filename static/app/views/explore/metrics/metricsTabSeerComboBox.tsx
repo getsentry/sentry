@@ -24,7 +24,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {applySeerMetricsResult} from 'sentry/views/explore/metrics/applySeerMetricsResult';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  encodeMetricQueryParams,
+  type TraceMetric,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -169,14 +172,20 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         return;
       }
 
-      const {encodedMetrics, selection, cleanedQuery, mode, groupBys, visualizeCount} =
-        applySeerMetricsResult({
-          result,
-          traceMetric,
-          queryParams,
-          metricQueries,
-          selection: pageFilters.selection,
-        });
+      const {
+        metricQueries: nextMetricQueries,
+        selection,
+        cleanedQuery,
+        mode,
+        groupBys,
+        visualizeCount,
+      } = applySeerMetricsResult({
+        result,
+        traceMetric,
+        queryParams,
+        metricQueries,
+        selection: pageFilters.selection,
+      });
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,
@@ -205,7 +214,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           ...location,
           query: {
             ...location.query,
-            metric: encodedMetrics,
+            metric: nextMetricQueries.map(encodeMetricQueryParams),
             start: selection.datetime.start,
             end: selection.datetime.end,
             statsPeriod: selection.datetime.period,

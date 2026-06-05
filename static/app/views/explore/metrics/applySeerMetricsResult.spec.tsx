@@ -6,7 +6,6 @@ import {
 } from 'sentry/views/explore/metrics/applySeerMetricsResult';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
-  decodeMetricsQueryParams,
   defaultMetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
@@ -15,8 +14,7 @@ import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 
 /**
  * Applies a Seer assisted-query response to a fresh panel and returns the
- * single metric query the metrics explore UI would render — i.e. the decoded
- * `metric` URL param after the full encode → decode round-trip. Override the
+ * single metric query the metrics explore UI would render. Override the
  * panel's starting metric via `traceMetric`.
  */
 function applySeerOutput(
@@ -36,7 +34,7 @@ function applySeerOutput(
     ...result,
   };
 
-  const {encodedMetrics} = applySeerMetricsResult({
+  const {metricQueries} = applySeerMetricsResult({
     result: fullResult,
     traceMetric: traceMetric ?? {name: 'old.metric', type: 'gauge', unit: NONE_UNIT},
     queryParams: base.queryParams,
@@ -44,13 +42,13 @@ function applySeerOutput(
     selection: PageFiltersFixture(),
   });
 
-  const decoded = decodeMetricsQueryParams(encodedMetrics[0]!);
-  const visualize = decoded?.queryParams.aggregateFields.find(isVisualize);
+  const updated = metricQueries[0]!;
+  const visualize = updated.queryParams.aggregateFields.find(isVisualize);
 
   return {
-    metric: decoded?.metric,
-    query: decoded?.queryParams.query,
-    mode: decoded?.queryParams.mode,
+    metric: updated.metric,
+    query: updated.queryParams.query,
+    mode: updated.queryParams.mode,
     yAxis: visualize?.yAxis,
   };
 }
