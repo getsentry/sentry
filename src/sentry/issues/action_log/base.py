@@ -81,7 +81,7 @@ def resolve_action_source(request: Request) -> str:
         if family and family not in MCP_CATCHALL_CLIENT_FAMILIES:
             # Values outside this set are logged so we know to add new ones
             logger.warning(
-                "issue.action_log.unrecognized_mcp_client_family",
+                "group.action_log.unrecognized_mcp_client_family",
                 extra={"client_family": family},
             )
         return ActionSource.MCP
@@ -157,17 +157,19 @@ def publish_action(
     prefer publish_action_from_context().
     """
     action_name = action.get_type().name.lower()
-    metrics.incr("issue.action_log", tags={"action": action_name, "source": source})
+    metrics.incr("issues.action_log", tags={"action": action_name, "source": source})
     logger.info(
-        "issue.action_log",
+        "group.action_log",
         extra={
             "action": action_name,
             "source": source,
-            "group_id": group_id,
-            "organization_id": organization_id,
-            "project_id": project_id,
+            # IDs are stringified so large values aren't rendered in scientific
+            # notation by downstream log tooling.
+            "group_id": str(group_id),
+            "organization_id": str(organization_id),
+            "project_id": str(project_id),
             "actor_type": actor.actor_type.name.lower(),
-            "actor_id": actor.actor_id,
+            "actor_id": str(actor.actor_id),
             "metadata": action.dict(),
             "idempotency_key": idempotency_key,
         },
@@ -223,7 +225,7 @@ def publish_action_from_context(
     if ctx is None:
         logger.error(
             "publish_action_from_context called without ActionContext",
-            extra={"action": action.get_type().name.lower(), "group_id": group_id},
+            extra={"action": action.get_type().name.lower(), "group_id": str(group_id)},
         )
         source: str = ActionSource.UNKNOWN
         actor = SYSTEM_ACTOR

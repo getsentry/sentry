@@ -275,6 +275,74 @@ describe('MetricDetectorTriggeredSection', () => {
     await screen.findByRole('link', {name: 'RequestError'});
   });
 
+  it('renders contributing issues section for crash free rate (releases) dataset', async () => {
+    const startDate = '2023-12-31T23:58:00.000Z';
+
+    const contributingIssuesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [GroupFixture()],
+    });
+    const crashFreeDataSource = SnubaQueryDataSourceFixture({
+      queryObj: {
+        id: '1',
+        status: 1,
+        subscription: '1',
+        snubaQuery: {
+          aggregate:
+            'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
+          dataset: Dataset.SESSIONS,
+          id: '',
+          query: '',
+          timeWindow: 60,
+          eventTypes: [],
+        },
+      },
+    });
+
+    const event = EventFixture({
+      dateCreated: openPeriodStartDate,
+      eventID: 'event-1',
+      groupID: '123',
+      occurrence: {
+        id: '1',
+        eventId: 'event-1',
+        fingerprint: ['fingerprint'],
+        issueTitle: 'Test Issue',
+        subtitle: 'Subtitle',
+        resourceId: 'resource-1',
+        evidenceData: {
+          conditions: [condition],
+          dataSources: [crashFreeDataSource],
+          value: 0.95,
+        },
+        evidenceDisplay: [],
+        type: 8001,
+        detectionTime: '2024-01-01T00:00:00Z',
+      },
+    });
+
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('region', {name: 'Contributing Issues'})
+      ).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(contributingIssuesMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'issue.type:error ',
+            start: startDate,
+            end: openPeriodEndDate,
+          }),
+        })
+      );
+    });
+  });
+
   it('selects the condition with the highest conditionResult', async () => {
     const lowCondition: MetricCondition = {
       id: 'cond-low',
