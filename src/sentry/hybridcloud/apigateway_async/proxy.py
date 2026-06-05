@@ -160,6 +160,7 @@ async def proxy_cell_request(
         "destination_cell": cell.name,
         "url_name": url_name,
         "destination_host": host,
+        "request_method": request.method,
     }
     target_url = urljoin(host, request.path)
 

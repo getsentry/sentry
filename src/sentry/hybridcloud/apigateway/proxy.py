@@ -121,6 +121,7 @@ def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> H
             "url_name": url_name,
             "kind": "orgslug",
             "target": cell.name,
+            "request_method": request.method,
         },
     )
     return proxy_cell_request(request, cell, url_name)
