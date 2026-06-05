@@ -71,7 +71,7 @@ export function legacyWebhooksQueryOptions(organization: Organization) {
   );
 }
 
-export function WebhookDetailedView() {
+export default function WebhookDetailedView() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {openModal} = useModal();
@@ -196,5 +196,3 @@ export function WebhookDetailedView() {
     />
   );
 }
-
-export default WebhookDetailedView;

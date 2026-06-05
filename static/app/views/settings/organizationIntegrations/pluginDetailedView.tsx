@@ -380,7 +380,7 @@ function PluginDetailedView() {
   ) {
     return (
       <Redirect
-        to={normalizeUrl(`/settings/${organization.slug}/integrations/webhooks/`)}
+        to={normalizeUrl(`/settings/${organization.slug}/integrations/legacy-webhooks/`)}
       />
     );
   }

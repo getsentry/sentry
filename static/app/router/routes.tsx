@@ -1021,7 +1021,7 @@ function buildRoutes(): RouteObject[] {
           ),
         },
         {
-          path: 'webhooks/',
+          path: 'legacy-webhooks/',
           name: t('Webhooks'),
           component: make(
             () =>
