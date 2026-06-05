@@ -50,7 +50,9 @@ export function EventAttachmentActions({
               ? canPreview
                 ? undefined
                 : hasPreview
-                  ? t('This file is too large to preview')
+                  ? isTooLarge
+                    ? t('This file is too large to preview')
+                    : t('This attachment cannot be previewed')
                   : t('This attachment cannot be previewed')
               : t('Insufficient permissions to preview attachments'),
           }}
