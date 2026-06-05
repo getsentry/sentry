@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
+import type {Release} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 export function ReleaseSeries(
   theme: Theme,

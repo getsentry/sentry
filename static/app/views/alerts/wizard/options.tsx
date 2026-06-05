@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {
   FieldKey,
   makeTagCollection,
@@ -23,7 +23,7 @@ import {
   Dataset,
   EventTypes,
   SessionsAggregate,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {hasLogAlerts, hasTraceMetricsAlerts} from 'sentry/views/alerts/wizard/utils';
 import {
   deprecateTransactionAlerts,

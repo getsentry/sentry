@@ -1,4 +1,4 @@
-import {Datasource, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import {Datasource, SessionsAggregate} from 'sentry/views/alerts/rules/metric/typesBase';
 import {
   alertAxisFormatter,
   alertTooltipValueFormatter,

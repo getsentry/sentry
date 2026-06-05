@@ -30,7 +30,7 @@ import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {defined} from 'sentry/utils/defined';
-import type {Field} from 'sentry/utils/discover/fields';
+import type {Field} from 'sentry/utils/discover/fieldsBase';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
   COMBINED_DATASET_FILTER_KEY_SECTIONS,

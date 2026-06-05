@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {Organization} from 'sentry/types/organization';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 

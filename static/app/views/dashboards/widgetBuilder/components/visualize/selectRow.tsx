@@ -19,7 +19,7 @@ import {
 import {AggregationKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   AggregateCompactSelect,

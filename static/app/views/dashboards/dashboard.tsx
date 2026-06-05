@@ -20,7 +20,7 @@ import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {DatasetSource} from 'sentry/utils/discover/types';
+import {DatasetSource} from 'sentry/utils/discover/typesBase';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,7 +52,7 @@ import {
 } from './layoutUtils';
 import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardFilterKeys, WidgetType} from './types';
+import {DashboardFilterKeys, WidgetType} from './typesBase';
 import {connectDashboardCharts, getMergedDashboardFilters} from './utils';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 

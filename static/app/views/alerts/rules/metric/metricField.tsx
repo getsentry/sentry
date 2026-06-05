@@ -12,7 +12,7 @@ import {
   getWizardAlertFieldConfig,
   transactionFieldConfig,
 } from './constants';
-import {Dataset} from './types';
+import {Dataset} from './typesBase';
 
 export const getFieldOptionConfig = ({
   dataset,

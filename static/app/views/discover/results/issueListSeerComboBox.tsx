@@ -11,7 +11,7 @@ import {
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {Token} from 'sentry/components/searchSyntax/parser';
+import {Token} from 'sentry/components/searchSyntax/types';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';

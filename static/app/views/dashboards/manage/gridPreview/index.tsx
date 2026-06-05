@@ -9,8 +9,8 @@ import {
   assignDefaultLayout,
   calculateColumnDepths,
 } from 'sentry/views/dashboards/layoutUtils';
-import type {WidgetLayout, WidgetPreview} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import type {WidgetLayout, WidgetPreview} from 'sentry/views/dashboards/typesBase';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 
 import {AreaPreview} from './chartPreviews/area';
 import {BarPreview} from './chartPreviews/bar';

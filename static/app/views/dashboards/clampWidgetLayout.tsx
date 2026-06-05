@@ -1,6 +1,6 @@
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 
-import type {WidgetLayout} from './types';
+import type {WidgetLayout} from './typesBase';
 
 /**
  * Clamps a widget layout so that dimensions stay within the dashboard grid bounds.

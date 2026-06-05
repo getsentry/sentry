@@ -1,4 +1,4 @@
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 
 describe('isOnDemandMetricAlert', () => {

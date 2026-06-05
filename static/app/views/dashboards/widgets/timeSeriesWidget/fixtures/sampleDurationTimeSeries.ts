@@ -1,4 +1,4 @@
-import {DurationUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit} from 'sentry/utils/discover/fieldsBase';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleDurationTimeSeries: TimeSeries = {

@@ -8,7 +8,7 @@ import {useReducedMotion} from 'framer-motion';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ParseResult, TokenResult} from './parser';
-import {Token} from './parser';
+import {Token} from './types';
 import {isWithinToken} from './utils';
 
 type Props = {

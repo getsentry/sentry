@@ -1,7 +1,7 @@
 import {useCallback, useEffect} from 'react';
 
 import {createStorage} from 'sentry/utils/createStorage';
-import type {WidgetType} from 'sentry/views/dashboards/types';
+import type {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';

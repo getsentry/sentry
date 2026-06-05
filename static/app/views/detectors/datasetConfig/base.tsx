@@ -13,12 +13,12 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import type {
   Dataset,
   EventTypes,
   ExtrapolationMode,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {
   MetricDetectorInterval,
   MetricDetectorTimePeriod,

@@ -7,7 +7,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SessionField} from 'sentry/types/sessions';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 
 import {useReleasesSeriesQuery, useReleasesTableQuery} from './useReleasesWidgetQuery';
 

@@ -8,8 +8,8 @@ import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerC
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';

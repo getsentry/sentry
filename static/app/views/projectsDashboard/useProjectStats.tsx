@@ -7,7 +7,7 @@ import type {Project, ProjectStats} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 
 const MAX_PROJECTS_TO_FETCH = 10;
 

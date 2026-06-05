@@ -24,7 +24,7 @@ import type {MissingMember, Organization, OrgRole} from 'sentry/types/organizati
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Theme} from 'sentry/utils/theme';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
 
 export type ModalOptions = ModalTypes['options'];

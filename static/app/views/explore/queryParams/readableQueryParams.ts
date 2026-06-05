@@ -1,4 +1,4 @@
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';

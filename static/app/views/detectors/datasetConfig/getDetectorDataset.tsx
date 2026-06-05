@@ -1,5 +1,5 @@
 import {unreachable} from 'sentry/utils/unreachable';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 /**

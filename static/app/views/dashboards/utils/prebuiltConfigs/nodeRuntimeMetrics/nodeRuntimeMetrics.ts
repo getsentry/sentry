@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
-import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fieldsBase';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import type {
   PrebuiltDashboard,
   PrebuiltWidget,

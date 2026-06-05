@@ -2,10 +2,10 @@ import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import type {SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/typesBase';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
 

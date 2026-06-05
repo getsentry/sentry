@@ -1,6 +1,6 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {WildcardOperators} from 'sentry/components/searchSyntax/types';
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {FilterSelector} from 'sentry/views/dashboards/globalFilter/filterSelector';

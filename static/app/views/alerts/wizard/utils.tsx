@@ -3,7 +3,7 @@ import {
   Dataset,
   EventTypes,
   SessionsAggregate,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {canUseMetricsAlertsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceItemDataset} from 'sentry/views/explore/types';

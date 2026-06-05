@@ -8,7 +8,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {PageFilters} from 'sentry/types/core';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
+import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/typesBase';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {
   DashboardsMEPContext,

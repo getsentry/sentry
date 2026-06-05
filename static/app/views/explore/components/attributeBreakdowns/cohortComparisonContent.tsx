@@ -12,7 +12,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {getUserTimezone} from 'sentry/utils/dates';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useAttributeBreakdownComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';

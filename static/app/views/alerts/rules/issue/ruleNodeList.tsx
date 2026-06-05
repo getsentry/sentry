@@ -14,7 +14,7 @@ import type {
 import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
+import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/typesBase';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,

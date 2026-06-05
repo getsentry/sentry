@@ -5,9 +5,9 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 
 import {
   useTransactionsSeriesQuery,

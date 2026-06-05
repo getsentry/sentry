@@ -11,7 +11,7 @@ import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {IncidentStatus, type CombinedMetricIssueAlerts} from 'sentry/views/alerts/types';
 import {isIssueAlert} from 'sentry/views/alerts/utils';
 

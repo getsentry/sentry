@@ -16,7 +16,7 @@ import {toArray} from 'sentry/utils/array/toArray';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {useApiQuery} from 'sentry/utils/queryClient';

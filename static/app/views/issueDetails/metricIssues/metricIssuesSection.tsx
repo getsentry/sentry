@@ -7,7 +7,7 @@ import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RelatedIssues} from 'sentry/views/alerts/rules/metric/details/relatedIssues';
 import {RelatedTransactions} from 'sentry/views/alerts/rules/metric/details/relatedTransactions';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';

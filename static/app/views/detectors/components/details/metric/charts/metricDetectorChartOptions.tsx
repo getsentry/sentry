@@ -14,7 +14,7 @@ import type {SessionApiResponse} from 'sentry/types/organization';
 import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Anomaly} from 'sentry/views/alerts/types';

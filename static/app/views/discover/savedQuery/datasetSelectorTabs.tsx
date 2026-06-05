@@ -11,7 +11,7 @@ import {
   TRANSACTION_ONLY_FIELDS,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import type {FieldKey, SpanOpBreakdown} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';

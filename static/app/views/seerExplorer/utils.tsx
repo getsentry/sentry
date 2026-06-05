@@ -8,8 +8,8 @@ import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedb
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
+import {SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';

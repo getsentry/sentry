@@ -79,7 +79,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useGlobalAlerts, type AddAlert} from 'sentry/views/app/globalAlerts';
-import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource} from 'sentry/views/dashboards/typesBase';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   DEFAULT_EVENT_VIEW,

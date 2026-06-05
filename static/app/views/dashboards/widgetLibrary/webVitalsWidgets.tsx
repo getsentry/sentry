@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 

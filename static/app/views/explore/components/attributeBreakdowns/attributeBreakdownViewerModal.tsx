@@ -18,7 +18,7 @@ import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plot
 import type {
   TabularColumn,
   TabularData,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';

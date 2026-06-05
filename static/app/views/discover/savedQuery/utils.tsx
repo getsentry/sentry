@@ -22,10 +22,10 @@ import {
   DiscoverDatasets,
   DisplayModes,
   SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
+} from 'sentry/utils/discover/typesBase';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 

@@ -1,4 +1,4 @@
-import type {DataUnit} from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 

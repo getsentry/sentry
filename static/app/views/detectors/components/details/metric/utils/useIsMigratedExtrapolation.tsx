@@ -1,4 +1,4 @@
-import {ExtrapolationMode} from 'sentry/views/alerts/rules/metric/types';
+import {ExtrapolationMode} from 'sentry/views/alerts/rules/metric/typesBase';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 export function useIsMigratedExtrapolation({

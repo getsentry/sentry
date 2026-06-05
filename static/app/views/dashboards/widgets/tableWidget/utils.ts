@@ -3,7 +3,7 @@ import type {
   TabularColumn,
   TabularData,
   TabularValueUnit,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 /**
  * Converts the TableData type to TabularData type

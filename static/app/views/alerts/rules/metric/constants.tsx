@@ -16,7 +16,7 @@ import {
   Datasource,
   EventTypes,
   TimeWindow,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,

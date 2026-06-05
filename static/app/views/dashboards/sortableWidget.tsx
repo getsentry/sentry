@@ -5,14 +5,14 @@ import cloneDeep from 'lodash/cloneDeep';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {isWidgetEditable} from 'sentry/views/dashboards/utils';
 import {useWidgetSlideout} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';

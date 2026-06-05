@@ -12,7 +12,7 @@ import {
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {Token} from 'sentry/components/searchSyntax/parser';
+import {Token} from 'sentry/components/searchSyntax/types';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';

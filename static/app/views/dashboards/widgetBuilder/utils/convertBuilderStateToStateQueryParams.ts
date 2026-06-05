@@ -1,6 +1,6 @@
 import omit from 'lodash/omit';
 
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {
   serializeFields,
   serializeLinkedDashboards,

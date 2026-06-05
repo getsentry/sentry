@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import type {SeriesOption} from 'echarts';
 
-import type {DataUnit} from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
 import {formatCategoricalSeriesLabel} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/formatters/formatCategoricalSeriesLabel';
 import {formatCategoricalSeriesName} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/formatters/formatCategoricalSeriesName';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/settings';

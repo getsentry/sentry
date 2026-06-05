@@ -5,7 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 
 /**
  * Select helper that flattens infinite pages and deduplicates repositories

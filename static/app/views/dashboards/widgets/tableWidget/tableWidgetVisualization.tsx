@@ -30,7 +30,7 @@ import type {
   TabularData,
   TabularMeta,
   TabularRow,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {
   Actions,
   CellAction,

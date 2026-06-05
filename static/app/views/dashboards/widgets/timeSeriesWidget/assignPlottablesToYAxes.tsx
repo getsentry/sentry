@@ -4,7 +4,7 @@ import mapValues from 'lodash/mapValues';
 
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import type {TimeSeriesValueUnit} from 'sentry/views/dashboards/widgets/common/types';
+import type {TimeSeriesValueUnit} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 import type {Plottable} from './plottables/plottable';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';

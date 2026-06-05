@@ -14,7 +14,7 @@ import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import {AlertRuleComparisonType, Dataset} from './types';
+import {AlertRuleComparisonType, Dataset} from './typesBase';
 
 type Props = {
   alertType: MetricAlertType;

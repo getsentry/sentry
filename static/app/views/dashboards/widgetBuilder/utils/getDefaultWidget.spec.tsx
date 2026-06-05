@@ -1,5 +1,5 @@
 import {SessionField} from 'sentry/types/sessions';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 
 describe('getDefaultWidget', () => {

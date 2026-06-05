@@ -4,7 +4,7 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {useFetchEventsTimeSeries} from './useFetchEventsTimeSeries';

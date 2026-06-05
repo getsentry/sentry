@@ -22,7 +22,7 @@ import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';

@@ -4,7 +4,7 @@ import {
 } from 'sentry/actionCreators/tags';
 import type {Tag} from 'sentry/types/group';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 
 /**
  * Queries `flags` column of errors dataset. Response format is the same as `useFetchOrganizationTags`. response.data: Tag[]

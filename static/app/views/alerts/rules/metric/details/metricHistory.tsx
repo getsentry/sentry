@@ -16,7 +16,7 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
-import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
+import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {Incident} from 'sentry/views/alerts/types';
 import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';

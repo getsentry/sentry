@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {shouldTriggerHighAccuracy} from 'sentry/views/explore/hooks/useExploreTimeseries';

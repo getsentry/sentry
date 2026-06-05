@@ -10,7 +10,7 @@ import {
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {FeedbackCategories} from 'sentry/components/feedback/summaryCategories/feedbackCategories';
-import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {WildcardOperators} from 'sentry/components/searchSyntax/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

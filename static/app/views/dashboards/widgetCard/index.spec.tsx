@@ -20,7 +20,7 @@ import {
   DashboardFilterKeys,
   DisplayType,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';

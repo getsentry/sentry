@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import {Token} from 'sentry/components/searchSyntax/parser';
+import {Token} from 'sentry/components/searchSyntax/types';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {PageFilters} from 'sentry/types/core';

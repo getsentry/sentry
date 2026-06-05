@@ -10,7 +10,7 @@ import type {
   Dataset,
   EventTypes,
   ExtrapolationMode,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {
   UptimeAssertion,
   UptimeMonitorMode,

@@ -1,9 +1,9 @@
 import type {SeriesOption} from 'echarts';
 
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import type {DataUnit} from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
 import type {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
-import type {CategoricalItemCategory} from 'sentry/views/dashboards/widgets/common/types';
+import type {CategoricalItemCategory} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 /**
  * The constrained set of value types that can be plotted in a categorical chart.

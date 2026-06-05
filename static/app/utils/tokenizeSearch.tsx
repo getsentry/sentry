@@ -1,4 +1,4 @@
-import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {WildcardOperators} from 'sentry/components/searchSyntax/types';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
 const ALLOWED_WILDCARD_FIELDS = [

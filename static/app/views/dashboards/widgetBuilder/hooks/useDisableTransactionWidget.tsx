@@ -1,5 +1,5 @@
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 export function useDisableTransactionWidget() {

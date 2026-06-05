@@ -25,7 +25,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,

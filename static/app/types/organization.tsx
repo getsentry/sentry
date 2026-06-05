@@ -4,8 +4,8 @@ import type {
   DatasetSource,
   DiscoverDatasets,
   SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
-import type {WidgetType} from 'sentry/views/dashboards/types';
+} from 'sentry/utils/discover/typesBase';
+import type {WidgetType} from 'sentry/views/dashboards/typesBase';
 import type {ReadableSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';

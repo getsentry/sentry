@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {

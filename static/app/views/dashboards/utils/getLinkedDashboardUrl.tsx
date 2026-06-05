@@ -10,7 +10,7 @@ import type {
   LinkedDashboard,
   WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {DashboardFilterKeys, WidgetType} from 'sentry/views/dashboards/types';
+import {DashboardFilterKeys, WidgetType} from 'sentry/views/dashboards/typesBase';
 
 interface GetLinkedDashboardUrlOptions {
   field: string;

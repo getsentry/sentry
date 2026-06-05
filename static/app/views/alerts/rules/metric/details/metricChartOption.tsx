@@ -12,7 +12,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
-import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';

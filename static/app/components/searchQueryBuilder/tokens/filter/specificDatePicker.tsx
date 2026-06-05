@@ -13,7 +13,7 @@ import {DatePicker} from 'sentry/components/calendar';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
-import {Token} from 'sentry/components/searchSyntax/parser';
+import {Token} from 'sentry/components/searchSyntax/types';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';

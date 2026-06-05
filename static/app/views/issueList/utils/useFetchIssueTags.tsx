@@ -28,7 +28,7 @@ import {
 import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsernames';
 import {escapeIssueTagKey} from 'sentry/utils/queryString';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
 type UseFetchIssueTagsParams = {

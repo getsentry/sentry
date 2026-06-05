@@ -12,7 +12,7 @@ import {
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useParams} from 'sentry/utils/useParams';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {

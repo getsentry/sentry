@@ -1,7 +1,7 @@
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {Dataset, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, TimeWindow} from 'sentry/views/alerts/rules/metric/typesBase';
 import {getAlertRuleExploreUrl} from 'sentry/views/alerts/rules/utils';
 
 describe('getExploreUrl', () => {

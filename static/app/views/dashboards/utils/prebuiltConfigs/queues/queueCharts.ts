@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {SpanFields} from 'sentry/views/insights/types';
 

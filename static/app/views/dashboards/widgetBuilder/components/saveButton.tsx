@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
-import {DatasetSource} from 'sentry/utils/discover/types';
+import {DatasetSource} from 'sentry/utils/discover/typesBase';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';

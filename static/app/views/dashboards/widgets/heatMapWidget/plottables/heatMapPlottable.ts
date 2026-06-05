@@ -1,7 +1,7 @@
 import type {SeriesOption} from 'echarts';
 
 import type {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
-import type {HeatMapValueUnit} from 'sentry/views/dashboards/widgets/common/types';
+import type {HeatMapValueUnit} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 export type PlottableTimeSeriesValueType =
   (typeof PLOTTABLE_TIME_SERIES_VALUE_TYPES)[number];

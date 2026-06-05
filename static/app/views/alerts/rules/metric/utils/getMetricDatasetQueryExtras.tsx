@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {

@@ -4,7 +4,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 
 import {TraceMetricsWidgetQueries} from './traceMetricsWidgetQueries';
 

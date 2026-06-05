@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {createRuleFromEventView} from 'sentry/views/alerts/rules/metric/constants';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 
 describe('createRuleFromEventView()', () => {
   const commonEventViewProps: EventViewOptions = {

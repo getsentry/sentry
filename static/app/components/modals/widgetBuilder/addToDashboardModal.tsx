@@ -25,7 +25,7 @@ import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -72,7 +72,7 @@ import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboar
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export type AddToDashboardModalActions =

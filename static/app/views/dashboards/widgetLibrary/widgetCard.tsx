@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {IconArrow, IconGraph, IconMenu, IconNumber} from 'sentry/icons';
 import {IconGraphArea} from 'sentry/icons/iconGraphArea';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 
 export function getWidgetIcon(displayType: DisplayType): React.ReactNode {
   switch (displayType) {

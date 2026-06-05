@@ -17,7 +17,7 @@ import {
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, type EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import {BufferedInput} from 'sentry/views/discover/table/queryField';
 import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';

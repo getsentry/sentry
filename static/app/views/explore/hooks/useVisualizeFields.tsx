@@ -5,7 +5,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import type {ParsedFunction} from 'sentry/utils/discover/fields';
+import type {ParsedFunction} from 'sentry/utils/discover/fieldsBase';
 import {
   AggregationKey,
   FieldKind,

@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {decodeSorts} from 'sentry/utils/queryString';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';

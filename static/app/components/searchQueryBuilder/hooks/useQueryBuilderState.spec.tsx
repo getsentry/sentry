@@ -1,6 +1,6 @@
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {Token, WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {Token, WildcardOperators} from 'sentry/components/searchSyntax/types';
 import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
 
 import {multiSelectTokenValue, replaceFreeTextTokens} from './useQueryBuilderState';

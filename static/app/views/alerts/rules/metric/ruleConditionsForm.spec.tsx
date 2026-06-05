@@ -10,7 +10,7 @@ import {
   Dataset,
   EventTypes,
   ExtrapolationMode,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
 describe('RuleConditionsForm', () => {

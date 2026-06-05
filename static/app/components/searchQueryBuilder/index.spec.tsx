@@ -27,7 +27,7 @@ import {
   type FieldDefinitionGetter,
   type FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/types';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {
   FieldKey,

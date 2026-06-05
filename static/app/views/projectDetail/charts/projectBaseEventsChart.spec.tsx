@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {PageFilters} from 'sentry/types/core';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import ProjectBaseEventsChart from 'sentry/views/projectDetail/charts/projectBaseEventsChart';
 
 describe('ProjectBaseEventsChart', () => {

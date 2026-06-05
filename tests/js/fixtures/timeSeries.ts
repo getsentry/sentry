@@ -1,4 +1,4 @@
-import {RateUnit} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fieldsBase';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export function TimeSeriesFixture(params: Partial<TimeSeries> = {}): TimeSeries {

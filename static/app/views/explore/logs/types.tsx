@@ -5,7 +5,7 @@ import type {
   DurationUnit,
   PercentageUnit,
   PercentChangeUnit,
-} from 'sentry/utils/discover/fields';
+} from 'sentry/utils/discover/fieldsBase';
 import type {AggregationKey} from 'sentry/utils/fields';
 import type {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 

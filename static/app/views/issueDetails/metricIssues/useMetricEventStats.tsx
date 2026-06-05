@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {EventsStats} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

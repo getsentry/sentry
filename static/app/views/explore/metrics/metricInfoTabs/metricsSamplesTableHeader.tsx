@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {
   StyledSimpleTableHeader,
   StyledSimpleTableHeaderCell,

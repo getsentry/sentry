@@ -33,7 +33,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
-import type {RateUnit} from 'sentry/utils/discover/fields';
+import type {RateUnit} from 'sentry/utils/discover/fieldsBase';
 import {
   ABYTE_UNITS,
   AGGREGATIONS,

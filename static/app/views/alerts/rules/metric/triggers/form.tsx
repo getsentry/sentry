@@ -20,7 +20,7 @@ import type {
 import {
   AlertRuleComparisonType,
   AlertRuleTriggerType,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
 type Props = {

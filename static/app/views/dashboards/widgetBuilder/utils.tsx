@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import {WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 

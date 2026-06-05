@@ -1,4 +1,4 @@
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {isBizPlanFamily} from 'getsentry/utils/billing';

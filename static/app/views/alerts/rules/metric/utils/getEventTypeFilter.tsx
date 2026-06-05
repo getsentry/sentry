@@ -3,7 +3,7 @@ import {
   DATASOURCE_EVENT_TYPE_FILTERS,
 } from 'sentry/views/alerts/rules/metric/constants';
 import type {EventTypes, MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {Dataset, Datasource} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, Datasource} from 'sentry/views/alerts/rules/metric/typesBase';
 import {convertDatasetEventTypesToSource} from 'sentry/views/alerts/utils';
 
 export function extractEventTypeFilterFromRule(metricRule: MetricRule): string {

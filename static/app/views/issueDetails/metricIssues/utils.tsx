@@ -9,7 +9,7 @@ import type {GroupOpenPeriod} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {TimePeriod} from 'sentry/views/alerts/rules/metric/typesBase';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 

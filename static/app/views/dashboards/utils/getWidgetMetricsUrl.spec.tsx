@@ -4,7 +4,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {getWidgetMetricsUrl} from './getWidgetMetricsUrl';

@@ -1,6 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {parseEventTypesFromQuery} from 'sentry/views/detectors/datasetConfig/eventTypes';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';

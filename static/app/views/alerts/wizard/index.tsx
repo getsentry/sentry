@@ -26,7 +26,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
 import type {AlertType, MetricAlertType} from './options';

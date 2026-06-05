@@ -1,4 +1,4 @@
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const WEB_VITAL_TO_FIELD = {

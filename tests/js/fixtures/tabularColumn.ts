@@ -1,4 +1,4 @@
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 export function TabularColumnFixture(params: Partial<TabularColumn>): TabularColumn {
   return {

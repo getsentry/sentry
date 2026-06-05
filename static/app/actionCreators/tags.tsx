@@ -15,7 +15,7 @@ import {
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {AddAlert} from 'sentry/views/app/globalAlerts';
 
 const MAX_TAGS = 1000;

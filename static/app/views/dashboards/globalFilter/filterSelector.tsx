@@ -36,7 +36,7 @@ import {
   prepareInputValueForSaving,
   tokenSupportsMultipleValues,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
-import {TermOperator} from 'sentry/components/searchSyntax/parser';
+import {TermOperator} from 'sentry/components/searchSyntax/types';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';

@@ -12,7 +12,7 @@ import {
   Dataset,
   EventTypes,
   ExtrapolationMode,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/analytics', () => ({

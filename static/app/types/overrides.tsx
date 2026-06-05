@@ -18,7 +18,7 @@ import type {
   useDefaultMaxPickableDays,
   useMaxPickableDays,
 } from 'sentry/utils/useMaxPickableDays';
-import type {WidgetType} from 'sentry/views/dashboards/types';
+import type {WidgetType} from 'sentry/views/dashboards/typesBase';
 import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSection';
 import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';

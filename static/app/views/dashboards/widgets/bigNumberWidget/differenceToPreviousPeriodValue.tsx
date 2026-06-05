@@ -13,7 +13,7 @@ import {
   LOADING_PLACEHOLDER,
 } from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import {DEFAULT_FIELD} from 'sentry/views/dashboards/widgets/common/settings';
-import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
+import type {TabularRow} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 interface DifferenceToPreviousPeriodValueProps {
   previousPeriodValue: number;

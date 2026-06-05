@@ -16,7 +16,7 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView, LocationQuery} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar, isFieldsSimilar} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import {Measurements} from 'sentry/utils/measurements/measurements';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';

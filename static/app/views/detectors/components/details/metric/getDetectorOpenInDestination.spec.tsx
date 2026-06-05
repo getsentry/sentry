@@ -4,7 +4,7 @@ import {
 } from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 
 import {getDetectorOpenInDestination} from './getDetectorOpenInDestination';
 

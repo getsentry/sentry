@@ -54,7 +54,7 @@ import type {
   GlobalFilter,
   Widget,
 } from './types';
-import {DashboardFilterKeys, WidgetType} from './types';
+import {DashboardFilterKeys, WidgetType} from './typesBase';
 
 /**
  * Maps widget types to data categories for determining max pickable days

@@ -15,7 +15,7 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
 
 type Props = {

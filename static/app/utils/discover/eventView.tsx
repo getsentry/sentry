@@ -45,7 +45,7 @@ import {AggregationKey} from 'sentry/utils/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import type {WidgetType} from 'sentry/views/dashboards/types';
+import type {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {
   getDatasetFromLocationOrSavedQueryDataset,

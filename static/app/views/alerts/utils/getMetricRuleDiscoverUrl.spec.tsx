@@ -1,7 +1,7 @@
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 
 import {getMetricRuleDiscoverQuery} from './getMetricRuleDiscoverUrl';
 

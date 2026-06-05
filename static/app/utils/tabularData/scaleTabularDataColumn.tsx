@@ -13,7 +13,7 @@ import {
 import type {
   TabularData,
   TabularValueUnit,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {
   FALLBACK_TYPE,
   FALLBACK_UNIT_FOR_FIELD_TYPE,

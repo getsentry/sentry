@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {DatasetSource} from 'sentry/utils/discover/types';
+import {DatasetSource} from 'sentry/utils/discover/typesBase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
 

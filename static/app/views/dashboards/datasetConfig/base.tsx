@@ -19,7 +19,7 @@ import type {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {
@@ -28,7 +28,7 @@ import type {
   Widget,
   WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';

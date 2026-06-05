@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import type {
   PrebuiltDashboard,
   PrebuiltWidget,

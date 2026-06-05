@@ -20,7 +20,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {
   SearchBarData,
   SearchBarDataProviderProps,

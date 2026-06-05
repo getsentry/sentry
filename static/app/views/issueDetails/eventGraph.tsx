@@ -23,7 +23,7 @@ import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organizatio
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';

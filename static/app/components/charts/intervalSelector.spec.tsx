@@ -4,7 +4,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IntervalSelector} from 'sentry/components/charts/intervalSelector';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DisplayModes} from 'sentry/utils/discover/typesBase';
 
 describe('IntervalSelector', () => {
   const project = ProjectFixture();

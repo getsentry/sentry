@@ -1,5 +1,5 @@
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {Token} from 'sentry/components/searchSyntax/parser';
+import {Token} from 'sentry/components/searchSyntax/types';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 import {

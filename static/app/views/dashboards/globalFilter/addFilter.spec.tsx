@@ -4,7 +4,7 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {AddFilter, DATASET_CHOICES} from 'sentry/views/dashboards/globalFilter/addFilter';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 
 describe('AddFilter', () => {
   // Mock filter keys returned by the search bar data provider

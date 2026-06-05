@@ -1,4 +1,4 @@
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 
 export function defaultSortBys(fields: string[]): Sort[] {

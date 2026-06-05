@@ -93,7 +93,7 @@ import {
   Datasource,
   ExtrapolationMode,
   type EventTypes,
-} from './types';
+} from './typesBase';
 
 type Props = {
   aggregate: string;

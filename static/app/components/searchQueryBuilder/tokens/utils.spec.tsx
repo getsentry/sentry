@@ -1,4 +1,4 @@
-import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {WildcardOperators} from 'sentry/components/searchSyntax/types';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 import {getInitialFilterText} from './utils';

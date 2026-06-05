@@ -44,7 +44,7 @@ import {
   getEquation,
   isEquation,
 } from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 

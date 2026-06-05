@@ -6,7 +6,7 @@ import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/c
 import type {
   HeatMapSeries,
   HeatMapValueUnit,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import type {HeatMapPlottable, PlottableTimeSeriesValueType} from './heatMapPlottable';

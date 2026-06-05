@@ -1,4 +1,4 @@
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 
 export function defaultAggregateSortBys(yAxes: string[]): Sort[] {
   if (yAxes[0]) {

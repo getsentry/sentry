@@ -15,7 +15,7 @@ import {Truncate} from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   canUseMetricsData,

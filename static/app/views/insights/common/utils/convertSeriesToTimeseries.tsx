@@ -1,4 +1,4 @@
-import type {DataUnit} from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';

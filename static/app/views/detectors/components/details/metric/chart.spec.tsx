@@ -11,7 +11,7 @@ import {
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
 
 describe('MetricDetectorDetailsChart', () => {

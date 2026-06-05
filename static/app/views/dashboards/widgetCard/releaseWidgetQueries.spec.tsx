@@ -12,7 +12,7 @@ import {
   DashboardFilterKeys,
   DisplayType,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
 describe('Dashboards > ReleaseWidgetQueries', () => {

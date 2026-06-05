@@ -1,5 +1,5 @@
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
-import {Token} from 'sentry/components/searchSyntax/parser';
+import {Token} from 'sentry/components/searchSyntax/types';
 
 describe('parseFilterValueDate', () => {
   it('parses relative dates', () => {

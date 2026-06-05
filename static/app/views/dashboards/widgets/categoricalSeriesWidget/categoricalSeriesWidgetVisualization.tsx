@@ -25,7 +25,7 @@ import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {trimCommonAffixes} from 'sentry/utils/string/trimCommonAffixes';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
-import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
+import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';

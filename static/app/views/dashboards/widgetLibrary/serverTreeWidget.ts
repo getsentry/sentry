@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
 
 /**

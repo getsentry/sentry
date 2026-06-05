@@ -26,7 +26,7 @@ import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {alertAxisFormatter, isSessionAggregate} from 'sentry/views/alerts/utils';

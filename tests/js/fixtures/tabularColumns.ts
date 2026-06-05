@@ -1,6 +1,6 @@
 import {TabularColumnFixture} from 'sentry-fixture/tabularColumn';
 
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 export function TabularColumnsFixture(
   params: Array<Partial<TabularColumn>>

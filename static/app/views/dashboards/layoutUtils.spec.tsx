@@ -8,7 +8,7 @@ import {
   getDashboardLayout,
   getNextAvailablePosition,
 } from 'sentry/views/dashboards/layoutUtils';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 
 jest.mock('@sentry/react');
 

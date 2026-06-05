@@ -1,5 +1,5 @@
-import {DurationUnit} from 'sentry/utils/discover/fields';
-import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {DurationUnit} from 'sentry/utils/discover/fieldsBase';
+import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/typesBase';
 export const sampleLatencyHeatMap: HeatMapSeries = {
   meta: {
     xAxis: {

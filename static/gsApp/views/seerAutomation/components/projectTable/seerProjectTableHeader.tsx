@@ -17,7 +17,7 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {
   useListItemCheckboxContext,

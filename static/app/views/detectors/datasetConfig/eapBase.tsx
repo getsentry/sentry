@@ -5,8 +5,8 @@ import type {TagCollection} from 'sentry/types/group';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {type QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
+import type {EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
 import {
   getDiscoverSeriesQueryOptions,
