@@ -226,8 +226,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // the metric name/type/unit out of the visualize aggregate (e.g.
       // p75(value, metric.name, distribution, millisecond)); if it's not there
       // we read metric.name/type/unit filters from the query (typically only
-      // present in samples mode), always stripping them from the outputted
-      // query since the metric is tracked on the panel rather than the query.
+      // present in samples mode).
       const search = new MutableSearch(queryToUse);
 
       const visualizationTraceMetric = visualizations
@@ -246,10 +245,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       const queryMetricUnit = search.getFilterValues(
         TraceMetricKnownFieldKey.METRIC_UNIT
       )[0];
-      search.removeFilter(TraceMetricKnownFieldKey.METRIC_NAME);
-      search.removeFilter(TraceMetricKnownFieldKey.METRIC_TYPE);
-      search.removeFilter(TraceMetricKnownFieldKey.METRIC_UNIT);
-      const cleanedQuery = search.formatString();
 
       // The metric Seer actually specified, if any. We require a valid metric
       // type and prefer the visualization metric, falling back to the query
@@ -278,6 +273,18 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       }
       const nextMetric = resolvedMetric ?? traceMetric;
 
+      // Only strip the metric filters from the query when we actually adopted a
+      // metric (it's then tracked on the panel, not the query). If we couldn't
+      // resolve one, leave the query untouched so it stays consistent with the
+      // unchanged panel metric.
+      let cleanedQuery = queryToUse;
+      if (resolvedMetric) {
+        search.removeFilter(TraceMetricKnownFieldKey.METRIC_NAME);
+        search.removeFilter(TraceMetricKnownFieldKey.METRIC_TYPE);
+        search.removeFilter(TraceMetricKnownFieldKey.METRIC_UNIT);
+        cleanedQuery = search.formatString();
+      }
+
       // Build aggregateFields: groupBys first, then visualizes
       const aggregateFields: AggregateField[] = [];
 
@@ -288,17 +295,22 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // Apply Seer's visualizes. Seer should return metric-qualified y-axes
       // (e.g. p75(value, metric.name, distribution, millisecond)), which we pass
       // through untouched — including conditional `_if` forms that carry a
-      // filter argument. Defensively, if a y-axis comes back unqualified we
-      // re-qualify it with the resolved metric so the chart stays aligned with
-      // the toolbar/samples. In samples mode there's no visualize, so build a
+      // backtick filter argument. Defensively, if a plain (non-`_if`) y-axis
+      // comes back without a valid metric, we re-qualify it with the resolved
+      // metric so the chart stays aligned with the toolbar/samples. `_if` forms
+      // are never re-qualified since makeMetricsAggregate can't reconstruct the
+      // filter argument. In samples mode there's no visualize, so build a
       // default one from the metric's type. When Seer didn't resolve a valid
       // metric, leave the existing visualizes untouched so we don't clobber a
       // customized aggregate.
       if (seerVisualizes.length > 0) {
         for (const viz of seerVisualizes) {
           const {aggregation, traceMetric: vizMetric} = parseMetricAggregate(viz.yAxis);
-          const isQualified = Boolean(vizMetric.name && vizMetric.type);
-          if (!isQualified && resolvedMetric) {
+          const isQualified = Boolean(
+            vizMetric.name && vizMetric.type && isTraceMetricTypeValue(vizMetric.type)
+          );
+          const isConditional = aggregation.endsWith('_if');
+          if (!isQualified && !isConditional && resolvedMetric) {
             aggregateFields.push(
               viz.replace({
                 yAxis: makeMetricsAggregate({
