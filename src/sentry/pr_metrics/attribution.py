@@ -45,11 +45,9 @@ _KNOWN_SCM_PROVIDERS = frozenset(
 
 # Precedence for picking a PR's primary attribution when more than one valid
 # signal is present (highest first): direct agent-authored signals rank above
-# weaker heuristics like a bare issue reference. The exact seer_app vs sentry_app
-# ordering is a product call and may yet change.
+# weaker heuristics like a bare issue reference.
 SIGNAL_TYPE_CONFIDENCE: dict[str, int] = {
-    PullRequestAttributionSignalType.SEER_APP: 100,
-    PullRequestAttributionSignalType.SENTRY_APP: 95,
+    PullRequestAttributionSignalType.SENTRY_APP: 100,
     PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR: 80,
     PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT: 80,
     PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE: 80,
@@ -120,7 +118,7 @@ def attribute_seer_created_pull_requests(
 
     For each reported PR: resolve the org-scoped ``Repository`` by name and
     provider, find-or-create the canonical ``PullRequest`` row (keyed on the PR
-    number), and idempotently record a ``seer_app`` attribution signal.
+    number), and idempotently record a ``sentry_app`` attribution signal.
 
     A find-or-create here may run before the SCM ``opened`` webhook arrives, so
     the ``PullRequest`` row can be a shell (no title/body); the GitHub webhook
@@ -173,12 +171,10 @@ def attribute_seer_created_pull_requests(
                 repository_id=repository.id,
                 key=str(pr_number),
             )
-            # Always SENTRY_APP for now: Seer chooses between the Sentry and Seer
-            # GitHub apps at push time (its write client falls back to the Seer
-            # app only when the Sentry app lacks write access), but the
-            # seer.pr_created payload doesn't carry which one it used. We default
-            # to SENTRY_APP until Seer threads that app kind through the payload;
-            # a faithful SEER_APP vs SENTRY_APP split is tracked as follow-up.
+            # SENTRY_APP covers both of our GitHub apps: Seer chooses between the
+            # Sentry and Seer apps at push time (its write client falls back to
+            # the Seer app only when the Sentry app lacks write access), but we
+            # don't distinguish them — both are internal-agent authorship.
             record_attribution_signal(
                 pull_request=pull_request,
                 signal_type=PullRequestAttributionSignalType.SENTRY_APP,

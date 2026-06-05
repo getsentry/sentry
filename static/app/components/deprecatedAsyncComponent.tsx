@@ -2,11 +2,11 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {PermissionDenied} from 'sentry/views/permissionDenied';
 import {RouteError} from 'sentry/views/routeError';
