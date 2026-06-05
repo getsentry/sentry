@@ -36,7 +36,7 @@ export function trackAiQueryOutcome({
   orgSlug: string;
   referrer: string;
   resultCount: number;
-  runId: number;
+  runId: number | string;
   error?: string | boolean | Error;
 }) {
   const outcome = error

@@ -122,7 +122,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
-  getAiQueryRunId?: () => number | null;
+  getAiQueryRunId?: () => number | string | null;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
