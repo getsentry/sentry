@@ -179,6 +179,34 @@ class UpdateGroupsTest(TestCase):
         assert unresolved_group.status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
+        # Resolving "now" has no commit associated with it.
+        assert send_robust.call_args.kwargs["commit_id"] is None
+
+    @patch("sentry.signals.issue_resolved.send_robust")
+    def test_resolving_group_in_commit(self, send_robust: Mock) -> None:
+        unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
+        repo = self.create_repo(project=unresolved_group.project)
+        commit = self.create_commit(project=unresolved_group.project, repo=repo)
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
+        request = _wrap_request(
+            http_request,
+            data={
+                "status": "resolved",
+                "statusDetails": {"inCommit": {"commit": commit.key, "repository": repo.name}},
+            },
+        )
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        unresolved_group.refresh_from_db()
+
+        assert unresolved_group.status == GroupStatus.RESOLVED
+        assert send_robust.called
+        assert send_robust.call_args.kwargs["resolution_type"] == "in_commit"
+        assert send_robust.call_args.kwargs["commit_id"] == commit.id
 
     @patch("sentry.signals.issue_ignored.send_robust")
     @patch("sentry.issues.status_change.post_save")

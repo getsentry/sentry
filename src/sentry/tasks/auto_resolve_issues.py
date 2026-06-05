@@ -153,6 +153,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
                 group=group,
                 project=project,
                 resolution_type="autoresolve",
+                commit_id=None,
                 sender="auto_resolve_issues",
             )
 

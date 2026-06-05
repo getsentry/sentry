@@ -35,7 +35,6 @@ class PullRequestLifecycleState(models.TextChoices):
 
 
 class PullRequestAttributionSignalType(models.TextChoices):
-    SEER_APP = "seer_app"
     SENTRY_APP = "sentry_app"
     SEER_DELEGATED_CURSOR = "seer_delegated:cursor"
     SEER_DELEGATED_GITHUB_COPILOT = "seer_delegated:github_copilot"
