@@ -30,7 +30,7 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   revealTooltip?: 'always' | 'hover';
   title?: string;
   titleBadges?: React.ReactNode;
-  warnings?: string[];
+  warnings?: React.ReactNode[];
 }
 
 export function WidgetFrame(props: WidgetFrameProps) {
