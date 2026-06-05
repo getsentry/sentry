@@ -82,8 +82,9 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
         # If a project query is specified, filter out non-project-specific actions
         # otherwise, include them but still ensure project permissions are enforced
+        query_slugs = set(filter(None, request.GET.getlist("projectSlug")))
         has_project_query = bool(
-            request.GET.getlist("project") or request.GET.getlist("projectSlug")
+            query_slugs or self.get_requested_project_ids_and_slugs_unchecked(request).has_values
         )
         projects = self.get_projects(request, organization)
         project_query = (
