@@ -92,9 +92,14 @@ export function applySeerMetricsResult({
   metricQueries,
   selection,
 }: ApplySeerMetricsResultParams): ApplySeerMetricsResult {
-  const {query: queryToUse, groupBys, statsPeriod, visualizations} = result;
-  const resultStart = result.start;
-  const resultEnd = result.end;
+  const {
+    query: queryToUse,
+    groupBys,
+    statsPeriod,
+    start: resultStart,
+    end: resultEnd,
+    visualizations,
+  } = result;
 
   let start: DateString = null;
   let end: DateString = null;
