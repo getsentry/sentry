@@ -46,7 +46,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/users/{user_id}/ips/",
     "/api/0/api-applications/{app_id}/",
     "/api/0/users/{user_id}/roles/{role_name}/",
-    "/api/0/organizations/{organization_id_or_slug}/releases/",
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/files/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/releases/{version}/commits/",

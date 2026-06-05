@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError
 from django.db.models import F, Q
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.serializers import ListField
+from rest_framework.serializers import CharField, ListField
 
 from sentry import analytics, release_health
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
@@ -43,7 +43,6 @@ from sentry.api.serializers.rest_framework import (
 from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.api.utils import get_auth_api_token_type
 from sentry.apidocs.constants import (
-    RESPONSE_ALREADY_REPORTED,
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
@@ -208,11 +207,22 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
 
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
-    projects = ListField()
-    headCommits = ListField(
-        child=ReleaseHeadCommitSerializerDeprecated(), required=False, allow_null=False
+    projects = ListField(
+        child=CharField(),
+        help_text="A list of project slugs or IDs to associate with this release.",
     )
-    refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
+    headCommits = ListField(
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_null=False,
+        help_text="Deprecated commit references for this release. Use `refs` instead.",
+    )
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(),
+        required=False,
+        allow_null=False,
+        help_text="Commit references used to associate repository commits with this release.",
+    )
 
 
 @sentry_sdk.trace
@@ -305,8 +315,8 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
 
     rate_limits = RateLimitConfig(
@@ -346,6 +356,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
     @extend_schema(
         operation_id="List an Organization's Releases",
+        description="Return a list of releases for a given organization.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
@@ -356,6 +367,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             200: inline_sentry_response_serializer(
                 "ListOrganizationReleasesResponse", list[ReleaseSerializerResponse]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -364,16 +376,15 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
     )
     def get(
         self, request: Request, organization: Organization
-    ) -> Response[list[ReleaseSerializerResponse]]:
-        """
-        Return a list of releases for a given organization, sorted by most recent.
-        """
+    ) -> Response[list[ReleaseSerializerResponse]] | Response[dict[str, Any]]:
         if request.headers.get("X-Performance-Optimizations") == "enabled":
             return self.__get_new(request, organization)
         else:
             return self.__get_old(request, organization)
 
-    def __get_new(self, request: Request, organization: Organization) -> Response:
+    def __get_new(
+        self, request: Request, organization: Organization
+    ) -> Response[list[ReleaseSerializerResponse]] | Response[dict[str, Any]]:
         """
         List an Organization's Releases
         ```````````````````````````````
@@ -537,7 +548,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             **paginator_kwargs,
         )
 
-    def __get_old(self, request: Request, organization: Organization) -> Response:
+    def __get_old(
+        self, request: Request, organization: Organization
+    ) -> Response[list[ReleaseSerializerResponse]] | Response[dict[str, Any]]:
         """
         List an Organization's Releases
         ```````````````````````````````
@@ -718,28 +731,35 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
     @extend_schema(
         operation_id="Create a New Release for an Organization",
+        description=(
+            "Create a new release for the given organization. Releases are used by Sentry "
+            "to improve its error reporting abilities by correlating first seen events "
+            "with the release that might have introduced the problem. Releases are also "
+            "necessary for source maps and other debug features that require manual upload "
+            "for functioning well."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ReleaseSerializerWithProjects,
         responses={
             201: inline_sentry_response_serializer(
                 "CreateOrganizationReleaseResponse", ReleaseSerializerResponse
             ),
-            208: RESPONSE_ALREADY_REPORTED,
+            208: OpenApiResponse(
+                response=inline_sentry_response_serializer(
+                    "CreateOrganizationReleaseAlreadyReportedResponse",
+                    ReleaseSerializerResponse,
+                ),
+                description="Already Reported",
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=ReleaseExamples.CREATE_RELEASE,
+        examples=ReleaseExamples.CREATE_ORGANIZATION_RELEASE,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
-        """
-        Create a new release for the given organization. Releases are used by Sentry to
-        improve error reporting by correlating first-seen events with the release that may
-        have introduced them, and are required for source maps and other debug features.
-
-        Release versions that are the same across multiple projects within an organization
-        are treated as the same release in Sentry.
-        """
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[ReleaseSerializerResponse] | Response[dict[str, Any]]:
         bind_organization_context(organization)
         serializer = ReleaseSerializerWithProjects(
             data=request.data, context={"organization": organization}
