@@ -115,6 +115,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client_class.assert_called_once_with(
             self.organization,
             ANY,
+            category_key="ask_seer",
+            category_value="ui",
             is_interactive=True,
             enable_coding=False,
             enable_code_mode_tools="off",
@@ -153,6 +155,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             mock_client_class.assert_called_with(
                 self.organization,
                 ANY,
+                category_key="ask_seer",
+                category_value="ui",
                 is_interactive=True,
                 enable_coding=feature_enabled and option_enabled,
                 enable_code_mode_tools="off",
@@ -176,6 +180,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client_class.assert_called_once_with(
             self.organization,
             ANY,
+            category_key="ask_seer",
+            category_value="ui",
             is_interactive=True,
             enable_coding=False,
             enable_code_mode_tools="off",
@@ -210,6 +216,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             mock_client_class.assert_called_with(
                 self.organization,
                 ANY,
+                category_key="ask_seer",
+                category_value="ui",
                 is_interactive=True,
                 enable_coding=feature_enabled and option_enabled,
                 enable_code_mode_tools="off",
