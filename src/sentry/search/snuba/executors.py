@@ -1000,40 +1000,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # to the Snuba chunked path, which can paginate without an in-memory bound.
             return None
 
+        # Hit Snuba when the strategy needs an aggregation value or the query has
+        # event-level filters. Either way we get back the groups that survive, keyed by
+        # their aggregation value. With no aggregation it returns last_seen, which is
+        # ignored by score_fn but still narrows candidates to those matching the filters.
         snuba_data: dict[int, dict[str, Any]] = {}
-
-        if has_snuba_filters and strategy.snuba_aggregations:
-            snuba_data = self._snuba_search_raw(
-                start=start,
-                end=end,
-                project_ids=[p.id for p in projects],
-                environment_ids=[env.id for env in environments] if environments else None,
-                organization=organization,
-                required_aggregations=strategy.snuba_aggregations,
-                group_ids=candidate_ids,
-                search_filters=search_filters,
-                actor=actor,
-                referrer=referrer,
-            )
-            candidate_ids = list(snuba_data.keys())
-        elif has_snuba_filters:
-            snuba_groups, _ = self.snuba_search(
-                start=start,
-                end=end,
-                project_ids=[p.id for p in projects],
-                environment_ids=[env.id for env in environments] if environments else None,
-                organization=organization,
-                sort_field="last_seen",
-                cursor=None,
-                group_ids=candidate_ids,
-                limit=len(candidate_ids),
-                offset=0,
-                search_filters=search_filters,
-                referrer=referrer,
-                actor=actor,
-            )
-            candidate_ids = [gid for gid, _ in snuba_groups]
-        elif strategy.snuba_aggregations:
+        if strategy.snuba_aggregations or has_snuba_filters:
             snuba_data = self._snuba_search_raw(
                 start=start,
                 end=end,
