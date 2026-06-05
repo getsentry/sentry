@@ -38,7 +38,11 @@ interface CodeChangesCardProps {
  */
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
-    const message = section.blocks[i]!.message;
+    const block = section.blocks[i];
+    if (!block) {
+      continue;
+    }
+    const message = block.message;
     if (message.role === 'assistant' && message.content?.trim()) {
       return message.content.trim();
     }
