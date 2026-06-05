@@ -207,7 +207,11 @@ function GroupList({
         statsPeriod={groupStatsPeriod}
         query={query}
         hasGuideAnchor={id === topIssue}
-        memberList={group.project ? memberList[group.project.slug] : undefined}
+        memberList={
+          group.project && Object.hasOwn(memberList, group.project.slug)
+            ? memberList[group.project.slug]
+            : undefined
+        }
         displayReprocessingLayout={displayReprocessingLayout}
         useFilteredStats
         canSelect={!selectDisabled}
