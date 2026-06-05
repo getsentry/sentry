@@ -21,7 +21,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROTECTED_TAG_KEYS
 from sentry.models.environment import Environment
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.tagstore.types import TagKeySerializerResponse
+from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 _TAG_KEY_PARAM = OpenApiParameter(
@@ -68,7 +68,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, key) -> Response:
+    def get(self, request: Request, project, key) -> Response[TagKeySerializerResponse]:
         """
         Return details about a tag key, including the number of unique and total values.
         """
@@ -90,7 +90,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        return Response(serialize(tagkey, request.user))
+        return Response(serialize(tagkey, request.user, TagKeySerializer()))
 
     @extend_schema(
         operation_id="Delete a Tag Key",
