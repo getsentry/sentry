@@ -10,7 +10,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
-import {useDetectorDataContext} from 'sentry/views/automations/components/automationListTable/detectorDataContext';
+import {useAutomationListDetectors} from 'sentry/views/automations/hooks/useAutomationListDetectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 
 type AutomationListConnectedDetectorsProps = {
@@ -20,15 +20,15 @@ type AutomationListConnectedDetectorsProps = {
 const MAX_DISPLAYED_DETECTORS = 5;
 
 function ConnectedDetectorsBody({detectorIds}: {detectorIds: string[]}) {
-  const detectorData = useDetectorDataContext();
+  const {detectorsById, isLoading, isError} = useAutomationListDetectors();
   const shownIds = detectorIds.slice(0, MAX_DISPLAYED_DETECTORS);
   const hasMore = detectorIds.length > MAX_DISPLAYED_DETECTORS;
 
-  if (detectorData?.isError) {
+  if (isError) {
     return <LoadingError />;
   }
 
-  if (!detectorData || detectorData.isLoading) {
+  if (isLoading) {
     return (
       <div>
         {Array.from({length: shownIds.length}).map((_, index) => (
@@ -41,9 +41,7 @@ function ConnectedDetectorsBody({detectorIds}: {detectorIds: string[]}) {
     );
   }
 
-  const detectors = shownIds
-    .map(id => detectorData.detectorsById.get(id))
-    .filter(defined);
+  const detectors = shownIds.map(id => detectorsById.get(id)).filter(defined);
 
   return (
     <div>
