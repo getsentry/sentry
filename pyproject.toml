@@ -1133,7 +1133,6 @@ module = [
     "sentry.models.organizationmemberteamreplica",
     "sentry.models.organizationonboardingtask",
     "sentry.models.organizationslugreservation",
-    "sentry.models.organizationslugreservationreplica",
     "sentry.models.orgauthtoken",
     "sentry.models.owner_base",
     "sentry.models.project",
