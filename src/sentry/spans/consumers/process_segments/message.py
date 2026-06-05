@@ -124,13 +124,13 @@ def _process_segment(
         cache[cache_key] = timestamp
         metrics.incr(cache_metric_name, tags={"outcome": "miss"})
     # If a cached value was found and the timestamp specified by the current event exceeds
-    # the previously cached timestamp by at least `LAST_SEEN_INTERVAL_SECONDS * 15` then we
+    # the previously cached timestamp by at least `LAST_SEEN_INTERVAL_SECONDS * 30` then we
     # perform small mutations on select models. From the code in this module this may appear
     # to only save one or two cache lookups, however, certain billing logic tied to the
     # feature flag check runs when this program is executed in getsentry. In the minimal
     # case its three extra saved queries but up to six additional cache lookups have been
     # observed.
-    elif timestamp - (LAST_SEEN_INTERVAL_SECONDS * 15) >= cached_timestamp:
+    elif timestamp - (LAST_SEEN_INTERVAL_SECONDS * 30) >= cached_timestamp:
         _bump_release_last_seen(project, environment_name, release_name, date)
         cache[cache_key] = timestamp
         metrics.incr(cache_metric_name, tags={"action": "bump", "outcome": "hit"})

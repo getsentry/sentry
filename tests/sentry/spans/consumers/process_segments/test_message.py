@@ -509,7 +509,7 @@ class TestProcessSegmentCaching(TestCase):
         later = build_mock_span(
             project_id=self.project.id,
             is_segment=True,
-            end_timestamp=self.base_ts + 901,
+            end_timestamp=self.base_ts + 1801,
         )
         process_segment([later])
 
@@ -524,7 +524,7 @@ class TestProcessSegmentCaching(TestCase):
         mock_create.reset_mock()
 
         # Trigger a bump at T+61.
-        bump_ts = self.base_ts + 901
+        bump_ts = self.base_ts + 1801
         process_segment(
             [build_mock_span(project_id=self.project.id, is_segment=True, end_timestamp=bump_ts)]
         )
