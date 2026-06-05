@@ -1003,9 +1003,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         """
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
-        # Lifecycle facts kept current on every PR event so the PR Merge Live
-        # Metrics pipeline has a persisted fallback when it later emits without
-        # the originating webhook payload (e.g. the judge round-trip).
+        # Lifecycle facts kept current for the PR metrics pipeline.
         head_commit_sha = pull_request["head"]["sha"]
         closed_at = _parse_github_timestamp(pull_request.get("closed_at"))
         merged_at = _parse_github_timestamp(pull_request.get("merged_at"))

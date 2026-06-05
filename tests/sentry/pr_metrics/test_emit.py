@@ -29,9 +29,9 @@ SENTRY_APP_ATTRIBUTION = {
 
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
-# Lifecycle facts come from the stored PullRequest row. Fixed past year (S015).
+# Lifecycle lives on the PullRequest row; open time stays on the payload. Past
+# year avoids S015.
 CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
-# The open time has no persisted column, so it stays sourced from the payload.
 OPENED_AT = "2020-06-04T09:00:00Z"
 
 
@@ -44,17 +44,15 @@ class PrMetricsEmissionTest(TestCase):
         self.pull_request = self.create_pull_request(
             repository_id=self.repo.id, organization_id=self.organization.id, key="42"
         )
-        # The webhook persists these lifecycle facts on every PR event;
-        # build_pr_metrics_row reads them from the row (not the payload). Default
-        # to a merged PR — close-specific tests null the merge fields.
+        # build_pr_metrics_row reads lifecycle from the row, not the payload.
+        # Default to a merged PR; close-specific tests null the merge fields.
         self.pull_request.head_commit_sha = HEAD_SHA
         self.pull_request.merge_commit_sha = MERGE_SHA
         self.pull_request.closed_at = CLOSED_AT
         self.pull_request.merged_at = CLOSED_AT
 
     def _payload(self) -> dict[str, Any]:
-        # Only the payload-sourced fields: open time, draft, and activity
-        # counters. Lifecycle facts are read from the stored PullRequest row.
+        # Payload-sourced fields only: open time, draft, and activity counters.
         return {
             "number": 42,
             "created_at": OPENED_AT,
@@ -88,7 +86,6 @@ class PrMetricsEmissionTest(TestCase):
         assert needs_judge(self.pull_request) is False
 
     def test_build_row_for_merge(self) -> None:
-        # Lifecycle comes from the stored row; the payload carries no lifecycle.
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
