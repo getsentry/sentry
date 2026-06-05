@@ -196,3 +196,5 @@ export function WebhookDetailedView() {
     />
   );
 }
+
+export default WebhookDetailedView;
