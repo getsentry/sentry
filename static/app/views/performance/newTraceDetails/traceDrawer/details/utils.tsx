@@ -248,7 +248,7 @@ export function getTraceAttributesTreeActions(
   return (content: AttributesTreeContent) => {
     const rowKey = content.originalAttribute?.original_attribute_key;
     const rowValue = content.value;
-    if (!rowKey || !rowValue) {
+    if (!rowKey || !defined(rowValue)) {
       return [];
     }
 
