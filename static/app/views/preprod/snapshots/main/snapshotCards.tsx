@@ -20,7 +20,11 @@ import type {
   SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
-import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  DiffStatus,
+  getImageName,
+  getSnapshotImageUrl,
+} from 'sentry/views/preprod/types/snapshotTypes';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 import {CollapsibleBadgeRow} from './collapsibleBadgeRow';
@@ -79,8 +83,8 @@ export const PairCard = memo(function PairCard({
 }) {
   const [isDark, setIsDark] = useState(false);
   const image = pair.head_image;
-  const baseUrl = `${imageBaseUrl}${pair.base_image.key}/`;
-  const headUrl = `${imageBaseUrl}${image.key}/`;
+  const baseUrl = getSnapshotImageUrl(imageBaseUrl, pair.base_image);
+  const headUrl = getSnapshotImageUrl(imageBaseUrl, image);
 
   const handleSelect = onSelectSnapshot
     ? (e: React.MouseEvent) => {
@@ -181,7 +185,7 @@ export const ImageCard = memo(function ImageCard({
   onSelectSnapshot?: (key: string | null) => void;
 }) {
   const [isDark, setIsDark] = useState(false);
-  const imageUrl = `${imageBaseUrl}${image.key}/`;
+  const imageUrl = getSnapshotImageUrl(imageBaseUrl, image);
   let status: DiffStatus | null;
   switch (cardType) {
     case 'solo':

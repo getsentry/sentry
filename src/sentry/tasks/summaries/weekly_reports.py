@@ -736,6 +736,7 @@ def build_report_data(ctx: OrganizationReportContext, user_id: int | None) -> di
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
+        "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
     }
 
 

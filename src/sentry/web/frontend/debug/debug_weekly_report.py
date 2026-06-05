@@ -29,6 +29,9 @@ class DebugWeeklyReportView(MailPreviewView):
     def get_context(self, request):
         organization = Organization(id=1, slug="myorg", name="MyOrg")
 
+        if request.GET.get("enhanced_privacy"):
+            organization.flags.enhanced_privacy = True
+
         random = get_random(request)
 
         duration = 60 * 60 * 24 * 7

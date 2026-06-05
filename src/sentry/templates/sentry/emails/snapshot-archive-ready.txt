@@ -1,0 +1,8 @@
+Your snapshot images are ready.
+-------------------------------
+
+Your snapshot image archive has finished building.
+
+{{ url|safe }}
+
+This link requires you to be signed in to Sentry with access to the project.
