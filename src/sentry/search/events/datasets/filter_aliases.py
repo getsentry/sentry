@@ -61,7 +61,7 @@ def release_filter_converter(
                 for part in parse_release(
                     v,
                     builder.params.project_ids,
-                    [e for e in builder.params.environments if e is not None] or None,
+                    [e for e in builder.params.environments if e is not None],
                     builder.params.organization.id if builder.params.organization else None,
                 )
             ]
@@ -168,7 +168,7 @@ def release_stage_filter_converter(
             search_filter.operator,
             search_filter.value.value,
             project_ids=builder.params.project_ids,
-            environments=[e.name for e in builder.params.environments if e is not None] or None,
+            environments=[e.name for e in builder.params.environments if e is not None],
         )
         .values_list("version", flat=True)
         .order_by("date_added")[: constants.MAX_SEARCH_RELEASES]
@@ -360,7 +360,7 @@ def lowercase_search(builder: BaseQueryBuilder, search_filter: SearchFilter) -> 
     """Convert the search value to lower case"""
     raw_value = search_filter.value.raw_value
     if isinstance(raw_value, list):
-        lowered: str | list[str] = [val.lower() for val in raw_value if isinstance(val, str)]
+        lowered: str | list[str] = [str(val).lower() for val in raw_value]
     elif isinstance(raw_value, str):
         lowered = raw_value.lower()
     else:
