@@ -243,6 +243,12 @@ STATUS_UPDATE_CHOICES = {
     "muted": GroupStatus.IGNORED,
 }
 
+STATUS_TO_GROUP_ACTION: dict[int, type[GroupAction]] = {
+    GroupStatus.RESOLVED: ResolveAction,
+    GroupStatus.IGNORED: ArchiveAction,
+    GroupStatus.UNRESOLVED: UnresolveAction,
+}
+
 
 class EventOrdering(Enum):
     LATEST = ["project_id", "-timestamp", "-id"]
@@ -554,14 +560,8 @@ class GroupManager(BaseManager["Group"]):
             )
             record_group_history_from_activity_type(group, activity_type.value)
 
-            if status == GroupStatus.RESOLVED:
-                action: GroupAction = ResolveAction()
-            elif status == GroupStatus.IGNORED:
-                action = ArchiveAction()
-            else:
-                action = UnresolveAction()
             publish_action_from_context(
-                action,
+                STATUS_TO_GROUP_ACTION.get(status, UnresolveAction)(),
                 group_id=group.id,
                 organization_id=group.project.organization_id,
                 project_id=group.project_id,

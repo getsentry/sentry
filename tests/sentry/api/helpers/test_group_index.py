@@ -142,9 +142,6 @@ class UpdateGroupsTest(TestCase):
         assert send_unresolved.called
 
     def test_outer_action_context_overrides_request_source(self) -> None:
-        # An inbound integration handler (e.g. Slack) wraps update_groups in an
-        # action_context_scope; that source must win over resolve_action_source(request),
-        # which would otherwise resolve the internal request to "api".
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         http_request = self.make_request(user=self.user, method="GET")
         http_request.GET = QueryDict(query_string=f"id={group.id}")
@@ -158,13 +155,11 @@ class UpdateGroupsTest(TestCase):
                 update_groups(request, group_list)
 
         resolve_records = [
-            r
-            for r in logs.records
-            if r.message == "issue.action_log" and r.__dict__["action"] == "resolve"
+            r for r in logs.records if r.message == "issue.action_log" and r.action == "resolve"
         ]
         assert len(resolve_records) == 1
-        assert resolve_records[0].__dict__["source"] == ActionSource.SLACK
-        assert resolve_records[0].__dict__["actor_id"] == self.user.id
+        assert resolve_records[0].source == ActionSource.SLACK
+        assert resolve_records[0].actor_id == self.user.id
 
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
