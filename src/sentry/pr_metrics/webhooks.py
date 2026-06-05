@@ -296,7 +296,8 @@ def handle_review(
     **kwargs: Any,
 ) -> None:
     """Record a submitted PR review (approved / changes_requested / commented)."""
-    if event.get("action") != "submitted":
+    action = event.get("action")
+    if action != "submitted":
         return
 
     if not features.has("organizations:pr-metrics-activity", organization):
@@ -310,6 +311,7 @@ def handle_review(
     sender = event.get("sender") or {}
     payload = asdict(
         ReviewSubmittedPayload(
+            action=action,
             sender_login=sender.get("login", ""),
             sender_type=sender.get("type", ""),
             review_state=review.get("state", ""),
@@ -354,7 +356,7 @@ def handle_review_comment(
             sender_type=sender.get("type", ""),
             author_association=comment.get("author_association", "NONE"),
             is_review=True,
-            thread_id=comment.get("pull_request_review_id"),
+            review_id=comment.get("pull_request_review_id"),
         )
     else:
         event_type = PullRequestActivityType.COMMENT_EDITED
@@ -363,7 +365,7 @@ def handle_review_comment(
             sender_type=sender.get("type", ""),
             author_association=comment.get("author_association", "NONE"),
             is_review=True,
-            thread_id=comment.get("pull_request_review_id"),
+            review_id=comment.get("pull_request_review_id"),
         )
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
@@ -406,7 +408,7 @@ def handle_review_thread(
             action=action,
             sender_login=sender.get("login", ""),
             sender_type=sender.get("type", ""),
-            thread_id=thread.get("id", 0),
+            thread_id=thread.get("node_id", ""),
             is_resolved=is_resolved,
         )
     )

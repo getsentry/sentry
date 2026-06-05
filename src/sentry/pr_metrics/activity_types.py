@@ -106,7 +106,7 @@ class CommentCreatedPayload(BaseActivityPayload):
     action: str = "comment_created"
     author_association: AuthorAssociation = "NONE"
     is_review: bool = False
-    thread_id: int | None = None
+    review_id: int | None = None
 
 
 @dataclass
@@ -114,7 +114,7 @@ class CommentEditedPayload(BaseActivityPayload):
     action: str = "comment_edited"
     author_association: AuthorAssociation = "NONE"
     is_review: bool = False
-    thread_id: int | None = None
+    review_id: int | None = None
 
 
 @dataclass
@@ -142,7 +142,7 @@ class UnassignedPayload(BaseActivityPayload):
 
 @dataclass
 class ReviewSubmittedPayload(BaseActivityPayload):
-    action: str = "review_submitted"
+    action: str = ""
     # "approved", "changes_requested", or "commented"
     review_state: str = ""
     review_id: int = 0
@@ -150,6 +150,7 @@ class ReviewSubmittedPayload(BaseActivityPayload):
 
 @dataclass
 class ReviewThreadPayload(BaseActivityPayload):
-    action: str = "review_thread_resolved"  # overridden per-event
-    thread_id: int = 0
+    action: str = ""
+    # GitHub node_id of the review thread (the thread object has no numeric id).
+    thread_id: str = ""
     is_resolved: bool = False

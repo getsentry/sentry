@@ -817,6 +817,20 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         self.pr.refresh_from_db()
         assert self.pr.head_commit_sha == "newsha123"
 
+    def test_update_head_sha_runs_when_flag_off_synchronize(self) -> None:
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call(action="synchronize", head_sha="syncsha456")
+
+        self.pr.refresh_from_db()
+        assert self.pr.head_commit_sha == "syncsha456"
+
+    def test_update_head_sha_runs_when_flag_off_reopened(self) -> None:
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call(action="reopened", head_sha="reopensha789")
+
+        self.pr.refresh_from_db()
+        assert self.pr.head_commit_sha == "reopensha789"
+
     # --- Unhandled actions ---
 
     def test_unhandled_actions_do_not_write_activity(self) -> None:
@@ -946,6 +960,12 @@ class HandleCommentForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_regular_comment_has_is_review_false(self) -> None:
+        self._call(action="created")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["is_review"] is False
+
 
 @with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
@@ -1016,6 +1036,28 @@ class HandleReviewForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_unknown_pr_number_logs_warning_and_does_not_raise(self) -> None:
+        event: dict[str, Any] = {
+            "action": "submitted",
+            "review": {"id": 100, "state": "approved"},
+            "pull_request": {"number": 9999},
+            "sender": {"id": 77, "login": "reviewer", "type": "User"},
+        }
+        with patch(f"{MODULE}.logger") as mock_logger:
+            handle_review(
+                github_event=GithubWebhookType.PULL_REQUEST_REVIEW,
+                event=event,
+                organization=self.organization,
+                repo=self.repo,
+                github_delivery_id="delivery-x",
+            )
+
+        mock_logger.warning.assert_called_once_with(
+            "github.pr_metrics.pr_not_found",
+            extra={"repository_id": self.repo.id, "pr_number": 9999},
+        )
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
 
 @with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
@@ -1060,7 +1102,7 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.event_type == PullRequestActivityType.COMMENT_CREATED
         assert activity.payload["is_review"] is True
-        assert activity.payload["thread_id"] == 42
+        assert activity.payload["review_id"] == 42
         assert activity.payload["sender_login"] == "reviewer"
 
     def test_edited_writes_comment_edited_activity(self) -> None:
@@ -1087,6 +1129,28 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
 
         assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 1
 
+    def test_unknown_pr_number_logs_warning_and_does_not_raise(self) -> None:
+        event: dict[str, Any] = {
+            "action": "created",
+            "comment": {"id": 1, "pull_request_review_id": 100, "author_association": "NONE"},
+            "pull_request": {"number": 9999},
+            "sender": {"id": 77, "login": "reviewer", "type": "User"},
+        }
+        with patch(f"{MODULE}.logger") as mock_logger:
+            handle_review_comment(
+                github_event=GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
+                event=event,
+                organization=self.organization,
+                repo=self.repo,
+                github_delivery_id="delivery-x",
+            )
+
+        mock_logger.warning.assert_called_once_with(
+            "github.pr_metrics.pr_not_found",
+            extra={"repository_id": self.repo.id, "pr_number": 9999},
+        )
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
 
 @with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
@@ -1103,12 +1167,12 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
     def _call(
         self,
         action: str = "resolved",
-        thread_id: int = 55,
+        thread_id: str = "MDExOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkNTU=",
         webhook_id: str | None = "delivery-1",
     ) -> None:
         event: dict[str, Any] = {
             "action": action,
-            "thread": {"id": thread_id},
+            "thread": {"node_id": thread_id},
             "pull_request": {"number": 42},
             "sender": {"id": 77, "login": "reviewer", "type": "User"},
         }
@@ -1121,15 +1185,15 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         )
 
     def test_resolved_writes_resolved_activity(self) -> None:
-        self._call(action="resolved", thread_id=55)
+        self._call(action="resolved")
 
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.event_type == PullRequestActivityType.REVIEW_THREAD_RESOLVED
-        assert activity.payload["thread_id"] == 55
+        assert activity.payload["thread_id"] == "MDExOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkNTU="
         assert activity.payload["is_resolved"] is True
 
     def test_unresolved_writes_unresolved_activity(self) -> None:
-        self._call(action="unresolved", thread_id=55, webhook_id="delivery-2")
+        self._call(action="unresolved", webhook_id="delivery-2")
 
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.event_type == PullRequestActivityType.REVIEW_THREAD_UNRESOLVED
@@ -1149,4 +1213,26 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
     def test_no_activity_without_webhook_id(self) -> None:
         self._call(webhook_id=None)
 
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_unknown_pr_number_logs_warning_and_does_not_raise(self) -> None:
+        event: dict[str, Any] = {
+            "action": "resolved",
+            "thread": {"node_id": "MDEx=="},
+            "pull_request": {"number": 9999},
+            "sender": {"id": 77, "login": "reviewer", "type": "User"},
+        }
+        with patch(f"{MODULE}.logger") as mock_logger:
+            handle_review_thread(
+                github_event=GithubWebhookType.PULL_REQUEST_REVIEW_THREAD,
+                event=event,
+                organization=self.organization,
+                repo=self.repo,
+                github_delivery_id="delivery-x",
+            )
+
+        mock_logger.warning.assert_called_once_with(
+            "github.pr_metrics.pr_not_found",
+            extra={"repository_id": self.repo.id, "pr_number": 9999},
+        )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
