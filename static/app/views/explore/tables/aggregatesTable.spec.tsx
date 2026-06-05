@@ -1,0 +1,151 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {EventView} from 'sentry/utils/discover/eventView';
+import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {AggregatesTable} from './aggregatesTable';
+
+function createAggregatesTableResult(
+  overrides: Partial<AggregatesTableResult>
+): AggregatesTableResult {
+  const eventView = EventView.fromLocation(
+    LocationFixture({
+      query: {
+        field: ['span.op', 'count()'],
+      },
+    })
+  );
+
+  return {
+    eventView,
+    fields: ['span.op', 'count()'],
+    result: {
+      data: [],
+      isError: false,
+      isFetched: true,
+      isPending: false,
+      meta: {
+        fields: {
+          'span.op': 'string',
+          'count()': 'integer',
+        },
+        units: {},
+      },
+      pageLinks: undefined,
+    },
+    ...overrides,
+  } as AggregatesTableResult;
+}
+
+function AggregatesTableWithParamsProvider({
+  aggregatesTableResult,
+}: {
+  aggregatesTableResult: AggregatesTableResult;
+}) {
+  return (
+    <SpansQueryParamsProvider>
+      <AggregatesTable aggregatesTableResult={aggregatesTableResult} />
+    </SpansQueryParamsProvider>
+  );
+}
+
+describe('AggregatesTable', () => {
+  const {organization, project} = initializeOrg();
+
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/explore/traces/`,
+      query: {
+        project: project.id,
+        statsPeriod: '14d',
+        groupBy: 'span.op',
+        visualize: JSON.stringify({yAxes: ['count()']}),
+        aggregateSort: '-count()',
+        field: ['id', 'span.op', 'timestamp'],
+      },
+    },
+    route: '/organizations/:orgId/explore/traces/',
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+      match: [
+        (_url: string, options: {query?: Record<string, any>}) =>
+          options.query?.itemType === TraceItemDataset.SPANS,
+      ],
+    });
+
+    ProjectsStore.loadInitialData([project]);
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
+      },
+    });
+  });
+
+  afterEach(() => {
+    ProjectsStore.reset();
+  });
+
+  it('opens a view samples dropdown from the samples icon', async () => {
+    render(
+      <AggregatesTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          result: {
+            data: [
+              {
+                'span.op': 'http',
+                'count()': 10,
+              },
+            ],
+            isError: false,
+            isFetched: true,
+            isPending: false,
+            meta: {
+              fields: {
+                'span.op': 'string',
+                'count()': 'integer',
+              },
+              units: {},
+            },
+            pageLinks: undefined,
+          } as AggregatesTableResult['result'],
+        })}
+      />,
+      {initialRouterConfig, organization}
+    );
+
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+
+    const viewSamplesItem = await screen.findByRole('menuitemradio', {
+      name: 'View Samples',
+    });
+    expect(viewSamplesItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('mode=samples')
+    );
+    expect(viewSamplesItem).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=span.op%3Ahttp')
+    );
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+    ).not.toBeInTheDocument();
+  });
+});
