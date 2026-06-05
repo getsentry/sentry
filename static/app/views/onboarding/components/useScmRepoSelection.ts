@@ -9,7 +9,7 @@ import type {
   IntegrationRepository,
   Repository,
 } from 'sentry/types/integrations';
-import {RepositoryStatus} from 'sentry/types/integrations';
+import {RepositoryStatus} from 'sentry/types/integrationsBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';

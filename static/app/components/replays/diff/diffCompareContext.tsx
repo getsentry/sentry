@@ -9,7 +9,7 @@ import {
 
 import type {Event} from 'sentry/types/event';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
+import type {HydrationErrorFrame} from 'sentry/utils/replays/typesBase';
 
 type ContextType = {
   frameOrEvent: HydrationErrorFrame | Event;

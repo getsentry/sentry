@@ -13,7 +13,7 @@ import type EChartsReact from 'echarts-for-react';
 import type {EChartsInstance} from 'echarts-for-react';
 
 import {ToolBox} from 'sentry/components/charts/components/toolBox';
-import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echarts';
+import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echartsBase';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 export type Selection = {

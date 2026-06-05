@@ -23,7 +23,7 @@ import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
 import {platforms} from 'sentry/data/platforms';
 import {IconBroadcast, IconBusiness, IconGeneric} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';

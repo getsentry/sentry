@@ -21,7 +21,7 @@ import {useTouchEventsCheck} from 'sentry/utils/replays/playback/hooks/useTouchE
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {Dimensions} from 'sentry/utils/replays/types';
+import type {Dimensions} from 'sentry/utils/replays/typesBase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';

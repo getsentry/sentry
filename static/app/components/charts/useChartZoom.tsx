@@ -10,7 +10,7 @@ import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   EChartFinishedHandler,
-} from 'sentry/types/echarts';
+} from 'sentry/types/echartsBase';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

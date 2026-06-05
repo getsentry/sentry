@@ -37,7 +37,7 @@ import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {EChartClickHandler} from 'sentry/types/echarts';
+import type {EChartClickHandler} from 'sentry/types/echartsBase';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';

@@ -1,5 +1,5 @@
 import {defined} from 'sentry/utils/defined';
-import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/typesBase';
 import {isConsoleFrame} from 'sentry/utils/replays/types';
 import {Format} from 'sentry/views/explore/replays/detail/console/format';
 import type {OnExpandCallback} from 'sentry/views/explore/replays/detail/useVirtualizedInspector';

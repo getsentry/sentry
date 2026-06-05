@@ -5,7 +5,7 @@ import {BreadcrumbItem} from 'sentry/components/replays/breadcrumbs/breadcrumbIt
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/typesBase';
 
 interface Props {
   allowShowSnippet: boolean;

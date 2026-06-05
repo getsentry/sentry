@@ -1,5 +1,5 @@
 import {PluginSettings} from 'sentry/plugins/components/settings';
-import type {Plugin} from 'sentry/types/integrations';
+import type {Plugin} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 

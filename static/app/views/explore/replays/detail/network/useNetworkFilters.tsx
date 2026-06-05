@@ -5,7 +5,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
-import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {SpanFrame} from 'sentry/utils/replays/typesBase';
 import {filterItems, operationName} from 'sentry/views/explore/replays/detail/utils';
 
 export interface NetworkSelectOption extends SelectOption<string> {

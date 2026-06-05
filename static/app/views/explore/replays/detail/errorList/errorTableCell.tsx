@@ -13,7 +13,7 @@ import {
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {getShortEventId} from 'sentry/utils/events';
 import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import type {ErrorFrame} from 'sentry/utils/replays/types';
+import type {ErrorFrame} from 'sentry/utils/replays/typesBase';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';

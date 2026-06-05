@@ -1,4 +1,4 @@
-import type {RawSpanFrame} from 'sentry/utils/replays/types';
+import type {RawSpanFrame} from 'sentry/utils/replays/typesBase';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 

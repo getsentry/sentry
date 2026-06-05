@@ -18,7 +18,7 @@ import type {
   EChartDataZoomHandler,
   EChartFinishedHandler,
   EChartRestoreHandler,
-} from 'sentry/types/echarts';
+} from 'sentry/types/echartsBase';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';

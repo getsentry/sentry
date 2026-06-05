@@ -5,7 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
 import {t} from 'sentry/locale';
-import type {IntegrationType} from 'sentry/types/integrations';
+import type {IntegrationType} from 'sentry/types/integrationsBase';
 
 import {RequestIntegrationModal} from './RequestIntegrationModal';
 

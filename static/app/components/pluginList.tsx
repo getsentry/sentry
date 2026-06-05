@@ -2,7 +2,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {PluginConfig} from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
-import type {Plugin} from 'sentry/types/integrations';
+import type {Plugin} from 'sentry/types/integrationsBase';
 import type {Project} from 'sentry/types/project';
 import {useTogglePluginMutation} from 'sentry/views/settings/projectPlugins/useTogglePluginMutation';
 

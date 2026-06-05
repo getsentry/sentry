@@ -6,7 +6,7 @@ import {ReplayerEvents} from '@sentry-internal/rrweb';
 import type {ReplayPrefs} from 'sentry/components/replays/preferences/replayPreferences';
 import {uniq} from 'sentry/utils/array/uniq';
 import {clamp} from 'sentry/utils/number/clamp';
-import type {Dimensions} from 'sentry/utils/replays/types';
+import type {Dimensions} from 'sentry/utils/replays/typesBase';
 
 type ReplayerAction =
   | {dispatch: Dispatch<ReplayerAction>; replayer: Replayer; type: 'didMountPlayer'}

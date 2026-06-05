@@ -1,4 +1,4 @@
-import type {ReplayFrame, VideoEvent} from 'sentry/utils/replays/types';
+import type {ReplayFrame, VideoEvent} from 'sentry/utils/replays/typesBase';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;

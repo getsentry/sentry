@@ -1,5 +1,5 @@
 import {toEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
-import type {RawReplayError} from 'sentry/utils/replays/types';
+import type {RawReplayError} from 'sentry/utils/replays/typesBase';
 
 export function RawReplayErrorFixture(
   error: Partial<RawReplayError> & {timestamp: Date}

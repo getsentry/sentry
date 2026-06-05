@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import type {IntegrationType} from 'sentry/types/integrations';
+import type {IntegrationType} from 'sentry/types/integrationsBase';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';

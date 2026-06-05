@@ -13,7 +13,7 @@ import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreatePr
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconGroup, IconProject, IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

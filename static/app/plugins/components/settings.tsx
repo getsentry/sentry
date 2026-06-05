@@ -19,7 +19,7 @@ import {GenericField} from 'sentry/components/deprecatedforms/genericField';
 import {FormState} from 'sentry/components/forms/state';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {Plugin} from 'sentry/types/integrations';
+import type {Plugin} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {parseRepo} from 'sentry/utils/git/parseRepo';

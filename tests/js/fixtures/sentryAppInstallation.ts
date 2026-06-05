@@ -1,4 +1,4 @@
-import type {SentryAppInstallation} from 'sentry/types/integrations';
+import type {SentryAppInstallation} from 'sentry/types/integrationsBase';
 
 export function SentryAppInstallationFixture(
   params: Partial<SentryAppInstallation> = {}

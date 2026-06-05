@@ -12,7 +12,7 @@ import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t, tct} from 'sentry/locale';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echartsBase';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 

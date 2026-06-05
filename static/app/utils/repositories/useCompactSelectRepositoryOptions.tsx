@@ -3,7 +3,7 @@ import {useInfiniteQuery, type InfiniteData} from '@tanstack/react-query';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
-import {RepositoryStatus, type Repository} from 'sentry/types/integrations';
+import {RepositoryStatus, type Repository} from 'sentry/types/integrationsBase';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';

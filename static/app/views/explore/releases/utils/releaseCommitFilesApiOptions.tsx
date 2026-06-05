@@ -1,4 +1,4 @@
-import type {CommitFile, Repository} from 'sentry/types/integrations';
+import type {CommitFile, Repository} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 

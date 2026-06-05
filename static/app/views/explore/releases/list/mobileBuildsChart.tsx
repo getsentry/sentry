@@ -16,7 +16,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {EChartClickHandler} from 'sentry/types/echarts';
+import type {EChartClickHandler} from 'sentry/types/echartsBase';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';

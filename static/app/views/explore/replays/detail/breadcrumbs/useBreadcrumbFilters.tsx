@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/typesBase';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 

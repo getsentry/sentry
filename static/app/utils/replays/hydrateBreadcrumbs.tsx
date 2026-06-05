@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
 import {defaultTitle} from 'sentry/utils/replays/getFrameDetails';
-import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/typesBase';
 import {isBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 

@@ -4,7 +4,7 @@ import type {
   RawSpanFrame,
   RecordingFrame,
   VideoEvent,
-} from 'sentry/utils/replays/types';
+} from 'sentry/utils/replays/typesBase';
 import {
   isBreadcrumbFrameEvent,
   isOptionFrameEvent,

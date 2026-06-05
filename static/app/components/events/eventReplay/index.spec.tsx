@@ -17,7 +17,7 @@ import {
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {RawReplayError} from 'sentry/utils/replays/types';
+import type {RawReplayError} from 'sentry/utils/replays/typesBase';
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');

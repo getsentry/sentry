@@ -2,7 +2,7 @@ import type {
   BreadcrumbFrame,
   NavigationFrame,
   SpanFrame,
-} from 'sentry/utils/replays/types';
+} from 'sentry/utils/replays/typesBase';
 import {isSpanFrame} from 'sentry/utils/replays/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';

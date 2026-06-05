@@ -5,7 +5,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {getShortEventId} from 'sentry/utils/events';
-import type {ErrorFrame} from 'sentry/utils/replays/types';
+import type {ErrorFrame} from 'sentry/utils/replays/typesBase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {

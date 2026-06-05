@@ -29,7 +29,7 @@ import type {
   EChartDownplayHandler,
   EChartHighlightHandler,
   ReactEchartsRef,
-} from 'sentry/types/echarts';
+} from 'sentry/types/echartsBase';
 import {escape} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';

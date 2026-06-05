@@ -8,7 +8,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
+import type {HydrationErrorFrame} from 'sentry/utils/replays/typesBase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const LazyComparisonModal = lazy(

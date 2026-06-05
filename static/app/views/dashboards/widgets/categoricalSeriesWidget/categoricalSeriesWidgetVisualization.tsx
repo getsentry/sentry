@@ -17,7 +17,7 @@ import type {
   EChartDownplayHandler,
   EChartHighlightHandler,
   ReactEchartsRef,
-} from 'sentry/types/echarts';
+} from 'sentry/types/echartsBase';
 import {uniq} from 'sentry/utils/array/uniq';
 import {defined} from 'sentry/utils/defined';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';

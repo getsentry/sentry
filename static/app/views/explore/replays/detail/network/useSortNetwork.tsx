@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {parseAsBoolean, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {SpanFrame} from 'sentry/utils/replays/typesBase';
 
 interface SortConfig {
   asc: boolean;

@@ -6,7 +6,7 @@ import {
   hydrateBreadcrumbs,
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
-import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame} from 'sentry/utils/replays/typesBase';
 
 const START_DATE = new Date('2022-06-15T00:40:00.111Z');
 const NAVIGATION_DATE_1 = new Date('2022-06-15T00:46:00.333Z');

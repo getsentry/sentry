@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echartsBase';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {useChartInterval} from 'sentry/utils/useChartInterval';

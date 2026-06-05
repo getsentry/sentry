@@ -4,7 +4,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import type {ErrorFrame} from 'sentry/utils/replays/types';
+import type {ErrorFrame} from 'sentry/utils/replays/typesBase';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 

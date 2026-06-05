@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {openAttributeBreakdownViewerModal} from 'sentry/actionCreators/modal';
 import {IconExpand} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echartsBase';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import type {TooltipActions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';

@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import type {SortConfig} from 'sentry/components/replays/virtualizedGrid/headerCell';
-import type {ErrorFrame} from 'sentry/utils/replays/types';
+import type {ErrorFrame} from 'sentry/utils/replays/typesBase';
 
 const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
   id: row => row.data.eventId,

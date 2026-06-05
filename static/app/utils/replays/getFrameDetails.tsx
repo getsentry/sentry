@@ -52,7 +52,7 @@ import type {
   SwipeFrame,
   TapFrame,
   WebVitalFrame,
-} from 'sentry/utils/replays/types';
+} from 'sentry/utils/replays/typesBase';
 import {
   getFrameOpOrCategory,
   isCLSFrame,

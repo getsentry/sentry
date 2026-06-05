@@ -3,7 +3,7 @@ import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import {BarSeries} from 'sentry/components/charts/series/barSeries';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echartsBase';
 import {formatXAxisValue} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/formatters/formatXAxisValue';
 import type {
   CategoricalItem,

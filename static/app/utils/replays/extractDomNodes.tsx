@@ -1,6 +1,6 @@
 import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/typesBase';
 import {getNodeIds} from 'sentry/utils/replays/types';
 import {constructSelector} from 'sentry/views/explore/replays/selectors/constructSelector';
 

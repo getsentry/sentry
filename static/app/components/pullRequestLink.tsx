@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
-import type {PullRequest, Repository} from 'sentry/types/integrations';
+import type {PullRequest, Repository} from 'sentry/types/integrationsBase';
 
 function renderIcon(repo: Repository) {
   if (!repo.provider) {

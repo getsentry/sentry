@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/typesBase';
 
 export interface VisibleRange {
   startIndex: number;

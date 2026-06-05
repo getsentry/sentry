@@ -1,4 +1,4 @@
-import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame} from 'sentry/utils/replays/typesBase';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 // Gets the current screen name for video/mobile replays - mirrors getCurrentUrl.tsx

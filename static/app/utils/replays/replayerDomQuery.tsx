@@ -1,6 +1,6 @@
 import {type Replayer} from '@sentry-internal/rrweb';
 
-import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/typesBase';
 
 import {createHiddenPlayer} from './createHiddenPlayer';
 

@@ -4,7 +4,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {ScmInstallation} from 'sentry/views/settings/organizationRepositories/types';
 
 import {InstallationOverrideProvider, ScmRepositoryTable} from './scmRepositoryTable';

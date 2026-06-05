@@ -12,7 +12,7 @@ import {
   MIN_REPLAY_NETWORK_BODIES_SDK,
   MIN_REPLAY_NETWORK_BODIES_SDK_KNOWN_BUG,
 } from 'sentry/utils/replays/sdkVersions';
-import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {SpanFrame} from 'sentry/utils/replays/typesBase';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';

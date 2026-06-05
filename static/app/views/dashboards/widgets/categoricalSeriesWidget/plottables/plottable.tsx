@@ -1,6 +1,6 @@
 import type {SeriesOption} from 'echarts';
 
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echartsBase';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import type {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {CategoricalItemCategory} from 'sentry/views/dashboards/widgets/common/types';

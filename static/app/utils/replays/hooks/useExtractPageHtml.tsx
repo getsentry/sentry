@@ -2,7 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {replayerStepper} from 'sentry/utils/replays/replayerStepper';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
+import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/typesBase';
 
 type Args = {
   /**
