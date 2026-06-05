@@ -13,7 +13,7 @@ export function ProjectsCell({automation}: {automation: Automation}) {
     return <EmptyCell />;
   }
 
-  if (!detectorData || detectorData.isPending) {
+  if (!detectorData || detectorData.isLoading) {
     return <Placeholder height="20px" />;
   }
 

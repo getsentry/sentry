@@ -28,7 +28,7 @@ function ConnectedDetectorsBody({detectorIds}: {detectorIds: string[]}) {
     return <LoadingError />;
   }
 
-  if (!detectorData || detectorData.isPending) {
+  if (!detectorData || detectorData.isLoading) {
     return (
       <div>
         {Array.from({length: shownIds.length}).map((_, index) => (
