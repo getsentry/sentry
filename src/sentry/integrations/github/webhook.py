@@ -62,7 +62,9 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
+from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_activity
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
+from sentry.pr_metrics.webhooks import handle_comment as pr_metrics_handle_comment
 from sentry.pr_metrics.webhooks import handle_emission as pr_metrics_handle_emission
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
@@ -949,6 +951,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
         pr_metrics_handle_emission,
+        pr_metrics_handle_activity,
     )
 
     def _handle(
@@ -1103,7 +1106,10 @@ class IssueCommentEventWebhook(GitHubWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
-    WEBHOOK_EVENT_PROCESSORS = (code_review_handle_webhook_event,)
+    WEBHOOK_EVENT_PROCESSORS = (
+        code_review_handle_webhook_event,
+        pr_metrics_handle_comment,
+    )
 
 
 @all_silo_endpoint

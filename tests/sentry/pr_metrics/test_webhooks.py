@@ -8,15 +8,26 @@ from django.conf import settings
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.pullrequest import (
+    PullRequestActivity,
+    PullRequestActivityType,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestMetrics,
+    PullRequestVerdict,
 )
-from sentry.pr_metrics.webhooks import handle_attribution, handle_emission
+from sentry.pr_metrics.webhooks import (
+    handle_activity,
+    handle_attribution,
+    handle_comment,
+    handle_emission,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import get_event_count
 from sentry.testutils.silo import cell_silo_test
+
+MODULE = "sentry.pr_metrics.webhooks"
 
 
 @with_feature("organizations:pr-metrics-attribution")
@@ -276,7 +287,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
     # --- Error handling ---
 
     def test_missing_pr_logs_warning_and_does_not_raise(self) -> None:
-        module = "sentry.pr_metrics.webhooks"
         event = {
             "action": "opened",
             "pull_request": {
@@ -286,7 +296,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
                 "user": {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
             },
         }
-        with patch(f"{module}.logger") as mock_logger:
+        with patch(f"{MODULE}.logger") as mock_logger:
             handle_attribution(
                 github_event=GithubWebhookType.PULL_REQUEST,
                 event=event,
@@ -301,7 +311,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
 
 
-MODULE = "sentry.pr_metrics.webhooks"
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
 
@@ -406,3 +415,523 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             extra={"repository_id": self.repo.id, "pr_number": 9999},
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+
+@with_feature("organizations:pr-metrics-activity")
+@cell_silo_test
+class HandleWebhookForPrMetricsActivityTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+            title="Fix the bug",
+            message="Closes TICKET-1",
+        )
+
+    def _call(
+        self,
+        action: str = "opened",
+        webhook_id: str | None = "delivery-1",
+        merged: bool = False,
+        head_sha: str = "abc123",
+        base_sha: str = "def456",
+        additions: int = 10,
+        deletions: int = 5,
+        changed_files: int = 3,
+        commits: int = 2,
+        comments: int = 0,
+        review_comments: int = 0,
+        before: str | None = None,
+        after: str | None = None,
+        changes: dict | None = None,
+        label: dict | None = None,
+        extra_event: dict | None = None,
+    ) -> None:
+        pull_request: dict = {
+            "number": 42,
+            "title": "Fix the bug",
+            "body": "Closes TICKET-1",
+            "merged": merged,
+            "merge_commit_sha": "merge-sha" if merged else None,
+            "merged_by": {"id": 999, "login": "testuser"} if merged else None,
+            "head": {"sha": head_sha},
+            "base": {"sha": base_sha},
+            "additions": additions,
+            "deletions": deletions,
+            "changed_files": changed_files,
+            "commits": commits,
+            "comments": comments,
+            "review_comments": review_comments,
+            "user": {"id": 999, "login": "testuser"},
+        }
+        event: dict = {
+            "action": action,
+            "pull_request": pull_request,
+            "sender": {"id": 999, "type": "User"},
+        }
+        if before is not None:
+            event["before"] = before
+        if after is not None:
+            event["after"] = after
+        if changes is not None:
+            event["changes"] = changes
+        if label is not None:
+            event["label"] = label
+        if extra_event is not None:
+            event.update(extra_event)
+        handle_activity(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id=webhook_id,
+        )
+
+    # --- Activity row creation ---
+
+    def test_opened_writes_opened_activity(self) -> None:
+        self._call(action="opened")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.OPENED
+        assert activity.webhook_id == "delivery-1"
+
+    def test_opened_payload_captures_size_fields(self) -> None:
+        self._call(action="opened", additions=20, deletions=8, changed_files=4, commits=3)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["additions"] == 20
+        assert activity.payload["deletions"] == 8
+        assert activity.payload["changed_files"] == 4
+        assert activity.payload["commits"] == 3
+
+    def test_closed_unmerged_writes_closed_activity_with_metrics(self) -> None:
+        self._call(
+            action="closed",
+            merged=False,
+            additions=5,
+            deletions=2,
+            changed_files=1,
+            commits=1,
+            comments=3,
+            review_comments=7,
+        )
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.CLOSED
+        assert activity.payload["merged"] is False
+        assert activity.payload["additions"] == 5
+        assert activity.payload["comments"] == 3
+        assert activity.payload["review_comments"] == 7
+        assert activity.payload["merged_by_id"] is None
+
+    def test_closed_merged_writes_merged_activity_with_metrics(self) -> None:
+        self._call(
+            action="closed",
+            merged=True,
+            additions=20,
+            deletions=3,
+            changed_files=4,
+            commits=5,
+            comments=2,
+            review_comments=4,
+        )
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.MERGED
+        assert activity.payload["merged"] is True
+        assert activity.payload["additions"] == 20
+        assert activity.payload["commits"] == 5
+        assert activity.payload["comments"] == 2
+        assert activity.payload["review_comments"] == 4
+        assert activity.payload["merged_by_id"] == 999
+
+    def test_reopened_writes_reopened_activity_with_size_fields(self) -> None:
+        self._call(action="reopened", additions=5, deletions=2, changed_files=1, commits=1)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.REOPENED
+        assert activity.payload["additions"] == 5
+        assert activity.payload["deletions"] == 2
+        assert activity.payload["changed_files"] == 1
+        assert activity.payload["commits"] == 1
+
+    def test_synchronize_writes_synchronized_activity(self) -> None:
+        self._call(action="synchronize", before="old-sha", after="new-sha")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.SYNCHRONIZED
+        assert activity.payload["before"] == "old-sha"
+        assert activity.payload["after"] == "new-sha"
+
+    def test_edited_writes_edited_activity_with_changed_fields(self) -> None:
+        self._call(
+            action="edited", changes={"body": {"from": "old body"}, "title": {"from": "old"}}
+        )
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.EDITED
+        assert activity.payload["changed_fields"] == ["body", "title"]
+
+    def test_edited_with_no_changes_dict_writes_empty_changed_fields(self) -> None:
+        self._call(action="edited")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.EDITED
+        assert activity.payload["changed_fields"] == []
+
+    def test_labeled_writes_labeled_activity_with_label_info(self) -> None:
+        self._call(action="labeled", label={"name": "bug", "color": "d73a4a"})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.LABELED
+        assert activity.payload["label_name"] == "bug"
+        assert "label_color" not in activity.payload
+
+    def test_unlabeled_writes_unlabeled_activity_with_label_info(self) -> None:
+        self._call(action="unlabeled", label={"name": "bug", "color": "d73a4a"})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.UNLABELED
+        assert activity.payload["label_name"] == "bug"
+        assert "label_color" not in activity.payload
+
+    # --- Payload sanitisation ---
+
+    def test_opened_payload_contains_common_structural_fields(self) -> None:
+        self._call(action="opened", head_sha="abc123", base_sha="def456")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["action"] == "opened"
+        assert activity.payload["sender_id"] == 999
+        assert activity.payload["head_sha"] == "abc123"
+        assert activity.payload["base_sha"] == "def456"
+
+    def test_payload_never_contains_title_or_body(self) -> None:
+        for action, kw in [
+            ("opened", {}),
+            ("closed", {"webhook_id": "d-closed"}),
+            ("reopened", {"webhook_id": "d-reopened"}),
+            ("synchronize", {"webhook_id": "d-sync", "before": "old", "after": "new"}),
+        ]:
+            self._call(action=action, **kw)  # type: ignore[arg-type]
+            activity = PullRequestActivity.objects.get(
+                pull_request=self.pr, webhook_id=kw.get("webhook_id", "delivery-1")
+            )
+            assert "title" not in activity.payload
+            assert "body" not in activity.payload
+
+    def test_edited_payload_stores_changed_field_names_not_values(self) -> None:
+        # changed_fields should be the keys of event["changes"], not the old text values
+        self._call(
+            action="edited",
+            changes={"body": {"from": "very sensitive old body text"}},
+        )
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["changed_fields"] == ["body"]
+        assert "very sensitive old body text" not in str(activity.payload)
+
+    # --- Idempotency ---
+
+    def test_redelivery_with_same_webhook_id_does_not_duplicate(self) -> None:
+        self._call(action="opened", webhook_id="delivery-abc")
+        self._call(action="opened", webhook_id="delivery-abc")
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 1
+
+    def test_different_webhook_ids_create_separate_rows(self) -> None:
+        self._call(action="opened", webhook_id="delivery-1")
+        self._call(action="synchronize", webhook_id="delivery-2")
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 2
+
+    def test_no_activity_written_without_webhook_id(self) -> None:
+        self._call(action="opened", webhook_id=None)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    # --- verdict clearing ---
+
+    def test_reopened_clears_verdict(self) -> None:
+        PullRequestMetrics.objects.create(  # no factory available
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.CLOSED_UNMERGED,
+        )
+
+        self._call(action="reopened")
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pr)
+        assert metrics.verdict is None
+
+    def test_reopened_noop_when_no_metrics_row(self) -> None:
+        # Should not raise even when PullRequestMetrics doesn't exist yet
+        self._call(action="reopened")
+
+        assert not PullRequestMetrics.objects.filter(pull_request=self.pr).exists()
+
+    def test_reopened_noop_when_verdict_already_none(self) -> None:
+        PullRequestMetrics.objects.create(  # no factory available
+            pull_request=self.pr, verdict=None
+        )
+
+        self._call(action="reopened")
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pr)
+        assert metrics.verdict is None
+
+    # --- Review requests ---
+
+    def test_review_requested_writes_activity_for_individual(self) -> None:
+        self._call(
+            action="review_requested",
+            webhook_id="delivery-rr",
+            extra_event={"requested_reviewer": {"id": 77, "login": "reviewer"}},
+        )
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.REVIEW_REQUESTED
+        assert activity.payload["is_team_review"] is False
+
+    def test_review_requested_writes_activity_for_team(self) -> None:
+        self._call(
+            action="review_requested",
+            webhook_id="delivery-rr-team",
+            extra_event={"requested_team": {"id": 5, "name": "backend"}},
+        )
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["is_team_review"] is True
+
+    def test_review_request_removed_writes_activity(self) -> None:
+        self._call(action="review_request_removed", webhook_id="delivery-rrr")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.REVIEW_REQUEST_REMOVED
+        assert activity.payload["is_team_review"] is False
+
+    def test_review_request_removed_team_review(self) -> None:
+        self._call(
+            action="review_request_removed",
+            webhook_id="delivery-rrr-team",
+            extra_event={"requested_team": {"name": "backend"}},
+        )
+
+        activity = PullRequestActivity.objects.get(
+            pull_request=self.pr, webhook_id="delivery-rrr-team"
+        )
+        assert activity.payload["is_team_review"] is True
+
+    # --- Draft / ready ---
+
+    def test_converted_to_draft_writes_activity(self) -> None:
+        self._call(action="converted_to_draft", webhook_id="delivery-draft")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.CONVERTED_TO_DRAFT
+
+    def test_ready_for_review_writes_activity(self) -> None:
+        self._call(action="ready_for_review", webhook_id="delivery-rfr")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.READY_FOR_REVIEW
+
+    # --- Assigned / unassigned ---
+
+    def test_assigned_writes_activity_with_assignee_id(self) -> None:
+        self._call(
+            action="assigned",
+            webhook_id="delivery-assign",
+            extra_event={"assignee": {"id": 42, "login": "dev"}},
+        )
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.ASSIGNED
+        assert activity.payload["assignee_id"] == 42
+
+    def test_unassigned_writes_activity_with_assignee_id(self) -> None:
+        self._call(
+            action="unassigned",
+            webhook_id="delivery-unassign",
+            extra_event={"assignee": {"id": 42, "login": "dev"}},
+        )
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.UNASSIGNED
+        assert activity.payload["assignee_id"] == 42
+
+    # --- sender_type in base payload ---
+
+    def test_bot_sender_type_stored_in_payload(self) -> None:
+        self._call(action="opened", extra_event={"sender": {"id": 999, "type": "Bot"}})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["sender_type"] == "Bot"
+
+    def test_human_sender_type_stored_in_payload(self) -> None:
+        self._call(action="opened", extra_event={"sender": {"id": 999, "type": "User"}})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["sender_type"] == "User"
+
+    # --- Feature flag interactions ---
+
+    def test_attribution_flag_only_does_not_write_activity(self) -> None:
+        with self.feature(
+            {
+                "organizations:pr-metrics-activity": False,
+                "organizations:pr-metrics-attribution": True,
+            }
+        ):
+            self._call(action="opened")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_clear_verdict_runs_when_both_flags_off(self) -> None:
+        PullRequestMetrics.objects.create(  # no factory available
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.CLOSED_UNMERGED,
+        )
+
+        with self.feature(
+            {
+                "organizations:pr-metrics-activity": False,
+                "organizations:pr-metrics-attribution": False,
+            }
+        ):
+            self._call(action="reopened")
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pr)
+        assert metrics.verdict is None
+
+    # --- Unhandled actions ---
+
+    def test_unhandled_actions_do_not_write_activity(self) -> None:
+        for action in ("auto_merge_enabled", "milestoned", "demilestoned"):
+            self._call(action=action, webhook_id=f"delivery-{action}")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature("organizations:pr-metrics-activity")
+@cell_silo_test
+class HandleCommentForPrMetricsTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+        )
+
+    def _call(
+        self,
+        action: str = "created",
+        sender_type: str = "User",
+        author_association: str = "NONE",
+        webhook_id: str | None = "delivery-1",
+        is_pr_comment: bool = True,
+    ) -> None:
+        issue: dict = {"number": 42}
+        if is_pr_comment:
+            issue["pull_request"] = {"url": "https://github.com/org/repo/pull/42"}
+        event: dict = {
+            "action": action,
+            "issue": issue,
+            "sender": {"id": 999, "login": "testuser", "type": sender_type},
+            "comment": {"id": 1, "author_association": author_association},
+        }
+        handle_comment(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id=webhook_id,
+        )
+
+    def test_comment_created_writes_activity(self) -> None:
+        self._call(action="created")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.COMMENT_CREATED
+        assert activity.webhook_id == "delivery-1"
+
+    def test_comment_edited_writes_activity(self) -> None:
+        self._call(action="edited")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.COMMENT_EDITED
+
+    def test_bot_sender_type_stored(self) -> None:
+        self._call(sender_type="Bot")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["sender_type"] == "Bot"
+
+    def test_user_sender_type_stored(self) -> None:
+        self._call(sender_type="User")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["sender_type"] == "User"
+
+    def test_plain_issue_comment_skipped(self) -> None:
+        self._call(is_pr_comment=False)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_redelivery_deduplicated(self) -> None:
+        self._call(webhook_id="delivery-abc")
+        self._call(webhook_id="delivery-abc")
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 1
+
+    def test_author_association_stored(self) -> None:
+        self._call(author_association="MEMBER")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["author_association"] == "MEMBER"
+
+    def test_no_activity_without_webhook_id(self) -> None:
+        self._call(webhook_id=None)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_unknown_pr_number_logs_warning_and_does_not_raise(self) -> None:
+        event: dict = {
+            "action": "created",
+            "issue": {
+                "number": 9999,
+                "pull_request": {"url": "https://github.com/org/repo/pull/9999"},
+            },
+            "sender": {"id": 123, "type": "User"},
+            "comment": {"author_association": "NONE"},
+        }
+        with patch(f"{MODULE}.logger") as mock_logger:
+            handle_comment(
+                github_event=GithubWebhookType.ISSUE_COMMENT,
+                event=event,
+                organization=self.organization,
+                repo=self.repo,
+                github_delivery_id="delivery-unknown",
+            )
+
+        mock_logger.warning.assert_called_once_with(
+            "github.pr_metrics.comment.pr_not_found",
+            extra={"repository_id": self.repo.id, "issue_number": 9999},
+        )
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_feature_flag_off_skips_comment(self) -> None:
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_deleted_action_skipped(self) -> None:
+        self._call(action="deleted", webhook_id="delivery-del")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()

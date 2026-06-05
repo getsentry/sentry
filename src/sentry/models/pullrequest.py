@@ -269,14 +269,14 @@ class PullRequestActivityType(models.TextChoices):
     EDITED = "edited"
     REVIEW_REQUESTED = "review_requested"
     REVIEW_REQUEST_REMOVED = "review_request_removed"
-    REVIEW_SUBMITTED = "review_submitted"
     COMMENT_CREATED = "comment_created"
     COMMENT_EDITED = "comment_edited"
-    COMMENT_DELETED = "comment_deleted"
     LABELED = "labeled"
     UNLABELED = "unlabeled"
-    LOCKED = "locked"
-    UNLOCKED = "unlocked"
+    CONVERTED_TO_DRAFT = "converted_to_draft"
+    READY_FOR_REVIEW = "ready_for_review"
+    ASSIGNED = "assigned"
+    UNASSIGNED = "unassigned"
 
 
 @cell_silo_model
