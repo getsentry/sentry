@@ -34,7 +34,10 @@ import {
 } from 'sentry/views/explore/metrics/metricQuery';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
-import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+import {
+  isTraceMetricTypeValue,
+  TraceMetricKnownFieldKey,
+} from 'sentry/views/explore/metrics/types';
 import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
@@ -265,6 +268,13 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           unit: queryMetricUnit ?? NONE_UNIT,
         };
       }
+
+      // We expect a valid metric type. If it's missing or unrecognized, leave
+      // the panel's metric and visualizes untouched rather than guessing a
+      // default aggregate.
+      if (resolvedMetric && !isTraceMetricTypeValue(resolvedMetric.type)) {
+        resolvedMetric = undefined;
+      }
       const nextMetric = resolvedMetric ?? traceMetric;
 
       // Build aggregateFields: groupBys first, then visualizes
@@ -274,26 +284,41 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         aggregateFields.push({groupBy});
       }
 
-      // Use Seer visualizes if provided. In samples mode Seer returns no
-      // visualization, so when it picked a new metric (via the query filters
-      // above) build a default visualize from that metric's type to keep the
-      // chart in sync. Otherwise preserve the existing visualizes — Seer didn't
-      // choose a metric, so we must not clobber a customized aggregate with the
-      // type default.
+      // Apply Seer's visualizes, re-qualifying each aggregate with the resolved
+      // metric so the chart targets the same metric as the toolbar/samples —
+      // Seer sometimes returns unqualified y-axes (e.g. p75(value)) while naming
+      // the metric only in the query. In samples mode there's no visualize, so
+      // build a default one from the metric's type. When Seer didn't resolve a
+      // valid metric, leave the existing visualizes untouched so we don't
+      // clobber a customized aggregate.
       if (seerVisualizes.length > 0) {
         for (const viz of seerVisualizes) {
-          aggregateFields.push(viz);
+          if (resolvedMetric) {
+            const {aggregation} = parseMetricAggregate(viz.yAxis);
+            aggregateFields.push(
+              viz.replace({
+                yAxis: makeMetricsAggregate({
+                  aggregate: aggregation,
+                  traceMetric: resolvedMetric,
+                }),
+              })
+            );
+          } else {
+            aggregateFields.push(viz);
+          }
         }
       } else if (resolvedMetric) {
-        const defaultAggregate = DEFAULT_YAXIS_BY_TYPE[resolvedMetric.type] ?? 'count';
-        aggregateFields.push(
-          new VisualizeFunction(
-            makeMetricsAggregate({
-              aggregate: defaultAggregate,
-              traceMetric: resolvedMetric,
-            })
-          )
-        );
+        const defaultAggregate = DEFAULT_YAXIS_BY_TYPE[resolvedMetric.type];
+        if (defaultAggregate) {
+          aggregateFields.push(
+            new VisualizeFunction(
+              makeMetricsAggregate({
+                aggregate: defaultAggregate,
+                traceMetric: resolvedMetric,
+              })
+            )
+          );
+        }
       } else {
         for (const field of queryParams.aggregateFields) {
           if (isVisualize(field)) {
