@@ -256,21 +256,28 @@ export function SplitPanel({
     (event: React.KeyboardEvent<HTMLElement>) => {
       const step = event.shiftKey ? 50 : 10;
       const isHorizontal = orientation === 'horizontal';
-      const decreaseKey = isHorizontal ? 'ArrowLeft' : 'ArrowUp';
-      const increaseKey = isHorizontal ? 'ArrowRight' : 'ArrowDown';
+      const towardStartKey = isHorizontal ? 'ArrowLeft' : 'ArrowUp';
+      const towardEndKey = isHorizontal ? 'ArrowRight' : 'ArrowDown';
+
+      // Keys map to physical separator direction; moving it toward `end` grows
+      // the sized pane only when it sits first, and shrinks it otherwise.
+      const growKey = isSizedFirst ? towardEndKey : towardStartKey;
+      const shrinkKey = isSizedFirst ? towardStartKey : towardEndKey;
 
       // Step from the visible size so it still moves after the container shrank.
       const current = Math.min(containerSize, max);
 
       let newSize: number | null = null;
-      if (event.key === decreaseKey) {
+      if (event.key === shrinkKey) {
         newSize = Math.max(min, current - step);
-      } else if (event.key === increaseKey) {
+      } else if (event.key === growKey) {
         newSize = Math.min(max, current + step);
       } else if (event.key === 'Home') {
-        newSize = min;
+        // Separator to the start edge.
+        newSize = isSizedFirst ? min : max;
       } else if (event.key === 'End' && Number.isFinite(max)) {
-        newSize = max;
+        // Separator to the end edge.
+        newSize = isSizedFirst ? max : min;
       }
 
       if (newSize !== null) {
@@ -279,7 +286,7 @@ export function SplitPanel({
         handleResizeEnd(current, newSize);
       }
     },
-    [orientation, containerSize, min, max, setSize, handleResizeEnd]
+    [orientation, isSizedFirst, containerSize, min, max, setSize, handleResizeEnd]
   );
 
   // Clamped so the pane basis and divider aria-valuenow stay in step.

@@ -182,5 +182,32 @@ describe('SplitPanel', () => {
         direction: 'increase',
       });
     });
+
+    it('maps arrow keys to physical direction for placement="end"', async () => {
+      const onResizeEnd = jest.fn();
+      render(
+        <SplitPanel
+          orientation="horizontal"
+          placement="end"
+          defaultSize={200}
+          minSize={100}
+          onResizeEnd={onResizeEnd}
+          sized={<div>sized</div>}
+          fill={<div>fill</div>}
+        />
+      );
+
+      const separator = screen.getByRole('separator');
+      separator.focus();
+      // The sized pane sits after the divider, so moving the separator right
+      // (ArrowRight) shrinks it, matching the drag direction.
+      await userEvent.keyboard('{ArrowRight}');
+
+      expect(onResizeEnd).toHaveBeenCalledWith({
+        startSize: 200,
+        endSize: 190,
+        direction: 'decrease',
+      });
+    });
   });
 });
