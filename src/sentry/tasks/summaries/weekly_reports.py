@@ -496,6 +496,18 @@ group_status_to_color = {
 }
 
 
+def _pct_change(current: int, previous: int) -> dict[str, Any] | None:
+    if previous == 0:
+        return None
+    change = ((current - previous) / previous) * 100
+    if round(change) == 0:
+        return None
+    return {
+        "value": f"{abs(round(change))}%",
+        "is_increase": change > 0,
+    }
+
+
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     """
     Returns a tuple of (text, background_color, border_color)
@@ -669,12 +681,21 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
                     }
                 )
             series.append((to_datetime(t), project_series))
+        prev_week_error = sum(
+            p.prev_week_accepted_error_count for p in projects_associated_with_user
+        )
+        prev_week_transaction = sum(
+            p.prev_week_accepted_transaction_count for p in projects_associated_with_user
+        )
+
         return {
             "legend": legend,
             "series": series,
             "total_error_count": total_error,
             "total_transaction_count": total_transaction,
             "total_replay_count": total_replays,
+            "error_pct_change": _pct_change(total_error, prev_week_error),
+            "transaction_pct_change": _pct_change(total_transaction, prev_week_transaction),
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),

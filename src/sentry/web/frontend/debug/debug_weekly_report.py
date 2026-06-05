@@ -90,6 +90,12 @@ class DebugWeeklyReportView(MailPreviewView):
             project_context.dropped_replay_count = int(
                 random.weibullvariate(5, 1) * random.paretovariate(0.2)
             )
+            project_context.prev_week_accepted_error_count = int(
+                project_context.accepted_error_count * random.uniform(0.5, 1.5)
+            )
+            project_context.prev_week_accepted_transaction_count = int(
+                project_context.accepted_transaction_count * random.uniform(0.5, 1.5)
+            )
             project_context.key_errors_by_group = [
                 (g, random.randint(0, 1000)) for g in Group.objects.all()[:3]
             ]
