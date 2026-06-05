@@ -13,9 +13,32 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {AggregatesTable} from './aggregatesTable';
 
-function createAggregatesTableResult(
-  overrides: Partial<AggregatesTableResult>
-): AggregatesTableResult {
+function createAggregatesQueryResult(
+  overrides: Partial<AggregatesTableResult['result']> = {}
+): AggregatesTableResult['result'] {
+  return {
+    data: [],
+    isError: false,
+    isFetched: true,
+    isPending: false,
+    meta: {
+      fields: {
+        'span.op': 'string',
+        'count()': 'integer',
+      },
+      units: {},
+    },
+    pageLinks: undefined,
+    ...overrides,
+  } as unknown as AggregatesTableResult['result'];
+}
+
+function createAggregatesTableResult({
+  result,
+  ...overrides
+}: Partial<Omit<AggregatesTableResult, 'result'>> & {
+  result?: Partial<AggregatesTableResult['result']>;
+} = {}): AggregatesTableResult {
   const eventView = EventView.fromLocation(
     LocationFixture({
       query: {
@@ -27,22 +50,9 @@ function createAggregatesTableResult(
   return {
     eventView,
     fields: ['span.op', 'count()'],
-    result: {
-      data: [],
-      isError: false,
-      isFetched: true,
-      isPending: false,
-      meta: {
-        fields: {
-          'span.op': 'string',
-          'count()': 'integer',
-        },
-        units: {},
-      },
-      pageLinks: undefined,
-    },
+    result: createAggregatesQueryResult(result),
     ...overrides,
-  } as AggregatesTableResult;
+  };
 }
 
 function AggregatesTableWithParamsProvider({
@@ -128,7 +138,7 @@ describe('AggregatesTable', () => {
               units: {},
             },
             pageLinks: undefined,
-          } as AggregatesTableResult['result'],
+          },
         })}
       />,
       {initialRouterConfig, organization}
