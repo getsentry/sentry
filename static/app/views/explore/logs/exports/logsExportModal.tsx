@@ -132,6 +132,16 @@ export function LogsExportModal({
               formatNumber(ROW_COUNT_VALUE_SYNC_LIMIT)
             )}
           </Text>
+          <form.AppField name="columns">
+            {field => (
+              <field.Layout.Stack label={t('All Columns?')}>
+                <field.Switch
+                  checked={field.state.value === 'all'}
+                  onChange={checked => field.handleChange(checked ? 'all' : 'selected')}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
           <form.AppField name="format">
             {field => (
               <field.Radio.Group
@@ -162,16 +172,6 @@ export function LogsExportModal({
                       aria-label={t('Number of rows')}
                     />
                   )}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-          <form.AppField name="columns">
-            {field => (
-              <field.Layout.Stack label={t('All Columns?')}>
-                <field.Switch
-                  checked={field.state.value === 'all'}
-                  onChange={checked => field.handleChange(checked ? 'all' : 'selected')}
                 />
               </field.Layout.Stack>
             )}
