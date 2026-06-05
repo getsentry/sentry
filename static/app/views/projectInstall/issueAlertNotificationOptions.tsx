@@ -107,8 +107,10 @@ export function useCreateNotificationAction({
       for (const i of messagingIntegrationsQuery.data) {
         if (i.status === 'active') {
           const providerSlug = i.provider.slug;
-          map[providerSlug] = map[providerSlug] ?? [];
-          map[providerSlug].push(i);
+          if (!Object.hasOwn(map, providerSlug)) {
+            map[providerSlug] = [];
+          }
+          map[providerSlug]!.push(i);
         }
       }
     }

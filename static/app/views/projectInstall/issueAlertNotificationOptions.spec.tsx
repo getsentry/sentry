@@ -2,12 +2,19 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {
   IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
+  useCreateNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 describe('MessagingIntegrationAlertRule', () => {
@@ -92,5 +99,31 @@ describe('MessagingIntegrationAlertRule', () => {
     await screen.findByText(/notify via integration/i);
     await userEvent.click(screen.getByText(/notify via integration/i));
     expect(mockSetAction).toHaveBeenCalled();
+  });
+
+  it('groups integrations with provider slugs that match Object prototype properties', async () => {
+    const constructorIntegration = OrganizationIntegrationsFixture({
+      provider: {
+        ...OrganizationIntegrationsFixture().provider,
+        slug: 'constructor',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [constructorIntegration],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+
+    const {result} = renderHookWithProviders(() => useCreateNotificationAction(), {
+      organization,
+    });
+
+    await waitFor(() => {
+      expect(result.current.notificationProps.querySuccess).toBe(true);
+    });
+
+    expect(result.current.notificationProps.providersToIntegrations.constructor).toEqual([
+      constructorIntegration,
+    ]);
   });
 });
