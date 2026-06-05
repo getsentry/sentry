@@ -294,23 +294,23 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
       // Apply Seer's visualizes. Seer should return metric-qualified y-axes
       // (e.g. p75(value, metric.name, distribution, millisecond)), which we pass
-      // through untouched — including conditional `_if` forms that carry a
-      // backtick filter argument. Defensively, if a plain (non-`_if`) y-axis
-      // comes back without a valid metric, we re-qualify it with the resolved
-      // metric so the chart stays aligned with the toolbar/samples. `_if` forms
-      // are never re-qualified since makeMetricsAggregate can't reconstruct the
-      // filter argument. In samples mode there's no visualize, so build a
-      // default one from the metric's type. When Seer didn't resolve a valid
-      // metric, leave the existing visualizes untouched so we don't clobber a
-      // customized aggregate.
+      // through untouched. Visualize aggregates are always in plain
+      // op(value,metric,type,unit) form — conditional `_if` aggregates are
+      // normalized to a plain aggregate plus a query filter before reaching a
+      // visualize (see parseAggregateExpression) — so re-qualifying never drops
+      // a filter argument. Defensively, if a y-axis comes back without a valid
+      // metric, we re-qualify it with the resolved metric so the chart stays
+      // aligned with the toolbar/samples. In samples mode there's no visualize,
+      // so build a default one from the metric's type. When Seer didn't resolve
+      // a valid metric, leave the existing visualizes untouched so we don't
+      // clobber a customized aggregate.
       if (seerVisualizes.length > 0) {
         for (const viz of seerVisualizes) {
           const {aggregation, traceMetric: vizMetric} = parseMetricAggregate(viz.yAxis);
           const isQualified = Boolean(
             vizMetric.name && vizMetric.type && isTraceMetricTypeValue(vizMetric.type)
           );
-          const isConditional = aggregation.endsWith('_if');
-          if (!isQualified && !isConditional && resolvedMetric) {
+          if (!isQualified && resolvedMetric) {
             aggregateFields.push(
               viz.replace({
                 yAxis: makeMetricsAggregate({
