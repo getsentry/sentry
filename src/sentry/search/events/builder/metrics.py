@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import cached_property
 from snuba_sdk import (
     AliasedExpression,
@@ -363,11 +364,10 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         """This property is used to determine if a query is using at least one of the fields in the spans namespace."""
         if self._is_spans_metrics_query_cache is not None:
             return self._is_spans_metrics_query_cache
-        if self.query is not None and self.params.user is not None:
+        if self.query is not None:
             environments = [e for e in self.params.environments if e is not None]
-            tags = parse_query(self.params.projects, self.query, self.params.user, environments)[
-                "tags"
-            ]
+            user = self.params.user or AnonymousUser()
+            tags = parse_query(self.params.projects, self.query, user, environments)["tags"]
             for tag in tags:
                 if tag in constants.SPANS_METRICS_TAGS:
                     self._is_spans_metrics_query_cache = True
