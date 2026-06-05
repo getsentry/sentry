@@ -23,7 +23,7 @@ type Placement = 'start' | 'end';
 // The divider renders as a 1px border; account for it when deriving the max.
 const DIVIDER_SIZE = 1;
 
-export type SplitPanelProps = {
+type SplitPanelProps = {
   /**
    * The `sized` pane's initial size in pixels, and the size restored on
    * double-click.
@@ -181,7 +181,9 @@ export function SplitPanel({
   onResize,
   onResizeEnd,
 }: SplitPanelProps) {
-  const orientation = useResponsivePropValue(orientationProp) as Orientation;
+  // The hook's return type widens to the responsive shape; narrow by value.
+  const orientation =
+    useResponsivePropValue(orientationProp) === 'vertical' ? 'vertical' : 'horizontal';
   const isSizedFirst = placement === 'start';
   const hasFill = fill !== undefined && fill !== null;
 
