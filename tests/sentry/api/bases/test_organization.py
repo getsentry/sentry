@@ -17,6 +17,7 @@ from sentry.api.bases.organization import (
     OrganizationAndStaffPermission,
     OrganizationEndpoint,
     OrganizationPermission,
+    OrganizationReleasesBaseEndpoint,
 )
 from sentry.api.exceptions import (
     MemberDisabledOverLimit,
@@ -681,6 +682,28 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         result = self.endpoint.get_projects(request, self.org)
 
         assert {p.id for p in result} == {self.project_2.id}
+
+    @mock.patch("sentry.api.bases.organization.cache")
+    def test_release_permission_cache_key_uses_project_slug_precedence(
+        self, mock_cache: mock.MagicMock
+    ) -> None:
+        self.create_team_membership(user=self.user, team=self.team_3)
+        mock_cache.get.return_value = None
+        endpoint = OrganizationReleasesBaseEndpoint()
+
+        endpoint.has_release_permission(
+            self.build_request(project=[self.project_1.slug], projectSlug=[self.project_2.slug]),
+            self.org,
+        )
+        first_cache_key = mock_cache.get.call_args.args[0]
+
+        endpoint.has_release_permission(
+            self.build_request(project=[self.project_2.slug], projectSlug=[self.project_1.slug]),
+            self.org,
+        )
+        second_cache_key = mock_cache.get.call_args.args[0]
+
+        assert first_cache_key != second_cache_key
 
     def test_get_requested_project_ids_unchecked_ignores_slugs(self) -> None:
         request = self.build_request(project=["1", "my-slug", "42"])

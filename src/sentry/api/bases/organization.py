@@ -740,7 +740,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         they cannot access. The all-projects check respects Open Membership
         via has_global_access.
 
-        Results are cached for 60s per actor/org/release/project-ids/mode.
+        Results are cached for 60s per actor/org/release/effective-project-scope/mode.
         """
         actor_id = None
         has_perms = None
@@ -751,11 +751,17 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             requested_project_ids = project_ids
-            requested_project_slugs = set(filter(None, request.GET.getlist("projectSlug")))
-            if requested_project_ids is None:
+            requested_project_slugs: set[str] = set()
+            query_slugs = set(filter(None, request.GET.getlist("projectSlug")))
+            if requested_project_ids is not None:
+                requested_project_slugs = set()
+            elif query_slugs:
+                requested_project_ids = set()
+                requested_project_slugs = query_slugs
+            else:
                 requested_projects = self.get_requested_project_ids_and_slugs_unchecked(request)
                 requested_project_ids = requested_projects.ids
-                requested_project_slugs |= requested_projects.slugs
+                requested_project_slugs = requested_projects.slugs
             key = "release_perms:1:%s" % hash_values(
                 [
                     actor_id,
