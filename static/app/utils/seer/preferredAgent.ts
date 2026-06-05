@@ -16,6 +16,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import type {SeerAgent} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type PreferredAgentIntegration = 'seer' | CodingAgentIntegration;
@@ -40,24 +41,25 @@ export function useKnownAgents() {
 
 /**
  * Convert the list of known agents to a list of options for a select component.
+ *
+ * This returns a hard-coding list of agents that don't have requires_identity
+ * set to true; those are the ones that we Seer can use in the background.
  */
-export function useAgentSelectOptions() {
+export function useSeerAgentSelectOptions() {
   const integrations = useKnownAgents();
 
   return useMemo(() => {
-    const providerToTarget: Record<string, CodingAgentProvider> = {
-      cursor: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-      claude_code: CodingAgentProvider.CLAUDE_CODE_AGENT,
-      github_copilot: CodingAgentProvider.GITHUB_COPILOT_AGENT,
-    };
-
     return [
       {value: 'seer' as const, label: t('Seer')},
-      ...integrations.flatMap(agent => {
-        const value = providerToTarget[agent.provider];
-        return value ? [{value, label: agent.name}] : [];
-      }),
-    ];
+      {
+        value: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+        label: integrations.find(i => i.id === 'cursor')?.name ?? t('Cursor'),
+      },
+      {
+        value: CodingAgentProvider.CLAUDE_CODE_AGENT,
+        label: integrations.find(i => i.id === 'claude_code')?.name ?? t('Claude'),
+      },
+    ] as Array<{label: string; value: SeerAgent}>;
   }, [integrations]);
 }
 

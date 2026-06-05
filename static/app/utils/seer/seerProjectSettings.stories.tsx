@@ -1,7 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {infiniteQueryOptions, useInfiniteQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState, type inferParserType} from 'nuqs';
+import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -26,46 +26,86 @@ import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {defined} from 'sentry/utils/defined';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import {useAgentSelectOptions, useKnownAgents} from 'sentry/utils/seer/preferredAgent';
+import {
+  useSeerAgentSelectOptions,
+  useKnownAgents,
+} from 'sentry/utils/seer/preferredAgent';
 import {
   getMutateSeerProjectSettingsOptions,
   getSeerProjectSettingsQueryOptions,
-  seerProjectSettingsSchema,
   getInfiniteSeerProjectsSettingsQueryOptions,
+  getMutateSeerProjectsSettingsOptions,
+  seerProjectSettingsSchema,
 } from 'sentry/utils/seer/seerProjectSettings';
-import {
-  getUserFacingStoppingPoint,
-  useStoppingPointSelectOptions,
-} from 'sentry/utils/seer/stoppingPoint';
-import type {SeerAgent} from 'sentry/utils/seer/types';
+import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-function PickProject({children}: {children: (projectSlug: string) => React.ReactNode}) {
+function PickProject({
+  children,
+  multiple,
+}:
+  | {
+      children: (projectSlug: string) => React.ReactNode;
+      multiple: false;
+    }
+  | {
+      children: (projectSlugs: string[]) => React.ReactNode;
+      multiple: true;
+    }) {
   const {projects} = useProjects();
-  const [projectSlug, setProjectSlug] = useQueryState('project', parseAsString);
+  const [projectSlugs, setProjectSlugs] = useQueryState(
+    'projects',
+    parseAsArrayOf(parseAsString).withDefault([])
+  );
 
   const projectOptions = useMemo(
     () => projects.map(p => ({value: p.slug, label: p.slug})),
     [projects]
   );
 
+  if (multiple) {
+    return (
+      <Flex direction="column" gap="lg">
+        <CompactSelect
+          onChange={selected => setProjectSlugs(selected.map(opt => opt.value))}
+          options={projectOptions}
+          search
+          size="xs"
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix="Projects" />
+          )}
+          value={projectSlugs ?? undefined}
+          multiple
+        />
+        {projectSlugs ? (
+          children(projectSlugs)
+        ) : (
+          <Flex justify="center" padding="xl">
+            <Text variant="muted">{t('Select a project to view settings')}</Text>
+          </Flex>
+        )}
+      </Flex>
+    );
+  }
+
   return (
     <Flex direction="column" gap="lg">
-      <CompactSelect<NonNullable<inferParserType<typeof parseAsString>>>
-        onChange={selected => setProjectSlug(selected.value)}
+      <CompactSelect
+        onChange={selected => setProjectSlugs([selected.value])}
         options={projectOptions}
         search
         size="xs"
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps} prefix="Project" />
         )}
-        value={projectSlug ?? undefined}
+        value={projectSlugs[0] ?? undefined}
       />
-      {projectSlug ? (
-        children(projectSlug)
+      {projectSlugs.length ? (
+        children(projectSlugs.at(0) ?? '')
       ) : (
         <Flex justify="center" padding="xl">
           <Text variant="muted">{t('Select a project to view settings')}</Text>
@@ -146,9 +186,7 @@ export default Storybook.story('SeerProjectSettings', story => {
               <SimpleTable.RowCell>
                 <Text>
                   {showFormatted ? (
-                    <StoppingPointLabel
-                      stoppingPoint={getUserFacingStoppingPoint(data.stoppingPoint)}
-                    />
+                    <StoppingPointLabel stoppingPoint={data.stoppingPoint} />
                   ) : (
                     data.stoppingPoint
                   )}
@@ -161,7 +199,9 @@ export default Storybook.story('SeerProjectSettings', story => {
     }
 
     return (
-      <PickProject>{projectSlug => <Example projectSlug={projectSlug} />}</PickProject>
+      <PickProject multiple={false}>
+        {projectSlug => <Example projectSlug={projectSlug} />}
+      </PickProject>
     );
   });
 
@@ -171,7 +211,7 @@ export default Storybook.story('SeerProjectSettings', story => {
       const queryClient = useQueryClient();
       const knownAgents = useKnownAgents();
 
-      const agentSelectOptions = useAgentSelectOptions();
+      const agentSelectOptions = useSeerAgentSelectOptions();
       const stoppingPointOptions = useStoppingPointSelectOptions();
 
       const {data, isPending, isError, error} = useQuery({
@@ -228,14 +268,10 @@ export default Storybook.story('SeerProjectSettings', story => {
                   )}
                 >
                   <field.Select
+                    multiple={false}
                     value={field.state.value}
                     onChange={field.handleChange}
-                    options={
-                      agentSelectOptions as Array<{
-                        label: string;
-                        value: SeerAgent;
-                      }>
-                    }
+                    options={agentSelectOptions}
                   />
                 </field.Layout.Row>
               )}
@@ -245,7 +281,7 @@ export default Storybook.story('SeerProjectSettings', story => {
             <AutoSaveForm
               name="stoppingPoint"
               schema={seerProjectSettingsSchema}
-              initialValue={getUserFacingStoppingPoint(data.stoppingPoint)}
+              initialValue={data.stoppingPoint}
               mutationOptions={getMutateSeerProjectSettingsOptions({
                 organization,
                 project: {slug: projectSlug},
@@ -273,7 +309,9 @@ export default Storybook.story('SeerProjectSettings', story => {
     }
 
     return (
-      <PickProject>{projectSlug => <Example projectSlug={projectSlug} />}</PickProject>
+      <PickProject multiple={false}>
+        {projectSlug => <Example projectSlug={projectSlug} />}
+      </PickProject>
     );
   });
 
@@ -371,11 +409,7 @@ export default Storybook.story('SeerProjectSettings', story => {
                         <InfiniteTable.RowCell>
                           <Text>
                             {showFormatted ? (
-                              <StoppingPointLabel
-                                stoppingPoint={getUserFacingStoppingPoint(
-                                  item.stoppingPoint
-                                )}
-                              />
+                              <StoppingPointLabel stoppingPoint={item.stoppingPoint} />
                             ) : (
                               item.stoppingPoint
                             )}
@@ -395,25 +429,60 @@ export default Storybook.story('SeerProjectSettings', story => {
   });
 
   story('Autofix Bulk Dropdown Menus', () => {
-    const [lastValue, setLastValue] = useState('');
+    function Example({projectSlugs}: {projectSlugs: string[]}) {
+      const {projects} = useProjects();
+      const projectIds = projectSlugs
+        .map(slug => projects.find(p => p.slug === slug)?.id)
+        .filter(defined);
+      const [lastValue, setLastValue] = useState('');
+
+      const organization = useOrganization();
+      const queryClient = useQueryClient();
+      const knownAgents = useKnownAgents();
+
+      const {mutate} = useMutation(
+        getMutateSeerProjectsSettingsOptions({
+          organization,
+          queryClient,
+          knownAgents,
+        })
+      );
+
+      return (
+        <Stack gap="xl">
+          <Flex gap="md">
+            <PreferredAgentDropdownMenu
+              isDisabled={false}
+              onChange={value => {
+                setLastValue(`agent: ${value}`);
+                mutate({
+                  query: '',
+                  projectIds,
+                  agent: value,
+                });
+              }}
+            />
+            <StoppingPointDropdownMenu
+              isDisabled={false}
+              onChange={value => {
+                setLastValue(`stoppingPoint: ${value}`);
+                mutate({
+                  query: '',
+                  projectIds,
+                  stoppingPoint: value,
+                });
+              }}
+            />
+          </Flex>
+          <pre>{lastValue}</pre>
+        </Stack>
+      );
+    }
+
     return (
-      <Stack gap="xl">
-        <Flex gap="md">
-          <PreferredAgentDropdownMenu
-            isDisabled={false}
-            onChange={value => {
-              setLastValue(value);
-            }}
-          />
-          <StoppingPointDropdownMenu
-            isDisabled={false}
-            onChange={value => {
-              setLastValue(value);
-            }}
-          />
-        </Flex>
-        <pre>{lastValue}</pre>
-      </Stack>
+      <PickProject multiple>
+        {projectSlugs => <Example projectSlugs={projectSlugs} />}
+      </PickProject>
     );
   });
 });

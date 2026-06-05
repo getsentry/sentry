@@ -15,11 +15,12 @@ import type {DetailedProject, Project} from 'sentry/types/project';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {
-  InternalStoppingPoint,
+  SeerAutofixStoppingPoint,
   UserFacingStoppingPoint,
 } from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+// @deprecated: Call `useStoppingPointSelectOptions()` instead
 export const PROJECT_STOPPING_POINT_OPTIONS: Array<{
   label: string;
   value: UserFacingStoppingPoint;
@@ -39,45 +40,6 @@ export const PROJECT_STOPPING_POINT_SORT_ORDER: Record<UserFacingStoppingPoint, 
   };
 
 /**
- * Convert between the internal/old enum for stoppingPoint, to the newer, limited user-facing values.
- */
-export function getUserFacingStoppingPoint(
-  stoppingPoint: InternalStoppingPoint
-): UserFacingStoppingPoint {
-  switch (stoppingPoint) {
-    case 'off':
-      return 'off';
-    case 'root_cause':
-      return 'root_cause';
-    case 'solution':
-      return 'plan';
-    case 'code_changes':
-      return 'create_pr';
-    case 'open_pr':
-      return 'create_pr';
-  }
-}
-
-/**
- * Convert from the new user-facing values to the internal/old enum for stoppingPoint.
- */
-export function getInternalStoppingPoint(
-  stoppingPoint: UserFacingStoppingPoint,
-  autoCreatePr?: boolean
-): InternalStoppingPoint {
-  switch (stoppingPoint) {
-    case 'off':
-      return 'off';
-    case 'root_cause':
-      return 'root_cause';
-    case 'plan':
-      return 'solution';
-    case 'create_pr':
-      return autoCreatePr ? 'open_pr' : 'code_changes';
-  }
-}
-
-/**
  * Return a list of user-facing stopping point options for a select component.
  *
  * Aligned with `SEAT_BASED_STOPPING_POINTS`
@@ -88,21 +50,21 @@ export function useStoppingPointSelectOptions() {
   return useMemo<
     Array<{
       label: string;
-      value: UserFacingStoppingPoint;
+      value: SeerAutofixStoppingPoint;
     }>
   >(() => {
     if (organization.features.includes('seer-added')) {
       return [
         {value: 'off', label: t('No Automation')},
         {value: 'root_cause', label: t('Stop after Root Cause')},
-        {value: 'plan', label: t('Stop after Plan')},
-        {value: 'create_pr', label: t('Stop after PR drafted')},
+        {value: 'solution', label: t('Stop after Plan')},
+        {value: 'open_pr', label: t('Stop after PR drafted')},
       ];
     }
     return [
       {value: 'off', label: t('No Automation')},
       {value: 'root_cause', label: t('Stop after Root Cause')},
-      {value: 'create_pr', label: t('Stop after PR drafted')},
+      {value: 'code_changes', label: t('Stop after PR drafted')},
     ];
   }, [organization.features]);
 }

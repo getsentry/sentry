@@ -4,10 +4,12 @@ import {Link} from '@sentry/scraps/link';
 
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
-import type {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
-import {useAgentSelectOptions, useKnownAgents} from 'sentry/utils/seer/preferredAgent';
-import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
+import {
+  useSeerAgentSelectOptions,
+  useKnownAgents,
+} from 'sentry/utils/seer/preferredAgent';
+import type {SeerAgent, SeerProjectSettingResponse} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -33,11 +35,11 @@ export function PreferredAgentDropdownMenu({
   onChange,
 }: {
   isDisabled: boolean;
-  onChange: (value: 'seer' | CodingAgentProvider) => void;
+  onChange: (value: SeerAgent) => void;
   size?: DropdownMenuProps['size'];
 }) {
   const organization = useOrganization();
-  const agentOptions = useAgentSelectOptions();
+  const agentOptions = useSeerAgentSelectOptions();
 
   return (
     <DropdownMenu

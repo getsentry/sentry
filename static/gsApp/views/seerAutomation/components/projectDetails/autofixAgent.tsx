@@ -14,7 +14,7 @@ import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {
-  useAgentSelectOptions,
+  useSeerAgentSelectOptions,
   useKnownAgents,
   getCodingAgentSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
@@ -62,7 +62,7 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
   const updateProject = useUpdateProject(project);
 
   const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
-  const agentSelectOptions = useAgentSelectOptions();
+  const agentSelectOptions = useSeerAgentSelectOptions();
   const knownAgents = useKnownAgents();
 
   const stoppingPointMutationOptions = getProjectStoppingPointMutationOptions({

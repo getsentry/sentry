@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   getMutateSeerProjectSettingsOptions,
@@ -106,7 +107,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
         url: settingsUrl,
         method: 'PUT',
         body: makeResponseFixture({
-          agent: 'cursor_background_agent',
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
           integrationId: '123',
         }),
       });
@@ -114,14 +115,19 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook({agents: knownAgents});
 
       await act(async () => {
-        await result.current.mutateAsync({agent: 'cursor_background_agent'});
+        await result.current.mutateAsync({
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+        });
       });
 
       expect(mock).toHaveBeenCalledWith(
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {agent: 'cursor_background_agent', integrationId: '123'},
+          data: {
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+          },
         })
       );
     });
@@ -131,7 +137,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
         url: settingsUrl,
         method: 'PUT',
         body: makeResponseFixture({
-          agent: 'claude_code_agent',
+          agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
           integrationId: '456',
         }),
       });
@@ -139,14 +145,14 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook({agents: knownAgents});
 
       await act(async () => {
-        await result.current.mutateAsync({agent: 'claude_code_agent'});
+        await result.current.mutateAsync({agent: CodingAgentProvider.CLAUDE_CODE_AGENT});
       });
 
       expect(mock).toHaveBeenCalledWith(
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {agent: 'claude_code_agent', integrationId: '456'},
+          data: {agent: CodingAgentProvider.CLAUDE_CODE_AGENT, integrationId: '456'},
         })
       );
     });
@@ -155,20 +161,22 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const mock = MockApiClient.addMockResponse({
         url: settingsUrl,
         method: 'PUT',
-        body: makeResponseFixture({agent: 'cursor_background_agent'}),
+        body: makeResponseFixture({agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT}),
       });
 
       const {result} = renderMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({agent: 'cursor_background_agent'});
+        await result.current.mutateAsync({
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+        });
       });
 
       expect(mock).toHaveBeenCalledWith(
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {agent: 'cursor_background_agent'},
+          data: {agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT},
         })
       );
     });
@@ -229,7 +237,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({stoppingPoint: 'plan'});
+        await result.current.mutateAsync({stoppingPoint: 'solution'});
       });
 
       expect(mock).toHaveBeenCalledWith(
@@ -251,7 +259,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({stoppingPoint: 'create_pr'});
+        await result.current.mutateAsync({stoppingPoint: 'code_changes'});
       });
 
       expect(mock).toHaveBeenCalledWith(
@@ -292,7 +300,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
         url: settingsUrl,
         method: 'PUT',
         body: makeResponseFixture({
-          agent: 'cursor_background_agent',
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
           integrationId: '123',
         }),
       });
@@ -302,13 +310,15 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       });
 
       await act(async () => {
-        await result.current.mutateAsync({agent: 'cursor_background_agent'});
+        await result.current.mutateAsync({
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+        });
       });
 
       await waitFor(() => {
         const cached = queryClient.getQueryData(queryKey);
         expect(cached?.json).toMatchObject({
-          agent: 'cursor_background_agent',
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
           integrationId: '123',
         });
       });
@@ -324,7 +334,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       queryClient.setQueryData(queryKey, {
         headers: {},
         json: makeResponseFixture({
-          agent: 'cursor_background_agent',
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
           integrationId: '123',
         }),
       });
@@ -402,7 +412,9 @@ describe('getMutateSeerProjectSettingsOptions', () => {
 
       await act(async () => {
         try {
-          await result.current.mutateAsync({agent: 'cursor_background_agent'});
+          await result.current.mutateAsync({
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          });
         } catch {
           // expected
         }

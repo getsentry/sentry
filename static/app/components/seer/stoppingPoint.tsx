@@ -7,8 +7,28 @@ import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMe
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
-import {PROJECT_STOPPING_POINT_OPTIONS} from 'sentry/utils/seer/stoppingPoint';
-import type {UserFacingStoppingPoint} from 'sentry/utils/seer/types';
+import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
+import type {
+  SeerAutofixStoppingPoint,
+  UserFacingStoppingPoint,
+} from 'sentry/utils/seer/types';
+
+function getUserFacingStoppingPoint(
+  stoppingPoint: SeerAutofixStoppingPoint
+): UserFacingStoppingPoint {
+  switch (stoppingPoint) {
+    case 'off':
+      return 'off';
+    case 'root_cause':
+      return 'root_cause';
+    case 'solution':
+      return 'plan';
+    case 'code_changes':
+      return 'create_pr';
+    case 'open_pr':
+      return 'create_pr';
+  }
+}
 
 /**
  * Render a user-facing stopping point to its human-readable label.
@@ -16,12 +36,15 @@ import type {UserFacingStoppingPoint} from 'sentry/utils/seer/types';
 export function StoppingPointLabel({
   stoppingPoint,
 }: {
-  stoppingPoint: UserFacingStoppingPoint;
+  stoppingPoint: SeerAutofixStoppingPoint;
 }) {
+  const internalStoppingPointOptions = useStoppingPointSelectOptions();
+
   return (
     <Fragment>
-      {PROJECT_STOPPING_POINT_OPTIONS.find(o => o.value === stoppingPoint)?.label ??
-        stoppingPoint}
+      {internalStoppingPointOptions.find(
+        o => o.value === getUserFacingStoppingPoint(stoppingPoint)
+      )?.label ?? getUserFacingStoppingPoint(stoppingPoint)}
     </Fragment>
   );
 }
@@ -32,15 +55,16 @@ export function StoppingPointDropdownMenu({
   onChange,
 }: {
   isDisabled: boolean;
-  onChange: (value: UserFacingStoppingPoint) => void;
+  onChange: (value: SeerAutofixStoppingPoint) => void;
   size?: DropdownMenuProps['size'];
 }) {
+  const internalStoppingPointOptions = useStoppingPointSelectOptions();
   return (
     <DropdownMenu
       isDisabled={isDisabled}
       size={size}
       triggerLabel={t('Automation Steps')}
-      items={PROJECT_STOPPING_POINT_OPTIONS.map(option => ({
+      items={internalStoppingPointOptions.map(option => ({
         key: option.value,
         label: option.label,
         onAction: () => onChange(option.value),

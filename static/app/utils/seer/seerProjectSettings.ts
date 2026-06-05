@@ -5,7 +5,10 @@ import {
 } from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
+import {
+  CodingAgentProvider,
+  PROVIDER_TO_HANDOFF_TARGET,
+} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
@@ -13,27 +16,22 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {getInternalStoppingPoint} from 'sentry/utils/seer/stoppingPoint';
 import type {
-  SeerProjectSetting,
   SeerAgent,
   SeerProjectSettingResponse,
-  SeerProjectSettingUpdate,
+  SeerProjectSettingUpdatePayload,
+  SeerBulkProjectSettingUpdatePayload,
 } from 'sentry/utils/seer/types';
 
 export const seerProjectSettingsSchema = z.object({
-  agent: z.enum(['seer', 'cursor_background_agent', 'claude_code_agent']),
-  automation_tuning: z.enum(['off', 'low', 'medium', 'high']),
-  handoff: z.object({
-    auto_create_pr: z.boolean(),
-    handoff_point: z.literal('root_cause'),
-    integration_id: z.number(),
-    target: z.enum(['cursor_background_agent', 'claude_code_agent']),
-  }),
-  repos_count: z.number(),
-  scanner_automation: z.boolean(),
-  stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
+  agent: z.enum([
+    'seer',
+    CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+    CodingAgentProvider.CLAUDE_CODE_AGENT,
+  ]),
+  stoppingPoint: z.enum(['off', 'root_cause', 'solution', 'code_changes', 'open_pr']),
 });
 
 export function getSeerProjectSettingsQueryOptions({
@@ -52,18 +50,40 @@ export function getSeerProjectSettingsQueryOptions({
   );
 }
 
+export function getInfiniteSeerProjectsSettingsQueryOptions({
+  organization,
+  query,
+}: {
+  organization: Organization;
+  query: {
+    cursor?: string;
+    per_page?: number;
+    query?: string;
+    sort?: Sort;
+  };
+}) {
+  const {per_page = 100, sort, ...rest} = query;
+  const sortQuery = sort ? encodeSort(sort) : undefined;
+  return apiOptions.asInfinite<SeerProjectSettingResponse[]>()(
+    '/organizations/$organizationIdOrSlug/seer/projects/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {per_page, sort: sortQuery, ...rest},
+      staleTime: 60_000, // 1 minute
+    }
+  );
+}
+
 function resolveIntegrationId(
   agent: SeerAgent,
   knownAgents: CodingAgentIntegration[] | undefined
 ) {
-  if (!knownAgents) {
+  if (!knownAgents || agent === 'seer') {
     return;
   }
-  if (agent === 'seer') {
-    return null;
-  }
   return (
-    knownAgents.find(i => PROVIDER_TO_HANDOFF_TARGET[i.provider] === agent)?.id ?? null
+    knownAgents.find(i => PROVIDER_TO_HANDOFF_TARGET[i.provider] === agent)?.id ??
+    undefined
   );
 }
 
@@ -82,7 +102,7 @@ export function getMutateSeerProjectSettingsOptions({
   const [url] = queryKey;
 
   return mutationOptions({
-    mutationFn: (data: SeerProjectSettingUpdate) => {
+    mutationFn: (data: SeerProjectSettingUpdatePayload) => {
       const integrationId =
         data.agent && data.agent !== 'seer'
           ? resolveIntegrationId(data.agent, knownAgents)
@@ -105,7 +125,7 @@ export function getMutateSeerProjectSettingsOptions({
           ...rest,
           ...(!isOff &&
             stoppingPoint !== undefined && {
-              stoppingPoint: getInternalStoppingPoint(stoppingPoint, true),
+              stoppingPoint,
             }),
           ...(integrationId !== undefined && {integrationId}),
           ...(tuning !== undefined && {automationTuning: tuning}),
@@ -139,7 +159,7 @@ export function getMutateSeerProjectSettingsOptions({
         if (data.stoppingPoint === 'off') {
           jsonUpdates.automationTuning = 'off';
         } else {
-          jsonUpdates.stoppingPoint = getInternalStoppingPoint(data.stoppingPoint, true);
+          jsonUpdates.stoppingPoint = data.stoppingPoint;
           jsonUpdates.automationTuning = 'medium';
         }
       }
@@ -147,28 +167,28 @@ export function getMutateSeerProjectSettingsOptions({
       queryClient.setQueryData(
         queryKey,
         (prev: ApiResponse<SeerProjectSettingResponse> | undefined) => {
-          if (!prev) {
-            return prev;
+          if (prev) {
+            return {...prev, json: {...prev.json, ...jsonUpdates}};
           }
-          return {...prev, json: {...prev.json, ...jsonUpdates}};
+          return;
         }
       );
 
       queryClient.setQueriesData(
         {queryKey: [infiniteUrl], exact: false},
         (prev: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>> | undefined) => {
-          if (!prev) {
-            return prev;
+          if (prev) {
+            return {
+              ...prev,
+              pages: prev.pages.map(page => ({
+                ...page,
+                json: page.json.map(item =>
+                  item.projectSlug === project.slug ? {...item, ...jsonUpdates} : item
+                ),
+              })),
+            };
           }
-          return {
-            ...prev,
-            pages: prev.pages.map(page => ({
-              ...page,
-              json: page.json.map(item =>
-                item.projectSlug === project.slug ? {...item, ...jsonUpdates} : item
-              ),
-            })),
-          };
+          return;
         }
       );
 
@@ -196,73 +216,152 @@ export function getMutateSeerProjectSettingsOptions({
   });
 }
 
-export function getInfiniteSeerProjectsSettingsQueryOptions({
-  organization,
-  query,
-}: {
-  organization: Organization;
-  query: {
-    cursor?: string;
-    per_page?: number;
-    query?: string;
-    sort?: Sort;
-  };
-}) {
-  const {per_page = 100, sort, ...rest} = query;
-  const sortQuery = sort ? encodeSort(sort) : undefined;
-  return apiOptions.asInfinite<SeerProjectSettingResponse[]>()(
-    '/organizations/$organizationIdOrSlug/seer/projects/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {per_page, sort: sortQuery, ...rest},
-      staleTime: 60_000, // 1 minute
-    }
-  );
-}
-
 export function getMutateSeerProjectsSettingsOptions({
   organization,
   queryClient,
+  knownAgents,
 }: {
   organization: Organization;
   queryClient: QueryClient;
+  knownAgents?: CodingAgentIntegration[];
 }) {
-  const queryKey = getInfiniteSeerProjectsSettingsQueryOptions({
+  const infiniteQueryKey = getInfiniteSeerProjectsSettingsQueryOptions({
     organization,
     query: {},
   }).queryKey;
-  const [url] = queryKey;
+  const [infiniteUrl] = infiniteQueryKey;
+
+  const singleProjectPrefix = `/projects/${encodeURIComponent(organization.slug)}/`;
+  const singleProjectSuffix = '/seer/settings/';
+  const isSingleProjectSettingsQuery = (queryKey: readonly unknown[]) => {
+    const url = queryKey[0];
+    return (
+      typeof url === 'string' &&
+      url.startsWith(singleProjectPrefix) &&
+      url.endsWith(singleProjectSuffix)
+    );
+  };
 
   return mutationOptions({
-    mutationFn: (data: Partial<SeerProjectSetting>) => {
-      return fetchMutation({
+    mutationFn: (
+      data: SeerBulkProjectSettingUpdatePayload & {
+        projectIds: ListItemCheckboxState['selectedIds'];
+      }
+    ) => {
+      const {stoppingPoint, query, projectIds, ...rest} = data;
+      const mutableQuery = projectIds === 'all' ? query : `id:[${projectIds.join(',')}]`;
+
+      const integrationId =
+        data.agent && data.agent !== 'seer'
+          ? resolveIntegrationId(data.agent, knownAgents)
+          : undefined;
+
+      const isOff = data.stoppingPoint === 'off';
+      const tuning =
+        data.stoppingPoint === undefined
+          ? undefined
+          : isOff
+            ? ('off' as const)
+            : ('medium' as const);
+
+      return fetchMutation<SeerProjectSettingResponse>({
         method: 'PUT',
-        url,
-        data,
+        url: infiniteUrl,
+        data: {
+          ...rest,
+          query: mutableQuery,
+          ...(!isOff &&
+            stoppingPoint !== undefined && {
+              stoppingPoint,
+            }),
+          ...(integrationId !== undefined && {integrationId}),
+          ...(tuning !== undefined && {automationTuning: tuning}),
+        } satisfies SeerBulkProjectSettingUpdatePayload,
       });
     },
-    onMutate: async _data => {
-      await queryClient.cancelQueries({queryKey: [url]});
-      const previousData = queryClient.getQueryData(queryKey);
+    onMutate: async data => {
+      await queryClient.cancelQueries({queryKey: [infiniteUrl], exact: false});
+      await queryClient.cancelQueries({
+        predicate: q => isSingleProjectSettingsQuery(q.queryKey),
+      });
 
-      // TODO: Optimistically update the query cache? We need to convert some
-      // values, if we have them
-      //
-      // queryClient.setQueryData(
-      //   queryKey,
-      //   (prev: ApiResponse<SeerProjectSettingsResponse> | undefined) =>
-      //     prev
-      //       ? {...prev, json: {...prev.json, ...data}}
-      //       : {headers: {}, json: {...(data as SeerProjectSettingsResponse)}}
-      // );
+      const jsonUpdates: Partial<SeerProjectSettingResponse> = {};
+      if (data.agent !== undefined) {
+        jsonUpdates.agent = data.agent;
+        const resolved = resolveIntegrationId(data.agent, knownAgents);
+        if (resolved !== undefined) {
+          jsonUpdates.integrationId = resolved;
+        }
+      }
+      if (data.stoppingPoint !== undefined) {
+        if (data.stoppingPoint === 'off') {
+          jsonUpdates.automationTuning = 'off';
+        } else {
+          jsonUpdates.stoppingPoint = data.stoppingPoint;
+          jsonUpdates.automationTuning = 'medium';
+        }
+      }
 
-      return {previousData};
+      const shouldUpdate = (item: SeerProjectSettingResponse) =>
+        data.projectIds === 'all' || data.projectIds.includes(item.projectId);
+
+      queryClient.setQueriesData(
+        {queryKey: [infiniteUrl], exact: false},
+        (prev: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>> | undefined) => {
+          if (prev) {
+            return {
+              ...prev,
+              pages: prev.pages.map(page => ({
+                ...page,
+                json: page.json.map(item =>
+                  shouldUpdate(item) ? {...item, ...jsonUpdates} : item
+                ),
+              })),
+            };
+          }
+          return;
+        }
+      );
+
+      if (data.projectIds === 'all') {
+        queryClient.setQueriesData(
+          {predicate: q => isSingleProjectSettingsQuery(q.queryKey)},
+          (prev: ApiResponse<SeerProjectSettingResponse> | undefined) => {
+            if (prev) {
+              return {...prev, json: {...prev.json, ...jsonUpdates}};
+            }
+            return;
+          }
+        );
+      } else {
+        for (const slug of data.projectIds) {
+          const singleQueryKey = getSeerProjectSettingsQueryOptions({
+            organization,
+            project: {slug} as AvatarProject,
+          }).queryKey;
+          queryClient.setQueryData(
+            singleQueryKey,
+            (prev: ApiResponse<SeerProjectSettingResponse> | undefined) => {
+              if (prev) {
+                return {...prev, json: {...prev.json, ...jsonUpdates}};
+              }
+              return;
+            }
+          );
+        }
+      }
     },
-    onError: (_error, _data, context) => {
-      queryClient.setQueryData(queryKey, context?.previousData);
+    onError: () => {
+      queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
+      queryClient.invalidateQueries({
+        predicate: q => isSingleProjectSettingsQuery(q.queryKey),
+      });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey});
+      queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
+      queryClient.invalidateQueries({
+        predicate: q => isSingleProjectSettingsQuery(q.queryKey),
+      });
     },
   });
 }

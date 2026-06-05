@@ -1,3 +1,5 @@
+import type {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+
 export type InternalAutomationTuning =
   | 'off'
   | 'super_low'
@@ -8,22 +10,28 @@ export type InternalAutomationTuning =
 
 export type UserFacingAutomationTuning = 'off' | 'medium';
 
-export type InternalStoppingPoint =
-  | 'off'
+export type SeerAutofixStoppingPoint =
+  | 'off' // Set automationTuning to 'off' to represent this
   | 'root_cause'
-  | 'solution'
-  | 'code_changes'
-  | 'open_pr';
+  | 'solution' // aka 'Plan'
+  | 'code_changes' // collapsed into 'open_pr'
+  | 'open_pr'; // aka 'Create PR'
 
 export type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
 
-export type SeerAgent = 'seer' | 'cursor_background_agent' | 'claude_code_agent';
+// Mirrors python enum: AutomationCodingAgent
+export type SeerAgent =
+  | 'seer'
+  | CodingAgentProvider.CURSOR_BACKGROUND_AGENT
+  | CodingAgentProvider.CLAUDE_CODE_AGENT;
 
 type SeerAutomationHandoffConfiguration = {
   auto_create_pr: boolean;
   handoff_point: 'root_cause';
-  integration_id: number;
-  target: 'cursor_background_agent' | 'claude_code_agent';
+  integration_id: string;
+  target:
+    | CodingAgentProvider.CURSOR_BACKGROUND_AGENT
+    | CodingAgentProvider.CLAUDE_CODE_AGENT;
 };
 
 export type SeerProjectSetting = {
@@ -35,11 +43,19 @@ export type SeerProjectSetting = {
   stopping_point: UserFacingStoppingPoint;
 };
 
-export type SeerProjectSettingUpdate = {
+// Mirrors python serializer: ProjectSettingsUpdateSerializer
+export type SeerProjectSettingUpdatePayload = {
   agent?: SeerAgent;
+  automationTuning?: UserFacingAutomationTuning;
+  integrationId?: string;
   scannerAutomation?: boolean;
-  stoppingPoint?: UserFacingStoppingPoint;
+  stoppingPoint?: SeerAutofixStoppingPoint;
 };
+
+// Mirrors python serializer: BulkProjectSettingsUpdateSerializer
+export type SeerBulkProjectSettingUpdatePayload = {
+  query?: string;
+} & SeerProjectSettingUpdatePayload;
 
 export type SeerProjectSettingResponse = {
   agent: SeerAgent;
@@ -50,5 +66,5 @@ export type SeerProjectSettingResponse = {
   projectSlug: string;
   reposCount: number;
   scannerAutomation: boolean;
-  stoppingPoint: InternalStoppingPoint;
+  stoppingPoint: SeerAutofixStoppingPoint;
 };
