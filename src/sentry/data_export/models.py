@@ -212,11 +212,11 @@ class ExportedData(Model):
                 ]
             )
             logger.info(
-                "data-export-failure.mail.sent",
+                "data-export-failure.mail.attempted",
                 extra={
                     "organization_id": self.organization.id,
                     "data_export_id": self.id,
-                    "user_email": user.email,
+                    "user_id": self.user_id,
                     "via": "notification_platform",
                 },
             )
@@ -234,11 +234,11 @@ class ExportedData(Model):
             )
             msg.send_async([user.email])
             logger.info(
-                "data-export-failure.mail.sent",
+                "data-export-failure.mail.attempted",
                 extra={
                     "organization_id": self.organization.id,
                     "data_export_id": self.id,
-                    "user_email": user.email,
+                    "user_id": self.user_id,
                     "via": "message_builder",
                 },
             )
