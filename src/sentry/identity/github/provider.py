@@ -6,7 +6,7 @@ from django.core.exceptions import PermissionDenied
 from sentry import http, options
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import (
     ExternalActorSource,
     ExternalProviders,
@@ -137,15 +137,10 @@ def ensure_external_actors_for_github_identity(
         if not org_ids:
             return
 
-        # Materialize inside the try so a DB error here can't escape into the
-        # caller's login/link flow (the iteration below would otherwise run the query).
-        org_integrations = list(
-            OrganizationIntegration.objects.filter(
-                organization_id__in=org_ids,
-                status=ObjectStatus.ACTIVE,
-                integration__provider=IntegrationProviderSlug.GITHUB.value,
-                integration__status=ObjectStatus.ACTIVE,
-            ).values_list("organization_id", "integration_id")
+        org_integrations = integration_service.get_organization_integrations(
+            organization_ids=org_ids,
+            providers=[IntegrationProviderSlug.GITHUB.value],
+            status=ObjectStatus.ACTIVE,
         )
     except Exception:
         logger.exception(
@@ -155,11 +150,11 @@ def ensure_external_actors_for_github_identity(
         return
 
     external_name = f"@{github_login}"
-    for organization_id, integration_id in org_integrations:
+    for oi in org_integrations:
         try:
             organization_service.upsert_external_actor(
-                organization_id=organization_id,
-                integration_id=integration_id,
+                organization_id=oi.organization_id,
+                integration_id=oi.integration_id,
                 user_id=user_id,
                 provider=ExternalProviders.GITHUB.value,
                 external_name=external_name,
@@ -171,7 +166,7 @@ def ensure_external_actors_for_github_identity(
                 "github.identity.external_actor.create_failed",
                 extra={
                     "user_id": user_id,
-                    "organization_id": organization_id,
-                    "integration_id": integration_id,
+                    "organization_id": oi.organization_id,
+                    "integration_id": oi.integration_id,
                 },
             )
