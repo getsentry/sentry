@@ -416,6 +416,14 @@ def _dispatch_response_hook(ctx: FunctionContext) -> Type:
     return _check_response_body_not_any(ctx)
 
 
+from tools.mypy_helpers.serializer_autoderive import (
+    SERIALIZER_FULLNAME as _SERIALIZER_FULLNAME,
+)
+from tools.mypy_helpers.serializer_autoderive import (
+    autoderive_serializer_generic as _autoderive_serializer_generic,
+)
+
+
 class SentryMypyPlugin(Plugin):
     def get_function_hook(self, fullname: str) -> Callable[[FunctionContext], Type] | None:
         if fullname == _RESPONSE_FULLNAME:
@@ -457,6 +465,11 @@ class SentryMypyPlugin(Plugin):
             return _adjust_http_response_members
         else:
             return None
+
+    def get_base_class_hook(self, fullname: str) -> Callable[[ClassDefContext], None] | None:
+        if fullname == _SERIALIZER_FULLNAME:
+            return _autoderive_serializer_generic
+        return None
 
     def get_attribute_hook(self, fullname: str) -> Callable[[AttributeContext], Type] | None:
         if fullname.startswith("sentry.utils.lazy_service_wrapper.LazyServiceWrapper."):

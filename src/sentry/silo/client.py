@@ -19,6 +19,7 @@ from requests.adapters import Retry
 from sentry import options
 from sentry.http import build_session
 from sentry.net.http import SafeSession
+from sentry.options.rollout import in_random_rollout
 from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -116,6 +117,10 @@ class CellSiloClient(BaseApiClient):
         # Ensure the cell is registered
         self.cell = get_cell_by_name(cell.name)
         self.base_url = self.cell.address
+        if self.cell.api_gateway_address and in_random_rollout(
+            "apigateway.proxy.use_gateway_address"
+        ):
+            self.base_url = self.cell.api_gateway_address
         self.retry = retry
 
     def proxy_request(self, incoming_request: HttpRequest) -> HttpResponse:

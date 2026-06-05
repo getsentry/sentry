@@ -281,11 +281,6 @@ register(
     default="signed-url-confirmation-emails-salt",
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "user-settings.signed-url-confirmation-emails",
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Staff
 register(
@@ -686,10 +681,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Codecov Integration
-register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github-app.name", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -900,6 +891,11 @@ register(
     type=Dict,
     default={7001: 0.15},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.message-penalty-weight",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
@@ -1164,22 +1160,10 @@ register(
 )
 
 register(
-    "seer.explorer_index.enable",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.explorer_index.killswitch.enable",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "seer.explorer-index.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.explorer.context-engine-rollout",
@@ -1197,6 +1181,12 @@ register(
     "seer.night_shift.issues_per_org",
     default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.use_feature_delivery",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -2376,14 +2366,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# When True, the circuit breaker tracks state and emits metrics but does not block requests.
-register(
-    "sentry-apps.webhook.circuit-breaker.dry-run",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enables statistical detectors for a project
 register(
     "statistical_detectors.enable",
@@ -3131,13 +3113,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "workflow_engine.scheduler.use_conditional_delete",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "workflow_engine.associate_error_detectors",
     type=Bool,
     default=False,
@@ -3727,6 +3702,14 @@ register(
 register(
     "issues.record-seer-actions-as-activities",
     default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When True, publish_action writes to the GroupActionLogEntry table.
+register(
+    "issues.action-log.write-to-db",
+    default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

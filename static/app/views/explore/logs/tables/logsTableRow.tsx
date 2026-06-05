@@ -26,10 +26,11 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined, escapeDoubleQuotes} from 'sentry/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
@@ -329,17 +330,22 @@ export const LogRowContent = memo(function LogRowContent({
   const logTimestampSeconds = isRegularLogResponseItem(dataRow)
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
-  const {hoverProps, traceItemMeta} = usePrefetchTraceItemDetailsOnHover({
-    traceItemId: rowId,
-    projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
-    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
-    traceItemType: TraceItemDataset.LOGS,
-    referrer: 'api.explore.log-item-details',
-    timestamp: logTimestampSeconds,
-    sharedHoverTimeoutRef,
-    timeout: prefetchTimeout,
-  });
+  const {hoverProps, traceItemMeta, traceItemAttributes} =
+    usePrefetchTraceItemDetailsOnHover({
+      traceItemId: rowId,
+      projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
+      traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
+      traceItemType: TraceItemDataset.LOGS,
+      referrer: 'api.explore.log-item-details',
+      timestamp: logTimestampSeconds,
+      sharedHoverTimeoutRef,
+      timeout: prefetchTimeout,
+    });
   const [caseInsensitivity] = useCaseInsensitivity();
+
+  const observedTimestamp = traceItemAttributes?.find(
+    a => a.name === 'sentry.observed_timestamp_nanos'
+  );
 
   const rendererExtra: RendererExtra = {
     highlightTerms,
@@ -349,7 +355,12 @@ export const LogRowContent = memo(function LogRowContent({
     location,
     navigate,
     organization,
-    attributes: dataRow as OurLogsResponseItem,
+    attributes: {
+      ...dataRow,
+      ...(observedTimestamp && {
+        [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: String(observedTimestamp.value),
+      }),
+    } as OurLogsResponseItem,
     attributeTypes: meta?.fields ?? {},
     theme,
     projectSlug,
@@ -488,7 +499,7 @@ export const LogRowContent = memo(function LogRowContent({
 
           if (!defined(value)) {
             return (
-              <LogTableBodyCell key={field}>
+              <LogTableBodyCell key={field} reservePinGutter={!!pin}>
                 {shouldRenderActions ? (
                   <Flex position="relative" height="100%" width="100%" justify="end">
                     {pin}
@@ -522,7 +533,11 @@ export const LogRowContent = memo(function LogRowContent({
           };
 
           return (
-            <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
+            <LogTableBodyCell
+              key={field}
+              data-test-id={'log-table-cell-' + field}
+              reservePinGutter={!!pin}
+            >
               {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}

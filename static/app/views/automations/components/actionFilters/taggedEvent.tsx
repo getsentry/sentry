@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useOrganization} from 'sentry/utils/useOrganization';

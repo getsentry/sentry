@@ -107,8 +107,8 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
     conditions: list[dict]
     filters: list[dict]
     actions: list[dict]
-    actionMatch: str
-    filterMatch: str
+    actionMatch: str | None
+    filterMatch: str | None
     frequency: int
     name: str
     dateCreated: datetime
@@ -118,7 +118,7 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
 
 
 @register(Rule)
-class RuleSerializer(Serializer):
+class RuleSerializer(Serializer[RuleSerializerResponse]):
     def __init__(
         self,
         expand: list[str] | None = None,

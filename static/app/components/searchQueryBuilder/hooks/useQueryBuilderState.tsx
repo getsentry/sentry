@@ -62,6 +62,7 @@ type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
+  ignoreDisabled?: boolean;
   shouldCommitQuery?: boolean;
 };
 
@@ -1004,7 +1005,7 @@ export function useQueryBuilderState({
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
-      if (disabled) {
+      if (disabled && !(action.type === 'UPDATE_QUERY' && action.ignoreDisabled)) {
         return state;
       }
 

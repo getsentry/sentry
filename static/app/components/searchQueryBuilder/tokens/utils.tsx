@@ -13,7 +13,7 @@ import {
   WildcardOperators,
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 export function shiftFocusToChild(
