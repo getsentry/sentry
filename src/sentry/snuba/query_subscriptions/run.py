@@ -14,7 +14,6 @@ from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 from taskbroker_client.registry import TaskNamespace
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -88,10 +87,10 @@ def process_message(
     from sentry.utils import metrics
 
     with (
-        sentry_sdk.start_transaction(
-            op="handle_message",
+        sentry_sdk.traces.start_span(
             name="query_subscription_consumer_process_message",
-            custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
+            attributes={"sentry.op": "handle_message"},
+            parent_span=None,
         ),
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
     ):
@@ -132,10 +131,10 @@ def _process_subscription_message(message_bytes: bytes, dataset: Dataset) -> Non
     topic = get_topic_definition(Topic(logical_topic))["real_topic_name"]
 
     with (
-        sentry_sdk.start_transaction(
-            op="handle_message",
+        sentry_sdk.traces.start_span(
             name="query_subscription_consumer_process_message",
-            custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
+            attributes={"sentry.op": "handle_message"},
+            parent_span=None,
         ),
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
     ):

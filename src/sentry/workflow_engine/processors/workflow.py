@@ -130,7 +130,7 @@ def _get_data_conditions_for_group_by_dcg(dcg_ids: Sequence[int]) -> dict[int, l
     )
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 @scopedstats.timer()
 def evaluate_workflow_triggers(
     workflows: set[Workflow],
@@ -234,7 +234,7 @@ def evaluate_workflow_triggers(
     return triggered_workflows, queue_items_by_workflow, stats
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 @scopedstats.timer()
 def evaluate_workflows_action_filters(
     triggered_workflows: dict[Workflow, TriggerResult],

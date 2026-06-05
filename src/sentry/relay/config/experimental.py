@@ -81,7 +81,10 @@ def build_safe_config(
     """
     timeout = TimeChecker(_FEATURE_BUILD_TIMEOUT)
 
-    with sentry_sdk.start_span(op=f"project_config.build_safe_config.{key}"):
+    with sentry_sdk.traces.start_span(
+        name=f"project_config.build_safe_config.{key}",
+        attributes={"sentry.op": f"project_config.build_safe_config.{key}"},
+    ):
         try:
             return function(timeout, *args, **kwargs)
         except TimeoutException as e:

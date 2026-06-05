@@ -12,6 +12,7 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 logger = logging.getLogger(__name__)
 
 import sentry_sdk
+import sentry_sdk.traces
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
@@ -762,14 +763,18 @@ def query_trace_data(
     for event in errors_data:
         id_to_error.setdefault(event["trace.span"], []).append(event)
     id_to_occurrence = defaultdict(list)
-    with sentry_sdk.start_span(op="process.occurrence_data") as sdk_span:
+    with sentry_sdk.traces.start_span(
+        name="process.occurrence_data", attributes={"sentry.op": "process.occurrence_data"}
+    ) as sdk_span:
         for event in occurrence_data:
             offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
             if len(offender_span_ids) == 0:
-                sdk_span.set_data("evidence_data.empty", event["occurrence"].evidence_data)
+                sdk_span.set_attribute("evidence_data.empty", event["occurrence"].evidence_data)
             for span_id in offender_span_ids:
                 id_to_occurrence[span_id].append(event)
-    with sentry_sdk.start_span(op="process.trace_data"):
+    with sentry_sdk.traces.start_span(
+        name="process.trace_data", attributes={"sentry.op": "process.trace_data"}
+    ):
         # calculate min & max start as a metric then log as a metric to see if we need to adjust
         # performance.traces.transaction_query_timebuffer_days
         span_min_ts = None
@@ -838,11 +843,15 @@ def query_trace_data(
             for attr in metric_only_attributes:
                 span.pop(attr, None)
 
-    with sentry_sdk.start_span(op="process.errors_data"):
+    with sentry_sdk.traces.start_span(
+        name="process.errors_data", attributes={"sentry.op": "process.errors_data"}
+    ):
         for errors in id_to_error.values():
             result.extend(errors)
     group_cache: dict[int, Group] = {}
-    with sentry_sdk.start_span(op="serializing_data"):
+    with sentry_sdk.traces.start_span(
+        name="serializing_data", attributes={"sentry.op": "serializing_data"}
+    ):
         return [
             event
             for event in [

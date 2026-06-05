@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Literal, Self, overload
 
 import sentry_sdk
+import sentry_sdk.traces
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from snuba_sdk import Condition
 
@@ -341,7 +342,10 @@ class EventStorage(Service):
         """
         sentry_sdk.set_tag("eventstore.backend", "nodestore")
 
-        with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
+        with sentry_sdk.traces.start_span(
+            name="eventstore.base.bind_nodes",
+            attributes={"sentry.op": "eventstore.base.bind_nodes"},
+        ):
             object_node_list = [(i, i.data) for i in object_list if i.data.id]
 
             # Remove duplicates from the list of nodes to be fetched

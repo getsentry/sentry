@@ -1,6 +1,6 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import start_span
+from sentry_sdk.traces import start_span
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -33,7 +33,7 @@ class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):
                 use_case_id=UseCaseID.TRANSACTIONS,
             )
 
-        with start_span(op="transform", name="metric meta"):
+        with start_span(name="metric meta", attributes={"sentry.op": "transform"}):
             result = {
                 item["name"]: {
                     "functions": METRIC_FUNCTION_LIST_BY_TYPE[item["type"]],

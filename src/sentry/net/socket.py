@@ -113,7 +113,7 @@ def is_safe_hostname(hostname: str | None) -> bool:
 
 
 # Modifed version of urllib3.util.connection.create_connection.
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def safe_create_connection(
     address: tuple[str, int],
     timeout: _TYPE_DEFAULT | float | None = _DEFAULT_TIMEOUT,
@@ -143,13 +143,17 @@ def safe_create_connection(
     except UnicodeError:
         raise LocationParseError("'{host}', label empty or too long") from None
 
-    with sentry_sdk.start_span(op="socket.getaddrinfo", name=f"DNS resolve: {host}") as gai_span:
+    with sentry_sdk.traces.start_span(
+        name=f"DNS resolve: {host}", attributes={"sentry.op": "socket.getaddrinfo"}
+    ) as gai_span:
         addresses = socket.getaddrinfo(host, port, family, socket.SOCK_STREAM)
-        gai_span.set_data("address_count", len(addresses))
-        gai_span.set_data("addresses", addresses)
+        gai_span.set_attribute("address_count", len(addresses))
+        gai_span.set_attribute("addresses", addresses)
 
     for res in addresses:
-        with sentry_sdk.start_span(op="socket.getaddrinfo.loop", name="socket.getaddrinfo.loop"):
+        with sentry_sdk.traces.start_span(
+            name="socket.getaddrinfo.loop", attributes={"sentry.op": "socket.getaddrinfo.loop"}
+        ):
             af, socktype, proto, canonname, sa = res
 
             # Begin custom code.
@@ -177,7 +181,9 @@ def safe_create_connection(
                     sock.settimeout(timeout)
                 if source_address:
                     sock.bind(source_address)
-                with sentry_sdk.start_span(op="socket.connect", name=f"sock.connect.{sa}"):
+                with sentry_sdk.traces.start_span(
+                    name=f"sock.connect.{sa}", attributes={"sentry.op": "socket.connect"}
+                ):
                     sock.connect(sa)
                 return sock
 

@@ -29,7 +29,7 @@ attachment_cache: BaseAttachmentCache = import_string(settings.SENTRY_ATTACHMENT
 )
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def store_attachments_for_event(
     project: Project, event: Any, attachments: list[CachedAttachment], timeout=None
 ):
@@ -61,7 +61,7 @@ def get_attachments_for_event(event: Any) -> Generator[CachedAttachment]:
     )
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def delete_cached_and_ratelimited_attachments(
     project: Project, attachments: list[CachedAttachment]
 ):

@@ -165,8 +165,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         This endpoint can return timeseries for either 1 or many axis, and results grouped to the top events depending
         on the parameters passed
         """
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+        with sentry_sdk.traces.start_span(
+            name="filter_params", attributes={"sentry.op": "discover.endpoint"}
+        ) as span:
+            span.set_attribute("organization", organization)
 
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)

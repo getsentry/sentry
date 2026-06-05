@@ -103,8 +103,10 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             "organizations:data-browsing-heat-map-widget", organization, actor=request.user
         ):
             return Response(status=404)
-        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_data("organization", organization)
+        with sentry_sdk.traces.start_span(
+            name="filter_params", attributes={"sentry.op": "discover.endpoint"}
+        ) as span:
+            span.set_attribute("organization", organization)
 
             dataset = self.get_dataset(request, organization)
             if dataset not in HEATMAP_DATASETS:

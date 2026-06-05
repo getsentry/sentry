@@ -120,7 +120,7 @@ def bulk_remove_groups_from_inbox(
     action: GroupInboxRemoveAction | None = None,
     user: User | RpcUser | Team | None = None,
 ) -> None:
-    with sentry_sdk.start_span(name="bulk_remove_groups_from_inbox"):
+    with sentry_sdk.traces.start_span(name="bulk_remove_groups_from_inbox"):
         try:
             group_inbox = GroupInbox.objects.filter(group__in=groups)
             group_inbox.delete()

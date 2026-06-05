@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
 
 import orjson
 import sentry_sdk
+import sentry_sdk.traces
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
@@ -439,14 +440,20 @@ class BaseEvent(metaclass=abc.ABCMeta):
             loaded_grouping_config = load_grouping_config(grouping_config)
 
         if normalize_stacktraces:
-            with sentry_sdk.start_span(op="grouping.normalize_stacktraces_for_grouping") as span:
-                span.set_tag("project", self.project_id)
-                span.set_tag("event_id", self.event_id)
+            with sentry_sdk.traces.start_span(
+                name="grouping.normalize_stacktraces_for_grouping",
+                attributes={"sentry.op": "grouping.normalize_stacktraces_for_grouping"},
+            ) as span:
+                span.set_attribute("project", self.project_id)
+                span.set_attribute("event_id", self.event_id)
                 self.normalize_stacktraces_for_grouping(loaded_grouping_config)
 
-        with sentry_sdk.start_span(op="grouping.get_grouping_variants") as span:
-            span.set_tag("project", self.project_id)
-            span.set_tag("event_id", self.event_id)
+        with sentry_sdk.traces.start_span(
+            name="grouping.get_grouping_variants",
+            attributes={"sentry.op": "grouping.get_grouping_variants"},
+        ) as span:
+            span.set_attribute("project", self.project_id)
+            span.set_attribute("event_id", self.event_id)
 
             return get_grouping_variants_for_event(self, loaded_grouping_config)
 

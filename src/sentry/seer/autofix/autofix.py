@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+import sentry_sdk.traces
 
 from sentry import tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
@@ -89,7 +90,10 @@ def get_trace_tree_for_event(
         }
 
     try:
-        with sentry_sdk.start_span(op="seer.autofix.get_trace_tree_for_event"):
+        with sentry_sdk.traces.start_span(
+            name="seer.autofix.get_trace_tree_for_event",
+            attributes={"sentry.op": "seer.autofix.get_trace_tree_for_event"},
+        ):
             with ContextPropagatingThreadPoolExecutor() as executor:
                 future = executor.submit(_fetch_trace)
                 return future.result(timeout=timeout)

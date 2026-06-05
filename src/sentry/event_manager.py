@@ -434,7 +434,7 @@ class EventManager:
     def get_data(self) -> MutableMapping[str, Any]:
         return self._data
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def save(
         self,
         project_id: int | None = None,
@@ -1488,13 +1488,16 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
     check_for_group_creation_load_shed(project, event)
 
     with (
-        sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+        sentry_sdk.traces.start_span(
+            name="event_manager.create_group_transaction",
+            attributes={"sentry.op": "event_manager.create_group_transaction"},
+        ) as span,
         metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
         # These values will get overridden with whatever happens inside the lock if we do manage to
         # acquire it, so it should only end up with `wait-for-lock` if we don't
-        span.set_tag("outcome", "wait_for_lock")
+        span.set_attribute("outcome", "wait_for_lock")
         metrics_timer_tags["outcome"] = "wait_for_lock"
 
         # If we're in this branch, we checked our grouphashes and didn't find one with a group
@@ -1522,7 +1525,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.
         if existing_grouphash is None:
-            span.set_tag("outcome", "new_group")
+            span.set_attribute("outcome", "new_group")
             metrics_timer_tags["outcome"] = "new_group"
             record_new_group_metrics(event)
 
@@ -2200,7 +2203,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
 
     logger_data["payload"] = payload
 
-    with sentry_sdk.start_span(op=op):
+    with sentry_sdk.traces.start_span(name=op, attributes={"sentry.op": op}):
         try:
             with metrics.timer(op):
                 timeout = options.get(
@@ -2623,7 +2626,10 @@ def _record_transaction_info(
             event = job["event"]
 
             project = event.project
-            with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
+            with sentry_sdk.traces.start_span(
+                name="event_manager.record_transaction_name_for_clustering",
+                attributes={"sentry.op": "event_manager.record_transaction_name_for_clustering"},
+            ):
                 record_transaction_name_for_clustering(project, event.data)
 
             record_event_processed(project, event)

@@ -7,7 +7,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
@@ -56,13 +56,6 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
 
     def __init__(self, **kw) -> None:
         storage.initialize_client()
-        # Trace sample rates for each method. Uses the default when not set (=0).
-        self.sample_rate_post = options.get(
-            "replay.endpoints.project_replay_summary.trace_sample_rate_post"
-        )
-        self.sample_rate_get = options.get(
-            "replay.endpoints.project_replay_summary.trace_sample_rate_get"
-        )
         super().__init__(**kw)
 
     def _make_seer_start_request(
@@ -158,12 +151,10 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
 
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.traces.start_span(
             name="replays.endpoints.project_replay_summary.get",
-            op="replays.endpoints.project_replay_summary.get",
-            custom_sampling_context=(
-                {"sample_rate": self.sample_rate_get} if self.sample_rate_get else None
-            ),
+            attributes={"sentry.op": "replays.endpoints.project_replay_summary.get"},
+            parent_span=None,
         ):
             self.check_replay_access(request, project)
 
@@ -193,12 +184,10 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Download replay segment data and parse it into logs. Then post to Seer to start a summary task."""
 
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.traces.start_span(
             name="replays.endpoints.project_replay_summary.post",
-            op="replays.endpoints.project_replay_summary.post",
-            custom_sampling_context=(
-                {"sample_rate": self.sample_rate_post} if self.sample_rate_post else None
-            ),
+            attributes={"sentry.op": "replays.endpoints.project_replay_summary.post"},
+            parent_span=None,
         ):
             self.check_replay_access(request, project)
 

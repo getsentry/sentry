@@ -94,7 +94,9 @@ def reprocess_group(
 
     for event in events:
         if max_events is None or max_events > 0:
-            with sentry_sdk.start_span(op="reprocess_event"):
+            with sentry_sdk.traces.start_span(
+                name="reprocess_event", attributes={"sentry.op": "reprocess_event"}
+            ):
                 try:
                     reprocess_event(
                         project_id=project_id,

@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, overload
 
 import sentry_sdk
+import sentry_sdk.traces
 from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from snuba_sdk import (
@@ -239,7 +240,10 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        with sentry_sdk.start_span(op="eventstore.snuba.get_events"):
+        with sentry_sdk.traces.start_span(
+            name="eventstore.snuba.get_events",
+            attributes={"sentry.op": "eventstore.snuba.get_events"},
+        ):
             return self.__get_events(
                 filter,
                 eap_conditions=eap_conditions,

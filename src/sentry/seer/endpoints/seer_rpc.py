@@ -7,6 +7,7 @@ from collections.abc import Callable
 from typing import Any, TypedDict
 
 import sentry_sdk
+import sentry_sdk.traces
 from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -230,7 +231,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def _is_authorized(self, request: Request) -> bool:
         if request.auth and isinstance(
             request.successful_authenticator, SeerRpcSignatureAuthentication
@@ -238,7 +239,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return True
         return False
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
@@ -246,7 +247,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         method = seer_method_registry[method_name]
         return method(**arguments)
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def post(self, request: Request, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         seer_referrer = request.headers.get("X-Seer-Referrer")
@@ -340,7 +341,9 @@ def get_organization_features(*, org_id: int, user_id: int | None = None) -> dic
 
     feature_set: set[str] = set()
 
-    with sentry_sdk.start_span(op="features.check", name="check batch features"):
+    with sentry_sdk.traces.start_span(
+        name="check batch features", attributes={"sentry.op": "features.check"}
+    ):
         batch = features.batch_has(
             list(features_to_check),
             actor=actor,
@@ -354,7 +357,9 @@ def get_organization_features(*, org_id: int, user_id: int | None = None) -> dic
                     feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
                 features_to_check.discard(name)
 
-    with sentry_sdk.start_span(op="features.check", name="check individual features"):
+    with sentry_sdk.traces.start_span(
+        name="check individual features", attributes={"sentry.op": "features.check"}
+    ):
         for name in features_to_check:
             if features.has(name, organization, actor=actor, skip_entity=True):
                 feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])

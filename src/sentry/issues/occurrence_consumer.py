@@ -17,7 +17,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import serializers
-from sentry_sdk.tracing import NoOpSpan, Span, Transaction
+from sentry_sdk.traces import StreamedSpan
 
 from sentry import nodestore, options
 from sentry.event_manager import GroupInfo
@@ -330,7 +330,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 @sentry_sdk.tracing.trace
 @metrics.wraps("occurrence_consumer.process_occurrence_message")
 def process_occurrence_message(
-    message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
+    message: Mapping[str, Any], span: StreamedSpan
 ) -> tuple[IssueOccurrence, GroupInfo | None] | None:
     with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
         kwargs = _get_kwargs(message)
@@ -343,15 +343,15 @@ def process_occurrence_message(
         sample_rate=1.0,
         tags=metric_tags,
     )
-    txn.set_tag("occurrence_type", occurrence_data["type"])
+    span.set_attribute("occurrence_type", occurrence_data["type"])
 
     project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-    txn.set_tag("organization_id", organization.id)
-    txn.set_tag("organization_slug", organization.slug)
-    txn.set_tag("project_id", project.id)
-    txn.set_tag("project_slug", project.slug)
+    span.set_attribute("organization_id", organization.id)
+    span.set_attribute("organization_slug", organization.slug)
+    span.set_attribute("project_id", project.id)
+    span.set_attribute("project_slug", project.slug)
 
     group_type = get_group_type_by_type_id(occurrence_data["type"])
     if not group_type.allow_ingest(organization):
@@ -360,7 +360,7 @@ def process_occurrence_message(
             sample_rate=1.0,
             tags=metric_tags,
         )
-        txn.set_tag("result", "dropped_feature_disabled")
+        span.set_attribute("result", "dropped_feature_disabled")
         return None
 
     if is_rate_limited(project.id, fingerprint=occurrence_data["fingerprint"][0]):
@@ -369,13 +369,13 @@ def process_occurrence_message(
             sample_rate=1.0,
             tags=metric_tags,
         )
-        txn.set_tag("result", "dropped_rate_limited")
+        span.set_attribute("result", "dropped_rate_limited")
         return None
 
     if "event_data" in kwargs and is_buffered_spans:
         return create_event_and_issue_occurrence(kwargs["occurrence_data"], kwargs["event_data"])
     elif "event_data" in kwargs:
-        txn.set_tag("result", "success")
+        span.set_attribute("result", "success")
         with metrics.timer(
             "occurrence_consumer._process_message.process_event_and_issue_occurrence",
             tags=metric_tags,
@@ -384,7 +384,7 @@ def process_occurrence_message(
                 kwargs["occurrence_data"], kwargs["event_data"]
             )
     else:
-        txn.set_tag("result", "success")
+        span.set_attribute("result", "success")
         with metrics.timer(
             "occurrence_consumer._process_message.lookup_event_and_process_issue_occurrence",
             tags=metric_tags,
@@ -401,21 +401,22 @@ def _process_message(
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
     """
-    with sentry_sdk.start_transaction(
-        op="_process_message",
+    with sentry_sdk.traces.start_span(
         name="issues.occurrence_consumer",
-    ) as txn:
+        attributes={"sentry.op": "_process_message"},
+        parent_span=None,
+    ) as span:
         try:
             # Messages without payload_type default to an OCCURRENCE payload
             payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
             if payload_type == PayloadType.STATUS_CHANGE.value:
-                group = process_status_change_message(message, txn)
+                group = process_status_change_message(message, span)
                 if not group:
                     return None
 
                 return None, GroupInfo(group=group, is_new=False, is_regression=False)
             elif payload_type == PayloadType.OCCURRENCE.value:
-                return process_occurrence_message(message, txn)
+                return process_occurrence_message(message, span)
             else:
                 metrics.incr(
                     "occurrence_consumer._process_message.dropped_invalid_payload_type",
@@ -427,7 +428,7 @@ def _process_message(
                 "occurrence_ingest.invalid_group_type", tags={"occurrence_type": e.group_type_id}
             )
         except (ValueError, KeyError) as e:
-            txn.set_tag("result", "error")
+            span.set_attribute("result", "error")
             raise InvalidEventPayloadError(e)
     return None
 
@@ -470,7 +471,11 @@ def process_occurrence_batch(
     # Number of groups we've collected to be processed in parallel
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
     # Submit occurrences & status changes for processing
-    with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
+    with sentry_sdk.traces.start_span(
+        name="occurrence.occurrence_consumer",
+        attributes={"sentry.op": "process_batch"},
+        parent_span=None,
+    ):
         futures = [
             worker.submit(process_occurrence_group, group) for group in occcurrence_mapping.values()
         ]

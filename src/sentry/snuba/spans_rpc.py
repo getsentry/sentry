@@ -42,7 +42,7 @@ class Spans(rpc_dataset_common.RPCBase):
         return project.flags.has_transactions
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_table_query(
         cls,
         *,
@@ -80,7 +80,7 @@ class Spans(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_trace_query(
         cls,
         *,
@@ -212,7 +212,7 @@ class Spans(rpc_dataset_common.RPCBase):
         return spans
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_stats_query(
         cls,
         *,

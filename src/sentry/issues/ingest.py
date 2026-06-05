@@ -243,7 +243,10 @@ def save_issue_from_occurrence(
             return None
 
         with (
-            sentry_sdk.start_span(op="issues.save_issue_from_occurrence.transaction") as span,
+            sentry_sdk.traces.start_span(
+                name="issues.save_issue_from_occurrence.transaction",
+                attributes={"sentry.op": "issues.save_issue_from_occurrence.transaction"},
+            ) as span,
             metrics.timer(
                 "issues.save_issue_from_occurrence.transaction",
                 tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
@@ -269,7 +272,7 @@ def save_issue_from_occurrence(
                     data={**open_period.data, "highest_seen_priority": highest_seen_priority}
                 )
             is_regression = False
-            span.set_tag("save_issue_from_occurrence.outcome", "new_group")
+            span.set_attribute("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
             metrics.incr(
                 "group.created",

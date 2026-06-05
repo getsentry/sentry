@@ -15,7 +15,7 @@ from django.db.models import Count, Max, Min
 from django.db.models.functions import Now
 from django.db.transaction import Atomic
 from django.utils import timezone
-from sentry_sdk.tracing import Span
+from sentry_sdk.traces import StreamedSpan
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope
@@ -287,13 +287,13 @@ class OutboxBase(Model):
                 tags=tags,
             )
 
-    def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase) -> None:
+    def _set_span_data_for_coalesced_message(self, span: StreamedSpan, message: OutboxBase) -> None:
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
-        span.set_tag(tag_for_outbox, message.shard_identifier)
-        span.set_data("outbox_id", message.id)
-        span.set_data("outbox_shard_id", message.shard_identifier)
-        span.set_tag("outbox_category", OutboxCategory(message.category).name)
-        span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
+        span.set_attribute(tag_for_outbox, message.shard_identifier)
+        span.set_attribute("outbox_id", message.id)
+        span.set_attribute("outbox_shard_id", message.shard_identifier)
+        span.set_attribute("outbox_category", OutboxCategory(message.category).name)
+        span.set_attribute("outbox_scope", OutboxScope(message.shard_scope).name)
 
     def process(self, is_synchronous_flush: bool) -> bool:
         with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
@@ -306,7 +306,9 @@ class OutboxBase(Model):
                             "synchronous": int(is_synchronous_flush),
                         },
                     ),
-                    sentry_sdk.start_span(op="outbox.process") as span,
+                    sentry_sdk.traces.start_span(
+                        name="outbox.process", attributes={"sentry.op": "outbox.process"}
+                    ) as span,
                 ):
                     self._set_span_data_for_coalesced_message(span=span, message=coalesced)
                     try:

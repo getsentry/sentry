@@ -147,7 +147,7 @@ class ProcessedEvent:
     video_size: int | None
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def process_recording_event(
     message: Event, use_new_recording_parser: bool = False
 ) -> ProcessedEvent:
@@ -281,12 +281,12 @@ def extract_user_info(replay_event: dict[str, Any] | None) -> dict[str, str | No
     return result
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def pack_replay_video(recording: bytes, video: bytes):
     return zlib.compress(pack(rrweb=recording, video=video))
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def commit_recording_message(recording: ProcessedEvent, context: ProcessorContext) -> None:
     # Write to GCS.
     storage_kv.set(recording.filename, recording.filedata)
@@ -340,7 +340,7 @@ def commit_recording_message(recording: ProcessedEvent, context: ProcessorContex
     emit_trace_items_to_eap(recording.trace_items)
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def emit_replay_events(
     event_meta: ParsedEventMeta,
     org_id: int,
@@ -460,7 +460,7 @@ def _track_initial_segment_event_new(
     )
 
 
-@sentry_sdk.trace
+@sentry_sdk.traces.trace
 def track_recording_metadata(recording: ProcessedEvent) -> None:
     # Report size metrics to determine usage patterns.
     metrics.distribution(

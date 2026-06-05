@@ -38,12 +38,12 @@ class ScmRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def get(self, request: Request) -> HttpResponse:
         resp = make_server().get(headers={k: v for k, v in request.headers.items()})
         return HttpResponse(content=resp.content, status=resp.status_code, headers=resp.headers)
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def post(self, request: Request) -> StreamingHttpResponse:
         resp = make_server().post(request.body, headers={k: v for k, v in request.headers.items()})
         return StreamingHttpResponse(resp.content, status=resp.status_code, headers=resp.headers)

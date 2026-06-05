@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any, Protocol
 
 import sentry_sdk
-from sentry_sdk.tracing import Span
+from sentry_sdk.traces import StreamedSpan
 
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.numbers import format_grouped_length
@@ -66,7 +66,7 @@ def get_paginator(
     return paginator or paginator_cls(**(paginator_kwargs or {}))
 
 
-def annotate_span_with_pagination_args(span: Span, per_page: int) -> None:
-    span.set_data("Limit", per_page)
+def annotate_span_with_pagination_args(span: StreamedSpan, per_page: int) -> None:
+    span.set_attribute("Limit", per_page)
     sentry_sdk.set_tag("query.per_page", per_page)
     sentry_sdk.set_tag("query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100]))
