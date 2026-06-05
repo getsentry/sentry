@@ -62,9 +62,9 @@ const DRAWER_COLUMNS: GroupListColumn[] = [
 ];
 
 interface SupergroupDetailDrawerProps {
-  memberList: IndexedMembersByProject | undefined;
   supergroup: SupergroupDetail;
   filterWithCurrentSearch?: boolean;
+  memberList?: IndexedMembersByProject;
 }
 
 export function SupergroupDetailDrawer({
