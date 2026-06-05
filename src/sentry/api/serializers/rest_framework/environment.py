@@ -27,3 +27,15 @@ class EnvironmentSerializer(serializers.Serializer):
     isHidden = serializers.BooleanField(
         help_text="Specify `true` to make the environment visible or `false` to make the environment hidden."
     )
+
+
+class BulkEnvironmentSerializer(serializers.Serializer):
+    environment_names = serializers.ListField(
+        child=serializers.CharField(),
+        required=True,
+        allow_empty=False,
+        help_text="List of environment names to update.",
+    )
+    isHidden = serializers.BooleanField(
+        help_text="Specify `true` to hide or `false` to show the specified environments.",
+    )

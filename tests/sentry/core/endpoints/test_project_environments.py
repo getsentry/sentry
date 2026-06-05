@@ -68,3 +68,126 @@ class ProjectEnvironmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "staging"
+
+    def test_bulk_put(self) -> None:
+        project = self.create_project()
+
+        env1 = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        env1.add_project(project)
+
+        env2 = Environment.objects.create(organization_id=project.organization_id, name="staging")
+        env2.add_project(project)
+
+        env3 = Environment.objects.create(
+            organization_id=project.organization_id, name="development"
+        )
+        env3.add_project(project)
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-environments",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.put(
+            url,
+            {"environment_names": ["production", "staging"], "isHidden": True},
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]["name"] == "production"
+        assert response.data[0]["isHidden"] is True
+        assert response.data[1]["name"] == "staging"
+        assert response.data[1]["isHidden"] is True
+
+        assert EnvironmentProject.objects.get(project=project, environment=env1).is_hidden is True
+        assert EnvironmentProject.objects.get(project=project, environment=env2).is_hidden is True
+        assert EnvironmentProject.objects.get(project=project, environment=env3).is_hidden is None
+
+    def test_bulk_put_unhide(self) -> None:
+        project = self.create_project()
+
+        env1 = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        EnvironmentProject.objects.create(project=project, environment=env1, is_hidden=True)
+
+        env2 = Environment.objects.create(organization_id=project.organization_id, name="staging")
+        EnvironmentProject.objects.create(project=project, environment=env2, is_hidden=True)
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-environments",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.put(
+            url,
+            {"environment_names": ["production", "staging"], "isHidden": False},
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]["isHidden"] is False
+        assert response.data[1]["isHidden"] is False
+
+    def test_bulk_put_nonexistent_environment_ignored(self) -> None:
+        project = self.create_project()
+
+        env1 = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        env1.add_project(project)
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-environments",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.put(
+            url,
+            {"environment_names": ["production", "nonexistent"], "isHidden": True},
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "production"
+        assert response.data[0]["isHidden"] is True
+
+    def test_bulk_put_validation_errors(self) -> None:
+        project = self.create_project()
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-environments",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.put(url, {}, format="json")
+        assert response.status_code == 400
+
+        response = self.client.put(url, {"environment_names": [], "isHidden": True}, format="json")
+        assert response.status_code == 400
+
+        response = self.client.put(url, {"environment_names": ["production"]}, format="json")
+        assert response.status_code == 400
