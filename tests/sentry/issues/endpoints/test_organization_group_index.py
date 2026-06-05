@@ -561,18 +561,34 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_with_explorer_seer = event3.group
         group_with_explorer_seer.update(seer_explorer_autofix_last_triggered=timezone.now())
 
+        event4 = self.store_event(
+            data={
+                "fingerprint": ["stale-explorer-seer-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        group_with_stale_explorer_seer = event4.group
+        group_with_stale_explorer_seer.update(
+            seer_explorer_autofix_last_triggered=before_now(days=31)
+        )
+
         self.login_as(user=self.user)
 
-        # Query for issues that have seer_explorer_autofix_last_triggered set
+        # Query for issues Seer ran on within the recency window. The stale group
+        # (run >30 days ago) is excluded.
         response = self.get_success_response(query="has:issue.seer_last_run")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group_with_explorer_seer.id)
 
-        # Query for issues that do NOT have seer_explorer_autofix_last_triggered set
+        # The complement: issues Seer never ran on, plus the stale group whose run
+        # is older than the window.
         response = self.get_success_response(query="!has:issue.seer_last_run")
-        assert len(response.data) == 2
-        assert response.data[0]["id"] == str(group_with_legacy_seer.id)
-        assert response.data[1]["id"] == str(group_without_seer.id)
+        assert {row["id"] for row in response.data} == {
+            str(group_with_stale_explorer_seer.id),
+            str(group_with_legacy_seer.id),
+            str(group_without_seer.id),
+        }
 
     def test_lookup_by_event_id(self) -> None:
         project = self.project
