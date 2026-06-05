@@ -88,8 +88,7 @@ class DatadogIdentityProvider(OAuth2Provider):
         if not access_token:
             raise ValueError("Datadog token exchange did not return an access_token")
 
-        site = self._get_site()
-        user = get_user_info(access_token, site)
+        user = get_user_info(access_token, self._get_site())
 
         return {
             "type": IntegrationProviderSlug.DATADOG,
