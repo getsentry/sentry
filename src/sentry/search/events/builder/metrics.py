@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -167,11 +167,14 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         return super().are_columns_resolved()
 
     def _is_on_demand_extraction_disabled(self, query_hash: str) -> bool:
-        spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
+        organization_id = self.organization_id
+        assert organization_id is not None
+
+        spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization_id)
         on_demand_entries = DashboardWidgetQueryOnDemand.objects.filter(
             spec_hashes__contains=[query_hash],
             spec_version=spec_version.version,
-            dashboard_widget_query__widget__dashboard__organization_id=self.organization_id,
+            dashboard_widget_query__widget__dashboard__organization_id=organization_id,
         )
         if any(not entry.extraction_enabled() for entry in on_demand_entries):
             with sentry_sdk.isolation_scope() as scope:
@@ -202,17 +205,25 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         try:
             environment = None
             if self.params.environments:
-                environment = self.params.environments[0].name
+                first_environment = next(
+                    (candidate for candidate in self.params.environments if candidate is not None),
+                    None,
+                )
+                if first_environment is not None:
+                    environment = first_environment.name
 
             if not self.builder_config.on_demand_metrics_type:
                 raise InvalidSearchQuery(
                     "Must include on demand metrics type when querying on demand"
                 )
 
+            organization_id = self.organization_id
+            assert organization_id is not None
+
             metric_spec = fetch_on_demand_metric_spec(
-                self.organization_id,
+                organization_id,
                 field=field,
-                query=self.query,
+                query=cast(str, self.query),
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
@@ -362,7 +373,10 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             return self._is_spans_metrics_query_cache
         if self.query is not None:
             tags = parse_query(
-                self.params.projects, self.query, self.params.user, self.params.environments
+                self.params.projects,
+                self.query,
+                cast(Any, self.params.user),
+                cast(Sequence[Any], self.params.environments),
             )["tags"]
             for tag in tags:
                 if tag in constants.SPANS_METRICS_TAGS:
@@ -405,7 +419,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         selected_columns: list[str] | None = None,
         groupby_columns: list[str] | None = None,
         equations: list[str] | None = None,
-        orderby: list[str] | None = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         # Resolutions that we always must perform, irrespectively of on demand.
         with sentry_sdk.start_span(op="QueryBuilder", name="resolve_time_conditions"):
@@ -439,7 +453,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             # On demand still needs to call resolve since resolving columns has a side_effect
             # of adding their alias to the function_alias_map, which is required to convert snuba
             # aliases back to their original functions.
-            for column in selected_columns:
+            for column in selected_columns or []:
                 try:
                     self.resolve_select([column], [])
                 except (IncompatibleMetricsQuery, InvalidSearchQuery):
@@ -625,46 +639,50 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     def resolve_snql_function(
         self,
-        snql_function: fields.MetricsFunction,
+        snql_function: fields.SnQLFunction,
         arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> SelectType | None:
-        prefix = self._get_metric_prefix(snql_function, arguments.get("column"))
+        metric_snql_function = cast(fields.MetricsFunction, snql_function)
+
+        metric_column_arg = arguments.get("column")
+        metric_column = metric_column_arg if isinstance(metric_column_arg, str) else None
+        prefix = self._get_metric_prefix(metric_snql_function, metric_column)
         # If the metric_id is 0 that means this is a function that won't return but we don't want to error the query
         nullable = arguments.get("metric_id") == 0
         if nullable:
             self._has_nullable = True
 
-        if snql_function.snql_distribution is not None and (prefix is None or prefix == "d"):
-            resolved_function = snql_function.snql_distribution(arguments, alias)
+        if metric_snql_function.snql_distribution is not None and (prefix is None or prefix == "d"):
+            resolved_function = metric_snql_function.snql_distribution(arguments, alias)
             if not resolve_only:
                 if not nullable:
-                    if snql_function.is_percentile:
+                    if metric_snql_function.is_percentile:
                         self.percentiles.append(resolved_function)
                     else:
                         self.distributions.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_set is not None and (prefix is None or prefix == "s"):
-            resolved_function = snql_function.snql_set(arguments, alias)
+        if metric_snql_function.snql_set is not None and (prefix is None or prefix == "s"):
+            resolved_function = metric_snql_function.snql_set(arguments, alias)
             if not resolve_only:
                 if not nullable:
                     self.sets.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_counter is not None and (prefix is None or prefix == "c"):
-            resolved_function = snql_function.snql_counter(arguments, alias)
+        if metric_snql_function.snql_counter is not None and (prefix is None or prefix == "c"):
+            resolved_function = metric_snql_function.snql_counter(arguments, alias)
             if not resolve_only:
                 if not nullable:
                     self.counters.append(resolved_function)
                 # Still add to aggregates so groupby is correct
                 self.aggregates.append(resolved_function)
             return resolved_function
-        if snql_function.snql_gauge is not None and (prefix is None or prefix == "g"):
-            resolved_function = snql_function.snql_gauge(arguments, alias)
+        if metric_snql_function.snql_gauge is not None and (prefix is None or prefix == "g"):
+            resolved_function = metric_snql_function.snql_gauge(arguments, alias)
             if not resolve_only:
                 if not nullable:
                     self.gauges.append(resolved_function)
@@ -676,9 +694,11 @@ class MetricsQueryBuilder(BaseQueryBuilder):
     def resolve_metric_index(self, value: str) -> int | None:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
+            organization_id = self.organization_id
+            assert organization_id is not None
             result = indexer.resolve(
                 self.use_case_id,
-                self.organization_id,
+                organization_id,
                 value,
             )
             self._indexer_cache[value] = result
@@ -1522,7 +1542,10 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             self.interval = constants.METRICS_GRANULARITIES[-1]
             max_granularity = self.interval
 
-        optimal_granularity = optimal_granularity_for_date_range(self.start, self.end)
+        start = self.start
+        end = self.end
+        assert start is not None and end is not None
+        optimal_granularity = optimal_granularity_for_date_range(start, end)
 
         # get the minimum granularity between the optimal granularity and the max granularity
         granularity = min(optimal_granularity, max_granularity)
@@ -1779,11 +1802,12 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         if not self.builder_config.on_demand_metrics_enabled:
             return {}
 
-        return {
-            col: self._get_on_demand_metric_spec(col)
-            for col in self.timeseries_columns
-            if self._get_on_demand_metric_spec(col)
-        }
+        spec_map: dict[str, OnDemandMetricSpec] = {}
+        for col in self.timeseries_columns:
+            metric_spec = self._get_on_demand_metric_spec(col)
+            if metric_spec is not None:
+                spec_map[col] = metric_spec
+        return spec_map
 
     def resolve_top_event_conditions(
         self, top_events: list[dict[str, Any]], other: bool
@@ -1805,6 +1829,8 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 value = event.get(field)
                 # Ensure the project id fields stay as numbers, clickhouse 20 can't handle it, but 21 can
                 if field in {"project_id", "project.id"}:
+                    if value is None:
+                        continue
                     value = int(value)
                 if field == constants.PROJECT_ALIAS:
                     # These will be strings so lets turn them back to ints
