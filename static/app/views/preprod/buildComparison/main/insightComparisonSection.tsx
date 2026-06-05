@@ -7,7 +7,9 @@ import {Heading} from '@sentry/scraps/text';
 
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/fileInsightDiffTable';
 import {GroupInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/groupInsightDiffTable';
 import {InsightDiffRow} from 'sentry/views/preprod/buildComparison/main/insights/insightDiffRow';
@@ -117,6 +119,7 @@ export function InsightComparisonSection({
 }: InsightComparisonSectionProps) {
   type InsightTab = 'all' | InsightStatus;
   const [selectedTab, setSelectedTab] = useState<InsightTab>('all');
+  const organization = useOrganization();
 
   const tabbedInsights = useMemo(() => {
     const byTab: Record<InsightTab, InsightDiffItem[]> = {
@@ -187,7 +190,13 @@ export function InsightComparisonSection({
         <Button
           size="sm"
           icon={<IconCopy />}
-          onClick={() => copyToClipboard(JSON.stringify(insightDiffItems, null, 2))}
+          onClick={() => {
+            copyToClipboard(JSON.stringify(insightDiffItems, null, 2));
+            trackAnalytics('preprod.builds.compare.copy_insight_diff', {
+              organization,
+              insight_count: insightDiffItems.length,
+            });
+          }}
         >
           {t('Copy as JSON')}
         </Button>

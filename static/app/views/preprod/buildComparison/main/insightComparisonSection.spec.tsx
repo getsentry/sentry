@@ -1,5 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import * as analytics from 'sentry/utils/analytics';
 import {type InsightDiffItem, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 
 import {InsightComparisonSection} from './insightComparisonSection';
@@ -75,6 +76,24 @@ describe('InsightComparisonSection', () => {
     // Copies all insights, not just the currently displayed/selected tab.
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       JSON.stringify(mockInsightDiffItems, null, 2)
+    );
+  });
+
+  it('tracks an analytics event with the insight count when copying', async () => {
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
+    render(
+      <InsightComparisonSection
+        insightDiffItems={mockInsightDiffItems}
+        totalInstallSizeBytes={50_000_000}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as JSON'}));
+
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'preprod.builds.compare.copy_insight_diff',
+      expect.objectContaining({insight_count: mockInsightDiffItems.length})
     );
   });
 });
