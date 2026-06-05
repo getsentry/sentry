@@ -449,6 +449,28 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         assert project_response.data == project_slug_response.data
 
+    def test_get_success_empty_project_slug_falls_back_to_project_filter(self) -> None:
+        now = datetime.now(UTC)
+        yesterday = datetime.now(UTC) - timedelta(hours=24)
+        response = self.get_success_response(
+            self.organization.slug,
+            start=yesterday,
+            end=now,
+            projectSlug=[""],
+            project=[self.project2.slug],
+        )
+
+        assert len(response.data.keys()) == 1
+        data = response.data
+        r1_keys = [k for k, v in data.items() if k.split("-")[1] == self.release1.version]
+        assert len(r1_keys) == 1
+
+        project1_key = f"{self.project1.slug}-{self.release1.version}"
+        assert project1_key not in r1_keys
+        project2_key = f"{self.project2.slug}-{self.release1.version}"
+        assert project2_key in r1_keys
+        assert len(data[project2_key]) == 1
+
     @patch(
         "sentry.api.endpoints.release_thresholds.release_threshold_status_index.fetch_sessions_data"
     )

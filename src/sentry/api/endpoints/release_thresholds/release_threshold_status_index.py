@@ -84,7 +84,7 @@ class ReleaseThresholdStatusIndexSerializer(
     projectSlug = serializers.ListField(
         required=False,
         allow_empty=True,
-        child=serializers.CharField(),
+        child=serializers.CharField(allow_blank=True),
         help_text=("A list of project slugs to filter your results by."),
     )
     project = serializers.ListField(
@@ -151,7 +151,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         environments_list = serializer.validated_data.get(
             "environment"
         )  # list of environment names
-        project_slug_list = serializer.validated_data.get("projectSlug")
+        project_slug_list = [
+            slug for slug in serializer.validated_data.get("projectSlug", []) if slug
+        ] or None
         releases_list = serializer.validated_data.get("release")  # list of release versions
         try:
             filter_params = self.get_filter_params(
