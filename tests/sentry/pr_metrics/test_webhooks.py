@@ -807,6 +807,13 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         metrics = PullRequestMetrics.objects.get(pull_request=self.pr)
         assert metrics.verdict is None
 
+    def test_update_head_sha_runs_when_flag_off(self) -> None:
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call(action="opened", head_sha="newsha123")
+
+        self.pr.refresh_from_db()
+        assert self.pr.head_commit_sha == "newsha123"
+
     # --- Unhandled actions ---
 
     def test_unhandled_actions_do_not_write_activity(self) -> None:

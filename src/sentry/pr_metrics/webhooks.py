@@ -205,18 +205,17 @@ def handle_activity(
     if pr is None:
         return
 
-    # Verdict reset on reopen is a data-correctness concern, not gated by flags.
+    # These are data-correctness concerns, not gated by the activity flag.
     if action == "reopened":
         _clear_verdict(pr)
+    if action in ("opened", "synchronize", "reopened"):
+        _update_head_commit_sha(pr, pull_request_data or {})
 
     if not features.has("organizations:pr-metrics-activity", organization):
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
     _write_activity(pr, action, pull_request_data or {}, event, webhook_id)
-
-    if action in ("opened", "synchronize", "reopened"):
-        _update_head_commit_sha(pr, pull_request_data or {})
 
 
 def handle_comment(
