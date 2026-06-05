@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 from collections import namedtuple
 from functools import cached_property
 from typing import Any, cast
@@ -8,6 +10,7 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
+from django.contrib.sessions.backends.base import SessionBase
 from django.test import Client, RequestFactory
 from requests.exceptions import ConnectionError, SSLError
 
@@ -16,7 +19,8 @@ from sentry.identity.oauth2 import (
     OAuth2ApiStep,
     OAuth2CallbackView,
     OAuth2LoginView,
-    PkceOAuth2ApiStep,
+    PkceOAuth2CallbackView,
+    PkceOAuth2LoginView,
 )
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
@@ -25,6 +29,7 @@ from sentry.pipeline.base import Pipeline
 from sentry.pipeline.types import PipelineStepAction
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
+from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.testutils.silo import control_silo_test
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
@@ -390,159 +395,135 @@ class OAuth2ApiStepHandlePostTest(TestCase):
 
 
 @control_silo_test
-class PkceOAuth2ApiStepGetStepDataTest(TestCase):
-    def _make_step(self, **kwargs: Any) -> PkceOAuth2ApiStep:
-        defaults: dict[str, Any] = {
-            "authorize_url": "https://example.org/oauth2/authorize",
-            "client_id": "pkce-client",
-            "client_secret": "pkce-secret",
-            "access_token_url": "https://example.org/oauth/token",
-            "scope": "read",
-            "redirect_url": "/extensions/default/setup/",
-        }
-        defaults.update(kwargs)
-        return PkceOAuth2ApiStep(**defaults)
+class PkceOAuth2LoginViewTest(TestCase):
+    def setUp(self) -> None:
+        sentry.identity.register(DummyProvider)
+        super().setUp()
+        self.request = RequestFactory().get("/")
+        self.request.session = Client().session
+        self.request.subdomain = None
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        sentry.identity.unregister(DummyProvider)
+
+    @cached_property
+    def view(self):
+        return PkceOAuth2LoginView(
+            authorize_url="https://example.org/oauth2/authorize", client_id=123456, scope="read"
+        )
 
     def test_includes_pkce_params(self) -> None:
-        ctx = cast(Pipeline, _FakePipelineContext(signature="sig123"))
-        request = RequestFactory().get("/")
-        data = self._make_step().get_step_data(ctx, request)
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
 
-        url = urlparse(data["oauthUrl"])
-        query = parse_qs(url.query)
+        assert response.status_code == 302
+        query = parse_qs(urlparse(response["Location"]).query)
 
         assert query["code_challenge_method"] == ["S256"]
         assert "code_challenge" in query
         assert len(query["code_challenge"][0]) > 0
 
-    def test_code_verifier_stored_in_pipeline_state(self) -> None:
-        ctx = _FakePipelineContext(signature="sig123")
-        request = RequestFactory().get("/")
-        self._make_step().get_step_data(cast(Pipeline, ctx), request)
+    def test_preserves_standard_oauth_params(self) -> None:
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
 
-        assert ctx.fetch_state("pkce_code_verifier") is not None
-        assert len(ctx.fetch_state("pkce_code_verifier")) > 0
-
-    def test_standard_oauth_params_preserved(self) -> None:
-        ctx = cast(Pipeline, _FakePipelineContext(signature="sig123"))
-        request = RequestFactory().get("/")
-        data = self._make_step().get_step_data(ctx, request)
-
-        query = parse_qs(urlparse(data["oauthUrl"]).query)
-        assert query["client_id"] == ["pkce-client"]
+        query = parse_qs(urlparse(response["Location"]).query)
+        assert query["client_id"] == ["123456"]
         assert query["response_type"] == ["code"]
         assert query["scope"] == ["read"]
-        assert query["state"] == ["sig123"]
+        assert "state" in query
 
 
 @control_silo_test
-class PkceOAuth2ApiStepHandlePostTest(TestCase):
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+class PkceOAuth2CallbackViewTest(SentryTestCase):
     def setUp(self) -> None:
+        sentry.identity.register(DummyProvider)
         super().setUp()
         self.request = RequestFactory().get("/")
+        self.request.session = SessionBase()
+        self.request.user = self.user
+        self.request.subdomain = None
 
-    def _make_step(self, **kwargs: Any) -> PkceOAuth2ApiStep:
-        defaults: dict[str, Any] = {
-            "authorize_url": "https://example.org/oauth2/authorize",
-            "client_id": "pkce-client",
-            "client_secret": "pkce-secret",
-            "access_token_url": "https://example.org/oauth/token",
-            "scope": "read",
-            "redirect_url": "/extensions/default/setup/",
-        }
-        defaults.update(kwargs)
-        return PkceOAuth2ApiStep(**defaults)
+    def tearDown(self) -> None:
+        super().tearDown()
+        sentry.identity.unregister(DummyProvider)
+
+    @cached_property
+    def view(self):
+        return PkceOAuth2CallbackView(
+            access_token_url="https://example.org/oauth/token",
+            client_id="pkce-client",
+            client_secret="pkce-secret",
+        )
+
+    def _make_pipeline(self, code_verifier: str | None = None) -> IdentityPipeline:
+        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        pipeline.initialize()
+        if code_verifier is not None:
+            pipeline.bind_state("pkce_code_verifier", code_verifier)
+        return pipeline
 
     @responses.activate
-    def test_sends_code_verifier(self) -> None:
+    def test_exchange_token_success(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
             "https://example.org/oauth/token",
             json={"access_token": "pkce-token"},
         )
-        ctx = _FakePipelineContext(signature="valid-state")
+        pipeline = self._make_pipeline("test-verifier-abc")
 
-        step = self._make_step()
-        step.get_step_data(cast(Pipeline, ctx), self.request)
-        result = step.handle_post(
-            {"code": "auth-code", "state": "valid-state"}, cast(Pipeline, ctx), self.request
-        )
+        result = self.view.exchange_token(self.request, pipeline, "auth-code")
 
-        assert result.action == PipelineStepAction.ADVANCE
+        assert result["access_token"] == "pkce-token"
 
-        assert len(responses.calls) == 1
+        # Code verifier in request body
         data = dict(parse_qsl(responses.calls[0].request.body))
-        assert "code_verifier" in data
-        assert data["code_verifier"] == ctx.fetch_state("pkce_code_verifier")
+        assert data["code_verifier"] == "test-verifier-abc"
         assert data["client_id"] == "pkce-client"
         assert "client_secret" not in data
 
-    @responses.activate
-    def test_uses_basic_auth_for_secret(self) -> None:
-        responses.add(
-            responses.POST,
-            "https://example.org/oauth/token",
-            json={"access_token": "pkce-token"},
-        )
-        step = self._make_step()
-        ctx = _FakePipelineContext(signature="valid-state")
-
-        step.get_step_data(cast(Pipeline, ctx), self.request)
-        step.handle_post(
-            {"code": "auth-code", "state": "valid-state"}, cast(Pipeline, ctx), self.request
-        )
-
+        # Client secret in basic auth header
         auth_header = responses.calls[0].request.headers.get("Authorization", "")
         assert auth_header.startswith("Basic ")
-        import base64
-
         decoded = base64.b64decode(auth_header.split(" ")[1]).decode()
         assert decoded == "pkce-client:pkce-secret"
 
     @responses.activate
-    def test_no_auth_header_without_secret(self) -> None:
-        responses.add(
-            responses.POST,
-            "https://example.org/oauth/token",
-            json={"access_token": "public-token"},
-        )
-        step = self._make_step(client_secret="")
-        ctx = _FakePipelineContext(signature="valid-state")
+    def test_exchange_token_no_code_verifier_raises(self, mock_record: MagicMock) -> None:
+        pipeline = self._make_pipeline()
 
-        step.get_step_data(cast(Pipeline, ctx), self.request)
-        step.handle_post(
-            {"code": "auth-code", "state": "valid-state"}, cast(Pipeline, ctx), self.request
-        )
-
-        assert "Authorization" not in responses.calls[0].request.headers
+        with self.assertRaises(KeyError):
+            self.view.exchange_token(self.request, pipeline, "auth-code")
 
     @responses.activate
-    def test_code_verifier_preserved_across_separate_instances(self) -> None:
+    def test_login_to_callback_preserves_code_verifier(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
             "https://example.org/oauth/token",
             json={"access_token": "pkce-token"},
         )
-        ctx = _FakePipelineContext(signature="valid-state")
 
-        step1 = self._make_step()
-        step1.get_step_data(cast(Pipeline, ctx), self.request)
-
-        step2 = self._make_step()
-        result = step2.handle_post(
-            {"code": "auth-code", "state": "valid-state"}, cast(Pipeline, ctx), self.request
+        login_view = PkceOAuth2LoginView(
+            authorize_url="https://example.org/oauth2/authorize",
+            client_id="pkce-client",
+            scope="read",
         )
+        pipeline = self._make_pipeline()
 
-        assert result.action == PipelineStepAction.ADVANCE
-        data = dict(parse_qsl(responses.calls[0].request.body))
-        assert data["code_verifier"] == ctx.fetch_state("pkce_code_verifier")
+        redirect_response = login_view.dispatch(self.request, pipeline)
+        challenge_from_redirect = parse_qs(urlparse(redirect_response["Location"]).query)[
+            "code_challenge"
+        ][0]
 
-    def test_exchange_token_fails_without_get_step_data(self) -> None:
-        ctx = _FakePipelineContext(signature="valid-state")
-        step = self._make_step()
-        result = step.handle_post(
-            {"code": "auth-code", "state": "valid-state"}, cast(Pipeline, ctx), self.request
+        self.view.exchange_token(self.request, pipeline, "auth-code")
+
+        verifier_sent = dict(parse_qsl(responses.calls[0].request.body))["code_verifier"]
+
+        expected_challenge = (
+            base64.urlsafe_b64encode(hashlib.sha256(verifier_sent.encode("ascii")).digest())
+            .rstrip(b"=")
+            .decode("ascii")
         )
-
-        assert result.action == PipelineStepAction.ERROR
-        assert "code_verifier" in result.data["detail"]
+        assert challenge_from_redirect == expected_challenge
