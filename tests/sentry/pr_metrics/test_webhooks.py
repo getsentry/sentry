@@ -446,11 +446,11 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         review_comments: int = 0,
         before: str | None = None,
         after: str | None = None,
-        changes: dict | None = None,
-        label: dict | None = None,
-        extra_event: dict | None = None,
+        changes: dict[str, Any] | None = None,
+        label: dict[str, Any] | None = None,
+        extra_event: dict[str, Any] | None = None,
     ) -> None:
-        pull_request: dict = {
+        pull_request: dict[str, Any] = {
             "number": 42,
             "title": "Fix the bug",
             "body": "Closes TICKET-1",
@@ -467,7 +467,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
             "review_comments": review_comments,
             "user": {"id": 999, "login": "testuser"},
         }
-        event: dict = {
+        event: dict[str, Any] = {
             "action": action,
             "pull_request": pull_request,
             "sender": {"id": 999, "type": "User"},
@@ -843,10 +843,10 @@ class HandleCommentForPrMetricsTest(TestCase):
         webhook_id: str | None = "delivery-1",
         is_pr_comment: bool = True,
     ) -> None:
-        issue: dict = {"number": 42}
+        issue: dict[str, Any] = {"number": 42}
         if is_pr_comment:
             issue["pull_request"] = {"url": "https://github.com/org/repo/pull/42"}
-        event: dict = {
+        event: dict[str, Any] = {
             "action": action,
             "issue": issue,
             "sender": {"id": 999, "login": "testuser", "type": sender_type},
@@ -908,7 +908,7 @@ class HandleCommentForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_unknown_pr_number_logs_warning_and_does_not_raise(self) -> None:
-        event: dict = {
+        event: dict[str, Any] = {
             "action": "created",
             "issue": {
                 "number": 9999,
