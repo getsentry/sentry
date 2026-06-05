@@ -219,6 +219,32 @@ class TestIssueLinkRequester(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_integrator_4xx_surfaces_message_and_status(self, mock_record: MagicMock) -> None:
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/link-issue",
+            json={"message": "Team is required"},
+            status=400,
+        )
+
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
+            IssueLinkRequester(
+                install=self.install,
+                group=self.group,
+                uri="/link-issue",
+                fields={},
+                user=self.rpc_user,
+                action=IssueRequestActionType("create"),
+            ).run()
+
+        error = exception_info.value
+        assert error.status_code == 400
+        assert error.message == "Team is required"
+        # The integrator's message is shown to the user but never logged.
+        assert "Team is required" not in str(error.webhook_context)
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_invalid_json_response(self, mock_record: MagicMock) -> None:
         responses.add(
             method=responses.POST,
