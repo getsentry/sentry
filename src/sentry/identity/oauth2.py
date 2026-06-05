@@ -586,8 +586,13 @@ class PkceOAuth2LoginView(OAuth2LoginView):
     _code_verifier: str | None = None
 
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
-        self._code_verifier = generate_pkce_code_verifier()
-        pipeline.bind_state("pkce_code_verifier", self._code_verifier)
+        existing_code_verifier = pipeline.fetch_state("pkce_code_verifier")
+        if existing_code_verifier:
+            self._code_verifier = existing_code_verifier
+        else:
+            self._code_verifier = generate_pkce_code_verifier()
+            pipeline.bind_state("pkce_code_verifier", self._code_verifier)
+
         return super().dispatch(request, pipeline)
 
     def get_authorize_params(self, state, redirect_uri):
