@@ -12,7 +12,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/utils';
 import {Token, type ParseResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import type {SavedSearchType} from 'sentry/types/group';
+import type {SavedSearchType} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';

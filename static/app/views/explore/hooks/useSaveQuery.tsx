@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import type {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/coreBase';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';

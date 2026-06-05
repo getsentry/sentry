@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {Team} from 'sentry/types/organization';
-import type {AvatarUser} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 
 import {TeamAvatar} from './teamAvatar';
 import {UserAvatar, type UserAvatarProps} from './userAvatar';

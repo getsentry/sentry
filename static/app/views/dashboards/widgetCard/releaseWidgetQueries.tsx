@@ -7,7 +7,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {SessionApiResponse} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organizationBase';
 import type {Release} from 'sentry/types/release';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';

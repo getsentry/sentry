@@ -9,7 +9,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
-import type {TagWithTopValues} from 'sentry/types/group';
+import type {TagWithTopValues} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

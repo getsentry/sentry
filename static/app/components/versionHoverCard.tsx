@@ -16,7 +16,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';

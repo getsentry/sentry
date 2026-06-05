@@ -10,7 +10,7 @@ import {
   GroupStatus,
   IssueCategory,
   IssueType,
-} from 'sentry/types/group';
+} from 'sentry/types/groupBase';
 import {OccurrenceSummary} from 'sentry/views/issueDetails/occurrenceSummary';
 
 describe('OccurrenceSummary', () => {

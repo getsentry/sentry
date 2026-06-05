@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {EventGroupComponent} from 'sentry/types/event';
+import type {EventGroupComponent} from 'sentry/types/eventBase';
 
 import {GroupingComponent} from './groupingComponent';
 import {GroupingComponentListItem} from './groupingComponentFrames';

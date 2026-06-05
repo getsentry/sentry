@@ -7,7 +7,7 @@ import {ScreenshotPagination} from 'sentry/components/events/eventTagsAndScreens
 import {FeedbackScreenshot} from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {tct} from 'sentry/locale';
-import type {EventAttachment} from 'sentry/types/group';
+import type {EventAttachment} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 

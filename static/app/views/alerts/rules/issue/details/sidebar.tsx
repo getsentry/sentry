@@ -9,7 +9,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAlertRule} from 'sentry/types/alerts';
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {Member, Team} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';

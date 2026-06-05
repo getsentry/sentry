@@ -2,7 +2,7 @@ import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {SessionFieldWithOperation} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organizationBase';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';

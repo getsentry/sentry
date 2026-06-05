@@ -1,4 +1,4 @@
-import type {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/coreBase';
 
 export function statsPeriodToDays(
   statsPeriod?: string | null,

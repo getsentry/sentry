@@ -8,7 +8,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import type {ProjectKey} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OtlpTab} from 'sentry/views/settings/project/projectKeys/credentials/otlp';
 import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/vercel';

@@ -7,7 +7,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {GroupStore} from 'sentry/stores/groupStore';
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/groupBase';
 import {statusToText} from 'sentry/views/insights/crons/utils';
 import GroupCheckIns from 'sentry/views/issueDetails/groupCheckIns';
 

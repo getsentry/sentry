@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 
 import type {StrictStoreDefinition} from './types';
 

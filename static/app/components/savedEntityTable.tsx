@@ -18,8 +18,8 @@ import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types/core';
-import type {AvatarUser} from 'sentry/types/user';
+import type {DateString} from 'sentry/types/coreBase';
+import type {AvatarUser} from 'sentry/types/userBase';
 import {useProjects} from 'sentry/utils/useProjects';
 
 type SavedEntityTableProps = {

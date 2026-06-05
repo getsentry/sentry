@@ -15,7 +15,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
-import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organizationBase';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {formatFloat} from 'sentry/utils/number/formatFloat';

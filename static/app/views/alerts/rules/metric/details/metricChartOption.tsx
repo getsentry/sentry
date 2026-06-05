@@ -9,7 +9,7 @@ import {MarkArea} from 'sentry/components/charts/components/markArea';
 import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {SessionApiResponse} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organizationBase';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';

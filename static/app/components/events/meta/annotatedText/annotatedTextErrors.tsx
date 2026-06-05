@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
-import type {MetaError} from 'sentry/types/group';
+import type {MetaError} from 'sentry/types/groupBase';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 function formatErrorKind(kind: string) {

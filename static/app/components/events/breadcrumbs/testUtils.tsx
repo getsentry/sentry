@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 
 const oneMinuteBeforeEventFixture = '2019-05-21T18:00:48.76Z';
 export const MOCK_BREADCRUMBS = [

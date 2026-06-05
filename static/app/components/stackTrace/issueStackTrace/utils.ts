@@ -1,7 +1,7 @@
 import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {StackTraceView} from 'sentry/components/stackTrace/types';
 import type {Event, ExceptionValue} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 interface IndexedExceptionValue extends ExceptionValue {

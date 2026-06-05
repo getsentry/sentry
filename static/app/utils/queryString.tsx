@@ -1,7 +1,7 @@
 import type {Query} from 'history';
 import * as qs from 'query-string';
 
-import type {EventTag} from 'sentry/types/event';
+import type {EventTag} from 'sentry/types/eventBase';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {

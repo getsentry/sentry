@@ -9,7 +9,7 @@ import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/groupBase';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/issueCronCheckTimeline';

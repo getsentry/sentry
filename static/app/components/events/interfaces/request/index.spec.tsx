@@ -7,8 +7,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Request} from 'sentry/components/events/interfaces/request';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {EntryRequest} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import type {EntryRequest} from 'sentry/types/eventBase';
+import {EntryType} from 'sentry/types/eventBase';
 
 jest.unmock('prismjs');
 

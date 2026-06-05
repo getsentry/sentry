@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/groupBase';
 import {useReplaysFromIssue} from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 
 describe('useReplaysFromIssue', () => {

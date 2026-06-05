@@ -7,7 +7,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import type {ProjectKey} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 
 const DEFAULT_ENDPOINT = 'https://sentry.example.com/api/security-report/';
 

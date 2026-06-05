@@ -1,6 +1,6 @@
 import {queryOptions, useQuery} from '@tanstack/react-query';
 
-import type {GroupOpenPeriod} from 'sentry/types/group';
+import type {GroupOpenPeriod} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';

@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import type {Measurement} from 'sentry/types/event';
+import type {Measurement} from 'sentry/types/eventBase';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';

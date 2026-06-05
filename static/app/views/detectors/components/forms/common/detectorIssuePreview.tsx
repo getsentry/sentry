@@ -6,7 +6,7 @@ import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {AvatarProject} from 'sentry/types/project';
 
 interface DetectorIssuePreviewProps {

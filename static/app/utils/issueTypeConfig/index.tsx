@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/groupBase';
 import type {Project} from 'sentry/types/project';
 import {aiDetectedConfig} from 'sentry/utils/issueTypeConfig/aiDetectedConfig';
 import {configurationIssuesConfig} from 'sentry/utils/issueTypeConfig/configurationIssuesConfig';

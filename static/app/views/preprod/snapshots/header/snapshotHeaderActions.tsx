@@ -30,7 +30,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {AvatarUser} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';

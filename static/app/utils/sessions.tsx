@@ -14,8 +14,8 @@ import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {
   SessionApiResponse,
   SessionFieldWithOperation,
-} from 'sentry/types/organization';
-import {SessionStatus} from 'sentry/types/organization';
+} from 'sentry/types/organizationBase';
+import {SessionStatus} from 'sentry/types/organizationBase';
 import {percent} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import {

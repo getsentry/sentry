@@ -7,7 +7,7 @@ import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal'
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
-import type {Choices} from 'sentry/types/core';
+import type {Choices} from 'sentry/types/coreBase';
 import type {TicketCreationAction} from 'sentry/types/workflowEngine/actions';
 import {
   actionNodesMap,

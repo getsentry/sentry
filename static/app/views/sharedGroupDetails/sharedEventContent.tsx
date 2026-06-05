@@ -15,9 +15,9 @@ import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {SharedIssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace/sharedIssueStackTrace';
 import {t} from 'sentry/locale';
 import type {Entry, Event} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import type {Group} from 'sentry/types/group';
-import type {SharedViewOrganization} from 'sentry/types/organization';
+import type {SharedViewOrganization} from 'sentry/types/organizationBase';
 import type {Project} from 'sentry/types/project';
 
 interface Props {

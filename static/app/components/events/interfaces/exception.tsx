@@ -6,7 +6,7 @@ import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionType} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';

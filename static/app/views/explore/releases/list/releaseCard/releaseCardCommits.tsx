@@ -5,7 +5,7 @@ import {AvatarList} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t, tn} from 'sentry/locale';
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';

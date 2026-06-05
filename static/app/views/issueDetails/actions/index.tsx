@@ -40,7 +40,7 @@ import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/groupBase';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';

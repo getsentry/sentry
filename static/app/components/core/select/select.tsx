@@ -27,7 +27,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Choices} from 'sentry/types/core';
+import type {Choices} from 'sentry/types/coreBase';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Confidence} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';

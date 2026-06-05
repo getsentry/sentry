@@ -1,4 +1,4 @@
-import type {IssueType} from 'sentry/types/group';
+import type {IssueType} from 'sentry/types/groupBase';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Tab} from 'sentry/views/issueDetails/types';
 

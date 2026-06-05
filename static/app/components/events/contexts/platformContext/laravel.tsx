@@ -1,5 +1,5 @@
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
-import type {KeyValueListData} from 'sentry/types/group';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 
 export type LaravelContext = Record<string, any>;
 

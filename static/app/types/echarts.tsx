@@ -7,7 +7,7 @@ import type {
 } from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 
-import type {Confidence} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 
 export type SeriesDataUnit = {
   // number because we sometimes use timestamps

@@ -4,8 +4,8 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
-import {IssueTitle, IssueType} from 'sentry/types/group';
+import {EntryType} from 'sentry/types/eventBase';
+import {IssueTitle, IssueType} from 'sentry/types/groupBase';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import {SpanEvidenceSection} from './spanEvidence';

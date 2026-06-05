@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
-import type {RequestState} from 'sentry/types/core';
+import type {RequestState} from 'sentry/types/coreBase';
 import {
   isEventedProfile,
   isJSProfile,

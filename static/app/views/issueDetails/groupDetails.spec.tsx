@@ -19,7 +19,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/groupBase';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
 
 const SAMPLE_EVENT_ALERT_TEXT =

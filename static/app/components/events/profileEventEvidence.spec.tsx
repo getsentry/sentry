@@ -4,7 +4,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
-import {IssueType} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/groupBase';
 
 describe('ProfileEventEvidence', () => {
   const defaultProps = {

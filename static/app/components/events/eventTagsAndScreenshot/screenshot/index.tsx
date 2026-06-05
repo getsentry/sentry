@@ -23,7 +23,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {EventAttachment} from 'sentry/types/group';
+import type {EventAttachment} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

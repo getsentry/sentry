@@ -14,7 +14,7 @@ import {
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/coreBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';

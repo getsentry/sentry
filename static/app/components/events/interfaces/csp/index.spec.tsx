@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Csp} from 'sentry/components/events/interfaces/csp';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 
 describe('Csp report entry', () => {
   it('display redacted data', async () => {

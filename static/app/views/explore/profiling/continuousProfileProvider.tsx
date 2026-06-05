@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 
 import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
-import type {RequestState} from 'sentry/types/core';
+import type {RequestState} from 'sentry/types/coreBase';
 import {useTransactionAsSpans} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';

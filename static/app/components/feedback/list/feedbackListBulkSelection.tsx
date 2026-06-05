@@ -7,7 +7,7 @@ import {useBulkEditFeedbacks} from 'sentry/components/feedback/list/useBulkEditF
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
-import {GroupStatus} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/groupBase';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 
 interface Props extends Pick<

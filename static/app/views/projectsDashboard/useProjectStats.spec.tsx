@@ -11,7 +11,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {ProjectStats} from 'sentry/types/project';
+import type {ProjectStats} from 'sentry/types/projectBase';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useProjectStats} from 'sentry/views/projectsDashboard/useProjectStats';
 

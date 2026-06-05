@@ -14,7 +14,7 @@ import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewe
 import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
-import type {EventAttachment} from 'sentry/types/group';
+import type {EventAttachment} from 'sentry/types/groupBase';
 import type {Project} from 'sentry/types/project';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {defined} from 'sentry/utils/defined';

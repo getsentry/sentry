@@ -19,7 +19,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
-import {SessionFieldWithOperation} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organizationBase';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {percent} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';

@@ -3,7 +3,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import type {Group} from 'sentry/types/group';
 import type {PlatformExternalIssue} from 'sentry/types/integrations';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 

@@ -15,7 +15,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ApiApplication} from 'sentry/types/user';
+import type {ApiApplication} from 'sentry/types/userBase';
 import {useApi} from 'sentry/utils/useApi';
 
 const ROUTE_PREFIX = '/settings/account/api/';

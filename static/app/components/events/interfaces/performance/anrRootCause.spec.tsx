@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import type {Event, Thread} from 'sentry/types/event';
-import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
+import {EntryType, EventOrGroupType, LockType} from 'sentry/types/eventBase';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 

@@ -8,7 +8,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
-import type {IgnoredStatusDetails} from 'sentry/types/group';
+import type {IgnoredStatusDetails} from 'sentry/types/groupBase';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';

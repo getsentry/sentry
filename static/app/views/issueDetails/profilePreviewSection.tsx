@@ -13,7 +13,7 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {EventOrGroupType} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/eventBase';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';

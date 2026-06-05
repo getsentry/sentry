@@ -11,14 +11,14 @@ import type {
   Frame,
   Thread,
 } from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/eventBase';
 import type {
   BaseGroup,
   Group,
   GroupTombstoneHelper,
   SimpleGroup,
 } from 'sentry/types/group';
-import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
+import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/groupBase';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {uniq} from 'sentry/utils/array/uniq';
 import {defined} from 'sentry/utils/defined';

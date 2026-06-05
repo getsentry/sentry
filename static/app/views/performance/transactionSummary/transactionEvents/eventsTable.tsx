@@ -17,7 +17,7 @@ import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {IssueAttachment} from 'sentry/types/group';
+import type {IssueAttachment} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';

@@ -10,7 +10,7 @@ import type {
   EntrySpans,
   EventTransaction,
 } from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import {assert} from 'sentry/types/utils';
 
 import type {SpanTreeModel} from './spanTreeModel';

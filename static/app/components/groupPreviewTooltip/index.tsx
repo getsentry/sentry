@@ -1,5 +1,5 @@
 import {EvidencePreview} from 'sentry/components/groupPreviewTooltip/evidencePreview';
-import type {IssueCategory, IssueType} from 'sentry/types/group';
+import type {IssueCategory, IssueType} from 'sentry/types/groupBase';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 

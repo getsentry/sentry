@@ -11,7 +11,7 @@ import type {Client} from 'sentry/api';
 import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/coreBase';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {escape} from 'sentry/utils';

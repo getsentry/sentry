@@ -11,7 +11,7 @@ import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ObjectStatus} from 'sentry/types/core';
+import type {ObjectStatus} from 'sentry/types/coreBase';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';

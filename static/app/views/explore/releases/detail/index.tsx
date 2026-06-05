@@ -17,8 +17,8 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PickProjectToContinue} from 'sentry/components/pickProjectToContinue';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {SessionApiResponse} from 'sentry/types/organization';
-import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organizationBase';
+import {SessionFieldWithOperation} from 'sentry/types/organizationBase';
 import type {
   Deploy,
   ReleaseMeta,

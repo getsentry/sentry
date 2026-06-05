@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {Group} from 'sentry/types/group';
-import {GroupStatus} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/groupBase';
 import {
   transformIssuesResponseToSeries,
   transformIssuesResponseToTable,

@@ -20,7 +20,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {Choice, Choices} from 'sentry/types/core';
+import type {Choice, Choices} from 'sentry/types/coreBase';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,

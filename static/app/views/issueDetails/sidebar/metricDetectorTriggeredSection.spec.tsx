@@ -5,7 +5,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/groupBase';
 import {
   DataConditionType,
   DetectorPriorityLevel,

@@ -1,4 +1,4 @@
-import type {Environment} from 'sentry/types/project';
+import type {Environment} from 'sentry/types/projectBase';
 
 const DEFAULT_EMPTY_ENV_NAME = '(No Environment)';
 

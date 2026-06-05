@@ -20,7 +20,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {GroupTombstone} from 'sentry/types/group';
+import type {GroupTombstone} from 'sentry/types/groupBase';
 import type {Project} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';

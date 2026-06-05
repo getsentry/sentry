@@ -34,7 +34,7 @@ import type {
   GroupActivityCreateIssue,
   GroupActivitySetPriority,
 } from 'sentry/types/group';
-import {GroupActivityType} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/groupBase';
 
 interface IconWithDefaultProps {
   Component: React.ComponentType<any> | null;

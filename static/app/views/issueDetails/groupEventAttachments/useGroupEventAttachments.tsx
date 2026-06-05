@@ -1,7 +1,7 @@
 import {useQuery} from '@tanstack/react-query';
 import {keepPreviousData} from '@tanstack/react-query';
 
-import type {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/coreBase';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';

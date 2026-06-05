@@ -1,6 +1,6 @@
 import isEmpty from 'lodash/isEmpty';
 
-import type {Meta} from 'sentry/types/group';
+import type {Meta} from 'sentry/types/groupBase';
 
 const GET_META = Symbol('GET_META');
 const IS_PROXY = Symbol('IS_PROXY');

@@ -13,7 +13,7 @@ import type {
   ExceptionValue,
   Frame,
 } from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/eventBase';
 import type {EventData, EventView} from 'sentry/utils/discover/eventView';
 
 import {EventContext} from './eventContext';

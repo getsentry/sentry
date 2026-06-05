@@ -11,7 +11,7 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import type {OrgAuthToken} from 'sentry/types/user';
+import type {OrgAuthToken} from 'sentry/types/userBase';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
 describe('OrganizationAuthTokensAuthTokenRow', () => {

@@ -1,4 +1,4 @@
-import type {UserEmail} from 'sentry/types/user';
+import type {UserEmail} from 'sentry/types/userBase';
 
 export function AccountEmailsFixture(params: UserEmail[] = []): UserEmail[] {
   return [

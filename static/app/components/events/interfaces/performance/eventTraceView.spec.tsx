@@ -4,7 +4,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import type {TraceEventResponse} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {
   makeTraceError,

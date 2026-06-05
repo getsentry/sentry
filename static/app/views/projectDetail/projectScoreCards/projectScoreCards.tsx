@@ -3,7 +3,7 @@ import type {Location} from 'history';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {SessionFieldWithOperation} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organizationBase';
 import type {Project} from 'sentry/types/project';
 import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
 

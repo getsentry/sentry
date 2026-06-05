@@ -1,6 +1,6 @@
 import type {TextProps} from '@sentry/scraps/text';
 
-import type {Actor, ObjectStatus} from 'sentry/types/core';
+import type {Actor, ObjectStatus} from 'sentry/types/coreBase';
 import type {Project} from 'sentry/types/project';
 
 /**

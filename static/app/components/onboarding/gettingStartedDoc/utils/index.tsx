@@ -10,7 +10,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {t, tct} from 'sentry/locale';
-import type {ProjectKey} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

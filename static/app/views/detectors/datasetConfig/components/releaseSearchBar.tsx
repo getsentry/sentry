@@ -5,7 +5,7 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {SavedSearchType} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/groupBase';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {

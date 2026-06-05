@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {EventOrGroupType} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/eventBase';
 
 import {EventMessage} from './eventMessage';
 

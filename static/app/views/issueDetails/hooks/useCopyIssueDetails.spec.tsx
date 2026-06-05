@@ -9,7 +9,7 @@ import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExp
 import * as explorerAutofixHooks from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {GroupSummaryData} from 'sentry/components/group/groupSummary';
 import * as groupSummaryHooks from 'sentry/components/group/groupSummary';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
 import * as useOrganization from 'sentry/utils/useOrganization';
 import {

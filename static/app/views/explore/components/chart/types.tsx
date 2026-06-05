@@ -1,4 +1,4 @@
-import type {Confidence} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';

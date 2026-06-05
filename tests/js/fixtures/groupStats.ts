@@ -1,4 +1,4 @@
-import type {GroupStats} from 'sentry/types/group';
+import type {GroupStats} from 'sentry/types/groupBase';
 
 export function GroupStatsFixture(params: Partial<GroupStats> = {}): GroupStats {
   return {

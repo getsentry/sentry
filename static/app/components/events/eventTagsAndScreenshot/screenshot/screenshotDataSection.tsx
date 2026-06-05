@@ -14,7 +14,7 @@ import {
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {EventAttachment} from 'sentry/types/group';
+import type {EventAttachment} from 'sentry/types/groupBase';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';

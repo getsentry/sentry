@@ -11,8 +11,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Actor} from 'sentry/types/core';
-import type {SuggestedOwnerReason} from 'sentry/types/group';
+import type {Actor} from 'sentry/types/coreBase';
+import type {SuggestedOwnerReason} from 'sentry/types/groupBase';
 import type {User} from 'sentry/types/user';
 
 type AssigneeBadgeProps = {

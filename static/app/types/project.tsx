@@ -1,4 +1,4 @@
-import type {Scope, TimeseriesValue} from './core';
+import type {Scope} from './core';
 import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
@@ -6,13 +6,10 @@ import type {PlatformKey} from './platform';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
 
-export type SeerNightshiftTweaks = {
-  enabled?: boolean;
-  extra_triage_instructions?: string;
-  intelligence_level?: 'low' | 'medium' | 'high';
-  max_candidates?: number;
-  reasoning_effort?: 'low' | 'medium' | 'high';
-};
+import type {ProjectStats, SeerNightshiftTweaks} from 'sentry/types/projectBase';
+export type {ProjectStats, SeerNightshiftTweaks};
+export type {Environment, ProjectKey} from 'sentry/types/projectBase';
+
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
@@ -20,8 +17,6 @@ export type AvatarProject = {
   id?: string | number;
   platform?: PlatformKey;
 };
-
-export type ProjectStats = TimeseriesValue[];
 
 /**
  * Matches the response from `ProjectSummarySerializer` used by
@@ -167,58 +162,11 @@ export type Project = ProjectSummary;
 export type MinimalProject = Pick<ProjectSummary, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
-export type ProjectKey = {
-  browserSdk: {
-    choices: Array<[key: string, value: string]>;
-  };
-  browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
-  dateCreated: string;
-  dsn: {
-    cdn: string;
-    crons: string;
-    csp: string;
-    integration: string;
-    minidump: string;
-    otlp_logs: string;
-    otlp_traces: string;
-    playstation: string;
-    public: string;
-    secret: string;
-    security: string;
-    unreal: string;
-  };
-  dynamicSdkLoaderOptions: {
-    hasDebug: boolean;
-    hasFeedback: boolean;
-    hasLogsAndMetrics: boolean;
-    hasPerformance: boolean;
-    hasReplay: boolean;
-  };
-  id: string;
-  isActive: boolean;
-  label: string;
-  name: string;
-  projectId: number;
-  public: string;
-  rateLimit: {
-    count: number;
-    window: number;
-  } | null;
-  secret: string;
-  useCase?: string;
-};
-
 export type ProjectSdkUpdates = {
   projectId: string;
   sdkName: string;
   sdkVersion: string;
   suggestions: SDKUpdatesSuggestion[];
-};
-
-export type Environment = {
-  displayName: string;
-  id: string;
-  name: string;
 };
 
 export interface TeamWithProjects extends Team {

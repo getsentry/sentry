@@ -15,7 +15,7 @@ import type {
   Event,
   EventTransaction,
 } from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 
 type StartTimestamp = number;
 type EndTimestamp = number;

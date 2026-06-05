@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import type {GroupOpenPeriod} from 'sentry/types/group';
+import type {GroupOpenPeriod} from 'sentry/types/groupBase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';

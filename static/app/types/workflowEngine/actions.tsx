@@ -1,4 +1,4 @@
-import type {ObjectStatus} from 'sentry/types/core';
+import type {ObjectStatus} from 'sentry/types/coreBase';
 import type {IssueConfigField} from 'sentry/types/integrations';
 
 export interface Action {

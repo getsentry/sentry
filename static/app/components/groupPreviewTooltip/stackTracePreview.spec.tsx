@@ -3,7 +3,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {EventError, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 
 import {StackTracePreview} from './stackTracePreview';
 

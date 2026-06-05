@@ -15,7 +15,7 @@ import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {Confidence} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 import {defined} from 'sentry/utils/defined';
 import {
   fieldAlignment,

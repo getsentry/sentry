@@ -1,7 +1,7 @@
 import type {
   SessionApiResponse,
   SessionFieldWithOperation,
-} from 'sentry/types/organization';
+} from 'sentry/types/organizationBase';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';

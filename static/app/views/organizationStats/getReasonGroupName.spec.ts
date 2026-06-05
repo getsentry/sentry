@@ -1,4 +1,4 @@
-import {Outcome} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/coreBase';
 
 import {ClientDiscardReason, getReasonGroupName} from './getReasonGroupName';
 

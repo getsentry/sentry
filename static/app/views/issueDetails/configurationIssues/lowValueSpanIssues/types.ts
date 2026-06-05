@@ -1,4 +1,4 @@
-import type {EventOccurrence} from 'sentry/types/event';
+import type {EventOccurrence} from 'sentry/types/eventBase';
 
 export interface LowValueSpanEvidenceData {
   avgDurationMs: number | null;

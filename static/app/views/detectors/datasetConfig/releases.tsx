@@ -1,7 +1,7 @@
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import type {SessionApiResponse} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organizationBase';
 import {SessionField} from 'sentry/types/sessions';
 import type {
   AggregationKeyWithAlias,

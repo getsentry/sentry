@@ -8,8 +8,8 @@ import type {Client} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {ApiResult} from 'sentry/types/api';
-import type {DateString} from 'sentry/types/core';
-import type {IssueAttachment} from 'sentry/types/group';
+import type {DateString} from 'sentry/types/coreBase';
+import type {IssueAttachment} from 'sentry/types/groupBase';
 import type {
   EventsStats,
   MultiSeriesEventsStats,

@@ -8,7 +8,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SavedSearchType} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
 

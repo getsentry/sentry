@@ -21,7 +21,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {Choices} from 'sentry/types/core';
+import type {Choices} from 'sentry/types/coreBase';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

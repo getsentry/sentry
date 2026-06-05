@@ -1,4 +1,4 @@
-import type {Confidence} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 // Timeseries with more than this ratio of low confidence intervals will be considered low confidence

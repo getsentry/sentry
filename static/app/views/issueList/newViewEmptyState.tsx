@@ -10,7 +10,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {SavedSearchVisibility} from 'sentry/types/group';
+import {SavedSearchVisibility} from 'sentry/types/groupBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

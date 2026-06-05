@@ -1,4 +1,4 @@
-import type {GroupOpenPeriod, GroupOpenPeriodActivity} from 'sentry/types/group';
+import type {GroupOpenPeriod, GroupOpenPeriodActivity} from 'sentry/types/groupBase';
 
 const DEFAULT_ACTIVITY: GroupOpenPeriodActivity = {
   id: 'activity-1',

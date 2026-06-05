@@ -17,7 +17,7 @@ import Indicators from 'sentry/components/indicators';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {TagStore} from 'sentry/stores/tagStore';
-import {PriorityLevel} from 'sentry/types/group';
+import {PriorityLevel} from 'sentry/types/groupBase';
 import IssueListOverview from 'sentry/views/issueList/overview';
 
 const DEFAULT_LINKS_HEADER =

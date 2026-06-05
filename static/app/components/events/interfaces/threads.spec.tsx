@@ -14,7 +14,7 @@ import {stackTraceDisplayOptionLabels} from 'sentry/components/events/traceEvent
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/eventBase';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 describe('Threads', () => {

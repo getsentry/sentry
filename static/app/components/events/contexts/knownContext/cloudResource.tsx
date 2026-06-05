@@ -1,6 +1,6 @@
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
-import type {KeyValueListData} from 'sentry/types/group';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 
 // https://github.com/getsentry/relay/blob/24.10.0/relay-event-schema/src/protocol/contexts/cloud_resource.rs
 const enum CloudResourceContextKeys {

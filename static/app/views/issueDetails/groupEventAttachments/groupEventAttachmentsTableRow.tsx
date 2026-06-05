@@ -8,7 +8,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {EventAttachmentActions} from 'sentry/components/events/eventAttachmentActions';
 import {FileSize} from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
-import type {IssueAttachment} from 'sentry/types/group';
+import type {IssueAttachment} from 'sentry/types/groupBase';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';

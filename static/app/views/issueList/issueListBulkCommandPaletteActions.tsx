@@ -12,7 +12,7 @@ import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus, PriorityLevel} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus, PriorityLevel} from 'sentry/types/groupBase';
 import type {Member} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';

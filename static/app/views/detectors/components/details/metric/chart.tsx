@@ -17,7 +17,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {GroupOpenPeriod} from 'sentry/types/group';
+import type {GroupOpenPeriod} from 'sentry/types/groupBase';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {decodeScalar} from 'sentry/utils/queryString';

@@ -13,7 +13,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
-import type {AvatarUser} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
 import {capitalize} from 'sentry/utils/string/capitalize';
 

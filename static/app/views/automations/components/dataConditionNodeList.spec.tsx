@@ -10,7 +10,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {IssueType} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/groupBase';
 import type {DataConditionHandler} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,

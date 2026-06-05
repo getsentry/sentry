@@ -4,7 +4,7 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 
-import type {AvatarUser} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 
 describe('UserAvatar', () => {
   describe('initials rendering with user.name', () => {

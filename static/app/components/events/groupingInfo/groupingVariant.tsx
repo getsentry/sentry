@@ -11,7 +11,7 @@ import type {
   EventGroupComponent,
   EventGroupVariant,
 } from 'sentry/types/event';
-import {EventGroupVariantType} from 'sentry/types/event';
+import {EventGroupVariantType} from 'sentry/types/eventBase';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 import {GroupingComponent, GroupingHint} from './groupingComponent';

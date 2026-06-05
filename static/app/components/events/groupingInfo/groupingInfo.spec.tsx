@@ -3,8 +3,8 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EventGroupVariantType} from 'sentry/types/event';
-import {IssueCategory} from 'sentry/types/group';
+import {EventGroupVariantType} from 'sentry/types/eventBase';
+import {IssueCategory} from 'sentry/types/groupBase';
 
 import GroupingInfo from './groupingInfo';
 

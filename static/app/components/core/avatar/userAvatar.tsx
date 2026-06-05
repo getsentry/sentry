@@ -1,7 +1,7 @@
 import type React from 'react';
 
-import type {Actor} from 'sentry/types/core';
-import type {AvatarUser} from 'sentry/types/user';
+import type {Actor} from 'sentry/types/coreBase';
+import type {AvatarUser} from 'sentry/types/userBase';
 import {userDisplayName} from 'sentry/utils/formatters';
 
 import {

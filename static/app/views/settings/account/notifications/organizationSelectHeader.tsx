@@ -5,7 +5,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 
 type OrganizationSelectHeaderProps = {
   handleOrgChange: (orgId: string) => void;

@@ -8,7 +8,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {ObjectStatus} from 'sentry/types/core';
+import type {ObjectStatus} from 'sentry/types/coreBase';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {Monitor, ProcessingErrorType} from 'sentry/views/insights/crons/types';
 

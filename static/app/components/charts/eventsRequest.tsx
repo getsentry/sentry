@@ -12,7 +12,7 @@ import {
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/coreBase';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {
   EventsStats,

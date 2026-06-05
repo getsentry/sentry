@@ -1,4 +1,4 @@
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import {
   CombinedAlertType,
   IncidentStatus,

@@ -16,14 +16,14 @@ import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Avatar} from 'sentry/types/core';
+import type {Avatar} from 'sentry/types/coreBase';
 import type {
   SentryApp,
   SentryAppAvatarPhotoType,
   SentryAppAvatar as SentryAppAvatarType,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {AvatarUser} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 import {useApi} from 'sentry/utils/useApi';
 
 import {AvatarCropper} from './avatarCropper';

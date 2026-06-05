@@ -9,7 +9,7 @@ import {
 import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
 import {t, tct} from 'sentry/locale';
 import type {EntryException, Event, Frame, Lock, Thread} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import {defined} from 'sentry/utils/defined';
 
 type SuspectFrame = {

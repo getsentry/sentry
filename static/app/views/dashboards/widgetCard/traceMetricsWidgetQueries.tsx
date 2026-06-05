@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import type {Confidence} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {EQUATION_PREFIX, isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {getDynamicText} from 'sentry/utils/getDynamicText';

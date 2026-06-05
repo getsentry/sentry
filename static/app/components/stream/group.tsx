@@ -28,7 +28,7 @@ import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {TimeseriesValue} from 'sentry/types/core';
+import type {TimeseriesValue} from 'sentry/types/coreBase';
 import type {
   Group,
   GroupReprocessing,

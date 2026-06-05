@@ -6,7 +6,7 @@ import {Container} from '@sentry/scraps/layout';
 import type {Client} from 'sentry/api';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import type {RequestState} from 'sentry/types/core';
+import type {RequestState} from 'sentry/types/coreBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TransactionResult} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';

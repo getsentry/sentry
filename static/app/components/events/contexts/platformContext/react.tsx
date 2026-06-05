@@ -1,6 +1,6 @@
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
-import type {KeyValueListData} from 'sentry/types/group';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 
 enum ReactContextKeys {
   VERSION = 'version',

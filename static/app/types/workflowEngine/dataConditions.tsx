@@ -1,4 +1,4 @@
-import {PriorityLevel} from 'sentry/types/group';
+import {PriorityLevel} from 'sentry/types/groupBase';
 import type {
   Attribute,
   MatchType,

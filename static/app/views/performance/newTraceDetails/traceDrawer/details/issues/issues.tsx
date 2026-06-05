@@ -11,7 +11,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Level} from 'sentry/types/event';
+import type {Level} from 'sentry/types/eventBase';
 import type {Organization} from 'sentry/types/organization';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';

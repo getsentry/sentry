@@ -9,7 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
-import type {Confidence} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';

@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Meta} from 'sentry/types/group';
+import type {Meta} from 'sentry/types/groupBase';
 
 type Props = {
   value: string | number;

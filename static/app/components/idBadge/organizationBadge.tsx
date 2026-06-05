@@ -1,4 +1,4 @@
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 
 import {BadgeDisplayName} from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';

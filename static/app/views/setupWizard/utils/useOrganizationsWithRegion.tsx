@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {OrganizationSummaryWithRegion} from 'sentry/views/setupWizard/types';
 

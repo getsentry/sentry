@@ -4,7 +4,7 @@ import {
   useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {SavedSearchType} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/groupBase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IssueListSeerComboBox} from './issueListSeerComboBox';

@@ -11,7 +11,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {GroupActivityType} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/groupBase';
 import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
 
 describe('IssueDetailsSidebar', () => {

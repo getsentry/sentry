@@ -23,7 +23,7 @@ import {
   SessionFieldWithOperation,
   SessionStatus,
   type SessionApiResponse,
-} from 'sentry/types/organization';
+} from 'sentry/types/organizationBase';
 import type {PlatformKey} from 'sentry/types/platform';
 import {
   ReleaseComparisonChartType,

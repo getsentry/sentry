@@ -5,7 +5,7 @@ import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {Meta} from 'sentry/types/group';
+import type {Meta} from 'sentry/types/groupBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';

@@ -6,7 +6,7 @@ import sortBy from 'lodash/sortBy';
 import {Flex} from '@sentry/scraps/layout';
 
 import {ValueLink} from 'sentry/components/keyValueData';
-import type {KeyValueListData} from 'sentry/types/group';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 import {defined} from 'sentry/utils/defined';
 
 import type {ValueProps} from './value';

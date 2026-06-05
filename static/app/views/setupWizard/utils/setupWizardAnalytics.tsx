@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo} from 'react';
 
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 function useSetupWizardAnalyticsParams(organizations: OrganizationSummary[]) {

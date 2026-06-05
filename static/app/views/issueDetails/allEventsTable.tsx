@@ -6,7 +6,7 @@ import {
 } from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import {platformToCategory} from 'sentry/utils/platform';

@@ -15,7 +15,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/groupBase';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

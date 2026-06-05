@@ -16,7 +16,7 @@ import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {OrgAuthToken} from 'sentry/types/user';
+import type {OrgAuthToken} from 'sentry/types/userBase';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';

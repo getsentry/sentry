@@ -1,8 +1,8 @@
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {Event, EventTransaction, ProfileContext} from 'sentry/types/event';
-import {EventOrGroupType, ProfileContextKey} from 'sentry/types/event';
-import type {KeyValueListData} from 'sentry/types/group';
+import {EventOrGroupType, ProfileContextKey} from 'sentry/types/eventBase';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getDateFromTimestamp} from 'sentry/utils/dates';

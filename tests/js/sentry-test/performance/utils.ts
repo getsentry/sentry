@@ -1,7 +1,7 @@
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {EventTransaction} from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import {IssueType} from 'sentry/types/group';
+import {EntryType, EventOrGroupType} from 'sentry/types/eventBase';
+import {IssueType} from 'sentry/types/groupBase';
 
 export enum ProblemSpan {
   PARENT = 'parent',

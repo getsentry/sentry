@@ -4,7 +4,7 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import type {Level} from 'sentry/types/event';
+import type {Level} from 'sentry/types/eventBase';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 type Props = {

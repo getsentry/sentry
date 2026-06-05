@@ -13,7 +13,7 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {OrgAuthToken} from 'sentry/types/user';
+import type {OrgAuthToken} from 'sentry/types/userBase';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 function LastUsed({
