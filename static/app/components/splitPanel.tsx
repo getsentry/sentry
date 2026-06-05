@@ -233,9 +233,8 @@ export function SplitPanel({
     min,
     max,
     onResize: newSize => onResize?.(newSize),
-    // Clamp start to the visible size; the container may have shrunk below it.
     onResizeEnd: ({startSize, endSize}) =>
-      handleResizeEnd(Math.min(startSize, max), endSize),
+      handleResizeEnd(Math.min(startSize, max), Math.min(endSize, max)),
   });
 
   const handleMouseDown = useCallback(
