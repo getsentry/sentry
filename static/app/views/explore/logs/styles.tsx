@@ -146,7 +146,7 @@ export const LogTableBodyCell = styled(TableBodyCell)<{reservePinGutter?: boolea
 
   &:last-child {
     padding: 0
-      ${p => (p.reservePinGutter ? 'var(--logsPinButtonArea, 2rem)' : p.theme.space.md)} 0
+      ${p => (p.reservePinGutter ? 'var(--logsPinButtonArea)' : p.theme.space.md)} 0
       ${p => p.theme.space.md};
   }
 `;
@@ -156,7 +156,8 @@ function ContentsTable(props: React.ComponentProps<typeof Table>) {
 }
 
 export const LogTable = styled(ContentsTable)<{minWidth: string}>`
-  --logsPinButtonArea: 2rem;
+  --logsPinEdgeGap: 6px;
+  --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
   flex: 1;
   min-height: 0;
   display: flex;
@@ -305,7 +306,7 @@ export const LogsFilteredHelperText = styled('span')`
 
 export const LogPinButton = styled(Button)<{isPinned: boolean | undefined}>`
   position: absolute;
-  right: calc(-1 * var(--logsPinButtonArea, 2rem));
+  right: calc(-1 * var(--logsPinButtonArea) + var(--logsPinEdgeGap));
   opacity: ${p => (p.isPinned ? 1 : 0)};
   transition: opacity 0.1s;
   z-index: 1;
@@ -349,7 +350,7 @@ export const LogTableHeadCell = styled(TableHeadCell)<{reservePinGutter?: boolea
   ${p =>
     p.reservePinGutter &&
     css`
-      padding-right: var(--logsPinButtonArea, 2rem);
+      padding-right: var(--logsPinButtonArea);
     `}
 `;
 
