@@ -17,6 +17,7 @@ import {
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
@@ -97,8 +98,13 @@ export function WidgetPreview({
   }
 
   if (widget.widgetType === WidgetType.TRACEMETRICS) {
-    const hasBlankEquation = state.yAxis?.some(
-      yAxis => yAxis.kind === FieldValueKind.EQUATION && yAxis.field.trim() === ''
+    const hasBlankEquation = getTraceMetricAggregateSource(
+      state.displayType,
+      state.yAxis,
+      state.fields
+    )?.some(
+      aggregate =>
+        aggregate.kind === FieldValueKind.EQUATION && aggregate.field.trim() === ''
     );
     if (hasBlankEquation) {
       return (
