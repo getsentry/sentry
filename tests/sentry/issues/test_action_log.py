@@ -179,10 +179,10 @@ class TestPublishAction(TestCase):
         assert len(logs.records) == 1
         record = logs.records[0]
         extra = record.__dict__
-        assert record.message == "issue.action_log"
+        assert record.message == "group.action_log"
         assert extra["action"] == "resolve"
         assert extra["source"] == "mcp:claude-code"
-        assert extra["actor_id"] == 4
+        assert extra["actor_id"] == "4"
 
     def test_actor_type_derived_from_actor(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
@@ -220,7 +220,7 @@ class TestPublishActionFromContext(TestCase):
             )
         error_records = [r for r in logs.records if r.levelname == "ERROR"]
         assert any("without ActionContext" in r.message for r in error_records)
-        info_record = [r for r in logs.records if r.message == "issue.action_log"][0]
+        info_record = [r for r in logs.records if r.message == "group.action_log"][0]
         assert info_record.__dict__["source"] == "unknown"
 
 
