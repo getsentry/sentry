@@ -57,6 +57,7 @@ from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.options.rollout import in_random_rollout
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
@@ -1116,6 +1117,16 @@ class PullRequestReviewWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = ()
 
 
+ROLLOUT_GATED_EVENT_TYPES = frozenset(
+    {
+        GithubWebhookType.PULL_REQUEST_REVIEW,
+        GithubWebhookType.CHECK_SUITE,
+    }
+)
+
+NEW_EVENT_HANDLERS_ROLLOUT_OPTION = "github-webhook.new-event-handlers-rollout-rate"
+
+
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
     """
@@ -1237,6 +1248,15 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         except orjson.JSONDecodeError:
             logger.warning("github.webhook.invalid-json", extra=self.get_logging_data())
             return HttpResponse(status=400)
+
+        if github_event in ROLLOUT_GATED_EVENT_TYPES:
+            if not in_random_rollout(NEW_EVENT_HANDLERS_ROLLOUT_OPTION):
+                return HttpResponse(status=204)
+            metrics.incr(
+                "github.webhook.new_event_handler.handled",
+                tags={"github_event": github_event.value},
+                sample_rate=1.0,
+            )
 
         event_handler = handler()
 

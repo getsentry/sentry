@@ -141,6 +141,7 @@ class SCMOnlyWebhookTest(APITestCase):
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
         options.set("github-app.webhook-secret", self.secret)
+        options.set("github-webhook.new-event-handlers-rollout-rate", 1.0)
 
     def create_github_integration_and_repo(self) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -198,6 +199,27 @@ class SCMOnlyWebhookTest(APITestCase):
         assert PullRequestReviewWebhook.WEBHOOK_EVENT_PROCESSORS == ()
         mock_handle.assert_called_once()
         mock_produce.assert_called_once()
+
+    @patch("sentry.integrations.github.webhook.produce_event_to_scm_stream")
+    @patch.object(CheckSuiteWebhook, "_handle", autospec=True)
+    def test_gated_event_is_noop_when_rollout_disabled(
+        self, mock_handle: MagicMock, mock_produce: MagicMock
+    ) -> None:
+        options.set("github-webhook.new-event-handlers-rollout-rate", 0.0)
+        self.create_github_integration_and_repo()
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="check_suite",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+        mock_handle.assert_not_called()
+        mock_produce.assert_not_called()
 
 
 @control_silo_test
