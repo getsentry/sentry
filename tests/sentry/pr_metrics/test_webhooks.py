@@ -1,19 +1,21 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 
-from sentry.integrations.github.pr_metrics_webhook_processors import (
-    handle_webhook_for_pr_metrics,
-)
+from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
 )
+from sentry.pr_metrics.webhooks import handle_attribution, handle_emission
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.analytics import get_event_count
 from sentry.testutils.silo import cell_silo_test
 
 
@@ -30,7 +32,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             title="Fix the bug",
             message="Closes TICKET-1",
         )
-        self.base_pr_payload: dict = {
+        self.base_pr_payload: dict[str, Any] = {
             "number": 42,
             "title": "Fix the bug",
             "body": "Closes TICKET-1",
@@ -42,23 +44,22 @@ class HandleWebhookForPrMetricsTest(TestCase):
         user_id: int = 999,
         title: str | None = None,
         body: str | None = None,
-        changes: dict | None = None,
+        changes: dict[str, Any] | None = None,
     ) -> None:
         payload = dict(self.base_pr_payload)
+        payload["user"] = {"id": user_id, "login": "testbot"}
         if title is not None:
             payload["title"] = title
         if body is not None:
             payload["body"] = body
-        event: dict = {"action": action, "pull_request": payload}
+        event: dict[str, Any] = {"action": action, "pull_request": payload}
         if changes is not None:
             event["changes"] = changes
-        handle_webhook_for_pr_metrics(
-            organization=self.organization,
-            action=action,
-            pull_request=payload,
-            github_user={"id": user_id, "login": "testbot"},
-            repository_id=self.repo.id,
+        handle_attribution(
+            github_event=GithubWebhookType.PULL_REQUEST,
             event=event,
+            organization=self.organization,
+            repo=self.repo,
         )
 
     # --- App ID attribution ---
@@ -275,19 +276,133 @@ class HandleWebhookForPrMetricsTest(TestCase):
     # --- Error handling ---
 
     def test_missing_pr_logs_warning_and_does_not_raise(self) -> None:
-        module = "sentry.integrations.github.pr_metrics_webhook_processors"
+        module = "sentry.pr_metrics.webhooks"
+        event = {
+            "action": "opened",
+            "pull_request": {
+                "number": 9999,
+                "title": "",
+                "body": "",
+                "user": {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
+            },
+        }
         with patch(f"{module}.logger") as mock_logger:
-            handle_webhook_for_pr_metrics(
+            handle_attribution(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                event=event,
                 organization=self.organization,
-                action="opened",
-                pull_request={"number": 9999, "title": "", "body": ""},
-                github_user={"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
-                repository_id=self.repo.id,
-                event={"action": "opened"},
+                repo=self.repo,
             )
 
         mock_logger.warning.assert_called_once_with(
-            "github.pr_metrics.attribution.pr_not_found",
+            "github.pr_metrics.pr_not_found",
             extra={"repository_id": self.repo.id, "pr_number": 9999},
         )
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
+
+
+MODULE = "sentry.pr_metrics.webhooks"
+HEAD_SHA = "a" * 40
+MERGE_SHA = "b" * 40
+
+
+@with_feature("organizations:pr-metrics-emit")
+@cell_silo_test
+class HandleWebhookForPrMetricsEmissionTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="42"
+        )
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=True,
+        )
+
+    def _payload(self, *, merged: bool = True) -> dict[str, Any]:
+        return {
+            "number": 42,
+            "merged": merged,
+            "created_at": "2026-06-04T09:00:00Z",
+            "closed_at": "2026-06-04T10:00:00Z",
+            "merged_at": "2026-06-04T10:00:00Z",
+            "merge_commit_sha": MERGE_SHA,
+            "head": {"sha": HEAD_SHA},
+        }
+
+    def _call(self, *, action: str = "closed", merged: bool = True) -> None:
+        handle_emission(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": action, "pull_request": self._payload(merged=merged)},
+            organization=self.organization,
+            repo=self.repo,
+        )
+
+    @patch("sentry.analytics.record")
+    def test_emits_on_merge(self, mock_record: MagicMock) -> None:
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert mock_record.call_args_list[-1].args[0].close_action == "merged"
+
+    @patch("sentry.analytics.record")
+    def test_emits_on_close_unmerged(self, mock_record: MagicMock) -> None:
+        self._call(merged=False)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert mock_record.call_args_list[-1].args[0].close_action == "closed"
+
+    @patch(f"{MODULE}.needs_judge", return_value=True)
+    @patch("sentry.analytics.record")
+    def test_falls_back_to_immediate_emit_when_judge_needed(
+        self, mock_record: MagicMock, _needs_judge: MagicMock
+    ) -> None:
+        # Until the judge path is wired, a judge-needed PR still emits immediately.
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_ignores_non_terminal_actions(self, mock_record: MagicMock) -> None:
+        self._call(action="opened")
+        self._call(action="edited")
+        self._call(action="synchronize")
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+    @patch("sentry.analytics.record")
+    def test_does_nothing_when_flag_off(self, mock_record: MagicMock) -> None:
+        with self.feature({"organizations:pr-metrics-emit": False}):
+            self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+    @patch("sentry.analytics.record")
+    def test_skips_untracked_pr(self, mock_record: MagicMock) -> None:
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+    @patch("sentry.analytics.record")
+    def test_redelivery_emits_each_time(self, mock_record: MagicMock) -> None:
+        # Emission is stateless — it does not dedupe webhook redeliveries; that
+        # guard lives at the terminal-event/PR-status check, not here.
+        self._call(merged=True)
+        self._call(merged=True)
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 2
+
+    @patch(f"{MODULE}.logger")
+    @patch("sentry.analytics.record")
+    def test_missing_pr_logs_warning_and_does_not_emit(
+        self, mock_record: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        # A close webhook can arrive before the PR row exists (race).
+        handle_emission(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": "closed", "pull_request": {"number": 9999, "merged": True}},
+            organization=self.organization,
+            repo=self.repo,
+        )
+        mock_logger.warning.assert_called_once_with(
+            "github.pr_metrics.pr_not_found",
+            extra={"repository_id": self.repo.id, "pr_number": 9999},
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
