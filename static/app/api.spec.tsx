@@ -2,9 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {setWindowLocation} from 'sentry-test/utils';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {isSimilarOrigin, Request, resolveHostname} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
+import type {ResponseMeta} from 'sentry/types/api';
 
 import {ConfigStore} from './stores/configStore';
 import {OrganizationStore} from './stores/organizationStore';

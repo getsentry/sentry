@@ -3,9 +3,9 @@ import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {
   EventView,
   ImmutableEventView,

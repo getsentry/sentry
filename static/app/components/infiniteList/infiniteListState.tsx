@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import type {UseInfiniteQueryResult, UseQueryResult} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {ApiResult} from 'sentry/types/api';
 
 interface Props<Data> {
   children: React.ReactNode;

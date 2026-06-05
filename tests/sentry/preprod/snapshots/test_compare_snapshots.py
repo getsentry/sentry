@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
-from objectstore_client.client import RequestError
+from objectstore_client import RequestError
 
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
 from sentry.preprod.snapshots.tasks import _retry_objectstore

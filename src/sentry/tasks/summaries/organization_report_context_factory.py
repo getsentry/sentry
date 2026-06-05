@@ -178,8 +178,11 @@ class OrganizationReportContextFactory:
             self._append_user_project_ownership(ctx)
             self._append_project_event_counts(ctx)
             self._append_organization_project_issue_substatus_summaries(ctx)
-            self._append_project_key_errors(ctx)
-            self._hydrate_key_error_groups(ctx)
-            self._hydrate_key_performance_issue_groups(ctx)
+
+            # Enhanced privacy flag hides issue titles, transaction names, and source details
+            if not self.organization.flags.enhanced_privacy:
+                self._append_project_key_errors(ctx)
+                self._hydrate_key_error_groups(ctx)
+                self._hydrate_key_performance_issue_groups(ctx)
 
         return ctx
