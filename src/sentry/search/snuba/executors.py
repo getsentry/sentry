@@ -32,6 +32,7 @@ from sentry.issues.search import (
     UnsupportedSearchQuery,
     get_search_strategies,
     group_categories_from,
+    group_types_from,
 )
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -936,10 +937,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         group_queryset: BaseQuerySet,
         search_filters: Sequence[SearchFilter] | None,
     ) -> BaseQuerySet:
-        from sentry.issues.search import group_types_from
-
-        visible_type_ids = group_types_from(search_filters)
-        return group_queryset.filter(type__in=visible_type_ids)
+        return group_queryset.filter(type__in=group_types_from(search_filters))
 
     def _execute_postgres_sort(
         self,
@@ -966,25 +964,20 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         when there are too many candidates to score in memory).
         """
         organization = projects[0].organization
-        resolved_fields = strategy.postgres_fields
+        postgres_fields = strategy.postgres_fields
 
         group_queryset = self._apply_type_visibility_filter(group_queryset, search_filters)
         if strategy.exclude_null_postgres:
-            for model_field in resolved_fields.values():
+            for model_field in postgres_fields.values():
                 group_queryset = group_queryset.filter(**{f"{model_field}__isnull": False})
 
-        # Apply the lower bound of the search time window using the group's last_seen
-        # (its max event timestamp). When Snuba is involved it enforces the full event
-        # window itself; this keeps Postgres-only candidates from returning issues with
-        # no events in range.
+        # Bound candidates by the lower edge of the search window using last_seen (the
+        # group's max event timestamp). When Snuba runs it enforces the full event window.
         group_queryset = group_queryset.filter(last_seen__gte=start)
 
-        has_snuba_filters = bool(
-            [
-                sf
-                for sf in (search_filters or ())
-                if sf.key.name not in self.postgres_only_fields.union({"date", "timestamp"})
-            ]
+        non_snuba_fields = self.postgres_only_fields.union({"date", "timestamp"})
+        has_snuba_filters = any(
+            sf.key.name not in non_snuba_fields for sf in (search_filters or ())
         )
 
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
@@ -1001,39 +994,43 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return None
 
         # Hit Snuba when the strategy needs an aggregation value or the query has
-        # event-level filters. Either way we get back the groups that survive, keyed by
-        # their aggregation value. With no aggregation it returns last_seen, which is
-        # ignored by score_fn but still narrows candidates to those matching the filters.
+        # event-level filters. The aggregation is passed as the Snuba sort field so its
+        # per-group value comes back as the score; with no aggregation we sort by last_seen
+        # (ignored by score_fn) and just use the result to narrow candidates to those
+        # matching the filters. One aggregation is supported.
         snuba_data: dict[int, dict[str, Any]] = {}
         if strategy.snuba_aggregations or has_snuba_filters:
-            snuba_data = self._snuba_search_raw(
+            sort_field = (
+                strategy.snuba_aggregations[0] if strategy.snuba_aggregations else "last_seen"
+            )
+            snuba_groups, _ = self.snuba_search(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=[env.id for env in environments] if environments else None,
                 organization=organization,
-                required_aggregations=strategy.snuba_aggregations,
+                sort_field=sort_field,
+                cursor=None,
                 group_ids=candidate_ids,
+                limit=len(candidate_ids),
+                offset=0,
                 search_filters=search_filters,
-                actor=actor,
                 referrer=referrer,
+                actor=actor,
             )
+            snuba_data = {gid: {sort_field: score} for gid, score in snuba_groups}
             candidate_ids = list(snuba_data.keys())
 
         if not candidate_ids:
             return self.empty_result
 
-        pg_value_fields = list(resolved_fields.values())
-        logical_names = list(resolved_fields.keys())
+        logical_names = list(postgres_fields.keys())
         pg_rows = (
             group_queryset.filter(id__in=candidate_ids)
             .using_replica()
-            .values_list("id", *pg_value_fields)
+            .values_list("id", *postgres_fields.values())
         )
-        pg_data: dict[int, dict[str, Any]] = {}
-        for row in pg_rows:
-            gid = row[0]
-            pg_data[gid] = {logical_names[i]: row[i + 1] for i in range(len(logical_names))}
+        pg_data = {row[0]: dict(zip(logical_names, row[1:])) for row in pg_rows}
 
         # Each signal resolver runs once over all candidates, returning {group_id: value}.
         signal_data: dict[str, dict[int, Any]] = {
@@ -1046,10 +1043,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             pg_values = pg_data.get(gid)
             if pg_values is None:
                 continue
-            merged = {**pg_values, **snuba_data.get(gid, {})}
-            for name, values in signal_data.items():
-                if gid in values:
-                    merged[name] = values[gid]
+            merged = {
+                **pg_values,
+                **snuba_data.get(gid, {}),
+                **{name: values[gid] for name, values in signal_data.items() if gid in values},
+            }
             try:
                 score = strategy.score_fn(merged)
             except (TypeError, KeyError):
@@ -1066,49 +1064,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         groups = Group.objects.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
         return paginator_results
-
-    def _snuba_search_raw(
-        self,
-        start: datetime,
-        end: datetime,
-        project_ids: Sequence[int],
-        environment_ids: Sequence[int] | None,
-        organization: Organization,
-        required_aggregations: list[str],
-        group_ids: Sequence[int],
-        search_filters: Sequence[SearchFilter] | None = None,
-        actor: Any | None = None,
-        *,
-        referrer: str,
-    ) -> dict[int, dict[str, Any]]:
-        """Return the requested aggregation's value per group.
-
-        The aggregation is passed as the Snuba sort field so its per-group value
-        comes back as the score. One aggregation is supported.
-        """
-        sort_field = required_aggregations[0] if required_aggregations else "last_seen"
-        snuba_groups, _ = self.snuba_search(
-            start=start,
-            end=end,
-            project_ids=project_ids,
-            environment_ids=environment_ids,
-            organization=organization,
-            sort_field=sort_field,
-            cursor=None,
-            group_ids=list(group_ids),
-            limit=len(group_ids),
-            offset=0,
-            search_filters=search_filters,
-            referrer=referrer,
-            actor=actor,
-        )
-        if not snuba_groups:
-            return {}
-
-        result: dict[int, dict[str, Any]] = {}
-        for gid, score in snuba_groups:
-            result[gid] = {sort_field: score}
-        return result
 
     def query(
         self,

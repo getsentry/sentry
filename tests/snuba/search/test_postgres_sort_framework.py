@@ -255,17 +255,6 @@ class TestExecutePostgresSort(PostgresSortTestBase):
 
 
 class TestFallbackBehavior(PostgresSortTestBase):
-    def test_overflow_falls_through_to_snuba(self):
-        """Over the candidate cap, _execute_postgres_sort returns None and query() falls
-        through to the Snuba path rather than erroring."""
-        with (
-            _patch_pg_strategies({"test_sort": _ts_strategy(snuba_aggregations=["last_seen"])}),
-            mock.patch("sentry.search.snuba.executors.options") as mock_opts,
-        ):
-            mock_opts.get.return_value = 0  # force every query over the cap
-            results = list(self.make_query("test_sort", query="issue"))
-            assert len(results) >= 0
-
     def test_too_many_candidates_returns_none(self):
         executor = PostgresSnubaQueryExecutor()
         qs = Group.objects.filter(project=self.project)
@@ -307,9 +296,10 @@ class TestFallbackBehavior(PostgresSortTestBase):
             list(self.make_query("test_sort"))
         assert snuba_spy.called
 
-    def test_unknown_sort_uses_snuba_path(self):
+    def test_unregistered_sort_uses_snuba_path(self):
+        # `date` isn't a Postgres strategy, so it takes the existing Snuba path unchanged.
         results = list(self.make_query("date"))
-        assert len(results) >= 0
+        assert len(results) == 3
 
 
 class TestDefaultPostgresSortStrategies(TestCase):
