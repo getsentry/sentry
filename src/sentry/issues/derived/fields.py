@@ -1,10 +1,3 @@
-"""
-Derived state field declarations.
-
-Each Feature is a named, typed slot in the derived state with a default value.
-Features with rich types use a Codec for JSON round-tripping.
-"""
-
 from enum import StrEnum
 
 from pydantic import BaseModel

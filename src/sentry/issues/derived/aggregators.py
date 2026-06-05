@@ -1,10 +1,3 @@
-"""
-Aggregator definitions.
-
-Each aggregator processes one GroupActionLogEntry at a time, reading from
-declared dep fields and writing to declared output fields.
-"""
-
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.derived.fields import (
     AUTOFIX_PRS,
