@@ -392,12 +392,12 @@ class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
                     substatus=None,
                     activity_type=ActivityType.SET_RESOLVED,
                 )
-        records = [r for r in logs.records if r.message == "issue.action_log"]
+        records = [r for r in logs.records if r.message == "group.action_log"]
         assert len(records) == 1
         assert records[0].action == "resolve"
         assert records[0].source == ActionSource.SLACK
-        assert records[0].group_id == group.id
-        assert records[0].actor_id == self.user.id
+        assert records[0].group_id == str(group.id)
+        assert records[0].actor_id == str(self.user.id)
 
     def test_ignore_emits_archive_action(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
@@ -409,7 +409,7 @@ class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
                     substatus=GroupSubStatus.UNTIL_ESCALATING,
                     activity_type=ActivityType.SET_IGNORED,
                 )
-        records = [r for r in logs.records if r.message == "issue.action_log"]
+        records = [r for r in logs.records if r.message == "group.action_log"]
         assert len(records) == 1
         assert records[0].action == "archive"
         assert records[0].source == ActionSource.SYSTEM
