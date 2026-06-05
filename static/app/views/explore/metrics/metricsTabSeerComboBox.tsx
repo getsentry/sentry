@@ -254,16 +254,26 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       search.removeFilter(TraceMetricKnownFieldKey.METRIC_UNIT);
       const cleanedQuery = search.formatString();
 
-      let nextMetric = traceMetric;
+      // The metric Seer actually specified, if any. Left undefined when the
+      // response neither embeds a metric in a visualization nor names one in the
+      // query — in that case we keep the panel's existing metric untouched.
+      let resolvedMetric: TraceMetric | undefined;
       if (visualizationTraceMetric) {
-        nextMetric = visualizationTraceMetric;
+        // parseMetricAggregate leaves unit undefined when the aggregate omits
+        // the unit arg; normalize to NONE_UNIT so downstream sample queries keep
+        // the same unit scoping as the query-filter path below.
+        resolvedMetric = {
+          ...visualizationTraceMetric,
+          unit: visualizationTraceMetric.unit ?? NONE_UNIT,
+        };
       } else if (queryMetricName && queryMetricType) {
-        nextMetric = {
+        resolvedMetric = {
           name: queryMetricName,
           type: queryMetricType,
           unit: queryMetricUnit ?? NONE_UNIT,
-        } satisfies TraceMetric;
+        };
       }
+      const nextMetric = resolvedMetric ?? traceMetric;
 
       // Build aggregateFields: groupBys first, then visualizes
       const aggregateFields: AggregateField[] = [];
@@ -273,19 +283,23 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       }
 
       // Use Seer visualizes if provided. In samples mode Seer returns no
-      // visualization, so build a default visualize from the metric type (the
-      // metric came from the query filters above) to keep the chart in sync
-      // with the selected metric. Fall back to preserving existing visualizes
-      // only when we couldn't resolve a metric at all.
+      // visualization, so when it picked a new metric (via the query filters
+      // above) build a default visualize from that metric's type to keep the
+      // chart in sync. Otherwise preserve the existing visualizes — Seer didn't
+      // choose a metric, so we must not clobber a customized aggregate with the
+      // type default.
       if (seerVisualizes.length > 0) {
         for (const viz of seerVisualizes) {
           aggregateFields.push(viz);
         }
-      } else if (nextMetric.name && nextMetric.type) {
-        const defaultAggregate = DEFAULT_YAXIS_BY_TYPE[nextMetric.type] ?? 'count';
+      } else if (resolvedMetric) {
+        const defaultAggregate = DEFAULT_YAXIS_BY_TYPE[resolvedMetric.type] ?? 'count';
         aggregateFields.push(
           new VisualizeFunction(
-            makeMetricsAggregate({aggregate: defaultAggregate, traceMetric: nextMetric})
+            makeMetricsAggregate({
+              aggregate: defaultAggregate,
+              traceMetric: resolvedMetric,
+            })
           )
         );
       } else {
