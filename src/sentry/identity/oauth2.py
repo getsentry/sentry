@@ -333,7 +333,7 @@ class OAuth2ApiStep:
         code = self.extract_code(validated_data, pipeline)
 
         try:
-            data = self._exchange_token(code, pipeline)
+            data = self._exchange_token(code)
         except OAuth2ApiStepError as e:
             logger.info("identity.token-exchange-error", extra={"error": str(e)})
             return PipelineStepResult.error(str(e))
@@ -341,7 +341,7 @@ class OAuth2ApiStep:
         pipeline.bind_state(self.bind_key, data)
         return PipelineStepResult.advance()
 
-    def _exchange_token(self, code: str, pipeline: Pipeline[Any, Any]) -> dict[str, Any]:
+    def _exchange_token(self, code: str) -> dict[str, Any]:
         """Exchange an authorization code for an access token.
 
         Raises OAuth2ApiStepError on failure.
