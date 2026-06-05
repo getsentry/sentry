@@ -64,7 +64,7 @@ def _process_incident_occurrence(
         # the tick decision is resolved so we can know if it's OK to dispatch the
         # incident occurrence, or if we should drop the occurrence and mark the
         # associated check-ins as UNKNOWN due to a system incident.
-        txn.set_tag("result", "delayed")
+        txn.set_attribute("result", "delayed")
 
         # XXX(epurkhiser): MessageRejected tells arroyo that we can't process
         # this message right now and it should try again
@@ -113,13 +113,13 @@ def _process_incident_occurrence(
         ).update(status=CheckInStatus.UNKNOWN)
 
         # Do NOT send the occurrence
-        txn.set_tag("result", "dropped")
+        txn.set_attribute("result", "dropped")
         metrics.incr("monitors.incident_ocurrences.dropped_incident_occurrence")
         return None
 
     try:
         send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
-        txn.set_tag("result", "sent")
+        txn.set_attribute("result", "sent")
         metrics.incr("monitors.incident_ocurrences.sent_incident_occurrence")
     except Exception:
         logger.exception("failed_send_incident_occurrence")
