@@ -280,12 +280,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Gate display of Seer action events in the issue activity timeline
     # https://linear.app/getsentry/project/add-seer-actions-to-issue-activityaction-log-0e641e1f5dac/overview
     manager.add("organizations:display-seer-actions-as-issue-activities", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Gate outbox-based mirroring of SeerRun records to Seer
-    manager.add("organizations:seer-run-mirror", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Gate outbox-based mirroring for autofix writes
-    manager.add("organizations:seer-run-mirror-autofix", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Gate outbox-based mirroring for explorer writes
-    manager.add("organizations:seer-run-mirror-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable search query attribute validation
     manager.add("organizations:search-query-attribute-validation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disables the enableSeerCoding setting, preventing orgs from changing code generation behavior
