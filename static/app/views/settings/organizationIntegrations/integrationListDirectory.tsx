@@ -54,7 +54,9 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
+import {LEGACY_WEBHOOK_PLUGIN} from 'sentry/views/settings/organizationIntegrations/legacyWebhookPluginConfig';
 import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
+import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
 
 const FirstPartyIntegrationAlert = OverrideOrDefault({
   overrideName: 'component:first-party-integration-alert',
@@ -153,6 +155,16 @@ function useIntegrationList() {
     isError: isDocIntegrationsError,
   } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
 
+  const hasLegacyWebhookUI = organization.features.includes('legacy-webhook-ui');
+  const {
+    data: legacyWebhooks,
+    isPending: isLegacyWebhooksPending,
+    isError: isLegacyWebhooksError,
+  } = useQuery({
+    ...legacyWebhooksQueryOptions(organization),
+    enabled: hasLegacyWebhookUI,
+  });
+
   // This is the only conditional query, so we need to handle the pending and error states uniquely
   const extraAppQuery = useQuery(sentryAppApiOptions({appSlug: extraAppSlug}));
   const {data: extraApp} = extraAppQuery;
@@ -167,7 +179,8 @@ function useIntegrationList() {
     isAppInstallsPending ||
     isPluginsPending ||
     isDocIntegrationsPending ||
-    isExtraAppPending;
+    isExtraAppPending ||
+    (hasLegacyWebhookUI && isLegacyWebhooksPending);
 
   const anyError =
     isConfigError ||
@@ -177,7 +190,8 @@ function useIntegrationList() {
     isAppInstallsError ||
     isPluginsError ||
     isDocIntegrationsError ||
-    isExtraAppError;
+    isExtraAppError ||
+    (hasLegacyWebhookUI && isLegacyWebhooksError);
 
   const sentryAppList = useMemo(() => {
     const list = orgOwnedApps ?? [];
@@ -190,15 +204,34 @@ function useIntegrationList() {
     return list.filter(app => !publishedAppSlugSet.has(app.slug));
   }, [orgOwnedApps, extraApp, publishedApps]);
 
+  const filteredPlugins = useMemo(() => {
+    if (!hasLegacyWebhookUI) {
+      return plugins;
+    }
+    const webhookEntry: PluginWithProjectList = {
+      ...LEGACY_WEBHOOK_PLUGIN,
+      projectList:
+        legacyWebhooks?.projects?.map(p => ({
+          projectId: String(p.projectId),
+          projectSlug: p.projectSlug,
+          projectName: p.projectName,
+          projectPlatform: p.projectPlatform,
+          configured: true,
+          enabled: p.enabled,
+        })) ?? [],
+    };
+    return [...plugins.filter(p => p.slug !== 'webhooks'), webhookEntry];
+  }, [plugins, hasLegacyWebhookUI, legacyWebhooks]);
+
   const list = useMemo(() => {
     return [
       ...publishedApps,
       ...sentryAppList,
       ...config.providers,
-      ...plugins,
+      ...filteredPlugins,
       ...docIntegrations,
     ];
-  }, [config.providers, publishedApps, sentryAppList, plugins, docIntegrations]);
+  }, [config.providers, publishedApps, sentryAppList, filteredPlugins, docIntegrations]);
 
   return {
     anyPending,
@@ -208,9 +241,10 @@ function useIntegrationList() {
     integrations,
     orgOwnedApps,
     appInstalls,
-    plugins,
+    plugins: filteredPlugins,
     publishedApps,
     list,
+    hasLegacyWebhookUI,
   };
 }
 
@@ -219,8 +253,16 @@ export default function IntegrationListDirectory() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const {appInstalls, anyPending, integrations, list, anyError, publishedApps, plugins} =
-    useIntegrationList();
+  const {
+    appInstalls,
+    anyPending,
+    integrations,
+    list,
+    anyError,
+    publishedApps,
+    plugins,
+    hasLegacyWebhookUI,
+  } = useIntegrationList();
 
   const category = decodeScalar(location.query.category) ?? '';
   const search = decodeScalar(location.query.search) ?? '';
@@ -434,6 +476,26 @@ export default function IntegrationListDirectory() {
 
   const renderIntegration = useCallback(
     (integration: AppOrProviderOrPlugin) => {
+      if (
+        hasLegacyWebhookUI &&
+        isPlugin(integration) &&
+        integration.slug === 'webhooks'
+      ) {
+        return (
+          <IntegrationRow
+            key="row-legacy-webhooks"
+            data-test-id="integration-row"
+            organization={organization}
+            type="firstParty"
+            slug="legacy-webhooks"
+            displayName={integration.name}
+            status={integration.projectList.length ? 'Installed' : 'Not Installed'}
+            publishStatus="published"
+            configurations={integration.projectList.length}
+            categories={getCategoriesForIntegration(integration)}
+          />
+        );
+      }
       if (isSentryApp(integration)) {
         return renderSentryApp(integration);
       }
@@ -445,7 +507,14 @@ export default function IntegrationListDirectory() {
       }
       return renderProvider(integration);
     },
-    [renderSentryApp, renderPlugin, renderDocIntegration, renderProvider]
+    [
+      renderSentryApp,
+      renderPlugin,
+      renderDocIntegration,
+      renderProvider,
+      hasLegacyWebhookUI,
+      organization,
+    ]
   );
 
   if (anyPending) {
