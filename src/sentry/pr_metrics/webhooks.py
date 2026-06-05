@@ -1,9 +1,12 @@
 """GitHub webhook handling for the PR Merge Live Metrics pipeline.
 
-Four independent processors serve two webhook event types:
+Multiple independent processors serve several webhook event types:
 - ``PullRequestEventWebhook``: ``handle_attribution``, ``handle_emission``,
   ``handle_activity``
 - ``IssueCommentEventWebhook``: ``handle_comment``
+- ``PullRequestReviewEventWebhook``: ``handle_review``
+- ``PullRequestReviewCommentEventWebhook``: ``handle_review_comment``
+- ``PullRequestReviewThreadEventWebhook``: ``handle_review_thread``
 
 Processors are separate rather than one routing function so the webhook loop
 isolates each in its own try/except — a failure in one can't suppress the
@@ -47,6 +50,8 @@ from sentry.pr_metrics.activity_types import (
     ReopenedPayload,
     ReviewRequestedPayload,
     ReviewRequestRemovedPayload,
+    ReviewSubmittedPayload,
+    ReviewThreadPayload,
     SynchronizePayload,
     UnassignedPayload,
     UnlabeledPayload,
@@ -262,15 +267,15 @@ def handle_comment(
     if action == "created":
         event_type = PullRequestActivityType.COMMENT_CREATED
         payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
-            sender_id=sender.get("id", 0),
-            sender_type=sender.get("type", "User"),
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
             author_association=comment.get("author_association", "NONE"),
         )
     else:
         event_type = PullRequestActivityType.COMMENT_EDITED
         payload_obj = CommentEditedPayload(
-            sender_id=sender.get("id", 0),
-            sender_type=sender.get("type", "User"),
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
             author_association=comment.get("author_association", "NONE"),
         )
 
@@ -279,6 +284,137 @@ def handle_comment(
         return
 
     _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
+
+
+def handle_review(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record a submitted PR review (approved / changes_requested / commented)."""
+    if event.get("action") != "submitted":
+        return
+
+    if not features.has("organizations:pr-metrics-activity", organization):
+        return
+
+    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    if pr is None:
+        return
+
+    review = event.get("review") or {}
+    sender = event.get("sender") or {}
+    payload = asdict(
+        ReviewSubmittedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            review_state=review.get("state", ""),
+            review_id=review.get("id", 0),
+        )
+    )
+
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+    _write_activity_row(pr, webhook_id, PullRequestActivityType.REVIEW_SUBMITTED, payload)
+
+
+def handle_review_comment(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record inline PR review comments (pull_request_review_comment events)."""
+    action = event.get("action")
+    if action not in ("created", "edited"):
+        return
+
+    if not features.has("organizations:pr-metrics-activity", organization):
+        return
+
+    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    if pr is None:
+        return
+
+    comment = event.get("comment") or {}
+    sender = event.get("sender") or {}
+
+    if action == "created":
+        event_type = PullRequestActivityType.COMMENT_CREATED
+        payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            author_association=comment.get("author_association", "NONE"),
+            is_review=True,
+            thread_id=comment.get("pull_request_review_id"),
+        )
+    else:
+        event_type = PullRequestActivityType.COMMENT_EDITED
+        payload_obj = CommentEditedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            author_association=comment.get("author_association", "NONE"),
+            is_review=True,
+            thread_id=comment.get("pull_request_review_id"),
+        )
+
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+    _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
+
+
+def handle_review_thread(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record review thread resolved / unresolved events."""
+    action = event.get("action")
+    if action not in ("resolved", "unresolved"):
+        return
+
+    if not features.has("organizations:pr-metrics-activity", organization):
+        return
+
+    pr = _get_pull_request(organization, repo, event.get("pull_request"))
+    if pr is None:
+        return
+
+    thread = event.get("thread") or {}
+    sender = event.get("sender") or {}
+    is_resolved = action == "resolved"
+    event_type = (
+        PullRequestActivityType.REVIEW_THREAD_RESOLVED
+        if is_resolved
+        else PullRequestActivityType.REVIEW_THREAD_UNRESOLVED
+    )
+    payload = asdict(
+        ReviewThreadPayload(
+            action=action,
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            thread_id=thread.get("id", 0),
+            is_resolved=is_resolved,
+        )
+    )
+
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+    _write_activity_row(pr, webhook_id, event_type, payload)
 
 
 def _get_pull_request(
@@ -428,8 +564,8 @@ def _build_activity_payload(
     sender = event.get("sender") or pull_request.get("user") or {}
 
     base_kw: dict[str, Any] = dict(
-        sender_id=sender.get("id", 0),
-        sender_type=sender.get("type", "User"),
+        sender_login=sender.get("login", ""),
+        sender_type=sender.get("type", ""),
         head_sha=head.get("sha"),
         base_sha=base.get("sha"),
     )
@@ -456,7 +592,7 @@ def _build_activity_payload(
                     commits=pull_request.get("commits", 0),
                     comments=pull_request.get("comments", 0),
                     review_comments=pull_request.get("review_comments", 0),
-                    merged_by_id=(pull_request.get("merged_by") or {}).get("id"),
+                    merged_by=(pull_request.get("merged_by") or {}).get("login"),
                 )
             )
         case "reopened":
@@ -473,8 +609,8 @@ def _build_activity_payload(
             return asdict(
                 SynchronizePayload(
                     **base_kw,
-                    before=event.get("before"),
-                    after=event.get("after"),
+                    before_sha=event.get("before"),
+                    after_sha=event.get("after"),
                 )
             )
         case "edited":
@@ -500,10 +636,10 @@ def _build_activity_payload(
             )
         case "assigned":
             assignee = event.get("assignee") or {}
-            return asdict(AssignedPayload(**base_kw, assignee_id=assignee.get("id", 0)))
+            return asdict(AssignedPayload(**base_kw, assignee_login=assignee.get("login", "")))
         case "unassigned":
             assignee = event.get("assignee") or {}
-            return asdict(UnassignedPayload(**base_kw, assignee_id=assignee.get("id", 0)))
+            return asdict(UnassignedPayload(**base_kw, assignee_login=assignee.get("login", "")))
         case "converted_to_draft":
             return asdict(ConvertedToDraftPayload(**base_kw))
         case "ready_for_review":

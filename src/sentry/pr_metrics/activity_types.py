@@ -2,29 +2,29 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-# Known values from GitHub webhook schema: "Bot", "User", "Organization".
+# Known values: "Bot", "User", "Organization".
 # Typed as str to remain forward-compatible with enterprise account types
 # (e.g. "EnterpriseUserAccount" on GHEC/EMU).
-GithubSenderType = str
+SenderType = str
 
 # Known values: "OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR",
 # "FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER", "MANNEQUIN", "NONE".
-GithubAuthorAssociation = str
+AuthorAssociation = str
 
 
 @dataclass
 class BaseActivityPayload:
-    """Structural metadata common to every GitHub PR activity row.
+    """Structural metadata common to every PR activity row.
 
     Titles, bodies, and comment text are intentionally absent — excluded at
     the type level rather than filtered by hand.
     """
 
     action: str = ""
-    # GitHub user ID of the account that triggered the webhook action (the
+    # Login of the account that triggered the webhook action (the
     # sender field in the event payload, not necessarily the PR author).
-    sender_id: int = 0
-    sender_type: GithubSenderType = "User"
+    sender_login: str = ""
+    sender_type: SenderType = ""
     head_sha: str | None = None
     base_sha: str | None = None
 
@@ -48,8 +48,8 @@ class ClosedPayload(BaseActivityPayload):
     commits: int = 0
     comments: int = 0
     review_comments: int = 0
-    # GitHub user ID of the account that merged the PR; None when not merged.
-    merged_by_id: int | None = None
+    # Login of the account that merged the PR; None when not merged.
+    merged_by: str | None = None
 
 
 @dataclass
@@ -64,8 +64,8 @@ class ReopenedPayload(BaseActivityPayload):
 @dataclass
 class SynchronizePayload(BaseActivityPayload):
     action: str = "synchronize"
-    before: str | None = None  # head SHA before the push
-    after: str | None = None  # head SHA after the push
+    before_sha: str | None = None  # head SHA before the push
+    after_sha: str | None = None  # head SHA after the push
 
 
 @dataclass
@@ -104,13 +104,17 @@ class ReviewRequestRemovedPayload(BaseActivityPayload):
 @dataclass
 class CommentCreatedPayload(BaseActivityPayload):
     action: str = "comment_created"
-    author_association: GithubAuthorAssociation = "NONE"
+    author_association: AuthorAssociation = "NONE"
+    is_review: bool = False
+    thread_id: int | None = None
 
 
 @dataclass
 class CommentEditedPayload(BaseActivityPayload):
     action: str = "comment_edited"
-    author_association: GithubAuthorAssociation = "NONE"
+    author_association: AuthorAssociation = "NONE"
+    is_review: bool = False
+    thread_id: int | None = None
 
 
 @dataclass
@@ -126,11 +130,26 @@ class ReadyForReviewPayload(BaseActivityPayload):
 @dataclass
 class AssignedPayload(BaseActivityPayload):
     action: str = "assigned"
-    # GitHub user ID of the account that was added as an assignee.
-    assignee_id: int = 0
+    # Login of the account that was added as an assignee.
+    assignee_login: str = ""
 
 
 @dataclass
 class UnassignedPayload(BaseActivityPayload):
     action: str = "unassigned"
-    assignee_id: int = 0
+    assignee_login: str = ""
+
+
+@dataclass
+class ReviewSubmittedPayload(BaseActivityPayload):
+    action: str = "review_submitted"
+    # "approved", "changes_requested", or "commented"
+    review_state: str = ""
+    review_id: int = 0
+
+
+@dataclass
+class ReviewThreadPayload(BaseActivityPayload):
+    action: str = "review_thread_resolved"  # overridden per-event
+    thread_id: int = 0
+    is_resolved: bool = False

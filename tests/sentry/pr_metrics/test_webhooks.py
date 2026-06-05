@@ -21,6 +21,9 @@ from sentry.pr_metrics.webhooks import (
     handle_attribution,
     handle_comment,
     handle_emission,
+    handle_review,
+    handle_review_comment,
+    handle_review_thread,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -470,7 +473,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         event: dict[str, Any] = {
             "action": action,
             "pull_request": pull_request,
-            "sender": {"id": 999, "type": "User"},
+            "sender": {"id": 999, "login": "testuser", "type": "User"},
         }
         if before is not None:
             event["before"] = before
@@ -526,7 +529,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert activity.payload["additions"] == 5
         assert activity.payload["comments"] == 3
         assert activity.payload["review_comments"] == 7
-        assert activity.payload["merged_by_id"] is None
+        assert activity.payload["merged_by"] is None
 
     def test_closed_merged_writes_merged_activity_with_metrics(self) -> None:
         self._call(
@@ -547,7 +550,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert activity.payload["commits"] == 5
         assert activity.payload["comments"] == 2
         assert activity.payload["review_comments"] == 4
-        assert activity.payload["merged_by_id"] == 999
+        assert activity.payload["merged_by"] == "testuser"
 
     def test_reopened_writes_reopened_activity_with_size_fields(self) -> None:
         self._call(action="reopened", additions=5, deletions=2, changed_files=1, commits=1)
@@ -564,8 +567,8 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.event_type == PullRequestActivityType.SYNCHRONIZED
-        assert activity.payload["before"] == "old-sha"
-        assert activity.payload["after"] == "new-sha"
+        assert activity.payload["before_sha"] == "old-sha"
+        assert activity.payload["after_sha"] == "new-sha"
 
     def test_edited_writes_edited_activity_with_changed_fields(self) -> None:
         self._call(
@@ -606,7 +609,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["action"] == "opened"
-        assert activity.payload["sender_id"] == 999
+        assert activity.payload["sender_login"] == "testuser"
         assert activity.payload["head_sha"] == "abc123"
         assert activity.payload["base_sha"] == "def456"
 
@@ -741,7 +744,7 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
     # --- Assigned / unassigned ---
 
-    def test_assigned_writes_activity_with_assignee_id(self) -> None:
+    def test_assigned_writes_activity_with_assignee_login(self) -> None:
         self._call(
             action="assigned",
             webhook_id="delivery-assign",
@@ -750,9 +753,9 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.event_type == PullRequestActivityType.ASSIGNED
-        assert activity.payload["assignee_id"] == 42
+        assert activity.payload["assignee_login"] == "dev"
 
-    def test_unassigned_writes_activity_with_assignee_id(self) -> None:
+    def test_unassigned_writes_activity_with_assignee_login(self) -> None:
         self._call(
             action="unassigned",
             webhook_id="delivery-unassign",
@@ -761,18 +764,18 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.event_type == PullRequestActivityType.UNASSIGNED
-        assert activity.payload["assignee_id"] == 42
+        assert activity.payload["assignee_login"] == "dev"
 
     # --- sender_type in base payload ---
 
     def test_bot_sender_type_stored_in_payload(self) -> None:
-        self._call(action="opened", extra_event={"sender": {"id": 999, "type": "Bot"}})
+        self._call(action="opened", extra_event={"sender": {"login": "testbot", "type": "Bot"}})
 
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["sender_type"] == "Bot"
 
     def test_human_sender_type_stored_in_payload(self) -> None:
-        self._call(action="opened", extra_event={"sender": {"id": 999, "type": "User"}})
+        self._call(action="opened", extra_event={"sender": {"login": "testuser", "type": "User"}})
 
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["sender_type"] == "User"
@@ -914,7 +917,7 @@ class HandleCommentForPrMetricsTest(TestCase):
                 "number": 9999,
                 "pull_request": {"url": "https://github.com/org/repo/pull/9999"},
             },
-            "sender": {"id": 123, "type": "User"},
+            "sender": {"id": 123, "login": "testuser", "type": "User"},
             "comment": {"author_association": "NONE"},
         }
         with patch(f"{MODULE}.logger") as mock_logger:
@@ -940,5 +943,210 @@ class HandleCommentForPrMetricsTest(TestCase):
 
     def test_deleted_action_skipped(self) -> None:
         self._call(action="deleted", webhook_id="delivery-del")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature("organizations:pr-metrics-activity")
+@cell_silo_test
+class HandleReviewForPrMetricsTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+        )
+
+    def _call(
+        self,
+        action: str = "submitted",
+        review_state: str = "approved",
+        review_id: int = 100,
+        webhook_id: str | None = "delivery-1",
+    ) -> None:
+        event: dict[str, Any] = {
+            "action": action,
+            "review": {
+                "id": review_id,
+                "state": review_state,
+                "user": {"id": 77, "login": "reviewer"},
+            },
+            "pull_request": {"number": 42},
+            "sender": {"id": 77, "login": "reviewer", "type": "User"},
+        }
+        handle_review(
+            github_event=GithubWebhookType.PULL_REQUEST_REVIEW,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id=webhook_id,
+        )
+
+    def test_submitted_writes_review_submitted_activity(self) -> None:
+        self._call(review_state="approved")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.REVIEW_SUBMITTED
+        assert activity.payload["review_state"] == "approved"
+        assert activity.payload["review_id"] == 100
+        assert activity.payload["sender_login"] == "reviewer"
+
+    def test_changes_requested_state(self) -> None:
+        self._call(review_state="changes_requested")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["review_state"] == "changes_requested"
+
+    def test_non_submitted_actions_skipped(self) -> None:
+        self._call(action="edited")
+        self._call(action="dismissed")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_flag_off_skips_review(self) -> None:
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_no_activity_without_webhook_id(self) -> None:
+        self._call(webhook_id=None)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature("organizations:pr-metrics-activity")
+@cell_silo_test
+class HandleReviewCommentForPrMetricsTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+        )
+
+    def _call(
+        self,
+        action: str = "created",
+        review_id: int = 100,
+        author_association: str = "CONTRIBUTOR",
+        webhook_id: str | None = "delivery-1",
+    ) -> None:
+        event: dict[str, Any] = {
+            "action": action,
+            "comment": {
+                "id": 1,
+                "pull_request_review_id": review_id,
+                "author_association": author_association,
+            },
+            "pull_request": {"number": 42},
+            "sender": {"id": 77, "login": "reviewer", "type": "User"},
+        }
+        handle_review_comment(
+            github_event=GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id=webhook_id,
+        )
+
+    def test_created_writes_comment_created_activity(self) -> None:
+        self._call(action="created", review_id=42)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.COMMENT_CREATED
+        assert activity.payload["is_review"] is True
+        assert activity.payload["thread_id"] == 42
+        assert activity.payload["sender_login"] == "reviewer"
+
+    def test_edited_writes_comment_edited_activity(self) -> None:
+        self._call(action="edited")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.COMMENT_EDITED
+        assert activity.payload["is_review"] is True
+
+    def test_deleted_action_skipped(self) -> None:
+        self._call(action="deleted")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_flag_off_skips_review_comment(self) -> None:
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_redelivery_deduplicated(self) -> None:
+        self._call(webhook_id="delivery-abc")
+        self._call(webhook_id="delivery-abc")
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 1
+
+
+@with_feature("organizations:pr-metrics-activity")
+@cell_silo_test
+class HandleReviewThreadForPrMetricsTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+        )
+
+    def _call(
+        self,
+        action: str = "resolved",
+        thread_id: int = 55,
+        webhook_id: str | None = "delivery-1",
+    ) -> None:
+        event: dict[str, Any] = {
+            "action": action,
+            "thread": {"id": thread_id},
+            "pull_request": {"number": 42},
+            "sender": {"id": 77, "login": "reviewer", "type": "User"},
+        }
+        handle_review_thread(
+            github_event=GithubWebhookType.PULL_REQUEST_REVIEW_THREAD,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id=webhook_id,
+        )
+
+    def test_resolved_writes_resolved_activity(self) -> None:
+        self._call(action="resolved", thread_id=55)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.REVIEW_THREAD_RESOLVED
+        assert activity.payload["thread_id"] == 55
+        assert activity.payload["is_resolved"] is True
+
+    def test_unresolved_writes_unresolved_activity(self) -> None:
+        self._call(action="unresolved", thread_id=55, webhook_id="delivery-2")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.REVIEW_THREAD_UNRESOLVED
+        assert activity.payload["is_resolved"] is False
+
+    def test_unknown_action_skipped(self) -> None:
+        self._call(action="created")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_flag_off_skips_thread_event(self) -> None:
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_no_activity_without_webhook_id(self) -> None:
+        self._call(webhook_id=None)
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()

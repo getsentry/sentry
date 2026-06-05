@@ -66,6 +66,9 @@ from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_acti
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
 from sentry.pr_metrics.webhooks import handle_comment as pr_metrics_handle_comment
 from sentry.pr_metrics.webhooks import handle_emission as pr_metrics_handle_emission
+from sentry.pr_metrics.webhooks import handle_review as pr_metrics_handle_review
+from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handle_review_comment
+from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
@@ -1112,6 +1115,27 @@ class IssueCommentEventWebhook(GitHubWebhook):
     )
 
 
+class PullRequestReviewEventWebhook(GitHubWebhook):
+    """https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review"""
+
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_review,)
+
+
+class PullRequestReviewCommentEventWebhook(GitHubWebhook):
+    """https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_comment"""
+
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW_COMMENT
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_review_comment,)
+
+
+class PullRequestReviewThreadEventWebhook(GitHubWebhook):
+    """https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_thread"""
+
+    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW_THREAD
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_review_thread,)
+
+
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
     """
@@ -1134,6 +1158,9 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.ISSUE: IssuesEventWebhook,
         GithubWebhookType.ISSUE_COMMENT: IssueCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
+        GithubWebhookType.PULL_REQUEST_REVIEW_THREAD: PullRequestReviewThreadEventWebhook,
         GithubWebhookType.PUSH: PushEventWebhook,
     }
 
