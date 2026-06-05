@@ -2,7 +2,6 @@ import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from '@sentry/scraps/link';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -16,11 +15,13 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
 import {defined} from 'sentry/utils/defined';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
+import {CellAction} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
   Table,
@@ -219,11 +220,21 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       !parseCursor(aggregateCursor)?.offset && (
                         <TopResultsIndicator color={palette[i]!} />
                       )}
-                    <Tooltip title={t('View Samples')} containerDisplayMode="flex">
-                      <StyledLink to={target}>
-                        <IconStack />
-                      </StyledLink>
-                    </Tooltip>
+                    <CellAction
+                      column={VIEW_SAMPLES_COLUMN}
+                      dataRow={row as TableDataRow}
+                      handleCellAction={() => null}
+                      allowActions={[]}
+                      extraMenuItems={[
+                        {
+                          key: 'view-samples',
+                          label: t('View Samples'),
+                          to: target,
+                        },
+                      ]}
+                    >
+                      <IconStack />
+                    </CellAction>
                   </TableBodyCell>
                   {visibleAggregateFields.map((aggregateField, j) => {
                     const field = isGroupBy(aggregateField)
@@ -286,6 +297,10 @@ const TopResultsIndicator = styled('div')<{color: string}>`
   background-color: ${p => p.color};
 `;
 
-const StyledLink = styled(Link)`
-  display: flex;
-`;
+const VIEW_SAMPLES_COLUMN: TableColumn<keyof TableDataRow> = {
+  key: 'view-samples',
+  name: 'view-samples',
+  column: {kind: 'field', field: 'view-samples'},
+  isSortable: false,
+  type: 'string',
+};
