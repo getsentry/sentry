@@ -44,7 +44,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     def _count(
         self, request: Request, query, organization, projects, environments, extra_query_kwargs=None
     ):
-        with start_span(op="_count"):
+        with start_span(name="_count", attributes={"sentry.op": "_count"}):
             query_kwargs = {
                 "projects": projects,
                 "referrer": Referrer.API_ORGANIZATION_ISSUES_COUNT,
