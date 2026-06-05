@@ -15,6 +15,7 @@ from sentry.issues.action_log import (
     ActionContext,
     DuplicateActionError,
     GroupActionActor,
+    ResolvedSource,
     action_context_scope,
     get_action_context,
     publish_action,
@@ -70,7 +71,7 @@ class TestResolveActionSource(TestCase):
                 "HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "claude-code",
             },
         )
-        assert resolve_action_source(request) == "mcp:claude-code"
+        assert resolve_action_source(request) == ResolvedSource(ActionSource.MCP, "claude-code")
 
     def test_mcp_unrecognized_family_logs_and_falls_back(self) -> None:
         request = _make_request(
@@ -80,7 +81,7 @@ class TestResolveActionSource(TestCase):
             },
         )
         with self.assertLogs("sentry.issues.action_log", level="WARNING") as logs:
-            assert resolve_action_source(request) == "mcp"
+            assert resolve_action_source(request) == ResolvedSource(ActionSource.MCP)
         assert any(r.__dict__.get("client_family") == "some-new-editor" for r in logs.records)
 
     def test_mcp_catchall_family_is_not_logged(self) -> None:
@@ -91,26 +92,26 @@ class TestResolveActionSource(TestCase):
             },
         )
         with self.assertNoLogs("sentry.issues.action_log", level="WARNING"):
-            assert resolve_action_source(request) == "mcp"
+            assert resolve_action_source(request) == ResolvedSource(ActionSource.MCP)
 
     def test_mcp_without_family(self) -> None:
         request = _make_request(meta={"HTTP_USER_AGENT": MCP_USER_AGENT})
-        assert resolve_action_source(request) == "mcp"
+        assert resolve_action_source(request) == ResolvedSource(ActionSource.MCP)
 
     def test_mcp_family_without_user_agent_is_not_mcp(self) -> None:
         # The MCP source is gated on the User-Agent, not the client-family header, so the
         # header alone does not flip the source to mcp.
         request = _make_request(meta={"HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "claude-code"})
-        assert resolve_action_source(request) == "api"
+        assert resolve_action_source(request) == ResolvedSource(ActionSource.API)
 
     def test_seer_referrer(self) -> None:
         request = _make_request(meta={"HTTP_X_SEER_REFERRER": "seer-explorer"})
-        assert resolve_action_source(request) == "seer:explorer"
+        assert resolve_action_source(request) == ResolvedSource(ActionSource.SEER, "explorer")
 
     def test_seer_rpc_authenticator(self) -> None:
         authenticator = MagicMock(spec=SeerRpcSignatureAuthentication)
         request = _make_request(successful_authenticator=authenticator)
-        assert resolve_action_source(request) == "seer:explorer"
+        assert resolve_action_source(request) == ResolvedSource(ActionSource.SEER, "explorer")
 
     def test_seer_referrer_takes_priority_over_rpc_auth(self) -> None:
         authenticator = MagicMock(spec=SeerRpcSignatureAuthentication)
@@ -118,20 +119,20 @@ class TestResolveActionSource(TestCase):
             meta={"HTTP_X_SEER_REFERRER": "seer-slack"},
             successful_authenticator=authenticator,
         )
-        assert resolve_action_source(request) == "seer:slack"
+        assert resolve_action_source(request) == ResolvedSource(ActionSource.SEER, "slack")
 
     def test_frontend_request(self) -> None:
         request = _make_request(cookies={"session": "abc"})
         request.auth = None
-        assert resolve_action_source(request) == "web"
+        assert resolve_action_source(request) == ResolvedSource(ActionSource.WEB)
 
     def test_sentry_cli(self) -> None:
         request = _make_request(meta={"HTTP_USER_AGENT": "sentry-cli/2.30.0"})
-        assert resolve_action_source(request) == "sentry-cli"
+        assert resolve_action_source(request) == ResolvedSource(ActionSource.SENTRY_CLI)
 
     def test_generic_api_fallback(self) -> None:
         request = _make_request(meta={"HTTP_USER_AGENT": "python-requests/2.31.0"})
-        assert resolve_action_source(request) == "api"
+        assert resolve_action_source(request) == ResolvedSource(ActionSource.API)
 
 
 class TestActionContext(TestCase):
@@ -154,6 +155,13 @@ class TestActionContext(TestCase):
             assert ctx.source == "system"
             assert ctx.actor == SYSTEM_ACTOR
 
+    def test_scope_carries_source_variant(self) -> None:
+        with action_context_scope(source="mcp", actor=SYSTEM_ACTOR, source_variant="cursor"):
+            ctx = get_action_context()
+            assert ctx is not None
+            assert ctx.source == "mcp"
+            assert ctx.source_variant == "cursor"
+
     def test_nested_scopes(self) -> None:
         actor1 = GroupActionActor.user(1)
         actor2 = GroupActionActor.user(2)
@@ -170,7 +178,8 @@ class TestPublishAction(TestCase):
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
                 ResolveAction(),
-                source="mcp:claude-code",
+                source=ActionSource.MCP,
+                source_variant="claude-code",
                 group_id=1,
                 organization_id=2,
                 project_id=3,
@@ -181,8 +190,24 @@ class TestPublishAction(TestCase):
         extra = record.__dict__
         assert record.message == "group.action_log"
         assert extra["action"] == "resolve"
-        assert extra["source"] == "mcp:claude-code"
+        assert extra["source"] == ActionSource.MCP
+        assert extra["source_variant"] == "claude-code"
+        # The variant is folded into the persisted payload.
+        assert extra["metadata"] == {"source_variant": "claude-code"}
         assert extra["actor_id"] == "4"
+
+    def test_no_variant_is_omitted_from_payload(self) -> None:
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            publish_action(
+                ResolveAction(),
+                source=ActionSource.WEB,
+                group_id=1,
+                organization_id=2,
+                project_id=3,
+            )
+        extra = logs.records[0].__dict__
+        assert extra["source_variant"] is None
+        assert extra["metadata"] == {}
 
     def test_actor_type_derived_from_actor(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
@@ -222,6 +247,7 @@ class TestPublishActionFromContext(TestCase):
         assert any("without ActionContext" in r.message for r in error_records)
         info_record = [r for r in logs.records if r.message == "group.action_log"][0]
         assert info_record.__dict__["source"] == "unknown"
+        assert info_record.__dict__["source_variant"] is None
 
 
 class TestActionLogIntegration(APITestCase, SnubaTestCase):
@@ -490,6 +516,22 @@ class TestPublishActionWrite(TestCase):
         assert entry.source == ActionSource.API
         assert entry.data == {}
         assert entry.date_added is not None
+
+    def test_source_variant_stored_in_data(self) -> None:
+        with self.options({"issues.action-log.write-to-db": True}):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.MCP,
+                source_variant="cursor",
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                actor=GroupActionActor.user(self.user.id),
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.source == ActionSource.MCP
+        assert entry.data == {"source_variant": "cursor"}
 
     def test_system_action(self) -> None:
         with self.options({"issues.action-log.write-to-db": True}):

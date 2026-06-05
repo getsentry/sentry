@@ -215,10 +215,10 @@ def update_groups(
     if discard:
         return handle_discard(request, groups, projects, acting_user)
 
-    source = resolve_action_source(request)
+    resolved = resolve_action_source(request)
     actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
 
-    with action_context_scope(source=source, actor=actor):
+    with action_context_scope(source=resolved.source, actor=actor, source_variant=resolved.variant):
         status_details = result.pop("statusDetails", result)
         status = result.get("status")
         res_type = None
@@ -831,6 +831,7 @@ def prepare_response(
             publish_action(
                 MergeFromOtherAction(counterpart_group_ids=child_ids),
                 source=ctx.source,
+                source_variant=ctx.source_variant,
                 group_id=primary_id,
                 organization_id=primary.project.organization_id,
                 project_id=primary.project_id,
@@ -841,6 +842,7 @@ def prepare_response(
                 publish_action(
                     MergeIntoOtherAction(counterpart_group_id=primary_id),
                     source=ctx.source,
+                    source_variant=ctx.source_variant,
                     group_id=child_id,
                     organization_id=child.project.organization_id,
                     project_id=child.project_id,

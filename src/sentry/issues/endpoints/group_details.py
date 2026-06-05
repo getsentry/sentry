@@ -341,9 +341,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             data.update({"participants": participants})
 
+            resolved = resolve_action_source(request)
             publish_action(
                 ViewAction(),
-                source=resolve_action_source(request),
+                source=resolved.source,
+                source_variant=resolved.variant,
                 group_id=group.id,
                 organization_id=group.organization.id,
                 project_id=group.project_id,

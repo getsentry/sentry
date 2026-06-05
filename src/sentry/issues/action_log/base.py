@@ -46,8 +46,7 @@ class ActionSource(StrEnum):
     API = "api"
     SYSTEM = "system"
     MCP = "mcp"
-    SEER_EXPLORER = "seer:explorer"
-    SEER_SLACK = "seer:slack"
+    SEER = "seer"
     SLACK = "slack"
     SLACK_STAGING = "slack_staging"
     DISCORD = "discord"
@@ -68,62 +67,81 @@ class ActionSource(StrEnum):
     )
 
 
-def resolve_action_source(request: Request) -> str:
+@dataclass(frozen=True)
+class ResolvedSource:
     """
-    Determine the ActionSource from a request. Priority: MCP > Seer > frontend > CLI > API.
+    The origin of an action: a bounded base ``source`` plus an optional free-form
+    ``variant`` qualifier (e.g. the MCP client family or the Seer surface). The variant
+    is sparse — most sources have none — and is persisted in the action's ``data`` JSON
+    rather than baked into ``source``.
+    """
+
+    source: ActionSource
+    variant: str | None = None
+
+
+def resolve_action_source(request: Request) -> ResolvedSource:
+    """
+    Determine the ActionSource (and optional variant) from a request.
+    Priority: MCP > Seer > frontend > CLI > API.
     """
     user_agent = request.META.get("HTTP_USER_AGENT", "")
 
     if user_agent.startswith(MCP_USER_AGENT_PREFIX):
         family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
         if family in KNOWN_MCP_CLIENT_FAMILIES:
-            return f"{ActionSource.MCP}:{family}"
+            return ResolvedSource(ActionSource.MCP, family)
         if family and family not in MCP_CATCHALL_CLIENT_FAMILIES:
             # Values outside this set are logged so we know to add new ones
             logger.warning(
                 "group.action_log.unrecognized_mcp_client_family",
                 extra={"client_family": family},
             )
-        return ActionSource.MCP
+        return ResolvedSource(ActionSource.MCP)
 
     seer_referrer = request.META.get(SEER_REFERRER_HEADER, "")
     if seer_referrer:
         if "slack" in seer_referrer.lower():
-            return ActionSource.SEER_SLACK
-        return ActionSource.SEER_EXPLORER
+            return ResolvedSource(ActionSource.SEER, "slack")
+        return ResolvedSource(ActionSource.SEER, "explorer")
 
     from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 
     if isinstance(
         getattr(request, "successful_authenticator", None), SeerRpcSignatureAuthentication
     ):
-        return ActionSource.SEER_EXPLORER
+        return ResolvedSource(ActionSource.SEER, "explorer")
 
     if is_frontend_request(request):
-        return ActionSource.WEB
+        return ResolvedSource(ActionSource.WEB)
 
     if user_agent.startswith("sentry-cli/"):
-        return ActionSource.SENTRY_CLI
+        return ResolvedSource(ActionSource.SENTRY_CLI)
 
-    return ActionSource.API
+    return ResolvedSource(ActionSource.API)
 
 
 @dataclass(frozen=True)
 class ActionContext:
     source: str
     actor: GroupActionActor = SYSTEM_ACTOR
+    source_variant: str | None = None
 
 
 _action_context: ContextVar[ActionContext | None] = ContextVar("action_context", default=None)
 
 
 @contextmanager
-def action_context_scope(source: str, actor: GroupActionActor) -> Generator[None]:
+def action_context_scope(
+    source: str, actor: GroupActionActor, source_variant: str | None = None
+) -> Generator[None]:
     """
     Set action attribution context for the duration of a block. Must be set before
     any code path that calls publish_action_from_context().
     """
-    token = _action_context.set(ActionContext(source=source, actor=actor))
+    token = _action_context.set(
+        ActionContext(source=source, actor=actor, source_variant=source_variant)
+    )
     try:
         yield
     finally:
@@ -142,6 +160,7 @@ def publish_action(
     action: GroupAction,
     *,
     source: str,
+    source_variant: str | None = None,
     group_id: int,
     organization_id: int,
     project_id: int,
@@ -152,17 +171,29 @@ def publish_action(
     Record an issue action. Raises DuplicateActionError if an idempotency_key
     conflicts with an existing entry.
 
+    ``source`` is the bounded origin (an ActionSource); ``source_variant`` is an
+    optional qualifier (e.g. MCP client family) stored alongside the action payload.
+
     Use this for shallow endpoint-level actions where the request is in scope
     (VIEW, COMMENT, TRIGGER_AUTOFIX). For mutation sites deeper in the stack,
     prefer publish_action_from_context().
     """
     action_name = action.get_type().name.lower()
-    metrics.incr("issues.action_log", tags={"action": action_name, "source": source})
+    # source_variant is sparse, so only attach it to the persisted payload when present.
+    data = action.dict()
+    if source_variant is not None:
+        data["source_variant"] = source_variant
+
+    metrics.incr(
+        "issues.action_log",
+        tags={"action": action_name, "source": source, "source_variant": source_variant or "none"},
+    )
     logger.info(
         "group.action_log",
         extra={
             "action": action_name,
             "source": source,
+            "source_variant": source_variant,
             # IDs are stringified so large values aren't rendered in scientific
             # notation by downstream log tooling.
             "group_id": str(group_id),
@@ -170,7 +201,7 @@ def publish_action(
             "project_id": str(project_id),
             "actor_type": actor.actor_type.name.lower(),
             "actor_id": str(actor.actor_id),
-            "metadata": action.dict(),
+            "metadata": data,
             "idempotency_key": idempotency_key,
         },
     )
@@ -186,7 +217,7 @@ def publish_action(
         actor_type=actor.actor_type.value,
         actor_id=actor.actor_id,
         source=source,
-        data=action.dict(),
+        data=data,
         idempotency_key=idempotency_key,
     )
 
@@ -229,12 +260,15 @@ def publish_action_from_context(
         )
         source: str = ActionSource.UNKNOWN
         actor = SYSTEM_ACTOR
+        source_variant: str | None = None
     else:
         source = ctx.source
         actor = ctx.actor
+        source_variant = ctx.source_variant
     publish_action(
         action,
         source=source,
+        source_variant=source_variant,
         group_id=group_id,
         organization_id=organization_id,
         project_id=project_id,

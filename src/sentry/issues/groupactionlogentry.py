@@ -45,11 +45,12 @@ class GroupActionLogEntry(Model):
     )
     actor_id = BoundedBigIntegerField()
 
-    # Where the action originated (e.g. "web", "api", "mcp:cursor").
-    # Usually an ActionSource value, but may include sub-source qualifiers.
+    # Where the action originated (e.g. "web", "api", "mcp"). An ActionSource value.
+    # Finer-grained origin qualifiers live in data["source_variant"] (see below).
     source = models.CharField(max_length=64)
 
-    # JSON payload of the GroupAction subclass for this type.
+    # JSON payload of the GroupAction subclass for this type. May also carry an optional
+    # "source_variant" attribution key (e.g. the MCP client family) set at publish time.
     data = models.JSONField(default=dict)
 
     # DB-defaulted; backfill code may pass an explicit value.

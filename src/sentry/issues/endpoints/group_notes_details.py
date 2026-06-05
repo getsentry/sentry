@@ -64,9 +64,11 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         note.delete()
 
+        resolved = resolve_action_source(request)
         publish_action(
             CommentDeleteAction(comment_id=note_id_int),
-            source=resolve_action_source(request),
+            source=resolved.source,
+            source_variant=resolved.variant,
             group_id=group.id,
             organization_id=group.organization.id,
             project_id=group.project_id,
@@ -117,9 +119,11 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             note.data.update(dict(payload))
             note.save()
 
+            resolved = resolve_action_source(request)
             publish_action(
                 CommentEditAction(comment_id=note.id),
-                source=resolve_action_source(request),
+                source=resolved.source,
+                source_variant=resolved.variant,
                 group_id=group.id,
                 organization_id=group.organization.id,
                 project_id=group.project_id,

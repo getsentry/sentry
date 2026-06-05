@@ -239,12 +239,14 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         self.create_issue_activity(request, group, installation, external_issue, new=True)
 
+        resolved = resolve_action_source(request)
         publish_action(
             CreateExternalIssueAction(
                 provider=integration.provider,
                 external_issue_key=external_issue.key,
             ),
-            source=resolve_action_source(request),
+            source=resolved.source,
+            source_variant=resolved.variant,
             group_id=group.id,
             organization_id=organization_id,
             project_id=group.project_id,
@@ -358,12 +360,14 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         self.create_issue_activity(request, group, installation, external_issue, new=False)
 
+        resolved = resolve_action_source(request)
         publish_action(
             LinkExternalIssueAction(
                 provider=integration.provider,
                 external_issue_key=external_issue.key,
             ),
-            source=resolve_action_source(request),
+            source=resolved.source,
+            source_variant=resolved.variant,
             group_id=group.id,
             organization_id=organization_id,
             project_id=group.project_id,
@@ -434,12 +438,14 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         # Only record the action when a link was actually removed; the endpoint still
         # returns 204 when nothing was linked to this group.
         if deleted:
+            resolved = resolve_action_source(request)
             publish_action(
                 UnlinkExternalIssueAction(
                     provider=integration.provider,
                     external_issue_key=external_issue.key,
                 ),
-                source=resolve_action_source(request),
+                source=resolved.source,
+                source_variant=resolved.variant,
                 group_id=group.id,
                 organization_id=organization_id,
                 project_id=group.project_id,
