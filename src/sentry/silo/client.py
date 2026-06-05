@@ -50,11 +50,11 @@ def get_cell_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv6A
     cell_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
     for cell in get_global_directory().cells:
-        urls = [cell.address]
+        addresses = [cell.address]
         if cell.api_gateway_address:
-            urls.append(cell.api_gateway_address)
-        for url in urls:
-            url = urllib3.util.parse_url(url)
+            addresses.append(cell.api_gateway_address)
+        for address in addresses:
+            url = urllib3.util.parse_url(address)
             if url.host:
                 # This is an IPv4 address.
                 # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
@@ -72,7 +72,7 @@ def get_cell_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv6A
                 cell_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
             else:
                 sentry_sdk.capture_exception(
-                    CellResolutionError(f"Unable to parse url to host for: {cell.address}")
+                    CellResolutionError(f"Unable to parse url to host for: {address}")
                 )
 
     return frozenset(cell_ip_addresses)
