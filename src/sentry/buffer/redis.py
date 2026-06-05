@@ -368,7 +368,7 @@ class RedisBuffer(Buffer):
         key = make_key(model, filters)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
-        pipe = self.get_redis_connection(key)
+        pipe = self.get_redis_connection(key, transaction=(not self.is_redis_cluster))
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
 
