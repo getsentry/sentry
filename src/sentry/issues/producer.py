@@ -18,6 +18,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.options.rollout import in_random_rollout
+from sentry.taskworker.adapters import SentryMetricsBackend
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
@@ -50,7 +51,9 @@ _occurrence_producer = SingletonProducer(
 )
 
 _occurrence_task_producer = TaskProducer(
-    partial(_get_occurrence_producer, name="sentry.issues.tasks.producer")
+    name="sentry.issues.tasks.producer",
+    producer_factory=partial(_get_occurrence_producer, name="sentry.issues.tasks.producer"),
+    metrics_backend=SentryMetricsBackend(),
 )
 
 
