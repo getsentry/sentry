@@ -57,7 +57,7 @@ function makeSnapshot(overrides = {}) {
 }
 
 function renderButton(dashboardOverrides = {}) {
-  const organization = OrganizationFixture({features: ['dashboards-revisions']});
+  const organization = OrganizationFixture();
   const dashboard = DashboardFixture([], {
     id: '1',
     title: 'My Dashboard',
