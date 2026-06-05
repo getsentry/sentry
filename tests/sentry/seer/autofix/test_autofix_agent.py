@@ -512,6 +512,77 @@ class TestTriggerAutofixAgent(TestCase):
 
         assert mock_client_class.call_args.kwargs["reasoning_effort"] is None
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_code_review_disabled_without_flag(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        # Guard against this test passing because the step stopped enabling coding.
+        assert STEP_CONFIGS[AutofixStep.CODE_CHANGES].enable_coding is True
+
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.CODE_CHANGES,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
+
+        assert mock_client_class.call_args.kwargs["code_review_enabled"] is False
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_code_review_enabled_on_coding_step_with_flag(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        assert STEP_CONFIGS[AutofixStep.CODE_CHANGES].enable_coding is True
+
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        with self.feature("organizations:seer-autofix-code-review"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.CODE_CHANGES,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+            )
+
+        assert mock_client_class.call_args.kwargs["code_review_enabled"] is True
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_code_review_stays_disabled_on_non_coding_step_with_flag(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        # The review tool only operates on accumulated patches, so it should stay
+        # off for steps that don't enable coding, even when the flag is on.
+        assert STEP_CONFIGS[AutofixStep.ROOT_CAUSE].enable_coding is False
+
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 123
+
+        with self.feature("organizations:seer-autofix-code-review"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+            )
+
+        assert mock_client_class.call_args.kwargs["code_review_enabled"] is False
+
 
 class TestTriggerCodingAgentHandoff(TestCase):
     """Tests for trigger_coding_agent_handoff function."""
@@ -1059,3 +1130,63 @@ class TestTriggerPushChanges(TestCase):
 
         body = mock_post.call_args[0][0]
         assert body["payload"]["pr_description_suffix"] == f"Fixes {self.group.qualified_short_id}"
+
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pr_description_suffix_includes_linear_issue(self, mock_post):
+        mock_post.return_value = MagicMock(status=200)
+        self.create_platform_external_issue(
+            group=self.group,
+            service_type="linear",
+            display_name="PROJ#123",
+            web_url="https://linear.app/proj/issue/PROJ-123",
+        )
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"group_id": self.group.id},
+        )
+
+        with self.feature("organizations:gen-ai-features"):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                state=state,
+            )
+
+        body = mock_post.call_args[0][0]
+        expected = f"Fixes {self.group.qualified_short_id}\nFixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)"
+        assert body["payload"]["pr_description_suffix"] == expected
+
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pr_description_suffix_linear_alphanumeric_prefix(self, mock_post):
+        mock_post.return_value = MagicMock(status=200)
+        self.create_platform_external_issue(
+            group=self.group,
+            service_type="linear",
+            display_name="PROJ2#456",
+            web_url="https://linear.app/team/issue/PROJ2-456",
+        )
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"group_id": self.group.id},
+        )
+
+        with self.feature("organizations:gen-ai-features"):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                state=state,
+            )
+
+        body = mock_post.call_args[0][0]
+        expected = f"Fixes {self.group.qualified_short_id}\nFixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
+        assert body["payload"]["pr_description_suffix"] == expected

@@ -7,7 +7,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,

@@ -103,7 +103,7 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
 @cell_silo_endpoint
 class GroupAutofixSetupCheck(GroupAiEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True

@@ -6,8 +6,6 @@ import {Container} from '@sentry/scraps/layout';
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb';
-import {SettingsSearch} from 'sentry/views/settings/components/settingsSearch';
-
 export default function SubscriptionSettingsLayout() {
   const params = useParams();
 
@@ -15,9 +13,6 @@ export default function SubscriptionSettingsLayout() {
     <SettingsColumn>
       <TopBar.Slot name="title">
         <StyledSettingsBreadcrumb params={params} />
-      </TopBar.Slot>
-      <TopBar.Slot name="search">
-        <SettingsSearch />
       </TopBar.Slot>
 
       <Container flex="1" minWidth="0" background="primary">

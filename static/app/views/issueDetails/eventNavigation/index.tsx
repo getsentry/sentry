@@ -246,9 +246,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}
         id={IssueDetailsTour.NAVIGATION}
-        title={t('Compare events')}
+        title={t('Compare and copy events')}
         description={t(
-          'Review the events associated with an issue. Compare the first, latest, or recommended event to see what changed.'
+          'Review the events associated with an issue. Compare the first, latest, or recommended event to see what changed, or use Copy as to copy the issue details as Markdown.'
         )}
       >
         {tourProps => (

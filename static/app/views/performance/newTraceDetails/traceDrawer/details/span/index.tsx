@@ -2,18 +2,21 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {useSpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -25,7 +28,6 @@ import {
 import {
   useTraceItemDetails,
   type TraceItemDetailsResponse,
-  type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
@@ -457,14 +459,20 @@ function EAPSpanNodeDetailsContent({
   traceItemData: TraceItemDetailsResponse;
 }) {
   const attributes = traceItemData.attributes;
+
+  const attributesMap = attributes.reduce<Record<string, string | number | boolean>>(
+    (acc, attribute) => {
+      acc[attribute.name] = attribute.value;
+      return acc;
+    },
+    {}
+  );
+
   const links = traceItemData.links;
   const isTransaction = node.value.is_transaction && !!eventTransaction;
 
-  const threadIdAttribute: TraceItemResponseAttribute | undefined = attributes.find(
-    attribute => attribute.name === 'thread.id'
-  );
-  const threadId =
-    typeof threadIdAttribute?.value === 'string' ? threadIdAttribute.value : undefined;
+  const threadIdAttribute = attributesMap['thread.id'];
+  const threadId = typeof threadIdAttribute === 'string' ? threadIdAttribute : undefined;
 
   const span = useMemo(() => {
     return {
@@ -495,12 +503,30 @@ function EAPSpanNodeDetailsContent({
     }
   }, [hasProfileDetails, hasLogDetails, organization]);
 
+  const isSdkSentV2Span =
+    // The presence of this attribute indicates that the EAP span was sent as a v2 span
+    // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
+    attributesMap.observed_timestamp_nanos &&
+    // Furthermore, to distinguish between v2 and v1 web vital spans, we can check that the old
+    // report_event only sent on v1 spans attribute is undefined
+    !attributesMap.report_event;
+
   return (
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.HeaderContainer>
         <TraceDrawerComponents.Title>
           <TraceDrawerComponents.LegacyTitleText>
-            <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
+            <TraceDrawerComponents.TitleText>
+              {t('Span')}
+              {isSdkSentV2Span && (
+                <Fragment>
+                  {' '}
+                  <Tooltip title={t('Streamed Span')}>
+                    <IconBroadcast size="xs" />
+                  </Tooltip>
+                </Fragment>
+              )}
+            </TraceDrawerComponents.TitleText>
             <TraceDrawerComponents.SubtitleWithCopyButton
               subTitle={`ID: ${node.id}`}
               clipboardText={node.id}

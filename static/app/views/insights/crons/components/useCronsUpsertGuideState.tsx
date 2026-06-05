@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import {parseAsStringEnum, useQueryStates} from 'nuqs';
 
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 import {
   platformGuides,

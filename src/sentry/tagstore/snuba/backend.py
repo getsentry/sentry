@@ -240,7 +240,7 @@ class _KeyCallable[T, U](Protocol):
 
 class _ValueCallable[U](Protocol):
     def __call__(
-        self, *, key: str, value: object, times_seen: int, first_seen: datetime, last_seen: datetime
+        self, *, key: str, value: str, times_seen: int, first_seen: datetime, last_seen: datetime
     ) -> U: ...
 
 
@@ -804,7 +804,7 @@ class SnubaTagStorage(TagStorage):
         key,
         tenant_ids=None,
         **kwargs,
-    ):
+    ) -> GroupTagKey | TagKey:
         return self.__get_tag_key_and_top_values(
             group.project_id,
             group,

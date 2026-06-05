@@ -44,12 +44,13 @@ export function MessageTitle({feedbackItem, eventData}: Props) {
         ) : null}
         <StyledTimeSince
           date={feedbackItem.firstSeen}
-          tooltipProps={{
-            title: eventData ? (
+          disabledAbsoluteTooltip={!eventData}
+          tooltipBody={
+            eventData ? (
               <FeedbackTimestampsTooltip feedbackItem={feedbackItem} />
-            ) : undefined,
-            overlayStyle: {maxWidth: 300},
-          }}
+            ) : undefined
+          }
+          maxWidth={300}
         />
       </Flex>
     </Flex>

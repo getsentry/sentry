@@ -9,26 +9,15 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
+import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorDetails';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
-
-export interface DetectorDetails {
-  description?: string;
-  detectorId?: string;
-  detectorPath?: string;
-  detectorSlug?: string;
-  detectorType?:
-    | 'metric_alert'
-    | 'cron_monitor'
-    | 'uptime_monitor'
-    | 'mobile_build_monitor';
-}
 
 export function getDetectorDetails({
   event,

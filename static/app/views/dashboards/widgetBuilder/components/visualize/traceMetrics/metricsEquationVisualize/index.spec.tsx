@@ -73,7 +73,7 @@ describe('MetricsEquationVisualize', () => {
   });
 
   it('selects a row and syncs yAxis to widget builder', async () => {
-    render(<MetricsEquationVisualize onEquationRemoved={jest.fn()} />, {
+    render(<MetricsEquationVisualize />, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -116,10 +116,8 @@ describe('MetricsEquationVisualize', () => {
     });
   });
 
-  it('calls onEquationRemoved when the equation row is deleted', async () => {
-    const onEquationRemoved = jest.fn();
-
-    render(<MetricsEquationVisualize onEquationRemoved={onEquationRemoved} />, {
+  it('disables deleting the equation row', async () => {
+    render(<MetricsEquationVisualize />, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -139,36 +137,14 @@ describe('MetricsEquationVisualize', () => {
     const toolbars = await screen.findAllByTestId('metric-toolbar');
     expect(toolbars).toHaveLength(3);
 
-    // The equation row's delete button is the last one
     const deleteButtons = screen.getAllByRole('button', {name: 'Delete Metric'});
     const equationDeleteButton = deleteButtons[deleteButtons.length - 1]!;
 
-    await userEvent.click(equationDeleteButton);
-
-    await waitFor(() => {
-      expect(onEquationRemoved).toHaveBeenCalled();
-    });
-
-    // Should fall back to the first function row's yAxis
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
-      );
-    });
+    expect(equationDeleteButton).toBeDisabled();
   });
 
   it('hydrates initial rows from a saved equation widget', async () => {
-    render(<MetricsEquationVisualize onEquationRemoved={jest.fn()} />, {
+    render(<MetricsEquationVisualize />, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {

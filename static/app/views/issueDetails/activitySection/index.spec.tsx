@@ -2,6 +2,7 @@ import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -594,7 +595,9 @@ describe('ActivitySection', () => {
       project,
     });
 
-    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+    const org = OrganizationFixture({
+      features: ['display-seer-actions-as-issue-activities'],
+    });
 
     render(<ActivitySection group={seerGroup} />, {organization: org});
     expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
@@ -650,9 +653,83 @@ describe('ActivitySection', () => {
       project,
     });
 
-    const org = OrganizationFixture({features: ['seer-activity-timeline']});
+    const org = OrganizationFixture({
+      features: ['display-seer-actions-as-issue-activities'],
+    });
 
     render(<ActivitySection group={seerPrGroup} />, {organization: org});
     expect(screen.queryByText('Pull Request Created')).not.toBeInTheDocument();
+  });
+
+  it('renders PR author name when activity user is null', async () => {
+    const prGroup = GroupFixture({
+      id: '1345',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'pr-author-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture({
+              author: {name: 'Shashank N Jarmale', email: 'shash@sentry.io'},
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={prGroup} />);
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByText('Shashank N Jarmale')).toBeInTheDocument();
+    expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
+  });
+
+  it('falls back to Sentry when PR has no author', async () => {
+    const prGroup = GroupFixture({
+      id: '1346',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'pr-author-2',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture(),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={prGroup} />);
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByText('Sentry')).toBeInTheDocument();
+  });
+
+  it('falls back to Sentry for bot authors with @localhost email', async () => {
+    const prGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'pr-author-3',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            pullRequest: PullRequestFixture({
+              author: {name: 'sentry[bot]', email: 'sentry[bot]@localhost'},
+            }),
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(<ActivitySection group={prGroup} />);
+    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
+    expect(screen.getByText('Sentry')).toBeInTheDocument();
+    expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
   });
 });

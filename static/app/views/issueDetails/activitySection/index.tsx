@@ -44,6 +44,13 @@ function getAuthorName(item: GroupActivity) {
   if (item.user) {
     return item.user.name;
   }
+  if (
+    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
+    item.data.pullRequest?.author?.name &&
+    !item.data.pullRequest.author.email?.endsWith('@localhost')
+  ) {
+    return item.data.pullRequest.author.name;
+  }
   return 'Sentry';
 }
 
@@ -176,7 +183,7 @@ function TimelineItem({
           )}
         </Flex>
       }
-      timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
+      timestamp={<Timestamp date={item.dateCreated} />}
       marker={useTwoColumnLayout ? getActivityMarker(item, colorConfig.icon) : undefined}
       colorConfig={useTwoColumnLayout ? colorConfig : undefined}
       icon={
@@ -368,7 +375,9 @@ export function ActivitySection({
     },
   };
 
-  const showSeerActivities = organization.features.includes('seer-activity-timeline');
+  const showSeerActivities = organization.features.includes(
+    'display-seer-actions-as-issue-activities'
+  );
   const visibleActivities = showSeerActivities
     ? group.activity.filter(item => item.type !== GroupActivityType.SEER_PR_CREATED)
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));

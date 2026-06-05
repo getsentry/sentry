@@ -99,6 +99,9 @@ class Cell:
     # TODO(cells): drop once category is fully moved to Locality
     category: RegionCategory
 
+    api_gateway_address: str | None = None
+    """optional address for API gateway traffic."""
+
     visible: bool = True
     """Whether the cell is visible in API responses"""
 
@@ -227,6 +230,7 @@ def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
             snowflake_id=config_value["snowflake_id"],
             category=RegionCategory(config_value["category"]),
             address=config_value["address"],
+            api_gateway_address=config_value.get("api_gateway_address", None),
             visible=config_value.get("visible", True),
         )
 

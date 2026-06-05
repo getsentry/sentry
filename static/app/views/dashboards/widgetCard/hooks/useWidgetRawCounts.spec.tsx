@@ -148,6 +148,77 @@ describe('useWidgetRawCounts', () => {
     await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
   });
 
+  it('derives the trace metrics count aggregate from equations in the widget', async () => {
+    const selection = PageFiltersFixture({
+      projects: [2],
+      environments: ['prod'],
+      datetime: {
+        start: '2025-01-01T00:00:00',
+        end: '2025-01-02T00:00:00',
+        period: null,
+        utc: null,
+      },
+    });
+    const widget = WidgetFixture({
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        {
+          name: '',
+          aggregates: [
+            'equation|sum(value,metricA,counter,none) + count(value,metricB,distribution,millisecond)',
+          ],
+          fields: [
+            'equation|sum(value,metricA,counter,none) + count(value,metricB,distribution,millisecond)',
+          ],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const normalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 11}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          field: ['count(value)'],
+          query:
+            '( metric.name:metricA metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) OR ( metric.name:metricB metric.type:distribution metric.unit:millisecond )',
+          project: [2],
+          environment: ['prod'],
+        }),
+      ],
+    });
+
+    const totalCountRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 13}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          field: ['count(value)'],
+          project: [2],
+          environment: ['prod'],
+          query:
+            '( metric.name:metricA metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) OR ( metric.name:metricB metric.type:distribution metric.unit:millisecond )',
+          extrapolationMode: 'serverOnly',
+          disableAggregateExtrapolation: undefined,
+        }),
+      ],
+    });
+
+    renderHookWithProviders(useWidgetRawCounts, {
+      initialProps: {selection, widget},
+    });
+
+    await waitFor(() => expect(normalRequest).toHaveBeenCalled());
+    await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
+  });
+
   it('does not fetch raw counts for non-timeseries display types', async () => {
     const selection = PageFiltersFixture();
     const widget = WidgetFixture({
