@@ -782,7 +782,8 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
             args=[self.org.slug],
         )
 
-    def _create_base_snapshot(self):
+    def _create_base_snapshot(self, project=None):
+        project = project or self.project
         images = {
             "components/button.png": {
                 "content_hash": "hash_button",
@@ -792,11 +793,11 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
             }
         }
         artifact = PreprodArtifact.objects.create(
-            project=self.project,
+            project=project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
             app_id="com.example.app",
         )
-        manifest_key = f"{self.org.id}/{self.project.id}/{artifact.id}/manifest.json"
+        manifest_key = f"{self.org.id}/{project.id}/{artifact.id}/manifest.json"
         PreprodSnapshotMetrics.objects.create(
             preprod_artifact=artifact,
             image_count=len(images),
@@ -878,6 +879,32 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         assert response.data["head_artifact_id"] == str(artifact.id)
         assert response.data["project_slug"] == "sausage"
         mock_get_session.assert_called_once_with(self.org.id, self.project.id)
+
+    @patch(
+        "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base.get_preprod_session"
+    )
+    def test_get_latest_base_snapshot_project_slug_takes_precedence_over_project(
+        self, mock_get_session
+    ):
+        self._create_base_snapshot()
+        other_project = self.create_project(organization=self.org, slug="other-project")
+        artifact, _, manifest_json = self._create_base_snapshot(project=other_project)
+        mock_get_session.return_value = self._create_mock_session(manifest_json)
+
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {
+                    "app_id": "com.example.app",
+                    "project": self.project.slug,
+                    "projectSlug": other_project.slug,
+                },
+            )
+
+        assert response.status_code == 200
+        assert response.data["head_artifact_id"] == str(artifact.id)
+        assert response.data["project_slug"] == "other-project"
+        mock_get_session.assert_called_once_with(self.org.id, other_project.id)
 
 
 class ProjectPreprodSnapshotDeleteTest(APITestCase):

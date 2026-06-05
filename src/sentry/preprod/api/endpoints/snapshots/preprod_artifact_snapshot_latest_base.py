@@ -157,7 +157,9 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
 
         project_id = None
         project_slug = None
-        if project_param := request.GET.get("project"):
+        if project_slug_param := request.GET.get("projectSlug"):
+            project_slug = project_slug_param
+        elif project_param := request.GET.get("project"):
             try:
                 project_id_or_slug = ProjectIdOrSlugField().run_validation(project_param)
             except ValidationError:
@@ -167,8 +169,6 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
                 project_id = next(iter(requested_project.ids))
             elif requested_project.slugs:
                 project_slug = next(iter(requested_project.slugs))
-        elif project_slug_param := request.GET.get("projectSlug"):
-            project_slug = project_slug_param
 
         qs = (
             PreprodArtifact.objects.filter(
