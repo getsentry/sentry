@@ -555,7 +555,7 @@ const TreeValueTrunk = styled('div')`
   height: 100%;
   align-items: center;
   min-height: 22px;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-column-gap: ${p => p.theme.space.xs};
 `;
 
