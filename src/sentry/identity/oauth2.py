@@ -613,25 +613,10 @@ class PkceOAuth2LoginView(OAuth2LoginView):
 
 
 class PkceOAuth2CallbackView(OAuth2CallbackView):
-    """OAuth2CallbackView with PKCE (RFC 7636) and client_secret_basic auth.
+    """OAuth2CallbackView with PKCE (RFC 7636).
 
-    Token exchange sends code_verifier in the POST body and client_secret via
-    HTTP Basic auth header (not in the POST body). Both are required.
+    Adds code_verifier to the standard token exchange POST body.
     """
-
-    client_id: str
-    client_secret: str
-
-    def __init__(self, access_token_url: str, client_id: str, client_secret: str, *args, **kwargs):
-        super().__init__(access_token_url, client_id, client_secret, *args, **kwargs)
-
-    def get_token_params(self, code: str, redirect_uri: str) -> dict[str, str | None]:
-        return {
-            "grant_type": "authorization_code",
-            "code": code,
-            "redirect_uri": redirect_uri,
-            "client_id": self.client_id,
-        }
 
     def get_access_token(self, pipeline: IdentityPipeline, code: str) -> Response:
         data = self.get_token_params(code=code, redirect_uri=absolute_uri(_redirect_url(pipeline)))
@@ -641,10 +626,5 @@ class PkceOAuth2CallbackView(OAuth2CallbackView):
             raise KeyError("PKCE code_verifier missing from pipeline state")
         data["code_verifier"] = code_verifier
 
-        basic = base64.b64encode(f"{self.client_id}:{self.client_secret}".encode()).decode("ascii")
-        headers = {"Authorization": f"Basic {basic}"}
-
         verify_ssl = pipeline.config.get("verify_ssl", True)
-        return safe_urlopen(
-            self.access_token_url, data=data, headers=headers, verify_ssl=verify_ssl
-        )
+        return safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
