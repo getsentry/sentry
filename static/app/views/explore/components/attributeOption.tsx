@@ -52,6 +52,11 @@ function getTypedOptionKey(
   return key;
 }
 
+function hasTag(tags: TagCollection, column: string): boolean {
+  const baseColumn = extractBaseKey(column);
+  return column in tags || baseColumn in tags;
+}
+
 interface BuildAttributeOptionsParams {
   booleanTags: TagCollection;
   numberTags: TagCollection;
@@ -94,9 +99,9 @@ export function buildAttributeOptions({
       .filter(
         column =>
           column &&
-          !(column in stringTags) &&
-          !(column in numberTags) &&
-          !(column in booleanTags)
+          !hasTag(stringTags, column) &&
+          !hasTag(numberTags, column) &&
+          !hasTag(booleanTags, column)
       )
       .map(column =>
         optionFromTag(
