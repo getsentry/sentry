@@ -97,12 +97,6 @@ class PostgresSortStrategy:
     exclude_null_postgres: bool = True
 
 
-def _datetime_to_ms(dt: datetime | None) -> int:
-    if dt is None:
-        return 0
-    return int(float(dt.strftime("%s.%f")) * 1000)
-
-
 # we cannot use snuba for these fields because they require a join with tables that don't exist there
 # if we ever see these fields, we will use postgres to get the group_ids before sending back to ClickHouse
 # note that we could eventually migrate the releases table to ClickHouse and handle those with a join in ClickHouse

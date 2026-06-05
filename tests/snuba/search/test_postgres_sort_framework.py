@@ -10,11 +10,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.group import Group, GroupStatus
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
-from sentry.search.snuba.executors import (
-    PostgresSnubaQueryExecutor,
-    PostgresSortStrategy,
-    _datetime_to_ms,
-)
+from sentry.search.snuba.executors import PostgresSnubaQueryExecutor, PostgresSortStrategy
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import override_options
@@ -33,18 +29,10 @@ def _patch_pg_strategies(strategies: dict[str, PostgresSortStrategy]):
 def _ts_strategy(**overrides: Any) -> PostgresSortStrategy:
     defaults: dict[str, Any] = dict(
         postgres_fields={"ts": "seer_autofix_last_triggered"},
-        score_fn=lambda data: _datetime_to_ms(data["ts"]),
+        score_fn=lambda data: data["ts"].timestamp(),
     )
     defaults.update(overrides)
     return PostgresSortStrategy(**defaults)
-
-
-class TestDatetimeToMs(TestCase):
-    def test_none_returns_zero(self):
-        assert _datetime_to_ms(None) == 0
-
-    def test_preserves_ordering(self):
-        assert _datetime_to_ms(before_now(hours=2)) < _datetime_to_ms(before_now(hours=1))
 
 
 class TestPostgresSortStrategy(TestCase):
@@ -219,7 +207,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
     def test_hybrid_sort_with_snuba_aggregations(self):
         strategy = _ts_strategy(
             snuba_aggregations=["last_seen"],
-            score_fn=lambda data: _datetime_to_ms(data["ts"]) + data.get("last_seen", 0),
+            score_fn=lambda data: data["ts"].timestamp() + data.get("last_seen", 0),
         )
         with _patch_pg_strategies({"test_sort": strategy}):
             results = list(self.make_query("test_sort", query="issue"))
@@ -229,7 +217,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
         boosted = self.groups[0].id
         strategy = _ts_strategy(
             signal_resolvers={"boost": lambda actor, org, gids: {boosted: 1}},
-            score_fn=lambda data: data.get("boost", 0) * 10**15 + _datetime_to_ms(data["ts"]),
+            score_fn=lambda data: data.get("boost", 0) * 10**15 + data["ts"].timestamp(),
         )
         with _patch_pg_strategies({"test_sort": strategy}):
             results = list(self.make_query("test_sort"))
