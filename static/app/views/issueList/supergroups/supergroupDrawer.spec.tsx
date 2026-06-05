@@ -1,5 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {SupergroupDetailFixture} from 'sentry-fixture/supergroupDetail';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -74,5 +75,37 @@ describe('SupergroupDetailDrawer', () => {
     expect(await screen.findByText('MATCHED_MEMBER')).toBeInTheDocument();
     const rows = screen.getAllByTestId('group');
     expect(rows[0]).toHaveTextContent('MATCHED_MEMBER');
+  });
+
+  it('renders a group whose project slug collides with Object.prototype.constructor', async () => {
+    // Regression guard for JAVASCRIPT-39FS: `memberList['constructor']` used to
+    // resolve to Object.prototype.constructor via the prototype chain and crash
+    // AssigneeSelectorDropdown at `.find()`.
+    const group = GroupFixture({
+      id: '1',
+      project: ProjectFixture({id: '13', slug: 'constructor'}),
+    });
+
+    MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      body: [group],
+    });
+
+    render(
+      <SupergroupDetailDrawer
+        supergroup={SupergroupDetailFixture({group_ids: [Number(group.id)]})}
+        memberList={{}}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {pathname: '/organizations/:orgId/issues/'},
+        },
+      }
+    );
+
+    expect(await screen.findByTestId('group')).toBeInTheDocument();
   });
 });
