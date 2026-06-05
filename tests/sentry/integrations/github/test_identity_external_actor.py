@@ -21,12 +21,17 @@ from sentry.testutils.silo import no_silo_test
 # assertions read ExternalActor back -- all of which must be locally accessible.
 @no_silo_test
 class EnsureExternalActorsForGithubIdentityTest(TestCase):
+    github_login = "octocat"
+    github_id = "583231"
+    external_name = "@octocat"
+
     def setUp(self):
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.create_user())
         with outbox_runner():
             self.create_member(user=self.user, organization=self.organization)
+        assert not ExternalActor.objects.exists()
 
     def _github_integration(self, organization=None, **kwargs):
         return self.create_integration(
@@ -43,15 +48,15 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         integration = self._github_integration()
 
         ensure_external_actors_for_github_identity(
-            user_id=self.user.id, github_login="octocat", github_id="583231"
+            user_id=self.user.id, github_login=self.github_login, github_id=self.github_id
         )
 
         actor = self._external_actors(
             organization_id=self.organization.id, user_id=self.user.id
         ).get()
         assert actor.provider == ExternalProviders.GITHUB.value
-        assert actor.external_name == "@octocat"
-        assert actor.external_id == "583231"
+        assert actor.external_name == self.external_name
+        assert actor.external_id == self.github_id
         assert actor.integration_id == integration.id
         assert actor.source == ExternalActorSource.IDENTITY.value
 
@@ -59,11 +64,11 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         self._github_integration()
 
         ensure_external_actors_for_github_identity(
-            user_id=self.user.id, github_login="octocat", github_id=None
+            user_id=self.user.id, github_login=self.github_login, github_id=None
         )
 
         actor = self._external_actors(user_id=self.user.id).get()
-        assert actor.external_name == "@octocat"
+        assert actor.external_name == self.external_name
         assert actor.external_id is None
 
     def test_idempotent(self):
@@ -71,7 +76,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
 
         for _ in range(2):
             ensure_external_actors_for_github_identity(
-                user_id=self.user.id, github_login="octocat", github_id="583231"
+                user_id=self.user.id, github_login=self.github_login, github_id=self.github_id
             )
 
         assert self._external_actors(user_id=self.user.id).count() == 1
@@ -79,7 +84,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
     def test_skips_org_without_github_integration(self):
         # Org membership exists but no GitHub integration is installed.
         ensure_external_actors_for_github_identity(
-            user_id=self.user.id, github_login="octocat", github_id="583231"
+            user_id=self.user.id, github_login=self.github_login, github_id=self.github_id
         )
 
         assert not self._external_actors(user_id=self.user.id).exists()
@@ -89,7 +94,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         self._github_integration(organization=other_org)
 
         ensure_external_actors_for_github_identity(
-            user_id=self.user.id, github_login="octocat", github_id="583231"
+            user_id=self.user.id, github_login=self.github_login, github_id=self.github_id
         )
 
         assert not self._external_actors(organization_id=other_org.id).exists()
@@ -98,7 +103,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         self._github_integration(oi_params={"status": ObjectStatus.DISABLED})
 
         ensure_external_actors_for_github_identity(
-            user_id=self.user.id, github_login="octocat", github_id="583231"
+            user_id=self.user.id, github_login=self.github_login, github_id=self.github_id
         )
 
         assert not self._external_actors(user_id=self.user.id).exists()
@@ -112,7 +117,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         )
 
         ensure_external_actors_for_github_identity(
-            user_id=self.user.id, github_login="octocat", github_id="583231"
+            user_id=self.user.id, github_login=self.github_login, github_id=self.github_id
         )
 
         assert not self._external_actors(user_id=self.user.id).exists()
@@ -125,7 +130,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         self._github_integration(organization=second_org, external_id="github:2")
 
         ensure_external_actors_for_github_identity(
-            user_id=self.user.id, github_login="octocat", github_id="583231"
+            user_id=self.user.id, github_login=self.github_login, github_id=self.github_id
         )
 
         assert self._external_actors(user_id=self.user.id).count() == 2
@@ -134,7 +139,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         self._github_integration()
 
         ensure_external_actors_for_github_identity(
-            user_id=self.user.id, github_login=None, github_id="583231"
+            user_id=self.user.id, github_login=None, github_id=self.github_id
         )
 
         assert not self._external_actors(user_id=self.user.id).exists()
@@ -143,7 +148,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         loner = self.create_user()
 
         ensure_external_actors_for_github_identity(
-            user_id=loner.id, github_login="octocat", github_id="583231"
+            user_id=loner.id, github_login=self.github_login, github_id=self.github_id
         )
 
         assert not self._external_actors(user_id=loner.id).exists()
@@ -157,7 +162,7 @@ class EnsureExternalActorsForGithubIdentityTest(TestCase):
         ):
             # Must not propagate: a failed mapping never breaks the identity-link flow.
             ensure_external_actors_for_github_identity(
-                user_id=self.user.id, github_login="octocat", github_id="583231"
+                user_id=self.user.id, github_login=self.github_login, github_id=self.github_id
             )
 
         assert not self._external_actors(user_id=self.user.id).exists()
