@@ -104,19 +104,24 @@ export function WebhookDetailedView() {
           nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/webhooks/`}
           needProject
           needOrg={false}
-          onFinish={async to => {
+          onFinish={to => {
             const path = typeof to === 'string' ? to : (to.pathname ?? '');
             const projectSlug = path.split('/projects/')[1]?.split('/')[0];
             if (projectSlug) {
-              try {
-                await fetchMutation({
-                  method: 'POST',
-                  url: `/projects/${organization.slug}/${projectSlug}/legacy-webhooks/`,
-                  data: {enabled: true},
+              fetchMutation({
+                method: 'POST',
+                url: `/projects/${organization.slug}/${projectSlug}/legacy-webhooks/`,
+                data: {enabled: true},
+              })
+                .then(() => {
+                  modalProps.closeModal();
+                  navigate(normalizeUrl(to));
+                })
+                .catch(() => {
+                  addErrorMessage(t('Failed to enable webhooks for project.'));
+                  modalProps.closeModal();
                 });
-              } catch {
-                addErrorMessage(t('Failed to enable webhooks for project.'));
-              }
+              return;
             }
             modalProps.closeModal();
             navigate(normalizeUrl(to));
