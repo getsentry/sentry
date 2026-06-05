@@ -13,8 +13,10 @@ from sentry.identity.oauth2 import (
     PkceOAuth2LoginView,
 )
 from sentry.identity.pipeline import IdentityPipeline
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
+from sentry.users.models.identity import Identity
 
 logger = logging.getLogger(__name__)
 
@@ -39,17 +41,17 @@ class DatadogIdentityProvider(OAuth2Provider):
 
     oauth_scopes: tuple[str, ...] = ()
 
-    def get_oauth_client_id(self):
+    def get_oauth_client_id(self) -> str:
         return options.get("datadog.client-id")
 
-    def get_oauth_client_secret(self):
+    def get_oauth_client_secret(self) -> str:
         return options.get("datadog.client-secret")
 
-    def get_oauth_authorize_url(self):
+    def get_oauth_authorize_url(self) -> str:
         site = self._get_site()
         return f"https://app.{site}/oauth2/v1/authorize"
 
-    def get_oauth_access_token_url(self):
+    def get_oauth_access_token_url(self) -> str:
         site = self._get_site()
         return f"https://app.{site}/oauth2/v1/token"
 
@@ -102,8 +104,8 @@ class DatadogIdentityProvider(OAuth2Provider):
         return self.get_oauth_access_token_url()
 
     def get_refresh_token_params(
-        self, refresh_token, identity, **kwargs
-    ):
+        self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
+    ) -> dict[str, str | None]:
         return {
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
