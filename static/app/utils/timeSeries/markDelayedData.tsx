@@ -1,3 +1,7 @@
+/**
+ * Given a timeseries and a delay in seconds, goes through the timeseries data, and marks each point as either delayed (data bucket ended before the delay threshold) or not
+ */
+
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeries {

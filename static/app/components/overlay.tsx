@@ -6,7 +6,7 @@ import {motion, useIsPresent} from 'framer-motion';
 
 import type {OverlayArrowProps} from 'sentry/components/overlayArrow';
 import {OverlayArrow} from 'sentry/components/overlayArrow';
-import {NODE_ENV} from 'sentry/constants';
+import {NODE_ENV} from 'sentry/constants/env';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
 type OriginPoint = Partial<{x: number; y: number}>;

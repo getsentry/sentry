@@ -23,7 +23,7 @@ from sentry.models.project import Project
 OPTION_KEY = "sentry:target_sample_rate"
 
 
-class GetSerializer(Serializer):
+class GetSerializer(Serializer[Mapping[str, Any]]):
     """Serializer for OrganizationSamplingProjectRatesEndpoint.get"""
 
     def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Any, Any]:

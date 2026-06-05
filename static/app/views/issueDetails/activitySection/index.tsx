@@ -44,6 +44,13 @@ function getAuthorName(item: GroupActivity) {
   if (item.user) {
     return item.user.name;
   }
+  if (
+    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
+    item.data.pullRequest?.author?.name &&
+    !item.data.pullRequest.author.email?.endsWith('@localhost')
+  ) {
+    return item.data.pullRequest.author.name;
+  }
   return 'Sentry';
 }
 

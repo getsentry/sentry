@@ -193,6 +193,44 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert url == "p4://myproject/app/services/processor.cpp"
 
+    @patch("sentry.integrations.perforce.client.PerforceClient.get_depots")
+    def test_get_repositories_derives_external_id_from_depot_path(self, mock_get_depots) -> None:
+        """
+        get_repositories() must return a depot-path external_id (not empty) so
+        periodic repo sync can diff against stored repos. The external_id must
+        match what the manual-add path stores (the depot path).
+        """
+        mock_get_depots.return_value = [
+            {"name": "depot", "type": "local", "description": ""},
+            {"name": "shared", "type": "local", "description": ""},
+        ]
+
+        repos = self.installation.get_repositories()
+
+        assert repos == [
+            {
+                "name": "depot",
+                "identifier": "//depot",
+                "external_id": "//depot",
+                "default_branch": None,
+            },
+            {
+                "name": "shared",
+                "identifier": "//shared",
+                "external_id": "//shared",
+                "default_branch": None,
+            },
+        ]
+
+    def test_get_repo_external_id_matches_manual_add(self) -> None:
+        """
+        The external_id derived during sync must equal the depot path the
+        manual-add path stores (PerforceRepositoryProvider.get_repository_data
+        sets external_id to the depot path), so the two don't create duplicate
+        Repository rows.
+        """
+        assert self.installation.get_repo_external_id({"name": "depot"}) == "//depot"
+
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_check_file_absolute_depot_path(self, mock_check_file):
         """Test check_file with absolute depot path (//depot/...)"""

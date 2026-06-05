@@ -1,11 +1,13 @@
 import type {Location} from 'history';
 import * as Papa from 'papaparse';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

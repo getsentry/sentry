@@ -65,7 +65,7 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, sentry_app) -> Response:
+    def get(self, request: Request, sentry_app) -> Response[SentryAppStatsResponse]:
         """
         Return the number of installations and uninstallations of a custom integration
         (Sentry App) over a time series range.
@@ -99,7 +99,7 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
                 if uninstall_norm_epoch in uninstall_stats:
                     uninstall_stats[uninstall_norm_epoch] += 1
 
-        result = {
+        result: SentryAppStatsResponse = {
             "totalInstalls": install_count,
             "totalUninstalls": uninstall_count,
             "installStats": sorted(install_stats.items(), key=lambda x: x[0]),

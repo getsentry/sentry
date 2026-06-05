@@ -339,6 +339,31 @@ class TestDeliverNightShiftResult(TestCase):
             user_context = mock_trigger.call_args.kwargs["user_context"]
             assert "This issue is caused by a null pointer" in user_context
 
+    def test_successful_delivery_clears_stale_error_message(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org, error_message="Night shift run failed")
+
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.AUTOFIX.value, "reason": "fixable"}
+            ]
+        }
+
+        assert run.seer_run is not None
+        with patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent", return_value=1):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=str(run.seer_run.uuid),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+        run.refresh_from_db()
+        assert "error_message" not in run.extras
+
     def test_empty_reason_no_user_context(self) -> None:
         """Empty reason should result in no user_context."""
         org = self.create_organization()
