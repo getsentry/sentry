@@ -347,10 +347,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             self.organization, self.user, is_interactive=True, reasoning_effort="medium"
         )
 
-        with self.feature("organizations:seer-run-mirror-explorer"):
-            run_id = client.start_run(
-                prompt="What happened?",
-            )
+        run_id = client.start_run(
+            prompt="What happened?",
+        )
 
         assert run_id == 99
 
@@ -390,10 +389,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         )
 
         with pytest.raises(SeerApiError, match="Outbox flush failed"):
-            with self.feature("organizations:seer-run-mirror-explorer"):
-                client.start_run(
-                    prompt="What happened?",
-                )
+            client.start_run(
+                prompt="What happened?",
+            )
 
         run = SeerRun.objects.get(organization_id=self.organization.id)
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
@@ -413,7 +411,7 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
 
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_false_sets_context_engine_disabled(
@@ -434,7 +432,7 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
         body = mock_chat_request.call_args[0][0]
         assert body["agent_run_options"]["is_context_engine_enabled"] is False
 
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_true_sets_context_engine_enabled(
@@ -455,7 +453,7 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
         body = mock_chat_request.call_args[0][0]
         assert body["agent_run_options"]["is_context_engine_enabled"] is True
 
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_ignored_without_feature_flag(

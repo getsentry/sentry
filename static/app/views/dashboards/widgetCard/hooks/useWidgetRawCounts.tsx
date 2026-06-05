@@ -1,11 +1,14 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {explodeFieldString} from 'sentry/utils/discover/fields';
+import {explodeFieldString, isEquation} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
-import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
+import {
+  createTraceMetricEventsFilter,
+  getEquationMetricsTotalFilter,
+} from 'sentry/views/explore/metrics/utils';
 import {useRawCounts, type RawCounts} from 'sentry/views/explore/useRawCounts';
 
 type Props = {
@@ -17,6 +20,8 @@ type RawCountConfig = {
   dataset: DiscoverDatasets;
   enabled: boolean;
   supported: boolean;
+  normalModeExtrapolated?: boolean;
+  query?: string;
 };
 
 export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null {
@@ -35,12 +40,32 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
           enabled: isSupportedDisplayType,
         };
       case WidgetType.TRACEMETRICS: {
-        const traceMetrics = widget.queries?.[0]?.aggregates
-          ?.map(aggregate => explodeFieldString(aggregate))
-          ?.map(extractTraceMetricFromColumn)
-          ?.filter(Boolean);
+        // Process all function aggregates and equations to ensure the total count
+        // query can be derived from either
+        // In the current set up, we should only have one or the other being
+        // processed for this raw count
+        const aggregates = widget.queries?.[0]?.aggregates ?? [];
+        const functionAggregates = aggregates.filter(agg => !isEquation(agg));
+        const equationAggregates = aggregates.filter(agg => isEquation(agg));
 
-        if (!traceMetrics || traceMetrics.length === 0) {
+        const traceMetrics = functionAggregates
+          .map(aggregate => extractTraceMetricFromColumn(explodeFieldString(aggregate)))
+          .filter(Boolean);
+
+        const filters: string[] = [];
+
+        if (traceMetrics.length > 0) {
+          filters.push(createTraceMetricEventsFilter(traceMetrics));
+        }
+
+        for (const equation of equationAggregates) {
+          const equationFilter = getEquationMetricsTotalFilter(equation);
+          if (equationFilter) {
+            filters.push(equationFilter);
+          }
+        }
+
+        if (filters.length === 0) {
           return {
             supported: true,
             dataset: DiscoverDatasets.TRACEMETRICS,
@@ -52,7 +77,7 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
           supported: true,
           dataset: DiscoverDatasets.TRACEMETRICS,
           enabled: isSupportedDisplayType,
-          query: createTraceMetricEventsFilter(traceMetrics),
+          query: filters.join(' OR '),
           normalModeExtrapolated: true,
         };
       }

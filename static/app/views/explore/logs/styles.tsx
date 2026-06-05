@@ -131,7 +131,7 @@ export const LogAttributeTreeWrapper = styled('div')`
   border-bottom: 0px;
 `;
 
-export const LogTableBodyCell = styled(TableBodyCell)`
+export const LogTableBodyCell = styled(TableBodyCell)<{reservePinGutter?: boolean}>`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};
@@ -145,7 +145,9 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 
   &:last-child {
-    padding: 0 ${p => p.theme.space.md};
+    padding: 0
+      ${p => (p.reservePinGutter ? 'var(--logsPinButtonArea, 2rem)' : p.theme.space.md)} 0
+      ${p => p.theme.space.md};
   }
 `;
 
@@ -154,6 +156,7 @@ function ContentsTable(props: React.ComponentProps<typeof Table>) {
 }
 
 export const LogTable = styled(ContentsTable)<{minWidth: string}>`
+  --logsPinButtonArea: 2rem;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -302,7 +305,7 @@ export const LogsFilteredHelperText = styled('span')`
 
 export const LogPinButton = styled(Button)<{isPinned: boolean | undefined}>`
   position: absolute;
-  right: calc(-1 * var(--logsPinButtonArea));
+  right: calc(-1 * var(--logsPinButtonArea, 2rem));
   opacity: ${p => (p.isPinned ? 1 : 0)};
   transition: opacity 0.1s;
   z-index: 1;
@@ -340,6 +343,14 @@ export const AlignedCellContent = styled('div')<{
 export const FirstTableHeadCell = styled(TableHeadCell)`
   padding-right: ${p => p.theme.space.md};
   padding-left: ${p => p.theme.space.xl};
+`;
+
+export const LogTableHeadCell = styled(TableHeadCell)<{reservePinGutter?: boolean}>`
+  ${p =>
+    p.reservePinGutter &&
+    css`
+      padding-right: var(--logsPinButtonArea, 2rem);
+    `}
 `;
 
 export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`

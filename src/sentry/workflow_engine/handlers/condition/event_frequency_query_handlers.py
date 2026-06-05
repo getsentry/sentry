@@ -78,7 +78,7 @@ class BaseEventFrequencyQueryHandler(ABC):
     label_template = ""
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         return cls.label_template.format(**condition_data)
 
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
@@ -410,7 +410,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
     )
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         from sentry.rules.conditions.event_frequency import (
             EventUniqueUserFrequencyConditionWithConditions,
         )
@@ -465,7 +465,7 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
     label_template = "The issue affects more than {value} percent of sessions in {interval}"
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         data = dict(condition_data)
         value = data.get("value")
         if isinstance(value, float) and value.is_integer():

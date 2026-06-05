@@ -404,7 +404,6 @@ export function CellAction({
   if (triggerType === ActionTriggerType.BOLD_HOVER) {
     return (
       <Container
-        containsPin={!!pin}
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
       >
         {cellActions?.length ? (
@@ -472,10 +471,7 @@ export function CellAction({
   }
 
   return (
-    <Container
-      containsPin={!!pin}
-      data-test-id={cellActions === null ? undefined : 'cell-action-container'}
-    >
+    <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
       {children}
       {cellActions?.length && (
         <DropdownMenu
@@ -509,13 +505,9 @@ export function CellAction({
   );
 }
 
-const Container = styled('div')<{containsPin?: boolean}>`
-  --logsPinButtonArea: 2rem;
+const Container = styled('div')`
   position: relative;
-  width: ${p =>
-    p.containsPin
-      ? `calc(100% - var(--logsPinButtonArea) + ${p.theme.space.md})`
-      : `100%`};
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
