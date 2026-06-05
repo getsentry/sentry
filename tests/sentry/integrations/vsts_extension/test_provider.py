@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlparse
 
+import orjson
 from django.urls import reverse
 
 from fixtures.vsts import VstsIntegrationTestCase
@@ -10,7 +11,8 @@ from sentry.integrations.vsts_extension import (
     VstsExtensionFinishedView,
     VstsExtensionIntegrationProvider,
 )
-from sentry.testutils.silo import control_silo_test
+from sentry.silo.base import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from tests.sentry.integrations.vsts.test_integration import FULL_SCOPES
 
 
@@ -79,3 +81,81 @@ class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
 
         # Should have create the Integration using the ``vsts`` key
         assert Integration.objects.filter(provider="vsts").exists()
+
+
+@control_silo_test
+class VstsExtensionApiPipelineTest(VstsIntegrationTestCase):
+    provider = VstsExtensionIntegrationProvider()
+
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def test_install_skips_account_selection(self) -> None:
+        pipeline_url = reverse(
+            "sentry-api-0-organization-pipeline",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "pipeline_name": "integration_pipeline",
+            },
+        )
+
+        # The Marketplace already knows the account, so it is supplied as
+        # initialData rather than chosen via an account-selection step.
+        resp = self.client.post(
+            pipeline_url,
+            data=orjson.dumps(
+                {
+                    "action": "initialize",
+                    "provider": "vsts-extension",
+                    "initialData": {
+                        "targetId": self.vsts_account_id,
+                        "targetName": self.vsts_account_name,
+                    },
+                }
+            ),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200, resp.content
+        resp_data = resp.json()
+        assert resp_data["step"] == "oauth_login"
+
+        oauth_url = resp_data["data"]["oauthUrl"]
+        pipeline_signature = parse_qs(urlparse(oauth_url).query)["state"][0]
+
+        # Advancing through OAuth completes the install directly, with no
+        # account-selection step in between.
+        resp = self.client.post(
+            pipeline_url,
+            data=orjson.dumps({"code": "oauth-code", "state": pipeline_signature}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200, resp.content
+        assert resp.json()["status"] == "complete"
+
+        integration = Integration.objects.get(provider="vsts")
+        assert integration.external_id == self.vsts_account_id
+        assert integration.name == self.vsts_account_name
+
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def test_rejects_invalid_account_name(self) -> None:
+        pipeline_url = reverse(
+            "sentry-api-0-organization-pipeline",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "pipeline_name": "integration_pipeline",
+            },
+        )
+
+        resp = self.client.post(
+            pipeline_url,
+            data=orjson.dumps(
+                {
+                    "action": "initialize",
+                    "provider": "vsts-extension",
+                    "initialData": {
+                        "targetId": self.vsts_account_id,
+                        "targetName": "invalid name with spaces",
+                    },
+                }
+            ),
+            content_type="application/json",
+        )
+        assert resp.status_code == 400, resp.content
