@@ -17,6 +17,8 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -25,10 +27,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
@@ -160,13 +162,14 @@ function IssueListOverviewInner({
     () => selection.projects.map(String),
     [selection.projects]
   );
-  const {data: memberList = {}} = useQuery({
+  const {data: memberList} = useQuery({
     ...useProjectMembersQueryOptions(organizationUsersProjectIds),
     select: resp => indexMembersByProject(resp.json),
   });
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
+  const {getRunIdForAnalytics} = useAiQueryContext();
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -460,6 +463,19 @@ function IssueListOverviewInner({
         setQueryMaxCount(newQueryMaxCount);
         setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
+        // AI query analytics
+        const aiQueryRunId = getRunIdForAnalytics();
+        if (aiQueryRunId !== null) {
+          trackAiQueryOutcome({
+            dataset: 'issues',
+            mode: 'samples',
+            referrer: 'issues',
+            resultCount: data.length, // Can also use newQueryCount for total hits
+            orgSlug: organization.slug,
+            runId: aiQueryRunId,
+          });
+        }
+
         // Need to wait for stats request to finish before saving to cache
         await fetchStats(data.map((group: BaseGroup) => group.id));
         IssueListCacheStore.save(requestParams, {
@@ -502,6 +518,7 @@ function IssueListOverviewInner({
     location.query,
     query,
     resumePolling,
+    getRunIdForAnalytics,
   ]);
 
   useDisableRouteAnalytics(issuesLoading);
@@ -887,9 +904,8 @@ function IssueListOverviewInner({
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
-      'Tools: get_issue_details(issue_id) for issue aggregate stats; ' +
-      'get_event_details(event_id?, issue_id?) for a specific error event; ' +
-      'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.',
+      'You can get issue details for aggregate stats, get event details for a specific error event, ' +
+      'and search live telemetry for related spans/errors/logs/metrics.',
     viewName: groupSearchView?.name,
     query,
     sort,

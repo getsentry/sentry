@@ -14,10 +14,13 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.repository import RepositoryService, RpcRepository
 from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.integrations.services.repository.serial import serialize_repository
+from sentry.integrations.source_code_management.auto_link_repos import auto_link_repos_by_name
 from sentry.models.code_review_event import CodeReviewEvent
 from sentry.models.commit import Commit
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -242,8 +245,8 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
                 # Delete Seer preferences for this repository
                 SeerProjectRepository.objects.filter(
-                    repository_id__in=repo_ids,
-                    project__organization_id=organization_id,
+                    project_repository__repository_id__in=repo_ids,
+                    project_repository__project__organization_id=organization_id,
                 ).delete()
 
             # Delete Code Owners with a Code Mapping using the OrganizationIntegration
@@ -257,6 +260,12 @@ class DatabaseBackedRepositoryService(RepositoryService):
             RepositoryProjectPathConfig.objects.filter(
                 organization_integration_id=organization_integration_id
             ).delete()
+            # Delete project-repo links for the disconnected repos
+            if repo_ids:
+                ProjectRepository.objects.filter(
+                    repository_id__in=repo_ids,
+                    project__organization_id=organization_id,
+                ).delete()
 
             # Clear automation_handoff project options that reference this integration.
             affected_project_ids = ProjectOption.objects.filter(
@@ -284,3 +293,16 @@ class DatabaseBackedRepositoryService(RepositoryService):
             integration_id=integration_id,
             organization_id=organization_id,
         )
+
+    def auto_link_repos_by_name(
+        self,
+        *,
+        organization_id: int,
+        repo_ids: list[int] | None = None,
+        project_ids: list[int] | None = None,
+    ) -> int:
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            return 0
+        return auto_link_repos_by_name(organization, repo_ids, project_ids=project_ids)

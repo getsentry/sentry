@@ -240,23 +240,21 @@ def create_code_mapping(
     created = False
     if not tags["dry_run"] and repository is not None:
         with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
-            project_repo, _ = ProjectRepository.objects.get_or_create(
-                project=project,
-                repository=repository,
-                defaults={"source": ProjectRepositorySource.AUTO_EVENT},
+            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+                project_id=project.id,
+                repository_id=repository.id,
+                source=ProjectRepositorySource.AUTO_EVENT,
             )
             _, created = RepositoryProjectPathConfig.objects.get_or_create(
-                project=project,
+                project_repository=project_repo,
                 stack_root=code_mapping.stacktrace_root,
                 source_root=code_mapping.source_path,
                 defaults={
-                    "repository": repository,
                     "organization_integration_id": org_integration.id,
                     "integration_id": org_integration.integration_id,
                     "organization_id": org_integration.organization_id,
                     "default_branch": code_mapping.repo.branch,
                     "automatically_generated": True,
-                    "project_repository": project_repo,
                 },
             )
     if created or tags["dry_run"]:

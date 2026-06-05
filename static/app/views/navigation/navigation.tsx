@@ -2,20 +2,13 @@ import {Fragment, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
-import {Hotkey} from '@sentry/scraps/hotkey';
 import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
-import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {
-  useCommandPaletteState,
-  useCommandPaletteDispatch,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import Hook from 'sentry/components/hook';
-import {IconSearch} from 'sentry/icons';
+import {Override} from 'sentry/components/override';
 import {
   IconCompass,
   IconDashboard,
@@ -55,8 +48,6 @@ import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/cont
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 export function Navigation() {
   const collapsedNavigation = useCollapsedNavigation();
@@ -198,7 +189,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
       <Feature
         features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
-        hookName="feature-disabled:dashboards-sidebar-item"
+        overrideName="feature-disabled:dashboards-sidebar-item"
         requireAll={false}
       >
         <NavigationTourElement
@@ -307,49 +298,20 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
  */
 export function PrimaryNavigationFooterItems() {
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
-
-  const state = useCommandPaletteState();
-  const dispatch = useCommandPaletteDispatch();
-  const {openSeerExplorer} = useSeerExplorerContext();
 
   return (
     <Fragment>
-      {hasPageFrame ? (
-        <PrimaryNavigation.Button
-          label={
-            <Flex gap="xs" align="center">
-              {t('Open command palette')}
-              <Hotkey value="mod+k" variant="debossed" />
-            </Flex>
-          }
-          analyticsKey="search"
-          buttonProps={{
-            icon: <IconSearch />,
-            onClick: () => {
-              toggleCommandPalette(
-                {},
-                organization,
-                state,
-                dispatch,
-                'button',
-                isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
-              );
-            },
-          }}
-        />
-      ) : null}
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationOnboarding />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:try-business" organization={organization} />
+        <Override name="sidebar:try-business" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:seer-config-reminder" organization={organization} />
+        <Override name="sidebar:seer-config-reminder" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
-        <Hook name="sidebar:billing-status" organization={organization} />
+        <Override name="sidebar:billing-status" organization={organization} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationServiceIncidents />

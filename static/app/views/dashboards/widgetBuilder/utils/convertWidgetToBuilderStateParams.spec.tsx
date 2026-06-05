@@ -191,4 +191,24 @@ describe('convertWidgetToBuilderState', () => {
     expect(params.textContent).toBeUndefined();
     expect(params.description).toBe('Widget description');
   });
+
+  describe('tracemetrics widget', () => {
+    it('converts raw equation sort to equation[0] alias format', () => {
+      const widget = {
+        ...getDefaultWidget(WidgetType.TRACEMETRICS),
+        displayType: DisplayType.LINE,
+        queries: [
+          {
+            aggregates: ['equation|count(span.duration) / 2'],
+            columns: [],
+            conditions: '',
+            name: '',
+            orderby: '-equation|count(span.duration) / 2',
+          },
+        ],
+      };
+      const params = convertWidgetToBuilderState(widget);
+      expect(params.sort).toEqual(['-equation[0]']);
+    });
+  });
 });

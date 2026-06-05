@@ -246,13 +246,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'codecov',
-        groups: ['logo'],
-        keywords: ['coverage', 'testing', 'code'],
-        name: 'Codecov',
-        defaultProps: {},
-      },
-      {
         id: 'bitbucket',
         groups: ['logo'],
         keywords: ['git', 'repository', 'code', 'atlassian'],
@@ -1829,7 +1822,9 @@ function Section(props: CategorySectionProps) {
     const iconFilter = createIconFilter(props.searchTerm);
     filteredIcons = filteredIcons.filter(iconFilter);
   }
-  if (filteredIcons.length === 0) return null;
+  if (filteredIcons.length === 0) {
+    return null;
+  }
 
   return (
     <Flex as="section" direction="column" gap="xl">

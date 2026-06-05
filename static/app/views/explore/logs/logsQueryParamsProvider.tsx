@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
+import {createContext, useContext} from 'react';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {LogsAutoRefreshProvider} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   LogsFrozenContextProvider,
@@ -11,15 +11,19 @@ import {LogsLocationQueryParamsProvider} from 'sentry/views/explore/logs/logsLoc
 import {LogsStateQueryParamsProvider} from 'sentry/views/explore/logs/logsStateQueryParamsProvider';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 
-const [
-  _LogsAnalyticsPageSourceProvider,
-  _useLogsAnalyticsPageSource,
-  LogsAnalyticsPageSourceContext,
-] = createDefinedContext<LogsAnalyticsPageSource>({
-  name: 'LogsAnalyticsPageSourceContext',
-});
+const LogsAnalyticsPageSourceContext = createContext<LogsAnalyticsPageSource | undefined>(
+  undefined
+);
 
-export const useLogsAnalyticsPageSource = _useLogsAnalyticsPageSource;
+export function useLogsAnalyticsPageSource(): LogsAnalyticsPageSource {
+  const context = useContext(LogsAnalyticsPageSourceContext);
+  if (context === undefined) {
+    throw new Error(
+      'useContext for "LogsAnalyticsPageSourceContext" must be inside a Provider with a value'
+    );
+  }
+  return context;
+}
 
 interface LogsQueryParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;

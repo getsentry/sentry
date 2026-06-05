@@ -4,20 +4,20 @@ import styled from '@emotion/styled';
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
@@ -56,9 +56,9 @@ export default function ReplayInlineOnboardingPanel({
               platform: <PurpleText>{platformName}</PurpleText>,
             })}
           </BannerTitle>
-          <BannerDescription>
+          <Container marginBottom="lg" maxWidth="340px">
             {t('Watch the errors and latency issues your users face')}
-          </BannerDescription>
+          </Container>
           <Flex gap="md">
             <Button
               type="button"
@@ -133,11 +133,6 @@ const BannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BannerDescription = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
-  max-width: 340px;
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`

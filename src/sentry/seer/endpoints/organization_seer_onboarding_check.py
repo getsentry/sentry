@@ -57,16 +57,16 @@ def is_autofix_enabled(organization: Organization) -> bool:
     ie, if any project has repositories configured in Seer preferences.
     """
     return SeerProjectRepository.objects.filter(
-        project__organization_id=organization.id,
-        project__status=ObjectStatus.ACTIVE,
-        repository__status=ObjectStatus.ACTIVE,
+        project_repository__project__organization_id=organization.id,
+        project_repository__project__status=ObjectStatus.ACTIVE,
+        project_repository__repository__status=ObjectStatus.ACTIVE,
     ).exists()
 
 
 @cell_silo_endpoint
 class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.CODING_WORKFLOWS
     enforce_rate_limit = True

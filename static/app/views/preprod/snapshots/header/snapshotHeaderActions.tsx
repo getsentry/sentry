@@ -10,9 +10,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {
   IconCheckmark,
   IconDelete,
@@ -61,10 +63,14 @@ export function SnapshotHeaderActions({
   const project = ProjectsStore.getById(data.project_id);
   const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportConfirmedRef = useRef(false);
 
-  const isApproved = data.approval_info?.status === 'approved';
-  const isAutoApproved = data.approval_info?.is_auto_approved ?? false;
-  const approvers: AvatarUser[] = (data.approval_info?.approvers ?? []).map((a, i) => ({
+  const comparisonState = data.comparison_state;
+  const approvalStatus = data.approval_status;
+  const isApproved = approvalStatus === 'approved' || approvalStatus === 'auto_approved';
+  const isAutoApproved = approvalStatus === 'auto_approved';
+  const approvers: AvatarUser[] = (data.approvers ?? []).map((a, i) => ({
     id: a.id ?? `approver-${i}`,
     name: a.name ?? '',
     email: a.email ?? '',
@@ -164,38 +170,78 @@ export function SnapshotHeaderActions({
     });
   }, [apiUrl, navigate]);
 
-  const handleDownloadImages = useCallback(async () => {
-    const downloadUrl = `/api/0/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/download/`;
+  const handleDownloadImages = useCallback(() => {
+    const archiveUrl = `/organizations/${organizationSlug}/preprodartifacts/snapshots/${data.head_artifact_id}/archive/`;
 
-    try {
-      const response = await fetch(downloadUrl, {credentials: 'include'});
+    const triggerBuild = () => {
+      setIsExporting(true);
+      clientRef.current.request(archiveUrl, {
+        method: 'POST',
+        success: () => {
+          setIsExporting(false);
+          addSuccessMessage(
+            t(
+              "We're building your snapshot images — we'll email you a download link when it's ready."
+            )
+          );
+        },
+        error: (resp: any) => {
+          setIsExporting(false);
+          if (resp?.status === 403) {
+            handleStaffPermissionError(resp?.responseJSON?.detail);
+          } else {
+            addErrorMessage(t('Failed to start snapshot image export.'));
+          }
+        },
+      });
+    };
 
-      if (!response.ok) {
-        if (response.status === 403) {
-          const detail = await response.json().catch(() => ({}));
-          handleStaffPermissionError(detail?.detail);
-        } else if (response.status === 404) {
-          addErrorMessage(t('Snapshot images not found.'));
-        } else {
-          addErrorMessage(t('Download failed (status: %s)', response.status));
+    // Probe readiness first: a built archive downloads immediately, otherwise we
+    // confirm and kick off an async build that emails a link when it's ready.
+    setIsExporting(true);
+    clientRef.current.request(archiveUrl, {
+      method: 'GET',
+      success: (resp: {ready?: boolean}) => {
+        if (resp?.ready) {
+          setIsExporting(false);
+          downloadFromHref(
+            `snapshot_images_${data.head_artifact_id}.zip`,
+            `/api/0${archiveUrl}?download=true`
+          );
+          return;
         }
-        return;
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      downloadFromHref(`snapshot_images_${data.head_artifact_id}.zip`, blobUrl);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-      addSuccessMessage(t('Snapshot images download started'));
-    } catch (error) {
-      addErrorMessage(t('Download failed: %s', String(error)));
-    }
+        exportConfirmedRef.current = false;
+        openConfirmModal({
+          header: t('Export all snapshots to a zip file'),
+          message: t(
+            "Exporting can take a bit, so we'll email you when the .zip is ready and available for download here."
+          ),
+          onConfirm: () => {
+            exportConfirmedRef.current = true;
+            triggerBuild();
+          },
+          onClose: () => {
+            if (!exportConfirmedRef.current) {
+              setIsExporting(false);
+            }
+          },
+        });
+      },
+      error: (resp: any) => {
+        setIsExporting(false);
+        if (resp?.status === 403) {
+          handleStaffPermissionError(resp?.responseJSON?.detail);
+        } else {
+          addErrorMessage(t('Failed to check snapshot image download.'));
+        }
+      },
+    });
   }, [organizationSlug, data.head_artifact_id]);
 
   return (
     <Flex align="center" gap="md">
-      {data.approval_info &&
-        (isApproved ? (
+      {comparisonState === 'success' ? (
+        isApproved ? (
           <Flex align="center" gap="xl">
             <Flex align="center" gap="xs">
               <Tag variant="success" icon={<IconCheckmark />}>
@@ -219,7 +265,7 @@ export function SnapshotHeaderActions({
               </Container>
             )}
           </Flex>
-        ) : (
+        ) : approvalStatus === 'requires_approval' ? (
           <Flex align="center" gap="sm">
             <Container display={{'2xs': 'none', lg: 'block'}}>
               <Tag variant="warning" icon={<IconTimer />}>
@@ -236,7 +282,14 @@ export function SnapshotHeaderActions({
               {t('Approve')}
             </Button>
           </Flex>
-        ))}
+        ) : null
+      ) : (
+        <SnapshotStatusBadge
+          comparisonState={comparisonState}
+          approvalStatus={approvalStatus}
+          errorMessage={data.comparison_error_message}
+        />
+      )}
 
       <ConfirmDelete
         message={t(
@@ -289,6 +342,7 @@ export function SnapshotHeaderActions({
               ),
               onAction: handleDownloadImages,
               textValue: t('Download Images'),
+              disabled: isExporting,
             },
             {
               key: 'rerun-status-checks',

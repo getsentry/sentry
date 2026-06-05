@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -14,12 +14,13 @@ import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -543,17 +544,15 @@ function InlineThreadSection({
   title: React.ReactNode;
 }) {
   return (
-    <Wrapper>
+    <Container>
       <Flex justify="between" align="center" marginBottom="md">
         <ThreadHeading>{title}</ThreadHeading>
         {actions}
       </Flex>
       {children}
-    </Wrapper>
+    </Container>
   );
 }
-
-const Wrapper = styled('div')``;
 
 const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};

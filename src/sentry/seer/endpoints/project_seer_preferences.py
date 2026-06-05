@@ -60,8 +60,8 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         ProjectEventPermission,  # Anyone in the org should be able to set preferences, follows event permissions.
     )
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
@@ -90,7 +90,10 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     )
 
     def post(self, request: Request, project: Project) -> Response:
-        serializer = ProjectSeerPreferencesSerializer(data=request.data)
+        serializer = ProjectSeerPreferencesSerializer(
+            data=request.data,
+            context={"organization": project.organization},
+        )
         serializer.is_valid(raise_exception=True)
 
         for repo_data in serializer.validated_data.get("repositories", []):

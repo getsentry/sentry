@@ -28,7 +28,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface ComboBoxProps {

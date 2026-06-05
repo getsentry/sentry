@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -32,6 +33,10 @@ from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.validators import ReplayValidator
+
+
+class GetReplayResponse(TypedDict):
+    data: ReplayDetailsResponse
 
 
 def _query_replay_urls_eap(
@@ -231,14 +236,16 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
         operation_id="Retrieve a Replay Instance",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],
         responses={
-            200: inline_sentry_response_serializer("GetReplay", ReplayDetailsResponse),
+            200: inline_sentry_response_serializer("GetReplay", GetReplayResponse),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
         examples=ReplayExamples.GET_REPLAY_DETAILS,
     )
-    def get(self, request: Request, organization: Organization, replay_id: str) -> Response:
+    def get(
+        self, request: Request, organization: Organization, replay_id: str
+    ) -> Response[GetReplayResponse]:
         """
         Return details on an individual replay.
         """

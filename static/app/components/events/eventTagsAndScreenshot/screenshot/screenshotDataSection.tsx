@@ -1,12 +1,12 @@
 import {useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
 import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
-import {openModal} from 'sentry/actionCreators/modal';
 import {Screenshot} from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
 import {
   modalCss,
@@ -19,9 +19,9 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 interface ScreenshotDataSectionProps {
@@ -36,6 +36,8 @@ export function ScreenshotDataSection({
   isShare,
   ...props
 }: ScreenshotDataSectionProps) {
+  const {openModal} = useModal();
+
   const location = useLocation();
   const organization = useOrganization();
   const {data: attachments} = useFetchEventAttachments(

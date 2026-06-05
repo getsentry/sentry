@@ -13,7 +13,8 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
-import {defined, escapeDoubleQuotes} from 'sentry/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -446,7 +447,7 @@ export function getDefaultExploreRoute(organization: Organization) {
   }
 
   if (organization.features.includes('performance-profiling')) {
-    return 'profiling';
+    return 'profiles';
   }
 
   if (organization.features.includes('session-replay-ui')) {

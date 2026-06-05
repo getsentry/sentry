@@ -1,4 +1,6 @@
-import {explodeField} from 'sentry/utils/discover/fields';
+import {defined} from 'sentry/utils/defined';
+import {explodeField, isEquation} from 'sentry/utils/discover/fields';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {
   DisplayType,
   WidgetType,
@@ -34,7 +36,24 @@ export function convertWidgetToQueryParams(
   widget: Widget
 ): WidgetBuilderStateQueryParams {
   const query = widget.queries.flatMap(q => q.conditions);
-  const sort = widget.queries.flatMap(q => q.orderby);
+  const sort = widget.queries.flatMap(q => {
+    const decodedSort = decodeSorts(q.orderby)[0];
+    if (
+      decodedSort &&
+      widget.widgetType === WidgetType.TRACEMETRICS &&
+      isEquation(decodedSort.field)
+    ) {
+      // Convert tracemetrics equations to the alias format when passing off to the dashboard widget builder
+      // due to the internal representation required for the widget builder to properly select this equation
+      // as a sort field
+      const equations = q.aggregates.filter(isEquation);
+      const equationIndex = equations?.indexOf(decodedSort.field);
+      if (defined(equationIndex) && equationIndex >= 0) {
+        return `${decodedSort.kind === 'desc' ? '-' : ''}equation[${equationIndex}]`;
+      }
+    }
+    return q.orderby;
+  });
   let legendAlias = widget.queries.flatMap(q => q.name);
 
   // y-axes and fields are shared across all queries

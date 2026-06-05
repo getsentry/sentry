@@ -1,6 +1,9 @@
-import type {Project} from 'sentry/types/project';
+type SortableProject = {
+  isBookmarked: boolean;
+  slug: string;
+};
 
-function projectDisplayCompare(a: Project, b: Project): number {
+function projectDisplayCompare(a: SortableProject, b: SortableProject): number {
   if (a.isBookmarked !== b.isBookmarked) {
     return a.isBookmarked ? -1 : 1;
   }
@@ -8,8 +11,8 @@ function projectDisplayCompare(a: Project, b: Project): number {
 }
 
 /**
- * Sort a list of projects by bookmarkedness, then by id
+ * Sort a list of projects by bookmarkedness, then by slug
  */
-export function sortProjects(projects: readonly Project[]): Project[] {
+export function sortProjects<T extends SortableProject>(projects: readonly T[]): T[] {
   return projects.toSorted(projectDisplayCompare);
 }

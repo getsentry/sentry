@@ -13,8 +13,8 @@ import {IconSpan} from 'sentry/icons/iconSpan';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -281,7 +281,7 @@ function getCodeSearchEvidenceProps({
       return null;
     }
 
-    const hash =
+    const lines =
       start_line && end_line
         ? start_line === end_line
           ? `L${start_line}`
@@ -289,10 +289,20 @@ function getCodeSearchEvidenceProps({
         : undefined;
 
     return {
-      href: hash ? `${code_url}#${hash}` : code_url,
+      href: lines ? `${code_url}#${lines}` : code_url,
       icon: <IconFile />,
-      label: t('File: %s', truncateText(filename)),
-      tooltip: path,
+      label: t('File: %s%s', truncateText(filename), lines ? ` ${lines}` : ''),
+      tooltip: (
+        <Fragment>
+          {path}
+          {lines && (
+            <Fragment>
+              <br />
+              {lines}
+            </Fragment>
+          )}
+        </Fragment>
+      ),
     };
   }
 

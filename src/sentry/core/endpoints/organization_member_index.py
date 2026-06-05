@@ -185,7 +185,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     )
 
     permission_classes = (MemberAndStaffPermission,)
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
 
     @extend_schema(
         operation_id="List an Organization's Members",
@@ -203,7 +203,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationMemberExamples.LIST_ORG_MEMBERS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[OrganizationMemberResponse]]:
         """
         List all organization members.
 

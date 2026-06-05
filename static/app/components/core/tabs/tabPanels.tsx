@@ -49,6 +49,7 @@ export function TabPanels(props: TabPanelsProps) {
       orientation={orientation}
       key={tabListState?.selectedKey}
     >
+      {/* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */}
       {selectedPanel?.props.children}
     </TabPanel>
   );
@@ -99,7 +100,7 @@ const TabPanelWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
       : css`
           width: 100%;
           padding-left: ${p.theme.space.md};
-        `};
+        `}
 
   &:focus-visible {
     outline: none;

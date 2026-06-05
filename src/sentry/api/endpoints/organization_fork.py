@@ -174,7 +174,7 @@ class OrganizationForkEndpoint(Endpoint):
         # When we received this back (via RPC call), we'll be able to continue with the usual
         # relocation flow, picking up from the `uploading_complete` task.
         uploading_start.apply_async(
-            args=[new_relocation.uuid, replying_cell_name, org_mapping.slug]
+            args=[str(new_relocation.uuid), replying_cell_name, org_mapping.slug]
         )
 
         try:

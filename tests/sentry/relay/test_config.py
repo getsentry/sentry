@@ -168,6 +168,7 @@ def test_project_config_uses_filter_features(
     default_project.update_option("sentry:releases", releases)
     default_project.update_option("filters:react-hydration-errors", "0")
     default_project.update_option("filters:chunk-load-error", "0")
+    default_project.update_option("filters:custom-error", "0")
 
     if has_blacklisted_ips:
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
@@ -330,14 +331,14 @@ def test_project_config_with_all_biases_enabled(
         "version": 2,
         "rules": [
             {
-                "samplingValue": {"type": "sampleRate", "value": 0.02},
-                "type": "transaction",
+                "samplingValue": {"type": "sampleRate", "value": 0.1 / 3},
+                "type": "trace",
                 "condition": {
                     "op": "or",
                     "inner": [
                         {
                             "op": "glob",
-                            "name": "event.transaction",
+                            "name": "trace.transaction",
                             "value": HEALTH_CHECK_GLOBS,
                         }
                     ],
@@ -459,7 +460,6 @@ def test_project_config_with_trace_health_checks_enabled(
     with Feature(
         {
             "organizations:dynamic-sampling": True,
-            "organizations:ds-health-checks-trace-based": True,
         }
     ):
         with patch(

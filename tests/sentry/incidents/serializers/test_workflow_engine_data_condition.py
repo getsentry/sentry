@@ -134,6 +134,26 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
         expected_trigger["alertRuleId"] = str(comparison_delta_rule.id)
         assert serialized_data_condition == expected_trigger
 
+    def test_comparison_delta_with_gte_lte_conditions(self) -> None:
+        for condition_type, expected_threshold_type in (
+            (Condition.GREATER_OR_EQUAL, AlertRuleThresholdType.ABOVE),
+            (Condition.LESS_OR_EQUAL, AlertRuleThresholdType.BELOW),
+        ):
+            rule = self.create_alert_rule(comparison_delta=60)
+            trigger = self.create_alert_rule_trigger(alert_rule=rule, label="critical")
+            trigger_action = self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+            _, _, _, detector, _, _, _, _ = migrate_alert_rule(rule)
+            detector_trigger, _, _ = migrate_metric_data_conditions(trigger)
+            migrate_resolve_threshold_data_condition(rule)
+            migrate_metric_action(trigger_action)
+
+            detector_trigger.update(type=condition_type)
+
+            serialized = serialize(
+                detector_trigger, self.user, WorkflowEngineDataConditionSerializer()
+            )
+            assert serialized["thresholdType"] == expected_threshold_type.value
+
     def test_anomaly_detection(self) -> None:
         dynamic_rule = self.create_dynamic_alert()
         critical_trigger = self.create_alert_rule_trigger(

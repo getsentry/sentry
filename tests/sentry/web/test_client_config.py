@@ -141,7 +141,12 @@ def test_client_config_features() -> None:
 
     with (
         override_options({"auth.allow-registration": True}),
-        Feature({"auth:register": True, "system:multi-region": True}),
+        Feature(
+            {
+                "auth:register": True,
+                "system:multi-region": True,
+            }
+        ),
     ):
         result = get_client_config(request)
 

@@ -2,6 +2,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from random import Random
 
+from django.utils.decorators import method_decorator
 from django.utils.text import slugify
 
 from sentry.models.group import Group
@@ -11,6 +12,7 @@ from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, Pro
 from sentry.tasks.summaries.weekly_reports import render_template_context
 from sentry.utils import loremipsum
 from sentry.utils.dates import floor_to_utc_day, to_datetime
+from sentry.web.decorators import login_required
 from sentry.web.frontend.base import internal_cell_silo_view
 
 from .mail import MailPreviewView
@@ -22,9 +24,13 @@ def get_random(request):
 
 
 @internal_cell_silo_view
+@method_decorator(login_required, name="dispatch")
 class DebugWeeklyReportView(MailPreviewView):
     def get_context(self, request):
         organization = Organization(id=1, slug="myorg", name="MyOrg")
+
+        if request.GET.get("enhanced_privacy"):
+            organization.flags.enhanced_privacy = True
 
         random = get_random(request)
 
@@ -32,8 +38,8 @@ class DebugWeeklyReportView(MailPreviewView):
         timestamp = floor_to_utc_day(
             to_datetime(
                 random.randint(
-                    datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp(),
-                    datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp(),
+                    int(datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp()),
+                    int(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp()),
                 )
             )
         ).timestamp()
@@ -117,7 +123,9 @@ class DebugWeeklyReportView(MailPreviewView):
 
             ctx.projects_context_map[project.id] = project_context
 
-        return render_template_context(ctx, None)
+        user_id = request.user.id
+        ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
+        return render_template_context(ctx, user_id)
 
     @property
     def html_template(self) -> str:

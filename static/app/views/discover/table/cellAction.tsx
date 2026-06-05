@@ -8,7 +8,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
   fieldAlignment,
@@ -19,10 +19,32 @@ import {
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {FieldKey} from 'sentry/utils/fields';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 
 import type {TableColumn} from './types';
+
+/**
+ * Returns true when href should surface the in-app "Open link" cell action.
+ * External http(s) URLs must not be treated as in-app routes after stripping the origin.
+ */
+function isInternalNavigationTarget(target: string): boolean {
+  if (target.startsWith('/') && !target.startsWith('//')) {
+    return true;
+  }
+
+  if (!isUrl(target)) {
+    return false;
+  }
+
+  try {
+    const url = new URL(target);
+    return url.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
 
 export enum Actions {
   ADD = 'add',
@@ -156,7 +178,9 @@ export function excludeFromFilter(
  */
 export function copyToClipboard(value: string | number | string[]) {
   function stringifyValue(val: string | number | string[]): string {
-    if (!val) return '';
+    if (!val) {
+      return '';
+    }
     if (typeof val !== 'object') {
       return val.toString();
     }
@@ -212,7 +236,9 @@ function makeCellActions({
     return null;
   }
 
-  let value = dataRow[column.name];
+  let value = dataRow[column.key];
+  const externalLinkTarget =
+    to && !isInternalNavigationTarget(to) && isValidUrl(to) ? to : undefined;
 
   // error.handled is a strange field where null = true.
   if (
@@ -238,12 +264,14 @@ function makeCellActions({
         onAction: () => handleCellAction(action, value!),
         to: action === Actions.OPEN_INTERNAL_LINK && to ? stripURLOrigin(to) : undefined,
         externalHref:
-          action === Actions.OPEN_EXTERNAL_LINK ? (value as string) : undefined,
+          action === Actions.OPEN_EXTERNAL_LINK
+            ? (externalLinkTarget ?? (value as string))
+            : undefined,
       });
     }
   }
 
-  if (to && to !== value) {
+  if (to && to !== value && isInternalNavigationTarget(to)) {
     const field = String(column.key);
     addMenuItem(Actions.OPEN_INTERNAL_LINK, getInternalLinkActionLabel(field));
   }
@@ -252,7 +280,9 @@ function makeCellActions({
     addMenuItem(Actions.OPEN_ROW_IN_EXPLORE, t('View span samples'));
   }
 
-  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
+  if (value) {
+    addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
+  }
 
   if (allowActions) {
     addMenuItem(Actions.COPY_LINK, t('Copy link'));
@@ -301,7 +331,7 @@ function makeCellActions({
     );
   }
 
-  if (isUrl(value)) {
+  if (externalLinkTarget || isValidUrl(value)) {
     addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
   }
 
@@ -348,11 +378,13 @@ export enum ActionTriggerType {
 }
 
 type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
+  pin?: React.ReactNode;
   triggerType?: ActionTriggerType;
   usePortalOnDropdown?: boolean;
 };
 
 export function CellAction({
+  pin,
   triggerType = ActionTriggerType.BOLD_HOVER,
   allowActions,
   usePortalOnDropdown,
@@ -408,7 +440,13 @@ export function CellAction({
                     const aTags = e.currentTarget.getElementsByTagName('a');
                     if (aTags?.[0]) {
                       const href = aTags[0].href;
-                      setTarget(href);
+                      if (isInternalNavigationTarget(href) || isValidUrl(href)) {
+                        setTarget(href);
+                      } else {
+                        setTarget(undefined);
+                      }
+                    } else {
+                      setTarget(undefined);
                     }
                     e.preventDefault();
                   }
@@ -428,6 +466,7 @@ export function CellAction({
         ) : (
           children
         )}
+        {pin}
       </Container>
     );
   }
@@ -462,6 +501,7 @@ export function CellAction({
           )}
         />
       )}
+      {pin}
     </Container>
   );
 }

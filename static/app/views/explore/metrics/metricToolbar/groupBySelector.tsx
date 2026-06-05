@@ -30,6 +30,10 @@ interface GroupBySelectorProps {
    */
   traceMetric: TraceMetric;
   /**
+   * If set, disables the selector and shows this string as a tooltip.
+   */
+  disabledReason?: string;
+  /**
    * Whether to skip the trace metric filter.
    *
    * For equations, because at the moment there isn't an easy way to filter
@@ -46,11 +50,13 @@ interface GroupBySelectorProps {
 export function GroupBySelector({
   traceMetric,
   skipTraceMetricFilter,
+  disabledReason,
 }: GroupBySelectorProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const isDisabled = disabledReason !== undefined;
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
@@ -65,29 +71,26 @@ export function GroupBySelector({
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
   });
 
-  const visibleNumberTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(data?.numberAttributes ?? {}).filter(
-        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-      )
-    );
-  }, [data?.numberAttributes]);
-
-  const visibleStringTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(data?.stringAttributes ?? {}).filter(
-        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-      )
-    );
-  }, [data?.stringAttributes]);
-
-  const visibleBooleanTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(data?.booleanAttributes ?? {}).filter(
-        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-      )
-    );
-  }, [data?.booleanAttributes]);
+  const {visibleBooleanTags, visibleNumberTags, visibleStringTags} = useMemo(
+    () => ({
+      visibleBooleanTags: Object.fromEntries(
+        Object.entries(data?.booleanAttributes ?? {}).filter(
+          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+        )
+      ),
+      visibleNumberTags: Object.fromEntries(
+        Object.entries(data?.numberAttributes ?? {}).filter(
+          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+        )
+      ),
+      visibleStringTags: Object.fromEntries(
+        Object.entries(data?.stringAttributes ?? {}).filter(
+          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+        )
+      ),
+    }),
+    [data?.booleanAttributes, data?.numberAttributes, data?.stringAttributes]
+  );
 
   const enabledOptions = useGroupByFields({
     groupBys,
@@ -129,6 +132,7 @@ export function GroupBySelector({
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
+          tooltipProps={{title: disabledReason}}
           prefix={t('Group by')}
           style={{width: '100%'}}
         />
@@ -136,7 +140,7 @@ export function GroupBySelector({
       options={enabledOptions}
       value={[...groupBys]}
       loading={isLoading}
-      disabled={!skipTraceMetricFilter && !traceMetricFilter}
+      disabled={isDisabled || isLoading || (!skipTraceMetricFilter && !traceMetricFilter)}
       onChange={handleChange}
       style={{width: '100%'}}
     />

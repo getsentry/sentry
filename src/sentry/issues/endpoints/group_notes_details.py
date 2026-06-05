@@ -9,7 +9,14 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.api.utils import to_valid_int_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log import (
+    GroupActionActor,
+    publish_action,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -35,13 +42,15 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
+        note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)
+
         notes_by_user = Activity.objects.filter(
             group=group, type=ActivityType.NOTE.value, user_id=request.user.id
         )
         if not len(notes_by_user):
             raise ResourceDoesNotExist
 
-        user_note = [n for n in notes_by_user if n.id == int(note_id)]
+        user_note = [n for n in notes_by_user if n.id == note_id_int]
         if not user_note or len(user_note) > 1:
             raise ResourceDoesNotExist
         note = user_note[0]
@@ -54,6 +63,15 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         }
 
         note.delete()
+
+        publish_action(
+            CommentDeleteAction(comment_id=note_id_int),
+            source=resolve_action_source(request),
+            group_id=group.id,
+            organization_id=group.organization.id,
+            project_id=group.project_id,
+            actor=GroupActionActor.user(request.user.id),
+        )
 
         comment_deleted.send_robust(
             project=group.project,
@@ -78,9 +96,11 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")
 
+        note_id_int = to_valid_int_id("note_id", note_id, raise_404=True)
+
         try:
             note = Activity.objects.get(
-                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id
+                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id_int
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
@@ -96,6 +116,15 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             # Would be nice to have a last_modified timestamp we could bump here
             note.data.update(dict(payload))
             note.save()
+
+            publish_action(
+                CommentEditAction(comment_id=note.id),
+                source=resolve_action_source(request),
+                group_id=group.id,
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                actor=GroupActionActor.user(request.user.id),
+            )
 
             if note.data.get("external_id"):
                 self.update_external_comment(request, group, note)

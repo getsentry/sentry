@@ -292,6 +292,7 @@ def sync_status_inbound(
                 group=group,
                 project=group.project,
                 resolution_type=provider.key,
+                commit_id=None,
                 sender=f"resolved_with_{provider.key}",
             )
             try:

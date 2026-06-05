@@ -23,7 +23,7 @@ function TopBarWrapper({children}: {children: ReactNode}) {
 describe('ExploreContent', () => {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['gen-ai-features', 'traces-page-cross-event-querying'],
+      features: ['gen-ai-features'],
     },
   });
 
@@ -135,7 +135,7 @@ describe('ExploreContent', () => {
       ).toBeInTheDocument();
     });
 
-    it('resets period when max pickable days decreases', async () => {
+    it('resets period when maxDateRange is applied after cross events are added', async () => {
       PageFiltersStore.onInitializeUrlState({
         projects: [project].map(p => parseInt(p.id, 10)),
         environments: [],

@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
@@ -38,6 +38,8 @@ const EMPTY_ALIASES: TagCollection = {};
 
 interface FilterProps {
   traceMetric: TraceMetric;
+  environments?: string[];
+  projectIds?: number[];
   skipTraceMetricFilter?: boolean;
 }
 
@@ -50,7 +52,7 @@ function MetricsSearchBar({
   tracesItemSearchQueryBuilderProps,
   traceMetric,
 }: MetricsSearchBarProps) {
-  const {displayAskSeer} = useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
     return <MetricsTabSeerComboBox traceMetric={traceMetric} />;
@@ -59,7 +61,12 @@ function MetricsSearchBar({
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
-export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
+export function Filter({
+  traceMetric,
+  skipTraceMetricFilter,
+  projectIds,
+  environments,
+}: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
   const organization = useOrganization();
@@ -75,16 +82,19 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
   const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
 
-  const {data: data} = useQuery({
+  const {data, isLoading} = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       query: attributeQuery,
+      projectIds,
+      environments,
     }),
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
     select: selectTraceItemTagCollection(),
   });
+  const isSearchBarDisabled = isLoading || (!skipTraceMetricFilter && !traceMetricFilter);
 
   const visibleNumberTags = useMemo(() => {
     const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce<TagCollection>(
@@ -165,6 +175,9 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
         namespace: traceMetric.name,
         attributeQuery,
         hiddenAttributeKeys: HiddenTraceMetricSearchFields,
+        projects: projectIds,
+        environments,
+        disabled: isSearchBarDisabled,
 
         // Disable the recent searches when not using a trace metric filter or when the metric name
         // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
@@ -179,6 +192,9 @@ export function Filter({traceMetric, skipTraceMetricFilter}: FilterProps) {
       traceMetric.name,
       attributeQuery,
       skipTraceMetricFilter,
+      projectIds,
+      environments,
+      isSearchBarDisabled,
     ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(

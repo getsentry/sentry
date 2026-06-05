@@ -32,18 +32,18 @@ import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
-import {DebugMetaStore} from 'sentry/stores/debugMetaStore';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
 import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 
+import {useOptionalDebugMetaSearch} from './debugMeta/debugMetaSearchContext';
 import {combineStatus} from './debugMeta/utils';
 import {Context} from './frame/context';
 import {SymbolicatorStatus} from './types';
@@ -104,6 +104,7 @@ export function NativeFrame({
   const {displayOptions, stackView, hasScmSourceContext} = useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
+  const debugMetaSearch = useOptionalDebugMetaSearch();
   const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(SectionKey.DEBUGMETA),
@@ -122,7 +123,8 @@ export function NativeFrame({
     !!frame.symbolicatorStatus &&
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
     !isHoverPreviewed &&
-    !!debugSectionConfig;
+    !!debugSectionConfig &&
+    !!debugMetaSearch;
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable = isExpandable({
@@ -246,7 +248,7 @@ export function NativeFrame({
           ? `${image.debug_id}!${frame.instructionAddr}`
           : frame.instructionAddr;
 
-      DebugMetaStore.updateFilter(searchTerm);
+      debugMetaSearch?.setSearchTerm(searchTerm);
     }
 
     // Expand the section

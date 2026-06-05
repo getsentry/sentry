@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
@@ -8,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import analytics, quotas
+from sentry import analytics, features, quotas
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -43,6 +44,7 @@ from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofi
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.models.seer_api_models import SeerPermissionError
 from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
@@ -187,6 +189,7 @@ def get_autofix_agent_client(
     intelligence_level: Literal["low", "medium", "high"] = "medium",
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
+    code_review_enabled: bool = False,
 ) -> SeerAgentClient:
     from sentry.seer.autofix.on_completion_hook import (
         AutofixOnCompletionHook,  # nested to avoid circular import
@@ -202,6 +205,7 @@ def get_autofix_agent_client(
         reasoning_effort=reasoning_effort,
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
+        code_review_enabled=code_review_enabled,
     )
 
 
@@ -221,13 +225,34 @@ def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> 
     return state
 
 
+def _default_intelligence_level(organization: Organization) -> Literal["low", "medium", "high"]:
+    if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
+        return "high"
+    return "medium"
+
+
+def _default_reasoning_effort(
+    organization: Organization,
+    step_default: Literal["low", "medium", "high"] | None,
+) -> Literal["low", "medium", "high"] | None:
+    if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
+        return "high"
+    return step_default
+
+
+def _code_review_enabled(organization: Organization, enable_coding: bool) -> bool:
+    # The review_code_changes tool only operates on accumulated patches, so it is
+    # only useful on coding-enabled steps.
+    return enable_coding and features.has("organizations:seer-autofix-code-review", organization)
+
+
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
     referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
-    intelligence_level: Literal["low", "medium", "high"] = "medium",
+    intelligence_level: Literal["low", "medium", "high"] = _UNSET,
     reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
@@ -255,13 +280,23 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
+    resolved_intelligence_level = (
+        _default_intelligence_level(group.organization)
+        if intelligence_level is _UNSET
+        else intelligence_level
+    )
+    resolved_reasoning_effort = (
+        _default_reasoning_effort(group.organization, config.reasoning_effort)
+        if reasoning_effort is _UNSET
+        else reasoning_effort
+    )
+
     client = get_autofix_agent_client(
         group,
-        intelligence_level=intelligence_level,
-        reasoning_effort=(
-            config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
-        ),
+        intelligence_level=resolved_intelligence_level,
+        reasoning_effort=resolved_reasoning_effort,
         enable_coding=config.enable_coding,
+        code_review_enabled=_code_review_enabled(group.organization, config.enable_coding),
     )
     if run_id is not None:
         _get_group_run_state(client, group, run_id)
@@ -296,7 +331,7 @@ def trigger_autofix_agent(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
-        )
+        ).seer_run_state_id
 
         # Make sure to log billing event for seer autofix whenever a new run is started
         quotas.backend.record_seer_run(
@@ -500,6 +535,7 @@ def trigger_coding_agent_handoff(
     integration_id: int | None = None,
     provider: str | None = None,
     user_id: int | None = None,
+    auto_create_pr: bool | None = None,
 ) -> dict[str, list]:
     """
     Trigger a coding agent handoff for an existing agent-based autofix run.
@@ -513,6 +549,7 @@ def trigger_coding_agent_handoff(
         integration_id: The coding agent integration ID (e.g., Cursor)
         provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
         user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
+        auto_create_pr: Optional override for whether the coding agent should create a PR
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -522,11 +559,12 @@ def trigger_coding_agent_handoff(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    auto_create_pr = False
     preference = read_preference_from_sentry_db(group.project)
     repo_definitions: list[SeerRepoDefinition] = preference.repositories
-    if preference.automation_handoff:
-        auto_create_pr = preference.automation_handoff.auto_create_pr
+    if auto_create_pr is None:
+        auto_create_pr = False
+        if preference.automation_handoff:
+            auto_create_pr = preference.automation_handoff.auto_create_pr
 
     if not repo_definitions:
         return {
@@ -573,6 +611,7 @@ def trigger_coding_agent_handoff(
         repos=[repo],
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
+        issue_short_id=short_id,
     )
 
     coding_agent_name = _resolve_coding_agent_name(group.organization.id, integration_id, provider)
@@ -584,7 +623,6 @@ def trigger_coding_agent_handoff(
             group_id=group.id,
             referrer=referrer.value,
             coding_agent=coding_agent_name,
-            initiator="automation.explorer",
         )
     )
 
@@ -606,6 +644,7 @@ def trigger_push_changes(
     referrer: AutofixReferrer,
     state: SeerRunState | None = None,
     repo_name: str | None = None,
+    ready_for_review: bool = True,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -631,9 +670,8 @@ def trigger_push_changes(
     client.push_changes(
         run_id,
         repo_name=repo_name,
-        pr_description_suffix=(
-            f"Fixes {group.qualified_short_id}" if group.qualified_short_id else None
-        ),
+        pr_description_suffix=build_pr_description_suffix(group),
+        ready_for_review=ready_for_review,
         blocking=False,
     )
 
@@ -641,3 +679,31 @@ def trigger_push_changes(
         "autofix.explorer.trigger",
         tags={"step": "open_pr", "referrer": referrer.value},
     )
+
+
+def build_pr_description_suffix(group: Group) -> str | None:
+    lines = []
+
+    if group.qualified_short_id:
+        lines.append(f"Fixes {group.qualified_short_id}")
+
+    for external_issue in PlatformExternalIssue.objects.filter(group_id=group.id):
+        if external_issue.service_type == "linear":
+            is_valid = bool(re.match(r"^[A-Z0-9]+#\d+$", external_issue.display_name))
+            if not is_valid:
+                logger.warning(
+                    "autofix.linear.unknown-id",
+                    extra={
+                        "group": group.id,
+                        "project": group.project_id,
+                        "linear_id": external_issue.display_name,
+                    },
+                )
+                continue
+            linear_id = external_issue.display_name.replace("#", "-")
+            lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
+
+    if lines:
+        return "\n".join(lines)
+
+    return None

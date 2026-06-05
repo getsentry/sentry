@@ -41,11 +41,6 @@ describe('BuildYourPlan', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
-      method: 'GET',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
       body: {

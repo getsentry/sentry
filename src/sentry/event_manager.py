@@ -1120,9 +1120,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
         # so new-customer cohorts are fully observable; 1% otherwise.
         processing_errors = job["data"].get("errors", [])
         event = job["event"]
-        if processing_errors and features.has(
-            "organizations:processing-error-analytics", event.project.organization
-        ):
+        if processing_errors:
             org_age = datetime.now(timezone.utc) - event.project.organization.date_added
             sample_rate = 1.0 if org_age < timedelta(days=30) else 0.01
             if random.random() < sample_rate:
@@ -1956,7 +1954,7 @@ def _process_existing_aggregate(
 
 
 severity_connection_pool = connection_from_url(
-    settings.SEER_GROUPING_URL,
+    settings.SEER_SCORING_URL,
     retries=settings.SEER_SEVERITY_RETRIES,
     timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
 )

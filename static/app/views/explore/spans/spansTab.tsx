@@ -20,8 +20,9 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -210,10 +211,6 @@ function SpanTabContentSectionInner({
     currentSelectedDateRange: selection.datetime,
   });
 
-  const hasCrossEventQueries = organization.features.includes(
-    'traces-page-cross-event-querying'
-  );
-
   const queryType =
     tab === Mode.AGGREGATE
       ? 'aggregate'
@@ -233,7 +230,7 @@ function SpanTabContentSectionInner({
     enabled: isReady && queryType === 'aggregate',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      ...crossEventQueries,
     },
   });
   const spansTableResult = useExploreSpansTable({
@@ -242,7 +239,7 @@ function SpanTabContentSectionInner({
     enabled: isReady && queryType === 'samples',
     queryExtras: {
       caseInsensitive,
-      ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+      ...crossEventQueries,
     },
   });
   const tracesTableQuery = useQuery({
@@ -251,7 +248,7 @@ function SpanTabContentSectionInner({
       limit,
       queryExtras: {
         caseInsensitive,
-        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+        ...crossEventQueries,
       },
     }),
     select: selectJsonWithHeaders,
@@ -268,7 +265,7 @@ function SpanTabContentSectionInner({
       enabled: isReady,
       queryExtras: {
         caseInsensitive,
-        ...(hasCrossEventQueries && defined(crossEventQueries) ? crossEventQueries : {}),
+        ...crossEventQueries,
       },
     });
 
@@ -370,10 +367,18 @@ function SpanTabContentSectionInner({
               tracesTableResult={tracesTableResult}
               confidences={confidences}
               tab={tab}
-              setTab={(newTab: Mode | Tab) => {
+              setTab={(newTab, reason) => {
                 if (newTab === Mode.AGGREGATE) {
                   setControlSectionExpanded(true);
                 }
+
+                if (reason === 'click') {
+                  trackAnalytics('trace.explorer.table_tab_changed', {
+                    organization,
+                    tab: newTab,
+                  });
+                }
+
                 setTab(newTab);
               }}
             />

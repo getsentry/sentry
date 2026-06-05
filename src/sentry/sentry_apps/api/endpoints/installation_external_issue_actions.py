@@ -22,7 +22,7 @@ class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer
 
 @control_silo_endpoint
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

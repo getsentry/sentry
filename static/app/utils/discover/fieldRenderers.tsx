@@ -6,6 +6,7 @@ import partial from 'lodash/partial';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -28,10 +29,9 @@ import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {defined} from 'sentry/utils/defined';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
@@ -57,7 +57,8 @@ import {toPercent} from 'sentry/utils/number/toPercent';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {Projects} from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
 import {
   findLinkedDashboardForField,
@@ -108,6 +109,7 @@ import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamK
  */
 export type RenderFunctionBaggage = {
   location: Location;
+  navigate: ReactRouter3Navigate;
   organization: Organization;
   theme: Theme;
   /**
@@ -191,6 +193,26 @@ export function nullableValue(value: string | null): string | React.ReactElement
     default:
       return value;
   }
+}
+
+/**
+ * Renders navigable URLs as external links.
+ * Invalid/template URLs render as plain text without an anchor tag.
+ */
+export function renderUrlCellValue(value: unknown): React.ReactNode {
+  if (value === null || value === undefined) {
+    return emptyValue;
+  }
+
+  if (typeof value !== 'string') {
+    return typeof value === 'number' || typeof value === 'boolean' ? value : emptyValue;
+  }
+
+  if (!isValidUrl(value)) {
+    return nullableValue(value);
+  }
+
+  return <ExternalLink href={value}>{value}</ExternalLink>;
 }
 
 // TODO: Remove this, use `SIZE_UNIT_MULTIPLIERS` instead
@@ -311,9 +333,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       if (data[field] > 0 && data[field] < NUMBER_MIN_VALUE) {
         return (
           <NumberContainer>
-            <Tooltip title={formatTooltipValue(data[field], 'number')}>
+            <InfoText variant="inherit" title={formatTooltipValue(data[field], 'number')}>
               <span>{`<${NUMBER_MIN_VALUE}`}</span>
-            </Tooltip>
+            </InfoText>
           </NumberContainer>
         );
       }
@@ -355,32 +377,23 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
-        ? data[field].slice(-1)
+        ? (data[field].at(-1) ?? emptyValue)
         : defined(data[field])
           ? data[field]
           : emptyValue;
 
-      if (isUrl(value)) {
-        return (
-          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
-            <Container>
-              <ExternalLink href={value} data-test-id="group-tag-url">
-                {value}
-              </ExternalLink>
-            </Container>
-          </Tooltip>
-        );
-      }
-
-      if (value && typeof value === 'string') {
-        return (
-          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
-            <Container>{nullableValue(value)}</Container>
-          </Tooltip>
-        );
-      }
-
-      return <Container>{nullableValue(value)}</Container>;
+      return (
+        <Tooltip
+          title={value}
+          showOnlyOnOverflow
+          containerDisplayMode="block"
+          disabled={typeof value !== 'string'}
+        >
+          <Container>
+            <span data-test-id="group-tag-url">{renderUrlCellValue(value)}</span>
+          </Container>
+        </Tooltip>
+      );
     },
   },
   array: {
@@ -585,13 +598,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           showOnlyOnOverflow
           maxWidth={400}
         >
-          <Container>
-            {isUrl(value) ? (
-              <ExternalLink href={value}>{value}</ExternalLink>
-            ) : (
-              nullableValue(value)
-            )}
-          </Container>
+          <Container>{renderUrlCellValue(value)}</Container>
         </Tooltip>
       );
     },
@@ -1095,7 +1102,9 @@ const getContextIcon = (value: string) => {
  */
 const dropVersion = (value: string) => {
   const valueArray = value.split(' ');
-  if (valueArray.length > 1) valueArray.pop();
+  if (valueArray.length > 1) {
+    valueArray.pop();
+  }
   return valueArray.join(' ');
 };
 
@@ -1268,7 +1277,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization, eventView, theme}: RenderFunctionBaggage,
+  {location, navigate, organization, eventView, theme}: RenderFunctionBaggage,
   options?: RenderFunctionOptions
 ): React.ReactNode => {
   const {enableOnClick = true} = options ?? {};
@@ -1347,7 +1356,7 @@ export const spanOperationRelativeBreakdownRenderer = (
                     action: filter,
                     organization,
                   });
-                  browserHistory.push({
+                  navigate({
                     pathname: location.pathname,
                     query: {
                       ...location.query,

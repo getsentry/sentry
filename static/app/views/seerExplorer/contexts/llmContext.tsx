@@ -8,8 +8,6 @@ import {
   useRef,
 } from 'react';
 
-import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-
 import type {
   LLMContextInternalValue,
   LLMContextNode,
@@ -20,18 +18,20 @@ import type {
 
 // Internal context — holds the registry operations (registerNode, etc.)
 
-const [_LLMContextProvider, _useLLMContextValue] =
-  createDefinedContext<LLMContextInternalValue>({
-    name: 'LLMContext',
-    strict: true,
-  });
+const LLMInternalContext = createContext<LLMContextInternalValue | undefined>(undefined);
 
 /**
  * Hook for internal use by registerLLMContext and useLLMContext to access
  * the registry operations (registerNode, unregisterNode, updateNodeData, getSnapshot).
  * Throws if called outside an LLMContextProvider.
  */
-export const useLLMContextRegistry = _useLLMContextValue;
+export function useLLMContextRegistry(): LLMContextInternalValue {
+  const context = useContext(LLMInternalContext);
+  if (context === undefined) {
+    throw new Error('useContext for "LLMContext" must be inside a Provider with a value');
+  }
+  return context;
+}
 
 /**
  * LLMNodeContext — carries the current component's nodeId down the tree
@@ -184,7 +184,7 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
     [getSnapshot, registerNode, unregisterNode, updateNodeData]
   );
 
-  return <_LLMContextProvider value={value}>{children}</_LLMContextProvider>;
+  return <LLMInternalContext value={value}>{children}</LLMInternalContext>;
 }
 
 /**

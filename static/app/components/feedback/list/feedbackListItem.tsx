@@ -17,6 +17,7 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {feedbackHasLinkedError} from 'sentry/utils/feedback/hasLinkedError';
 import {type FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
@@ -26,9 +27,7 @@ import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 interface Props {
   feedbackItem: FeedbackIssueListItem;
-  isSelected: 'all-selected' | boolean;
   onItemSelect: () => void;
-  onSelect: (isSelected: boolean) => void;
 }
 
 function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListItem}) {
@@ -39,12 +38,9 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
   return feedbackId === feedbackItem.id;
 }
 
-export function FeedbackListItem({
-  feedbackItem,
-  isSelected,
-  onSelect,
-  onItemSelect,
-}: Props) {
+export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
+  const {isSelected, toggleSelected} = useListItemCheckboxContext();
+
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -84,10 +80,10 @@ export function FeedbackListItem({
           }}
         >
           <Checkbox
-            disabled={isSelected === 'all-selected'}
-            checked={isSelected !== false}
-            onChange={e => {
-              onSelect(e.target.checked);
+            disabled={isSelected(feedbackItem.id) === 'all-selected'}
+            checked={isSelected(feedbackItem.id) !== false}
+            onChange={() => {
+              toggleSelected(feedbackItem.id);
             }}
           />
         </Row>

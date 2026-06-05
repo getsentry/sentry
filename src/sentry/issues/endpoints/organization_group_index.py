@@ -387,8 +387,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     serialized_groups = serialize(
                         groups, request.user, serializer(), request=request
                     )
-                    if event_id:
-                        serialized_groups[0]["matchingEventId"] = event_id
+                    serialized_groups[0]["matchingEventId"] = event_id
                     response = Response(serialized_groups)
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response
@@ -488,7 +487,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         examples=IssueExamples.ORGANIZATION_GROUP_INDEX_PUT,
     )
     @track_slo_response("workflow")
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response[MutateIssueResponse]:
         projects = self.get_projects(request, organization)
 
         search_fn = functools.partial(

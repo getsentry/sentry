@@ -61,7 +61,7 @@ def _get_api_pipeline(
 
 @control_silo_endpoint
 class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -127,6 +127,7 @@ class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
             return Response({"detail": "Pipeline does not support API mode."}, status=400)
 
         pipeline.set_api_mode()
+        pipeline.bind_state("user_id", request.user.id)
 
         metrics.incr(
             "integrations.pipeline_api.initialize",

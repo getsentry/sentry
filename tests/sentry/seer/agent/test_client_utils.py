@@ -9,7 +9,6 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
@@ -33,32 +32,14 @@ class TestHasSeerAgentAccessWithDetail(TestCase):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "AI features are disabled for this organization.")
 
-    def test_no_explorer_flags_enabled(self) -> None:
+    def test_no_explorer_flag_enabled(self) -> None:
         with self.feature("organizations:gen-ai-features"):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "Feature flag not enabled")
 
-    def test_only_seer_explorer_flag(self) -> None:
+    def test_seer_explorer_flag_enabled(self) -> None:
         with self.feature(
             {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
-        ):
-            result = has_seer_agent_access_with_detail(self.org, self.user)
-        assert result == (True, None)
-
-    def test_only_autofix_on_explorer_flag(self) -> None:
-        with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:autofix-on-explorer": True}
-        ):
-            result = has_seer_agent_access_with_detail(self.org, self.user)
-        assert result == (True, None)
-
-    def test_all_explorer_flags_enabled(self) -> None:
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-                "organizations:seer-explorer": True,
-                "organizations:autofix-on-explorer": True,
-            }
         ):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (True, None)
@@ -70,7 +51,6 @@ class TestHasSeerAgentAccessWithDetail(TestCase):
             {
                 "organizations:gen-ai-features": True,
                 "organizations:seer-explorer": True,
-                "organizations:autofix-on-explorer": True,
             }
         ):
             result = has_seer_agent_access_with_detail(self.org, self.user)
@@ -202,7 +182,7 @@ class CollectUserOrgContextTest(TestCase):
             integration_id=999,
             external_id="ext-1",
         )
-        SeerProjectRepository.objects.create(project=self.project1, repository=repo1)
+        self.create_seer_project_repository(project=self.project1, repository=repo1)
         repo2 = self.create_repo(
             project=self.project2,
             name="acme/project-2-repo",
@@ -210,7 +190,7 @@ class CollectUserOrgContextTest(TestCase):
             integration_id=999,
             external_id="ext-2",
         )
-        SeerProjectRepository.objects.create(project=self.project2, repository=repo2)
+        self.create_seer_project_repository(project=self.project2, repository=repo2)
 
         context = collect_user_org_context(self.user, self.organization)
 

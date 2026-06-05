@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import contextlib
 import logging
+import time
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -10,7 +12,7 @@ from typing import Any, TypedDict
 import orjson
 import sentry_sdk
 from django.core.cache import cache
-from requests import PreparedRequest
+from requests import PreparedRequest, Response
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
@@ -38,6 +40,9 @@ from sentry.integrations.source_code_management.status_check import StatusCheckC
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
+from sentry.net.http import SafeSession
+from sentry.scm.private.rate_limit import DynamicRateLimiter, RedisRateLimitProvider
+from sentry.shared_integrations.client.base import SessionSettings
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
@@ -1123,7 +1128,36 @@ class _IntegrationIdParams(TypedDict, total=False):
     integration_id: int
 
 
+# TODO: Emerge Team - Update to be -> {"emerge": 0.05}.
+REFERRER_ALLOCATION: dict[str, float] = {}
+assert "shared" not in REFERRER_ALLOCATION
+
+GITHUB_RATE_LIMIT_WINDOW = 3600
+GITHUB_RATE_LIMIT_CAPACITY = "x-ratelimit-limit"
+GITHUB_RATE_LIMIT_USED = "x-ratelimit-used"
+GITHUB_RATE_LIMIT_RESET = "x-ratelimit-reset"
+
+# Requests to this resource do not count against GitHub's primary rate limit, so our
+# internal rate limiter ignores them. https://docs.github.com/en/rest/rate-limit
+GITHUB_RATE_LIMIT_RESOURCE_PATH = "/rate_limit"
+
+
 class GitHubApiClient(GitHubBaseClient):
+    """
+    GitHub REST API client.
+
+    Certain referrers need reserved quota to ensure their requests are always completed. This
+    class enables that with the `referrer` context manager. This does not enforce GitHub's
+    secondary rate-limits which are not publicly known.
+
+    To use the reserved quota system you must:
+
+    1. Register your referrer in the referrer allocation dictionary.
+    2. Use the `with client.referrer(name):` expression to scope your requests to your referrer.
+        - Lower priority requests can be made outside the with block which falls back to the
+          shared quota pool.
+    """
+
     def __init__(
         self,
         integration: Integration | RpcIntegration,
@@ -1142,3 +1176,64 @@ class GitHubApiClient(GitHubBaseClient):
             logging_context=logging_context,
             **kwargs,
         )
+
+        self.__referrer = "shared"
+        self.__rate_limiter = DynamicRateLimiter(
+            get_time_in_seconds=lambda: int(time.time()),
+            integration_id=self.integration.id,
+            provider="github",
+            rate_limit_provider=RedisRateLimitProvider(),
+            rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
+            referrer_allocation=REFERRER_ALLOCATION,
+        )
+
+    @contextlib.contextmanager
+    def referrer(self, referrer: str):
+        prev = self.__referrer
+        self.__referrer = referrer
+        try:
+            yield
+        finally:
+            self.__referrer = prev
+
+    def _do_send(
+        self, session: SafeSession, request: PreparedRequest, session_settings: SessionSettings
+    ) -> Response:
+        # The rate-limit resource is not itself rate limited by GitHub, so we skip the internal
+        # rate limiter entirely. Counting these requests would both consume quota we don't owe and
+        # pollute the recorded capacity with the rate-limit resource's own (unrelated) headers.
+        if request.path_url.partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
+            return super()._do_send(session, request, session_settings)
+
+        is_rate_limited = False
+        try:
+            if self.__rate_limiter.is_rate_limited(self.__referrer):
+                # For now do nothing. We'll eventually use this once we understand its behavior better.
+                # raise RateLimitExceed
+                is_rate_limited = True
+                metrics.incr("sentry.scm.github.rate_limit_exceeded")
+        except Exception as e:
+            # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
+            sentry_sdk.capture_exception(e)
+
+        response = super()._do_send(session, request, session_settings)
+
+        try:
+            capacity = int(response.headers[GITHUB_RATE_LIMIT_CAPACITY])
+            self.__rate_limiter.set_total_capacity(capacity=capacity)
+        except KeyError:
+            # GitHub didn't return rate-limit headers for some unknown reason.
+            metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
+        except Exception as e:
+            # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
+            sentry_sdk.capture_exception(e)
+
+        # QA metrics.
+        if is_rate_limited and response.status_code != 429:
+            # We thought we exceeded our rate-limit but actually we didn't.
+            metrics.incr("sentry.scm.github.rate_limit.false_positive")
+        elif response.status_code == 429 and not is_rate_limited:
+            # We thought we had capacity but actually we didn't.
+            metrics.incr("sentry.scm.github.rate_limit.false_negative")
+
+        return response

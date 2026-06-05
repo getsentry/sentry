@@ -61,7 +61,7 @@ class OrganizationMemberTeamSerializer(serializers.Serializer[dict[str, Any]]):
     )
 
 
-class OrganizationMemberTeamDetailsSerializer(Serializer):
+class OrganizationMemberTeamDetailsSerializer(Serializer[OrganizationMemberTeamSerializerResponse]):
     def serialize(
         self, obj: OrganizationMemberTeam, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
     ) -> OrganizationMemberTeamSerializerResponse:
@@ -153,7 +153,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.FOUNDATIONS
     permission_classes = (OrganizationTeamMemberPermission,)
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:

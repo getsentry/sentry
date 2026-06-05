@@ -31,7 +31,7 @@ class RuleGroupHistoryResponse(TypedDict):
     eventId: str | None
 
 
-class RuleGroupHistorySerializer(Serializer):
+class RuleGroupHistorySerializer(Serializer[RuleGroupHistoryResponse]):
     def get_attrs(
         self, item_list: Sequence[RuleGroupHistory], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
@@ -56,9 +56,6 @@ class RuleGroupHistorySerializer(Serializer):
 @extend_schema(tags=["issue_alerts"])
 @cell_silo_endpoint
 class ProjectRuleGroupHistoryIndexEndpoint(WorkflowEngineRuleEndpoint):
-    workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
-    }
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

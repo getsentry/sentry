@@ -77,12 +77,6 @@ class GroupCategory(IntEnum):
     PREPROD = 17
 
     """
-    Issues detected by autopilot instrumentation analysis suggesting
-    improvements to product usage and observability coverage.
-    """
-    INSTRUMENTATION = 18
-
-    """
     Issues detected from SDK/tooling configuration problems,
     such as missing or broken source maps.
     """
@@ -379,7 +373,6 @@ class PerformanceRenderBlockingAssetSpanGroupType(GroupType):
     noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = True
-    use_flagpole_for_all_features = True
 
 
 @dataclass(frozen=True)

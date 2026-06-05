@@ -9,7 +9,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 
 const relayPiiConfig = JSON.stringify(DataScrubbingRelayPiiConfigFixture());

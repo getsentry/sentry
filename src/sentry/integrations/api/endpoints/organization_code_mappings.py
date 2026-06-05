@@ -72,7 +72,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def validate(self, attrs):
         query = RepositoryProjectPathConfig.objects.filter(
-            project_id=attrs.get("project_id"),
+            project_repository__project_id=attrs.get("project_id"),
             stack_root=attrs.get("stack_root"),
             source_root=attrs.get("source_root"),
         )
@@ -123,10 +123,10 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
-            project_repo, _ = ProjectRepository.objects.get_or_create(
-                project_id=validated_data["project_id"],
-                repository_id=validated_data["repository_id"],
-                defaults={"source": ProjectRepositorySource.MANUAL},
+            project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+                project_id=validated_data.pop("project_id"),
+                repository_id=validated_data.pop("repository_id"),
+                source=ProjectRepositorySource.MANUAL,
             )
             return RepositoryProjectPathConfig.objects.create(
                 organization_integration_id=self.org_integration.id,
@@ -141,12 +141,14 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
             validated_data.pop("id")
         if self.instance:
             with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
-                project_id = validated_data.get("project_id", self.instance.project_id)
-                repository_id = validated_data.get("repository_id", self.instance.repository_id)
-                project_repo, _ = ProjectRepository.objects.get_or_create(
-                    project_id=project_id,
-                    repository_id=repository_id,
-                    defaults={"source": ProjectRepositorySource.MANUAL},
+                project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+                    project_id=validated_data.pop(
+                        "project_id", self.instance.project_repository.project_id
+                    ),
+                    repository_id=validated_data.pop(
+                        "repository_id", self.instance.project_repository.repository_id
+                    ),
+                    source=ProjectRepositorySource.MANUAL,
                 )
                 self.instance.project_repository = project_repo
                 for key, value in validated_data.items():
@@ -203,8 +205,11 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         projects = self.get_projects(
             request, organization, include_all_accessible=not has_explicit_projects
         )
-        queryset = RepositoryProjectPathConfig.objects.filter(project__in=projects).select_related(
-            "project", "repository"
+        queryset = RepositoryProjectPathConfig.objects.filter(
+            project_repository__project__in=projects
+        ).select_related(
+            "project_repository__project",
+            "project_repository__repository",
         )
 
         if integration_id:

@@ -371,23 +371,21 @@ def create_code_mapping(
         },
     )
     with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
-        project_repo, _ = ProjectRepository.objects.get_or_create(
-            project=project,
-            repository=repository,
-            defaults={"source": ProjectRepositorySource.MANUAL},
+        project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
+            project_id=project.id,
+            repository_id=repository.id,
+            source=ProjectRepositorySource.MANUAL,
         )
         new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
-            project=project,
+            project_repository=project_repo,
             stack_root=code_mapping.stacktrace_root,
             source_root=code_mapping.source_path,
             defaults={
-                "repository": repository,
                 "organization_id": organization.id,
                 "integration_id": installation.model.id,
                 "organization_integration_id": installation.org_integration.id,
                 "default_branch": code_mapping.repo.branch,
                 "automatically_generated": False,
-                "project_repository": project_repo,
             },
         )
 
@@ -411,9 +409,14 @@ def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectP
     # codepath mappings must have an associated integration for stacktrace linking.
     configs = (
         RepositoryProjectPathConfig.objects.filter(
-            project=project, organization_integration_id__isnull=False
+            project_repository__project=project,
+            organization_integration_id__isnull=False,
         )
-        .select_related("repository")
+        .select_related(
+            "project_repository",
+            "project_repository__project",
+            "project_repository__repository",
+        )
         .order_by("id")
     )
 

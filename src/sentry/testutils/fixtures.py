@@ -280,6 +280,11 @@ class Fixtures:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
 
+    def create_seer_project_repository(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_seer_project_repository(project, **kwargs)
+
     def create_repository_settings(self, *args, **kwargs):
         return Factories.create_repository_settings(*args, **kwargs)
 
@@ -683,6 +688,8 @@ class Fixtures:
         return Factories.create_dashboard_widget_query(*args, **kwargs)
 
     def create_workflow(self, *args, **kwargs) -> Workflow:
+        if "organization" not in kwargs:
+            kwargs["organization"] = self.organization
         return Factories.create_workflow(*args, **kwargs)
 
     def create_data_source(self, *args, **kwargs) -> DataSource:

@@ -159,6 +159,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.BITBUCKET,
         IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
+        IntegrationProviderSlug.PERFORCE,
     ],
     IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,
@@ -228,6 +229,17 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     can_add = True
     """whether or not the integration installation be initiated from Sentry"""
 
+    can_add_externally = False
+    """
+    Marks providers whose install is initiated from the third party's app
+    directory or marketplace (e.g. Discord's App Directory, the GitHub App
+    listing, the Teams Marketplace) and completed through the pipeline modal.
+
+    For providers that also set `can_add = False`, hiding the in-app install
+    button because the install can only start from the third party, this is
+    what lets the pipeline endpoint accept the externally-initiated install.
+    """
+
     allow_multiple = True
     """whether multiple installations of this integration are allowed per organization"""
 
@@ -243,16 +255,6 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     if the integration has no application-style access token, associate
     the installer's identity to the organization integration
     """
-
-    # TODO(cells): Remove once jira integration is updated and works for multi-cell.
-    # No integrations should be cell restricted.
-    @property
-    def is_cell_restricted(self) -> bool:
-        """
-        Returns True if each integration installation can only be connected on one cell of Sentry at a
-        time. It will raise an error if any organization from another cell attempts to install it.
-        """
-        return False
 
     features: frozenset[IntegrationFeatures] = frozenset()
     """can be any number of IntegrationFeatures"""

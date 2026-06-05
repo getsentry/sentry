@@ -18,9 +18,8 @@ import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -35,6 +34,7 @@ import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -278,7 +278,11 @@ export function getWidgetIssueUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
   const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-    query: applyDashboardFilters(widget.queries?.[0]?.conditions, dashboardFilters),
+    query: applyDashboardFilters(
+      widget.queries?.[0]?.conditions,
+      dashboardFilters,
+      widget.widgetType
+    ),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL
@@ -435,11 +439,18 @@ export function getSavedPageFilters(dashboard: DashboardDetails) {
   };
 }
 
-export function resetPageFilters(dashboard: DashboardDetails, location: Location) {
-  browserHistory.replace({
-    ...location,
-    query: getSavedPageFilters(dashboard),
-  });
+export function resetPageFilters(
+  dashboard: DashboardDetails,
+  location: Location,
+  navigate: ReactRouter3Navigate
+) {
+  navigate(
+    {
+      ...location,
+      query: getSavedPageFilters(dashboard),
+    },
+    {replace: true}
+  );
 }
 
 export function getCurrentPageFilters(

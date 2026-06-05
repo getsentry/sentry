@@ -6,14 +6,15 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
-import {AlertStore} from 'sentry/stores/alertStore';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {SUPERUSER_MARQUEE_HEIGHT} from 'sentry/views/navigation/constants';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
@@ -72,6 +73,7 @@ type Props = {
 
 export function SuperuserWarning({organization, className}: Props) {
   const hasPageFrame = useHasPageFrameFeature();
+  const {addAlert} = useGlobalAlerts();
   const isExcludedOrg = shouldExcludeOrg(organization);
 
   const stripRef = useRef<HTMLDivElement>(null);
@@ -99,7 +101,7 @@ export function SuperuserWarning({organization, className}: Props) {
 
   useEffect(() => {
     if (!isExcludedOrg) {
-      AlertStore.addAlert({
+      addAlert({
         id: 'superuser-warning',
         message: (
           <Fragment>
@@ -112,7 +114,7 @@ export function SuperuserWarning({organization, className}: Props) {
         noDuplicates: true,
       });
     }
-  }, [hasPageFrame, isExcludedOrg]);
+  }, [hasPageFrame, isExcludedOrg, addAlert]);
 
   if (isExcludedOrg) {
     return null;
@@ -166,8 +168,8 @@ export function SuperuserWarning({organization, className}: Props) {
 
   return (
     <StyledBadge variant="warning" className={className}>
-      <Tooltip
-        isHoverable
+      <InfoText
+        variant="inherit"
         title={
           <TooltipContent>
             <Content>{WARNING_MESSAGE}</Content>
@@ -176,7 +178,7 @@ export function SuperuserWarning({organization, className}: Props) {
         }
       >
         Superuser
-      </Tooltip>
+      </InfoText>
     </StyledBadge>
   );
 }

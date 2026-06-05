@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,7 +9,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.environment import EnvironmentSerializerResponse
+from sentry.api.serializers.models.environment import (
+    EnvironmentSerializer,
+    EnvironmentSerializerResponse,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.environment_examples import EnvironmentExamples
 from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
@@ -37,17 +41,16 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
         },
         examples=EnvironmentExamples.GET_ORGANIZATION_ENVIRONMENTS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[EnvironmentSerializerResponse]]:
         """
         Lists an organization's environments.
         """
         visibility = request.GET.get("visibility", "visible")
         if visibility not in environment_visibility_filter_options:
-            return Response(
-                {
-                    "detail": f"Invalid value for 'visibility', valid values are: {sorted(environment_visibility_filter_options.keys())!r}"
-                },
-                status=400,
+            raise ParseError(
+                f"Invalid value for 'visibility', valid values are: {sorted(environment_visibility_filter_options.keys())!r}"
             )
         environment_projects = EnvironmentProject.objects.filter(
             project__in=self.get_projects(request, organization)
@@ -67,4 +70,4 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
             )
             .order_by("name")
         )
-        return Response(serialize(list(queryset), request.user))
+        return Response(serialize(list(queryset), request.user, EnvironmentSerializer()))

@@ -13,7 +13,9 @@ type FieldChange = {after: string; before: string; field: string};
 type FilterChange = {after: string; before: string; label: string};
 
 function formatTime(d: DashboardDetails): string | null {
-  if (d.period) return getRelativeSummary(d.period);
+  if (d.period) {
+    return getRelativeSummary(d.period);
+  }
   if (d.start && d.end) {
     const fmt = (s: string) => getFormattedDate(s, 'MMM D, YYYY', {local: !d.utc});
     return `${fmt(d.start)} – ${fmt(d.end)}`;
@@ -30,8 +32,12 @@ export function formatProjectIds(
   ids: number[] | undefined,
   resolveId: (id: number) => string | undefined
 ): string {
-  if (!ids?.length) return t('My Projects');
-  if (ids.includes(ALL_ACCESS_PROJECTS)) return t('All Projects');
+  if (!ids?.length) {
+    return t('My Projects');
+  }
+  if (ids.includes(ALL_ACCESS_PROJECTS)) {
+    return t('All Projects');
+  }
   return ids.map(id => resolveId(id) ?? String(id)).join(', ');
 }
 
@@ -90,8 +96,12 @@ export function diffFilters(
 }
 
 function truncateDescription(value: string): string {
-  if (!value) return t('(empty)');
-  if (value.length <= DESCRIPTION_PREVIEW_MAX_LENGTH) return value;
+  if (!value) {
+    return t('(empty)');
+  }
+  if (value.length <= DESCRIPTION_PREVIEW_MAX_LENGTH) {
+    return value;
+  }
   return value.slice(0, DESCRIPTION_PREVIEW_MAX_LENGTH) + '…';
 }
 
@@ -177,7 +187,9 @@ export function diffWidgets(
   const titleCounts = new Map<string, number>();
   const fingerprintCounts = new Map<string, number>();
   for (const w of base.widgets) {
-    if (w.id) baseById.set(w.id, w);
+    if (w.id) {
+      baseById.set(w.id, w);
+    }
     titleCounts.set(w.title, (titleCounts.get(w.title) ?? 0) + 1);
     const fp = makeWidgetFingerprint(w);
     fingerprintCounts.set(fp, (fingerprintCounts.get(fp) ?? 0) + 1);

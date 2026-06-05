@@ -17,16 +17,6 @@ from sentry.spans.consumers.process_segments.types import (
 # is taken from `extract_shared_tags` in Relay.
 SHARED_SENTRY_ATTRIBUTES = (
     ATTRIBUTE_NAMES.SENTRY_RELEASE,
-    "sentry.user",
-    "sentry.user.id",
-    "sentry.user.ip",
-    "sentry.user.username",
-    "sentry.user.email",
-    "sentry.user.geo.city",
-    "sentry.user.geo.country_code",
-    "sentry.user.geo.region",
-    "sentry.user.geo.subdivision",
-    "sentry.user.geo.subregion",
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT,
     ATTRIBUTE_NAMES.SENTRY_TRANSACTION,
     "sentry.transaction.method",
@@ -42,6 +32,28 @@ SHARED_SENTRY_ATTRIBUTES = (
     ATTRIBUTE_NAMES.SENTRY_PLATFORM,
     "sentry.thread.id",
     "sentry.thread.name",
+    # Current user attributes
+    ATTRIBUTE_NAMES.USER_EMAIL,
+    ATTRIBUTE_NAMES.USER_GEO_CITY,
+    ATTRIBUTE_NAMES.USER_GEO_COUNTRY_CODE,
+    ATTRIBUTE_NAMES.USER_GEO_REGION,
+    ATTRIBUTE_NAMES.USER_GEO_SUBDIVISION,
+    ATTRIBUTE_NAMES.USER_ID,
+    ATTRIBUTE_NAMES.USER_IP_ADDRESS,
+    ATTRIBUTE_NAMES.USER_NAME,
+    # Legacy user attributes, taken from sentry_tags.
+    # TODO(mjq): Remove these once everything is switched over to the new
+    # conventional attribute names. See BROWSE-535.
+    "sentry.user",
+    "sentry.user.id",
+    "sentry.user.ip",
+    "sentry.user.username",
+    "sentry.user.email",
+    "sentry.user.geo.city",
+    "sentry.user.geo.country_code",
+    "sentry.user.geo.region",
+    "sentry.user.geo.subdivision",
+    "sentry.user.geo.subregion",
 )
 
 # The name of the main thread used to infer the `main_thread` flag in spans from

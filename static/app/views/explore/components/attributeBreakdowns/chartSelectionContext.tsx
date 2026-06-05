@@ -90,9 +90,7 @@ export function ChartSelectionProvider({children}: ChartSelectionProviderProps) 
   // - cohortComparisonContent.tsx
   return (
     <UrlParamBatchProvider>
-      <ChartSelectionContext.Provider value={value}>
-        {children}
-      </ChartSelectionContext.Provider>
+      <ChartSelectionContext value={value}>{children}</ChartSelectionContext>
     </UrlParamBatchProvider>
   );
 }

@@ -171,6 +171,6 @@ describe('Quick Context Content: Event ID Column', () => {
 
     renderEventContext(mockedLocation);
 
-    expect(await screen.findByTestId('stack-trace-content')).toBeInTheDocument();
+    expect(await screen.findByTestId('core-stacktrace-frame-row')).toBeInTheDocument();
   });
 });

@@ -16,8 +16,8 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
+import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
@@ -308,6 +308,7 @@ function TableComponent({
 
             return {
               location,
+              navigate,
               organization,
               projects,
               theme,
@@ -490,12 +491,6 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
 }
 
 function TextComponent(props: TableComponentProps): React.ReactNode {
-  const hasTextWidgets = useOrganization().features.includes('dashboards-text-widgets');
-
-  if (!hasTextWidgets) {
-    return null;
-  }
-
   return <TextWidgetVisualization text={props.widget.description} />;
 }
 

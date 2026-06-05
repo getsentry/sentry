@@ -1,8 +1,7 @@
 import {createContext, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -93,12 +92,12 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
   if (missingProjectMembership) {
     return (
       <SentryDocumentTitle noSuffix title={title}>
-        <ErrorWrapper>
+        <Container margin="xl 3xl" width="100%">
           <MissingProjectMembership
             organization={organization}
             project={summaryProject}
           />
-        </ErrorWrapper>
+        </Container>
       </SentryDocumentTitle>
     );
   }
@@ -134,8 +133,3 @@ export function ProjectRouteProvider({children, projectSlug}: ProjectRouteProvid
     </SentryDocumentTitle>
   );
 }
-
-const ErrorWrapper = styled('div')`
-  width: 100%;
-  margin: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
-`;

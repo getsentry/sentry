@@ -22,6 +22,7 @@ class DatasetConfig(abc.ABC):
     missing_function_error: ClassVar[type[Exception]] = InvalidSearchQuery
     optimize_wildcard_searches = False
     subscriptables_with_index: set[str] = set()
+    use_entity_prefix_for_fields: bool = False
 
     def __init__(self, builder: BaseQueryBuilder):
         pass

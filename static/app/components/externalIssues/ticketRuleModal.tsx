@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {RequestOptions, ResponseMeta} from 'sentry/api';
+import type {RequestOptions} from 'sentry/api';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
@@ -18,11 +20,12 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
-import type {Choices, SelectValue} from 'sentry/types/core';
+import type {ResponseMeta} from 'sentry/types/api';
+import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
-import {defined} from 'sentry/utils';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -434,7 +437,7 @@ export function TicketRuleModal({
         <Heading as="h4">{title}</Heading>
       </Header>
       <Body>
-        <BodyText>
+        <Container marginBottom="2xl">
           {link
             ? tct(
                 'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs:stay in sync] with the new Sentry Issue.',
@@ -444,7 +447,7 @@ export function TicketRuleModal({
                 'When this alert is triggered [ticketType] will be created with the following fields.',
                 {ticketType}
               )}
-        </BodyText>
+        </Container>
         {Object.entries(formErrors).map(([name, errorNode]) => (
           <Fragment key={name}>{errorNode}</Fragment>
         ))}
@@ -469,10 +472,6 @@ export function TicketRuleModal({
     </Fragment>
   );
 }
-
-const BodyText = styled('div')`
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
 
 const FieldErrorLabel = styled('label')`
   padding-bottom: ${p => p.theme.space.xl};
