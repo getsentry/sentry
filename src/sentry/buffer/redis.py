@@ -298,7 +298,7 @@ class RedisBuffer(Buffer):
     @classmethod
     def _load_values(
         cls, payload: dict[str, tuple[str, Any]]
-    ) -> dict[str, str | datetime | date | int | float | dict[str, Any]]:
+    ) -> dict[str, str | datetime | date | int | float | dict[str, Any] | None]:
         result = {}
         for k, (t, v) in payload.items():
             result[k] = cls._load_value((t, v))
