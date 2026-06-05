@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -210,27 +211,41 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
-              const samplesTarget = viewSamplesTarget({
-                location,
-                query,
-                fields,
-                groupBys,
-                visualizes,
-                sorts,
-                row,
-                projects,
-              });
+              const menuItems: MenuItemProps[] = [
+                {
+                  key: 'view-samples',
+                  label: t('View Samples'),
+                  to: viewSamplesTarget({
+                    location,
+                    query,
+                    fields,
+                    groupBys,
+                    visualizes,
+                    sorts,
+                    row,
+                    projects,
+                  }),
+                },
+              ];
 
-              const randomTraceTarget = getTraceDetailsUrl({
-                organization,
-                traceSlug: row[`any(${SpanFields.TRACE})`],
-                timestamp: row[`any(${SpanFields.TIMESTAMP})`],
-                targetId: undefined,
-                eventId: undefined,
-                location,
-                source: TraceViewSources.TRACES,
-                dateSelection: normalizeDateTimeParams(selection.datetime),
-              });
+              const traceSlug = row[`any(${SpanFields.TRACE})`];
+              const timestamp = row[`any(${SpanFields.TIMESTAMP})`];
+              if (traceSlug && timestamp) {
+                menuItems.push({
+                  key: 'view-random-trace',
+                  label: t('View Random Trace'),
+                  to: getTraceDetailsUrl({
+                    organization,
+                    traceSlug,
+                    timestamp,
+                    targetId: undefined,
+                    eventId: undefined,
+                    location,
+                    source: TraceViewSources.TRACES,
+                    dateSelection: normalizeDateTimeParams(selection.datetime),
+                  }),
+                });
+              }
 
               return (
                 <TableRow key={i}>
@@ -245,18 +260,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       dataRow={row as TableDataRow}
                       handleCellAction={() => null}
                       allowActions={[]}
-                      extraMenuItems={[
-                        {
-                          key: 'view-samples',
-                          label: t('View Samples'),
-                          to: samplesTarget,
-                        },
-                        {
-                          key: 'view-random-trace',
-                          label: t('View Random Trace'),
-                          to: randomTraceTarget,
-                        },
-                      ]}
+                      extraMenuItems={menuItems}
                     >
                       <IconStack />
                     </CellAction>
