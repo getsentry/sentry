@@ -167,9 +167,16 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         self._client: PerforceClient | None = None
 
     def get_repo_external_id(self, repo: Mapping[str, Any]) -> str:
-        raise NotImplementedError(
-            "Perforce external_id is derived from the depot path, not the API response"
-        )
+        """
+        Derive the external_id for a depot.
+
+        Perforce has no provider-side repository id, so the depot path (e.g.
+        ``//depot``) is the stable identifier. This must match what the
+        manual-add path stores (``PerforceRepositoryProvider.get_repository_data``)
+        so periodic sync and manual adds converge on the same Repository rows
+        instead of creating duplicates.
+        """
+        return f"//{repo['name']}"
 
     def get_client(self) -> PerforceClient:
         """Get the Perforce client instance."""
@@ -370,7 +377,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
                     {
                         "name": depot_name,
                         "identifier": depot_path,
-                        "external_id": "",  # Perforce derives external_id from the user-provided depot path, not the API response
+                        "external_id": self.get_repo_external_id(depot),
                         "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )

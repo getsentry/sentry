@@ -13,7 +13,7 @@ import type {
   MetricDetectorConfig,
   MetricDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isEquation} from 'sentry/utils/discover/fields';
 import {unreachable} from 'sentry/utils/unreachable';
 import {

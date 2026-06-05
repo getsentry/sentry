@@ -179,7 +179,7 @@ class PullRequestDeletionTaskTest(TestCase):
         )
         attribution = PullRequestAttribution.objects.create(
             pull_request=pr,
-            signal_type=PullRequestAttributionSignalType.SEER_APP,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
             source="webhook_data",
         )
         metrics = PullRequestMetrics.objects.create(pull_request=pr)

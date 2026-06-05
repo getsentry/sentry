@@ -17,17 +17,20 @@ interface Props {
 export function ListItemSelectedState({children, selected}: Props) {
   const {isAllSelected} = useListItemCheckboxContext();
   if (selected === 'none' && isAllSelected === false) {
-    return null;
+    return children;
   }
+
   if (
     selected === 'indeterminate-or-all' &&
     (isAllSelected === true || isAllSelected === 'indeterminate')
   ) {
     return children;
   }
+
   if (selected === 'all' && isAllSelected === true) {
     return children;
   }
+
   if (selected === 'indeterminate' && isAllSelected === 'indeterminate') {
     return children;
   }

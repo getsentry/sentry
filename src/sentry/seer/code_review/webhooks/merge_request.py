@@ -260,6 +260,28 @@ def _delete_existing_reactions_and_add_reaction(
                 if (author := reaction.get("author")) is not None
                 and author["id"] == current_actor_id
             ]
+            # The add decision below hinges entirely on what this fetch returns: if the
+            # authenticated actor id is wrong (or pagination truncates the list) we can
+            # both fail to delete stale reactions and wrongly skip/duplicate the add.
+            # Log the resolved actor and our own reactions so a missing :eyes: can be
+            # traced to the actual reaction state we observed.
+            debug_log(
+                logger,
+                organization_id,
+                "gitlab.webhook.merge_request.reaction.existing_fetched",
+                {
+                    "organization_id": organization_id,
+                    "repo_id": repo.id,
+                    "mr_iid": mr_iid,
+                    "action": action_value,
+                    "current_actor_id": current_actor_id,
+                    "total_reaction_count": len(existing),
+                    "own_reaction_count": len(own_reactions),
+                    "own_reaction_contents": [
+                        reaction.get("content") for reaction in own_reactions
+                    ],
+                },
+            )
         except Exception:
             logger.warning("gitlab.webhook.merge_request.reaction.fetch_failed", exc_info=True)
             record_webhook_handler_error(
@@ -270,22 +292,63 @@ def _delete_existing_reactions_and_add_reaction(
         if reaction.get("content") in reactions_to_delete and reaction.get("id"):
             try:
                 scm_actions.delete_pull_request_reaction(scm, mr_iid, str(reaction["id"]))
+                debug_log(
+                    logger,
+                    organization_id,
+                    "gitlab.webhook.merge_request.reaction.deleted",
+                    {
+                        "organization_id": organization_id,
+                        "repo_id": repo.id,
+                        "mr_iid": mr_iid,
+                        "action": action_value,
+                        "reaction": reaction.get("content"),
+                    },
+                )
             except Exception:
                 logger.warning("gitlab.webhook.merge_request.reaction.delete_failed", exc_info=True)
                 record_webhook_handler_error(
                     GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
                 )
 
-    if reaction_to_add and not any(
-        reaction.get("content") == reaction_to_add for reaction in own_reactions
-    ):
-        try:
-            scm_actions.create_pull_request_reaction(scm, mr_iid, reaction_to_add)
-        except Exception:
-            logger.warning("gitlab.webhook.merge_request.reaction.add_failed", exc_info=True)
-            record_webhook_handler_error(
-                GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
-            )
+    if reaction_to_add is None:
+        return
+
+    # GitLab rejects a duplicate award_emoji POST, so we intentionally skip the add when
+    # our user already placed this reaction. This is the most common reason a re-review
+    # of an MR shows no *new* :eyes: — log it so the skip is not mistaken for a failure.
+    if any(reaction.get("content") == reaction_to_add for reaction in own_reactions):
+        debug_log(
+            logger,
+            organization_id,
+            "gitlab.webhook.merge_request.reaction.add_skipped_already_present",
+            {
+                "organization_id": organization_id,
+                "repo_id": repo.id,
+                "mr_iid": mr_iid,
+                "action": action_value,
+                "reaction": reaction_to_add,
+            },
+        )
+        return
+
+    try:
+        scm_actions.create_pull_request_reaction(scm, mr_iid, reaction_to_add)
+        debug_log(
+            logger,
+            organization_id,
+            "gitlab.webhook.merge_request.reaction.added",
+            {
+                "organization_id": organization_id,
+                "repo_id": repo.id,
+                "action": action_value,
+                "reaction": reaction_to_add,
+            },
+        )
+    except Exception:
+        logger.warning("gitlab.webhook.merge_request.reaction.add_failed", exc_info=True)
+        record_webhook_handler_error(
+            GITLAB_WEBHOOK_EVENT, action_value, CodeReviewErrorType.REACTION_FAILED
+        )
 
 
 def handle_merge_request_event(
@@ -453,6 +516,13 @@ def handle_merge_request_event(
                 action_value=action_value,
                 reactions_to_delete=["hooray"],
                 reaction_to_add="eyes",
+            )
+        else:
+            # A non-close MR event with no iid should not happen, but if it does the
+            # reaction is silently skipped; log it so a missing :eyes: is explainable.
+            logger.warning(
+                "gitlab.webhook.merge_request.reaction.skipped_missing_iid",
+                extra={"organization_id": org.id, "repo_id": repo.id, "action": action_value},
             )
 
     debug_log(logger, organization, "scheduling_seer_task", base_log)
@@ -683,8 +753,17 @@ def _schedule_note_task(
     try:
         validated = SeerCodeReviewTaskRequestForPrReview.parse_obj(payload)
         serialized_payload = json.loads(validated.json())
-    except ValidationError:
-        logger.warning("gitlab.webhook.note.validation_failed")
+    except ValidationError as e:
+        debug_log(
+            logger,
+            organization,
+            "note.validation_failed",
+            {
+                "mr_iid": mr_iid,
+                "validation_errors": e.errors(),
+            },
+            level=logging.WARNING,
+        )
         record_webhook_filtered(
             GITLAB_WEBHOOK_NOTE_EVENT,
             action_value,
@@ -692,6 +771,12 @@ def _schedule_note_task(
         )
         return
 
+    debug_log(
+        logger,
+        organization,
+        "note.seer_task_enqueued",
+        {"mr_iid": mr_iid, "target_commit_sha": target_commit_sha},
+    )
     process_github_webhook_event.delay(
         seer_path=SeerEndpoint.SCM_CODE_REVIEW_REVIEW_REQUEST.value,
         event_payload=serialized_payload,
@@ -724,19 +809,34 @@ def handle_merge_request_note_event(
     3. Adds :eyes: to the note to acknowledge the command.
     4. Enqueues a Seer review request with ``trigger: on_command_phrase``.
     """
+    object_attributes = event.get("object_attributes") or {}
+    merge_request = event.get("merge_request") or {}
+    base_log: dict[str, object] = {
+        "organization_id": organization.id,
+        "organization_slug": organization.slug,
+        "repo_id": repo.id,
+        "note_id": object_attributes.get("id"),
+        "noteable_type": object_attributes.get("noteable_type"),
+        "mr_iid": merge_request.get("iid"),
+    }
+
     if integration is None:
+        debug_log(logger, organization, "note.missing_integration", base_log)
         return
+
+    base_log["integration_id"] = integration.id
+    debug_log(logger, organization, "note.handler_started", base_log)
 
     if not features.has("organizations:seer-code-review-gitlab", organization):
         return
 
-    object_attributes = event.get("object_attributes", {})
     action_value = object_attributes.get("action", "")
-
+    base_log["action"] = action_value
     record_webhook_received(GITLAB_WEBHOOK_NOTE_EVENT, action_value)
 
     # Only process newly created notes; ignore edits and deletions.
     if action_value != "create":
+        debug_log(logger, organization, "note.unsupported_action", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_NOTE_EVENT,
             action_value,
@@ -746,6 +846,7 @@ def handle_merge_request_note_event(
 
     # Only handle notes on merge requests, not issues, commits, or snippets.
     if object_attributes.get("noteable_type") != "MergeRequest":
+        debug_log(logger, organization, "note.not_merge_request", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_NOTE_EVENT,
             action_value,
@@ -754,7 +855,9 @@ def handle_merge_request_note_event(
         return
 
     # Filter for the @sentry review command phrase.
-    if not _is_sentry_review_command(object_attributes.get("note")):
+    note_body = object_attributes.get("note")
+    if not _is_sentry_review_command(note_body):
+        debug_log(logger, organization, "note.not_review_command", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_NOTE_EVENT,
             action_value,
@@ -762,14 +865,26 @@ def handle_merge_request_note_event(
         )
         return
 
+    debug_log(
+        logger,
+        organization,
+        "note.review_command_matched",
+        {
+            **base_log,
+            "review_command": SENTRY_REVIEW_COMMAND,
+            "note_length": len(note_body or ""),
+        },
+    )
+
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:
+        debug_log(logger, organization, "note.organization_not_found", base_log)
         return
 
     # Billing seat is keyed to the MR author, not the commenter.
-    merge_request = event.get("merge_request") or {}
     mr_author_id = merge_request.get("author_id")
+    base_log["mr_author_id"] = mr_author_id
     preflight = CodeReviewPreflightService(
         organization=org,
         repo=repo,
@@ -778,27 +893,45 @@ def handle_merge_request_note_event(
     ).check()
 
     if not preflight.allowed:
+        denial = preflight.denial_reason.value if preflight.denial_reason else None
+        debug_log(
+            logger,
+            organization,
+            "note.preflight_denied",
+            {**base_log, "denial_reason": denial},
+        )
         if preflight.denial_reason:
             record_webhook_filtered(
                 GITLAB_WEBHOOK_NOTE_EVENT, action_value, preflight.denial_reason
             )
         return
 
+    debug_log(logger, organization, "note.preflight_passed", base_log)
+
     last_commit = merge_request.get("last_commit") or {}
     target_commit_sha = last_commit.get("id")
     if not target_commit_sha:
+        debug_log(logger, organization, "note.missing_target_commit_sha", base_log)
         return
 
     mr_iid = merge_request.get("iid")
     if mr_iid is None:
+        debug_log(logger, organization, "note.missing_mr_iid", base_log)
         return
 
     note_id = object_attributes.get("id")
+    base_log["target_commit_sha"] = target_commit_sha
 
     # Dedup redeliveries: GitLab may resend the same note event on timeout.
     seen_key = f"{WEBHOOK_NOTE_SEEN_KEY_PREFIX}{org.id}:{repo.id}:{note_id}"
     if _is_duplicate_delivery(seen_key):
-        logger.warning("gitlab.webhook.note.duplicate_delivery_skipped")
+        debug_log(
+            logger,
+            organization,
+            "note.duplicate_delivery_skipped",
+            base_log,
+            level=logging.WARNING,
+        )
         return
 
     # Add :eyes: to the note to signal we received the command.
@@ -811,6 +944,7 @@ def handle_merge_request_note_event(
             reaction="eyes",
         )
 
+    debug_log(logger, organization, "note.scheduling_seer_task", base_log)
     _schedule_note_task(
         action_value=action_value,
         event=event,

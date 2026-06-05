@@ -5,10 +5,6 @@ export function explodeSlug(slug: string): string {
   return slug.replace(/[-_]+/g, ' ').trim();
 }
 
-export function defined<T>(item: T): item is Exclude<T, null | undefined> {
-  return item !== undefined && item !== null;
-}
-
 export function escape(str: string): string {
   return str
     .replace(/&/g, '&amp;')

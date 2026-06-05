@@ -25,13 +25,15 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
-    ActionType,
+    SYSTEM_ACTOR,
+    GroupActionActor,
     action_context_scope,
     get_action_context,
     publish_action,
     publish_action_from_context,
     resolve_action_source,
 )
+from sentry.issues.action_log.types import MergeFromOtherAction, MergeIntoOtherAction, ResolveAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
@@ -214,9 +216,9 @@ def update_groups(
         return handle_discard(request, groups, projects, acting_user)
 
     source = resolve_action_source(request)
-    actor_id = acting_user.id if acting_user else None
+    actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
 
-    with action_context_scope(source=source, actor_id=actor_id):
+    with action_context_scope(source=source, actor=actor):
         status_details = result.pop("statusDetails", result)
         status = result.get("status")
         res_type = None
@@ -467,6 +469,7 @@ def handle_resolve_in_release(
             group=group,
             project=project_lookup[group.project_id],
             resolution_type=res_type_str,
+            commit_id=commit.id if commit else None,
             sender=update_groups,
         )
 
@@ -647,7 +650,7 @@ def process_group_resolution(
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
         publish_action_from_context(
-            action=ActionType.RESOLVE,
+            ResolveAction(),
             group_id=group.id,
             organization_id=group.project.organization_id,
             project_id=group.project_id,
@@ -826,24 +829,22 @@ def prepare_response(
             group_by_id = {g.id: g for g in group_list}
             primary = group_by_id[primary_id]
             publish_action(
-                action=ActionType.MERGE_FROM_OTHER,
+                MergeFromOtherAction(counterpart_group_ids=child_ids),
                 source=ctx.source,
                 group_id=primary_id,
                 organization_id=primary.project.organization_id,
                 project_id=primary.project_id,
-                actor_id=ctx.actor_id,
-                metadata={"counterpart_group_ids": child_ids},
+                actor=ctx.actor,
             )
             for child_id in child_ids:
                 child = group_by_id[child_id]
                 publish_action(
-                    action=ActionType.MERGE_INTO_OTHER,
+                    MergeIntoOtherAction(counterpart_group_id=primary_id),
                     source=ctx.source,
                     group_id=child_id,
                     organization_id=child.project.organization_id,
                     project_id=child.project_id,
-                    actor_id=ctx.actor_id,
-                    metadata={"counterpart_group_id": primary_id},
+                    actor=ctx.actor,
                 )
 
     inbox = result.get("inbox", None)

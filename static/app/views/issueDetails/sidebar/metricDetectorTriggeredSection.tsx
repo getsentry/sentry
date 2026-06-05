@@ -27,7 +27,7 @@ import type {
   SnubaQuery,
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -381,7 +381,9 @@ function TriggeredConditionDetails({
 
   const detectorDataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(detectorDataset);
-  const isErrorsDataset = detectorDataset === DetectorDataset.ERRORS;
+  const showContributingIssues =
+    detectorDataset === DetectorDataset.ERRORS ||
+    detectorDataset === DetectorDataset.RELEASES;
   const issueSearchQuery = datasetConfig.toSnubaQueryString?.(snubaQuery) ?? '';
   const formattedEvaluatedValue = getFormattedEvaluatedValue({
     value: defined(value) && typeof value === 'object' ? value.value : value,
@@ -496,7 +498,7 @@ function TriggeredConditionDetails({
           isOpenPeriodLoading={isOpenPeriodLoading}
         />
       )}
-      {isErrorsDataset &&
+      {showContributingIssues &&
         (isOpenPeriodLoading ? (
           <FoldSection title={t('Contributing Issues')} sectionKey="contributing_issues">
             <Placeholder height="200px" />
