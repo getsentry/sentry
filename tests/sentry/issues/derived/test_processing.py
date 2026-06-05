@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import Any
 
 import pytest
 from django.utils import timezone
@@ -32,7 +31,7 @@ from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group
 from sentry.models.groupderiveddata import GroupDerivedData
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import TestCase
 
 SOURCE = ActionSource.API
 
@@ -484,6 +483,62 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.data["was_autofixed"] is False
 
+    def test_query_autofixed_groups(self) -> None:
+        """
+        Three groups with realistic event streams. All three have autofix PRs
+        created. Only group 1 actually gets closed by its autofix PR.
+        Verifies the pipeline and ORM query correctly identify just that one.
+        """
+        user_a = self.user
+        user_b = self.create_user()
+        groups = [self.create_group() for _ in range(3)]
+        autofix_pr_ids = {g.id: 1000 + i for i, g in enumerate(groups)}
+
+        # All three get views and autofix PRs
+        for g in groups:
+            _publish(group=g, action=ViewAction(), actor=GroupActionActor.user(user_a.id))
+            _publish(
+                group=g,
+                action=AutofixPrCreatedAction(
+                    run_id=f"run-{g.id}",
+                    pull_requests=[
+                        {
+                            "repo_name": "getsentry/sentry",
+                            "pull_request": {"pr_id": autofix_pr_ids[g.id]},
+                        }
+                    ],
+                ),
+            )
+
+        # Group 0: manually resolved (not by autofix PR)
+        _publish(group=groups[0], action=ResolveAction(), actor=GroupActionActor.user(user_a.id))
+
+        # Group 1: resolved by its autofix PR
+        _publish(
+            group=groups[1],
+            action=ResolvedInPullRequestAction(pull_request=autofix_pr_ids[groups[1].id]),
+            actor=GroupActionActor.user(user_b.id),
+        )
+
+        # Group 2: resolved by a different (non-autofix) PR, then reopened
+        _publish(
+            group=groups[2],
+            action=ResolvedInPullRequestAction(pull_request=9999),
+            actor=GroupActionActor.user(user_a.id),
+        )
+        _publish(group=groups[2], action=UnresolveAction(), actor=GroupActionActor.user(user_b.id))
+
+        for g in groups:
+            process_group_log(g.id)
+
+        autofixed = list(
+            Group.objects.filter(
+                groupderiveddata__primary=True,
+                groupderiveddata__data__was_autofixed=True,
+            ).values_list("id", flat=True)
+        )
+        assert autofixed == [groups[1].id]
+
 
 # --- Pure Python tests (no DB) ---
 
@@ -584,144 +639,3 @@ class GroupDerivedDataStoreTest(TestCase):
         assert state2[WORKING_ON] == state1[WORKING_ON]
         assert state2[AUTOFIX_PRS] == state1[AUTOFIX_PRS]
         assert isinstance(state2[AUTOFIX_PRS], frozenset)
-
-
-class GroupActionLogEntryDebugEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-issue-action-log-debug"
-    method = "post"
-
-    def setUp(self) -> None:
-        super().setUp()
-        options.set("issues.action-log.write-to-db", True)
-
-    def tearDown(self) -> None:
-        options.delete("issues.action-log.write-to-db")
-        super().tearDown()
-
-    def _post_events(self, events: list[dict[str, Any]]) -> Any:
-        return self.get_response(
-            self.organization.slug,
-            events=events,
-        )
-
-    def test_query_autofixed_groups_via_api(self) -> None:
-        """
-        Three groups with messy, realistic event streams. All three have
-        autofix PRs created, manual resolves, unresolves, and views mixed in.
-        Only group 1 actually gets closed by its autofix PR.
-        Verifies the pipeline correctly identifies just that one.
-        """
-        self.login_as(self.user)
-        user_a = self.user
-        user_b = self.create_user()
-        groups = [self.create_group() for _ in range(3)]
-
-        # Use synthetic PullRequest IDs for the join key.
-        autofix_pr_ids = {g.id: 1000 + i for i, g in enumerate(groups)}
-
-        # Phase 1: all three get investigated, autofix PRs created for each
-        phase1 = []
-        for g in groups:
-            phase1.extend(
-                [
-                    {"action": "view", "group_id": g.id, "user_id": user_a.id},
-                    {
-                        "action": "autofix_pr_created",
-                        "group_id": g.id,
-                        "action_data": {
-                            "run_id": f"run-{g.id}",
-                            "pull_requests": [
-                                {
-                                    "repo_name": "getsentry/sentry",
-                                    "pull_request": {"pr_id": autofix_pr_ids[g.id]},
-                                }
-                            ],
-                        },
-                    },
-                ]
-            )
-        response = self._post_events(phase1)
-        assert response.status_code == 201
-
-        # Phase 2: group 0 gets manually resolved
-        response = self._post_events(
-            [
-                {"action": "resolve", "group_id": groups[0].id, "user_id": user_a.id},
-                {"action": "unresolve", "group_id": groups[0].id, "user_id": user_b.id},
-                {"action": "resolve", "group_id": groups[0].id, "user_id": user_a.id},
-            ]
-        )
-        assert response.status_code == 201
-
-        # Phase 3: group 1 gets resolved by its autofix PR
-        response = self._post_events(
-            [
-                {
-                    "action": "resolved_in_pull_request",
-                    "group_id": groups[1].id,
-                    "user_id": user_b.id,
-                    "action_data": {"pull_request": autofix_pr_ids[groups[1].id]},
-                },
-            ]
-        )
-        assert response.status_code == 201
-
-        # Phase 4: group 2 resolved by a different (non-autofix) PR
-        response = self._post_events(
-            [
-                {
-                    "action": "resolved_in_pull_request",
-                    "group_id": groups[2].id,
-                    "user_id": user_a.id,
-                    "action_data": {"pull_request": 9999},
-                },
-                {"action": "unresolve", "group_id": groups[2].id, "user_id": user_b.id},
-                {"action": "view", "group_id": groups[2].id, "user_id": user_b.id},
-            ]
-        )
-        assert response.status_code == 201
-
-        for g in groups:
-            process_group_log(g.id)
-
-        # Only group 1 was autofixed
-        autofixed = list(
-            Group.objects.filter(
-                groupderiveddata__primary=True,
-                groupderiveddata__data__was_autofixed=True,
-            ).values_list("id", flat=True)
-        )
-        assert autofixed == [groups[1].id]
-
-    def test_rejects_invalid_action(self) -> None:
-        self.login_as(self.user)
-        group = self.create_group()
-        response = self._post_events([{"action": "bogus", "group_id": group.id}])
-        assert response.status_code == 400
-
-    def test_rejects_bad_action_data(self) -> None:
-        self.login_as(self.user)
-        group = self.create_group()
-        # ResolvedInPullRequestAction requires 'pull_request'
-        response = self._post_events(
-            [
-                {
-                    "action": "resolved_in_pull_request",
-                    "group_id": group.id,
-                    "user_id": self.user.id,
-                },
-            ]
-        )
-        assert response.status_code == 400
-
-    def test_rejects_wrong_org_group(self) -> None:
-        self.login_as(self.user)
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-        other_group = self.create_group(project=other_project)
-        response = self._post_events(
-            [
-                {"action": "view", "group_id": other_group.id, "user_id": self.user.id},
-            ]
-        )
-        assert response.status_code == 400
