@@ -1,8 +1,8 @@
-import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
 import {
@@ -17,26 +17,15 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel} from 'sentry/components/panels/panel';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
+import {legacyWebhooksQueryOptions} from './webhookDetailedView';
 import type {WebhookProject} from './webhookDetailedView';
 
 interface WebhookConfigurationsProps {
   webhookProjects: WebhookProject[];
-}
-
-function useWebhookQueryKey() {
-  const organization = useOrganization();
-  return apiOptions.as<unknown>()(
-    '/organizations/$organizationIdOrSlug/legacy-webhooks/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 0,
-    }
-  ).queryKey;
 }
 
 export function WebhookConfigurations({webhookProjects}: WebhookConfigurationsProps) {
@@ -49,24 +38,18 @@ export function WebhookConfigurations({webhookProjects}: WebhookConfigurationsPr
   }
 
   return (
-    <Fragment>
+    <Stack gap="sm">
       {webhookProjects.map(project => (
         <WebhookProjectRow key={project.projectId} project={project} />
       ))}
-    </Fragment>
+    </Stack>
   );
 }
 
-function WebhookProjectRow({project}: {project: WebhookProject}) {
+function useWebhookProjectMutations(project: WebhookProject) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const {projects: allProjects} = useProjects();
-  const queryKey = useWebhookQueryKey();
-
-  const projectAccess = hasEveryAccess(['project:write'], {
-    organization,
-    project: allProjects.find(p => p.id === String(project.projectId)),
-  });
+  const queryKey = legacyWebhooksQueryOptions(organization).queryKey;
 
   const toggleMutation = useMutation({
     mutationFn: (shouldEnable: boolean) => {
@@ -109,6 +92,19 @@ function WebhookProjectRow({project}: {project: WebhookProject}) {
     },
   });
 
+  return {toggleMutation, uninstallMutation};
+}
+
+function WebhookProjectRow({project}: {project: WebhookProject}) {
+  const organization = useOrganization();
+  const {projects: allProjects} = useProjects();
+  const {toggleMutation, uninstallMutation} = useWebhookProjectMutations(project);
+
+  const projectAccess = hasEveryAccess(['project:write'], {
+    organization,
+    project: allProjects.find(p => p.id === String(project.projectId)),
+  });
+
   const confirmMessage = useMemo(
     () =>
       t(
@@ -118,16 +114,22 @@ function WebhookProjectRow({project}: {project: WebhookProject}) {
   );
 
   return (
-    <RowContainer data-test-id="webhook-project-row">
-      <RowContent>
-        <ProjectBox>
+    <Container
+      padding="xl"
+      border="primary"
+      radius="md"
+      background="primary"
+      data-test-id="webhook-project-row"
+    >
+      <Flex align="center">
+        <Flex flex="1 0 fit-content">
           <ProjectBadge
             project={{
               slug: project.projectSlug,
               platform: project.projectPlatform || undefined,
             }}
           />
-        </ProjectBox>
+        </Flex>
         <LinkButton
           variant="transparent"
           icon={<IconSettings />}
@@ -143,49 +145,21 @@ function WebhookProjectRow({project}: {project: WebhookProject}) {
           onConfirm={() => uninstallMutation.mutate()}
           message={confirmMessage}
         >
-          <MutedButton
+          <Button
             disabled={!projectAccess}
             variant="transparent"
             icon={<IconDelete />}
             data-test-id="integration-remove-button"
           >
             {t('Uninstall')}
-          </MutedButton>
+          </Button>
         </Confirm>
         <Switch
           checked={project.enabled}
           onChange={() => toggleMutation.mutate(!project.enabled)}
           disabled={!projectAccess}
         />
-      </RowContent>
-    </RowContainer>
+      </Flex>
+    </Container>
   );
 }
-
-const RowContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-bottom: none;
-  background-color: ${p => p.theme.tokens.background.primary};
-
-  &:last-child {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-const RowContent = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const ProjectBox = styled('div')`
-  flex: 1 0 fit-content;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: row;
-  min-width: 0;
-`;
-
-const MutedButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;

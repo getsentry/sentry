@@ -55,7 +55,7 @@ function makePluginQueryKey({
   ];
 }
 
-function PluginDetailedView() {
+function DefaultView() {
   const {openModal} = useModal();
 
   const tabs: IntegrationTab[] = ['overview', 'configurations'];
@@ -370,7 +370,7 @@ const AddButton = styled(Button)`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-function PluginDetailedViewRouter() {
+function PluginDetailedView() {
   const {integrationSlug} = useParams<{integrationSlug: string}>();
   const organization = useOrganization();
 
@@ -381,7 +381,7 @@ function PluginDetailedViewRouter() {
     return <WebhookDetailedView />;
   }
 
-  return <PluginDetailedView />;
+  return <DefaultView />;
 }
 
-export default PluginDetailedViewRouter;
+export default PluginDetailedView;

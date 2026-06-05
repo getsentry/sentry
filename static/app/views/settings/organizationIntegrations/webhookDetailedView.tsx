@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
@@ -14,6 +12,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -36,13 +35,16 @@ export interface WebhookProject {
   projectSlug: string;
 }
 
-interface OrgLegacyWebhooksResponse {
+export interface OrgLegacyWebhooksResponse {
   projects: WebhookProject[];
 }
 
-const WEBHOOK_DESCRIPTION = t(
-  'Trigger outgoing HTTP POST requests from Sentry.\n\nNote: To configure webhooks over multiple projects, we recommend setting up an Internal Integration.'
-);
+const WEBHOOK_DESCRIPTION = [
+  t('Trigger outgoing HTTP POST requests from Sentry.'),
+  t(
+    'Note: To configure webhooks over multiple projects, we recommend setting up an Internal Integration.'
+  ),
+].join('\n\n');
 
 const WEBHOOK_FEATURE_DATA = [
   {
@@ -59,6 +61,16 @@ const WEBHOOK_RESOURCE_LINKS = [
   },
 ];
 
+export function legacyWebhooksQueryOptions(organization: Organization) {
+  return apiOptions.as<OrgLegacyWebhooksResponse>()(
+    '/organizations/$organizationIdOrSlug/legacy-webhooks/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 0,
+    }
+  );
+}
+
 export function WebhookDetailedView() {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -70,27 +82,21 @@ export function WebhookDetailedView() {
     parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
   );
 
-  const webhookQueryOptions = apiOptions.as<OrgLegacyWebhooksResponse>()(
-    '/organizations/$organizationIdOrSlug/legacy-webhooks/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 0,
-    }
+  const {data, isPending, isError, refetch} = useQuery(
+    legacyWebhooksQueryOptions(organization)
   );
-
-  const {data, isPending, isError, refetch} = useQuery(webhookQueryOptions);
 
   const webhookProjects = data?.projects ?? [];
   const installationStatus = webhookProjects.length ? INSTALLED : NOT_INSTALLED;
 
-  const getTabDisplay = useCallback((tab: IntegrationTab) => {
+  function getTabDisplay(tab: IntegrationTab) {
     if (tab === 'configurations') {
       return 'project configurations';
     }
     return 'overview';
-  }, []);
+  }
 
-  const handleAddToProject = useCallback(() => {
+  function handleAddToProject() {
     openModal(
       modalProps => (
         <ContextPickerModal
@@ -117,7 +123,7 @@ export function WebhookDetailedView() {
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [navigate, organization.slug, openModal]);
+  }
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -151,13 +157,9 @@ export function WebhookDetailedView() {
           installationStatus={installationStatus}
           integrationIcon={<PluginIcon pluginId="webhooks" size={50} />}
           addInstallButton={
-            <AddButton
-              data-test-id="install-button"
-              onClick={handleAddToProject}
-              size="sm"
-            >
+            <Button data-test-id="install-button" onClick={handleAddToProject} size="sm">
               {t('Add to Project')}
-            </AddButton>
+            </Button>
           }
           additionalCTA={null}
         />
@@ -187,7 +189,3 @@ export function WebhookDetailedView() {
     />
   );
 }
-
-const AddButton = styled(Button)`
-  margin-bottom: ${p => p.theme.space.md};
-`;
