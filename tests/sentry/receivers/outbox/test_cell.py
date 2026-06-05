@@ -130,21 +130,6 @@ class HandleSeerRunCreateTest(TestCase):
             "viewer_context": {"organization_id": self.organization.id},
         }
 
-    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
-    def test_happy_path_autofix(self, mock_request: Mock) -> None:
-        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 42}))
-        run = self.create_seer_run(type=SeerRunType.AUTOFIX)
-
-        handle_seer_run_create(
-            object_identifier=run.id,
-            payload=self._make_payload(),
-            shard_identifier=run.id,
-        )
-
-        run.refresh_from_db()
-        assert run.seer_run_state_id == 42
-        assert run.mirror_status == SeerRunMirrorStatus.LIVE
-
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_happy_path_explorer(self, mock_request: Mock) -> None:
         mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 99}))
@@ -175,7 +160,7 @@ class HandleSeerRunCreateTest(TestCase):
         assert run.seer_run_state_id == 7
         assert run.mirror_status == SeerRunMirrorStatus.LIVE
 
-    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_idempotent_retry_already_set(self, mock_request: Mock) -> None:
         run = self.create_seer_run(seer_run_state_id=123)
 
@@ -196,7 +181,7 @@ class HandleSeerRunCreateTest(TestCase):
             shard_identifier=999999,
         )
 
-    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_4xx_marks_failed(self, mock_request: Mock) -> None:
         mock_request.return_value = Mock(status=400)
         run = self.create_seer_run()
@@ -211,7 +196,7 @@ class HandleSeerRunCreateTest(TestCase):
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
         assert run.seer_run_state_id is None
 
-    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_5xx_raises_for_retry(self, mock_request: Mock) -> None:
         mock_request.return_value = Mock(status=502)
         run = self.create_seer_run()
@@ -226,7 +211,7 @@ class HandleSeerRunCreateTest(TestCase):
         run.refresh_from_db()
         assert run.mirror_status == SeerRunMirrorStatus.PENDING
 
-    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_2xx_with_malformed_json_marks_failed(self, mock_request: Mock) -> None:
         response = Mock(status=200)
         response.json.side_effect = json.JSONDecodeError("Expecting value", "", 0)
@@ -243,7 +228,7 @@ class HandleSeerRunCreateTest(TestCase):
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
         assert run.seer_run_state_id is None
 
-    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_invalid_payload_marks_failed_without_dispatch(self, mock_request: Mock) -> None:
         run = self.create_seer_run()
 
@@ -272,7 +257,7 @@ class HandleSeerRunCreateTest(TestCase):
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
         assert run.seer_run_state_id is None
 
-    @patch("sentry.receivers.outbox.cell.make_autofix_start_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_2xx_without_run_id_marks_failed(self, mock_request: Mock) -> None:
         mock_request.return_value = Mock(status=200, json=Mock(return_value={}))
         run = self.create_seer_run()
