@@ -18,7 +18,7 @@ def create_fingerprint(vital_grouping: WebVitalIssueDetectionGroupingType, trans
     return fingerprint
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> bool:
     project = data["project"]
     sentry_sdk.set_tag("project_id", project.id)

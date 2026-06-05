@@ -435,9 +435,10 @@ class TestProcessWorkflowActivity(TestCase):
 
         with (
             self.tasks(),
-            sentry_sdk.start_transaction(
-                op="process_status_change_message",
+            sentry_sdk.traces.start_span(
                 name="issues.status_change_consumer",
+                attributes={"sentry.op": "process_status_change_message"},
+                parent_span=None,
             ) as txn,
         ):
             process_status_change_message(self.message, txn)

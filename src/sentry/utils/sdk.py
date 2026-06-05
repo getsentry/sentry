@@ -4,8 +4,7 @@ import asyncio
 import copy
 import logging
 import sys
-import typing
-from collections.abc import Generator, Mapping, Sequence, Sized
+from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
@@ -17,7 +16,6 @@ from rest_framework.request import Request
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
 from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
-from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -180,18 +178,19 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
+    span_context = sampling_context.get("span_context", {})
+
     wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
     if wsgi_path and wsgi_path in SAMPLED_ROUTES:
         return SAMPLED_ROUTES[wsgi_path]
 
-    # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
     if custom_sample_rate is not None:
         return float(custom_sample_rate)
 
-    # If there's already a sampling decision, just use that
-    if sampling_context["parent_sampled"] is not None:
-        return sampling_context["parent_sampled"]
+    parent_sampled = span_context.get("parent_sampled")
+    if parent_sampled is not None:
+        return parent_sampled
 
     if "taskworker" in sampling_context:
         task_name = sampling_context["taskworker"].get("task")
@@ -199,7 +198,6 @@ def traces_sampler(sampling_context):
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
 
-    # Default to the sampling rate in settings
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
@@ -208,47 +206,13 @@ def profiles_sampler(sampling_context):
         "consumer.join": options.get("consumer.join.profiling.rate"),
         "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
     }
-    if "transaction_context" in sampling_context:
-        transaction_name = sampling_context["transaction_context"].get("name")
+    span_context = sampling_context.get("span_context", {})
+    span_name = span_context.get("name")
 
-        if transaction_name in PROFILES_SAMPLING_RATE:
-            return PROFILES_SAMPLING_RATE[transaction_name]
+    if span_name and span_name in PROFILES_SAMPLING_RATE:
+        return PROFILES_SAMPLING_RATE[span_name]
 
-    # Default to the sampling rate in settings
     return float(settings.SENTRY_PROFILES_SAMPLE_RATE or 0)
-
-
-def before_send_transaction(event: Event, _: Hint) -> Event | None:
-    # Discard generic redirects.
-    # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
-    if (
-        event.get("tags", {}).get("http.status_code") == "301"
-        and event.get("transaction_info", {}).get("source") == "url"
-    ):
-        return None
-
-    # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
-    if isinstance(event["spans"], AnnotatedValue):
-        # AnnotatedValue isn't generic so we check its inner value's type otherwise mypy will
-        # complain. The TypeError should be unreachable.
-        if isinstance(event["spans"].value, Sized):
-            num_of_spans = len(event["spans"].value)
-        else:
-            raise TypeError("Expected a list of spans.")
-    else:
-        num_of_spans = len(event["spans"])
-
-    event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
-
-    # Type safety: `event["contexts"]["trace"]["data"]` is a dictionary if it is set.
-    # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/#trace-context.
-    data = typing.cast(
-        dict[str, object],
-        event.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {}),
-    )
-    data["num_of_spans"] = num_of_spans
-
-    return event
 
 
 def before_send(event: Event, hint: Hint) -> Event | None:
@@ -313,7 +277,6 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["add_full_stack"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send"] = before_send
-    sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["enable_logs"] = True
     sdk_options["before_send_log"] = before_send_log
     sdk_options["release"] = (
@@ -321,6 +284,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=options.get("sdk_http2_experiment.enabled"),
+        trace_lifecycle="stream",
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -694,7 +658,9 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.start_span(op="other", name="bind_organization_context"):
+    with sentry_sdk.traces.start_span(
+        name="bind_organization_context", attributes={"sentry.op": "other"}
+    ):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
@@ -762,16 +728,16 @@ def bind_ambiguous_org_context(
 
 
 def get_trace_id():
-    span = sentry_sdk.get_current_span()
+    span = sentry_sdk.traces.get_current_span()
     if span is not None:
-        return span.get_trace_context().get("trace_id")
+        return span.trace_id
     return None
 
 
 def set_span_attribute(data_name, value):
-    span = sentry_sdk.get_current_span()
+    span = sentry_sdk.traces.get_current_span()
     if span is not None:
-        span.set_data(data_name, value)
+        span.set_attribute(data_name, value)
 
 
 def merge_context_into_scope(
@@ -791,7 +757,6 @@ __all__ = (
     "Scope",
     "UNSAFE_FILES",
     "UNSAFE_TAG",
-    "before_send_transaction",
     "bind_ambiguous_org_context",
     "bind_organization_context",
     "capture_exception",

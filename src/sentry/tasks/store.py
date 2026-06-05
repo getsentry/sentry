@@ -290,7 +290,7 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     return random.random() < rollout_rate
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def normalize_event(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     normalizer = StoreNormalizer(
         remove_other=False,
@@ -351,7 +351,10 @@ def do_process_event(
         return _continue_to_save_event()
 
     # NOTE: This span ranges in the 1-2ms range.
-    with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
+    with sentry_sdk.traces.start_span(
+        name="tasks.store.process_event.get_project_from_cache",
+        attributes={"sentry.op": "tasks.store.process_event.get_project_from_cache"},
+    ):
         project = Project.objects.get_from_cache(id=project_id)
 
     project.set_cached_field_value(
@@ -398,9 +401,12 @@ def do_process_event(
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
     for plugin in plugins.all(version=2):
-        with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
-            span.set_data("plugin", plugin.slug)
-            span.set_data("from_symbolicate", from_symbolicate)
+        with sentry_sdk.traces.start_span(
+            name="task.store.process_event.preprocessors",
+            attributes={"sentry.op": "task.store.process_event.preprocessors"},
+        ) as span:
+            span.set_attribute("plugin", plugin.slug)
+            span.set_attribute("from_symbolicate", from_symbolicate)
             processors = safe_execute(plugin.get_event_preprocessors, data=data)
             for processor in processors or ():
                 try:

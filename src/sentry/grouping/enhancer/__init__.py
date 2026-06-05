@@ -637,7 +637,7 @@ class EnhancementsConfig:
             )
 
     @classmethod
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def from_rules_text(
         cls,
         rules_text: str,

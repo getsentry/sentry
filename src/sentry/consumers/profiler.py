@@ -17,8 +17,9 @@ class JoinProfiler(ProcessingStrategy[TStrategyPayload]):
         self.__next_step = next_step
 
     def join(self, timeout: float | None = None):
-        with sentry_sdk.start_transaction(
-            op="consumer_join", name="consumer.join", custom_sampling_context={"sample_rate": 1.0}
+        sentry_sdk.Scope.set_custom_sampling_context({"sample_rate": 1.0})
+        with sentry_sdk.traces.start_span(
+            name="consumer.join", attributes={"sentry.op": "consumer_join"}, parent_span=None
         ):
             self.__next_step.join(timeout)
 

@@ -151,7 +151,10 @@ def _do_symbolicate_event(
     project = Project.objects.get_from_cache(id=project_id)
     # needed for efficient featureflag checks in getsentry
     # NOTE: The `organization` is used for constructing the symbol sources.
-    with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+    with sentry_sdk.traces.start_span(
+        name="lang.native.symbolicator.organization.get_from_cache",
+        attributes={"sentry.op": "lang.native.symbolicator.organization.get_from_cache"},
+    ):
         project.set_cached_field_value(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
@@ -178,13 +181,16 @@ def _do_symbolicate_event(
             "tasks.store.symbolicate_event.symbolication",
             tags={"symbolication_function": symbolication_function_name},
         ),
-        sentry_sdk.start_span(
-            op=f"tasks.store.symbolicate_event.{symbolication_function_name}"
+        sentry_sdk.traces.start_span(
+            name=f"tasks.store.symbolicate_event.{symbolication_function_name}",
+            attributes={
+                "sentry.op": f"tasks.store.symbolicate_event.{symbolication_function_name}"
+            },
         ) as span,
     ):
         try:
             symbolicated_data = symbolication_function(symbolicator, data)
-            span.set_data("symbolicated_data", bool(symbolicated_data))
+            span.set_attribute("symbolicated_data", bool(symbolicated_data))
 
             if symbolicated_data:
                 data = symbolicated_data

@@ -64,7 +64,7 @@ class BigtableNodeStorage(NodeStorage):
         self.automatic_expiry = automatic_expiry
         self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def _get_bytes(self, id: str) -> bytes | None:
         # Note: This metric encapsulates any decompression performed by `self.store.get()`. Other
         # instances of this metric stop measuring before decompression happens.
@@ -74,7 +74,7 @@ class BigtableNodeStorage(NodeStorage):
                 metric_emitter.record_uncompressed_size(len(result))
             return result
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
         rv: dict[str, bytes | None] = {id: None for id in id_list}
         # Note: This metric encapsulates any decompression performed by `self.store.get_many()`. Other
@@ -93,7 +93,9 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        with sentry_sdk.start_span(op="nodestore.bigtable.delete"):
+        with sentry_sdk.traces.start_span(
+            name="nodestore.bigtable.delete", attributes={"sentry.op": "nodestore.bigtable.delete"}
+        ):
             try:
                 with measure_storage_operation("delete", "nodestore"):
                     self.store.delete(id)
@@ -104,8 +106,11 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        with sentry_sdk.start_span(op="nodestore.bigtable.delete_multi") as span:
-            span.set_tag("num_ids", len(id_list))
+        with sentry_sdk.traces.start_span(
+            name="nodestore.bigtable.delete_multi",
+            attributes={"sentry.op": "nodestore.bigtable.delete_multi"},
+        ) as span:
+            span.set_attribute("num_ids", len(id_list))
 
             if len(id_list) == 1:
                 self.delete(id_list[0])

@@ -27,7 +27,10 @@ def process_data_source[T](
 ) -> tuple[DataPacket[T], list[Detector]]:
     metrics.incr("workflow_engine.process_data_sources", tags={"query_type": query_type})
 
-    with sentry_sdk.start_span(op="workflow_engine.process_data_sources.get_enabled_detectors"):
+    with sentry_sdk.traces.start_span(
+        name="workflow_engine.process_data_sources.get_enabled_detectors",
+        attributes={"sentry.op": "workflow_engine.process_data_sources.get_enabled_detectors"},
+    ):
         detectors = bulk_fetch_enabled_detectors(data_packet.source_id, query_type)
 
     if detectors:

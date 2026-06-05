@@ -51,7 +51,7 @@ class Counter(Model):
             return increment_project_counter_in_database(project, delta)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 @metrics.wraps("counter.increment_project_counter_in_cache")
 def increment_project_counter_in_cache(project, using="default") -> int:
     redis_key = make_short_id_counter_key(project.id)
@@ -84,7 +84,7 @@ def increment_project_counter_in_cache(project, using="default") -> int:
         return short_id_from_redis
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 @metrics.wraps("counter.increment_project_counter_in_database")
 def increment_project_counter_in_database(project, delta=1, using="default") -> int:
     """This method primarily exists so that south code can use it."""

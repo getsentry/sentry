@@ -73,8 +73,11 @@ class RedisQuota(Quota):
 
         results = [*self.get_abuse_quotas(project.organization)]
 
-        with sentry_sdk.start_span(op="redis.get_quotas.get_monitor_quota") as span:
-            span.set_tag("project.id", project.id)
+        with sentry_sdk.traces.start_span(
+            name="redis.get_quotas.get_monitor_quota",
+            attributes={"sentry.op": "redis.get_quotas.get_monitor_quota"},
+        ) as span:
+            span.set_attribute("project.id", project.id)
             mrlquota = self.get_monitor_quota(project)
             if mrlquota[0] is not None:
                 results.append(
@@ -95,8 +98,11 @@ class RedisQuota(Quota):
             keys = []
 
         for key in keys:
-            with sentry_sdk.start_span(op="redis.get_quotas.get_key_quota") as span:
-                span.set_tag("key.id", key.id)
+            with sentry_sdk.traces.start_span(
+                name="redis.get_quotas.get_key_quota",
+                attributes={"sentry.op": "redis.get_quotas.get_key_quota"},
+            ) as span:
+                span.set_attribute("key.id", key.id)
                 kquota = self.get_key_quota(key)
                 if kquota[0] is not None:
                     results.append(
@@ -152,7 +158,7 @@ class RedisQuota(Quota):
     def get_refunded_quota_key(self, key: str) -> str:
         return f"r:{key}"
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def refund(
         self,
         project: Project,

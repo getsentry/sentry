@@ -15,7 +15,7 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from cachetools.func import ttl_cache
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
-from sentry_sdk.tracing import Span, Transaction
+from sentry_sdk.traces import StreamedSpan
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -42,7 +42,7 @@ def memoized_tick_decision(tick: datetime) -> TickAnomalyDecision | None:
 
 
 def _process_incident_occurrence(
-    message: Message[KafkaPayload | FilteredPayload], txn: Transaction | Span
+    message: Message[KafkaPayload | FilteredPayload], txn: StreamedSpan
 ) -> None:
     """
     Process a incident occurrence message. This will immediately dispatch an
@@ -126,9 +126,10 @@ def _process_incident_occurrence(
 
 
 def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]) -> None:
-    with sentry_sdk.start_transaction(
-        op="_process_incident_occurrence",
+    with sentry_sdk.traces.start_span(
         name="monitors.incident_occurrence_consumer",
+        attributes={"sentry.op": "_process_incident_occurrence"},
+        parent_span=None,
     ) as txn:
         _process_incident_occurrence(message, txn)
 

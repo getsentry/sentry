@@ -291,7 +291,7 @@ class LatestReleaseBias:
         self.latest_release_params = latest_release_params
         self.project_boosted_releases = ProjectBoostedReleases(self.latest_release_params.project)
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def observe_release(self, on_boosted_release_added: Callable[[], None]) -> None:
         # Here we want to evaluate the observed first, so that if it is false, we don't bother verifying whether it
         # is a latest release.
@@ -372,18 +372,21 @@ def record_latest_release(project: Project, release: Release, environment: str |
         return
 
     def on_release_boosted() -> None:
-        span.set_tag(
+        span.set_attribute(
             "dynamic_sampling.observe_release_status",
             "(release, environment) pair observed and boosted",
         )
-        span.set_data("release", release.id)
-        span.set_data("environment", environment)
+        span.set_attribute("release", release.id)
+        span.set_attribute("environment", environment)
 
         schedule_invalidate_project_config(
             project_id=project.id,
             trigger="dynamic_sampling:boost_release",
         )
 
-    with sentry_sdk.start_span(op="event_manager.dynamic_sampling_observe_latest_release") as span:
+    with sentry_sdk.traces.start_span(
+        name="event_manager.dynamic_sampling_observe_latest_release",
+        attributes={"sentry.op": "event_manager.dynamic_sampling_observe_latest_release"},
+    ) as span:
         params = LatestReleaseParams(release=release, project=project, environment=environment)
         LatestReleaseBias(params).observe_release(on_release_boosted)

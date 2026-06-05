@@ -41,7 +41,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger("sentry.events.grouping")
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def should_call_seer_for_grouping(
     event: Event,
     variants: dict[str, BaseVariant],
@@ -330,7 +330,7 @@ def _build_seer_request(
     return request_data, metric_tags
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def get_seer_similar_issues(
     event: Event,
     event_grouphash: GroupHash,
@@ -543,7 +543,7 @@ def _should_use_seer_match_for_grouping(
     return fingerprints_match
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def maybe_check_seer_for_matching_grouphash(
     event: Event,
     event_grouphash: GroupHash,
@@ -616,7 +616,7 @@ def maybe_check_seer_for_matching_grouphash(
     return seer_matched_grouphash
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def maybe_send_seer_for_new_model_training(
     event: Event,
     existing_grouphash: GroupHash,

@@ -143,7 +143,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
         return [replace(base_params, start=now - delta, end=now) for delta in steps]
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def _fetch_spans(
         self,
         snuba_params: SnubaParams,

@@ -21,7 +21,7 @@ from django.db import router, transaction
 from rest_framework import serializers
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
-from sentry_sdk.tracing import Span, Transaction
+from sentry_sdk.traces import StreamedSpan
 
 from sentry import options, quotas, ratelimits
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -248,7 +248,7 @@ class _CheckinUpdateKwargs(TypedDict):
 
 
 def transform_checkin_uuid(
-    txn: Transaction | Span,
+    txn: StreamedSpan,
     metric_kwargs: dict[str, str],
     monitor_slug: str,
     check_in_id: str,
@@ -293,7 +293,7 @@ def transform_checkin_uuid(
 
 
 def update_existing_check_in(
-    txn: Transaction | Span,
+    txn: StreamedSpan,
     metric_kwargs: dict[str, str],
     project_id: int,
     monitor_environment: MonitorEnvironment,
@@ -454,7 +454,7 @@ def update_existing_check_in(
     existing_check_in.update(**updated_checkin)
 
 
-def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
+def _process_checkin(item: CheckinItem, txn: StreamedSpan) -> None:
     params = item.payload
 
     # XXX: The start_time is when relay received the original envelope store
@@ -1024,9 +1024,10 @@ def process_checkin(item: CheckinItem) -> None:
     Process an individual check-in
     """
     try:
-        with sentry_sdk.start_transaction(
-            op="_process_checkin",
+        with sentry_sdk.traces.start_span(
             name="monitors.monitor_consumer",
+            attributes={"sentry.op": "_process_checkin"},
+            parent_span=None,
         ) as txn:
             # Deepcopy the checkin here so that it's not modified. We need the original when we get a
             # `ProcessingErrorsException`
@@ -1094,7 +1095,11 @@ def process_batch(
     metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
 
     # Submit check-in groups for processing
-    with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
+    with sentry_sdk.traces.start_span(
+        name="monitors.monitor_consumer",
+        attributes={"sentry.op": "process_batch"},
+        parent_span=None,
+    ):
         futures = [
             executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]

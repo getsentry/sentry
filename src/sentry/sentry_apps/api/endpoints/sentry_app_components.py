@@ -61,14 +61,22 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         components = []
         errors = {}
 
-        with sentry_sdk.start_transaction(name="sentry.api.sentry_app_components.get"):
-            with sentry_sdk.start_span(op="sentry-app-components.get_installs"):
+        with sentry_sdk.traces.start_span(
+            name="sentry.api.sentry_app_components.get", parent_span=None
+        ):
+            with sentry_sdk.traces.start_span(
+                name="sentry-app-components.get_installs",
+                attributes={"sentry.op": "sentry-app-components.get_installs"},
+            ):
                 installs = SentryAppInstallation.objects.get_installed_for_organization(
                     organization.id
                 ).order_by("pk")
 
             for install in installs:
-                with sentry_sdk.start_span(op="sentry-app-components.filter_components"):
+                with sentry_sdk.traces.start_span(
+                    name="sentry-app-components.filter_components",
+                    attributes={"sentry.op": "sentry-app-components.filter_components"},
+                ):
                     _components = SentryAppComponent.objects.filter(
                         sentry_app_id=install.sentry_app_id
                     ).order_by("pk")
@@ -77,7 +85,10 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                         _components = _components.filter(type=request.GET["filter"])
 
                 for component in _components:
-                    with sentry_sdk.start_span(op="sentry-app-components.prepare_components"):
+                    with sentry_sdk.traces.start_span(
+                        name="sentry-app-components.prepare_components",
+                        attributes={"sentry.op": "sentry-app-components.prepare_components"},
+                    ):
                         try:
                             SentryAppComponentPreparer(component=component, install=install).run()
 

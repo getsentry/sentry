@@ -394,7 +394,7 @@ class RPCBase:
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def _run_table_query(
         cls,
         query: TableQuery,
@@ -440,7 +440,7 @@ class RPCBase:
         raise NotImplementedError()
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_bulk_table_queries(
         cls, queries: list[TableQuery], debug: str | bool = False
     ) -> dict[str, EAPResponse]:
@@ -806,7 +806,7 @@ class RPCBase:
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_timeseries_query(
         cls,
         *,
@@ -902,7 +902,7 @@ class RPCBase:
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def build_top_event_conditions(
         cls, resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
     ) -> Any:
@@ -949,7 +949,7 @@ class RPCBase:
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_top_events_timeseries_query(
         cls,
         *,

@@ -17,7 +17,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import serializers
-from sentry_sdk.tracing import NoOpSpan, Span, Transaction
+from sentry_sdk.traces import StreamedSpan
 
 from sentry import nodestore, options
 from sentry.event_manager import GroupInfo
@@ -79,7 +79,7 @@ def is_rate_limited(
         return False
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def save_event_from_occurrence(
     data: dict[str, Any],
     **kwargs: Any,
@@ -97,7 +97,7 @@ def save_event_from_occurrence(
         return event
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def lookup_event(project_id: int, event_id: str) -> Event:
     data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
     if data is None:
@@ -107,7 +107,7 @@ def lookup_event(project_id: int, event_id: str) -> Event:
     return event
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> Event:
     return Event(
         event_id=event_id,
@@ -125,7 +125,7 @@ def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> 
     )
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def create_event_and_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -149,7 +149,7 @@ def create_event_and_issue_occurrence(
         return save_issue_occurrence(occurrence_data, event)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def process_event_and_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -166,7 +166,7 @@ def process_event_and_issue_occurrence(
         return save_issue_occurrence(occurrence_data, event)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def lookup_event_and_process_issue_occurrence(
     occurrence_data: IssueOccurrenceData,
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -184,7 +184,7 @@ def lookup_event_and_process_issue_occurrence(
         return save_issue_occurrence(occurrence_data, event)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     """
     Processes the incoming message payload into a format we can use.
@@ -327,10 +327,10 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         raise InvalidEventPayloadError(e)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 @metrics.wraps("occurrence_consumer.process_occurrence_message")
 def process_occurrence_message(
-    message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
+    message: Mapping[str, Any], txn: StreamedSpan
 ) -> tuple[IssueOccurrence, GroupInfo | None] | None:
     with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
         kwargs = _get_kwargs(message)
@@ -343,15 +343,15 @@ def process_occurrence_message(
         sample_rate=1.0,
         tags=metric_tags,
     )
-    txn.set_tag("occurrence_type", occurrence_data["type"])
+    txn.set_attribute("occurrence_type", occurrence_data["type"])
 
     project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-    txn.set_tag("organization_id", organization.id)
-    txn.set_tag("organization_slug", organization.slug)
-    txn.set_tag("project_id", project.id)
-    txn.set_tag("project_slug", project.slug)
+    txn.set_attribute("organization_id", organization.id)
+    txn.set_attribute("organization_slug", organization.slug)
+    txn.set_attribute("project_id", project.id)
+    txn.set_attribute("project_slug", project.slug)
 
     group_type = get_group_type_by_type_id(occurrence_data["type"])
     if not group_type.allow_ingest(organization):
@@ -360,7 +360,7 @@ def process_occurrence_message(
             sample_rate=1.0,
             tags=metric_tags,
         )
-        txn.set_tag("result", "dropped_feature_disabled")
+        txn.set_attribute("result", "dropped_feature_disabled")
         return None
 
     if is_rate_limited(project.id, fingerprint=occurrence_data["fingerprint"][0]):
@@ -369,13 +369,13 @@ def process_occurrence_message(
             sample_rate=1.0,
             tags=metric_tags,
         )
-        txn.set_tag("result", "dropped_rate_limited")
+        txn.set_attribute("result", "dropped_rate_limited")
         return None
 
     if "event_data" in kwargs and is_buffered_spans:
         return create_event_and_issue_occurrence(kwargs["occurrence_data"], kwargs["event_data"])
     elif "event_data" in kwargs:
-        txn.set_tag("result", "success")
+        txn.set_attribute("result", "success")
         with metrics.timer(
             "occurrence_consumer._process_message.process_event_and_issue_occurrence",
             tags=metric_tags,
@@ -384,7 +384,7 @@ def process_occurrence_message(
                 kwargs["occurrence_data"], kwargs["event_data"]
             )
     else:
-        txn.set_tag("result", "success")
+        txn.set_attribute("result", "success")
         with metrics.timer(
             "occurrence_consumer._process_message.lookup_event_and_process_issue_occurrence",
             tags=metric_tags,
@@ -392,7 +392,7 @@ def process_occurrence_message(
             return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 @metrics.wraps("occurrence_consumer.process_message")
 def _process_message(
     message: Mapping[str, Any],
@@ -401,9 +401,10 @@ def _process_message(
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
     """
-    with sentry_sdk.start_transaction(
-        op="_process_message",
+    with sentry_sdk.traces.start_span(
         name="issues.occurrence_consumer",
+        attributes={"sentry.op": "_process_message"},
+        parent_span=None,
     ) as txn:
         try:
             # Messages without payload_type default to an OCCURRENCE payload
@@ -427,12 +428,12 @@ def _process_message(
                 "occurrence_ingest.invalid_group_type", tags={"occurrence_type": e.group_type_id}
             )
         except (ValueError, KeyError) as e:
-            txn.set_tag("result", "error")
+            txn.set_attribute("result", "error")
             raise InvalidEventPayloadError(e)
     return None
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 @metrics.wraps("occurrence_consumer.process_batch")
 def process_occurrence_batch(
     worker: ContextPropagatingThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]
@@ -470,7 +471,11 @@ def process_occurrence_batch(
     # Number of groups we've collected to be processed in parallel
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
     # Submit occurrences & status changes for processing
-    with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
+    with sentry_sdk.traces.start_span(
+        name="occurrence.occurrence_consumer",
+        attributes={"sentry.op": "process_batch"},
+        parent_span=None,
+    ):
         futures = [
             worker.submit(process_occurrence_group, group) for group in occcurrence_mapping.values()
         ]

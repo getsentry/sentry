@@ -434,7 +434,7 @@ class EventManager:
     def get_data(self) -> MutableMapping[str, Any]:
         return self._data
 
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def save(
         self,
         project_id: int | None = None,
@@ -514,7 +514,7 @@ class EventManager:
                     project, job, projects, metric_tags, attachments or [], raw, cache_key
                 )
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.traces.trace
     def save_error_events(
         self,
         project: Project,
@@ -638,7 +638,7 @@ class EventManager:
         return job["event"]
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     """
     Update every job in the list with required information and store it in the nodestore.
@@ -729,7 +729,7 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
         logger.exception("Failed to infer and set project platform")
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         data = job["data"]
@@ -768,7 +768,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
             set_tag(job["data"], "sentry:dist", job["dist"].name)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         data = job["data"]
@@ -781,7 +781,7 @@ def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None
         job["user"] = user
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     # XXX: We ought to inline or remove this one for sure
     plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
@@ -899,7 +899,7 @@ def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
     return kwargs
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         job["environment"] = Environment.get_or_create(
@@ -907,7 +907,7 @@ def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMappi
         )
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _get_or_create_group_environment_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         _get_or_create_group_environment(
@@ -1311,7 +1311,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
     )
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def assign_event_to_group(
     event: Event,
     job: Job,
@@ -1378,7 +1378,7 @@ def assign_event_to_group(
     return group_info
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
@@ -1413,7 +1413,7 @@ def get_hashes_and_grouphashes(
         return NULL_GROUPHASH_INFO
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def handle_existing_grouphash(
     job: Job,
     existing_grouphash: GroupHash,
@@ -1488,13 +1488,16 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
     check_for_group_creation_load_shed(project, event)
 
     with (
-        sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+        sentry_sdk.traces.start_span(
+            name="event_manager.create_group_transaction",
+            attributes={"sentry.op": "event_manager.create_group_transaction"},
+        ) as span,
         metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
         transaction.atomic(router.db_for_write(GroupHash)),
     ):
         # These values will get overridden with whatever happens inside the lock if we do manage to
         # acquire it, so it should only end up with `wait-for-lock` if we don't
-        span.set_tag("outcome", "wait_for_lock")
+        span.set_attribute("outcome", "wait_for_lock")
         metrics_timer_tags["outcome"] = "wait_for_lock"
 
         # If we're in this branch, we checked our grouphashes and didn't find one with a group
@@ -1522,7 +1525,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.
         if existing_grouphash is None:
-            span.set_tag("outcome", "new_group")
+            span.set_attribute("outcome", "new_group")
             metrics_timer_tags["outcome"] = "new_group"
             record_new_group_metrics(event)
 
@@ -2200,7 +2203,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
 
     logger_data["payload"] = payload
 
-    with sentry_sdk.start_span(op=op):
+    with sentry_sdk.traces.start_span(name=op, attributes={"sentry.op": op}):
         try:
             with metrics.timer(op):
                 timeout = options.get(
@@ -2238,7 +2241,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
 Attachment = CachedAttachment
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     """
     Refunds consumed quotas for an event and its attachments.
@@ -2307,7 +2310,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     )
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> list[Attachment]:
     """
     Removes crash reports exceeding the group-limit.
@@ -2399,7 +2402,7 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     return filtered
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def save_attachment(
     cache_key: str | None,
     attachment: Attachment,
@@ -2545,7 +2548,7 @@ def save_attachments(cache_key: str | None, attachments: list[Attachment], job: 
         )
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
     for job in jobs:
         # Ensure the _metrics key exists. This is usually created during
@@ -2565,7 +2568,7 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event_metrics"] = event_metrics
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         # Make sure this snippet doesn't crash ingestion
@@ -2589,7 +2592,7 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
             sentry_sdk.capture_exception()
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         if job["data"].get("_performance_issues_spans"):
@@ -2614,7 +2617,7 @@ INSIGHT_MODULE_TO_PROJECT_FLAG_NAME: dict[InsightModules, str] = {
 }
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _record_transaction_info(
     jobs: Sequence[Job], projects: ProjectsMapping, skip_send_first_transaction: bool
 ) -> None:
@@ -2623,7 +2626,10 @@ def _record_transaction_info(
             event = job["event"]
 
             project = event.project
-            with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
+            with sentry_sdk.traces.start_span(
+                name="event_manager.record_transaction_name_for_clustering",
+                attributes={"sentry.op": "event_manager.record_transaction_name_for_clustering"},
+            ):
                 record_transaction_name_for_clustering(project, event.data)
 
             record_event_processed(project, event)
@@ -2688,7 +2694,7 @@ def save_grouphash_and_group(
     return group, created, group_hash
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         event = job["event"]
@@ -2716,7 +2722,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
             produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def save_transaction_events(
     jobs: Sequence[Job],
     projects: ProjectsMapping,
@@ -2768,7 +2774,7 @@ def save_transaction_events(
     return jobs
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
     organization_ids = {project.organization_id for project in projects.values()}
     organizations = {o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)}

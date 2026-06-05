@@ -44,9 +44,9 @@ class RpcPaginationArgs(RpcModel):
         count_hits: bool | None = None,
     ) -> "RpcPaginationResult":
         cursor = get_cursor(self.encoded_cursor, cursor_cls)
-        with sentry_sdk.start_span(
-            op="hybrid_cloud.paginate.get_result",
+        with sentry_sdk.traces.start_span(
             name=description,
+            attributes={"sentry.op": "hybrid_cloud.paginate.get_result"},
         ) as span:
             annotate_span_with_pagination_args(span, self.per_page)
             paginator = get_paginator(

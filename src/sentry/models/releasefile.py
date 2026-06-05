@@ -336,7 +336,7 @@ class _ArtifactIndexGuard:
         )
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def read_artifact_index(release: Release, dist: Distribution | None, **filter_args) -> dict | None:
     """Get index data"""
     guard = _ArtifactIndexGuard(release, dist, **filter_args)
@@ -348,7 +348,7 @@ def _compute_sha1(archive: ReleaseArchive, url: str) -> str:
     return sha1(data).hexdigest()
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def update_artifact_index(
     release: Release,
     dist: Distribution | None,
@@ -393,7 +393,7 @@ def update_artifact_index(
     return releasefile
 
 
-@sentry_sdk.tracing.trace
+@sentry_sdk.traces.trace
 def delete_from_artifact_index(release: Release, dist: Distribution | None, url: str) -> bool:
     """Delete the file with the given url from the manifest.
 

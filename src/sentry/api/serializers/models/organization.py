@@ -473,7 +473,9 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         ]
         feature_set = set()
 
-        with sentry_sdk.start_span(op="features.check", name="check batch features"):
+        with sentry_sdk.traces.start_span(
+            name="check batch features", attributes={"sentry.op": "features.check"}
+        ):
             # Evaluate flags purely to populate the response — the user has not
             # actually encountered any experiments yet, so suppress the auto
             # exposure events the entity handler would otherwise log.
@@ -493,7 +495,9 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
 
-        with sentry_sdk.start_span(op="features.check", name="check individual features"):
+        with sentry_sdk.traces.start_span(
+            name="check individual features", attributes={"sentry.op": "features.check"}
+        ):
             # Remaining features should not be checked via the entity handler
             for feature_name in org_features:
                 if features.has(feature_name, obj, actor=user, skip_entity=True):

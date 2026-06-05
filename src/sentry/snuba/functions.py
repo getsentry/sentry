@@ -158,7 +158,9 @@ def top_events_timeseries(
     assert not include_other, "Other is not supported"  # TODO: support other
 
     if top_events is None:
-        with sentry_sdk.start_span(op="discover.discover", name="top_events.fetch_events"):
+        with sentry_sdk.traces.start_span(
+            name="top_events.fetch_events", attributes={"sentry.op": "discover.discover"}
+        ):
             top_events = query(
                 selected_columns,
                 query=user_query,
@@ -234,10 +236,12 @@ def format_top_events_timeseries_results(
             rollup,
         )
 
-    with sentry_sdk.start_span(op="discover.discover", name="top_events.transform_results") as span:
+    with sentry_sdk.traces.start_span(
+        name="top_events.transform_results", attributes={"sentry.op": "discover.discover"}
+    ) as span:
         result = query_builder.strip_alias_prefix(result)
 
-        span.set_data("result_count", len(result.get("data", [])))
+        span.set_attribute("result_count", len(result.get("data", [])))
         processed_result = query_builder.process_results(result)
 
         if result_key_order is None:

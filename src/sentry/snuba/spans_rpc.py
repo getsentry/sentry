@@ -42,7 +42,7 @@ class Spans(rpc_dataset_common.RPCBase):
         return project.flags.has_transactions
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_table_query(
         cls,
         *,
@@ -80,7 +80,7 @@ class Spans(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_trace_query(
         cls,
         *,
@@ -143,7 +143,7 @@ class Spans(rpc_dataset_common.RPCBase):
         MAX_ITERATIONS = options.get("performance.traces.pagination.max-iterations")
         MAX_TIMEOUT = options.get("performance.traces.pagination.max-timeout")
 
-        @sentry_sdk.tracing.trace
+        @sentry_sdk.traces.trace
         def process_item_groups(item_groups: Any) -> None:
             for item_group in item_groups:
                 for span_item in item_group.items:
@@ -212,7 +212,7 @@ class Spans(rpc_dataset_common.RPCBase):
         return spans
 
     @classmethod
-    @sentry_sdk.trace
+    @sentry_sdk.traces.trace
     def run_stats_query(
         cls,
         *,

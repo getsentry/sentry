@@ -137,7 +137,10 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
             for image in images:
                 if image.get("type") == "proguard":
-                    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
+                    with sentry_sdk.traces.start_span(
+                        name="proguard.fetch_debug_files",
+                        attributes={"sentry.op": "proguard.fetch_debug_files"},
+                    ):
                         uuid = image.get("uuid")
                         dif_paths = ProjectDebugFile.difcache.fetch_difs(
                             project, [uuid], features=["mapping"]

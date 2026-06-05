@@ -144,7 +144,9 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             )
         )
 
-        with sentry_sdk.start_span(op="preprod_artifact.assemble"):
+        with sentry_sdk.traces.start_span(
+            name="preprod_artifact.assemble", attributes={"sentry.op": "preprod_artifact.assemble"}
+        ):
             data, error_message = validate_preprod_artifact_schema(request.body)
             if error_message:
                 return Response({"error": error_message}, status=400)
