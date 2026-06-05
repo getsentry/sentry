@@ -11,6 +11,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
@@ -35,7 +36,6 @@ import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/
 import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
 import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import {PluginDeprecationAlert} from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
-import {WebhookDetailedView} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
 
 // TODO @sentaur-athena: remove this once we have a solution to deprecate these plugins
 const TEMPORARY_PERMITTED_PLUGINS = new Set(['amazon-sqs']);
@@ -378,7 +378,11 @@ function PluginDetailedView() {
     integrationSlug === 'webhooks' &&
     organization.features.includes('legacy-webhook-ui')
   ) {
-    return <WebhookDetailedView />;
+    return (
+      <Redirect
+        to={normalizeUrl(`/settings/${organization.slug}/integrations/webhooks/`)}
+      />
+    );
   }
 
   return <DefaultView />;

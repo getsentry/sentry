@@ -47,6 +47,7 @@ import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/
 import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
+import {WebhookDetailedView} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
 
 // Show the features tab if the org has features for the integration
 const integrationFeatures = ['slack'];
@@ -103,7 +104,7 @@ function makeIntegrationQueryKey({
 
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
 
-export default function IntegrationDetailedView() {
+function DefaultView() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useQueryState(
@@ -555,4 +556,18 @@ export default function IntegrationDetailedView() {
       />
     </SentryDocumentTitle>
   );
+}
+
+export default function IntegrationDetailedView() {
+  const {integrationSlug} = useParams<{integrationSlug: string}>();
+  const organization = useOrganization();
+
+  if (
+    integrationSlug === 'webhooks' &&
+    organization.features.includes('legacy-webhook-ui')
+  ) {
+    return <WebhookDetailedView />;
+  }
+
+  return <DefaultView />;
 }
