@@ -85,10 +85,7 @@ class GroupActionType(IntEnum):
 
 
 class GroupAction(BaseModel, abc.ABC):
-    """
-    Typed payload for a GroupActionLogEntry. Subclasses define the schema
-    for a specific action kind's ``data`` column. Frozen after construction.
-    """
+    """Typed payload for a group action log entry. Frozen after construction."""
 
     class Config:
         frozen = True
@@ -276,12 +273,6 @@ class UnlinkPlatformExternalIssueAction(GroupAction):
 
 
 class AutofixPrCreatedAction(GroupAction):
-    """Seer created one or more PRs for this issue.
-
-    Shape mirrors the SEER_PR_CREATED activity payload from
-    ``sentry.seer.entrypoints.operator._create_seer_activity``.
-    """
-
     run_id: str | None = None
     pull_requests: list[dict[str, object]] = []
 
@@ -291,13 +282,7 @@ class AutofixPrCreatedAction(GroupAction):
 
 
 class ResolvedInPullRequestAction(GroupAction):
-    """Issue resolved via a pull request.
-
-    Shape mirrors the SET_RESOLVED_IN_PULL_REQUEST activity payload from
-    ``sentry.receivers.releases``: the value is a PullRequest model ID.
-    """
-
-    pull_request: int
+    pull_request: int  # PullRequest model ID
 
     @classmethod
     def get_type(cls) -> GroupActionType:

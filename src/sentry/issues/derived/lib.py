@@ -1,10 +1,5 @@
 """
 Core framework for the derived-data pipeline.
-
-Provides Feature (typed state slots), State (feature→value store with view isolation),
-Aggregator (declared-deps processing functions), and Pipeline (validated DAG of
-aggregators with topological ordering and batched stepping).
-
 No Django dependencies — pure Python, fully testable in isolation.
 """
 
@@ -36,7 +31,7 @@ IDENTITY_CODEC: Codec[Any] = Codec()
 
 
 class PydanticDictCodec(Codec[dict[str, Any]]):
-    """Codec for dict[str, PydanticModel] — the common pattern for per-user maps."""
+    """Codec for dict[str, PydanticModel] values."""
 
     def __init__(self, model: type[Any]) -> None:
         self._model = model
