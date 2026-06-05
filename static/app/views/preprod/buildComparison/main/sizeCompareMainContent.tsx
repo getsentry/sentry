@@ -301,15 +301,12 @@ export function SizeCompareMainContent() {
         comparisonDataQuery.data.insight_diff_items.length > 0 && (
           <Stack gap="xl">
             <Separator orientation="horizontal" border="primary" />
-            <Stack gap="md">
-              <Heading as="h2">{t('Insight Diff')}</Heading>
-              <InsightComparisonSection
-                totalInstallSizeBytes={
-                  comparisonDataQuery.data?.size_metric_diff_item.head_install_size
-                }
-                insightDiffItems={comparisonDataQuery.data.insight_diff_items}
-              />
-            </Stack>
+            <InsightComparisonSection
+              totalInstallSizeBytes={
+                comparisonDataQuery.data.size_metric_diff_item.head_install_size
+              }
+              insightDiffItems={comparisonDataQuery.data.insight_diff_items}
+            />
             <Separator orientation="horizontal" border="primary" />
           </Stack>
         )}
