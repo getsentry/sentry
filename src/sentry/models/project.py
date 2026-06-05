@@ -754,9 +754,10 @@ class Project(Model):
                     organization_id=organization.id
                 )
 
-                # update the integration id or disable the action
+                # update the integration id or disable the action. Actions only ever attach to
+                # the if_condition_groups, not the when_condition_groups
                 reconnect_moved_workflow_actions(
-                    exclusive_condition_group_ids + list(when_condition_group_ids),
+                    exclusive_condition_group_ids,
                     destination_integration_ids_by_provider,
                 )
 
