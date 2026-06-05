@@ -341,7 +341,7 @@ describe('ColumnEditorModal', () => {
     expect(screen.getByTestId('editor-column')).toHaveTextContent('boolean');
 
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
-    expect(onColumnsChange).toHaveBeenCalledWith(['span.is_segment']);
+    expect(onColumnsChange).toHaveBeenCalledWith(['tags[span.is_segment,boolean]']);
   });
 
   it('renders existing boolean column with correct type badge', async () => {
@@ -352,7 +352,7 @@ describe('ColumnEditorModal', () => {
         modalProps => (
           <ColumnEditorModal
             {...modalProps}
-            columns={['span.is_segment', 'id']}
+            columns={['tags[span.is_segment,boolean]', 'id']}
             onColumnsChange={() => {}}
             stringTags={stringTags}
             numberTags={numberTags}
