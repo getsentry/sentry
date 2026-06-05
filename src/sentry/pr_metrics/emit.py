@@ -71,39 +71,35 @@ def build_pr_metrics_row(
 ) -> PrCloseMetricsEvent:
     """Assemble the provisional close/merge row from stored + payload data.
 
-    ``payload`` is the GitHub ``pull_request`` object from the webhook and is the
-    primary source for lifecycle facts. The webhook also persists those facts on
-    the ``PullRequest`` row (``head_commit_sha``/``closed_at``/``merged_at``/
-    ``state``), so each field falls back to the stored value — that fallback is
-    what lets a caller without a fresh payload (e.g. the judge round-trip) still
-    build a complete row. ``attributions`` is the active-attribution snapshot
-    (see ``_active_attributions``), passed in so the caller's tracking gate and
-    the emitted row read the same query.
-    """
-    # The caller already resolved merged-vs-closed; trust it over the payload so
-    # the fallback path (which may carry no ``merged`` flag) stays consistent.
-    is_merged = close_action == CLOSE_ACTION_MERGED
+    Lifecycle facts come from the ``PullRequest`` row, which the webhook keeps
+    current on every event (see ``PullRequestEventWebhook._handle``): one source
+    of truth shared with the judge path — which has no webhook payload — and a
+    read that exercises that persistence on the live webhook path rather than
+    only on the (not-yet-wired) judge path.
 
+    ``payload`` (the GitHub ``pull_request`` object) supplies only the fields with
+    no persisted home — the open time and the activity counters. ``attributions``
+    is the active-attribution snapshot (see ``_active_attributions``), passed in
+    so the caller's tracking gate and the emitted row read the same query.
+    """
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
         repository_id=pull_request.repository_id,
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,
         close_action=close_action,
-        # Payload first, persisted PR field as fallback.
-        head_commit_sha=(payload.get("head") or {}).get("sha") or pull_request.head_commit_sha,
+        # Lifecycle from the stored row. Timestamps are isoformatted per the
+        # analytics-event convention (str fields populated via .isoformat()).
+        head_commit_sha=pull_request.head_commit_sha,
+        closed_at=_iso(pull_request.closed_at),
+        # The webhook persists these only on a merge; null for a closed-but-
+        # unmerged PR, so reading the stored row already encodes that.
+        merge_commit_sha=pull_request.merge_commit_sha,
+        merged_at=_iso(pull_request.merged_at),
         # No persisted counterpart (the PR row's date_added is Sentry-side, not
         # the GitHub open time): read fail-fast so a malformed payload errors and
         # the webhook loop logs it, rather than emitting a null open time.
         opened_at=payload["created_at"],
-        closed_at=payload.get("closed_at") or _iso(pull_request.closed_at),
-        # Present only on a merge; null for a closed-but-unmerged PR.
-        merge_commit_sha=(
-            (payload.get("merge_commit_sha") or pull_request.merge_commit_sha)
-            if is_merged
-            else None
-        ),
-        merged_at=(payload.get("merged_at") or _iso(pull_request.merged_at)) if is_merged else None,
         draft=bool(payload.get("draft")),
         # GitHub includes these aggregate counts on the PR object in the
         # close/merge payload, so we get size/activity for free without an SCM
