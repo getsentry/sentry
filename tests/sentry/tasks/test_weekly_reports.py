@@ -40,6 +40,7 @@ from sentry.tasks.summaries.utils import (
 )
 from sentry.tasks.summaries.weekly_reports import (
     OrganizationReportBatch,
+    _pct_change,
     date_format,
     group_status_to_color,
     prepare_organization_report,
@@ -1536,3 +1537,70 @@ class WeeklyReportsTest(
             assert "sensitive error title xyz123" not in html
             assert "enhanced privacy" in html.lower()
             assert "Total Project Errors" in html
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_pct_change_with_previous_week(self, message_builder: mock.MagicMock) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=10
+        )
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            self.three_days_ago,
+            num_times=20,
+            category=DataCategory.TRANSACTION,
+        )
+
+        prev_week = self.three_days_ago - timedelta(days=7)
+        self.store_event_outcomes(self.organization.id, self.project.id, prev_week, num_times=5)
+        self.store_event_outcomes(
+            self.organization.id,
+            self.project.id,
+            prev_week,
+            num_times=40,
+            category=DataCategory.TRANSACTION,
+        )
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            context = call_args.kwargs["context"]
+            assert context["trends"]["error_pct_change"] == {
+                "value": "100%",
+                "is_increase": True,
+            }
+            assert context["trends"]["transaction_pct_change"] == {
+                "value": "50%",
+                "is_increase": False,
+            }
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_pct_change_no_previous_week(self, message_builder: mock.MagicMock) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=10
+        )
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            context = call_args.kwargs["context"]
+            assert context["trends"]["error_pct_change"] is None
+            assert context["trends"]["transaction_pct_change"] is None
+
+    def test_pct_change_helper(self) -> None:
+        assert _pct_change(150, 100) == {"value": "50%", "is_increase": True}
+        assert _pct_change(50, 100) == {"value": "50%", "is_increase": False}
+        assert _pct_change(0, 100) == {"value": "100%", "is_increase": False}
+        assert _pct_change(100, 0) is None
+        assert _pct_change(0, 0) is None
+        assert _pct_change(100, 100) is None

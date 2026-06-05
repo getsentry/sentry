@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import sentry_sdk
 
 from sentry.constants import DataCategory
@@ -97,6 +99,30 @@ class OrganizationReportContextFactory:
                             project_ctx.error_count_by_day.get(timestamp, 0) + total
                         )
 
+    @metrics.wraps("weekly_report.create_context.project_event_counts_previous_week")
+    def _append_project_event_counts_previous_week(self, ctx: OrganizationReportContext) -> None:
+        with sentry_sdk.start_span(op="weekly_reports.project_event_counts_previous_week"):
+            prev_start = ctx.start - timedelta(days=7)
+            prev_end = ctx.end - timedelta(days=7)
+            event_counts = project_event_counts_for_organization(
+                start=prev_start,
+                end=prev_end,
+                ctx=ctx,
+                referrer=Referrer.REPORTS_OUTCOMES_PREVIOUS_WEEK.value,
+            )
+            for data in event_counts:
+                project_id = data["project_id"]
+                if project_id not in ctx.projects_context_map:
+                    continue
+                project_ctx = ctx.projects_context_map[project_id]
+                total = data["total"]
+                if data["outcome"] != Outcome.ACCEPTED:
+                    continue
+                if data["category"] == DataCategory.TRANSACTION:
+                    project_ctx.prev_week_accepted_transaction_count += total
+                elif data["category"] in DataCategory.error_categories():
+                    project_ctx.prev_week_accepted_error_count += total
+
     @metrics.wraps("weekly_report.create_context.issue_substatus_summaries")
     def _append_organization_project_issue_substatus_summaries(
         self, ctx: OrganizationReportContext
@@ -177,6 +203,7 @@ class OrganizationReportContextFactory:
         with metrics.timer("weekly_report.create_context.duration"):
             self._append_user_project_ownership(ctx)
             self._append_project_event_counts(ctx)
+            self._append_project_event_counts_previous_week(ctx)
             self._append_organization_project_issue_substatus_summaries(ctx)
 
             # Enhanced privacy flag hides issue titles, transaction names, and source details

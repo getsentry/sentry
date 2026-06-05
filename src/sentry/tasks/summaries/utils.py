@@ -72,6 +72,9 @@ class ProjectContext:
     accepted_replay_count = 0
     dropped_replay_count = 0
 
+    prev_week_accepted_error_count = 0
+    prev_week_accepted_transaction_count = 0
+
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
