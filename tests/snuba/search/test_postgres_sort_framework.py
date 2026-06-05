@@ -296,6 +296,23 @@ class TestFallbackBehavior(PostgresSortTestBase):
             list(self.make_query("test_sort"))
         assert snuba_spy.called
 
+    def test_overflow_with_date_key_skips_shortcut(self):
+        # A Postgres strategy registered under "date" that overflows must still go through
+        # the chunked path, not the postgres-only date shortcut. "date" is in
+        # sort_strategies, so the fallback keeps sort_by="date" -- the shortcut guard must
+        # not depend on the key being absent from sort_strategies.
+        with (
+            _patch_pg_strategies({"date": _ts_strategy()}),
+            override_options({"snuba.search.max-pre-snuba-candidates": 0}),
+            mock.patch.object(
+                PostgresSnubaQueryExecutor,
+                "snuba_search",
+                return_value=([(g.id, 1) for g in self.groups], len(self.groups)),
+            ) as snuba_spy,
+        ):
+            list(self.make_query("date"))
+        assert snuba_spy.called
+
     def test_unregistered_sort_uses_snuba_path(self):
         # `date` isn't a Postgres strategy, so it takes the existing Snuba path unchanged.
         results = list(self.make_query("date"))

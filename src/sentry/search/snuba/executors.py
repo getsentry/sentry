@@ -1161,12 +1161,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 )
                 return pg_result
             # Overflow: too many candidates to score in memory. Fall through to the Snuba
-            # chunked path. If this sort has no Snuba-only equivalent, fall back to `date`.
-            # The fallback must go through the chunked path (which applies issue-type
-            # visibility), not the postgres-only `date` shortcut below, which does not.
+            # chunked path (which applies issue-type visibility), never the postgres-only
+            # `date` shortcut below. If this sort has no Snuba-only equivalent, fall back
+            # to `date`.
+            pg_overflow_fallback = True
             if sort_by not in self.sort_strategies:
                 sort_by = "date"
-                pg_overflow_fallback = True
 
         # If the requested sort is `date` (`last_seen`) and there
         # are no other Snuba-based search predicates, we can simply
