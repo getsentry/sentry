@@ -5,8 +5,6 @@
  * Intercom is lazily initialized on first "Contact Support" click.
  */
 
-import type {boot as intercomBoot} from '@intercom/messenger-js-sdk';
-
 import {Client} from 'sentry/api';
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -23,8 +21,6 @@ interface IntercomJwtResponse {
   jwt: string;
   userData: IntercomUserData;
 }
-
-type IntercomSettings = Parameters<typeof intercomBoot>[0];
 
 let hasBooted = false;
 let bootPromise: Promise<void> | null = null;
@@ -57,7 +53,9 @@ async function initIntercom(orgSlug: string): Promise<void> {
         `/organizations/${orgSlug}/intercom-jwt/`
       );
 
-      const intercomSettings: IntercomSettings = {
+      // Boot Intercom with user data
+      const {default: Intercom} = await import('@intercom/messenger-js-sdk');
+      Intercom({
         app_id: intercomAppId,
         user_id: jwtData.userData.userId,
         user_hash: jwtData.jwt,
@@ -69,20 +67,7 @@ async function initIntercom(orgSlug: string): Promise<void> {
           name: jwtData.userData.organizationName,
         },
         hide_default_launcher: true,
-      };
-
-      // Intercom's session cookie is scoped to .sentry.io and survives the
-      // hard navigation between org subdomains, so a plain boot resumes the
-      // previous org's session. Load the SDK, drop the stale session cookie,
-      // then boot clean with this org's identity.
-      const {
-        boot,
-        default: Intercom,
-        shutdown,
-      } = await import('@intercom/messenger-js-sdk');
-      Intercom(intercomSettings);
-      shutdown();
-      boot(intercomSettings);
+      });
 
       hasBooted = true;
       bootedOrgSlug = orgSlug;
@@ -98,9 +83,7 @@ async function initIntercom(orgSlug: string): Promise<void> {
 
 /**
  * Shutdown Intercom and clear session data.
- *
- * Used for logout and same-page (SPA) org switches. Customer-domain org
- * switches are hard navigations, so their cleanup happens in initIntercom.
+ * Call this when user logs out or switches organizations.
  */
 export async function shutdownIntercom(): Promise<void> {
   if (!hasBooted) {
