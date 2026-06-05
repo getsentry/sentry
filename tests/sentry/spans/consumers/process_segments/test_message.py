@@ -523,29 +523,29 @@ class TestProcessSegmentCaching(TestCase):
         process_segment([segment])
         mock_create.reset_mock()
 
-        # Trigger a bump at T+61.
+        # Trigger a bump just past the interval, advancing the cached timestamp.
         bump_ts = self.base_ts + 1801
         process_segment(
             [build_mock_span(project_id=self.project.id, is_segment=True, end_timestamp=bump_ts)]
         )
         mock_bump.reset_mock()
 
-        # T+90 is only 29s after the bump — should be noop.
+        # 1799s after the bump is within the interval — should be noop.
         process_segment(
             [
                 build_mock_span(
-                    project_id=self.project.id, is_segment=True, end_timestamp=self.base_ts + 90
+                    project_id=self.project.id, is_segment=True, end_timestamp=bump_ts + 1799
                 )
             ]
         )
         mock_create.assert_not_called()
         mock_bump.assert_not_called()
 
-        # T+122 is 61s after the bump — should trigger another bump.
+        # 1800s after the bump exceeds the interval — should trigger another bump.
         process_segment(
             [
                 build_mock_span(
-                    project_id=self.project.id, is_segment=True, end_timestamp=bump_ts + 61
+                    project_id=self.project.id, is_segment=True, end_timestamp=bump_ts + 1800
                 )
             ]
         )
