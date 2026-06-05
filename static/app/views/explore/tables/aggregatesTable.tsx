@@ -257,7 +257,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                       )}
                     <CellAction
                       column={VIEW_SAMPLES_COLUMN}
-                      dataRow={row as TableDataRow}
+                      dataRow={row}
                       handleCellAction={() => null}
                       allowActions={[]}
                       extraMenuItems={menuItems}
