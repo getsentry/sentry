@@ -32,6 +32,7 @@ import {
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -215,6 +216,18 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
       );
 
+      // The Seer response embeds the metric inside the visualization aggregate
+      // (e.g. p75(value, metric.name, distribution, millisecond)). Extract it
+      // so we can keep the panel's TraceMetric in sync with the aggregate —
+      // otherwise the toolbar, samples table, and timeseries queries keep
+      // using the previously-selected metric.
+      const firstSeerYAxis = visualizations[0]?.yAxes[0];
+      const seerTraceMetric = firstSeerYAxis
+        ? parseMetricAggregate(firstSeerYAxis).traceMetric
+        : undefined;
+      const nextMetric =
+        seerTraceMetric?.name && seerTraceMetric.type ? seerTraceMetric : traceMetric;
+
       // Build aggregateFields: groupBys first, then visualizes
       const aggregateFields: AggregateField[] = [];
 
@@ -261,10 +274,16 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       });
 
       // Build encoded metric queries, updating the current metric's query params
+      // and trace metric (the metric is parsed out of the agent's visualization
+      // aggregate above so the panel matches what was queried).
       const newEncodedMetrics = metricQueries
         .map((mq: BaseMetricQuery) => {
           if (mq.queryParams === queryParams) {
-            return encodeMetricQueryParams({...mq, queryParams: newQueryParams});
+            return encodeMetricQueryParams({
+              ...mq,
+              metric: nextMetric,
+              queryParams: newQueryParams,
+            });
           }
           return encodeMetricQueryParams(mq);
         })
@@ -330,6 +349,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       pageFilters.selection,
       queryParams,
       setRunId,
+      traceMetric,
     ]
   );
 
