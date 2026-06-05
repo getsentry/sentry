@@ -52,7 +52,7 @@ function mapActionsToCompactSelect(
         help: action.help,
       };
     })
-    .filter(Boolean) as Array<SelectOption<string>>;
+    .filter(Boolean);
 }
 
 export function DropdownActions({actions, label}: Props) {

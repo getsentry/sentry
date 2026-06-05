@@ -171,7 +171,10 @@ function getTraceWaterfallEvidenceProps({
     return null;
   }
 
-  const label = t('Span: %s', getShortEventId(span_id));
+  const label =
+    span_id == null
+      ? t('Trace: %s', getShortEventId(trace_id))
+      : t('Span: %s', getShortEventId(span_id));
 
   return {
     to: target,

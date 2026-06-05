@@ -160,7 +160,7 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
-    ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
+    ...[getConsoleExtensions(params)].filter(Boolean),
     {
       title: t('Further Settings'),
       content: [

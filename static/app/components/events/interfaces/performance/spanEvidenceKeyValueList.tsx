@@ -90,22 +90,17 @@ function ConsecutiveDBQueriesSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          causeSpans
-            ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]!))
-            : null,
-          makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
-          makeRow(
-            t('Duration Impact'),
-            getDurationImpact(
-              event,
-              getConsecutiveDbTimeSaved(causeSpans, offendingSpans)
-            )
-          ),
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        causeSpans
+          ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]!))
+          : null,
+        makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
+        makeRow(
+          t('Duration Impact'),
+          getDurationImpact(event, getConsecutiveDbTimeSaved(causeSpans, offendingSpans))
+        ),
+      ].filter(Boolean)}
     />
   );
 }
@@ -194,17 +189,15 @@ function NPlusOneDBQueriesSpanEvidence({
 
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
-          causeSpans.length > 0
-            ? makeRow(t('Preceding Span'), getSpanEvidenceValue(causeSpans[0]!))
-            : null,
-          ...repeatingSpanRows,
-          patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
+        causeSpans.length > 0
+          ? makeRow(t('Preceding Span'), getSpanEvidenceValue(causeSpans[0]!))
+          : null,
+        ...repeatingSpanRows,
+        patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
+      ].filter(Boolean)}
     />
   );
 }
@@ -229,37 +222,33 @@ function NPlusOneAPICallsSpanEvidence({
 
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          commonPathPrefix
-            ? makeRow(
-                t('Repeating Spans (%s)', offendingSpans.length),
-                <pre className="val-string">
-                  <AnnotatedText
-                    value={
-                      <Fragment>
-                        {commonPathPrefix.split('').map((char, i) => {
-                          return char === '*' ? (
-                            <HighlightedEvidence key={i}>{char}</HighlightedEvidence>
-                          ) : (
-                            char
-                          );
-                        })}
-                      </Fragment>
-                    }
-                  />
-                </pre>
-              )
-            : null,
-          queryParameters.length > 0
-            ? makeRow(t('Query Parameters'), queryParameters)
-            : null,
-          pathParameters.length > 0
-            ? makeRow(t('Path Parameters'), pathParameters)
-            : null,
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        commonPathPrefix
+          ? makeRow(
+              t('Repeating Spans (%s)', offendingSpans.length),
+              <pre className="val-string">
+                <AnnotatedText
+                  value={
+                    <Fragment>
+                      {commonPathPrefix.split('').map((char, i) => {
+                        return char === '*' ? (
+                          <HighlightedEvidence key={i}>{char}</HighlightedEvidence>
+                        ) : (
+                          char
+                        );
+                      })}
+                    </Fragment>
+                  }
+                />
+              </pre>
+            )
+          : null,
+        queryParameters.length > 0
+          ? makeRow(t('Query Parameters'), queryParameters)
+          : null,
+        pathParameters.length > 0 ? makeRow(t('Path Parameters'), pathParameters) : null,
+      ].filter(Boolean)}
     />
   );
 }
@@ -342,14 +331,12 @@ function DBQueryInjectionVulnerabilityEvidence({
 
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          getSQLQueryRowFromEvidence(offendingSpans[0]!),
-          makeRow(t('Vulnerable Parameters'), formattedVulnerableParameters),
-          makeRow(t('Request URL'), evidenceData.requestUrl),
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        getSQLQueryRowFromEvidence(offendingSpans[0]!),
+        makeRow(t('Vulnerable Parameters'), formattedVulnerableParameters),
+        makeRow(t('Request URL'), evidenceData.requestUrl),
+      ].filter(Boolean)}
     />
   );
 }
@@ -641,14 +628,12 @@ function DefaultSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          offendingSpans.length > 0
-            ? makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0]!))
-            : null,
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        offendingSpans.length > 0
+          ? makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0]!))
+          : null,
+      ].filter(Boolean)}
     />
   );
 }

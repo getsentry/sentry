@@ -25,7 +25,7 @@ export function isDotnet(platform: string) {
 }
 
 export function hasContextSource(frame: Frame) {
-  return !!frame.context.length;
+  return !!frame.context?.length;
 }
 
 export function hasContextVars(frame: Frame) {

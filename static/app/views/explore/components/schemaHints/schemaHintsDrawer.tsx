@@ -48,10 +48,7 @@ export function SchemaHintsDrawer({
 
   const selectedFilterKeys = useMemo(() => {
     const filterQuery = new MutableSearch(currentQuery);
-    const allKeys = filterQuery
-      .getFilterKeys()
-      .map(parseTagKey)
-      .filter(Boolean) as string[];
+    const allKeys = filterQuery.getFilterKeys().map(parseTagKey).filter(Boolean);
     // When there is a filter with a negation, it stores the negation in the key.
     // To ensure all the keys are represented correctly in the drawer, we must
     // take these into account.
