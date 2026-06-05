@@ -1,8 +1,14 @@
 import {Fragment} from 'react';
 
+import {Link} from '@sentry/scraps/link';
+
+import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
+import type {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
-import {useKnownAgents} from 'sentry/utils/seer/preferredAgent';
+import {useAgentSelectOptions, useKnownAgents} from 'sentry/utils/seer/preferredAgent';
 import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * Render a known agent to their human-readable names.
@@ -18,5 +24,45 @@ export function PreferredAgentLabel({settings}: {settings: SeerProjectSettingRes
         : (integrations.find(i => i.id === settings.integrationId)?.name ??
           `${settings.agent} - ${settings.integrationId}`)}
     </Fragment>
+  );
+}
+
+export function PreferredAgentDropdownMenu({
+  isDisabled,
+  size = 'xs',
+  onChange,
+}: {
+  isDisabled: boolean;
+  onChange: (value: 'seer' | CodingAgentProvider) => void;
+  size?: DropdownMenuProps['size'];
+}) {
+  const organization = useOrganization();
+  const agentOptions = useAgentSelectOptions();
+
+  return (
+    <DropdownMenu
+      isDisabled={isDisabled}
+      size={size}
+      triggerLabel={t('Agent')}
+      items={
+        agentOptions.map(({value, label}) => ({
+          key: value,
+          label,
+          onAction: () => onChange(value),
+        })) ?? []
+      }
+      menuFooter={
+        <DropdownMenuFooter>
+          <Link
+            to={{
+              pathname: `/settings/${organization.slug}/integrations/`,
+              query: {category: 'coding agent'},
+            }}
+          >
+            {t('Manage Coding Agents')}
+          </Link>
+        </DropdownMenuFooter>
+      }
+    />
   );
 }

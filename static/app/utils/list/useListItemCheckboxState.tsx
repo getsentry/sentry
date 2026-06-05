@@ -234,6 +234,7 @@ export function useListItemCheckboxContext(): ListItemCheckboxState {
     return 'indeterminate';
   }, [state, hits]);
 
+  // Deprecated: use isAllSelected==indeterminate instead
   const isAnySelected = useMemo(() => 'all' in state || state.ids.size > 0, [state]);
 
   const selectedIds = useMemo(() => {

@@ -1,5 +1,6 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {infiniteQueryOptions, useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState, type inferParserType} from 'nuqs';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -9,17 +10,30 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PreferredAgentLabel} from 'sentry/components/seer/preferredAgent';
-import {StoppingPointLabel} from 'sentry/components/seer/stoppingPoint';
+import {
+  PreferredAgentDropdownMenu,
+  PreferredAgentLabel,
+} from 'sentry/components/seer/preferredAgent';
+import {
+  StoppingPointDropdownMenu,
+  StoppingPointLabel,
+} from 'sentry/components/seer/stoppingPoint';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
+import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useAgentSelectOptions, useKnownAgents} from 'sentry/utils/seer/preferredAgent';
 import {
   getMutateSeerProjectSettingsOptions,
   getSeerProjectSettingsQueryOptions,
   seerProjectSettingsSchema,
+  getInfiniteSeerProjectsSettingsQueryOptions,
 } from 'sentry/utils/seer/seerProjectSettings';
 import {
   getUserFacingStoppingPoint,
@@ -302,6 +316,146 @@ export default Storybook.story('SeerProjectSettings', story => {
 
     return (
       <PickProject>{projectSlug => <Example projectSlug={projectSlug} />}</PickProject>
+    );
+  });
+
+  story('Autofix Projects Settings', () => {
+    const [showFormatted, setShowFormatted] = useState(false);
+
+    const organization = useOrganization();
+
+    const queryOptions = infiniteQueryOptions({
+      ...getInfiniteSeerProjectsSettingsQueryOptions({
+        organization,
+        query: {per_page: 25, query: 'reposCount:>0'},
+      }),
+      select: ({pages}) => pages.flatMap(page => page.json),
+    });
+    const result = useInfiniteQuery(queryOptions);
+    useFetchAllPages({result});
+    const {data, isPending, isError, error} = result;
+
+    return (
+      <ListItemCheckboxProvider
+        hits={data?.length ?? 0}
+        knownIds={data?.map(item => item.projectId) ?? []}
+        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+      >
+        <Stack gap="xl">
+          <Flex as="label" gap="md" htmlFor="showFormatted">
+            <Text>{t('Format Column Values')}</Text>
+            <Checkbox
+              id="showFormatted"
+              checked={showFormatted}
+              onChange={() => setShowFormatted(!showFormatted)}
+            />
+          </Flex>
+
+          <InfiniteTable.Table columns="max-content 2fr max-content repeat(2, 1fr)">
+            <InfiniteTable.Header>
+              <InfiniteTable.HeaderCell />
+              <InfiniteTable.HeaderCell>{t('Project')}</InfiniteTable.HeaderCell>
+              <InfiniteTable.HeaderCell>{t('Repos')}</InfiniteTable.HeaderCell>
+              <InfiniteTable.HeaderCell>{t('Agent')}</InfiniteTable.HeaderCell>
+              <InfiniteTable.HeaderCell>{t('Stopping Point')}</InfiniteTable.HeaderCell>
+            </InfiniteTable.Header>
+            <InfiniteTable.Scrollable style={{height: '400px'}}>
+              {isPending ? (
+                <Flex
+                  justify="center"
+                  align="center"
+                  padding="xl"
+                  style={{minHeight: 200}}
+                >
+                  <LoadingIndicator />
+                </Flex>
+              ) : isError ? (
+                <Flex
+                  justify="center"
+                  align="center"
+                  padding="xl"
+                  style={{minHeight: 200}}
+                >
+                  <LoadingError message={error?.message} />
+                </Flex>
+              ) : data.length === 0 ? (
+                <InfiniteTable.Empty>{t('No projects found')}</InfiniteTable.Empty>
+              ) : (
+                <Fragment>
+                  <InfiniteTable.Body
+                    estimateSize={() => 41}
+                    queryResult={result}
+                    select={_ => _ ?? []}
+                  >
+                    {item => (
+                      <InfiniteTable.Row>
+                        <InfiniteTable.RowCell>
+                          <ListItemSelectCheckbox
+                            htmlPrefix="seer-project-settings"
+                            value={item.projectSlug}
+                          />
+                        </InfiniteTable.RowCell>
+                        <InfiniteTable.RowCell>
+                          <Text bold>{item.projectSlug}</Text>
+                        </InfiniteTable.RowCell>
+                        <InfiniteTable.RowCell>
+                          <Text>{item.reposCount}</Text>
+                        </InfiniteTable.RowCell>
+                        <InfiniteTable.RowCell>
+                          <Text>
+                            {showFormatted ? (
+                              <PreferredAgentLabel settings={item} />
+                            ) : (
+                              item.agent
+                            )}
+                          </Text>
+                        </InfiniteTable.RowCell>
+                        <InfiniteTable.RowCell>
+                          <Text>
+                            {showFormatted ? (
+                              <StoppingPointLabel
+                                stoppingPoint={getUserFacingStoppingPoint(
+                                  item.stoppingPoint
+                                )}
+                              />
+                            ) : (
+                              item.stoppingPoint
+                            )}
+                          </Text>
+                        </InfiniteTable.RowCell>
+                      </InfiniteTable.Row>
+                    )}
+                  </InfiniteTable.Body>
+                  <InfiniteTable.LoadingRow queryResult={result} />
+                </Fragment>
+              )}
+            </InfiniteTable.Scrollable>
+          </InfiniteTable.Table>
+        </Stack>
+      </ListItemCheckboxProvider>
+    );
+  });
+
+  story('Autofix Bulk Dropdown Menus', () => {
+    const [lastValue, setLastValue] = useState('');
+    return (
+      <Stack gap="xl">
+        <Flex gap="md">
+          <PreferredAgentDropdownMenu
+            isDisabled={false}
+            onChange={value => {
+              setLastValue(value);
+            }}
+          />
+          <StoppingPointDropdownMenu
+            isDisabled={false}
+            onChange={value => {
+              setLastValue(value);
+            }}
+          />
+        </Flex>
+        <pre>{lastValue}</pre>
+      </Stack>
     );
   });
 });

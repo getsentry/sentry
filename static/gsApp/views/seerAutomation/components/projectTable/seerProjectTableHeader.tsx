@@ -22,7 +22,7 @@ import {
   useListItemCheckboxContext,
   type ListItemCheckboxState,
 } from 'sentry/utils/list/useListItemCheckboxState';
-import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
+import type {PreferredAgentIntegration} from 'sentry/utils/seer/preferredAgent';
 import {PROJECT_STOPPING_POINT_OPTIONS} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
@@ -30,7 +30,7 @@ import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/ut
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>>;
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgentIntegration}>>;
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;

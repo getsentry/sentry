@@ -18,7 +18,7 @@ import type {DetailedProject} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type PreferredAgent = 'seer' | CodingAgentIntegration;
+export type PreferredAgentIntegration = 'seer' | CodingAgentIntegration;
 
 /**
  * Fetch the list of existing coding agent integrations.
@@ -65,7 +65,7 @@ export function useOrgDefaultAgent() {
   const organization = useOrganization();
   const integrations = useKnownAgents();
 
-  return useMemo((): PreferredAgent => {
+  return useMemo((): PreferredAgentIntegration => {
     if (organization.defaultCodingAgentIntegrationId) {
       const match = integrations.find(
         i => i.id === String(organization.defaultCodingAgentIntegrationId)
@@ -83,7 +83,7 @@ export function useOrgDefaultAgent() {
  * Returns undefined for Seer (no external handoff needed).
  */
 export function buildHandoffPayload(
-  agent: PreferredAgent,
+  agent: PreferredAgentIntegration,
   autoCreatePr: boolean
 ): ProjectSeerPreferences['automation_handoff'] {
   if (agent === 'seer') {
@@ -108,7 +108,7 @@ export function getCodingAgentSelectQueryOptions({
 }) {
   return queryOptions({
     ...organizationIntegrationsCodingAgents(organization),
-    select: (data): Array<{label: string; value: PreferredAgent}> => [
+    select: (data): Array<{label: string; value: PreferredAgentIntegration}> => [
       {value: 'seer', label: t('Seer Agent')},
       ...(data.json.integrations ?? [])
         .filter(integration => integration.id)
@@ -128,7 +128,7 @@ export function getSelectedAgentForProject({
 }: {
   integrations: CodingAgentIntegration[];
   preference: ProjectSeerPreferences;
-}): PreferredAgent {
+}): PreferredAgentIntegration {
   if (!preference?.automation_handoff?.integration_id) {
     return 'seer';
   }
@@ -160,7 +160,7 @@ export function getProjectAgentMutationOptions({
   const seerPrefsQueryKey = prefsOptions.queryKey;
 
   return mutationOptions({
-    mutationFn: async ({agent}: {agent: PreferredAgent}) => {
+    mutationFn: async ({agent}: {agent: PreferredAgentIntegration}) => {
       const prefsData = await queryClient.fetchQuery({...prefsOptions, staleTime: 0});
       const preference = prefsData.json.preference;
 
@@ -186,7 +186,7 @@ export function getProjectAgentMutationOptions({
         }),
       ]);
     },
-    onMutate: ({agent}: {agent: PreferredAgent}) => {
+    onMutate: ({agent}: {agent: PreferredAgentIntegration}) => {
       const previousProject = ProjectsStore.getById(project.id);
       const previousPreference = queryClient.getQueryData(seerPrefsQueryKey);
       const updatedProject = {...project, autofixAutomationTuning: 'medium' as const};

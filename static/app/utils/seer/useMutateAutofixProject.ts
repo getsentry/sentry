@@ -11,7 +11,10 @@ import type {DetailedProject, Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
-import {buildHandoffPayload, type PreferredAgent} from 'sentry/utils/seer/preferredAgent';
+import {
+  buildHandoffPayload,
+  type PreferredAgentIntegration,
+} from 'sentry/utils/seer/preferredAgent';
 import {
   getTuningFromStoppingPoint,
   resolveStoppingPoint,
@@ -21,7 +24,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TData = [DetailedProject, SeerPreferencesResponse];
 type TVariables = {
-  agent: PreferredAgent;
+  agent: PreferredAgentIntegration;
   project: Project;
   repoEntries: Array<{
     branch: string;

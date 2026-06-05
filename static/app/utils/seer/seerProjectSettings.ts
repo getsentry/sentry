@@ -1,4 +1,8 @@
-import {mutationOptions, type QueryClient} from '@tanstack/react-query';
+import {
+  type InfiniteData,
+  mutationOptions,
+  type QueryClient,
+} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
@@ -7,9 +11,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {encodeSort} from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getInternalStoppingPoint} from 'sentry/utils/seer/stoppingPoint';
 import type {
+  SeerProjectSetting,
   SeerAgent,
   SeerProjectSettingResponse,
   SeerProjectSettingUpdate,
@@ -106,8 +113,36 @@ export function getMutateSeerProjectSettingsOptions({
       });
     },
     onMutate: async data => {
+      const infiniteQueryKey = getInfiniteSeerProjectsSettingsQueryOptions({
+        organization,
+        query: {},
+      }).queryKey;
+      const [infiniteUrl] = infiniteQueryKey;
+
       await queryClient.cancelQueries({queryKey});
+      await queryClient.cancelQueries({
+        queryKey: [infiniteUrl],
+        exact: false,
+      });
+
       const previousData = queryClient.getQueryData(queryKey);
+
+      const jsonUpdates: Partial<SeerProjectSettingResponse> = {};
+      if (data.agent !== undefined) {
+        jsonUpdates.agent = data.agent;
+        const resolved = resolveIntegrationId(data.agent, knownAgents);
+        if (resolved !== undefined) {
+          jsonUpdates.integrationId = resolved;
+        }
+      }
+      if (data.stoppingPoint !== undefined) {
+        if (data.stoppingPoint === 'off') {
+          jsonUpdates.automationTuning = 'off';
+        } else {
+          jsonUpdates.stoppingPoint = getInternalStoppingPoint(data.stoppingPoint, true);
+          jsonUpdates.automationTuning = 'medium';
+        }
+      }
 
       queryClient.setQueryData(
         queryKey,
@@ -115,28 +150,111 @@ export function getMutateSeerProjectSettingsOptions({
           if (!prev) {
             return prev;
           }
-          const jsonUpdates: Partial<SeerProjectSettingResponse> = {};
-          if (data.agent !== undefined) {
-            jsonUpdates.agent = data.agent;
-            const resolved = resolveIntegrationId(data.agent, knownAgents);
-            if (resolved !== undefined) {
-              jsonUpdates.integrationId = resolved;
-            }
-          }
-          if (data.stoppingPoint !== undefined) {
-            if (data.stoppingPoint === 'off') {
-              jsonUpdates.automationTuning = 'off';
-            } else {
-              jsonUpdates.stoppingPoint = getInternalStoppingPoint(
-                data.stoppingPoint,
-                true
-              );
-              jsonUpdates.automationTuning = 'medium';
-            }
-          }
           return {...prev, json: {...prev.json, ...jsonUpdates}};
         }
       );
+
+      queryClient.setQueriesData(
+        {queryKey: [infiniteUrl], exact: false},
+        (prev: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>> | undefined) => {
+          if (!prev) {
+            return prev;
+          }
+          return {
+            ...prev,
+            pages: prev.pages.map(page => ({
+              ...page,
+              json: page.json.map(item =>
+                item.projectSlug === project.slug ? {...item, ...jsonUpdates} : item
+              ),
+            })),
+          };
+        }
+      );
+
+      return {previousData, infiniteUrl};
+    },
+    onError: (_error, _data, context) => {
+      queryClient.setQueryData(queryKey, context?.previousData);
+      if (context?.infiniteUrl) {
+        queryClient.invalidateQueries({
+          queryKey: [context.infiniteUrl],
+          exact: false,
+        });
+      }
+    },
+    onSettled: () => {
+      const infiniteQueryKey = getInfiniteSeerProjectsSettingsQueryOptions({
+        organization,
+        query: {},
+      }).queryKey;
+      const [infiniteUrl] = infiniteQueryKey;
+
+      queryClient.invalidateQueries({queryKey});
+      queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
+    },
+  });
+}
+
+export function getInfiniteSeerProjectsSettingsQueryOptions({
+  organization,
+  query,
+}: {
+  organization: Organization;
+  query: {
+    cursor?: string;
+    per_page?: number;
+    query?: string;
+    sort?: Sort;
+  };
+}) {
+  const {per_page = 100, sort, ...rest} = query;
+  const sortQuery = sort ? encodeSort(sort) : undefined;
+  return apiOptions.asInfinite<SeerProjectSettingResponse[]>()(
+    '/organizations/$organizationIdOrSlug/seer/projects/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {per_page, sort: sortQuery, ...rest},
+      staleTime: 60_000, // 1 minute
+    }
+  );
+}
+
+export function getMutateSeerProjectsSettingsOptions({
+  organization,
+  queryClient,
+}: {
+  organization: Organization;
+  queryClient: QueryClient;
+}) {
+  const queryKey = getInfiniteSeerProjectsSettingsQueryOptions({
+    organization,
+    query: {},
+  }).queryKey;
+  const [url] = queryKey;
+
+  return mutationOptions({
+    mutationFn: (data: Partial<SeerProjectSetting>) => {
+      return fetchMutation({
+        method: 'PUT',
+        url,
+        data,
+      });
+    },
+    onMutate: async _data => {
+      await queryClient.cancelQueries({queryKey: [url]});
+      const previousData = queryClient.getQueryData(queryKey);
+
+      // TODO: Optimistically update the query cache? We need to convert some
+      // values, if we have them
+      //
+      // queryClient.setQueryData(
+      //   queryKey,
+      //   (prev: ApiResponse<SeerProjectSettingsResponse> | undefined) =>
+      //     prev
+      //       ? {...prev, json: {...prev.json, ...data}}
+      //       : {headers: {}, json: {...(data as SeerProjectSettingsResponse)}}
+      // );
 
       return {previousData};
     },

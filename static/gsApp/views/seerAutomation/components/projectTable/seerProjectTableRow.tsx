@@ -18,7 +18,7 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
+import type {PreferredAgentIntegration} from 'sentry/utils/seer/preferredAgent';
 import {
   getProjectStoppingPointValueFromSettings,
   type MutateStoppingPoint,
@@ -34,7 +34,7 @@ import {
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>>;
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgentIntegration}>>;
   autofixSettings: undefined | AutofixAutomationSettings;
   integrations: CodingAgentIntegration[];
   isPendingIntegrations: boolean;
