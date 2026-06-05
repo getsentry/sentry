@@ -799,7 +799,11 @@ def handle_merge_request_note_event(
         logger,
         organization,
         "note.review_command_matched",
-        {**base_log, "note_preview": (note_body or "")[:200]},
+        {
+            **base_log,
+            "review_command": SENTRY_REVIEW_COMMAND,
+            "note_length": len(note_body or ""),
+        },
     )
 
     try:
