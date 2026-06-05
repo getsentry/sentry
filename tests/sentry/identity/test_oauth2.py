@@ -484,11 +484,16 @@ class PkceOAuth2CallbackViewTest(SentryTestCase):
         assert data["client_secret"] == "pkce-secret"
 
     @responses.activate
-    def test_exchange_token_no_code_verifier_raises(self, mock_record: MagicMock) -> None:
+    def test_exchange_token_no_code_verifier(self, mock_record: MagicMock) -> None:
         pipeline = self._make_pipeline()
 
-        with self.assertRaises(KeyError):
-            self.view.exchange_token(self.request, pipeline, "auth-code")
+        result = self.view.exchange_token(self.request, pipeline, "auth-code")
+        assert result["error"] == "pkce_missing"
+        assert "error_description" in result
+
+        assert_failure_metric(
+            mock_record, KeyError("PKCE code_verifier missing from pipeline state")
+        )
 
     @responses.activate
     def test_login_to_callback_preserves_code_verifier(self, mock_record: MagicMock) -> None:

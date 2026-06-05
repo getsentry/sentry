@@ -400,7 +400,7 @@ class OAuth2LoginView:
     def get_authorize_url(self):
         return self.authorize_url
 
-    def get_authorize_params(self, state, redirect_uri, pipeline=None):
+    def get_authorize_params(self, state, redirect_uri):
         return {
             "client_id": self.client_id,
             "response_type": "code",
@@ -419,9 +419,7 @@ class OAuth2LoginView:
             state = secrets.token_hex()
 
             params = self.get_authorize_params(
-                state=state,
-                redirect_uri=absolute_uri(_redirect_url(pipeline)),
-                pipeline=pipeline,
+                state=state, redirect_uri=absolute_uri(_redirect_url(pipeline))
             )
             redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
 
@@ -585,14 +583,18 @@ class PkceOAuth2LoginView(OAuth2LoginView):
     stores the code_verifier in pipeline state for the callback view.
     """
 
-    def get_authorize_params(self, state, redirect_uri, pipeline=None):
-        code_verifier = generate_pkce_code_verifier()
-        if pipeline:
-            pipeline.bind_state("pkce_code_verifier", code_verifier)
+    _code_verifier: str | None = None
 
-        params = super().get_authorize_params(state, redirect_uri, pipeline)
-        params["code_challenge"] = generate_pkce_code_challenge(code_verifier)
-        params["code_challenge_method"] = "S256"
+    def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
+        self._code_verifier = generate_pkce_code_verifier()
+        pipeline.bind_state("pkce_code_verifier", self._code_verifier)
+        return super().dispatch(request, pipeline)
+
+    def get_authorize_params(self, state, redirect_uri):
+        params = super().get_authorize_params(state, redirect_uri)
+        if self._code_verifier:
+            params["code_challenge"] = generate_pkce_code_challenge(self._code_verifier)
+            params["code_challenge_method"] = "S256"
         return params
 
 
@@ -601,6 +603,17 @@ class PkceOAuth2CallbackView(OAuth2CallbackView):
 
     Adds code_verifier to the standard token exchange POST body.
     """
+
+    def exchange_token(
+        self, request: HttpRequest, pipeline: IdentityPipeline, code: str
+    ) -> dict[str, str]:
+        try:
+            return super().exchange_token(request, pipeline, code)
+        except KeyError:
+            return {
+                "error": "pkce_missing",
+                "error_description": "PKCE code_verifier missing from pipeline state",
+            }
 
     def get_access_token(self, pipeline: IdentityPipeline, code: str) -> Response:
         data = self.get_token_params(code=code, redirect_uri=absolute_uri(_redirect_url(pipeline)))
