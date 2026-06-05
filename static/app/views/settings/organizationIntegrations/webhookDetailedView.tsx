@@ -35,7 +35,7 @@ export interface WebhookProject {
   projectSlug: string;
 }
 
-export interface OrgLegacyWebhooksResponse {
+interface OrgLegacyWebhooksResponse {
   projects: WebhookProject[];
 }
 
