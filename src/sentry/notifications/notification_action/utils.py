@@ -49,7 +49,7 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
         ):
             return execute_via_metric_alert_handler(invocation)
         try:
-            if not options.get("workflow_engine.activity_type_registry.enabled", silent=True):
+            if options.get("workflow_engine.activity_type_registry.enabled"):
                 return execute_via_activity_type_registry(invocation=invocation)
         except Exception:
             logger.exception(

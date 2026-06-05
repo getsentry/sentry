@@ -560,10 +560,12 @@ class ActivityHandler(ABC):
         workflow_event = invocation.event_data.event
         if not isinstance(workflow_event, Activity):
             raise ValueError("WorkflowEventData.event is not an Activity")
-        if workflow_event.type not in cls.compatible_activity_types:
-            raise ValueError(
-                f"Activity type {workflow_event.type} is not compatible with this handler"
-            )
+        try:
+            activity_type = ActivityType(workflow_event.type)
+        except ValueError:
+            raise ValueError(f"Unknown activity type: {workflow_event.type}")
+        if activity_type not in cls.compatible_activity_types:
+            raise ValueError(f"Activity type {activity_type} is not compatible with this handler")
         return workflow_event
 
     @classmethod

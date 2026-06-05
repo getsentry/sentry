@@ -22,8 +22,8 @@ class NotificationPlatformActivityHandler(ActivityHandler):
         ActivityType.SEER_PR_CREATED,
     ]
 
-    @staticmethod
-    def invoke_action(invocation: ActionInvocation, activity: Activity) -> None:
+    @classmethod
+    def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
         # TODO(Leander): Implement this. The compatible_activity_types should be all activities that
         # we have templates registered for in the notification platform. Here we'll fetch those
         # templates, create a target from the ActionInvocation, and use the service to fire.
