@@ -1,14 +1,4 @@
-import {
-  Children,
-  createContext,
-  Fragment,
-  isValidElement,
-  useCallback,
-  useContext,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -23,113 +13,66 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 type Orientation = 'horizontal' | 'vertical';
 
-type SplitPanelContextValue = {
-  isHeld: boolean;
-  /**
-   * Whether the sized pane is the first child (before the divider). Drives the
-   * directional resize cursor: the grow/shrink direction flips depending on
-   * which side of the divider the sized pane sits on.
-   */
-  isSizedFirst: boolean;
-  max: number;
-  min: number;
-  onDoubleClick: React.MouseEventHandler<HTMLElement>;
-  onKeyDown: React.KeyboardEventHandler<HTMLElement>;
-  onMouseDown: React.MouseEventHandler<HTMLElement>;
-  orientation: Orientation;
-  size: number;
-};
+/**
+ * Which side of the divider the `sized` pane sits on. `start` is left
+ * (horizontal) or top (vertical); `end` is right or bottom. Orientation-neutral
+ * so it stays correct when `orientation` is responsive.
+ */
+type Placement = 'start' | 'end';
 
-const SplitPanelContext = createContext<SplitPanelContextValue | null>(null);
+// The divider renders as a 1px border; account for it when deriving the max.
+const DIVIDER_SIZE = 1;
 
-function useSplitPanelContext(component: string): SplitPanelContextValue {
-  const ctx = useContext(SplitPanelContext);
-  if (!ctx) {
-    throw new Error(`${component} must be rendered inside <SplitPanel.Root>`);
-  }
-  return ctx;
-}
-
-type SplitPanelProps = {
+export type SplitPanelProps = {
   /**
-   * Exactly one `<SplitPanel.Panel>` followed by an optional
-   * `<SplitPanel.Divider>` and a second `<SplitPanel.Panel>`. When only one
-   * `<SplitPanel.Panel>` is rendered, it fills the container.
+   * The `sized` pane's initial size in pixels, and the size restored on
+   * double-click.
    */
-  children: React.ReactNode;
+  defaultSize: number;
   /**
-   * Fires when the user starts dragging the divider. Receives the current
-   * size of the sized pane in pixels.
+   * The pane with a controlled, draggable size. Fills the container (no
+   * divider, size props ignored) when `fill` is omitted.
    */
+  sized: React.ReactNode;
+  /** The pane that absorbs the remaining space. */
+  fill?: React.ReactNode;
+  /**
+   * The `fill` pane's minimum size in pixels. The `sized` pane's max is derived
+   * from this and the measured container, so consumers don't compute
+   * "container − other pane − divider" by hand.
+   */
+  fillMinSize?: number;
+  /**
+   * Initial size of the `sized` pane, e.g. a value restored from persistence.
+   * Seeds the starting size only; `defaultSize` stays the double-click reset
+   * target. Defaults to `defaultSize`.
+   */
+  initialSize?: number;
+  /** Optional hard cap on the `sized` pane, tighter than the derived max. */
+  maxSize?: number;
+  /** The `sized` pane's minimum size in pixels. */
+  minSize?: number;
+  /** Fires on drag start with the `sized` pane's current size. */
   onMouseDown?: (size: number) => void;
-  /**
-   * Fires as the user drags. Receives the new size in pixels. Wire this to
-   * your own persistence layer if you want to remember the size across
-   * reloads (e.g. `useLocalStorageState`).
-   */
+  /** Fires during drag with the new size. Wire to your own persistence. */
   onResize?: (newSize: number) => void;
-  /**
-   * Fires once when a drag completes (on mouseUp). Receives the size at
-   * drag start and end in pixels, plus a derived `direction`. Useful for
-   * analytics like "did the user grow or shrink the pane?".
-   */
+  /** Fires once on mouseUp with the start/end sizes and a derived direction. */
   onResizeEnd?: (payload: {
     direction: 'increase' | 'decrease';
     endSize: number;
     startSize: number;
   }) => void;
   /**
-   * Layout direction. `horizontal` splits left/right; `vertical` splits
-   * top/bottom. Accepts a responsive value to switch direction per breakpoint,
-   * e.g. `{xs: 'vertical', md: 'horizontal'}`.
+   * Layout direction. Accepts a responsive value, e.g.
+   * `{xs: 'vertical', md: 'horizontal'}`.
    */
   orientation?: Responsive<Orientation>;
+  /** Which side the `sized` pane sits on. Defaults to `start`. */
+  placement?: Placement;
 };
 
-type SplitPanelPanelProps = {
-  children: React.ReactNode;
-  /**
-   * The pane's canonical default size in pixels, and the size restored on
-   * double-click. The pane that declares `defaultSize` is the sized pane; the
-   * other fills the remaining space. Only one pane may be sized.
-   */
-  defaultSize?: number;
-  /** Maximum size in pixels the user may drag the sized pane to. */
-  maxSize?: number;
-  /** Minimum size in pixels the user may drag the sized pane to. */
-  minSize?: number;
-  /**
-   * Controlled current size in pixels. Pair with a persistence layer to
-   * restore a saved size; `defaultSize` stays the double-click reset target.
-   */
-  size?: number;
-};
-
-function Panel({children}: SplitPanelPanelProps) {
-  const {size} = useSplitPanelContext('SplitPanel.Panel');
-  const isSized = useIsSizedPanel();
-
-  return (
-    <Flex
-      direction="column"
-      minHeight="0"
-      minWidth="0"
-      flexGrow={isSized ? 0 : 1}
-      flexShrink={isSized ? 0 : 1}
-      flexBasis={isSized ? `${size}px` : 0}
-    >
-      {children}
-    </Flex>
-  );
-}
-
-const IsSizedPanelContext = createContext(false);
-function useIsSizedPanel() {
-  return useContext(IsSizedPanelContext);
-}
-
-// At a limit the divider can only travel one way; point the cursor that way.
-// The grow/shrink direction flips when the sized pane sits after the divider.
+// At a limit the divider can only travel one way, so point the cursor that way;
+// the grow/shrink direction flips when the sized pane sits after the divider.
 function getDividerCursor(
   orientation: Orientation,
   atMin: boolean,
@@ -154,22 +97,52 @@ function getDividerCursor(
   return 'ns-resize';
 }
 
-function Divider() {
-  const {
-    isHeld,
-    isSizedFirst,
-    max,
-    min,
-    onDoubleClick,
-    onKeyDown,
-    onMouseDown,
-    orientation,
-    size,
-  } = useSplitPanelContext('SplitPanel.Divider');
+// `size === null` fills the remaining space; otherwise it takes a fixed basis.
+function Pane({size, children}: {children: React.ReactNode; size: number | null}) {
+  const isFilling = size === null;
+  return (
+    <Flex
+      direction="column"
+      minHeight="0"
+      minWidth="0"
+      flexGrow={isFilling ? 1 : 0}
+      flexShrink={isFilling ? 1 : 0}
+      flexBasis={isFilling ? 0 : `${size}px`}
+    >
+      {children}
+    </Flex>
+  );
+}
 
-  const atMin = size <= min;
-  const atMax = Number.isFinite(max) && size >= max;
-  const cursor = getDividerCursor(orientation, atMin, atMax, isSizedFirst);
+type SplitDividerProps = {
+  isHeld: boolean;
+  isSizedFirst: boolean;
+  max: number;
+  min: number;
+  onDoubleClick: React.MouseEventHandler<HTMLElement>;
+  onKeyDown: React.KeyboardEventHandler<HTMLElement>;
+  onMouseDown: React.MouseEventHandler<HTMLElement>;
+  orientation: Orientation;
+  value: number;
+};
+
+function SplitDivider({
+  isHeld,
+  isSizedFirst,
+  max,
+  min,
+  orientation,
+  value,
+  onDoubleClick,
+  onKeyDown,
+  onMouseDown,
+}: SplitDividerProps) {
+  const cursor = getDividerCursor(
+    orientation,
+    value <= min,
+    Number.isFinite(max) && value >= max,
+    isSizedFirst
+  );
 
   return (
     <Container position="relative" flexShrink={0}>
@@ -180,7 +153,7 @@ function Divider() {
           aria-orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
           aria-valuemax={Number.isFinite(max) ? max : undefined}
           aria-valuemin={min}
-          aria-valuenow={size}
+          aria-valuenow={value}
           data-is-held={isHeld}
           data-orientation={orientation}
           onDoubleClick={onDoubleClick}
@@ -194,142 +167,36 @@ function Divider() {
   );
 }
 
-function isPanelElement(
-  child: React.ReactNode
-): child is React.ReactElement<SplitPanelPanelProps, typeof Panel> {
-  return isValidElement(child) && child.type === Panel;
-}
-
-function isFragmentElement(
-  child: React.ReactNode
-): child is React.ReactElement<{children?: React.ReactNode}, typeof Fragment> {
-  return isValidElement(child) && child.type === Fragment;
-}
-
-// React.Children doesn't descend into Fragments, so flatten them ourselves.
-// This lets consumers group a <SplitPanel.Divider> with its trailing
-// <SplitPanel.Panel> inside a Fragment without breaking panel counting or
-// sized-pane detection.
-function flattenChildren(children: React.ReactNode): React.ReactNode[] {
-  const out: React.ReactNode[] = [];
-  Children.forEach(children, (child: React.ReactNode) => {
-    if (isFragmentElement(child)) {
-      out.push(...flattenChildren(child.props.children));
-    } else {
-      out.push(child);
-    }
-  });
-  return out;
-}
-
-// Find the sized pane's sizing props AND wrap each Panel child with
-// IsSizedPanelContext so it knows whether to render sized or fill.
-function buildSplitPanelTree(children: React.ReactNode): {
-  isSizedFirst: boolean;
-  panelCount: number;
-  sizedCount: number;
-  sizedProps: SplitPanelPanelProps | null;
-  wrappedChildren: React.ReactNode[] | null | undefined;
-} {
-  const flatChildren = flattenChildren(children);
-
-  // Count panels up front. A panel is only treated as sized when there's a
-  // second pane to absorb the remaining space; with a single panel it always
-  // fills the container regardless of its `defaultSize`.
-  let panelCount = 0;
-  let sizedCount = 0;
-  for (const child of flatChildren) {
-    if (isPanelElement(child)) {
-      panelCount++;
-      if (child.props.defaultSize !== undefined) {
-        sizedCount++;
-      }
-    }
-  }
-  const canSize = panelCount >= 2;
-
-  let sized: SplitPanelPanelProps | null = null;
-  let sizedPanelIndex = -1;
-  let panelIndex = 0;
-  const wrappedChildren = Children.map(flatChildren, child => {
-    if (!isPanelElement(child)) {
-      return child;
-    }
-    const thisPanelIndex = panelIndex++;
-    const isThisPanelSized =
-      canSize && sized === null && child.props.defaultSize !== undefined;
-    if (isThisPanelSized) {
-      sized = child.props;
-      sizedPanelIndex = thisPanelIndex;
-    }
-    return (
-      <IsSizedPanelContext.Provider value={isThisPanelSized}>
-        {child}
-      </IsSizedPanelContext.Provider>
-    );
-  });
-  return {
-    sizedProps: sized,
-    wrappedChildren,
-    panelCount,
-    sizedCount,
-    isSizedFirst: sizedPanelIndex === 0,
-  };
-}
-
-function Root({
-  children,
+export function SplitPanel({
+  sized,
+  fill,
   orientation: orientationProp = 'horizontal',
+  placement = 'start',
+  defaultSize,
+  initialSize = defaultSize,
+  minSize = 0,
+  maxSize,
+  fillMinSize = 0,
   onMouseDown,
   onResize,
   onResizeEnd,
 }: SplitPanelProps) {
-  // Resolve the (possibly responsive) orientation to the value for the active
-  // breakpoint; the rest of the layout and resize logic works off a concrete
-  // orientation. The hook always returns a concrete value, but its return type
-  // widens to include the responsive shape, so narrow it back.
   const orientation = useResponsivePropValue(orientationProp) as Orientation;
+  const isSizedFirst = placement === 'start';
+  const hasFill = fill !== undefined && fill !== null;
+
   const containerRef = useRef<HTMLDivElement>(null);
   const dims = useDimensions({elementRef: containerRef});
   const availableSize = orientation === 'horizontal' ? dims.width : dims.height;
 
-  const {sizedProps, wrappedChildren, panelCount, sizedCount, isSizedFirst} =
-    buildSplitPanelTree(children);
-
-  if (process.env.NODE_ENV !== 'production') {
-    if (panelCount > 2) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `SplitPanel.Root accepts at most two <SplitPanel.Panel> children. ` +
-          `Got ${panelCount}. Extras will render but the layout is undefined.`
-      );
-    }
-    if (sizedCount > 1) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        'SplitPanel.Root: only one <SplitPanel.Panel> may declare `defaultSize`. ' +
-          'The first is used; subsequent sized panels are ignored.'
-      );
-    }
-  }
-  const min = sizedProps?.minSize ?? 0;
-  const explicitMax = sizedProps?.maxSize ?? Number.POSITIVE_INFINITY;
-  // Cap the sized pane at the container size so it can never overflow the
-  // parent. Until we've measured, fall back to the explicit max (or
-  // Infinity) so the hook can accept the initial size without clamping it
-  // to zero. Never let `max` drop below `min`: a narrow container can push
-  // the cap under `minSize`, which would clamp the pane below its declared
-  // minimum.
+  const min = minSize;
+  const explicitMax = maxSize ?? Number.POSITIVE_INFINITY;
+  // Cap so the sized pane can't overflow or push the fill pane below its min.
+  // Floored at min; falls back to the explicit max until we've measured.
   const max =
-    availableSize > 0 ? Math.max(min, Math.min(explicitMax, availableSize)) : explicitMax;
-  // `defaultSize` is the canonical default and the double-click reset target;
-  // a controlled `size` only seeds the initial value and is synced below.
-  const resetSize = sizedProps?.defaultSize ?? 0;
-  const controlledSize = sizedProps?.size;
-  const initialSize = controlledSize ?? resetSize;
-
-  const hasUserResizedRef = useRef(false);
-  const hadSizedPaneRef = useRef(sizedProps !== null);
+    availableSize > 0
+      ? Math.max(min, Math.min(explicitMax, availableSize - fillMinSize - DIVIDER_SIZE))
+      : explicitMax;
 
   const handleResizeEnd = useCallback(
     (startSize: number, endSize: number) => {
@@ -351,40 +218,23 @@ function Root({
     setSize,
     size: containerSize,
   } = useResizableDrawer({
-    direction: orientation === 'horizontal' ? 'left' : 'down',
+    // Flip the drag axis when the sized pane sits after the divider.
+    direction:
+      orientation === 'horizontal'
+        ? isSizedFirst
+          ? 'left'
+          : 'right'
+        : isSizedFirst
+          ? 'down'
+          : 'up',
     initialSize,
     min,
     max,
-    onResize: (newSize, _maybeOldSize, userEvent) => {
-      if (userEvent) {
-        hasUserResizedRef.current = true;
-      }
-      onResize?.(newSize);
-    },
-    // Clamp the drag's start size to the visible size, matching the
-    // double-click and keyboard handlers. A container that shrank since the
-    // last resize can leave the stored size above max.
+    onResize: newSize => onResize?.(newSize),
+    // Clamp start to the visible size; the container may have shrunk below it.
     onResizeEnd: ({startSize, endSize}) =>
       handleResizeEnd(Math.min(startSize, max), endSize),
   });
-
-  useLayoutEffect(() => {
-    const hasSizedPane = sizedProps !== null;
-    if (hasSizedPane && !hadSizedPaneRef.current && !hasUserResizedRef.current) {
-      setSize(initialSize);
-    }
-    hadSizedPaneRef.current = hasSizedPane;
-  }, [sizedProps, initialSize, setSize]);
-
-  // Keep the controlled `size` in sync. Guard against the value we just
-  // reported back, and depend only on `controlledSize` so drag updates (which
-  // own `containerSize`) aren't clobbered mid-drag.
-  useLayoutEffect(() => {
-    if (controlledSize !== undefined && controlledSize !== containerSize) {
-      setSize(controlledSize);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [controlledSize]);
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
@@ -396,10 +246,10 @@ function Root({
 
   const handleDoubleClick = useCallback(() => {
     const startSize = Math.min(containerSize, max);
-    const target = Math.max(min, Math.min(resetSize, max));
+    const target = Math.max(min, Math.min(defaultSize, max));
     setSize(target, true);
     handleResizeEnd(startSize, target);
-  }, [containerSize, max, min, resetSize, setSize, handleResizeEnd]);
+  }, [containerSize, max, min, defaultSize, setSize, handleResizeEnd]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
@@ -408,8 +258,7 @@ function Root({
       const decreaseKey = isHorizontal ? 'ArrowLeft' : 'ArrowUp';
       const increaseKey = isHorizontal ? 'ArrowRight' : 'ArrowDown';
 
-      // Step from the visible size, not the raw stored size, so decreases
-      // still move the pane when the container has shrunk below it.
+      // Step from the visible size so it still moves after the container shrank.
       const current = Math.min(containerSize, max);
 
       let newSize: number | null = null;
@@ -432,76 +281,69 @@ function Root({
     [orientation, containerSize, min, max, setSize, handleResizeEnd]
   );
 
-  const contextValue = useMemo<SplitPanelContextValue>(
-    () => ({
-      isHeld,
-      isSizedFirst,
-      max,
-      min,
-      onDoubleClick: handleDoubleClick,
-      onKeyDown: handleKeyDown,
-      onMouseDown: handleMouseDown,
-      orientation,
-      // Clamped visible size so pane width and divider aria-valuenow match.
-      size: Math.min(containerSize, max),
-    }),
-    [
-      containerSize,
-      handleDoubleClick,
-      handleKeyDown,
-      handleMouseDown,
-      isHeld,
-      isSizedFirst,
-      max,
-      min,
-      orientation,
-    ]
-  );
+  // Clamped so the pane basis and divider aria-valuenow stay in step.
+  const visibleSize = Math.min(containerSize, max);
+
+  // Ordered sized → divider → fill; reversed for `placement="end"`. Keys keep
+  // pane identity across the flip.
+  const panes = [
+    <Pane key="sized" size={hasFill ? visibleSize : null}>
+      {sized}
+    </Pane>,
+  ];
+  if (hasFill) {
+    panes.push(
+      <SplitDivider
+        key="divider"
+        isHeld={isHeld}
+        isSizedFirst={isSizedFirst}
+        max={max}
+        min={min}
+        orientation={orientation}
+        value={visibleSize}
+        onDoubleClick={handleDoubleClick}
+        onKeyDown={handleKeyDown}
+        onMouseDown={handleMouseDown}
+      />,
+      <Pane key="fill" size={null}>
+        {fill}
+      </Pane>
+    );
+  }
 
   return (
-    <SplitPanelContext.Provider value={contextValue}>
-      <Flex
-        direction={orientation === 'horizontal' ? 'row' : 'column'}
-        position="relative"
-        width="100%"
-        height="100%"
-        minHeight="0"
-        minWidth="0"
-        flex="1"
-      >
-        {({className}) => (
-          <RootElement
-            ref={containerRef}
-            className={className}
-            data-is-held={isHeld}
-            // Hide until the container has been measured. Avoids a brief
-            // layout flash where the fill pane briefly takes 100% width.
-            style={availableSize > 0 ? undefined : {visibility: 'hidden'}}
-          >
-            {wrappedChildren}
-          </RootElement>
-        )}
-      </Flex>
-    </SplitPanelContext.Provider>
+    <Flex
+      direction={orientation === 'horizontal' ? 'row' : 'column'}
+      position="relative"
+      width="100%"
+      height="100%"
+      minHeight="0"
+      minWidth="0"
+      flex="1"
+    >
+      {({className}) => (
+        <RootElement
+          ref={containerRef}
+          className={className}
+          data-is-held={isHeld}
+          // Hide until measured to avoid a fill-pane flash before the sized
+          // pane gets its basis.
+          style={hasFill && availableSize === 0 ? {visibility: 'hidden'} : undefined}
+        >
+          {isSizedFirst ? panes : [...panes].reverse()}
+        </RootElement>
+      )}
+    </Flex>
   );
 }
 
-export const SplitPanel = {
-  Root,
-  Panel,
-  Divider,
-};
-
 const RootElement = styled('div')`
   /*
-   * Disable iframe pointer events while dragging so the divider doesn't lose
-   * the cursor when crossing an embedded iframe (e.g. the Replay player).
-   *
-   * The triple-& is deliberate: it raises specificity so this reliably beats
-   * the Replay player's [data-inspectable] .replayer-wrapper > iframe rule
-   * (which re-enables pointer events with !important). At equal specificity the
-   * two tie and the winner depends on stylesheet injection order, which made
-   * the drag intermittently stick when the cursor crossed the video.
+   * Disable iframe pointer events while dragging so the divider doesn't lose the
+   * cursor when crossing an embedded iframe (e.g. the Replay player). The
+   * triple-& raises specificity so this beats the player's own
+   * [data-inspectable] .replayer-wrapper > iframe !important rule, which would
+   * otherwise tie and make the drag intermittently stick over the video.
    */
   &&&[data-is-held='true'] iframe {
     pointer-events: none !important;

@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -128,8 +128,11 @@ function ReplayLayoutBody({
     <BodyGrid>
       <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
         {hasSize ? (
-          <SplitPanel.Root
+          <SplitPanel
             orientation={isLeftRight ? 'horizontal' : 'vertical'}
+            defaultSize={isLeftRight ? width * 0.5 : (height - DIVIDER_SIZE) * 0.5}
+            minSize={isLeftRight ? MIN_SIDEBAR_WIDTH : MIN_VIDEO_HEIGHT}
+            fillMinSize={isLeftRight ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT}
             onResizeEnd={({direction}) =>
               trackAnalytics('replay.details-resized-panel', {
                 organization,
@@ -144,58 +147,33 @@ function ReplayLayoutBody({
                       : 'toTop',
               })
             }
-          >
-            {isLeftRight ? (
-              <SplitPanel.Panel
-                defaultSize={width * 0.5}
-                minSize={MIN_SIDEBAR_WIDTH}
-                maxSize={width - MIN_CONTENT_WIDTH}
+            sized={
+              <Flex
+                direction="column"
+                flex="1"
+                minHeight="0"
+                minWidth="0"
+                paddingRight={isLeftRight ? 'md' : undefined}
+                paddingBottom={isLeftRight ? undefined : 'md'}
               >
+                <PanelContainer>{video}</PanelContainer>
+              </Flex>
+            }
+            fill={
+              isFocusAreaCollapsed ? undefined : (
                 <Flex
                   direction="column"
                   flex="1"
                   minHeight="0"
                   minWidth="0"
-                  paddingRight="md"
+                  paddingLeft={isLeftRight ? 'md' : undefined}
+                  paddingTop={isLeftRight ? undefined : 'md'}
                 >
-                  <PanelContainer>{video}</PanelContainer>
+                  {focusArea}
                 </Flex>
-              </SplitPanel.Panel>
-            ) : (
-              <SplitPanel.Panel
-                defaultSize={(height - DIVIDER_SIZE) * 0.5}
-                minSize={MIN_VIDEO_HEIGHT}
-                maxSize={height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT}
-              >
-                <Flex
-                  direction="column"
-                  flex="1"
-                  minHeight="0"
-                  minWidth="0"
-                  paddingBottom="md"
-                >
-                  <PanelContainer>{video}</PanelContainer>
-                </Flex>
-              </SplitPanel.Panel>
-            )}
-            {!isFocusAreaCollapsed && (
-              <Fragment>
-                <SplitPanel.Divider />
-                <SplitPanel.Panel>
-                  <Flex
-                    direction="column"
-                    flex="1"
-                    minHeight="0"
-                    minWidth="0"
-                    paddingLeft={isLeftRight ? 'md' : undefined}
-                    paddingTop={isLeftRight ? undefined : 'md'}
-                  >
-                    {focusArea}
-                  </Flex>
-                </SplitPanel.Panel>
-              </Fragment>
-            )}
-          </SplitPanel.Root>
+              )
+            }
+          />
         ) : null}
       </Stack>
       {controller}

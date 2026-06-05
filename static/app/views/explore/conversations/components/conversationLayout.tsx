@@ -55,30 +55,23 @@ function MeasuredSplitPanel({
   sizeStorageKey: string;
   width: number;
 }) {
-  const maxLeft = Math.max(LEFT_PANEL_MIN, width - RIGHT_PANEL_MIN - DIVIDER_WIDTH);
-  const defaultLeft = Math.min(
-    maxLeft,
-    Math.max(LEFT_PANEL_MIN, (width - DIVIDER_WIDTH) * 0.5)
-  );
+  // The sized pane's max is derived inside SplitPanel from `fillMinSize`, so we
+  // only need a sensible half-width default here.
+  const defaultLeft = Math.max(LEFT_PANEL_MIN, (width - DIVIDER_WIDTH) * 0.5);
 
   const [storedSize, setStoredSize] = useLocalStorageState(sizeStorageKey, defaultLeft);
 
   return (
-    <SplitPanel.Root
+    <SplitPanel
       orientation="horizontal"
+      defaultSize={defaultLeft}
+      initialSize={storedSize}
+      minSize={LEFT_PANEL_MIN}
+      fillMinSize={RIGHT_PANEL_MIN}
       onResizeEnd={({endSize}) => setStoredSize(endSize)}
-    >
-      <SplitPanel.Panel
-        defaultSize={defaultLeft}
-        size={storedSize}
-        minSize={LEFT_PANEL_MIN}
-        maxSize={maxLeft}
-      >
-        {left}
-      </SplitPanel.Panel>
-      <SplitPanel.Divider />
-      <SplitPanel.Panel>{right}</SplitPanel.Panel>
-    </SplitPanel.Root>
+      sized={left}
+      fill={right}
+    />
   );
 }
 
