@@ -220,13 +220,14 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // (e.g. p75(value, metric.name, distribution, millisecond)). Extract it
       // so we can keep the panel's TraceMetric in sync with the aggregate —
       // otherwise the toolbar, samples table, and timeseries queries keep
-      // using the previously-selected metric.
-      const firstSeerYAxis = visualizations[0]?.yAxes[0];
-      const seerTraceMetric = firstSeerYAxis
-        ? parseMetricAggregate(firstSeerYAxis).traceMetric
-        : undefined;
-      const nextMetric =
-        seerTraceMetric?.name && seerTraceMetric.type ? seerTraceMetric : traceMetric;
+      // using the previously-selected metric. We scan every y-axis we're about
+      // to encode (not just the first visualization's), since the
+      // metric-qualified aggregate may live in a later visualization.
+      const seerTraceMetric = visualizations
+        .flatMap(viz => viz.yAxes)
+        .map(yAxis => parseMetricAggregate(yAxis).traceMetric)
+        .find(metric => metric.name && metric.type);
+      const nextMetric = seerTraceMetric ?? traceMetric;
 
       // Build aggregateFields: groupBys first, then visualizes
       const aggregateFields: AggregateField[] = [];
