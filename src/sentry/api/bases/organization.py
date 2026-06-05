@@ -404,7 +404,7 @@ class OrganizationEndpoint(Endpoint):
         if project_ids is not None:
             ids = project_ids
             slugs: set[str] = set()
-        elif project_slugs is not None or query_slugs:
+        elif project_slugs or query_slugs:
             # Preserve existing projectSlug behavior: explicit slug filters take
             # precedence over the project query param.
             ids = set()

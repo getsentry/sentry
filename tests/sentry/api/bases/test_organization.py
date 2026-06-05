@@ -683,6 +683,14 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         assert {p.id for p in result} == {self.project_2.id}
 
+    def test_empty_explicit_project_slugs_falls_back_to_project_param(self) -> None:
+        self.create_team_membership(user=self.user, team=self.team_1)
+        request = self.build_request(project=[str(self.project_1.id)])
+
+        result = self.endpoint.get_projects(request, self.org, project_slugs=set())
+
+        assert {p.id for p in result} == {self.project_1.id}
+
     @mock.patch("sentry.api.bases.organization.cache")
     def test_release_permission_cache_key_uses_project_slug_precedence(
         self, mock_cache: mock.MagicMock
