@@ -10,6 +10,8 @@ import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
+const MAX_DETECTORS_PER_REQUEST = 100;
+
 interface UseAutomationListDetectorsResult {
   detectorsById: Map<string, Detector>;
   isError: boolean;
@@ -53,7 +55,7 @@ export function useAutomationListDetectors(): UseAutomationListDetectorsResult {
   const {data, isLoading, isError} = useQuery({
     ...detectorListApiOptions(organization, {
       ids: detectorIds,
-      limit: detectorIds.length,
+      limit: MAX_DETECTORS_PER_REQUEST,
     }),
     enabled: detectorIds.length > 0,
   });
