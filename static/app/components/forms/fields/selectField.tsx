@@ -2,6 +2,7 @@ import {Component} from 'react';
 
 import type {ControlProps} from '@sentry/scraps/select';
 import {Select, SelectOption} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -14,7 +15,7 @@ import {components as SelectComponents} from 'sentry/components/forms/controls/r
 import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';
-import type {Choices, SelectValue} from 'sentry/types/core';
+import type {Choices} from 'sentry/types/core';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';

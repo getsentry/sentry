@@ -82,7 +82,7 @@ export function Filter({
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
   const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
 
-  const {data: data} = useQuery({
+  const {data, isLoading} = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
       selection,
@@ -94,6 +94,7 @@ export function Filter({
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
     select: selectTraceItemTagCollection(),
   });
+  const isSearchBarDisabled = isLoading || (!skipTraceMetricFilter && !traceMetricFilter);
 
   const visibleNumberTags = useMemo(() => {
     const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce<TagCollection>(
@@ -176,6 +177,7 @@ export function Filter({
         hiddenAttributeKeys: HiddenTraceMetricSearchFields,
         projects: projectIds,
         environments,
+        disabled: isSearchBarDisabled,
 
         // Disable the recent searches when not using a trace metric filter or when the metric name
         // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
@@ -192,6 +194,7 @@ export function Filter({
       skipTraceMetricFilter,
       projectIds,
       environments,
+      isSearchBarDisabled,
     ]);
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import analytics, quotas
+from sentry import analytics, features, quotas
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -189,6 +189,7 @@ def get_autofix_agent_client(
     intelligence_level: Literal["low", "medium", "high"] = "medium",
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
+    code_review_enabled: bool = False,
 ) -> SeerAgentClient:
     from sentry.seer.autofix.on_completion_hook import (
         AutofixOnCompletionHook,  # nested to avoid circular import
@@ -204,6 +205,7 @@ def get_autofix_agent_client(
         reasoning_effort=reasoning_effort,
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
+        code_review_enabled=code_review_enabled,
     )
 
 
@@ -223,13 +225,34 @@ def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> 
     return state
 
 
+def _default_intelligence_level(organization: Organization) -> Literal["low", "medium", "high"]:
+    if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
+        return "high"
+    return "medium"
+
+
+def _default_reasoning_effort(
+    organization: Organization,
+    step_default: Literal["low", "medium", "high"] | None,
+) -> Literal["low", "medium", "high"] | None:
+    if features.has("organizations:seer-autofix-high-intelligence-high-reasoning", organization):
+        return "high"
+    return step_default
+
+
+def _code_review_enabled(organization: Organization, enable_coding: bool) -> bool:
+    # The review_code_changes tool only operates on accumulated patches, so it is
+    # only useful on coding-enabled steps.
+    return enable_coding and features.has("organizations:seer-autofix-code-review", organization)
+
+
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
     referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
-    intelligence_level: Literal["low", "medium", "high"] = "medium",
+    intelligence_level: Literal["low", "medium", "high"] = _UNSET,
     reasoning_effort: Literal["low", "medium", "high"] | None = _UNSET,
     user_context: str | None = None,
     insert_index: int | None = None,
@@ -257,13 +280,23 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
+    resolved_intelligence_level = (
+        _default_intelligence_level(group.organization)
+        if intelligence_level is _UNSET
+        else intelligence_level
+    )
+    resolved_reasoning_effort = (
+        _default_reasoning_effort(group.organization, config.reasoning_effort)
+        if reasoning_effort is _UNSET
+        else reasoning_effort
+    )
+
     client = get_autofix_agent_client(
         group,
-        intelligence_level=intelligence_level,
-        reasoning_effort=(
-            config.reasoning_effort if reasoning_effort is _UNSET else reasoning_effort
-        ),
+        intelligence_level=resolved_intelligence_level,
+        reasoning_effort=resolved_reasoning_effort,
         enable_coding=config.enable_coding,
+        code_review_enabled=_code_review_enabled(group.organization, config.enable_coding),
     )
     if run_id is not None:
         _get_group_run_state(client, group, run_id)
@@ -298,7 +331,7 @@ def trigger_autofix_agent(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
-        )
+        ).seer_run_state_id
 
         # Make sure to log billing event for seer autofix whenever a new run is started
         quotas.backend.record_seer_run(
@@ -611,6 +644,7 @@ def trigger_push_changes(
     referrer: AutofixReferrer,
     state: SeerRunState | None = None,
     repo_name: str | None = None,
+    ready_for_review: bool = True,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -637,6 +671,7 @@ def trigger_push_changes(
         run_id,
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group),
+        ready_for_review=ready_for_review,
         blocking=False,
     )
 

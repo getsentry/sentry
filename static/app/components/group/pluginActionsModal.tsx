@@ -8,17 +8,11 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {plugins} from 'sentry/plugins';
 import type {Group} from 'sentry/types/group';
-import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import type {TitledPlugin} from 'sentry/types/plugins';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-
-export type TitledPlugin = Plugin & {
-  // issue serializer adds more fields
-  // TODO: should be able to use name instead of title
-  title: string;
-};
 
 export function openPluginActionModal({
   project,

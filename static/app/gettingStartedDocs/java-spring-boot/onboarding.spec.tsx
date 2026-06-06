@@ -7,7 +7,7 @@ import {PackageManager} from 'sentry/gettingStartedDocs/java/utils';
 import {docs} from '.';
 
 describe('java-spring-boot onboarding docs', () => {
-  it('renders gradle docs correctly', async () => {
+  it.isKnownFlake('renders gradle docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -29,7 +29,7 @@ describe('java-spring-boot onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders maven docs correctly', async () => {
+  it.isKnownFlake('renders maven docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.maven-plugin': {

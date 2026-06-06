@@ -14,7 +14,12 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.parameters import (
+    GlobalParams,
+    OrganizationParams,
+    ReplayParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
@@ -73,8 +78,11 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.START,
             GlobalParams.END,
             GlobalParams.STATS_PERIOD,
+            OrganizationParams.PROJECT,
             OrganizationParams.PROJECT_ID_OR_SLUG,
             VisibilityParams.QUERY,
+            ReplayParams.DATA_SOURCE,
+            ReplayParams.RETURN_IDS,
         ],
         responses={
             200: inline_sentry_response_serializer("ReplayCounts", dict[int, int]),

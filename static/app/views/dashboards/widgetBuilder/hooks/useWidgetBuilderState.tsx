@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import partition from 'lodash/partition';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   explodeField,
   generateFieldAsString,
@@ -450,6 +450,9 @@ export function useWidgetBuilderState(): {
             setTextContent(undefined);
           }
           const [aggregates, columns] = partition(fields, field => {
+            if (field.kind === FieldValueKind.EQUATION) {
+              return true;
+            }
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
           });
@@ -893,7 +896,7 @@ export function useWidgetBuilderState(): {
               [
                 {
                   kind: 'desc',
-                  field: generateFieldAsString(action.payload[0]!),
+                  field: generateSortField(action.payload, 0),
                 },
               ],
               options
@@ -1383,6 +1386,10 @@ function checkTraceMetricSortUsed(
 ): boolean {
   const sortValue = sort[0]?.field;
   const sortInFields = fields?.some(field => generateFieldAsString(field) === sortValue);
-  const sortInYAxis = yAxis?.some(field => generateFieldAsString(field) === sortValue);
+  const sortInYAxis = yAxis?.some(
+    (field, i) =>
+      generateFieldAsString(field) === sortValue ||
+      generateSortField(yAxis, i) === sortValue
+  );
   return sortInFields || sortInYAxis;
 }

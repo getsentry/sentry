@@ -17,6 +17,7 @@ from sentry.workflow_engine.processors.data_condition_group import ProcessedData
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
+    DetectorId,
     DetectorPriorityLevel,
 )
 
@@ -31,7 +32,7 @@ EventData = dict[str, Any]
 @dataclass
 class EvidenceData(Generic[DataPacketEvaluationType]):
     value: DataPacketEvaluationType
-    detector_id: int
+    detector_id: DetectorId
     data_packet_source_id: int
     conditions: list[dict[str, Any]]
     config: dict[str, Any] = dataclasses.field(default_factory=dict, kw_only=True)
