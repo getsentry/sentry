@@ -750,18 +750,16 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         elif request.auth is not None:
             actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
-            requested_project_ids = project_ids
-            requested_project_slugs: set[str] = set()
-            query_slugs = set(filter(None, request.GET.getlist("projectSlug")))
-            if requested_project_ids is not None:
-                requested_project_slugs = set()
-            elif query_slugs:
-                requested_project_ids = set()
-                requested_project_slugs = query_slugs
+            # Match get_projects() precedence: explicit ids, projectSlug, then project.
+            project_slug_params = set(filter(None, request.GET.getlist("projectSlug")))
+            if project_ids is not None:
+                requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())
+            elif project_slug_params:
+                requested_projects = ParsedProjectIdOrSlugParams(
+                    ids=set(), slugs=project_slug_params
+                )
             else:
                 requested_projects = self.get_requested_project_ids_and_slugs_unchecked(request)
-                requested_project_ids = requested_projects.ids
-                requested_project_slugs = requested_projects.slugs
             key = "release_perms:1:%s" % hash_values(
                 [
                     actor_id,
@@ -769,8 +767,8 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
                     release.id if release is not None else 0,
                     int(require_all_projects),
                 ]
-                + sorted(requested_project_ids)
-                + sorted(requested_project_slugs)
+                + sorted(requested_projects.ids)
+                + sorted(requested_projects.slugs)
             )
             has_perms = cache.get(key)
         if has_perms is None:
