@@ -10,4 +10,4 @@ If this was unintentional and you would like to cancel the deletion:
 
 {{ url }}
 
-If you accidentally deleted this org as part of closing your account, please log in to reactivate your account before attempting to restore this organization: https://sentry.io/auth/login/
+If you deleted this org as part of closing your account, please log in to reactivate your account before attempting to restore this organization: https://sentry.io/auth/login/
