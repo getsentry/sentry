@@ -70,6 +70,8 @@ class PostProcessJob(TypedDict, total=False):
     has_reappeared: bool
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool
+    # True when a pipeline step intentionally prevents later post-process side effects.
+    halt_post_process: bool
 
 
 def _should_send_error_created_hooks(project: Project) -> bool:
@@ -689,6 +691,15 @@ def run_post_process_job(job: PostProcessJob) -> None:
                     "pipeline": pipeline_step.__name__,
                 },
             )
+            if job.get("halt_post_process"):
+                metrics.incr(
+                    "sentry.tasks.post_process.post_process_group.halted",
+                    tags={
+                        "issue_category": issue_category_metric,
+                        "pipeline": pipeline_step.__name__,
+                    },
+                )
+                break
 
 
 def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event:
@@ -768,6 +779,22 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                 event.group.status = GroupStatus.UNRESOLVED
                 event.group.substatus = GroupSubStatus.REGRESSED
                 add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+
+
+def process_malicious_issue_detection(job: PostProcessJob) -> None:
+    from sentry.issues.malicious_detection import detect_and_archive_malicious_issue
+
+    if not job["group_state"]["is_new"]:
+        return
+
+    event = job["event"]
+    result = detect_and_archive_malicious_issue(
+        event,
+        is_new=True,
+        is_reprocessed=job["is_reprocessed"],
+    )
+    if result.archived:
+        job["halt_post_process"] = True
 
 
 def process_snoozes(job: PostProcessJob) -> None:
@@ -1603,6 +1630,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
+        process_malicious_issue_detection,
         detect_new_escalation,
         process_commits,
         handle_owner_assignment,

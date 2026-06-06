@@ -3543,6 +3543,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Prototype controls for post-process malicious issue detection. The feature flag gates
+# rollout; these options tune call volume without a deploy.
+register(
+    "malicious-issue-detection.sample-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "malicious-issue-detection.seer-timeout",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls whether deletion from EAP is enabled.
 register(
     "eventstream.eap.deletion-enabled",
