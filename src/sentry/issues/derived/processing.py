@@ -2,7 +2,6 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 
-from django.db import router, transaction
 from django.db.models import Q
 
 from sentry.issues.derived.aggregators import AGGREGATORS
@@ -13,9 +12,6 @@ from sentry.models.groupderiveddata import EPOCH, GroupDerivedData
 
 logger = logging.getLogger(__name__)
 
-# The current pipeline definition. Bump the version when aggregator logic
-# changes. GroupDerivedData rows are scoped to the pipeline version that
-# produced them — different versions coexist independently.
 pipeline = Pipeline(AGGREGATORS, version=1)
 
 DEFAULT_BATCH_SIZE = 1000
@@ -28,24 +24,17 @@ class ProcessResult:
     caught_up: bool
 
 
-def _ensure_derived(group_id: int, version: int) -> tuple[GroupDerivedData, bool]:
+def _ensure_derived(group_id: int) -> GroupDerivedData:
     try:
-        return GroupDerivedData.objects.get(group_id=group_id, version=version), False
+        return GroupDerivedData.objects.get(group_id=group_id)
     except GroupDerivedData.DoesNotExist:
         pass
 
-    with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-        derived, created = GroupDerivedData.objects.get_or_create(
-            group_id=group_id,
-            version=version,
-            defaults={"cursor_date": EPOCH, "cursor_id": 0, "data": {}, "primary": True},
-        )
-        if created:
-            GroupDerivedData.objects.filter(
-                group_id=group_id,
-                primary=True,
-            ).exclude(id=derived.id).update(primary=False)
-    return derived, created
+    derived, _created = GroupDerivedData.objects.get_or_create(
+        group_id=group_id,
+        defaults={"cursor_date": EPOCH, "cursor_id": 0, "data": {}},
+    )
+    return derived
 
 
 def _entries_after_cursor(
@@ -73,8 +62,6 @@ def _process_batch(
     Process up to `batch_size` entries for a group. Updates derived in place.
     Returns True if there are more entries to process.
     """
-    version = p.version
-
     entries = _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, batch_size)
 
     if not entries:
@@ -90,7 +77,7 @@ def _process_batch(
     state_update = GroupDerivedDataStore.build_update(p, state)
 
     updated = GroupDerivedData.objects.filter(
-        Q(group_id=group_id, version=version) & _cursor_lte(last_date, last_id)
+        Q(group_id=group_id) & _cursor_lte(last_date, last_id)
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
@@ -101,7 +88,6 @@ def _process_batch(
             "issues.derived.processed",
             extra={
                 "group_id": group_id,
-                "version": version,
                 "cursor_date": str(last_date),
                 "cursor_id": last_id,
                 "batch_size": len(entries),
@@ -114,7 +100,6 @@ def _process_batch(
             "issues.derived.superseded",
             extra={
                 "group_id": group_id,
-                "version": version,
                 "our_cursor_id": last_id,
                 "db_cursor_id": derived.cursor_id,
             },
@@ -130,15 +115,9 @@ def process_group_log_batch(
     batch_size: int = INLINE_BATCH_SIZE,
     target_pipeline: Pipeline | None = None,
 ) -> ProcessResult:
-    """
-    Process a single batch of pending entries for a group.
-
-    Returns a ProcessResult with the derived data and whether it's fully
-    caught up. Callers that want synchronous-when-possible behavior should
-    call this, check caught_up, and schedule the task for the remainder.
-    """
+    """Process a single batch of pending entries. Schedules a task if not caught up."""
     p = target_pipeline or pipeline
-    derived, _created = _ensure_derived(group_id, p.version)
+    derived = _ensure_derived(group_id)
     has_more = _process_batch(p, derived, group_id, batch_size)
     return ProcessResult(derived=derived, caught_up=not has_more)
 
@@ -148,38 +127,11 @@ def process_group_log(
     batch_size: int = DEFAULT_BATCH_SIZE,
     target_pipeline: Pipeline | None = None,
 ) -> GroupDerivedData:
-    """
-    Fully drain all pending entries for a group, processing in batches.
-
-    This is the version used by the background task. For inline/synchronous
-    use, prefer process_group_log_batch (via record()).
-    """
+    """Fully drain all pending entries for a group, processing in batches."""
     p = target_pipeline or pipeline
-    derived, _created = _ensure_derived(group_id, p.version)
+    derived = _ensure_derived(group_id)
 
     while _process_batch(p, derived, group_id, batch_size):
         pass
 
     return derived
-
-
-def promote_primary(group_id: int, version: int) -> bool:
-    """
-    Make the given version's row the primary for this group.
-
-    Demotes any other primary row. Returns True if the target row exists
-    and was promoted, False if no row exists for that version.
-    """
-    with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-        updated = GroupDerivedData.objects.filter(
-            group_id=group_id,
-            version=version,
-        ).update(primary=True)
-
-        if updated:
-            GroupDerivedData.objects.filter(
-                group_id=group_id,
-                primary=True,
-            ).exclude(version=version).update(primary=False)
-            return True
-    return False

@@ -51,10 +51,16 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 
 
 @aggregator(
+    deps=(STATUS,),
     outputs=(LAST_OPENED,),
     scope=(GroupActionType.UNRESOLVE,),
 )
 def track_last_opened(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    # Only record when actually reopening (status just transitioned to OPEN).
+    # track_status runs first due to topological sort and will have already
+    # flipped STATUS if this was a real reopen.
+    if state[STATUS] != IssueStatus.OPEN:
+        return None
     return emit(LAST_OPENED.value(entry.date_added.timestamp()))
 
 

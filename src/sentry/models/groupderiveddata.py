@@ -22,20 +22,16 @@ EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 @cell_silo_model
 class GroupDerivedData(DefaultFieldsModel):
     """
-    Storage backend for derived state computed from GroupActionLogEntry entries.
-
-    One row per (group, version) pair. The `primary` flag marks which row
-    readers should use. The cursor tracks the last entry processed.
+    Materialized state derived from GroupActionLogEntry entries.
+    One row per group. The cursor tracks the last entry processed.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    group = FlexibleForeignKey("sentry.Group")
-    version = BoundedPositiveIntegerField(default=1)
+    group = FlexibleForeignKey("sentry.Group", unique=True)
     cursor_date = models.DateTimeField(default=EPOCH)
     cursor_id = BoundedBigIntegerField(default=0)
     data = models.JSONField(default=dict)
-    primary = models.BooleanField(default=False)
 
     # Column-backed features — promoted from JSON for indexing/querying.
     last_seen = models.FloatField(null=True, default=None)
@@ -44,10 +40,5 @@ class GroupDerivedData(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupderiveddata"
-        unique_together = (("group", "version"),)
-        indexes = [
-            models.Index(fields=["version"]),
-            models.Index(fields=["group", "primary"]),
-        ]
 
-    __repr__ = sane_repr("group_id", "version", "cursor_date", "cursor_id", "primary")
+    __repr__ = sane_repr("group_id", "cursor_date", "cursor_id")
