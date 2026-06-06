@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
+import {useUser} from 'sentry/utils/useUser';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -55,6 +56,7 @@ type OwnedOrg = {
 
 function AccountClose() {
   const {openModal} = useModal();
+  const user = useUser();
 
   const api = useApi();
 
@@ -148,12 +150,13 @@ function AccountClose() {
         title={t('Close Account')}
         subtitle={
           <Fragment>
+            <strong>{t('Closing your account is permanent and cannot be undone.')}</strong>
+            <br />
+            {t('This will permanently remove all associated data for your user.')}
+            <br />
             {t(
-              'This will permanently remove all associated data for your user. Any specified organizations will also be deleted. '
+              'To close your user account you must also delete any organizations where you are the only Owner.'
             )}
-            <strong>
-              {t('Closing your account is permanent and cannot be undone')}!
-            </strong>
           </Fragment>
         }
       />
@@ -197,6 +200,7 @@ function AccountClose() {
         <HookedCustomConfirmAccountClose
           handleRemoveAccount={handleRemoveAccount}
           organizationSlugs={Array.from(orgsToRemove)}
+          userEmail={user.email}
         />
       </Flex>
     </div>
