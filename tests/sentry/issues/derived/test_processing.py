@@ -533,7 +533,6 @@ class ProcessGroupLogTest(TestCase):
 
         autofixed = list(
             Group.objects.filter(
-                groupderiveddata__primary=True,
                 groupderiveddata__data__was_autofixed=True,
             ).values_list("id", flat=True)
         )
@@ -588,9 +587,7 @@ class GroupDerivedDataStoreTest(TestCase):
         group = self.create_group()
         derived = GroupDerivedData.objects.create(
             group=group,
-            version=1,
             data={},
-            primary=True,
         )
         state = GroupDerivedDataStore.load(pipeline, derived)
         assert state[LAST_SEEN] is None
