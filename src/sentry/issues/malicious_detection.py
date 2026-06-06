@@ -1,8 +1,7 @@
-"""Prototype post-process detection for maliciously crafted error issues.
+"""Post-process detection for maliciously crafted error issues.
 
-This runs after grouping and durable event storage, so accepted-event quota has already been
-consumed. The goal is to archive clear prompt-injection issues before they are surfaced through
-notifications, webhooks, or other post-process fanout.
+This runs after grouping and durable event storage. Sentry owns rollout gates,
+context extraction, and archival; Seer owns classification.
 """
 
 from __future__ import annotations
@@ -35,54 +34,6 @@ Classification = Literal["yes", "no"]
 
 MALICIOUS_ISSUE_DETECTION_FEATURE = "organizations:malicious-issue-detection"
 MAX_CONTEXT_LENGTH = 4000
-
-PROMPT_INJECTION_TERMS = (
-    "ignore previous",
-    "ignore all previous",
-    "system prompt",
-    "developer message",
-    "no code fix",
-    "no-code fix",
-    "coding agent",
-    "automated agent",
-    "agent instructions",
-)
-
-RISKY_COMMAND_TERMS = (
-    "npm install",
-    "npx ",
-    "pnpm add",
-    "yarn add",
-    "curl ",
-    "wget ",
-    "nslookup ",
-    "bash -c",
-    "powershell",
-)
-
-COMMAND_INJECTION_MARKERS = (
-    "$(",
-    "`",
-    "||",
-    "${ifs}",
-    ";(",
-    "&(",
-    "|(",
-)
-
-DANGEROUS_ACTION_TERMS = (
-    "environment variable",
-    "environment variables",
-    "env contents",
-    ".env",
-    "api key",
-    "credentials",
-    "postinstall",
-    "token",
-    "secret",
-    "telemetry",
-    "exfiltrate",
-)
 
 GENERIC_CONTEXT_VALUES = {
     "error",
@@ -138,10 +89,7 @@ def detect_and_archive_malicious_issue(
     if not context:
         return _skip("empty_context")
 
-    if not contains_suspicious_indicators(context):
-        return _skip("heuristic_filtered")
-
-    classification = classify_issue_context(
+    classification = get_malicious_issue_classification_from_seer(
         context, organization_id=organization.id, project_id=event.project_id
     )
 
@@ -210,25 +158,7 @@ def build_issue_context(event: GroupEvent) -> str:
     return context[:MAX_CONTEXT_LENGTH]
 
 
-def contains_suspicious_indicators(context: str) -> bool:
-    normalized = context.lower()
-    if any(term in normalized for term in PROMPT_INJECTION_TERMS):
-        return True
-
-    if ("curl " in normalized or "wget " in normalized) and (
-        "| bash" in normalized or "| sh" in normalized or "bash -c" in normalized
-    ):
-        return True
-
-    if "nslookup " in normalized and ("curl " in normalized or "wget " in normalized):
-        return any(marker in normalized for marker in COMMAND_INJECTION_MARKERS)
-
-    has_risky_command = any(term in normalized for term in RISKY_COMMAND_TERMS)
-    has_dangerous_action = any(term in normalized for term in DANGEROUS_ACTION_TERMS)
-    return has_risky_command and has_dangerous_action
-
-
-def classify_issue_context(
+def get_malicious_issue_classification_from_seer(
     context: str,
     *,
     organization_id: int,
