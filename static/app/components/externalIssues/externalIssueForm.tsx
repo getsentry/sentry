@@ -308,6 +308,24 @@ export function ExternalIssueForm({
     ]
   );
 
+  // Track user-entered values for stable (non-dynamic) fields — e.g. summary,
+  // description — so they survive form remounts triggered by dynamic-field
+  // refetches (e.g. issue type or project changes).
+  // Dynamic fields (updatesForm: true) are intentionally excluded: their keys
+  // live in dynamicFieldValues, and preserving them across refetches could
+  // leave stale values when a different dynamic field changes the available
+  // options (e.g. switching project should let issue type reset).
+  const [stableFieldValues, setStableFieldValues] = useState<Record<string, unknown>>({});
+
+  const handleValueChange = useCallback(
+    (fieldName: string, value: unknown) => {
+      if (!Object.hasOwn(dynamicFieldValues, fieldName)) {
+        setStableFieldValues(prev => ({...prev, [fieldName]: value}));
+      }
+    },
+    [dynamicFieldValues]
+  );
+
   // Track the field that triggered the last dynamic refetch so we can
   // preserve its value when the form remounts with new config.
   const [lastChangedField, setLastChangedField] = useState<Record<string, unknown>>({});
@@ -408,13 +426,14 @@ export function ExternalIssueForm({
         <BackendJsonSubmitForm
           key={formKey}
           fields={formFields}
-          initialValues={lastChangedField}
+          initialValues={{...stableFieldValues, ...lastChangedField}}
           onSubmit={handleSubmit}
           submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
           isLoading={isDynamicallyRefetching}
           dynamicFieldValues={dynamicFieldValues}
           onAsyncOptionsFetched={handleAsyncOptionsFetched}
           onFieldChange={onFieldChange}
+          onValueChange={handleValueChange}
           submitDisabled={hasFormErrors}
           footer={({SubmitButton, disabled}) => (
             <Footer>
