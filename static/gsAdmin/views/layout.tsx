@@ -10,7 +10,7 @@ import {GlobalModal} from '@sentry/scraps/modal';
 
 import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
-import {IconSentry, IconSliders} from 'sentry/icons';
+import {IconChevron, IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 // eslint-disable-next-line no-restricted-imports
@@ -19,6 +19,8 @@ import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 
 import {GlobalStyles} from 'admin/globalStyles';
+
+const ADMIN_SIDEBAR_COLLAPSED_KEY = 'getsentryAdminSidebarCollapsed';
 
 const themes = {
   darkTheme,
@@ -42,6 +44,18 @@ const useToggleTheme = () => {
 
 export function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    () => localStorageWrapper.getItem(ADMIN_SIDEBAR_COLLAPSED_KEY) === 'true'
+  );
+
+  const toggleSidebar = () => {
+    const nextIsCollapsed = !isSidebarCollapsed;
+    setIsSidebarCollapsed(nextIsCollapsed);
+    localStorageWrapper.setItem(
+      ADMIN_SIDEBAR_COLLAPSED_KEY,
+      nextIsCollapsed ? 'true' : 'false'
+    );
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -51,57 +65,76 @@ export function Layout() {
           <GlobalModal />
           <SystemAlerts className="messages-container" />
           <Indicators className="indicators-container" />
-          <AppContainer>
-            <Sidebar>
-              <Logo to="/_admin/">
-                <IconSentry size="xl" />
-                Admin
-              </Logo>
-              <Navigation>
-                <NavLink to="/_admin/" index>
-                  Home
-                </NavLink>
-                <NavLink to="/_admin/customers/">Customers</NavLink>
-                <NavLink to="/_admin/users/">Users</NavLink>
-                <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
-                <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
-                <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
-                <NavLink to="/_admin/promocodes/">Promos</NavLink>
-                <NavLink to="/_admin/beacons/">Beacons</NavLink>
-                <NavLink to="/_admin/policies/">Policies</NavLink>
-                <NavLink to="/_admin/options/">Options</NavLink>
-                <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
-                <NavLink to="/_admin/instance-level-oauth">
-                  Instance level OAuth Clients
-                </NavLink>
-                <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
-                <NavLink to="/_admin/relocations/">Relocations</NavLink>
-                <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
-                <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
-                <NavLink to="/_admin/invoices/">Invoices</NavLink>
-                <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
-                <NavLink to="/_admin/spike-projection-generation/">
-                  Spike Projection Generation
-                </NavLink>
-                <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
-                <NavLink to="/_admin/seer/">Seer</NavLink>
-              </Navigation>
-              <div>
-                <ThemeToggle
-                  variant="transparent"
-                  size="zero"
-                  onClick={toggleTheme}
-                  icon={
-                    <IconSliders
-                      size="sm"
-                      style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
-                    />
-                  }
-                >
-                  {isDark ? 'Light mode' : 'Dark mode'}
-                </ThemeToggle>
-              </div>
-            </Sidebar>
+          <AppContainer data-sidebar-collapsed={isSidebarCollapsed}>
+            {isSidebarCollapsed ? (
+              <SidebarToggle
+                aria-label="Expand"
+                variant="primary"
+                size="xs"
+                onClick={toggleSidebar}
+                icon={<IconChevron direction="right" isDouble />}
+              />
+            ) : (
+              <Sidebar>
+                <SidebarHeader>
+                  <Logo to="/_admin/">
+                    <IconSentry size="xl" />
+                    Admin
+                  </Logo>
+                  <SidebarToggle
+                    aria-label="Collapse"
+                    variant="transparent"
+                    size="xs"
+                    onClick={toggleSidebar}
+                    icon={<IconChevron direction="left" isDouble />}
+                  />
+                </SidebarHeader>
+                <Navigation>
+                  <NavLink to="/_admin/" index>
+                    Home
+                  </NavLink>
+                  <NavLink to="/_admin/customers/">Customers</NavLink>
+                  <NavLink to="/_admin/users/">Users</NavLink>
+                  <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
+                  <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
+                  <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
+                  <NavLink to="/_admin/promocodes/">Promos</NavLink>
+                  <NavLink to="/_admin/beacons/">Beacons</NavLink>
+                  <NavLink to="/_admin/policies/">Policies</NavLink>
+                  <NavLink to="/_admin/options/">Options</NavLink>
+                  <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
+                  <NavLink to="/_admin/instance-level-oauth">
+                    Instance level OAuth Clients
+                  </NavLink>
+                  <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
+                  <NavLink to="/_admin/relocations/">Relocations</NavLink>
+                  <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
+                  <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
+                  <NavLink to="/_admin/invoices/">Invoices</NavLink>
+                  <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
+                  <NavLink to="/_admin/spike-projection-generation/">
+                    Spike Projection Generation
+                  </NavLink>
+                  <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
+                  <NavLink to="/_admin/seer/">Seer</NavLink>
+                </Navigation>
+                <SidebarActions>
+                  <ThemeToggle
+                    variant="transparent"
+                    size="zero"
+                    onClick={toggleTheme}
+                    icon={
+                      <IconSliders
+                        size="sm"
+                        style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
+                      />
+                    }
+                  >
+                    {isDark ? 'Light mode' : 'Dark mode'}
+                  </ThemeToggle>
+                </SidebarActions>
+              </Sidebar>
+            )}
             <Container
               as="main"
               padding="0 2xl"
@@ -125,6 +158,10 @@ const AppContainer = styled('div')`
 
   display: flow-root;
   padding-left: var(--sidebarWidth);
+
+  &[data-sidebar-collapsed='true'] {
+    padding-left: 0;
+  }
 `;
 
 const Sidebar = styled('section')`
@@ -145,6 +182,20 @@ const Sidebar = styled('section')`
   }
 `;
 
+const SidebarHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${p => p.theme.space.md};
+`;
+
+const SidebarActions = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: ${p => p.theme.space.md};
+`;
+
 const Logo = styled(Link)`
   display: flex;
   align-items: center;
@@ -160,6 +211,15 @@ const ThemeToggle = styled(Button)`
   font-size: ${p => p.theme.font.size.sm};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const SidebarToggle = styled(Button)`
+  [data-sidebar-collapsed='true'] & {
+    position: fixed;
+    top: ${p => p.theme.space.xl};
+    left: ${p => p.theme.space.xl};
+    z-index: ${p => p.theme.zIndex.header};
+  }
 `;
 
 const Navigation = styled('ul')`
