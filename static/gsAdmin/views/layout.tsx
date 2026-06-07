@@ -10,7 +10,7 @@ import {GlobalModal} from '@sentry/scraps/modal';
 
 import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
-import {IconMenu, IconSentry, IconSliders} from 'sentry/icons';
+import {IconChevron, IconMenu, IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 // eslint-disable-next-line no-restricted-imports
@@ -19,6 +19,8 @@ import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 
 import {GlobalStyles} from 'admin/globalStyles';
+
+const ADMIN_SIDEBAR_COLLAPSED_KEY = 'getsentryAdminSidebarCollapsed';
 
 const themes = {
   darkTheme,
@@ -42,23 +44,30 @@ const useToggleTheme = () => {
 
 export function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
+  // Mobile: drawer open/closed
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desktop: sidebar collapsed/expanded, persisted to localStorage
+  const [isCollapsed, setIsCollapsed] = useState(
+    () => localStorageWrapper.getItem(ADMIN_SIDEBAR_COLLAPSED_KEY) === 'true'
+  );
   const location = useLocation();
 
   const closeSidebar = () => setSidebarOpen(false);
 
-  // Close the sidebar on any route change (e.g. browser back/forward).
+  const toggleCollapsed = () => {
+    const next = !isCollapsed;
+    setIsCollapsed(next);
+    localStorageWrapper.setItem(ADMIN_SIDEBAR_COLLAPSED_KEY, next ? 'true' : 'false');
+  };
+
+  // Close mobile drawer on route change.
   useEffect(() => {
     closeSidebar();
   }, [location.pathname]);
 
   // Lock body scroll while the mobile sidebar drawer is open.
   useEffect(() => {
-    if (sidebarOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
@@ -72,13 +81,33 @@ export function Layout() {
           <GlobalModal />
           <SystemAlerts className="messages-container" />
           <Indicators className="indicators-container" />
-          <AppContainer>
+          <AppContainer isCollapsed={isCollapsed}>
+            {/* Mobile: tap-outside backdrop for the drawer */}
             <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />
-            <Sidebar isOpen={sidebarOpen}>
-              <Logo to="/_admin/" onClick={closeSidebar}>
-                <IconSentry size="xl" />
-                Admin
-              </Logo>
+            {/* Desktop only: floating expand button shown when sidebar is collapsed */}
+            <ExpandButton
+              isCollapsed={isCollapsed}
+              aria-label="Expand sidebar"
+              variant="primary"
+              size="xs"
+              onClick={toggleCollapsed}
+              icon={<IconChevron direction="right" isDouble />}
+            />
+            <Sidebar isOpen={sidebarOpen} isCollapsed={isCollapsed}>
+              <SidebarHeader>
+                <Logo to="/_admin/" onClick={closeSidebar}>
+                  <IconSentry size="xl" />
+                  Admin
+                </Logo>
+                {/* Desktop only: collapse button inside the sidebar */}
+                <CollapseButton
+                  aria-label="Collapse sidebar"
+                  variant="transparent"
+                  size="xs"
+                  onClick={toggleCollapsed}
+                  icon={<IconChevron direction="left" isDouble />}
+                />
+              </SidebarHeader>
               <Navigation>
                 <NavLink to="/_admin/" index onClick={closeSidebar}>
                   Home
@@ -144,7 +173,7 @@ export function Layout() {
                   Seer
                 </NavLink>
               </Navigation>
-              <div>
+              <SidebarActions>
                 <ThemeToggle
                   variant="transparent"
                   size="zero"
@@ -158,9 +187,10 @@ export function Layout() {
                 >
                   {isDark ? 'Light mode' : 'Dark mode'}
                 </ThemeToggle>
-              </div>
+              </SidebarActions>
             </Sidebar>
             <MainArea>
+              {/* Mobile only: sticky top bar with hamburger and logo */}
               <MobileTopBar>
                 <Button
                   variant="transparent"
@@ -192,12 +222,13 @@ export function Layout() {
 
 // flow-root is used here to create a new flow-context, to avoid margin
 // collapse causing scroll overflow.
-const AppContainer = styled('div')`
+const AppContainer = styled('div')<{isCollapsed: boolean}>`
   --contentWidth: 1270px;
   --sidebarWidth: 200px;
 
   display: flow-root;
-  padding-left: var(--sidebarWidth);
+  padding-left: ${p => (p.isCollapsed ? '0' : 'var(--sidebarWidth)')};
+  transition: padding-left 0.2s ease;
 
   @media (max-width: 768px) {
     padding-left: 0;
@@ -216,7 +247,19 @@ const Overlay = styled('div')<{isOpen: boolean}>`
   }
 `;
 
-const Sidebar = styled('section')<{isOpen?: boolean}>`
+const ExpandButton = styled(Button)<{isCollapsed: boolean}>`
+  display: none;
+
+  @media (min-width: 769px) {
+    display: ${p => (p.isCollapsed ? 'flex' : 'none')};
+    position: fixed;
+    top: ${p => p.theme.space.xl};
+    left: ${p => p.theme.space.xl};
+    z-index: ${p => p.theme.zIndex.header};
+  }
+`;
+
+const Sidebar = styled('section')<{isCollapsed?: boolean; isOpen?: boolean}>`
   position: fixed;
   top: 0;
   left: 0;
@@ -229,14 +272,40 @@ const Sidebar = styled('section')<{isOpen?: boolean}>`
   background: ${p => p.theme.tokens.background.primary};
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: 100;
+  transition: transform 0.2s ease;
+
+  /* Desktop: collapsed state slides off-screen */
+  transform: translateX(${p => (p.isCollapsed ? '-100%' : '0')});
 
   > * {
     padding: 0 ${p => p.theme.space['3xl']};
   }
 
+  /* Mobile: open state overrides desktop collapsed state */
   @media (max-width: 768px) {
     transform: translateX(${p => (p.isOpen ? '0' : '-100%')});
-    transition: transform 0.2s ease;
+  }
+`;
+
+const SidebarHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${p => p.theme.space.md};
+`;
+
+const SidebarActions = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: ${p => p.theme.space.md};
+`;
+
+const CollapseButton = styled(Button)`
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    display: none;
   }
 `;
 
