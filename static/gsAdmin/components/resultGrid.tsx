@@ -570,6 +570,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
 
 const SortSearchForm = styled('form')`
   display: flex;
+  flex-wrap: wrap;
   gap: ${p => p.theme.space.lg};
 
   &:not(:empty) {
