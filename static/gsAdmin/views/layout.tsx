@@ -225,9 +225,11 @@ export function Layout() {
 const AppContainer = styled('div')<{isCollapsed: boolean}>`
   --contentWidth: 1270px;
   --sidebarWidth: 200px;
+  --sidebarCollapsedWidth: 48px;
 
   display: flow-root;
-  padding-left: ${p => (p.isCollapsed ? '0' : 'var(--sidebarWidth)')};
+  padding-left: ${p =>
+    p.isCollapsed ? 'var(--sidebarCollapsedWidth)' : 'var(--sidebarWidth)'};
   transition: padding-left 0.2s ease;
 
   @media (max-width: 768px) {
@@ -254,7 +256,9 @@ const ExpandButton = styled(Button)<{isCollapsed: boolean}>`
     display: ${p => (p.isCollapsed ? 'flex' : 'none')};
     position: fixed;
     top: ${p => p.theme.space.xl};
-    left: ${p => p.theme.space.xl};
+    left: 0;
+    width: var(--sidebarCollapsedWidth);
+    justify-content: center;
     z-index: ${p => p.theme.zIndex.header};
   }
 `;
