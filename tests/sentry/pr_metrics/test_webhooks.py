@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -304,6 +305,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
 MODULE = "sentry.pr_metrics.webhooks"
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
+CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)  # past year avoids S015
 
 
 @with_feature("organizations:pr-metrics-emit")
@@ -323,17 +325,24 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         )
 
     def _payload(self, *, merged: bool = True) -> dict[str, Any]:
+        # Lifecycle is read from the stored PR row; the payload supplies only the
+        # PR number, the merged flag, and the open time.
         return {
             "number": 42,
             "merged": merged,
             "created_at": "2026-06-04T09:00:00Z",
-            "closed_at": "2026-06-04T10:00:00Z",
-            "merged_at": "2026-06-04T10:00:00Z",
-            "merge_commit_sha": MERGE_SHA,
-            "head": {"sha": HEAD_SHA},
         }
 
     def _call(self, *, action: str = "closed", merged: bool = True) -> None:
+        if action == "closed":
+            # PullRequestEventWebhook._handle persists lifecycle on the PR row
+            # before the emission processor runs; emit reads it from there.
+            self.pull_request.update(
+                head_commit_sha=HEAD_SHA,
+                closed_at=CLOSED_AT,
+                merged_at=CLOSED_AT if merged else None,
+                merge_commit_sha=MERGE_SHA if merged else None,
+            )
         handle_emission(
             github_event=GithubWebhookType.PULL_REQUEST,
             event={"action": action, "pull_request": self._payload(merged=merged)},
