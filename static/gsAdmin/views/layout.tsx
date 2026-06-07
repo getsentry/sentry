@@ -1,5 +1,5 @@
-import {useState} from 'react';
-import {Outlet} from 'react-router-dom';
+import {useEffect, useState} from 'react';
+import {Outlet, useLocation} from 'react-router-dom';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -43,8 +43,26 @@ const useToggleTheme = () => {
 export function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
   const closeSidebar = () => setSidebarOpen(false);
+
+  // Close the sidebar on any route change (e.g. browser back/forward).
+  useEffect(() => {
+    closeSidebar();
+  }, [location.pathname]);
+
+  // Lock body scroll while the mobile sidebar drawer is open.
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
 
   return (
     <ThemeProvider theme={theme}>
