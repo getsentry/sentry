@@ -84,15 +84,16 @@ export function Layout() {
           <AppContainer isCollapsed={isCollapsed}>
             {/* Mobile: tap-outside backdrop for the drawer */}
             <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />
-            {/* Desktop only: floating expand button shown when sidebar is collapsed */}
-            <ExpandButton
-              isCollapsed={isCollapsed}
-              aria-label="Expand sidebar"
-              variant="primary"
-              size="xs"
-              onClick={toggleCollapsed}
-              icon={<IconChevron direction="right" isDouble />}
-            />
+            {/* Desktop only: thin strip shown when sidebar is collapsed */}
+            <CollapsedSidebar isCollapsed={isCollapsed}>
+              <Button
+                aria-label="Expand sidebar"
+                variant="transparent"
+                size="sm"
+                onClick={toggleCollapsed}
+                icon={<IconChevron direction="right" isDouble />}
+              />
+            </CollapsedSidebar>
             <Sidebar isOpen={sidebarOpen} isCollapsed={isCollapsed}>
               <SidebarHeader>
                 <Logo to="/_admin/" onClick={closeSidebar}>
@@ -249,17 +250,22 @@ const Overlay = styled('div')<{isOpen: boolean}>`
   }
 `;
 
-const ExpandButton = styled(Button)<{isCollapsed: boolean}>`
+const CollapsedSidebar = styled('section')<{isCollapsed: boolean}>`
   display: none;
 
   @media (min-width: 769px) {
     display: ${p => (p.isCollapsed ? 'flex' : 'none')};
     position: fixed;
-    top: ${p => p.theme.space.xl};
+    top: 0;
     left: 0;
+    bottom: 0;
     width: var(--sidebarCollapsedWidth);
-    justify-content: center;
-    z-index: ${p => p.theme.zIndex.header};
+    flex-direction: column;
+    align-items: center;
+    padding-top: ${p => p.theme.space['2xl']};
+    background: ${p => p.theme.tokens.background.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
+    z-index: 100;
   }
 `;
 
