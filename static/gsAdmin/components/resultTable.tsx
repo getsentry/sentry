@@ -61,6 +61,14 @@ export const ResultTable = styled('table')`
       border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
     }
 
+    /* ColSpan-only rows (loading, error, empty-state, collapsed expansion rows):
+       bypass card grid layout so they don't render as empty padded strips. */
+    tbody tr:has(> td[colspan]) {
+      display: block;
+      padding: 0;
+      border-bottom: none;
+    }
+
     /* All cells: reset padding and alignment */
     td {
       display: flex;

@@ -65,6 +65,19 @@ export function Layout() {
     closeSidebar();
   }, [location.pathname]);
 
+  // Close mobile drawer when the viewport widens past the mobile breakpoint,
+  // so the body scroll lock is never left active on desktop.
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (!e.matches) {
+        closeSidebar();
+      }
+    };
+    mq.addEventListener('change', handleChange);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
+
   // Lock body scroll while the mobile sidebar drawer is open.
   useEffect(() => {
     document.body.style.overflow = sidebarOpen ? 'hidden' : '';

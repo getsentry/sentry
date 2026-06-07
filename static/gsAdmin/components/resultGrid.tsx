@@ -37,7 +37,7 @@ function extractColumnLabel(col: React.ReactNode): string {
   }
   if (Array.isArray(children)) {
     return children
-      .filter((c): c is string => typeof c === 'string')
+      .filter((c: unknown): c is string => typeof c === 'string')
       .join(' ')
       .trim();
   }
