@@ -442,6 +442,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
 
   renderResults() {
     const columnLabels = this.props.columns.map(extractColumnLabel);
+    const firstPrimaryIndex = columnLabels.findIndex(label => (label ?? '') !== '');
 
     return this.state.rows.map((row, i) => {
       const cells = this.props.columnsForRow?.(row, this.state.rows, this.state) ?? [];
@@ -449,9 +450,14 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         if (!isValidElement(cell)) {
           return cell;
         }
-        return cloneElement(cell as React.ReactElement<Record<string, unknown>>, {
-          'data-label': columnLabels[j] ?? '',
-        });
+        const extraProps: Record<string, unknown> = {'data-label': columnLabels[j] ?? ''};
+        if (j === firstPrimaryIndex) {
+          extraProps['data-mobile-primary'] = 'true';
+        }
+        return cloneElement(
+          cell as React.ReactElement<Record<string, unknown>>,
+          extraProps
+        );
       });
       return <tr key={this.props.keyForRow?.(row) ?? i}>{labeledCells}</tr>;
     });

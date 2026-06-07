@@ -82,8 +82,11 @@ export const ResultTable = styled('table')`
       }
     }
 
-    /* Primary cell (first column) spans full width, acts as card title */
-    td:first-of-type {
+    /* Primary cell spans full width, acts as card title.
+       data-mobile-primary is injected by ResultGrid on the first non-control column;
+       falls back to first-of-type for tables rendered without ResultGrid. */
+    td[data-mobile-primary],
+    tr:not(:has(td[data-mobile-primary])) > td:first-of-type {
       grid-column: 1 / -1;
       padding-left: 0;
       padding-bottom: ${p => p.theme.space.sm};
@@ -91,7 +94,8 @@ export const ResultTable = styled('table')`
     }
 
     /* Secondary cells show their column label above the value */
-    td:not(:first-of-type)::before {
+    tr:has(td[data-mobile-primary]) > td:not([data-mobile-primary])::before,
+    tr:not(:has(td[data-mobile-primary])) > td:not(:first-of-type)::before {
       content: attr(data-label);
       font-size: ${p => p.theme.font.size.xs};
       font-weight: 600;
