@@ -1156,6 +1156,19 @@ def _bucket_base_platform_count(count: int) -> str:
     return "4+" if count >= 4 else str(count)
 
 
+def _bucket_content_reads(count: int) -> str:
+    """Bucket the number of content-fetch API calls into a metric tag."""
+    if count == 0:
+        return "0"
+    if count <= 2:
+        return "1-2"
+    if count <= 5:
+        return "3-5"
+    if count <= 10:
+        return "6-10"
+    return "11+"
+
+
 def detect_platforms(
     client: GitHubBaseClient,
     repo: str,
@@ -1288,6 +1301,7 @@ def detect_platforms(
         tags={
             "confidence": results[0]["confidence"] if results else "none",
             "base_platform_count": _bucket_base_platform_count(_count_base_platforms(languages)),
+            "content_reads": _bucket_content_reads(len(needed_paths)),
         },
     )
 
