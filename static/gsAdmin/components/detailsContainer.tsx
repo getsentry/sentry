@@ -6,7 +6,7 @@ export const DetailsContainer = styled('div')`
   grid-template-columns: 1fr 1fr;
   align-items: start;
 
-  @media (max-width: 700px) {
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 

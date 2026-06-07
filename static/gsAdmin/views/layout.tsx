@@ -10,7 +10,7 @@ import {GlobalModal} from '@sentry/scraps/modal';
 
 import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
-import {IconSentry, IconSliders} from 'sentry/icons';
+import {IconMenu, IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 // eslint-disable-next-line no-restricted-imports
@@ -42,6 +42,9 @@ const useToggleTheme = () => {
 
 export function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const closeSidebar = () => setSidebarOpen(false);
 
   return (
     <ThemeProvider theme={theme}>
@@ -52,39 +55,76 @@ export function Layout() {
           <SystemAlerts className="messages-container" />
           <Indicators className="indicators-container" />
           <AppContainer>
-            <Sidebar>
-              <Logo to="/_admin/">
+            <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />
+            <Sidebar isOpen={sidebarOpen}>
+              <Logo to="/_admin/" onClick={closeSidebar}>
                 <IconSentry size="xl" />
                 Admin
               </Logo>
               <Navigation>
-                <NavLink to="/_admin/" index>
+                <NavLink to="/_admin/" index onClick={closeSidebar}>
                   Home
                 </NavLink>
-                <NavLink to="/_admin/customers/">Customers</NavLink>
-                <NavLink to="/_admin/users/">Users</NavLink>
-                <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
-                <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
-                <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
-                <NavLink to="/_admin/promocodes/">Promos</NavLink>
-                <NavLink to="/_admin/beacons/">Beacons</NavLink>
-                <NavLink to="/_admin/policies/">Policies</NavLink>
-                <NavLink to="/_admin/options/">Options</NavLink>
-                <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
-                <NavLink to="/_admin/instance-level-oauth">
+                <NavLink to="/_admin/customers/" onClick={closeSidebar}>
+                  Customers
+                </NavLink>
+                <NavLink to="/_admin/users/" onClick={closeSidebar}>
+                  Users
+                </NavLink>
+                <NavLink to="/_admin/sentry-apps/" onClick={closeSidebar}>
+                  Sentry Apps
+                </NavLink>
+                <NavLink to="/_admin/doc-integrations/" onClick={closeSidebar}>
+                  Doc Integrations
+                </NavLink>
+                <NavLink to="/_admin/broadcasts/" onClick={closeSidebar}>
+                  Broadcasts
+                </NavLink>
+                <NavLink to="/_admin/promocodes/" onClick={closeSidebar}>
+                  Promos
+                </NavLink>
+                <NavLink to="/_admin/beacons/" onClick={closeSidebar}>
+                  Beacons
+                </NavLink>
+                <NavLink to="/_admin/policies/" onClick={closeSidebar}>
+                  Policies
+                </NavLink>
+                <NavLink to="/_admin/options/" onClick={closeSidebar}>
+                  Options
+                </NavLink>
+                <NavLink to="/_admin/debugging-tools/" onClick={closeSidebar}>
+                  Debugging Tools
+                </NavLink>
+                <NavLink to="/_admin/instance-level-oauth" onClick={closeSidebar}>
                   Instance level OAuth Clients
                 </NavLink>
-                <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
-                <NavLink to="/_admin/relocations/">Relocations</NavLink>
-                <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
-                <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
-                <NavLink to="/_admin/invoices/">Invoices</NavLink>
-                <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
-                <NavLink to="/_admin/spike-projection-generation/">
+                <NavLink to="/_admin/private-apis/" onClick={closeSidebar}>
+                  Private APIs
+                </NavLink>
+                <NavLink to="/_admin/relocations/" onClick={closeSidebar}>
+                  Relocations
+                </NavLink>
+                <NavLink to="/_admin/employees/" onClick={closeSidebar}>
+                  Sentry Employees
+                </NavLink>
+                <NavLink to="/_admin/billing-plans/" onClick={closeSidebar}>
+                  Billing Plans
+                </NavLink>
+                <NavLink to="/_admin/invoices/" onClick={closeSidebar}>
+                  Invoices
+                </NavLink>
+                <NavLink to="/_admin/billing-platform/" onClick={closeSidebar}>
+                  Billing Platform
+                </NavLink>
+                <NavLink to="/_admin/spike-projection-generation/" onClick={closeSidebar}>
                   Spike Projection Generation
                 </NavLink>
-                <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
-                <NavLink to="/_admin/seer/">Seer</NavLink>
+                <NavLink to="/_admin/launchpad/" onClick={closeSidebar}>
+                  Launchpad (Emerge) Related
+                </NavLink>
+                <NavLink to="/_admin/seer/" onClick={closeSidebar}>
+                  Seer
+                </NavLink>
               </Navigation>
               <div>
                 <ThemeToggle
@@ -102,14 +142,29 @@ export function Layout() {
                 </ThemeToggle>
               </div>
             </Sidebar>
-            <Container
-              as="main"
-              padding="0 2xl"
-              width="100%"
-              maxWidth="var(--contentWidth)"
-            >
-              <Outlet />
-            </Container>
+            <MainArea>
+              <MobileTopBar>
+                <Button
+                  variant="transparent"
+                  size="sm"
+                  icon={<IconMenu />}
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Open navigation"
+                />
+                <MobileLogo to="/_admin/">
+                  <IconSentry size="md" />
+                  Admin
+                </MobileLogo>
+              </MobileTopBar>
+              <Container
+                as="main"
+                padding="0 2xl"
+                width="100%"
+                maxWidth="var(--contentWidth)"
+              >
+                <Outlet />
+              </Container>
+            </MainArea>
           </AppContainer>
         </GlobalAlertProvider>
       </ScrapsProviders>
@@ -125,9 +180,25 @@ const AppContainer = styled('div')`
 
   display: flow-root;
   padding-left: var(--sidebarWidth);
+
+  @media (max-width: 768px) {
+    padding-left: 0;
+  }
 `;
 
-const Sidebar = styled('section')`
+const Overlay = styled('div')<{isOpen: boolean}>`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: ${p => (p.isOpen ? 'block' : 'none')};
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+  }
+`;
+
+const Sidebar = styled('section')<{isOpen?: boolean}>`
   position: fixed;
   top: 0;
   left: 0;
@@ -139,10 +210,48 @@ const Sidebar = styled('section')`
   gap: ${p => p.theme.space['2xl']};
   background: ${p => p.theme.tokens.background.primary};
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  z-index: 100;
 
   > * {
     padding: 0 ${p => p.theme.space['3xl']};
   }
+
+  @media (max-width: 768px) {
+    transform: translateX(${p => (p.isOpen ? '0' : '-100%')});
+    transition: transform 0.2s ease;
+  }
+`;
+
+const MainArea = styled('div')`
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+`;
+
+const MobileTopBar = styled('div')`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    gap: ${p => p.theme.space.md};
+    padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+    background: ${p => p.theme.tokens.background.primary};
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+`;
+
+const MobileLogo = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  text-transform: uppercase;
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.lg};
+  font-weight: bold;
 `;
 
 const Logo = styled(Link)`

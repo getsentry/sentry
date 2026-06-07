@@ -448,20 +448,22 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     const ensuredFilters = filters ?? {};
 
     const resultTable = (
-      <ResultTable>
-        <thead>
-          <tr>{columns}</tr>
-        </thead>
-        <tbody>
-          {this.state.loading
-            ? this.renderLoading()
-            : this.state.error
-              ? this.renderError()
-              : this.state.rows.length === 0
-                ? this.renderNoResults()
-                : this.renderResults()}
-        </tbody>
-      </ResultTable>
+      <TableScrollWrapper>
+        <ResultTable>
+          <thead>
+            <tr>{columns}</tr>
+          </thead>
+          <tbody>
+            {this.state.loading
+              ? this.renderLoading()
+              : this.state.error
+                ? this.renderError()
+                : this.state.rows.length === 0
+                  ? this.renderNoResults()
+                  : this.renderResults()}
+          </tbody>
+        </ResultTable>
+      </TableScrollWrapper>
     );
 
     const CustomPanel = inPanel;
@@ -567,6 +569,11 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     );
   }
 }
+
+const TableScrollWrapper = styled('div')`
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+`;
 
 const SortSearchForm = styled('form')`
   display: flex;
