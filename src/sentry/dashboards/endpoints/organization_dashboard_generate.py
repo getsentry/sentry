@@ -174,14 +174,14 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
                 category_value=str(organization.id),
                 reasoning_effort="medium",
             )
-            run_id = client.start_run(
+            run = client.start_run(
                 prompt=prompt,
                 on_page_context=on_page_context,
                 artifact_key="dashboard",
                 artifact_schema=GeneratedDashboard,
                 request=request,
             )
-            return Response({"run_id": run_id})
+            return Response({"run_id": run.seer_run_state_id})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError:

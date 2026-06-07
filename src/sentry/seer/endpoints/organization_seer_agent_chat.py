@@ -274,7 +274,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     ui_tools=ui_tools,
                     override_ce_enable=override_ce_enable,
                     request=request,
-                )
+                ).seer_run_state_id
 
             return Response({"run_id": result_run_id})
         except SeerPermissionError as e:
