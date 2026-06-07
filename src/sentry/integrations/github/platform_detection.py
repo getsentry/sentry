@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from base64 import b64decode
 from collections import defaultdict
 from collections.abc import Sequence
@@ -10,7 +11,7 @@ from typing import TYPE_CHECKING, NotRequired, TypedDict
 from yaml import YAMLError
 
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.yaml import safe_load
 
 if TYPE_CHECKING:
@@ -1118,6 +1119,43 @@ def _apply_supersession(results: list[DetectedPlatform]) -> list[DetectedPlatfor
     return [r for r in results if r["platform"] not in superseded]
 
 
+# Metric namespace for the single-platform detector.
+_SINGLE_METRICS_PREFIX = "onboarding-scm.platform_detection.single"
+
+# Minimum share of total repo bytes for a language's base platform to count
+# toward the multi-platform signal. Filters out incidental scripts (e.g. a small
+# JS helper in a Python repo) so they don't inflate the platform count.
+_MULTI_PLATFORM_BYTE_SHARE_THRESHOLD = 0.10
+
+
+def _count_base_platforms(languages: dict[str, int]) -> int:
+    """Count distinct Sentry base platforms among a repo's significant languages.
+
+    SDK-less languages are ignored and related languages collapse to a single
+    base platform (e.g. TypeScript + JavaScript -> javascript). Only languages
+    above ``_MULTI_PLATFORM_BYTE_SHARE_THRESHOLD`` of total bytes are counted, so
+    incidental scripts in a second language don't inflate the result.
+    """
+    total_bytes = sum(languages.values())
+    if total_bytes <= 0:
+        return 0
+    base_platforms: set[str] = set()
+    for language, byte_count in languages.items():
+        if language in IGNORED_LANGUAGES:
+            continue
+        base_platform = GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.get(language)
+        if base_platform is None:
+            continue
+        if byte_count / total_bytes >= _MULTI_PLATFORM_BYTE_SHARE_THRESHOLD:
+            base_platforms.add(base_platform)
+    return len(base_platforms)
+
+
+def _bucket_base_platform_count(count: int) -> str:
+    """Bucket the base-platform count into a low-cardinality metric tag."""
+    return "4+" if count >= 4 else str(count)
+
+
 def detect_platforms(
     client: GitHubBaseClient,
     repo: str,
@@ -1136,6 +1174,7 @@ def detect_platforms(
     Results are ranked by bytes (descending), then priority (descending).
     Superseded frameworks (e.g. React when Next.js is present) are removed.
     """
+    start_time = time.monotonic()
     languages = client.get_languages(repo)
     root_files, root_dirs = _get_root_entries(client, repo, ref)
 
@@ -1239,5 +1278,17 @@ def detect_platforms(
     results = _apply_supersession(results)
     results = [r for r in results if r["platform"] not in _NON_SELECTABLE_PLATFORMS]
     results.sort(key=lambda r: (r["bytes"], r["priority"]), reverse=True)
+
+    metrics.timing(
+        f"{_SINGLE_METRICS_PREFIX}.duration",
+        time.monotonic() - start_time,
+    )
+    metrics.incr(
+        f"{_SINGLE_METRICS_PREFIX}.completed",
+        tags={
+            "confidence": results[0]["confidence"] if results else "none",
+            "base_platform_count": _bucket_base_platform_count(_count_base_platforms(languages)),
+        },
+    )
 
     return results
