@@ -8,7 +8,9 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
+  getInfiniteSeerProjectsSettingsQueryOptions,
   getMutateSeerProjectSettingsOptions,
+  getMutateSeerProjectsSettingsOptions,
   getSeerProjectSettingsQueryOptions,
 } from 'sentry/utils/seer/seerProjectSettings';
 import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
@@ -426,6 +428,390 @@ describe('getMutateSeerProjectSettingsOptions', () => {
           agent: 'seer',
           integrationId: null,
         });
+      });
+    });
+  });
+});
+
+describe('getMutateSeerProjectsSettingsOptions', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  const bulkUrl = `/organizations/${organization.slug}/seer/projects/`;
+
+  function makeInfiniteData(items: SeerProjectSettingResponse[]) {
+    return {
+      pages: [{headers: {}, json: items}],
+      pageParams: [undefined],
+    };
+  }
+
+  function renderBulkMutationHook({
+    agents,
+    items,
+  }: {
+    agents?: CodingAgentIntegration[];
+    items?: SeerProjectSettingResponse[];
+  } = {}) {
+    const queryClient = makeTestQueryClient();
+
+    const infiniteQueryKey = getInfiniteSeerProjectsSettingsQueryOptions({
+      organization,
+      query: {},
+    }).queryKey;
+
+    const defaultItems = [
+      makeResponseFixture({projectId: '1', projectSlug: 'project-a'}),
+      makeResponseFixture({projectId: '2', projectSlug: 'project-b'}),
+      makeResponseFixture({projectId: '3', projectSlug: 'project-c'}),
+    ];
+
+    queryClient.setQueryData(infiniteQueryKey, makeInfiniteData(items ?? defaultItems));
+
+    const hook = renderHookWithProviders(
+      () =>
+        useMutation(
+          getMutateSeerProjectsSettingsOptions({
+            organization,
+            queryClient,
+            knownAgents: agents,
+          })
+        ),
+      {
+        organization,
+        additionalWrapper: ({children}: {children?: ReactNode}) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      }
+    );
+
+    return {queryClient, infiniteQueryKey, ...hook};
+  }
+
+  describe('mutationFn', () => {
+    it('sends query with specific project ids', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: bulkUrl,
+        method: 'PUT',
+        body: makeResponseFixture(),
+      });
+
+      const {result} = renderBulkMutationHook();
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          agent: 'seer',
+          projectIds: ['1', '2'],
+        });
+      });
+
+      expect(mock).toHaveBeenCalledWith(
+        bulkUrl,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {agent: 'seer', query: 'id:[1,2]'},
+        })
+      );
+    });
+
+    it('sends original query when projectIds is all', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: bulkUrl,
+        method: 'PUT',
+        body: makeResponseFixture(),
+      });
+
+      const {result} = renderBulkMutationHook();
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          agent: 'seer',
+          projectIds: 'all',
+          query: 'is:enabled',
+        });
+      });
+
+      expect(mock).toHaveBeenCalledWith(
+        bulkUrl,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {agent: 'seer', query: 'is:enabled'},
+        })
+      );
+    });
+
+    it('sends integrationId for external agents', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: bulkUrl,
+        method: 'PUT',
+        body: makeResponseFixture(),
+      });
+
+      const {result} = renderBulkMutationHook({agents: knownAgents});
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          projectIds: ['1'],
+        });
+      });
+
+      expect(mock).toHaveBeenCalledWith(
+        bulkUrl,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            query: 'id:[1]',
+          },
+        })
+      );
+    });
+
+    it('sends automationTuning=off for stoppingPoint=off', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: bulkUrl,
+        method: 'PUT',
+        body: makeResponseFixture(),
+      });
+
+      const {result} = renderBulkMutationHook();
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          stoppingPoint: 'off',
+          projectIds: ['1'],
+        });
+      });
+
+      expect(mock).toHaveBeenCalledWith(
+        bulkUrl,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {automationTuning: 'off', query: 'id:[1]'},
+        })
+      );
+    });
+
+    it('sends automationTuning=medium with stoppingPoint for non-off values', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: bulkUrl,
+        method: 'PUT',
+        body: makeResponseFixture(),
+      });
+
+      const {result} = renderBulkMutationHook();
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          stoppingPoint: 'open_pr',
+          projectIds: ['1'],
+        });
+      });
+
+      expect(mock).toHaveBeenCalledWith(
+        bulkUrl,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            stoppingPoint: 'open_pr',
+            automationTuning: 'medium',
+            query: 'id:[1]',
+          },
+        })
+      );
+    });
+  });
+
+  describe('optimistic updates', () => {
+    it('updates selected projects in infinite query cache', async () => {
+      MockApiClient.addMockResponse({
+        url: bulkUrl,
+        method: 'PUT',
+        body: makeResponseFixture(),
+      });
+
+      const {result, queryClient, infiniteQueryKey} = renderBulkMutationHook({
+        agents: knownAgents,
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+          projectIds: ['1', '3'],
+        });
+      });
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData(infiniteQueryKey);
+        const items = cached?.pages[0]?.json;
+        expect(items?.[0]).toMatchObject({
+          projectId: '1',
+          agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+          integrationId: '456',
+        });
+        expect(items?.[1]).toMatchObject({
+          projectId: '2',
+          agent: 'seer',
+        });
+        expect(items?.[2]).toMatchObject({
+          projectId: '3',
+          agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+          integrationId: '456',
+        });
+      });
+    });
+
+    it('updates all projects when projectIds is all', async () => {
+      MockApiClient.addMockResponse({
+        url: bulkUrl,
+        method: 'PUT',
+        body: makeResponseFixture(),
+      });
+
+      const {result, queryClient, infiniteQueryKey} = renderBulkMutationHook();
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          stoppingPoint: 'root_cause',
+          projectIds: 'all',
+        });
+      });
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData(infiniteQueryKey);
+        const items = cached?.pages[0]?.json;
+        expect(items).toHaveLength(3);
+        for (const item of items ?? []) {
+          expect(item).toMatchObject({
+            stoppingPoint: 'root_cause',
+            automationTuning: 'medium',
+          });
+        }
+      });
+    });
+
+    it('optimistically updates matching single-project caches by id list', async () => {
+      MockApiClient.addMockResponse({
+        url: bulkUrl,
+        method: 'PUT',
+        body: makeResponseFixture(),
+      });
+
+      const queryClient = makeTestQueryClient();
+
+      const infiniteQueryKey = getInfiniteSeerProjectsSettingsQueryOptions({
+        organization,
+        query: {},
+      }).queryKey;
+      queryClient.setQueryData(
+        infiniteQueryKey,
+        makeInfiniteData([
+          makeResponseFixture({projectId: '1', projectSlug: 'project-a'}),
+        ])
+      );
+
+      const singleQueryKey = getSeerProjectSettingsQueryOptions({
+        organization,
+        project: {slug: 'project-a'},
+      }).queryKey;
+      queryClient.setQueryData(singleQueryKey, {
+        headers: {},
+        json: makeResponseFixture({projectId: '1', projectSlug: 'project-a'}),
+      });
+
+      const {result} = renderHookWithProviders(
+        () =>
+          useMutation(
+            getMutateSeerProjectsSettingsOptions({
+              organization,
+              queryClient,
+              knownAgents,
+            })
+          ),
+        {
+          organization,
+          additionalWrapper: ({children}: {children?: ReactNode}) => (
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          ),
+        }
+      );
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          projectIds: ['project-a'],
+        });
+      });
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData(singleQueryKey);
+        expect(cached?.json).toMatchObject({
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          integrationId: '123',
+        });
+      });
+    });
+
+    it('sets automationTuning=off for stoppingPoint=off optimistically', async () => {
+      MockApiClient.addMockResponse({
+        url: bulkUrl,
+        method: 'PUT',
+        body: makeResponseFixture(),
+      });
+
+      const {result, queryClient, infiniteQueryKey} = renderBulkMutationHook();
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          stoppingPoint: 'off',
+          projectIds: ['1'],
+        });
+      });
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData(infiniteQueryKey);
+        const item = cached?.pages[0]?.json?.[0];
+        expect(item).toMatchObject({
+          projectId: '1',
+          automationTuning: 'off',
+        });
+      });
+    });
+  });
+
+  describe('error handling', () => {
+    it('invalidates queries on error', async () => {
+      MockApiClient.addMockResponse({
+        url: bulkUrl,
+        method: 'PUT',
+        statusCode: 500,
+        body: {detail: 'Internal Error'},
+      });
+
+      const {result, queryClient, infiniteQueryKey} = renderBulkMutationHook();
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+
+      await act(async () => {
+        try {
+          await result.current.mutateAsync({
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            projectIds: ['1'],
+          });
+        } catch {
+          // expected
+        }
+      });
+
+      await waitFor(() => {
+        expect(invalidateSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            queryKey: [infiniteQueryKey[0]],
+            exact: false,
+          })
+        );
       });
     });
   });
