@@ -162,7 +162,7 @@ function IssueListOverviewInner({
     () => selection.projects.map(String),
     [selection.projects]
   );
-  const {data: memberList = {}} = useQuery({
+  const {data: memberList} = useQuery({
     ...useProjectMembersQueryOptions(organizationUsersProjectIds),
     select: resp => indexMembersByProject(resp.json),
   });

@@ -26,9 +26,18 @@ jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
 function makeSection(
   step: string,
   status: AutofixSection['status'],
-  artifacts: AutofixArtifact[]
+  artifacts: AutofixArtifact[],
+  blocks: AutofixSection['blocks'] = []
 ): AutofixSection {
-  return {step, artifacts, blocks: [], status};
+  return {step, artifacts, blocks, status};
+}
+
+function makeAssistantBlock(content: string | null): AutofixSection['blocks'][number] {
+  return {
+    id: 'block-1',
+    timestamp: '2026-01-01T00:00:00Z',
+    message: {role: 'assistant', content},
+  };
 }
 
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
@@ -534,6 +543,86 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+    });
+
+    it('surfaces the agent explanation when no patches but a final message exists', () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [
+              makeAssistantBlock(
+                'This fix requires a database migration, not a code change.'
+              ),
+            ]
+          )}
+        />
+      );
+
+      expect(
+        screen.getByText("Seer proposed a fix but couldn't apply it automatically")
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('This fix requires a database migration, not a code change.')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Add context & retry'})
+      ).toBeInTheDocument();
+      // The generic "this one is on us" copy should not appear here.
+      expect(
+        screen.queryByText(
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('opens the context prompt from the explanation state', async () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('The relevant files are not in the connected repo.')]
+          )}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
+
+      expect(
+        screen.getByText('What additional context should Seer use?')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add context & retry'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('falls back to the generic failure copy when there is no explanation', () => {
+      render(
+        <CodeChangesCard
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [makeAssistantBlock('   ')]
+          )}
+        />
+      );
+
+      expect(
+        screen.getByText(
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
+      ).not.toBeInTheDocument();
     });
   });
 

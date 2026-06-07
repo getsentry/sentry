@@ -155,6 +155,19 @@ class TestBaseDataConditionGroupValidatorCreate(TestBaseDataConditionGroupValida
         assert condition.comparison is True
         assert condition.condition_group == result
 
+    def test_create__missing_conditions(self) -> None:
+        data = {
+            "logicType": DataConditionGroup.Type.ANY,
+            "organizationId": self.organization.id,
+        }
+        validator = BaseDataConditionGroupValidator(data=data, context=self.context)
+        validator.is_valid(raise_exception=True)
+        result = validator.create(validator.validated_data)
+
+        assert result.logic_type == DataConditionGroup.Type.ANY
+        assert result.organization_id == self.organization.id
+        assert result.conditions.count() == 0
+
     def test_create_trigger__invalid_logic_type(self) -> None:
         valid_data = {
             "organizationId": self.organization.id,
