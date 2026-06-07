@@ -382,7 +382,9 @@ export function ScmPlatformFeatures({
 
   function handleChangePlatformClick() {
     setShowManualPicker(true);
-    if (!isDetecting) {
+    if (isDetecting) {
+      trackAnalytics('onboarding.scm_skip_detection_clicked', {organization});
+    } else {
       trackAnalytics('onboarding.scm_platform_change_platform_clicked', {
         organization,
       });
