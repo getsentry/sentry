@@ -176,6 +176,7 @@ build-utils/                                             @getsentry/owners-js-bu
 eslint.config.ts                                         @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
+/tests/js/test-balancer/                                 @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 .node-version                                            @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
