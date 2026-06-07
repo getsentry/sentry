@@ -77,14 +77,21 @@ def build_pr_metrics_row(
     the activity counters. ``attributions`` is the active-attribution snapshot,
     passed in so the tracking gate and the emitted row read the same query.
     """
+    head_commit_sha = pull_request.head_commit_sha
+    closed_at = pull_request.closed_at
+    if head_commit_sha is None or closed_at is None:
+        # The webhook always persists both on a close/merge; a null here means
+        # emit ran on a PR that never reached a terminal state. Fail loud.
+        raise ValueError("PR metrics row requires a persisted head_commit_sha and closed_at")
+
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
         repository_id=pull_request.repository_id,
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,
         close_action=close_action,
-        head_commit_sha=pull_request.head_commit_sha,
-        closed_at=_iso(pull_request.closed_at),
+        head_commit_sha=head_commit_sha,
+        closed_at=closed_at.isoformat(),
         merge_commit_sha=pull_request.merge_commit_sha,
         merged_at=_iso(pull_request.merged_at),
         opened_at=payload["created_at"],
