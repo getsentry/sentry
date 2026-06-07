@@ -32,4 +32,64 @@ export const ResultTable = styled('table')`
       padding-right: ${p => p.theme.space['2xl']};
     }
   }
+
+  @media (max-width: 768px) {
+    display: block;
+
+    thead {
+      display: none;
+    }
+
+    tbody {
+      display: block;
+    }
+
+    /* Move row separator from td to tr */
+    tbody tr:not(:last-child) > td {
+      border-bottom: none;
+    }
+
+    tbody tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: ${p => p.theme.space.xl};
+      row-gap: ${p => p.theme.space.sm};
+      padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
+    }
+
+    tbody tr:not(:last-child) {
+      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+    }
+
+    /* All cells: reset padding and alignment */
+    td {
+      display: flex;
+      flex-direction: column;
+      gap: ${p => p.theme.space['2xs']};
+      padding: 0;
+      text-align: left !important;
+
+      &:last-child {
+        padding-right: 0;
+      }
+    }
+
+    /* Primary cell (first column) spans full width, acts as card title */
+    td:first-of-type {
+      grid-column: 1 / -1;
+      padding-left: 0;
+      padding-bottom: ${p => p.theme.space.sm};
+      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+    }
+
+    /* Secondary cells show their column label above the value */
+    td:not(:first-of-type)::before {
+      content: attr(data-label);
+      font-size: ${p => p.theme.font.size.xs};
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: ${p => p.theme.tokens.content.secondary};
+    }
+  }
 `;

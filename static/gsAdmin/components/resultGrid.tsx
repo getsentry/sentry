@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {cloneElement, Component, isValidElement} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -26,6 +26,23 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {ResultTable} from 'admin/components/resultTable';
 
 type Option = [key: string, label: string];
+
+function extractColumnLabel(col: React.ReactNode): string {
+  if (!isValidElement(col)) {
+    return '';
+  }
+  const {children} = col.props as {children?: React.ReactNode};
+  if (typeof children === 'string') {
+    return children.trim();
+  }
+  if (Array.isArray(children)) {
+    return children
+      .filter((c): c is string => typeof c === 'string')
+      .join(' ')
+      .trim();
+  }
+  return '';
+}
 
 type FilterProps = {
   name: string;
@@ -424,11 +441,20 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   }
 
   renderResults() {
-    return this.state.rows.map((row, i) => (
-      <tr key={this.props.keyForRow?.(row) ?? i}>
-        {this.props.columnsForRow?.(row, this.state.rows, this.state)}
-      </tr>
-    ));
+    const columnLabels = this.props.columns.map(extractColumnLabel);
+
+    return this.state.rows.map((row, i) => {
+      const cells = this.props.columnsForRow?.(row, this.state.rows, this.state) ?? [];
+      const labeledCells = cells.map((cell, j) => {
+        if (!isValidElement(cell)) {
+          return cell;
+        }
+        return cloneElement(cell as React.ReactElement<Record<string, unknown>>, {
+          'data-label': columnLabels[j] ?? '',
+        });
+      });
+      return <tr key={this.props.keyForRow?.(row) ?? i}>{labeledCells}</tr>;
+    });
   }
 
   render() {
@@ -573,6 +599,10 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
 const TableScrollWrapper = styled('div')`
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+
+  @media (max-width: 768px) {
+    overflow-x: visible;
+  }
 `;
 
 const SortSearchForm = styled('form')`
