@@ -1,13 +1,59 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from enum import StrEnum
+from typing import Any
 
 
-class ReferencedIssueSignalDetails(BaseModel):
-    """signal_details payload for PullRequestAttributionSignalType.REFERENCED_ISSUE.
+class ReferencedIssueWebhookKey(StrEnum):
+    PR_BODY = "pr_body"
+    PUSH = "push"
+    ISSUE_COMMENT = "issue_comment"
+    PR_REVIEW = "pr_review"
+    REVIEW_COMMENT = "review_comment"
 
-    Captured from the PR title/body at webhook time; group IDs are the Sentry
-    issues matched by find_referenced_groups().
+
+# Keys whose signal_details value is a per-entity dict {entity_id: [group_ids]}
+# rather than a flat list. Multiple independent entities (comments, review
+# comments) can each contribute references; a single key would be last-write-wins.
+_PER_ENTITY_KEYS: frozenset[str] = frozenset(
+    {ReferencedIssueWebhookKey.ISSUE_COMMENT, ReferencedIssueWebhookKey.REVIEW_COMMENT}
+)
+
+
+def normalize_signal_details(signal_details: dict[str, Any] | None) -> dict[str, Any]:
+    """Return the webhook-keyed form of ``signal_details``, promoting legacy rows.
+
+    Existing rows written before the keyed schema was introduced store a plain
+    ``{"group_ids": [...]}`` dict.  On the next write those rows are converted
+    in-place; until then reads treat them as if they came from ``pr_body``.
     """
+    if not signal_details:
+        return {}
+    if "group_ids" in signal_details and ReferencedIssueWebhookKey.PR_BODY not in signal_details:
+        return {ReferencedIssueWebhookKey.PR_BODY: signal_details["group_ids"]}
+    return dict(signal_details)
 
-    group_ids: list[int]
+
+def get_referenced_group_ids(signal_details: dict[str, Any] | None) -> list[int]:
+    """Return the deduplicated, sorted union of all group IDs across all webhook sources.
+
+    Handles both flat keys (``{"pr_body": [1, 2]}``) and per-entity keys
+    (``{"issue_comment": {"comment_123": [1, 2], "comment_456": [3]}}``).
+    """
+    if not signal_details:
+        return []
+    details = normalize_signal_details(signal_details)
+    seen: set[int] = set()
+    for ids in details.values():
+        if isinstance(ids, list):
+            seen.update(ids)
+        elif isinstance(ids, dict):
+            for entity_ids in ids.values():
+                if isinstance(entity_ids, list):
+                    seen.update(entity_ids)
+    return sorted(seen)
+
+
+def is_referenced_issue_valid(signal_details: dict[str, Any] | None) -> bool:
+    """Return True if any webhook source still contributes at least one referenced group."""
+    return bool(get_referenced_group_ids(signal_details))

@@ -13,6 +13,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
 from sentry.constants import ObjectStatus
@@ -25,6 +26,11 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSource,
 )
 from sentry.models.repository import Repository
+from sentry.pr_metrics.types import (
+    _PER_ENTITY_KEYS,
+    is_referenced_issue_valid,
+    normalize_signal_details,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +94,84 @@ def record_attribution_signal(
         attribution.save(update_fields=["signal_details", "is_valid", "date_updated"])
 
     return attribution
+
+
+def record_referenced_issue_signal(
+    *,
+    pull_request: PullRequest,
+    webhook_key: str,
+    group_ids: list[int],
+    entity_id: str | None = None,
+) -> PullRequestAttribution | None:
+    """Atomically update one webhook source's contribution to the REFERENCED_ISSUE signal.
+
+    For flat keys (``PR_BODY``, ``PUSH``, ``PR_REVIEW``) pass no ``entity_id``
+    — the whole key is replaced with ``group_ids``.
+
+    For per-entity keys (``ISSUE_COMMENT``, ``REVIEW_COMMENT``) pass the
+    GitHub entity ID (comment id) as ``entity_id``. Each entity owns its own
+    slot so deleting one comment only clears that slot, leaving other comments'
+    references intact. Passing ``group_ids=[]`` removes the entity's slot.
+
+    ``is_valid`` is recomputed after every write from whether any key still
+    has at least one referenced group.  ``select_for_update`` serialises
+    concurrent deliveries on the same row.
+    """
+    if webhook_key in _PER_ENTITY_KEYS and entity_id is None:
+        logger.warning(
+            "pr_metrics.attribution.missing_entity_id",
+            extra={"pull_request_id": pull_request.id, "webhook_key": webhook_key},
+        )
+        return None
+
+    with transaction.atomic(using=router.db_for_write(PullRequestAttribution)):
+        try:
+            attr = PullRequestAttribution.objects.select_for_update().get(
+                pull_request=pull_request,
+                signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
+                source=PullRequestAttributionSource.WEBHOOK_DATA,
+            )
+            details = normalize_signal_details(attr.signal_details)
+        except PullRequestAttribution.DoesNotExist:
+            attr = None
+            details = {}
+
+        if entity_id is not None:
+            current = details.get(webhook_key) or {}
+            if not isinstance(current, dict):
+                current = {}
+            if group_ids:
+                current[entity_id] = group_ids
+            else:
+                current.pop(entity_id, None)
+            details[webhook_key] = current
+        else:
+            details[webhook_key] = group_ids
+
+        is_valid = is_referenced_issue_valid(details)
+
+        if attr is None:
+            # Skip creation when nothing is being tracked yet — the row only
+            # needs to exist once at least one webhook source has references.
+            if not is_valid:
+                return None
+            try:
+                with transaction.atomic(using=router.db_for_write(PullRequestAttribution)):
+                    return PullRequestAttribution.objects.create(
+                        pull_request=pull_request,
+                        signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
+                        source=PullRequestAttributionSource.WEBHOOK_DATA,
+                        signal_details=details,
+                        is_valid=is_valid,
+                    )
+            except IntegrityError:
+                pass  # concurrent create won the race — row already exists
+            return None
+
+        attr.signal_details = details
+        attr.is_valid = is_valid
+        attr.save(update_fields=["signal_details", "is_valid", "date_updated"])
+        return attr
 
 
 def recompute_pull_request_attribution(pull_request: PullRequest) -> str | None:

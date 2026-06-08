@@ -144,7 +144,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
         )
         assert attr.signal_details is not None
-        assert set(attr.signal_details["group_ids"]) == {group1.id, group2.id}
+        assert set(attr.signal_details["pr_body"]) == {group1.id, group2.id}
         assert attr.is_valid is True
 
     def test_redelivery_revives_invalidated_signal(self) -> None:
@@ -169,7 +169,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
         )
         assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
-        assert attr.signal_details == {"group_ids": [group.id]}
+        assert attr.signal_details == {"pr_body": [group.id]}
 
     def test_referenced_issue_group_ids_are_sorted(self) -> None:
         group1 = self.create_group(project=self.project)
@@ -184,7 +184,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
         )
         assert attr.signal_details is not None
-        stored_ids = attr.signal_details["group_ids"]
+        stored_ids = attr.signal_details["pr_body"]
         assert stored_ids == sorted(stored_ids)
         assert set(stored_ids) == {group1.id, group2.id}
 
@@ -228,7 +228,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
         )
         assert attr.signal_details is not None
-        assert set(attr.signal_details["group_ids"]) == {group.id, group2.id}
+        assert set(attr.signal_details["pr_body"]) == {group.id, group2.id}
         assert attr.is_valid is True
 
     def test_edited_with_body_change_refreshes_referenced_issue_attribution(self) -> None:
@@ -249,7 +249,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
             signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
         )
         assert attr.signal_details is not None
-        assert set(attr.signal_details["group_ids"]) == {group.id, group2.id}
+        assert set(attr.signal_details["pr_body"]) == {group.id, group2.id}
 
     def test_edited_without_description_change_skips_refresh(self) -> None:
         group = self.create_group(project=self.project)
