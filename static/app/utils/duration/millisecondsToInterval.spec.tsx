@@ -1,66 +1,18 @@
-import {
-  millisecondsToClosestInterval,
-  millisecondsToInterval,
-} from 'sentry/utils/duration/millisecondsToInterval';
-
-describe('millisecondsToInterval()', () => {
-  it('converts to the largest even unit', () => {
-    expect(millisecondsToInterval(604800000)).toBe('1w');
-    expect(millisecondsToInterval(86400000)).toBe('1d');
-    expect(millisecondsToInterval(3600000)).toBe('1h');
-    expect(millisecondsToInterval(60000)).toBe('1m');
-    expect(millisecondsToInterval(1000)).toBe('1s');
-  });
-
-  it('handles multiples of a unit', () => {
-    expect(millisecondsToInterval(1209600000)).toBe('2w');
-    expect(millisecondsToInterval(172800000)).toBe('2d');
-    expect(millisecondsToInterval(14400000)).toBe('4h');
-    expect(millisecondsToInterval(1800000)).toBe('30m');
-    expect(millisecondsToInterval(5000)).toBe('5s');
-    expect(millisecondsToInterval(30000)).toBe('30s');
-  });
-
-  it('prefers larger units when value divides evenly into multiple', () => {
-    // 24h is evenly divisible by both hours and minutes, should return days
-    expect(millisecondsToInterval(86400000)).toBe('1d');
-    // 2h is evenly divisible by both hours and minutes, should return hours
-    expect(millisecondsToInterval(7200000)).toBe('2h');
-  });
-
-  it('is the inverse of intervalToMilliseconds for supported formats', () => {
-    // Round-trips from the intervalToMilliseconds spec
-    expect(millisecondsToInterval(86400000)).toBe('1d');
-    expect(millisecondsToInterval(604800000)).toBe('1w');
-    expect(millisecondsToInterval(1800000)).toBe('30m');
-    expect(millisecondsToInterval(900000)).toBe('15m');
-    expect(millisecondsToInterval(300000)).toBe('5m');
-    expect(millisecondsToInterval(60000)).toBe('1m');
-  });
-
-  it('returns undefined for values that do not divide evenly', () => {
-    expect(millisecondsToInterval(1500)).toBeUndefined(); // 1.5s
-    expect(millisecondsToInterval(999)).toBeUndefined(); // sub-second
-    expect(millisecondsToInterval(2500)).toBeUndefined(); // 2.5s
-  });
-
-  it('returns undefined for invalid inputs', () => {
-    expect(millisecondsToInterval(0)).toBeUndefined();
-    expect(millisecondsToInterval(-3600000)).toBeUndefined();
-    expect(millisecondsToInterval(Infinity)).toBeUndefined();
-  });
-});
+import {millisecondsToClosestInterval} from 'sentry/utils/duration/millisecondsToInterval';
 
 describe('millisecondsToClosestInterval()', () => {
   it('returns exact interval strings for valid granularities', () => {
     expect(millisecondsToClosestInterval(15_000)).toBe('15s');
     expect(millisecondsToClosestInterval(30_000)).toBe('30s');
     expect(millisecondsToClosestInterval(60_000)).toBe('1m');
+    expect(millisecondsToClosestInterval(2 * 60_000)).toBe('2m');
     expect(millisecondsToClosestInterval(5 * 60_000)).toBe('5m');
+    expect(millisecondsToClosestInterval(10 * 60_000)).toBe('10m');
+    expect(millisecondsToClosestInterval(15 * 60_000)).toBe('15m');
     expect(millisecondsToClosestInterval(30 * 60_000)).toBe('30m');
     expect(millisecondsToClosestInterval(3600_000)).toBe('1h');
     expect(millisecondsToClosestInterval(6 * 3600_000)).toBe('6h');
-    expect(millisecondsToClosestInterval(24 * 3600_000)).toBe('24h');
+    expect(millisecondsToClosestInterval(24 * 3600_000)).toBe('1d');
   });
 
   it('rounds to the nearest interval when between two valid granularities', () => {
@@ -86,13 +38,55 @@ describe('millisecondsToClosestInterval()', () => {
   });
 
   it('clamps to the largest valid interval for values above the maximum', () => {
-    expect(millisecondsToClosestInterval(48 * 3600_000)).toBe('24h');
-    expect(millisecondsToClosestInterval(7 * 86400_000)).toBe('24h');
+    expect(millisecondsToClosestInterval(48 * 3600_000)).toBe('1d');
+    expect(millisecondsToClosestInterval(7 * 86400_000)).toBe('1d');
   });
 
   it('returns undefined for invalid inputs', () => {
     expect(millisecondsToClosestInterval(0)).toBeUndefined();
     expect(millisecondsToClosestInterval(-60_000)).toBeUndefined();
     expect(millisecondsToClosestInterval(Infinity)).toBeUndefined();
+  });
+
+  describe('availableIntervals option', () => {
+    const availableIntervals = [
+      {label: '1 minute', value: '1m'},
+      {label: '5 minutes', value: '5m'},
+      {label: '1 hour', value: '1h'},
+    ];
+
+    it('restricts selection to the provided available intervals', () => {
+      // 90s is closer to 1m (diff=30s) than to 15s (diff=75s) among available intervals
+      expect(millisecondsToClosestInterval(90_000, {availableIntervals})).toBe('1m');
+      // 3m is equidistant between 1m and 5m — ties go to larger
+      expect(millisecondsToClosestInterval(3 * 60_000, {availableIntervals})).toBe('5m');
+      // exact match still works
+      expect(millisecondsToClosestInterval(5 * 60_000, {availableIntervals})).toBe('5m');
+    });
+
+    it('clamps to the first available interval for values below the minimum', () => {
+      expect(millisecondsToClosestInterval(1_000, {availableIntervals})).toBe('1m');
+    });
+
+    it('clamps to the last available interval for values above the maximum', () => {
+      expect(millisecondsToClosestInterval(48 * 3600_000, {availableIntervals})).toBe(
+        '1h'
+      );
+    });
+  });
+
+  describe('useNextInterval option', () => {
+    it('returns the next interval >= ms instead of the closest', () => {
+      // 20s is between 15s and 30s — useNextInterval returns 30s
+      expect(millisecondsToClosestInterval(20_000, {useNextInterval: true})).toBe('30s');
+      // 4m is between 2m and 5m — useNextInterval returns 5m
+      expect(millisecondsToClosestInterval(4 * 60_000, {useNextInterval: true})).toBe(
+        '5m'
+      );
+      // exact match returns itself
+      expect(millisecondsToClosestInterval(5 * 60_000, {useNextInterval: true})).toBe(
+        '5m'
+      );
+    });
   });
 });

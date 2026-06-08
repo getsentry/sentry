@@ -180,10 +180,11 @@ export function MetricPanel({
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const {width: chartContainerWidth} = useDimensions({elementRef: chartContainerRef});
-  const xBucketInterval = getHeatmapXBuckets(
+  const xBucketInterval = getHeatmapXBucketInterval(
     selection,
     interval,
     chartContainerWidth,
+    intervalOptions,
     false
   );
   const yBuckets = getHeatmapYBuckets(selection, xBucketInterval, chartContainerWidth);
@@ -271,7 +272,7 @@ export function MetricPanel({
         onChange={option => handleChartTypeChange(option.value)}
       />
       <CompactSelect
-        value={interval}
+        value={isHeatmap ? xBucketInterval : interval}
         disabled={isHeatmap}
         onChange={({value}) => setInterval(value)}
         trigger={triggerProps => (
@@ -424,20 +425,23 @@ function getHeatmapYBuckets(
  * The X-axis bucket interval is derived from the container width and the number of
  * pixels per X bucket.
  */
-function getHeatmapXBuckets(
+function getHeatmapXBucketInterval(
   selection: PageFilters,
   interval: string,
   chartContainerWidth: number,
+  intervalOptions: Array<{label: string; value: string}>,
   useInterval?: boolean
 ): string {
   if (useInterval) {
     return interval;
   }
   const timeRangeInMs = getDiffInMinutes(selection.datetime) * 60 * 1000;
-  const msPerXBucket = Math.floor(
+  const msPerXBucket = Math.round(
     timeRangeInMs / (chartContainerWidth / PIXELS_PER_X_BUCKET)
   );
-  const xBucketInterval = millisecondsToClosestInterval(msPerXBucket);
+  const xBucketInterval = millisecondsToClosestInterval(msPerXBucket, {
+    availableIntervals: intervalOptions,
+  });
   if (!xBucketInterval) {
     return interval;
   }

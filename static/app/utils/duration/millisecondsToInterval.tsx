@@ -1,30 +1,3 @@
-const UNITS: Array<[string, number]> = [
-  ['w', 604800000],
-  ['d', 86400000],
-  ['h', 3600000],
-  ['m', 60000],
-  ['s', 1000],
-];
-
-/**
- * Convert a millisecond value to an interval string (e.g. 3600000 → "1h").
- * Picks the largest unit where the value divides evenly.
- * Returns undefined if the value is not a positive multiple of any supported unit.
- */
-export function millisecondsToInterval(ms: number): string | undefined {
-  if (ms <= 0 || !Number.isFinite(ms)) {
-    return undefined;
-  }
-
-  for (const [unit, multiplier] of UNITS) {
-    if (ms % multiplier === 0) {
-      return `${ms / multiplier}${unit}`;
-    }
-  }
-
-  return undefined;
-}
-
 /**
  * A list of valid interval durations in milliseconds corresponding to the interval strings.
  * These values are copied from VALID_GRANULARITIES in src/sentry/search/eap/constants.py
@@ -45,22 +18,36 @@ const VALID_INTERVALS: Array<[number, string]> = [
   [4 * 3600 * 1000, '4h'],
   [6 * 3600 * 1000, '6h'],
   [12 * 3600 * 1000, '12h'],
-  [24 * 3600 * 1000, '24h'],
+  [24 * 3600 * 1000, '1d'],
 ];
+
+type MillisecondsToClosestIntervalOptions = {
+  availableIntervals?: Array<{label: string; value: string}>;
+  useNextInterval?: boolean;
+};
 
 /**
  * Converts a millisecond value to the closest valid interval string.
  * If the milliseconds value is not one of the exact valid interval durations,
  * it will return the closest valid interval string.
  */
-export function millisecondsToClosestInterval(ms: number): string | undefined {
+export function millisecondsToClosestInterval(
+  ms: number,
+  options?: MillisecondsToClosestIntervalOptions
+): string | undefined {
   if (ms <= 0 || !Number.isFinite(ms)) {
     return undefined;
   }
   if (ms < VALID_INTERVALS[0]![0]) {
+    if (options?.availableIntervals) {
+      return options.availableIntervals[0]?.value;
+    }
     return VALID_INTERVALS[0]![1];
   }
   if (ms >= VALID_INTERVALS[VALID_INTERVALS.length - 1]![0]) {
+    if (options?.availableIntervals) {
+      return options.availableIntervals[options.availableIntervals.length - 1]?.value;
+    }
     return VALID_INTERVALS[VALID_INTERVALS.length - 1]![1];
   }
 
@@ -69,6 +56,24 @@ export function millisecondsToClosestInterval(ms: number): string | undefined {
   let smallestDiff = Math.abs(ms - VALID_INTERVALS[0]![0]);
 
   for (const [intervalDurationInMs, interval] of VALID_INTERVALS) {
+    // want to make sure the interval available in the options presented if needed
+    if (options?.availableIntervals) {
+      if (
+        !options.availableIntervals.some(
+          availableInterval => availableInterval.value === interval
+        )
+      ) {
+        continue;
+      }
+    }
+
+    // use the next biggest interval instead of the closest one in case we want to default to a larger interval
+    if (options?.useNextInterval) {
+      if (intervalDurationInMs >= ms) {
+        return interval;
+      }
+    }
+
     const diff = Math.abs(ms - intervalDurationInMs);
     if (diff <= smallestDiff) {
       smallestDiff = diff;
