@@ -43,14 +43,15 @@ TRACE_METRICS_GUIDANCE = """When generating widgets with `widget_type: "tracemet
     - Equations let you combine aggregates with arithmetic (+, -, *, /).
     - Numeric literals (e.g. `100`, `1000`) are valid operands.
     - Strictly only for the 'tracemetrics' widget_type, the following rules about equations apply:
-        - Each operand in the equation must be a valid 4-argument tracemetric aggregate.
-        - Format: `equation|<agg1> <op> <agg2>` where each agg uses the 4-arg form.
+        - Each aggregate operand in the equation must be a valid 4-argument tracemetric aggregate. Numeric literals are also valid operands.
+        - Equations are arbitrary arithmetic expressions — you can chain any number of operands: `equation|<agg1> <op> <agg2> <op> <agg3> ...`
         - Operators: `+` (plus), `-` (minus), `*` (multiply), `/` (divide).
-        - Parentheses are supported for grouping: `equation|(agg1 + agg2) / agg3`.
+        - Parentheses are supported for grouping and controlling precedence: `equation|(agg1 + agg2) / (agg3 - agg4)`.
         - Examples:
             - `equation|sum(value, my.app.requests, counter, none) / sum(value, my.app.errors, counter, none)`
             - `equation|p95(value, my.app.latency, distribution, milliseconds) - p50(value, my.app.latency, distribution, milliseconds)`
             - `equation|avg(value, my.app.cpu, gauge, percent) * 100`
+            - `equation|(sum(value, my.app.requests, counter, none) - sum(value, my.app.errors, counter, none)) / sum(value, my.app.requests, counter, none) * 100`
         - All aggregate functions support an `_if` variant that takes a backtick-wrapped search query as the first argument, followed by the standard 4 arguments (5 args total)
             - For example, `equation|sum_if(`environment:prod`, value, my.app.errors, counter, none) / sum_if(`environment:prod`, value, my.app.requests, counter, none)`
         - An equation for tracemetrics must be the only entry in the `aggregates` array for a query (the frontend does not support rendering equations alongside aggregates).
