@@ -4,8 +4,6 @@
  * Before a type is put here it should be required in multiple other types.
  * or used in multiple views.
  */
-import type {getInterval} from 'sentry/components/charts/utils';
-
 export type {Scope} from 'sentry/constants/scopes';
 export {DataCategory, DataCategoryExact} from 'sentry/types/dataCategory';
 export type {DataCategoryInfo} from 'sentry/types/dataCategory';
@@ -63,8 +61,6 @@ export enum Outcome {
   CARDINALITY_LIMITED = 'cardinality_limited',
   DROPPED = 'dropped', // this is not a real outcome coming from the server
 }
-
-export type IntervalPeriod = ReturnType<typeof getInterval>;
 
 /**
  * Represents a pinned page filter sentinel value

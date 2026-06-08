@@ -1,9 +1,10 @@
 import moment from 'moment-timezone';
 
 import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
-import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
+import type {DataCategory} from 'sentry/types/core';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import type {IntervalPeriod} from 'sentry/views/organizationStats/types';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 /**
