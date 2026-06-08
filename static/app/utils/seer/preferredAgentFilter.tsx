@@ -1,5 +1,4 @@
 import {queryOptions} from '@tanstack/react-query';
-import {parseAsStringEnum} from 'nuqs';
 
 import {
   CodingAgentProvider,

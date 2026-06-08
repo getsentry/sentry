@@ -22,34 +22,33 @@ export default function SeerAutomationProjects() {
   return (
     <AnalyticsArea name="projects">
       <SentryDocumentTitle title={t('Autofix')} />
-      <Stack gap="lg" flex="1" minHeight="0" contain="size">
-        <SettingsPageHeader
-          title={t('Autofix')}
-          action={
-            <LinkButton
-              size="sm"
-              icon={<IconSettings />}
-              to={{
-                pathname: `/settings/${organization.slug}/seer/projects/defaults/`,
-                query: location.query,
-              }}
-            >
-              {t('Defaults')}
-            </LinkButton>
+      <SettingsPageHeader
+        title={t('Autofix')}
+        action={
+          <LinkButton
+            size="sm"
+            icon={<IconSettings />}
+            to={{
+              pathname: `/settings/${organization.slug}/seer/projects/defaults/`,
+              query: location.query,
+            }}
+          >
+            {t('Defaults')}
+          </LinkButton>
+        }
+        subtitle={tct(
+          'Configure [rca:Autofix] by connecting your repositories with projects. Connecting your source code is required and gives the coding agent context for Root Cause Analysis, Solution generation, and PR creation. Enable Autofix Handoff to automatically process and fix actionable issues as they are detected. [docs:Read the docs] to learn what Seer can do.',
+          {
+            rca: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis" />
+            ),
+            docs: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
+            ),
           }
-          subtitle={tct(
-            'Configure [rca:Autofix] by connecting your repositories with projects. Connecting your source code is required and gives the coding agent context for Root Cause Analysis, Solution generation, and PR creation. Enable Autofix Handoff to automatically process and fix actionable issues as they are detected. [docs:Read the docs] to learn what Seer can do.',
-            {
-              rca: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis" />
-              ),
-              docs: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
-              ),
-            }
-          )}
-        />
-
+        )}
+      />
+      <Stack gap="lg" flex="1" minHeight="0" contain="size">
         <SeerSettingsPageBanners />
         <SeerProjectTable />
       </Stack>
