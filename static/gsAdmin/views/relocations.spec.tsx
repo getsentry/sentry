@@ -2,15 +2,12 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {Config} from 'sentry/types/system';
 
 import {Relocations} from 'admin/views/relocations';
 
 jest.mock('sentry/actionCreators/indicator');
 
 describe('Relocations', () => {
-  let configState: Config;
-
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/relocations/',
@@ -137,15 +134,9 @@ describe('Relocations', () => {
         },
       ],
     });
-    configState = ConfigStore.getState();
-
     ConfigStore.set('cells', [
       {name: 'us', locality_url: 'https://us.sentry.io', visible: true},
     ]);
-  });
-
-  afterEach(() => {
-    ConfigStore.loadInitialData(configState);
   });
 
   it('renders', async () => {
