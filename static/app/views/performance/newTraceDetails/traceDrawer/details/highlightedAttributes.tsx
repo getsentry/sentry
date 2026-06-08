@@ -18,6 +18,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiAgentSpan,
   getToolSpansFilter,
@@ -166,7 +167,7 @@ function getAISpanAttributes({
                 {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
               )}
             >
-              <LLMCosts cost={totalCosts.toString()} />
+              {formatLLMCosts(totalCosts.toString())}
             </InfoText>
           </Flex>
         ) : (
