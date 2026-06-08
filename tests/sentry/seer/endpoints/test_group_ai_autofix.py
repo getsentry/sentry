@@ -2,12 +2,8 @@ import uuid
 from unittest.mock import Mock, patch
 
 from sentry.issues.action_log.types import TriggerAutofixAction
-from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
-from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
-    NoSeerQuotaException,
-    PrIterationNoPullRequestException,
-)
+from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
+from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
@@ -283,10 +279,22 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_publish.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_pr_iteration(self, mock_trigger_explorer):
+    def test_pr_iteration(self, mock_trigger_explorer, mock_get_state):
         group = self.create_group()
         mock_trigger_explorer.return_value = 123
+        mock_get_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
+                )
+            },
+        )
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -347,10 +355,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_pr_iteration_requires_existing_pr(self, mock_trigger_explorer):
+    def test_pr_iteration_requires_existing_pr(self, mock_trigger_explorer, mock_get_state):
         group = self.create_group()
-        mock_trigger_explorer.side_effect = PrIterationNoPullRequestException()
+        mock_get_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -360,7 +374,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400, response.data
-        mock_trigger_explorer.assert_called_once()
+        mock_trigger_explorer.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer):
