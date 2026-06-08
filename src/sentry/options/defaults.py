@@ -1,5 +1,6 @@
 import os
 
+from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
@@ -45,6 +46,10 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
+# Read internally via the SENTRY_LOGGING_FORMAT Django setting, which
+# options_mapper populates from this option (see sentry.runner.initializer).
+# Registration supplies the default that gets promoted into the setting.
+register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
