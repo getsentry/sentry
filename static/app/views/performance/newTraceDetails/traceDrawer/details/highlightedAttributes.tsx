@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
@@ -12,6 +12,7 @@ import {ExternalLink} from 'sentry/components/links/externalLink';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -295,7 +296,9 @@ function HighlightedTools({
   const hasToolNames = toolNames.length > 0;
   const toolSpansQuery = useSpans(
     {
-      search: `parent_span:${spanId} has:${SpanFields.GEN_AI_TOOL_NAME} ${getToolSpansFilter()}`,
+      search: `parent_span:${spanId} has:${
+        SpanFields.GEN_AI_TOOL_NAME
+      } ${getToolSpansFilter()}`,
       fields: [SpanFields.GEN_AI_TOOL_NAME],
       enabled: hasToolNames,
     },
@@ -364,29 +367,24 @@ function HighlightedTokenAttributes({
 
   const hasCached = breakdown.cached > 0;
 
-  const tokenSummary = (
-    <Fragment>
-      <Container as="span" display="inline-block">
-        <Count value={breakdown.netNewInput} /> {t('in')}
-      </Container>
+  const abbr = formatAbbreviatedNumber;
+  const tokenSummary = `${abbr(breakdown.netNewInput)} ${t('in')}${hasCached ? ` + ${abbr(breakdown.cached)} ${t('cached')}` : ''} + ${abbr(breakdown.output)} ${t('out')} = ${abbr(breakdown.total)} ${t('total')}`;
+
+  const breakdownTooltip = (
+    <TokensTooltipTitle>
+      <span>{t('Input')}</span>
+      <span>{breakdown.netNewInput.toLocaleString()}</span>
       {hasCached && (
         <Fragment>
-          {' '}
-          <Container as="span" display="inline-block">
-            {' + '}
-            <Count value={breakdown.cached} /> {t('cached')}
-          </Container>
+          <span>{t('Cached')}</span>
+          <span>{breakdown.cached.toLocaleString()}</span>
         </Fragment>
-      )}{' '}
-      <Container as="span" display="inline-block">
-        {' + '}
-        <Count value={breakdown.output} /> {t('out')}
-      </Container>{' '}
-      <Container as="span" display="inline-block">
-        {' = '}
-        <Count value={breakdown.total} /> {t('total')}
-      </Container>
-    </Fragment>
+      )}
+      <span>{t('Output')}</span>
+      <span>{breakdown.output.toLocaleString()}</span>
+      <span>{t('Total')}</span>
+      <span>{breakdown.total.toLocaleString()}</span>
+    </TokensTooltipTitle>
   );
 
   if (mismatch) {
@@ -406,28 +404,7 @@ function HighlightedTokenAttributes({
     );
   }
 
-  return (
-    <Tooltip
-      title={
-        <TokensTooltipTitle>
-          <span>{t('Input')}</span>
-          <span>{breakdown.netNewInput.toLocaleString()}</span>
-          {hasCached && (
-            <Fragment>
-              <span>{t('Cached')}</span>
-              <span>{breakdown.cached.toLocaleString()}</span>
-            </Fragment>
-          )}
-          <span>{t('Output')}</span>
-          <span>{breakdown.output.toLocaleString()}</span>
-          <span>{t('Total')}</span>
-          <span>{breakdown.total.toLocaleString()}</span>
-        </TokensTooltipTitle>
-      }
-    >
-      <TokensSpan>{tokenSummary}</TokensSpan>
-    </Tooltip>
-  );
+  return <InfoText title={breakdownTooltip}>{tokenSummary}</InfoText>;
 }
 
 function HighlightedContextUtilization({
