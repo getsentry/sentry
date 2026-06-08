@@ -28,6 +28,7 @@ import type {
   EChartDataZoomHandler,
   EChartDownplayHandler,
   EChartHighlightHandler,
+  ECharts,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';
@@ -420,7 +421,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 
   const handleChartReady = useCallback(
-    (instance: echarts.ECharts) => {
+    (instance: ECharts) => {
       onChartReadyZoom(instance);
       unregisterRef.current?.();
       unregisterRef.current = registerWithWidgetSyncContext(instance);
