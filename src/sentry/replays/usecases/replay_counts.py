@@ -9,7 +9,7 @@ from typing import Any, Literal, Protocol, overload
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover, errors, issue_platform, transactions
 from sentry.snuba.dataset import Dataset
@@ -73,7 +73,7 @@ def get_replay_counts(
         raise ValueError("Must provide start and end")
 
     if not isinstance(data_source, Dataset):
-        if data_source == "spans":
+        if data_source == SupportedTraceItemType.SPANS.value:
             data_source = Dataset.EventsAnalyticsPlatform
         else:
             data_source = Dataset(data_source)

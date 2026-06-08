@@ -22,6 +22,7 @@ from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.replays.permissions import has_replay_permission
 from sentry.replays.usecases.replay_counts import get_replay_counts
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -34,7 +35,7 @@ class ReplayCountQueryParamsValidator(serializers.Serializer):
             Dataset.Events.value,
             Dataset.Transactions.value,
             Dataset.IssuePlatform.value,
-            "spans",
+            SupportedTraceItemType.SPANS.value,
         ),
         default=Dataset.Discover.value,
     )
