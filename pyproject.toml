@@ -390,7 +390,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "sentry.search.events.datasets.filter_aliases",
-    "sentry.snuba.metrics.query_builder",
     "sentry.testutils.cases",
 ]
 disable_error_code = [
