@@ -7,7 +7,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE, MIXED_SLUG_REGEX
 
 ProjectIdOrSlug: TypeAlias = int | str
@@ -20,6 +20,10 @@ class ParsedProjectIdOrSlugParams(NamedTuple):
     @property
     def has_values(self) -> bool:
         return bool(self.ids or self.slugs)
+
+    @property
+    def has_all_projects_sentinel(self) -> bool:
+        return ALL_ACCESS_PROJECT_ID in self.ids or ALL_ACCESS_PROJECTS_SLUG in self.slugs
 
 
 def _is_int_string(value: str) -> bool:

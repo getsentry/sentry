@@ -40,6 +40,11 @@ class TestParseIdOrSlugParams:
         assert params.ids == set()
         assert params.slugs == {"$all"}
 
+    def test_detects_all_access_sentinels(self) -> None:
+        assert parse_id_or_slug_params(["-1"]).has_all_projects_sentinel
+        assert parse_id_or_slug_params(["$all"]).has_all_projects_sentinel
+        assert not parse_id_or_slug_params(["1", "my-project"]).has_all_projects_sentinel
+
     def test_deduplication(self) -> None:
         params = parse_id_or_slug_params(["1", "1", "foo", "foo"])
         assert params.ids == {1}

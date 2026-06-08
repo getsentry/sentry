@@ -165,6 +165,8 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             except ValidationError:
                 return Response({"detail": "Invalid project parameter"}, status=400)
             requested_project = parse_id_or_slug_params([project_id_or_slug])
+            if requested_project.has_all_projects_sentinel:
+                return Response({"detail": "Invalid project parameter"}, status=400)
             if requested_project.ids:
                 project_id = next(iter(requested_project.ids))
             elif requested_project.slugs:

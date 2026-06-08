@@ -906,6 +906,26 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         assert response.data["project_slug"] == "other-project"
         mock_get_session.assert_called_once_with(self.org.id, other_project.id)
 
+    def test_get_latest_base_snapshot_rejects_all_project_id_sentinel(self):
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "project": "-1"},
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project parameter"
+
+    def test_get_latest_base_snapshot_rejects_all_project_slug_sentinel(self):
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.get(
+                self._get_url(),
+                {"app_id": "com.example.app", "project": "$all"},
+            )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project parameter"
+
 
 class ProjectPreprodSnapshotDeleteTest(APITestCase):
     def setUp(self) -> None:

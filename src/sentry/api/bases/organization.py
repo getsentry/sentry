@@ -21,7 +21,7 @@ from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
@@ -402,19 +402,19 @@ class OrganizationEndpoint(Endpoint):
 
         query_slugs = set(filter(None, request.GET.getlist("projectSlug")))
         if project_ids is not None:
-            ids = project_ids
-            slugs: set[str] = set()
+            requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())
         elif project_slugs or query_slugs:
             # Preserve existing projectSlug behavior: explicit slug filters take
             # precedence over the project query param.
-            ids = set()
-            slugs = set(project_slugs or query_slugs)
+            requested_projects = ParsedProjectIdOrSlugParams(
+                ids=set(), slugs=set(project_slugs or query_slugs)
+            )
         else:
             requested_projects = self.get_requested_project_ids_and_slugs_unchecked(request)
-            ids = requested_projects.ids
-            slugs = requested_projects.slugs
+        ids = requested_projects.ids
+        slugs = requested_projects.slugs
 
-        if ALL_ACCESS_PROJECT_ID in ids or ALL_ACCESS_PROJECTS_SLUG in slugs:
+        if requested_projects.has_all_projects_sentinel:
             include_all_accessible = True
         elif ids and slugs:
             qs = qs.filter(Q(id__in=ids) | Q(slug__in=slugs))

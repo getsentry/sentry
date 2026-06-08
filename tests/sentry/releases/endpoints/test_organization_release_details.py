@@ -174,6 +174,38 @@ class ReleaseDetailsTest(APITestCase):
         response = self.client.get(url, {"project": no_access_project.id})
         assert response.status_code in (403, 404)
 
+    def test_all_project_id_sentinel_is_rejected(self) -> None:
+        release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
+        release.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+        self.login_as(user=self.user1)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "version": release.version},
+        )
+
+        response = self.client.get(url, {"project": "-1"})
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project"
+
+    def test_all_project_slug_sentinel_is_rejected(self) -> None:
+        release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
+        release.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+        self.login_as(user=self.user1)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "version": release.version},
+        )
+
+        response = self.client.get(url, {"project": "$all"})
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid project"
+
     def test_correct_project_contains_current_project_meta(self) -> None:
         """
         Test that shows when correct project id is passed to the request, `sessionsLowerBound`,

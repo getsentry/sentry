@@ -371,7 +371,7 @@ class OrganizationReleaseDetailsEndpoint(
             except ValidationError:
                 raise ParseError(detail="Invalid project")
             requested_project = parse_id_or_slug_params([project_id_or_slug])
-            if not requested_project.has_values:
+            if not requested_project.has_values or requested_project.has_all_projects_sentinel:
                 raise ParseError(detail="Invalid project")
             validated_projects = self.get_projects(
                 request,
