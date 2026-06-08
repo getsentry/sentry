@@ -1,4 +1,4 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,6 +14,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import SentryAppParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
@@ -38,18 +39,25 @@ class PlatformExternalIssueSerializer(serializers.Serializer):
     )
 
 
+class PlatformExternalIssueRequestSerializer(PlatformExternalIssueSerializer):
+    issueId = serializers.IntegerField(
+        help_text="The ID of the Sentry issue to link the external issue to."
+    )
+
+
 @extend_schema(tags=["Integration"])
 @control_silo_endpoint
 class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
-        operation_id="Create an External Issue",
+        operation_id="Create or update an External Issue",
+        description="Create or update an external issue from an integration platform integration.",
         parameters=[SentryAppParams.INSTALLATION_UUID],
-        request=PlatformExternalIssueSerializer,
+        request=PlatformExternalIssueRequestSerializer,
         responses={
             200: inline_sentry_response_serializer(
                 "PlatformExternalIssueResponse", PlatformExternalIssueSerializerResponse
@@ -59,12 +67,38 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=[
+            OpenApiExample(
+                "Create or update an external issue",
+                value={
+                    "issueId": 1,
+                    "webUrl": "https://somerandom.io/project/issue-id",
+                    "project": "ExternalProj",
+                    "identifier": "issue-1",
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "External issue response",
+                value={
+                    "id": "1",
+                    "issueId": "1",
+                    "serviceType": "testing",
+                    "displayName": "ExternalProj#issue-1",
+                    "webUrl": "https://somerandom.io/project/issue-id",
+                },
+                status_codes=["200"],
+                response_only=True,
+            ),
+        ],
     )
-    def post(self, request: Request, installation) -> Response:
-        """
-        Link a Sentry issue to a resource in an external service through a custom
-        integration (Sentry App) installation.
-        """
+    def post(
+        self, request: Request, installation
+    ) -> (
+        Response[PlatformExternalIssueSerializerResponse]
+        | Response[DetailResponse]
+        | Response[dict[str, object]]
+    ):
         data = request.data
 
         serializer = PlatformExternalIssueSerializer(data=request.data)
