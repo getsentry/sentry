@@ -2812,6 +2812,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.sentry_apps.api.endpoints",
     "sentry.preprod.api.endpoints",
     "sentry.workflow_engine.endpoints",
+    "sentry.feedback.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
