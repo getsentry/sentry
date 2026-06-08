@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-from typing import Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
@@ -27,6 +26,7 @@ from sentry.snuba.outcomes import (
     COLUMN_MAP,
     GROUPBY_MAP,
     QueryDefinition,
+    StatsApiResponse,
     massage_outcomes_result,
     run_outcomes_query_timeseries,
     run_outcomes_query_totals,
@@ -139,19 +139,6 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
 
-class _StatsGroup(TypedDict):  # this response is pretty dynamic, leaving generic
-    by: dict[str, Any]
-    totals: dict[str, Any]
-    series: dict[str, Any]
-
-
-class StatsApiResponse(TypedDict):
-    start: str
-    end: str
-    intervals: list[str]
-    groups: list[_StatsGroup]
-
-
 @extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationStatsEndpointV2(OrganizationEndpoint):
@@ -182,7 +169,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_EVENT_COUNTS_V2,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[StatsApiResponse]:
         """
         Query event counts for your Organization.
         Select a field, define a date range, and group or filter by columns.
