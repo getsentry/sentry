@@ -789,6 +789,25 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert self.published_app.webhook_headers == ["Authorization: Bearer secret-token"]
 
     @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_masked_value_preserved_alongside_new_header(self) -> None:
+        self.published_app.webhook_headers = ["Authorization: Bearer secret-token"]
+        self.published_app.save()
+
+        # The form prefills the existing header as masked and the user adds a new one.
+        # Re-pair the masked entry to its stored secret while appending the new header,
+        # preserving submission order.
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[f"Authorization: {MASKED_VALUE}", "X-New: fresh-value"],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == [
+            "Authorization: Bearer secret-token",
+            "X-New: fresh-value",
+        ]
+
+    @override_options({"staff.ga-rollout": True})
     def test_clear_webhook_headers(self) -> None:
         self.published_app.webhook_headers = ["X-Example: value"]
         self.published_app.save()
