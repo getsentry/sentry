@@ -676,6 +676,32 @@ LIMIT 21`;
       expect(result).toContain('**Path Parameters:** /users/*');
     });
 
+    it('derives N+1 API query params from spans when evidenceData lacks them', () => {
+      const apiGroup = GroupFixture({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+      });
+      // No evidenceData.parameters — mirror the UI fallback that derives the
+      // changing query params from the offending spans' URLs.
+      const spans = [1, 2, 3].map(id => ({
+        span_id: `s${id}`,
+        op: 'http.client',
+        description: `GET https://api.example.com/users?id=${id}`,
+      }));
+      const apiEvent = EventFixture({
+        ...event,
+        occurrence: {
+          type: 1010,
+          evidenceData: {offenderSpanIds: spans.map(s => s.span_id)},
+          evidenceDisplay: [],
+        },
+        entries: [{type: EntryType.SPANS, data: spans}],
+      });
+
+      const result = formatSpanEvidenceToMarkdown(apiEvent, organization, apiGroup);
+      expect(result).toContain('**Query Parameters:** id:{1,2,3}');
+    });
+
     it('includes vulnerable parameters and request URL for query injection issues', () => {
       const injectionGroup = GroupFixture({
         issueCategory: IssueCategory.PERFORMANCE,

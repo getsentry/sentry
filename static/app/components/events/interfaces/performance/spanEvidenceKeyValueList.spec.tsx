@@ -11,11 +11,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {EventTransaction} from 'sentry/types/event';
 import {IssueType} from 'sentry/types/group';
 
-import {
-  extractQueryParameters,
-  extractSpanURLString,
-  SpanEvidenceKeyValueList,
-} from './spanEvidenceKeyValueList';
+import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
+import {extractQueryParameters, extractSpanURLString} from './spanMetrics';
 
 describe('SpanEvidenceKeyValueList', () => {
   const projectSlug = 'project';

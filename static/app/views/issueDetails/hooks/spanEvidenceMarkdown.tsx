@@ -3,11 +3,17 @@ import {
   keyValueListDataToMarkdownLines,
 } from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {
+  formatChangingQueryParameters,
   getSpanDuration,
   getSpanFieldBytes,
 } from 'sentry/components/events/interfaces/performance/spanMetrics';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
-import type {Event, EventTransaction} from 'sentry/types/event';
+import {
+  EntryType,
+  type EntryRequest,
+  type Event,
+  type EventTransaction,
+} from 'sentry/types/event';
 import {
   AI_DETECTED_ISSUE_TYPES,
   type Group,
@@ -220,7 +226,16 @@ function formatIssueTypeMetrics(
       break;
     }
     case IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS: {
-      pushList(lines, 'Query Parameters', evidenceData.parameters ?? []);
+      // Mirror the UI: fall back to deriving changing query params from the
+      // offending HTTP spans when the backend didn't provide them.
+      const baseURL = event.entries?.find(
+        (entry): entry is EntryRequest => entry.type === EntryType.REQUEST
+      )?.data?.url;
+      pushList(
+        lines,
+        'Query Parameters',
+        evidenceData.parameters ?? formatChangingQueryParameters(offendingSpans, baseURL)
+      );
       pushList(lines, 'Path Parameters', evidenceData.pathParameters ?? []);
       break;
     }

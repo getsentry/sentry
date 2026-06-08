@@ -4,7 +4,6 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
-import mapValues from 'lodash/mapValues';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -16,6 +15,8 @@ import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
+  extractSpanURLString,
+  formatChangingQueryParameters,
   getSpanDuration,
   getSpanFieldBytes,
 } from 'sentry/components/events/interfaces/performance/spanMetrics';
@@ -45,7 +46,6 @@ import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
-import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -823,80 +823,6 @@ function formatDelay(durationAdded: number, totalDuration: number) {
 
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
   return getDurationImpact(event, getSpanDuration(span));
-}
-
-type ParameterLookup = Record<string, string[]>;
-
-/**
- * Extracts changing URL query parameters from a list of `http.client` spans.
- * e.g.,
- *
- * https://service.io/r?id=1&filter=none
- * https://service.io/r?id=2&filter=none
- * https://service.io/r?id=3&filter=none
- *
- * @returns A condensed string describing the query parameters changing
- * between the URLs of the given span. e.g., "id:{1,2,3}"
- */
-function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[] {
-  const URLs = spans
-    .map(span => extractSpanURLString(span, baseURL))
-    .filter((url): url is URL => url instanceof URL);
-
-  const allQueryParameters = extractQueryParameters(URLs);
-
-  const pairs: string[] = [];
-  for (const key in allQueryParameters) {
-    const values = allQueryParameters[key]!;
-
-    // By definition, if the parameter only has one value that means it's not
-    // changing between calls, so omit it!
-    if (values.length > 1) {
-      pairs.push(`${key}:{${values.join(',')}}`);
-    }
-  }
-
-  return pairs;
-}
-
-/**
- * Parses the span data and pulls out the URL. Accounts for different SDKs and
- * different versions of SDKs formatting and parsing the URL contents
- * differently. Mirror of `get_url_from_span`. Ideally, this should not exist,
- * and instead it should use the data provided by the backend
- */
-export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
-  let url = span?.data?.url;
-  if (url) {
-    const query = span.data['http.query'];
-    if (query) {
-      url += `?${query}`;
-    }
-
-    const parsedURL = safeURL(url, baseURL);
-    if (parsedURL) {
-      return parsedURL;
-    }
-  }
-
-  const [_method, _url] = (span?.description ?? '').split(' ', 2) as [string, string];
-
-  return safeURL(_url, baseURL) ?? null;
-};
-
-export function extractQueryParameters(URLs: URL[]): ParameterLookup {
-  const parameterValuesByKey: ParameterLookup = {};
-
-  URLs.forEach(url => {
-    for (const [key, value] of url.searchParams) {
-      parameterValuesByKey[key] ??= [];
-      parameterValuesByKey[key].push(value);
-    }
-  });
-
-  return mapValues(parameterValuesByKey, parameterList => {
-    return Array.from(new Set(parameterList));
-  });
 }
 
 function formatBasePath(span: Span, baseURL?: string): string {
