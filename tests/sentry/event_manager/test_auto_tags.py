@@ -14,8 +14,8 @@ from sentry.event_manager_auto_tags import (
     UrlTagDeriver,
     get_enabled_derivers,
 )
-from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 def _make_event(
@@ -246,10 +246,9 @@ class TestDictHeaders:
         assert tags == [("browser", "Googlebot 2.1")]
 
 
-class TestGetEnabledDerivers(TestCase):
-    def test_default_returns_default_enabled(self) -> None:
-        project = self.create_project()
-        derivers = get_enabled_derivers(project)
+class TestGetEnabledDerivers:
+    def test_returns_all_default_enabled(self) -> None:
+        derivers = get_enabled_derivers()
         tags = {d.tag for d in derivers}
         assert "browser" in tags
         assert "os" in tags
@@ -257,33 +256,8 @@ class TestGetEnabledDerivers(TestCase):
         assert "url" in tags
         assert "interface_type" in tags
 
-    def test_disabling_default_on_deriver(self) -> None:
-        project = self.create_project()
-        ProjectOption.objects.set_value(project, "auto_tag:_browsers:enabled", False)
-        derivers = get_enabled_derivers(project)
-        tags = {d.tag for d in derivers}
-        assert "browser" not in tags
-        assert "os" in tags
-
-    def test_disabling_interface_type_deriver(self) -> None:
-        project = self.create_project()
-        ProjectOption.objects.set_value(project, "auto_tag:_interface_types:enabled", False)
-        derivers = get_enabled_derivers(project)
-        tags = {d.tag for d in derivers}
-        assert "interface_type" not in tags
-
-    def test_all_disabled(self) -> None:
-        project = self.create_project()
-        for deriver in ALL_TAG_DERIVERS:
-            ProjectOption.objects.set_value(project, deriver.option_key, False)
-        derivers = get_enabled_derivers(project)
-        assert derivers == []
-
-    def test_all_enabled(self) -> None:
-        project = self.create_project()
-        for deriver in ALL_TAG_DERIVERS:
-            ProjectOption.objects.set_value(project, deriver.option_key, True)
-        derivers = get_enabled_derivers(project)
+    def test_returns_all_derivers(self) -> None:
+        derivers = get_enabled_derivers()
         assert len(derivers) == len(ALL_TAG_DERIVERS)
 
 
@@ -313,13 +287,13 @@ class TestDeriveTagsMany(TestCase):
         http = _make_http_interface(url=url)
         return _make_event(interfaces={"request": http})
 
+    @with_feature("organizations:derive-tags-without-plugins")
     def test_new_path_derives_tags(self) -> None:
         project = self.create_project()
         event = self._make_url_event()
         job = _make_job(event, project.id)
 
-        with self.feature("organizations:derive-tags-without-plugins"):
-            _derive_tags_many([job], {project.id: project})
+        _derive_tags_many([job], {project.id: project})
 
         assert get_tag(job["data"], "url") == "https://example.com/path"
 
@@ -332,33 +306,22 @@ class TestDeriveTagsMany(TestCase):
 
         assert get_tag(job["data"], "url") == "https://example.com/path"
 
+    @with_feature("organizations:derive-tags-without-plugins")
     def test_new_path_does_not_override_user_tags(self) -> None:
         project = self.create_project()
         event = self._make_url_event()
         job = _make_job(event, project.id)
         job["data"]["tags"] = [("url", "https://user-provided.com")]
 
-        with self.feature("organizations:derive-tags-without-plugins"):
-            _derive_tags_many([job], {project.id: project})
+        _derive_tags_many([job], {project.id: project})
 
         assert get_tag(job["data"], "url") == "https://user-provided.com"
 
-    def test_new_path_respects_project_option_disable(self) -> None:
-        project = self.create_project()
-        ProjectOption.objects.set_value(project, "auto_tag:_urls:enabled", False)
-        event = self._make_url_event()
-        job = _make_job(event, project.id)
-
-        with self.feature("organizations:derive-tags-without-plugins"):
-            _derive_tags_many([job], {project.id: project})
-
-        assert get_tag(job["data"], "url") is None
-
+    @with_feature("organizations:derive-tags-without-plugins")
     def test_new_path_handles_deriver_exception(self) -> None:
         project = self.create_project()
         event = _make_event(interfaces={"request": MagicMock(side_effect=Exception("boom"))})
         event.interfaces.get = MagicMock(side_effect=Exception("boom"))
         job = _make_job(event, project.id)
 
-        with self.feature("organizations:derive-tags-without-plugins"):
-            _derive_tags_many([job], {project.id: project})
+        _derive_tags_many([job], {project.id: project})

@@ -49,6 +49,7 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
+from sentry.event_manager_auto_tags import get_enabled_derivers
 from sentry.eventstream.base import GroupState
 from sentry.eventtypes.base import BaseEvent as EventType
 from sentry.eventtypes.transaction import TransactionEvent
@@ -781,22 +782,40 @@ def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None
         job["user"] = user
 
 
+def _partition_jobs_by_tag_deriver_flag(
+    jobs: Sequence[Job], projects: ProjectsMapping
+) -> tuple[list[Job], list[Job]]:
+    org_flag_mapping: dict[int, bool] = {}
+    new_jobs: list[Job] = []
+    legacy_jobs: list[Job] = []
+    for job in jobs:
+        project = projects[job["project_id"]]
+        org_id = project.organization_id
+        if org_id not in org_flag_mapping:
+            org_flag_mapping[org_id] = features.has(
+                "organizations:derive-tags-without-plugins", project.organization
+            )
+        if org_flag_mapping[org_id]:
+            new_jobs.append(job)
+        else:
+            legacy_jobs.append(job)
+    return new_jobs, legacy_jobs
+
+
 @sentry_sdk.tracing.trace
 def _derive_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    sample_project = next(iter(projects.values()))
-    if features.has("organizations:derive-tags-without-plugins", sample_project.organization):
-        _derive_tags_many_new(jobs, projects)
-    else:
-        _derive_tags_many_legacy(jobs, projects)
+    new_jobs, legacy_jobs = _partition_jobs_by_tag_deriver_flag(jobs, projects)
+    if new_jobs:
+        _derive_tags_many_new(new_jobs, projects)
+    if legacy_jobs:
+        _derive_tags_many_legacy(legacy_jobs, projects)
 
 
 def _derive_tags_many_new(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    from sentry.event_manager_auto_tags import get_enabled_derivers
-
-    derivers_for_projects = {p.id: get_enabled_derivers(p) for p in projects.values()}
+    derivers = get_enabled_derivers()
     for job in jobs:
         data = job["data"]
-        for deriver in derivers_for_projects[job["project_id"]]:
+        for deriver in derivers:
             try:
                 for key, value in deriver.get_tags(job["event"]):
                     if get_tag(data, key) is None:
