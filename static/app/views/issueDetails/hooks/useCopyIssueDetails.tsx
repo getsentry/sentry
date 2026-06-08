@@ -11,10 +11,6 @@ import {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import {
-  useGroupSummaryData,
-  type GroupSummaryData,
-} from 'sentry/components/group/groupSummary';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {EntryType, type Event} from 'sentry/types/event';
@@ -149,13 +145,11 @@ interface IssueAndEventToMarkdownOptions {
   activeThreadId?: number;
   autofixData?: ExplorerAutofixState | null;
   event?: Event | null;
-  groupSummaryData?: GroupSummaryData | null;
 }
 
 export const issueAndEventToMarkdown = ({
   group,
   event,
-  groupSummaryData,
   autofixData,
   activeThreadId,
   organization,
@@ -170,17 +164,6 @@ export const issueAndEventToMarkdown = ({
 
   if (event && typeof event.dateCreated === 'string') {
     markdownText += `**Date:** ${new Date(event.dateCreated).toLocaleString()}\n`;
-  }
-
-  if (groupSummaryData) {
-    markdownText += `## Issue Summary\n${groupSummaryData.headline}\n`;
-    markdownText += `**What's wrong:** ${groupSummaryData.whatsWrong}\n`;
-    if (groupSummaryData.trace) {
-      markdownText += `**In the trace:** ${groupSummaryData.trace}\n`;
-    }
-    if (groupSummaryData.possibleCause && !autofixData) {
-      markdownText += `**Possible cause:** ${groupSummaryData.possibleCause}\n`;
-    }
   }
 
   if (autofixData) {
@@ -221,7 +204,6 @@ export const issueAndEventToMarkdown = ({
 export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const organization = useOrganization();
 
-  const {data: groupSummaryData} = useGroupSummaryData(group);
   const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
   const activeThreadId = useActiveThreadId();
 
@@ -229,12 +211,11 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
     return issueAndEventToMarkdown({
       group,
       event,
-      groupSummaryData,
       autofixData,
       activeThreadId,
       organization,
     });
-  }, [group, event, groupSummaryData, autofixData, activeThreadId, organization]);
+  }, [group, event, autofixData, activeThreadId, organization]);
 
   const {copy} = useCopyToClipboard();
 
@@ -245,10 +226,9 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
         groupId: group.id,
         eventId: event?.id,
         hasAutofix: Boolean(autofixData),
-        hasSummary: Boolean(groupSummaryData),
       });
     });
-  }, [copy, text, organization, group.id, event?.id, autofixData, groupSummaryData]);
+  }, [copy, text, organization, group.id, event?.id, autofixData]);
 
   useHotkeys([
     {

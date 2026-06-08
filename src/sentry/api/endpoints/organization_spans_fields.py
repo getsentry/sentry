@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import Literal
@@ -34,6 +35,8 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
+
+logger = logging.getLogger(__name__)
 
 
 def as_tag_key(name: str, search_type: Literal["string", "number", "boolean"]):
@@ -147,6 +150,12 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 @cell_silo_endpoint
 class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
+        logger.info("a request to span-fields was made")
+        if features.has(
+            "organizations:explore-span-fields-removal", organization, actor=request.user
+        ):
+            return Response(status=404)
+
         if not features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         ):
