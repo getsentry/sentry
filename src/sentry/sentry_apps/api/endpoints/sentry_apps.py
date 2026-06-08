@@ -91,6 +91,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             "schema": request.data.get("schema", {}),
             "overview": request.data.get("overview"),
             "allowedOrigins": request.data.get("allowedOrigins", []),
+            "webhookHeaders": request.data.get("webhookHeaders", []),
             "popularity": (
                 request.data.get("popularity") if is_active_superuser(request) else None
             ),
@@ -133,6 +134,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                     schema=data["schema"],
                     overview=data["overview"],
                     allowed_origins=data["allowedOrigins"],
+                    webhook_headers=data["webhookHeaders"],
                     popularity=data["popularity"],
                 ).run(user=request.user, request=request, skip_default_auth_token=True)
                 # We want to stop creating the default auth token for new apps and installations through the API

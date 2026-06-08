@@ -15,6 +15,11 @@ from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUI
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
 from sentry.utils.display_name_filter import is_spam_display_name
 
+# Headers Sentry sets on every outgoing webhook request; custom integrations must
+# not be able to override these (the signature header in particular guards payload
+# integrity). Compared case-insensitively. The "sentry-hook-" prefix is also blocked.
+RESERVED_WEBHOOK_HEADERS = frozenset({"content-type", "request-id", "host"})
+
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
 class ApiScopesField(serializers.Field):
@@ -144,6 +149,14 @@ class SentryAppParser(Serializer):
         required=False,
         help_text="The list of allowed origins for CORS.",
     )
+    webhookHeaders = serializers.ListField(
+        child=serializers.CharField(max_length=1024),
+        required=False,
+        help_text=(
+            "Custom headers sent with every webhook request. Each entry is a single "
+            "'Header-Name: value' pair."
+        ),
+    )
     # Bounds chosen to match PositiveSmallIntegerField (https://docs.djangoproject.com/en/3.2/ref/models/fields/#positivesmallintegerfield)
     popularity = serializers.IntegerField(
         min_value=0,
@@ -197,6 +210,22 @@ class SentryAppParser(Serializer):
         for allowed_origin in value:
             if "*" in allowed_origin:
                 raise ValidationError("'*' not allowed in origin")
+        return value
+
+    def validate_webhookHeaders(self, value):
+        for header in value:
+            # Reject CR/LF to prevent header injection / request splitting.
+            if "\n" in header or "\r" in header:
+                raise ValidationError("Webhook headers cannot contain newlines.")
+            name, separator, _header_value = header.partition(":")
+            name = name.strip()
+            if not separator or not name:
+                raise ValidationError(
+                    f"Invalid webhook header '{header}'. Use the format 'Header-Name: value'."
+                )
+            normalized = name.lower()
+            if normalized in RESERVED_WEBHOOK_HEADERS or normalized.startswith("sentry-hook"):
+                raise ValidationError(f"'{name}' is a reserved header and cannot be overridden.")
         return value
 
     def validate_scopes(self, value):
