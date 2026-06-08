@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
@@ -34,6 +34,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.models.repository import Repository
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import (
     query_replay_id_by_prefix,
@@ -1129,6 +1130,50 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
 ]
 
 
+class _IssueTroubleshootingContext(TypedDict):
+    # These fields are added to serialized group data, which uses camelCase API keys.
+    detectionContext: str | None
+    troubleshootingHint: str | None
+
+
+def _get_issue_troubleshooting_context(
+    group: Group, event: Event | GroupEvent | None = None
+) -> _IssueTroubleshootingContext:
+    if group.type == LowValueSpanConfigurationType.type_id:
+        occurrence = getattr(event, "occurrence", None)
+        evidence_data = occurrence.evidence_data if occurrence else {}
+        span_origin = evidence_data.get("span_origin")
+
+        troubleshooting_hint = (
+            "If the span is manually instrumented, remove the instrumentation that creates "
+            "it. Otherwise, filter the automatically created span before sending, typically "
+            "in Sentry SDK initialization."
+        )
+        if span_origin == "manual":
+            troubleshooting_hint = (
+                "Remove the manually instrumented span code that creates this span."
+            )
+        elif span_origin:
+            troubleshooting_hint = (
+                "Filter this automatically created span before sending, typically in Sentry SDK "
+                "initialization."
+            )
+
+        return {
+            "detectionContext": (
+                "This issue was created by a Sentry detector, not by an exception in the "
+                "application. It reports a high-volume span with low telemetry value so the "
+                "project can reduce noisy telemetry."
+            ),
+            "troubleshootingHint": troubleshooting_hint,
+        }
+
+    return {
+        "detectionContext": None,
+        "troubleshootingHint": None,
+    }
+
+
 def get_issue_and_event_response(
     event: Event | GroupEvent,
     group: Group | None,
@@ -1151,6 +1196,7 @@ def get_issue_and_event_response(
         serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
         # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
         serialized_group["issueTypeDescription"] = group.issue_type.description
+        serialized_group.update(_get_issue_troubleshooting_context(group, event))
 
         logger.info(
             "get_issue_and_event_details_v2: Querying for tags overview",
@@ -1275,6 +1321,7 @@ def get_issue_details(
     serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
     # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
     serialized_group["issueTypeDescription"] = group.issue_type.description
+    serialized_group.update(_get_issue_troubleshooting_context(group))
 
     # Get aggregate tag and event data and activity.
     try:
