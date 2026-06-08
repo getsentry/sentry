@@ -41,6 +41,7 @@ def serialize_sentry_app(
         uuid=app.uuid,
         events=app.events,
         webhook_url=app.webhook_url,
+        webhook_headers=app.webhook_headers,
         is_alertable=app.is_alertable,
         is_disabled=app.is_disabled,
         is_published=app.status == SentryAppStatus.PUBLISHED,
