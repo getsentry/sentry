@@ -14,7 +14,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 const ColumnContext = createContext('');

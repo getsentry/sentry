@@ -7,28 +7,11 @@ import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMe
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
-import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
-import type {
-  SeerAutofixStoppingPoint,
-  UserFacingStoppingPoint,
-} from 'sentry/utils/seer/types';
-
-function getUserFacingStoppingPoint(
-  stoppingPoint: SeerAutofixStoppingPoint
-): UserFacingStoppingPoint {
-  switch (stoppingPoint) {
-    case 'off':
-      return 'off';
-    case 'root_cause':
-      return 'root_cause';
-    case 'solution':
-      return 'plan';
-    case 'code_changes':
-      return 'create_pr';
-    case 'open_pr':
-      return 'create_pr';
-  }
-}
+import {
+  getUserFacingStoppingPoint,
+  useStoppingPointSelectOptions,
+} from 'sentry/utils/seer/stoppingPoint';
+import type {SeerAutofixStoppingPoint} from 'sentry/utils/seer/types';
 
 /**
  * Render a user-facing stopping point to its human-readable label.

@@ -39,11 +39,6 @@ export function getFilteredCodingAgentName(provider: undefined | string): string
   return getCodingAgentName(provider);
 }
 
-export const preferredAgentFilterParser = parseAsStringEnum([
-  'seer',
-  ...Object.values(CodingAgentProvider),
-]);
-
 /**
  * Returns the list of coding agent integrations formatted as select options,
  * with Seer Agent as the first/default option.

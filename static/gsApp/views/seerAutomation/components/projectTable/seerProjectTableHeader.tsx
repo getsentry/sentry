@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {UseQueryResult} from '@tanstack/react-query';
+import {useMutation, useQueryClient, type UseQueryResult} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -12,7 +12,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
+import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgent';
+import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPoint';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -23,26 +25,27 @@ import {
   useListItemCheckboxContext,
   type ListItemCheckboxState,
 } from 'sentry/utils/list/useListItemCheckboxState';
-import type {PreferredAgentIntegration} from 'sentry/utils/seer/preferredAgent';
+import {
+  useKnownAgents,
+  type PreferredAgentIntegration,
+} from 'sentry/utils/seer/preferredAgent';
+import {getMutateSeerProjectsSettingsOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {PROJECT_STOPPING_POINT_OPTIONS} from 'sentry/utils/seer/stoppingPoint';
+import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgentIntegration}>>;
   onSortClick: (key: Sort) => void;
-  projects: Project[];
+  projects: SeerProjectSettingResponse[];
   sort: Sort;
-  updateBulkAutofixAutomationSettings: ReturnType<
-    typeof useUpdateBulkAutofixAutomationSettings
-  >['mutate'];
 }
 
 const COLUMNS = [
-  {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Repos'), key: 'repos', sortKey: 'repo_count'},
+  {title: t('Project'), key: 'project', sortKey: 'name'},
+  {title: t('Repos'), key: 'repos', sortKey: 'reposCount'},
   {
     title: ({organization}: {organization: Organization}) => (
       <Flex gap="sm" align="center">
@@ -81,36 +84,21 @@ const COLUMNS = [
       </Flex>
     ),
     key: 'automation_steps',
-    sortKey: 'steps',
+    sortKey: 'stoppingPoint',
   },
 ];
-
-function getMutationCallbacks(count: number) {
-  return {
-    onError: () =>
-      addErrorMessage(
-        tn(
-          'Failed to update settings for %s project',
-          'Failed to update settings for %s projects',
-          count
-        )
-      ),
-    onSuccess: () =>
-      addSuccessMessage(
-        tn('Settings updated for %s project', 'Settings updated for %s projects', count)
-      ),
-  };
-}
 
 export function ProjectTableHeader({
   projects,
   onSortClick,
   sort,
-  updateBulkAutofixAutomationSettings,
-  agentOptions,
+  // updateBulkAutofixAutomationSettings,
+  // agentOptions,
 }: Props) {
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, endpointOptionsRef, selectAll, selectedIds} =
     listItemCheckboxState;
@@ -119,23 +107,34 @@ export function ProjectTableHeader({
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const projectIds = useMemo(
-    () => (selectedIds === 'all' ? projects.map(project => project.id) : selectedIds),
+    () =>
+      selectedIds === 'all' ? projects.map(project => project.projectId) : selectedIds,
     [projects, selectedIds]
   );
 
-  const bulkMutateSelectedAgent = useBulkMutateSelectedAgent();
+  // const bulkMutateSelectedAgent = useBulkMutateSelectedAgent();
+
+  const knownAgents = useKnownAgents();
+
+  const {mutate} = useMutation(
+    getMutateSeerProjectsSettingsOptions({
+      organization,
+      queryClient,
+      knownAgents,
+    })
+  );
 
   return (
     <Fragment>
       <TableHeader>
-        <SimpleTable.HeaderCell>
+        <InfiniteTable.HeaderCell>
           <SelectAllCheckbox
             listItemCheckboxState={listItemCheckboxState}
             projects={projects}
           />
-        </SimpleTable.HeaderCell>
+        </InfiniteTable.HeaderCell>
         {COLUMNS.map(({title, key, sortKey}) => (
-          <SimpleTable.HeaderCell
+          <InfiniteTable.HeaderCell
             key={key}
             handleSortClick={
               sortKey
@@ -154,7 +153,7 @@ export function ProjectTableHeader({
             sort={sort?.field === sortKey ? sort.kind : undefined}
           >
             {typeof title === 'function' ? title({organization}) : title}
-          </SimpleTable.HeaderCell>
+          </InfiniteTable.HeaderCell>
         ))}
       </TableHeader>
 
@@ -167,7 +166,68 @@ export function ProjectTableHeader({
             />
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
-            <DropdownMenu
+            <PreferredAgentDropdownMenu
+              isDisabled={!canWrite}
+              onChange={value => {
+                mutate(
+                  {
+                    query: '',
+                    projectIds,
+                    agent: value,
+                  },
+                  {
+                    onError: () =>
+                      addErrorMessage(
+                        tn(
+                          'Failed to update agent for %s project',
+                          'Failed to update agent for %s projects',
+                          projectIds.length
+                        )
+                      ),
+                    onSuccess: () =>
+                      addSuccessMessage(
+                        tn(
+                          'Agent updated for %s project',
+                          'Agent updated for %s projects',
+                          projectIds.length
+                        )
+                      ),
+                  }
+                );
+              }}
+            />
+            <StoppingPointDropdownMenu
+              isDisabled={!canWrite}
+              onChange={value => {
+                mutate(
+                  {
+                    query: '',
+                    projectIds,
+                    stoppingPoint: value,
+                  },
+                  {
+                    onError: () =>
+                      addErrorMessage(
+                        tn(
+                          'Failed to update stopping point for %s project',
+                          'Failed to update stopping point for %s projects',
+                          projectIds.length
+                        )
+                      ),
+                    onSuccess: () =>
+                      addSuccessMessage(
+                        tn(
+                          'Stopping point updated for %s project',
+                          'Stopping point updated for %s projects',
+                          projectIds.length
+                        )
+                      ),
+                  }
+                );
+              }}
+            />
+
+            {/* <DropdownMenu
               isDisabled={!canWrite}
               size="xs"
               items={
@@ -175,10 +235,16 @@ export function ProjectTableHeader({
                   key: typeof value === 'object' ? value.provider : value,
                   label,
                   onAction: () => {
-                    const selectedProjects = projects.filter(p =>
-                      projectIds.includes(p.id)
-                    );
-                    bulkMutateSelectedAgent(selectedProjects, value);
+                    // const selectedProjects = projects.filter(p =>
+                    //   projectIds.includes(p.id)
+                    // );
+                    // bulkMutateSelectedAgent(selectedProjects, value);
+
+                    mutate({
+                      query: '',
+                      projectIds,
+                      agent: value,
+                    });
                   },
                 })) ?? []
               }
@@ -195,34 +261,40 @@ export function ProjectTableHeader({
                   </Link>
                 </DropdownMenuFooter>
               }
-            />
-            <DropdownMenu
+            /> */}
+            {/* <DropdownMenu
               isDisabled={!canWrite}
               size="xs"
               items={PROJECT_STOPPING_POINT_OPTIONS.map(option => ({
                 key: option.value,
                 label: option.label,
                 onAction: () => {
-                  if (option.value === 'off') {
-                    updateBulkAutofixAutomationSettings(
-                      {projectIds, autofixAutomationTuning: 'off'},
-                      getMutationCallbacks(projectIds.length)
-                    );
-                  } else {
-                    const stoppingPointMap = {
-                      root_cause: 'root_cause' as const,
-                      plan: 'code_changes' as const,
-                      create_pr: 'open_pr' as const,
-                    };
-                    updateBulkAutofixAutomationSettings(
-                      {
-                        projectIds,
-                        autofixAutomationTuning: 'medium',
-                        automatedRunStoppingPoint: stoppingPointMap[option.value],
-                      },
-                      getMutationCallbacks(projectIds.length)
-                    );
-                  }
+                  mutate({
+                    query: '',
+                    projectIds,
+                    stoppingPoint: value,
+                  });
+
+                  // if (option.value === 'off') {
+                  //   updateBulkAutofixAutomationSettings(
+                  //     {projectIds, autofixAutomationTuning: 'off'},
+                  //     getMutationCallbacks(projectIds.length)
+                  //   );
+                  // } else {
+                  //   const stoppingPointMap = {
+                  //     root_cause: 'root_cause' as const,
+                  //     plan: 'code_changes' as const,
+                  //     create_pr: 'open_pr' as const,
+                  //   };
+                  //   updateBulkAutofixAutomationSettings(
+                  //     {
+                  //       projectIds,
+                  //       autofixAutomationTuning: 'medium',
+                  //       automatedRunStoppingPoint: stoppingPointMap[option.value],
+                  //     },
+                  //     getMutationCallbacks(projectIds.length)
+                  //   );
+                  // }
                 },
               }))}
               triggerLabel={t('Automation Steps')}
@@ -236,7 +308,7 @@ export function ProjectTableHeader({
                   </ExternalLink>
                 </DropdownMenuFooter>
               }
-            />
+            /> */}
           </TableCellsRemainingContent>
         </TableHeader>
       </ListItemSelectedState>
@@ -278,7 +350,7 @@ function SelectAllCheckbox({
   projects,
 }: {
   listItemCheckboxState: ListItemCheckboxState;
-  projects: Project[];
+  projects: SeerProjectSettingResponse[];
 }) {
   return (
     <Checkbox
@@ -296,13 +368,13 @@ function SelectAllCheckbox({
   );
 }
 
-const TableHeader = styled(SimpleTable.Header)`
+const TableHeader = styled(InfiniteTable.Header)`
   grid-row: 1;
   z-index: ${p => p.theme.zIndex.initial};
   height: min-content;
 `;
 
-const TableCellFirst = styled(SimpleTable.HeaderCell)`
+const TableCellFirst = styled(InfiniteTable.HeaderCell)`
   grid-column: 1;
 `;
 

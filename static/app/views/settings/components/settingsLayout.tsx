@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Stack, Flex} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';

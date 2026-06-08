@@ -356,7 +356,7 @@ export default Storybook.story('SeerProjectSettings', story => {
               <InfiniteTable.HeaderCell>{t('Agent')}</InfiniteTable.HeaderCell>
               <InfiniteTable.HeaderCell>{t('Stopping Point')}</InfiniteTable.HeaderCell>
             </InfiniteTable.Header>
-            <InfiniteTable.Scrollable style={{height: '400px'}}>
+            <InfiniteTable.Scrollable style={{minHeight: '400px'}}>
               {isPending ? (
                 <Flex
                   justify="center"

@@ -1,96 +1,86 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {
   infiniteQueryOptions,
   useInfiniteQuery,
-  useMutation,
-  useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import {debounce, parseAsString, useQueryState} from 'nuqs';
-
-import SeerConfigConnect2 from 'sentry-images/spot/seer-config-connect-2.svg';
+import {debounce, parseAsString, parseAsStringEnum, useQueryState} from 'nuqs';
+// import SeerConfigConnect2 from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Image} from '@sentry/scraps/image';
+import {AutoSaveForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
-import {
-  bulkAutofixAutomationSettingsInfiniteOptions,
-  useUpdateBulkAutofixAutomationSettings,
-} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {
-  PreferredAgentDropdownMenu,
-  PreferredAgentLabel,
-} from 'sentry/components/seer/preferredAgent';
 import {StoppingPointLabel} from 'sentry/components/seer/stoppingPoint';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {t, tct} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {DetailedProject} from 'sentry/types/project';
+import {t} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {
-  getCodingAgentSelectQueryOptions,
   useSeerAgentSelectOptions,
+  useKnownAgents,
 } from 'sentry/utils/seer/preferredAgent';
+import {type PreferredAgentProvider} from 'sentry/utils/seer/preferredAgentFilter';
 import {
-  getFilteredCodingAgentName,
-  type PreferredAgentProvider,
-} from 'sentry/utils/seer/preferredAgentFilter';
+  getMutateSeerProjectSettingsOptions,
+  getInfiniteSeerProjectsSettingsQueryOptions,
+  seerProjectSettingsSchema,
+} from 'sentry/utils/seer/seerProjectSettings';
 import {
-  preferredAgentFilterParser,
-  filterCodingAgentQueryOptions,
-} from 'sentry/utils/seer/preferredAgentFilter';
-import {getInfiniteSeerProjectsSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
-import {
-  getProjectStoppingPointMutationOptions,
-  getProjectStoppingPointValueFromSettings,
-  PROJECT_STOPPING_POINT_SORT_ORDER,
+  getUserFacingStoppingPoint,
+  useStoppingPointSelectOptions,
 } from 'sentry/utils/seer/stoppingPoint';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 
 import {ProjectTableHeader} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
-import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 const estimateSize = () => 41;
 
 export function SeerProjectTable() {
+  const queryClient = useQueryClient();
   const location = useLocation();
   const organization = useOrganization();
+  const canWrite = useCanWriteSettings();
 
   // Query Values
   const [agentFilter, setAgentFilter] = useQueryState(
     'agent',
-    preferredAgentFilterParser
+    parseAsStringEnum(['all', 'seer', ...Object.values(CodingAgentProvider)]).withDefault(
+      'all'
+    )
   );
   const [searchTerm, setSearchTerm] = useQueryState(
     'name',
     parseAsString.withDefault('')
   );
+  const [sortBy, setSort] = useQueryState(
+    'sortBy',
+    parseAsSort.withDefault({field: 'name', kind: 'asc'})
+  );
 
   // Supporting fetch calls
-  const agentOptions = useSeerAgentSelectOptions();
+  const knownAgents = useKnownAgents();
+  const agentSelectOptions = useSeerAgentSelectOptions();
+  const stoppingPointOptions = useStoppingPointSelectOptions();
 
   // Main fetch call
   let mutableSearch = new MutableSearch('reposCount:>0');
@@ -100,7 +90,11 @@ export function SeerProjectTable() {
   const queryOptions = infiniteQueryOptions({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
-      query: {per_page: 25, query: mutableSearch.formatString()},
+      query: {
+        per_page: 25,
+        query: mutableSearch.formatString(),
+        sortBy,
+      },
     }),
     select: ({pages}) => pages.flatMap(page => page.json),
   });
@@ -112,16 +106,17 @@ export function SeerProjectTable() {
     <Fragment>
       <Stack>
         <Flex gap="md" wrap="wrap">
-          {agentOptions.length ? (
-            <CompactSelect<'' | PreferredAgentProvider>
+          {agentSelectOptions.length ? (
+            <CompactSelect<'all' | PreferredAgentProvider>
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} size="md" prefix={t('Agent')}>
-                  {agentFilter ? triggerProps.children : t('All')}
+                  {/* {agentFilter ? triggerProps.children : t('All')} */}
+                  {triggerProps.children}
                 </OverlayTrigger.Button>
               )}
-              options={agentOptions}
-              onChange={option => setAgentFilter(option.value || null)}
-              value={agentFilter ?? ''}
+              options={[{value: 'all', label: t('All')}, ...agentSelectOptions]}
+              onChange={option => setAgentFilter(option.value)}
+              value={agentFilter ?? 'all'}
             />
           ) : null}
           <InputGroup style={{flex: 1}}>
@@ -146,13 +141,17 @@ export function SeerProjectTable() {
         endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
         <InfiniteTable.Table columns="max-content 2fr max-content repeat(2, 1fr)">
-          <InfiniteTable.Header>
-            <InfiniteTable.HeaderCell />
-            <InfiniteTable.HeaderCell>{t('Project')}</InfiniteTable.HeaderCell>
-            <InfiniteTable.HeaderCell>{t('Repos')}</InfiniteTable.HeaderCell>
-            <InfiniteTable.HeaderCell>{t('Agent')}</InfiniteTable.HeaderCell>
-            <InfiniteTable.HeaderCell>{t('Stopping Point')}</InfiniteTable.HeaderCell>
-          </InfiniteTable.Header>
+          <ProjectTableHeader projects={data ?? []} sort={sortBy} onSortClick={setSort} />
+          {/* <ListItemSelectedState selected="none">
+            <InfiniteTable.Header>
+              <InfiniteTable.HeaderCell />
+              <InfiniteTable.HeaderCell>{t('Project')}</InfiniteTable.HeaderCell>
+              <InfiniteTable.HeaderCell>{t('Repos')}</InfiniteTable.HeaderCell>
+              <InfiniteTable.HeaderCell>{t('Agent')}</InfiniteTable.HeaderCell>
+              <InfiniteTable.HeaderCell>{t('Stopping Point')}</InfiniteTable.HeaderCell>
+            </InfiniteTable.Header>
+          </ListItemSelectedState> */}
+
           <InfiniteTable.Scrollable
             style={{
               minHeight: Math.min(10, data?.length ?? 0) * estimateSize(),
@@ -200,68 +199,60 @@ export function SeerProjectTable() {
                       <InfiniteTable.RowCell>
                         <Text tabular>{item.reposCount}</Text>
                       </InfiniteTable.RowCell>
-                      <InfiniteTable.RowCell>
-                        <Text>
-                          <PreferredAgentLabel settings={item} />
-                        </Text>
-                        <Stack align="stretch" flex="1">
-                          {/* <Select
-                            size="xs"
-                            disabled={!canWrite}
-                            name="autofixAgent"
-                            options={agentOptions.data ?? []}
-                            value={autofixAgent ?? 'seer'}
-                            onChange={option => {
-                              mutateSelectedAgent(option.value, {
-                                onSuccess: () => {
-                                  addSuccessMessage(
-                                    tct('Selected [name] for [project]', {
-                                      name: <strong>{option.label}</strong>,
-                                      project: project.name,
-                                    })
-                                  );
-                                },
-                                onError: () =>
-                                  addErrorMessage(
-                                    tct('Failed to set [name] for [project]', {
-                                      name: <strong>{option.label}</strong>,
-                                      project: project.name,
-                                    })
-                                  ),
-                              });
-                            }}
-                          /> */}
-                        </Stack>
+                      <InfiniteTable.RowCell overflow="visible">
+                        <AutoSaveForm
+                          name="agent"
+                          schema={seerProjectSettingsSchema}
+                          initialValue={item.agent}
+                          mutationOptions={getMutateSeerProjectSettingsOptions({
+                            organization,
+                            project: {slug: item.projectSlug},
+                            queryClient,
+                            knownAgents,
+                          })}
+                        >
+                          {field => (
+                            <field.Select
+                              disabled={!canWrite}
+                              menuPortalTarget={document.body}
+                              multiple={false}
+                              onChange={field.handleChange}
+                              options={agentSelectOptions}
+                              // @ts-expect-error: Select component does not have a size prop defined
+                              size="xs"
+                              value={field.state.value}
+                            />
+                          )}
+                        </AutoSaveForm>
                       </InfiniteTable.RowCell>
                       <InfiniteTable.RowCell>
-                        <Text>
-                          <StoppingPointLabel stoppingPoint={item.stoppingPoint} />
-                        </Text>
                         <Stack align="stretch" flex="1">
-                          {/* <Select
-                            size="xs"
-                            disabled={!canWrite}
+                          <Text>{item.stoppingPoint}</Text>
+                          <Text>
+                            <StoppingPointLabel stoppingPoint={item.stoppingPoint} />
+                          </Text>
+                          <AutoSaveForm
                             name="stoppingPoint"
-                            options={PROJECT_STOPPING_POINT_OPTIONS}
-                            value={stoppingPointValue}
-                            onChange={option => {
-                              mutateStoppingPoint(
-                                {stoppingPoint: option.value, project},
-                                {
-                                  onSuccess: () =>
-                                    addSuccessMessage(
-                                      tct('Updated automation steps for [project]', {
-                                        project: project.name,
-                                      })
-                                    ),
-                                  onError: () =>
-                                    addErrorMessage(
-                                      t('Failed to update automation steps for %s', project.name)
-                                    ),
-                                }
-                              );
-                            }}
-                          /> */}
+                            schema={seerProjectSettingsSchema}
+                            initialValue={getUserFacingStoppingPoint(item.stoppingPoint)}
+                            mutationOptions={getMutateSeerProjectSettingsOptions({
+                              organization,
+                              project: {slug: item.projectSlug},
+                              queryClient,
+                            })}
+                          >
+                            {field => (
+                              <field.Select
+                                disabled={!canWrite}
+                                menuPortalTarget={document.body}
+                                onChange={field.handleChange}
+                                options={stoppingPointOptions}
+                                // @ts-expect-error: Select component does not have a size prop defined
+                                size="xs"
+                                value={field.state.value}
+                              />
+                            )}
+                          </AutoSaveForm>
                         </Stack>
                       </InfiniteTable.RowCell>
                     </InfiniteTable.Row>

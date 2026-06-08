@@ -53,11 +53,11 @@ export function useSeerAgentSelectOptions() {
       {value: 'seer' as const, label: t('Seer')},
       {
         value: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-        label: integrations.find(i => i.id === 'cursor')?.name ?? t('Cursor'),
+        label: integrations.find(i => i.provider === 'cursor')?.name ?? t('Cursor'),
       },
       {
         value: CodingAgentProvider.CLAUDE_CODE_AGENT,
-        label: integrations.find(i => i.id === 'claude_code')?.name ?? t('Claude'),
+        label: integrations.find(i => i.provider === 'claude_code')?.name ?? t('Claude'),
       },
     ] as Array<{label: string; value: SeerAgent}>;
   }, [integrations]);

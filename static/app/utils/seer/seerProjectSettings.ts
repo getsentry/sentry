@@ -59,16 +59,16 @@ export function getInfiniteSeerProjectsSettingsQueryOptions({
     cursor?: string;
     per_page?: number;
     query?: string;
-    sort?: Sort;
+    sortBy?: Sort;
   };
 }) {
-  const {per_page = 100, sort, ...rest} = query;
-  const sortQuery = sort ? encodeSort(sort) : undefined;
+  const {per_page = 100, sortBy, ...rest} = query;
+  const sortQuery = sortBy ? encodeSort(sortBy) : undefined;
   return apiOptions.asInfinite<SeerProjectSettingResponse[]>()(
     '/organizations/$organizationIdOrSlug/seer/projects/',
     {
       path: {organizationIdOrSlug: organization.slug},
-      query: {per_page, sort: sortQuery, ...rest},
+      query: {per_page, sortBy: sortQuery, ...rest},
       staleTime: 60_000, // 1 minute
     }
   );

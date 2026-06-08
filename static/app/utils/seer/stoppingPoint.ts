@@ -39,6 +39,25 @@ export const PROJECT_STOPPING_POINT_SORT_ORDER: Record<UserFacingStoppingPoint, 
     create_pr: 4,
   };
 
+// Convert from the server-side values to what the user can pick from.
+// Switching back is handled by ???
+export function getUserFacingStoppingPoint(
+  stoppingPoint: SeerAutofixStoppingPoint
+): UserFacingStoppingPoint {
+  switch (stoppingPoint) {
+    case 'off':
+      return 'off';
+    case 'root_cause':
+      return 'root_cause';
+    case 'solution':
+      return 'plan';
+    case 'code_changes':
+      return 'create_pr';
+    case 'open_pr':
+      return 'create_pr';
+  }
+}
+
 /**
  * Return a list of user-facing stopping point options for a select component.
  *
@@ -57,8 +76,8 @@ export function useStoppingPointSelectOptions() {
       return [
         {value: 'off', label: t('No Automation')},
         {value: 'root_cause', label: t('Stop after Root Cause')},
-        {value: 'solution', label: t('Stop after Plan')},
-        {value: 'open_pr', label: t('Stop after PR drafted')},
+        {value: 'plan', label: t('Stop after Plan')},
+        {value: 'create_pr', label: t('Stop after PR drafted')},
       ];
     }
     return [
