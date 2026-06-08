@@ -147,10 +147,6 @@ class AuthLoginView(BaseView):
         """
         If an authenticated user sends a GET request to AuthLoginView, we redirect them forwards in the auth process.
         """
-        # An inactive (deactivated) user who is still authenticated must reactivate
-        # their account before being forwarded anywhere. Without this check, the login
-        # page blindly redirects them to next_uri, which in turn checks is_auth_required
-        # (which requires is_active) and immediately redirects back to login — infinite loop.
         if not request.user.is_active:
             return self.redirect(url=reverse("sentry-reactivate-account"))
         if is_valid_redirect(url=next_uri, allowed_hosts=(request.get_host(),)):

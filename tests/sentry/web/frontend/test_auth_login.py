@@ -454,10 +454,9 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.get("Location", "").endswith("testserver")
 
     def test_inactive_authenticated_user_redirected_to_reactivate(self) -> None:
-        # An authenticated but inactive user hitting the login page with a ?next= param
-        # must be sent to reactivate, not forwarded to next_uri. Forwarding causes an
-        # infinite redirect loop because BaseView.is_auth_required rejects inactive users
-        # and immediately redirects them back to login.
+        # inactive user + ?next= must go to reactivate, not be forwarded to next_uri.
+        # BaseView.is_auth_required rejects inactive users and redirects them back to 
+        # login, creating an infinite redirect loop.
         self.user.update(is_active=False)
         self.login_as(self.user)
         resp = self.client.get(self.path + "?next=/restore/")
