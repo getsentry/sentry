@@ -180,7 +180,7 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
 
         step_index = self.step_index
 
-        if step_index == len(self.pipeline_views):
+        if step_index >= len(self.pipeline_views):
             return self.finish_pipeline()
 
         step = self.pipeline_views[step_index]
@@ -214,7 +214,7 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
 
     def next_step(self, step_size: int = 1) -> HttpResponseBase:
         """Render the next step."""
-        self.state.step_index = self.step_index + step_size
+        self.state.step_index = min(self.step_index + step_size, len(self.pipeline_views))
 
         if self.organization and (event := self.get_analytics_event()):
             analytics.record(event)
