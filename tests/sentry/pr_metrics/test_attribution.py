@@ -193,7 +193,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
     def _attribute(
         self,
         *,
-        signal_type: str = PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+        signal_type: PullRequestAttributionSignalType = PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
         repo_full_name: str = REPO_NAME,
         repo_provider: str = "github",
         pr_url: str = "https://github.com/getsentry/sentry/pull/42",
