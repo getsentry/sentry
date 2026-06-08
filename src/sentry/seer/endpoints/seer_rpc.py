@@ -44,15 +44,18 @@ from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.exceptions import InvalidSearchQuery
 from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository import repository_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest, PullRequestMetrics, PullRequestVerdict
 from sentry.models.repository import Repository
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
@@ -636,6 +639,93 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
     return {"success": True}
 
 
+# Counter keys accepted in a judge summary, each mapped onto the matching
+# integer field of PullRequestMetrics. Derived from the model so a new counter
+# column extends the contract automatically; the counters are exactly the
+# BoundedPositiveIntegerField columns (is_assigned is a bool handled separately,
+# and the pk/FK/timestamps are other field types). Anything else in the payload
+# is ignored so the contract can grow without breaking older Sentry deploys.
+_PR_METRICS_COUNTER_FIELDS = tuple(
+    field.name
+    for field in PullRequestMetrics._meta.get_fields()
+    if isinstance(field, BoundedPositiveIntegerField) and not field.primary_key
+)
+
+
+def upsert_pr_metrics_summary(
+    *,
+    organization_id: int,
+    repository_id: int,
+    pr_number: str,
+    event_id: str,
+    verdict: str,
+    counters: dict,
+) -> dict:
+    """Accept (in Sentry, from Seer) a PR judge summary at close/merge time.
+
+    Seer computes the verdict + counters during its single close/merge SCM
+    fetch and posts them back here so Sentry's canonical PR row stays the source
+    of truth for product queries.
+
+    The write is idempotent: PullRequestMetrics is one-to-one with PullRequest,
+    so a webhook/event redelivery (same ``event_id``) updates the existing row
+    rather than inserting a duplicate.
+
+    Args:
+        organization_id: The owning organization.
+        repository_id: Sentry's internal Repository id (also pins the provider).
+        pr_number: The external SCM pull-request number.
+        event_id: The originating Seer event id, used for log correlation.
+        verdict: The judge verdict; one of ``PullRequestVerdict``.
+        counters: Per-PR counters computed at judge time (see
+            ``_PR_METRICS_COUNTER_FIELDS`` plus the ``is_assigned`` flag).
+
+    Returns:
+        dict: ``{"success": True}`` once persisted, else ``{"success": False, "error": ...}``.
+    """
+    if verdict not in PullRequestVerdict.values:
+        return {
+            "success": False,
+            "error": f"verdict must be one of {sorted(PullRequestVerdict.values)}",
+        }
+
+    # Scope the repository to the organization to prevent cross-org reference.
+    if repository_service.get_repository(organization_id=organization_id, id=repository_id) is None:
+        return {"success": False, "error": "Repository not found"}
+
+    # Counters arrive from Seer (a trust boundary) and land in
+    # BoundedPositiveIntegerField columns, so clamp out negatives defensively.
+    metric_values: dict[str, Any] = {
+        field: max(0, int(counters.get(field) or 0)) for field in _PR_METRICS_COUNTER_FIELDS
+    }
+    metric_values["is_assigned"] = bool(counters.get("is_assigned", False))
+
+    # The judge summary can arrive before Sentry has seen the SCM "opened"
+    # webhook, so find-or-create the canonical PR row (a shell with null
+    # lifecycle fields the webhook backfills later).
+    pull_request, _ = PullRequest.objects.get_or_create(
+        organization_id=organization_id,
+        repository_id=repository_id,
+        key=str(pr_number),
+    )
+    PullRequestMetrics.objects.update_or_create(
+        pull_request=pull_request,
+        defaults={"verdict": verdict, **metric_values},
+    )
+
+    logger.info(
+        "seer.pr_metrics.upsert_pr_metrics_summary",
+        extra={
+            "organization_id": organization_id,
+            "repository_id": repository_id,
+            "pr_number": pr_number,
+            "event_id": event_id,
+            "verdict": verdict,
+        },
+    )
+    return {"success": True}
+
+
 def trigger_coding_agent_launch(
     *,
     organization_id: int,
@@ -1048,6 +1138,9 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # Issue Detection
     "create_issue_occurrence": create_issue_occurrence,
+    #
+    # PR Merge Live Metrics
+    "upsert_pr_metrics_summary": upsert_pr_metrics_summary,
 }
 
 

@@ -16,6 +16,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
+from sentry.models.pullrequest import PullRequest, PullRequestMetrics
 from sentry.models.repository import Repository
 from sentry.seer.agent.tools import get_trace_item_attributes
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
@@ -30,6 +31,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_repo_installation_id,
     has_repo_code_mappings,
     trigger_coding_agent_launch,
+    upsert_pr_metrics_summary,
     validate_repo,
 )
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -1771,3 +1773,174 @@ class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
 
         assert result == {"success": False, "error_code": "integration_not_found"}
         assert other_project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
+
+
+@override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
+class TestPrMetricsRpc(APITestCase):
+    """upsert_pr_metrics_summary handler (CORE-201)."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        project = self.create_project(organization=self.organization)
+        self.repository = self.create_repo(project=project, name="getsentry/sentry")
+
+    @staticmethod
+    def _get_path(method_name: str) -> str:
+        return reverse("sentry-api-0-seer-rpc-service", kwargs={"method_name": method_name})
+
+    def _auth_header(self, path: str, data: dict) -> str:
+        body = orjson.dumps(data).decode()
+        return f"rpcsignature {generate_request_signature(path, body.encode())}"
+
+    def test_upsert_pr_metrics_summary_success(self) -> None:
+        result = upsert_pr_metrics_summary(
+            organization_id=self.organization.id,
+            repository_id=self.repository.id,
+            pr_number="123",
+            event_id="123:merged:abc123",
+            verdict="merged_with_iteration",
+            counters={
+                "additions": 10,
+                "deletions": 4,
+                "files_changed": 3,
+                "commits_count": 2,
+                "comments_count": 5,
+                "participants_count": 2,
+                "reviews_count": 1,
+                "is_assigned": True,
+            },
+        )
+        assert result == {"success": True}
+
+        pull_request = PullRequest.objects.get(
+            organization_id=self.organization.id,
+            repository_id=self.repository.id,
+            key="123",
+        )
+        metrics = PullRequestMetrics.objects.get(pull_request=pull_request)
+        assert metrics.verdict == "merged_with_iteration"
+        assert metrics.additions == 10
+        assert metrics.deletions == 4
+        assert metrics.files_changed == 3
+        assert metrics.commits_count == 2
+        assert metrics.comments_count == 5
+        assert metrics.participants_count == 2
+        assert metrics.reviews_count == 1
+        assert metrics.is_assigned is True
+
+    def test_upsert_pr_metrics_summary_defaults_missing_counters(self) -> None:
+        result = upsert_pr_metrics_summary(
+            organization_id=self.organization.id,
+            repository_id=self.repository.id,
+            pr_number="7",
+            event_id="evt",
+            verdict="closed_unmerged",
+            counters={},
+        )
+        assert result == {"success": True}
+
+        metrics = PullRequestMetrics.objects.get(pull_request__key="7")
+        assert metrics.additions == 0
+        assert metrics.commits_count == 0
+        assert metrics.is_assigned is False
+
+    def test_upsert_pr_metrics_summary_clamps_negative_counters(self) -> None:
+        # Counters cross a trust boundary into BoundedPositiveIntegerField columns.
+        result = upsert_pr_metrics_summary(
+            organization_id=self.organization.id,
+            repository_id=self.repository.id,
+            pr_number="9",
+            event_id="evt",
+            verdict="closed_unmerged",
+            counters={"additions": -5},
+        )
+        assert result == {"success": True}
+        assert PullRequestMetrics.objects.get(pull_request__key="9").additions == 0
+
+    def test_upsert_pr_metrics_summary_is_idempotent(self) -> None:
+        for verdict, additions in (("merged_unchanged", 1), ("merged_with_iteration", 8)):
+            result = upsert_pr_metrics_summary(
+                organization_id=self.organization.id,
+                repository_id=self.repository.id,
+                pr_number="42",
+                event_id="42:merged:abc",
+                verdict=verdict,
+                counters={"additions": additions},
+            )
+            assert result == {"success": True}
+
+        assert PullRequest.objects.filter(repository_id=self.repository.id, key="42").count() == 1
+        metrics = PullRequestMetrics.objects.get(pull_request__key="42")
+        assert metrics.verdict == "merged_with_iteration"
+        assert metrics.additions == 8
+
+    def test_upsert_pr_metrics_summary_empty_verdict(self) -> None:
+        result = upsert_pr_metrics_summary(
+            organization_id=self.organization.id,
+            repository_id=self.repository.id,
+            pr_number="123",
+            event_id="evt",
+            verdict="",
+            counters={},
+        )
+        assert result["success"] is False
+        assert not PullRequestMetrics.objects.exists()
+
+    def test_upsert_pr_metrics_summary_invalid_verdict(self) -> None:
+        result = upsert_pr_metrics_summary(
+            organization_id=self.organization.id,
+            repository_id=self.repository.id,
+            pr_number="123",
+            event_id="evt",
+            verdict="bogus",
+            counters={},
+        )
+        assert result["success"] is False
+        assert not PullRequest.objects.filter(key="123").exists()
+
+    def test_upsert_pr_metrics_summary_repository_not_found(self) -> None:
+        result = upsert_pr_metrics_summary(
+            organization_id=self.organization.id,
+            repository_id=self.repository.id + 1000,
+            pr_number="123",
+            event_id="evt",
+            verdict="closed_unmerged",
+            counters={},
+        )
+        assert result == {"success": False, "error": "Repository not found"}
+
+    def test_upsert_pr_metrics_summary_repository_outside_org(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_repo = self.create_repo(project=other_project, name="getsentry/other2")
+        result = upsert_pr_metrics_summary(
+            organization_id=self.organization.id,
+            repository_id=other_repo.id,
+            pr_number="123",
+            event_id="evt",
+            verdict="closed_unmerged",
+            counters={},
+        )
+        assert result == {"success": False, "error": "Repository not found"}
+        assert not PullRequestMetrics.objects.exists()
+
+    def test_upsert_pr_metrics_summary_registered_on_internal_rpc(self) -> None:
+        path = self._get_path("upsert_pr_metrics_summary")
+        data: dict[str, Any] = {
+            "args": {
+                "organization_id": self.organization.id,
+                "repository_id": self.repository.id,
+                "pr_number": "123",
+                "event_id": "123:merged:abc123",
+                "verdict": "merged_unchanged",
+                "counters": {"comments_count": 2},
+            },
+            "meta": {},
+        }
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self._auth_header(path, data)
+        )
+        assert response.status_code == 200
+        assert response.data == {"success": True}
+        assert PullRequestMetrics.objects.filter(pull_request__key="123").exists()
