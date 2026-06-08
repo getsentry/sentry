@@ -546,7 +546,9 @@ describe('ExternalIssueForm', () => {
       );
 
       // Summary (stable, non-dynamic) should be preserved across the remount
-      expect(screen.getByRole('textbox', {name: 'Summary'})).toHaveValue('User typed text');
+      expect(screen.getByRole('textbox', {name: 'Summary'})).toHaveValue(
+        'User typed text'
+      );
 
       // Issue Type (also dynamic) should reset to the new server default, not
       // retain any previously selected value — stale dynamic values could be
