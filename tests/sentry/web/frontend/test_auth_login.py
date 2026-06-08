@@ -453,6 +453,15 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 302
         assert resp.get("Location", "").endswith("testserver")
 
+    def test_inactive_authenticated_user_redirected_to_reactivate(self) -> None:
+        # inactive user + ?next= must go to reactivate, not be forwarded to next_uri.
+        # BaseView.is_auth_required rejects inactive users and redirects them back to
+        # login, creating an infinite redirect loop.
+        self.user.update(is_active=False)
+        self.login_as(self.user)
+        resp = self.client.get(self.path + "?next=/restore/")
+        self.assertRedirects(resp, "/auth/reactivate/", fetch_redirect_response=False)
+
     def test_redirect_superuser(self) -> None:
         self.login_as(self.user, superuser=False)
 
