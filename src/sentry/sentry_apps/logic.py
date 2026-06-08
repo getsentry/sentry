@@ -298,6 +298,12 @@ class SentryAppUpdater:
         # as "Header-Name: <MASKED_VALUE>". Substitute the stored value for any masked
         # entry (matched by name) so a prefill+resave doesn't overwrite real secrets.
         # Drop masked entries with no stored match.
+        #
+        # Names are unique (the parser rejects duplicates), so this re-pairing is
+        # unambiguous. Known limitation: renaming a header while leaving its value
+        # masked can't be matched by the new name and will drop the entry — only
+        # reachable by an editor who sees masks (org:write without scope coverage);
+        # they should re-enter the value when renaming.
         existing_by_name = {}
         for header in self.sentry_app.webhook_headers:
             name, separator, _value = header.partition(":")

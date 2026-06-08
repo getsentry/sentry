@@ -806,6 +806,14 @@ class PostSentryAppsTest(SentryAppsTest):
         )
         assert "webhookHeaders" in response.data
 
+    def test_create_integration_with_duplicate_webhook_header(self) -> None:
+        # Duplicate names (case-insensitive) are rejected so the masked round-trip
+        # can re-pair entries by name unambiguously.
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=["X-Dupe: a", "x-dupe: b"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
+
     def test_members_cant_create(self) -> None:
         # create extra owner because we are demoting one
         self.create_member(organization=self.organization, user=self.create_user(), role="owner")

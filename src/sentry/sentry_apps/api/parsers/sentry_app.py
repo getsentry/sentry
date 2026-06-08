@@ -213,6 +213,7 @@ class SentryAppParser(Serializer):
         return value
 
     def validate_webhookHeaders(self, value):
+        seen_names = set()
         for header in value:
             # Reject CR/LF to prevent header injection / request splitting.
             if "\n" in header or "\r" in header:
@@ -226,6 +227,14 @@ class SentryAppParser(Serializer):
             normalized = name.lower()
             if normalized in RESERVED_WEBHOOK_HEADERS or normalized.startswith("sentry-hook"):
                 raise ValidationError(f"'{name}' is a reserved header and cannot be overridden.")
+            # Reject duplicate names (case-insensitive). This keeps the masked-value
+            # round-trip unambiguous: the updater re-pairs masked entries to stored
+            # values by header name, which only works if names are unique.
+            if normalized in seen_names:
+                raise ValidationError(
+                    f"Duplicate webhook header '{name}'. Each header may only be set once."
+                )
+            seen_names.add(normalized)
         return value
 
     def validate_scopes(self, value):
