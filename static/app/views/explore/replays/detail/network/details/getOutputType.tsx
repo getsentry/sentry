@@ -3,8 +3,6 @@ import {Output} from 'sentry/views/explore/replays/detail/network/details/output
 import type {SectionProps} from 'sentry/views/explore/replays/detail/network/details/sections';
 import type {TabKey} from 'sentry/views/explore/replays/detail/network/details/tabs';
 
-export {Output};
-
 type Args = {
   isCaptureBodySetup: boolean;
   isSetup: boolean;
