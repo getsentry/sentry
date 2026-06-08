@@ -126,21 +126,23 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                   onSelectNode={onSelectNode}
                 />
               )}
-              <StyledClippedBox
-                clipHeight={200}
-                buttonProps={{variant: 'secondary', size: 'xs'}}
-                collapsible
-              >
-                <Container padding="md">
-                  <MessageText size="sm" align="left">
-                    <AIContentRenderer
-                      text={message.content}
-                      inline
-                      autoCollapseLimit={10}
-                    />
-                  </MessageText>
-                </Container>
-              </StyledClippedBox>
+              {message.content !== '' && (
+                <StyledClippedBox
+                  clipHeight={200}
+                  buttonProps={{variant: 'secondary', size: 'xs'}}
+                  collapsible
+                >
+                  <Container padding="md">
+                    <MessageText size="sm" align="left">
+                      <AIContentRenderer
+                        text={message.content}
+                        inline
+                        autoCollapseLimit={10}
+                      />
+                    </MessageText>
+                  </Container>
+                </StyledClippedBox>
+              )}
             </MessageBubble>
           );
         })}

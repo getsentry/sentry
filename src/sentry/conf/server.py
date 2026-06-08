@@ -861,6 +861,11 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
+# If true, taskbroker-client's TaskProducer will be used to produce messages to Kafka
+# from within tasks.
+# Set to True in the worker child entrypoint in taskworker/bootstrap.py.
+TASKWORKER_USE_TASK_PRODUCER: bool = False
+
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
@@ -2807,6 +2812,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.sentry_apps.api.endpoints",
     "sentry.preprod.api.endpoints",
     "sentry.workflow_engine.endpoints",
+    "sentry.feedback.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
