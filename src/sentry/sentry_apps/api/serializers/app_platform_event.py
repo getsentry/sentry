@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from enum import StrEnum
+from functools import cached_property
 from time import time
 from typing import Any, TypedDict
 from uuid import uuid4
@@ -89,12 +90,15 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
             )
         )
 
-    @property
+    @cached_property
     def sentry_headers(self) -> dict[str, str]:
         """Headers Sentry sets on every webhook request.
 
         These are the only headers recorded in the request buffer / debug UI:
         custom webhook headers may carry secrets and must never be logged there.
+
+        Cached so the Request-ID, timestamp, and signature are computed once and
+        stay consistent between the sent request and the logged buffer entry.
         """
         request_uuid = uuid4().hex
 

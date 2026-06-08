@@ -134,3 +134,21 @@ class AppPlatformEventSerializerTest(TestCase):
 
         assert "Authorization" not in result.sentry_headers
         assert result.headers["Authorization"] == "Bearer secret"
+
+    def test_sentry_headers_are_stable_across_calls(self) -> None:
+        # The Request-ID/timestamp logged to the buffer must match what was sent,
+        # so sentry_headers is computed once per event rather than per access.
+        result = AppPlatformEvent[dict[str, Any]](
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.ASSIGNED,
+            install=self.install,
+            data={},
+        )
+
+        first = result.sentry_headers
+        second = result.sentry_headers
+        assert first["Request-ID"] == second["Request-ID"]
+        assert first["Sentry-Hook-Timestamp"] == second["Sentry-Hook-Timestamp"]
+        # The headers actually sent carry the same values that get logged.
+        assert result.headers["Request-ID"] == first["Request-ID"]
+        assert result.headers["Sentry-Hook-Timestamp"] == first["Sentry-Hook-Timestamp"]
