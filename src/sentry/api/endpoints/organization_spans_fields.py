@@ -29,7 +29,7 @@ from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute_to_api, translate_internal_to_public_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
@@ -125,7 +125,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                     as_tag_key(attribute.name, serialized["type"])
                     for attribute in rpc_response.attributes
                     if attribute.name
-                    and can_expose_attribute(
+                    and can_expose_attribute_to_api(
                         attribute.name,
                         SupportedTraceItemType.SPANS,
                         include_internal=include_internal,

@@ -76,9 +76,9 @@ export const getRouter = () => {
     Sentry.init({
       dsn: "${params.dsn.public}",
 
-      // Adds request headers and IP for users, for more info visit:
-      // https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#sendDefaultPii
-      sendDefaultPii: true,${
+      // To disable sending user data, uncomment the line below. For more info visit:
+      // https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#dataCollection
+      // dataCollection: { userInfo: false },${
         params.isPerformanceSelected || params.isReplaySelected
           ? `
 
@@ -149,9 +149,9 @@ export const getRouter = () => {
 Sentry.init({
   dsn: "${params.dsn.public}",
 
-  // Setting this option to true will send default PII data to Sentry.
-  // For example, automatic IP address collection on events
-  sendDefaultPii: true,${
+  // To disable sending user data, uncomment the line below. For more info visit:
+  // https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#dataCollection
+  // dataCollection: { userInfo: false },${
     params.isPerformanceSelected
       ? `
 

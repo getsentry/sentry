@@ -300,7 +300,10 @@ class GroupSerializerBase(Serializer, ABC):
                 filter={"user_ids": user_ids, "is_active": True},
                 as_user=serialize_generic_user(user),
             )
-            actors = {id: u for id, u in zip(user_ids, serialized_users)}
+            # `serialize_many` may omit user_ids that are inactive or missing in
+            # the control silo; key by the returned id rather than zipping so
+            # drifted users don't silently misalign with the request ordering.
+            actors = {int(u["id"]): u for u in serialized_users}
         else:
             actors = {}
 

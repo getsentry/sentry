@@ -131,8 +131,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/api-keys/`,
           title: t('API Keys'),
-          show: ({access, features}) =>
-            (features?.has('api-keys') && access?.has('org:admin')) ?? false,
+          show: false, // deprecated: hide from settings nav and cmd+k (SEC-551)
           id: 'api-keys',
         },
         {
