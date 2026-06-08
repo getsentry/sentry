@@ -66,6 +66,7 @@ from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_acti
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
 from sentry.pr_metrics.webhooks import handle_comment as pr_metrics_handle_comment
 from sentry.pr_metrics.webhooks import handle_emission as pr_metrics_handle_emission
+from sentry.pr_metrics.webhooks import handle_push_attribution as pr_metrics_handle_push_attribution
 from sentry.pr_metrics.webhooks import handle_review as pr_metrics_handle_review
 from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handle_review_comment
 from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
@@ -530,6 +531,8 @@ class PushEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pushevent"""
 
     EVENT_TYPE = IntegrationWebhookEventType.PUSH
+
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_push_attribution,)
 
     def should_ignore_commit(self, commit: Mapping[str, Any]) -> bool:
         return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
@@ -1011,6 +1014,7 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         # Lifecycle facts kept current for the PR metrics pipeline.
         head_commit_sha = pull_request["head"]["sha"]
+        head_branch = pull_request["head"].get("ref")
         closed_at = _parse_github_timestamp(pull_request.get("closed_at"))
         merged_at = _parse_github_timestamp(pull_request.get("merged_at"))
         state = _pull_request_lifecycle_state(pull_request)
@@ -1078,6 +1082,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "message": body,
                     "merge_commit_sha": merge_commit_sha,
                     "head_commit_sha": head_commit_sha,
+                    "head_branch": head_branch,
                     "closed_at": closed_at,
                     "merged_at": merged_at,
                     "state": state,

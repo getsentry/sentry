@@ -3,6 +3,7 @@
 Multiple independent processors serve several webhook event types:
 - ``PullRequestEventWebhook``: ``handle_attribution``, ``handle_emission``,
   ``handle_activity``
+- ``PushEventWebhook``: ``handle_push_attribution``
 - ``IssueCommentEventWebhook``: ``handle_comment``
 - ``PullRequestReviewEventWebhook``: ``handle_review``
 - ``PullRequestReviewCommentEventWebhook``: ``handle_review_comment``
@@ -215,6 +216,58 @@ def handle_activity(
     _write_activity(pr, action, pull_request_data or {}, event, webhook_id)
 
 
+def handle_push_attribution(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Record referenced-issue attribution from push event commit messages.
+
+    Scans every commit message in the push for Sentry issue references and
+    writes them to the ``push`` slot in the PR's ``REFERENCED_ISSUE``
+    signal. Each push replaces the previous result for that slot — the
+    most recent push's commit messages are the authoritative signal.
+    """
+    if not features.has("organizations:pr-metrics-attribution", organization):
+        return
+
+    ref = event.get("ref") or ""
+    if not ref.startswith("refs/heads/"):
+        return  # tag push or malformed ref — not a branch push
+    branch = ref.removeprefix("refs/heads/")
+
+    try:
+        pr = PullRequest.objects.get(
+            organization_id=organization.id,
+            repository_id=repo.id,
+            head_branch=branch,
+        )
+    except PullRequest.DoesNotExist:
+        return
+    except PullRequest.MultipleObjectsReturned:
+        logger.warning(
+            "github.pr_metrics.push.multiple_prs",
+            extra={"repository_id": repo.id, "branch": branch},
+        )
+        return
+
+    all_group_ids: set[int] = set()
+    for commit in event.get("commits") or []:
+        message = commit.get("message") or ""
+        groups = find_referenced_groups(message, organization.id)
+        all_group_ids.update(g.id for g in groups)
+
+    record_referenced_issue_signal(
+        pull_request=pr,
+        webhook_key=ReferencedIssueWebhookKey.PUSH,
+        group_ids=sorted(all_group_ids),
+    )
+
+
 def handle_comment(
     *,
     github_event: GithubWebhookType,
@@ -224,20 +277,20 @@ def handle_comment(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record PR comment activity and referenced-issue attribution from issue_comment events."""
+    """Record PR comment activity from issue_comment webhook events."""
     action = event.get("action")
+    if action not in ("created", "edited"):
+        return
 
-    has_activity_flag = features.has("organizations:pr-metrics-activity", organization)
-    has_attribution_flag = features.has("organizations:pr-metrics-attribution", organization)
-
-    activity_eligible = action in ("created", "edited") and has_activity_flag
-    attribution_eligible = action in ("created", "edited", "deleted") and has_attribution_flag
-
-    if not activity_eligible and not attribution_eligible:
+    if not features.has("organizations:pr-metrics-activity", organization):
         return
 
     issue = event.get("issue")
-    if not issue or not issue.get("pull_request"):
+    if not issue:
+        return
+
+    # Only track PR comments, not comments on plain issues.
+    if not issue.get("pull_request"):
         return
 
     try:
@@ -253,40 +306,29 @@ def handle_comment(
         )
         return
 
-    comment = event.get("comment") or {}
     sender = event.get("sender") or {}
+    comment = event.get("comment") or {}
 
-    if attribution_eligible:
-        body = comment.get("body") or ""
-        groups = find_referenced_groups(body, organization.id) if action != "deleted" else []
-        record_referenced_issue_signal(
-            pull_request=pr,
-            webhook_key=ReferencedIssueWebhookKey.ISSUE_COMMENT,
-            group_ids=sorted(g.id for g in groups),
-            entity_id=str(comment["id"]) if comment.get("id") is not None else None,
+    if action == "created":
+        event_type = PullRequestActivityType.COMMENT_CREATED
+        payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            author_association=comment.get("author_association", "NONE"),
+        )
+    else:
+        event_type = PullRequestActivityType.COMMENT_EDITED
+        payload_obj = CommentEditedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            author_association=comment.get("author_association", "NONE"),
         )
 
-    if activity_eligible:
-        if action == "created":
-            event_type = PullRequestActivityType.COMMENT_CREATED
-            payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
-                sender_login=sender.get("login", ""),
-                sender_type=sender.get("type", ""),
-                author_association=comment.get("author_association", "NONE"),
-            )
-        else:
-            event_type = PullRequestActivityType.COMMENT_EDITED
-            payload_obj = CommentEditedPayload(
-                sender_login=sender.get("login", ""),
-                sender_type=sender.get("type", ""),
-                author_association=comment.get("author_association", "NONE"),
-            )
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
 
-        webhook_id: str | None = kwargs.get("github_delivery_id")
-        if not webhook_id:
-            return
-
-        _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
+    _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
 
 
 def handle_review(
@@ -303,9 +345,7 @@ def handle_review(
     if action != "submitted":
         return
 
-    has_activity_flag = features.has("organizations:pr-metrics-activity", organization)
-    has_attribution_flag = features.has("organizations:pr-metrics-attribution", organization)
-    if not has_activity_flag and not has_attribution_flag:
+    if not features.has("organizations:pr-metrics-activity", organization):
         return
 
     pr = _get_pull_request(organization, repo, event.get("pull_request"))
@@ -313,31 +353,21 @@ def handle_review(
         return
 
     review = event.get("review") or {}
-
-    if has_attribution_flag:
-        body = review.get("body") or ""
-        groups = find_referenced_groups(body, organization.id)
-        record_referenced_issue_signal(
-            pull_request=pr,
-            webhook_key=ReferencedIssueWebhookKey.PR_REVIEW,
-            group_ids=sorted(g.id for g in groups),
+    sender = event.get("sender") or {}
+    payload = asdict(
+        ReviewSubmittedPayload(
+            action=action,
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            review_state=review.get("state", ""),
+            review_id=review.get("id", 0),
         )
+    )
 
-    if has_activity_flag:
-        sender = event.get("sender") or {}
-        webhook_id: str | None = kwargs.get("github_delivery_id")
-        if not webhook_id:
-            return
-        payload = asdict(
-            ReviewSubmittedPayload(
-                action=action,
-                sender_login=sender.get("login", ""),
-                sender_type=sender.get("type", ""),
-                review_state=review.get("state", ""),
-                review_id=review.get("id", 0),
-            )
-        )
-        _write_activity_row(pr, webhook_id, PullRequestActivityType.REVIEW_SUBMITTED, payload)
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+    _write_activity_row(pr, webhook_id, PullRequestActivityType.REVIEW_SUBMITTED, payload)
 
 
 def handle_review_comment(
@@ -351,14 +381,10 @@ def handle_review_comment(
 ) -> None:
     """Record inline PR review comments (pull_request_review_comment events)."""
     action = event.get("action")
+    if action not in ("created", "edited"):
+        return
 
-    has_activity_flag = features.has("organizations:pr-metrics-activity", organization)
-    has_attribution_flag = features.has("organizations:pr-metrics-attribution", organization)
-
-    activity_eligible = action in ("created", "edited") and has_activity_flag
-    attribution_eligible = action in ("created", "edited", "deleted") and has_attribution_flag
-
-    if not activity_eligible and not attribution_eligible:
+    if not features.has("organizations:pr-metrics-activity", organization):
         return
 
     pr = _get_pull_request(organization, repo, event.get("pull_request"))
@@ -368,40 +394,29 @@ def handle_review_comment(
     comment = event.get("comment") or {}
     sender = event.get("sender") or {}
 
-    if attribution_eligible:
-        body = comment.get("body") or ""
-        groups = find_referenced_groups(body, organization.id) if action != "deleted" else []
-        record_referenced_issue_signal(
-            pull_request=pr,
-            webhook_key=ReferencedIssueWebhookKey.REVIEW_COMMENT,
-            group_ids=sorted(g.id for g in groups),
-            entity_id=str(comment["id"]) if comment.get("id") is not None else None,
+    if action == "created":
+        event_type = PullRequestActivityType.COMMENT_CREATED
+        payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            author_association=comment.get("author_association", "NONE"),
+            is_review=True,
+            review_id=comment.get("pull_request_review_id"),
+        )
+    else:
+        event_type = PullRequestActivityType.COMMENT_EDITED
+        payload_obj = CommentEditedPayload(
+            sender_login=sender.get("login", ""),
+            sender_type=sender.get("type", ""),
+            author_association=comment.get("author_association", "NONE"),
+            is_review=True,
+            review_id=comment.get("pull_request_review_id"),
         )
 
-    if activity_eligible:
-        if action == "created":
-            event_type = PullRequestActivityType.COMMENT_CREATED
-            payload_obj: CommentCreatedPayload | CommentEditedPayload = CommentCreatedPayload(
-                sender_login=sender.get("login", ""),
-                sender_type=sender.get("type", ""),
-                author_association=comment.get("author_association", "NONE"),
-                is_review=True,
-                review_id=comment.get("pull_request_review_id"),
-            )
-        else:
-            event_type = PullRequestActivityType.COMMENT_EDITED
-            payload_obj = CommentEditedPayload(
-                sender_login=sender.get("login", ""),
-                sender_type=sender.get("type", ""),
-                author_association=comment.get("author_association", "NONE"),
-                is_review=True,
-                review_id=comment.get("pull_request_review_id"),
-            )
-
-        webhook_id: str | None = kwargs.get("github_delivery_id")
-        if not webhook_id:
-            return
-        _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+    _write_activity_row(pr, webhook_id, event_type, asdict(payload_obj))
 
 
 def handle_review_thread(
@@ -447,6 +462,11 @@ def handle_review_thread(
     if not webhook_id:
         return
     _write_activity_row(pr, webhook_id, event_type, payload)
+
+
+def _group_ids(groups: Any) -> list[int]:
+    """Return a sorted list of group IDs from a find_referenced_groups() result."""
+    return sorted(g.id for g in groups)
 
 
 def _get_pull_request(

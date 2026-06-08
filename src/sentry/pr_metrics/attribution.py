@@ -27,7 +27,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.types import (
-    _PER_ENTITY_KEYS,
+    ReferencedIssueWebhookKey,
     is_referenced_issue_valid,
     normalize_signal_details,
 )
@@ -96,33 +96,37 @@ def record_attribution_signal(
     return attribution
 
 
+def _merge_webhook_key(
+    details: dict[str, Any],
+    webhook_key: ReferencedIssueWebhookKey,
+    group_ids: list[int],
+) -> dict[str, Any]:
+    """Apply one webhook source's group_ids into ``details`` and return the pruned result.
+
+    Empty lists are removed from the returned dict so the stored JSON doesn't
+    accumulate stale sentinel keys over time.
+    """
+    details[webhook_key] = group_ids
+    return {k: v for k, v in details.items() if v}
+
+
 def record_referenced_issue_signal(
     *,
     pull_request: PullRequest,
-    webhook_key: str,
+    webhook_key: ReferencedIssueWebhookKey,
     group_ids: list[int],
-    entity_id: str | None = None,
 ) -> PullRequestAttribution | None:
     """Atomically update one webhook source's contribution to the REFERENCED_ISSUE signal.
 
-    For flat keys (``PR_BODY``, ``PUSH``, ``PR_REVIEW``) pass no ``entity_id``
-    — the whole key is replaced with ``group_ids``.
+    Each key (``PR_BODY``, ``PUSH``) owns a flat list of group IDs; passing
+    ``group_ids=[]`` clears that key's contribution. ``is_valid`` is recomputed
+    after every write from whether any key still has at least one referenced
+    group. ``select_for_update`` serialises concurrent deliveries on the same row.
 
-    For per-entity keys (``ISSUE_COMMENT``, ``REVIEW_COMMENT``) pass the
-    GitHub entity ID (comment id) as ``entity_id``. Each entity owns its own
-    slot so deleting one comment only clears that slot, leaving other comments'
-    references intact. Passing ``group_ids=[]`` removes the entity's slot.
-
-    ``is_valid`` is recomputed after every write from whether any key still
-    has at least one referenced group.  ``select_for_update`` serialises
-    concurrent deliveries on the same row.
+    Returns ``None`` when the call is a no-op: a first write that would produce
+    no valid references, or a first write that lost a concurrent-create race
+    (the loser's data is applied via a retry update on the winner's row).
     """
-    if webhook_key in _PER_ENTITY_KEYS and entity_id is None:
-        logger.warning(
-            "pr_metrics.attribution.missing_entity_id",
-            extra={"pull_request_id": pull_request.id, "webhook_key": webhook_key},
-        )
-        return None
 
     with transaction.atomic(using=router.db_for_write(PullRequestAttribution)):
         try:
@@ -136,18 +140,7 @@ def record_referenced_issue_signal(
             attr = None
             details = {}
 
-        if entity_id is not None:
-            current = details.get(webhook_key) or {}
-            if not isinstance(current, dict):
-                current = {}
-            if group_ids:
-                current[entity_id] = group_ids
-            else:
-                current.pop(entity_id, None)
-            details[webhook_key] = current
-        else:
-            details[webhook_key] = group_ids
-
+        details = _merge_webhook_key(details, webhook_key, group_ids)
         is_valid = is_referenced_issue_valid(details)
 
         if attr is None:
@@ -165,8 +158,18 @@ def record_referenced_issue_signal(
                         is_valid=is_valid,
                     )
             except IntegrityError:
-                pass  # concurrent create won the race — row already exists
-            return None
+                pass  # concurrent create won the race — re-read and apply as update
+
+            # The row now exists (written by the concurrent winner); lock and merge.
+            attr = PullRequestAttribution.objects.select_for_update().get(
+                pull_request=pull_request,
+                signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
+                source=PullRequestAttributionSource.WEBHOOK_DATA,
+            )
+            details = _merge_webhook_key(
+                normalize_signal_details(attr.signal_details), webhook_key, group_ids
+            )
+            is_valid = is_referenced_issue_valid(details)
 
         attr.signal_details = details
         attr.is_valid = is_valid

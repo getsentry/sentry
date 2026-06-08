@@ -6,18 +6,7 @@ from typing import Any
 
 class ReferencedIssueWebhookKey(StrEnum):
     PR_BODY = "pr_body"
-    PUSH = "push"
-    ISSUE_COMMENT = "issue_comment"
-    PR_REVIEW = "pr_review"
-    REVIEW_COMMENT = "review_comment"
-
-
-# Keys whose signal_details value is a per-entity dict {entity_id: [group_ids]}
-# rather than a flat list. Multiple independent entities (comments, review
-# comments) can each contribute references; a single key would be last-write-wins.
-_PER_ENTITY_KEYS: frozenset[str] = frozenset(
-    {ReferencedIssueWebhookKey.ISSUE_COMMENT, ReferencedIssueWebhookKey.REVIEW_COMMENT}
-)
+    PUSH = "push"  # commit messages; wired to the push webhook handler
 
 
 def normalize_signal_details(signal_details: dict[str, Any] | None) -> dict[str, Any]:
@@ -35,11 +24,7 @@ def normalize_signal_details(signal_details: dict[str, Any] | None) -> dict[str,
 
 
 def get_referenced_group_ids(signal_details: dict[str, Any] | None) -> list[int]:
-    """Return the deduplicated, sorted union of all group IDs across all webhook sources.
-
-    Handles both flat keys (``{"pr_body": [1, 2]}``) and per-entity keys
-    (``{"issue_comment": {"comment_123": [1, 2], "comment_456": [3]}}``).
-    """
+    """Return the deduplicated, sorted union of all group IDs across all webhook sources."""
     if not signal_details:
         return []
     details = normalize_signal_details(signal_details)
@@ -47,10 +32,6 @@ def get_referenced_group_ids(signal_details: dict[str, Any] | None) -> list[int]
     for ids in details.values():
         if isinstance(ids, list):
             seen.update(ids)
-        elif isinstance(ids, dict):
-            for entity_ids in ids.values():
-                if isinstance(entity_ids, list):
-                    seen.update(entity_ids)
     return sorted(seen)
 
 

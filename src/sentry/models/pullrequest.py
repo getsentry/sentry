@@ -110,6 +110,7 @@ class PullRequest(Model):
     merged_at = models.DateTimeField(null=True)
     state = models.CharField(max_length=32, null=True, choices=PullRequestLifecycleState.choices)
     head_commit_sha = models.CharField(max_length=64, null=True)
+    head_branch = models.CharField(max_length=255, null=True)
 
     objects: ClassVar[PullRequestManager] = PullRequestManager()
 
@@ -120,6 +121,7 @@ class PullRequest(Model):
             models.Index(fields=("repository_id", "date_added")),
             models.Index(fields=("organization_id", "merge_commit_sha")),
             models.Index(fields=("organization_id", "head_commit_sha")),
+            models.Index(fields=("organization_id", "repository_id", "head_branch")),
         )
         unique_together = (("repository_id", "key"),)
 

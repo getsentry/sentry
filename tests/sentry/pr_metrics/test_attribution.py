@@ -12,7 +12,9 @@ from sentry.pr_metrics.attribution import (
     attribute_seer_created_pull_requests,
     recompute_pull_request_attribution,
     record_attribution_signal,
+    record_referenced_issue_signal,
 )
+from sentry.pr_metrics.types import ReferencedIssueWebhookKey
 from sentry.testutils.cases import TestCase
 
 REPO_NAME = "getsentry/sentry"
@@ -263,3 +265,145 @@ class RecomputePullRequestAttributionTest(TestCase):
             recompute_pull_request_attribution(self.pull_request)
             == PullRequestAttributionSignalType.REFERENCED_ISSUE
         )
+
+
+class RecordReferencedIssueSignalTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(self.project, name=REPO_NAME)
+        self.pull_request = self.create_pull_request(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="42",
+        )
+
+    def _get_attr(self) -> PullRequestAttribution:
+        return PullRequestAttribution.objects.get(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+        )
+
+    # --- Flat key path ---
+
+    def test_flat_key_first_valid_write_creates_row(self) -> None:
+        result = record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PR_BODY,
+            group_ids=[1, 2],
+        )
+
+        assert result is not None
+        attr = self._get_attr()
+        assert attr.signal_details == {"pr_body": [1, 2]}
+        assert attr.is_valid is True
+
+    def test_flat_key_empty_group_ids_on_first_write_returns_none(self) -> None:
+        result = record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PR_BODY,
+            group_ids=[],
+        )
+
+        assert result is None
+        assert not PullRequestAttribution.objects.filter(pull_request=self.pull_request).exists()
+
+    def test_flat_key_subsequent_write_replaces_key(self) -> None:
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PR_BODY,
+            group_ids=[1, 2],
+        )
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PR_BODY,
+            group_ids=[3, 4],
+        )
+
+        attr = self._get_attr()
+        assert attr.signal_details == {"pr_body": [3, 4]}
+
+    def test_flat_key_clearing_last_key_sets_is_valid_false(self) -> None:
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PR_BODY,
+            group_ids=[1],
+        )
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PR_BODY,
+            group_ids=[],
+        )
+
+        attr = self._get_attr()
+        assert attr.is_valid is False
+
+    def test_flat_key_clearing_one_key_while_another_still_has_ids_leaves_is_valid_true(
+        self,
+    ) -> None:
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PR_BODY,
+            group_ids=[1],
+        )
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PUSH,
+            group_ids=[2],
+        )
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PR_BODY,
+            group_ids=[],
+        )
+
+        attr = self._get_attr()
+        assert attr.is_valid is True
+        assert attr.signal_details is not None
+        assert attr.signal_details.get("push") == [2]
+
+    def test_flat_key_cleared_key_absent_from_stored_signal_details(self) -> None:
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PR_BODY,
+            group_ids=[1],
+        )
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PUSH,
+            group_ids=[2],
+        )
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PR_BODY,
+            group_ids=[],
+        )
+
+        attr = self._get_attr()
+        # Empty keys are pruned on write — cleared pr_body should be absent.
+        assert attr.signal_details == {"push": [2]}
+        assert "pr_body" not in attr.signal_details
+
+    # --- Legacy format migration ---
+
+    def test_legacy_format_promoted_on_next_write(self) -> None:
+        # Seed an existing row using the approved helper to avoid direct Model.objects.create.
+        record_attribution_signal(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            signal_details={"group_ids": [1, 2]},
+        )
+
+        # Now trigger a new write — the legacy format should be promoted.
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PUSH,
+            group_ids=[3],
+        )
+
+        attr = self._get_attr()
+        assert attr.signal_details is not None
+        # Legacy group_ids becomes pr_body; new key is merged in.
+        assert attr.signal_details.get("pr_body") == [1, 2]
+        assert attr.signal_details.get("push") == [3]
+        assert "group_ids" not in attr.signal_details
