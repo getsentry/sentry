@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from unittest.mock import call, patch
 
 from django.conf import settings
@@ -9,8 +8,7 @@ from sentry.analytics.events.ai_autofix_pr_events import (
     AiAutofixPrMergedEvent,
     AiAutofixPrOpenedEvent,
 )
-from sentry.seer.autofix.constants import AutofixStatus
-from sentry.seer.autofix.utils import AutofixState
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import (
@@ -21,28 +19,21 @@ from sentry.testutils.helpers.analytics import (
 
 class AutofixPrWebhookTest(APITestCase):
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
-    @patch(
-        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
-        return_value=AutofixState(
-            run_id=1,
-            request={
-                "project_id": 2,
-                "organization_id": 4,
-                "issue": {"id": 3, "title": "Test issue"},
-                "repos": [
-                    {"provider": "github", "owner": "test", "name": "test", "external_id": "123"}
-                ],
-            },
-            updated_at=datetime.now(timezone.utc),
-            status=AutofixStatus.PROCESSING,
-            steps=[],
-        ),
-    )
+    @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_opened(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
+        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
+        group = self.create_group(project=self.project)
+        mock_get_agent_state_from_pr_id.return_value = SeerRunState(
+            run_id=1,
+            blocks=[],
+            status="processing",
+            updated_at="2025-01-15T10:30:00Z",
+            metadata={"group_id": group.id},
+        )
+
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "opened",
@@ -55,14 +46,14 @@ class AutofixPrWebhookTest(APITestCase):
             {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
 
-        mock_metrics_incr.assert_called_with("ai.autofix.pr.opened")
+        mock_metrics_incr.assert_called_with("ai.autofix.pr.opened", tags={"mode": "explorer"})
         assert_last_analytics_event(
             mock_analytics_record,
             AiAutofixPrOpenedEvent(
                 organization_id=self.organization.id,
                 integration="github",
-                project_id=2,
-                group_id=3,
+                project_id=group.project.id,
+                group_id=group.id,
                 run_id=1,
                 github_app="seer",
                 sent_at=1736937000000,
@@ -70,28 +61,21 @@ class AutofixPrWebhookTest(APITestCase):
         )
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345", SENTRY_GITHUB_APP_USER_ID="67890")
-    @patch(
-        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
-        return_value=AutofixState(
-            run_id=1,
-            request={
-                "project_id": 2,
-                "organization_id": 4,
-                "issue": {"id": 3, "title": "Test issue"},
-                "repos": [
-                    {"provider": "github", "owner": "test", "name": "test", "external_id": "123"}
-                ],
-            },
-            updated_at=datetime.now(timezone.utc),
-            status=AutofixStatus.PROCESSING,
-            steps=[],
-        ),
-    )
+    @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_opened_sentry_app(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
+        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
+        group = self.create_group(project=self.project)
+        mock_get_agent_state_from_pr_id.return_value = SeerRunState(
+            run_id=1,
+            blocks=[],
+            status="processing",
+            updated_at="2025-01-15T10:30:00Z",
+            metadata={"group_id": group.id},
+        )
+
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "opened",
@@ -104,14 +88,14 @@ class AutofixPrWebhookTest(APITestCase):
             {"id": settings.SENTRY_GITHUB_APP_USER_ID},
         )
 
-        mock_metrics_incr.assert_called_with("ai.autofix.pr.opened")
+        mock_metrics_incr.assert_called_with("ai.autofix.pr.opened", tags={"mode": "explorer"})
         assert_last_analytics_event(
             mock_analytics_record,
             AiAutofixPrOpenedEvent(
                 organization_id=self.organization.id,
                 integration="github",
-                project_id=2,
-                group_id=3,
+                project_id=group.project.id,
+                group_id=group.id,
                 run_id=1,
                 github_app="sentry",
                 sent_at=1736937000000,
@@ -119,28 +103,21 @@ class AutofixPrWebhookTest(APITestCase):
         )
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
-    @patch(
-        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
-        return_value=AutofixState(
-            run_id=1,
-            request={
-                "project_id": 2,
-                "organization_id": 4,
-                "issue": {"id": 3, "title": "Test issue"},
-                "repos": [
-                    {"provider": "github", "owner": "test", "name": "test", "external_id": "123"}
-                ],
-            },
-            updated_at=datetime.now(timezone.utc),
-            status=AutofixStatus.PROCESSING,
-            steps=[],
-        ),
-    )
+    @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_closed(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
+        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
+        group = self.create_group(project=self.project)
+        mock_get_agent_state_from_pr_id.return_value = SeerRunState(
+            run_id=1,
+            blocks=[],
+            status="processing",
+            updated_at="2025-01-15T12:00:00Z",
+            metadata={"group_id": group.id},
+        )
+
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "closed",
@@ -153,14 +130,14 @@ class AutofixPrWebhookTest(APITestCase):
             {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
 
-        mock_metrics_incr.assert_called_with("ai.autofix.pr.closed")
+        mock_metrics_incr.assert_called_with("ai.autofix.pr.closed", tags={"mode": "explorer"})
         assert_last_analytics_event(
             mock_analytics_record,
             AiAutofixPrClosedEvent(
                 organization_id=self.organization.id,
                 integration="github",
-                project_id=2,
-                group_id=3,
+                project_id=group.project.id,
+                group_id=group.id,
                 run_id=1,
                 github_app="seer",
                 sent_at=1736942400000,
@@ -168,28 +145,21 @@ class AutofixPrWebhookTest(APITestCase):
         )
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
-    @patch(
-        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
-        return_value=AutofixState(
-            run_id=1,
-            request={
-                "project_id": 2,
-                "organization_id": 4,
-                "issue": {"id": 3, "title": "Test issue"},
-                "repos": [
-                    {"provider": "github", "owner": "test", "name": "test", "external_id": "123"}
-                ],
-            },
-            updated_at=datetime.now(timezone.utc),
-            status=AutofixStatus.PROCESSING,
-            steps=[],
-        ),
-    )
+    @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_merged(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
+        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
+        group = self.create_group(project=self.project)
+        mock_get_agent_state_from_pr_id.return_value = SeerRunState(
+            run_id=1,
+            blocks=[],
+            status="processing",
+            updated_at="2025-01-15T14:00:00Z",
+            metadata={"group_id": group.id},
+        )
+
         handle_github_pr_webhook_for_autofix(
             self.organization,
             "closed",
@@ -201,14 +171,14 @@ class AutofixPrWebhookTest(APITestCase):
             },
             {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
         )
-        mock_metrics_incr.assert_called_with("ai.autofix.pr.merged")
+        mock_metrics_incr.assert_called_with("ai.autofix.pr.merged", tags={"mode": "explorer"})
         assert_last_analytics_event(
             mock_analytics_record,
             AiAutofixPrMergedEvent(
                 organization_id=self.organization.id,
                 integration="github",
-                project_id=2,
-                group_id=3,
+                project_id=group.project.id,
+                group_id=group.id,
                 run_id=1,
                 github_app="seer",
                 sent_at=1736949600000,
@@ -217,13 +187,13 @@ class AutofixPrWebhookTest(APITestCase):
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
-        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
+        "sentry.seer.autofix.webhooks.get_agent_state_from_pr_id",
         return_value=None,
     )
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_no_run(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
+        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
         handle_github_pr_webhook_for_autofix(
             self.organization,
@@ -246,13 +216,13 @@ class AutofixPrWebhookTest(APITestCase):
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID=None)
     @patch(
-        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
+        "sentry.seer.autofix.webhooks.get_agent_state_from_pr_id",
         return_value=None,
     )
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_no_settings_github_app_id_set(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
+        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
         handle_github_pr_webhook_for_autofix(
             self.organization,
@@ -272,13 +242,13 @@ class AutofixPrWebhookTest(APITestCase):
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch(
-        "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
+        "sentry.seer.autofix.webhooks.get_agent_state_from_pr_id",
         return_value=None,
     )
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_no_different_github_app(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_autofix_state_from_pr_id
+        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
         handle_github_pr_webhook_for_autofix(
             self.organization,
