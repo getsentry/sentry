@@ -453,6 +453,7 @@ class IntegrationWebhookEventType(StrEnum):
     MERGE_REQUEST = "pull_request"
     MERGE_REQUEST_REVIEW = "pull_request_review"
     MERGE_REQUEST_REVIEW_COMMENT = "pull_request_review_comment"
+    MERGE_REQUEST_REVIEW_THREAD = "pull_request_review_thread"
     PUSH = "push"
 
 
