@@ -1124,8 +1124,6 @@ ROLLOUT_GATED_EVENT_TYPES = frozenset(
     }
 )
 
-NEW_EVENT_HANDLERS_ROLLOUT_OPTION = "github-webhook.new-event-handlers-rollout-rate"
-
 
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
@@ -1250,7 +1248,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=400)
 
         if github_event in ROLLOUT_GATED_EVENT_TYPES:
-            if not in_random_rollout(NEW_EVENT_HANDLERS_ROLLOUT_OPTION):
+            if not in_random_rollout("github-webhook.new-event-handlers-rollout-rate"):
                 return HttpResponse(status=204)
             metrics.incr(
                 "github.webhook.new_event_handler.handled",
