@@ -38,7 +38,23 @@ TRACE_METRICS_GUIDANCE = """When generating widgets with `widget_type: "tracemet
   - `gauge`: `avg`, `min`, `max`, `per_second`, `per_minute`.
   - `distribution`: `p50`, `p75`, `p90`, `p95`, `p99`, `avg`, `min`, `max`, `sum`, `count`, `per_second`, `per_minute`.
 - Examples: `sum(value, my.app.requests, counter, none)`, `avg(value, my.app.cpu, gauge, percent)`, `p95(value, my.app.latency, distribution, milliseconds)`.
-- Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` AND `metric_unit` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type`/`metric.unit` values, or fetching trace-item attributes). Do NOT guess the type or unit — if you cannot confirm both, pick a different dataset or omit the widget."""
+- Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` AND `metric_unit` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type`/`metric.unit` values, or fetching trace-item attributes). Do NOT guess the type or unit — if you cannot confirm both, pick a different dataset or omit the widget.
+- Equations are supported via the `equation|<expr>` prefix in the `aggregates` array.
+    - Equations let you combine aggregates with arithmetic (+, -, *, /).
+    - Numeric literals (e.g. `100`, `1000`) are valid operands.
+    - Strictly only for the 'tracemetrics' widget_type, the following rules about equations apply:
+        - Each operand in the equation must be a valid 4-argument tracemetric aggregate.
+        - Format: `equation|<agg1> <op> <agg2>` where each agg uses the 4-arg form.
+        - Operators: `+` (plus), `-` (minus), `*` (multiply), `/` (divide).
+        - Parentheses are supported for grouping: `equation|(agg1 + agg2) / agg3`.
+        - Examples:
+            - `equation|sum(value, my.app.requests, counter, none) / sum(value, my.app.errors, counter, none)`
+            - `equation|p95(value, my.app.latency, distribution, milliseconds) - p50(value, my.app.latency, distribution, milliseconds)`
+            - `equation|avg(value, my.app.cpu, gauge, percent) * 100`
+        - All aggregate functions support an `_if` variant that takes a backtick-wrapped search query as the first argument, followed by the standard 4 arguments (5 args total)
+            - For example, `equation|sum_if(`environment:prod`, value, my.app.errors, counter, none) / sum_if(`environment:prod`, value, my.app.requests, counter, none)`
+        - An equation for tracemetrics must be the only entry in the `aggregates` array for a query (the frontend does not support rendering equations alongside aggregates).
+"""
 
 CREATE_ON_PAGE_CONTEXT = (
     "The user is on the dashboard generation page. This session must ONLY generate a dashboard "
