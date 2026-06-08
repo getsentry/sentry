@@ -523,6 +523,59 @@ describe('ScmPlatformFeatures', () => {
       expect(detectedCalls).toHaveLength(1);
     });
 
+    it('re-fires the auto-detected event after switching repositories', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/42/platforms/`,
+        body: {platforms: [DetectedPlatformFixture()]},
+      });
+      const otherRepository = RepositoryFixture({
+        id: '99',
+        externalId: '99',
+        provider: {id: 'integrations:github', name: 'GitHub'},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/99/platforms/`,
+        body: {
+          platforms: [
+            DetectedPlatformFixture({platform: 'python-django', language: 'Python'}),
+          ],
+        },
+      });
+
+      const {rerender} = render(
+        <ScmPlatformFeatures {...defaultProps({selectedRepository: mockRepository})} />,
+        {organization}
+      );
+
+      // First repo auto-detects Next.js and fires the detected event once.
+      await screen.findByRole('heading', {level: 3, name: 'Available with Next.js'});
+      expect(
+        trackAnalyticsSpy.mock.calls.filter(
+          ([event, params]) =>
+            event === 'onboarding.scm_platform_selected' &&
+            params.platform === 'javascript-nextjs' &&
+            params.source === 'detected'
+        )
+      ).toHaveLength(1);
+
+      // Switching repos re-arms the guard so the new repo's detected platform
+      // fires the event again instead of being silently skipped.
+      rerender(
+        <ScmPlatformFeatures {...defaultProps({selectedRepository: otherRepository})} />
+      );
+
+      await waitFor(() => {
+        expect(
+          trackAnalyticsSpy.mock.calls.filter(
+            ([event, params]) =>
+              event === 'onboarding.scm_platform_selected' &&
+              params.platform === 'python-django' &&
+              params.source === 'detected'
+          )
+        ).toHaveLength(1);
+      });
+    });
+
     it('fires feature toggled event when toggling a feature', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/42/platforms/`,
