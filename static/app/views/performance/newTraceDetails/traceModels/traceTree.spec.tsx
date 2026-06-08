@@ -1022,6 +1022,330 @@ describe('TraceTree', () => {
       });
       expect(cyclicNodes).toHaveLength(1);
     });
+
+    it('collects span-based TTID vital from ui.load.initial_display span', () => {
+      const spanEnd = start + 1.2;
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-txn',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'ttid-span',
+                op: 'ui.load.initial_display',
+                start_timestamp: start + 0.5,
+                end_timestamp: spanEnd,
+                is_transaction: false,
+                additional_attributes: {
+                  'app.vitals.ttid.value': 800,
+                },
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const ttidIndicators = tree.indicators.filter(
+        i => i.type === 'time_to_initial_display'
+      );
+      expect(ttidIndicators).toHaveLength(1);
+      expect(ttidIndicators[0]!.start).toBe(spanEnd * 1e3);
+      expect(ttidIndicators[0]!.label).toBe('TTID');
+      expect(ttidIndicators[0]!.score).toBeUndefined();
+
+      expect(tree.vital_types.has('mobile')).toBe(true);
+
+      const ttidSpanNode = tree.root.findChild(n => n.id === 'ttid-span');
+      expect(tree.vitals.get(ttidSpanNode!)).toEqual([
+        expect.objectContaining({
+          key: 'time_to_initial_display',
+          measurement: {value: 800, unit: 'millisecond'},
+          score: undefined,
+        }),
+      ]);
+    });
+
+    it('collects span-based TTFD vital from ui.load.full_display span', () => {
+      const spanEnd = start + 1.5;
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-txn',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'ttfd-span',
+                op: 'ui.load.full_display',
+                start_timestamp: start + 0.5,
+                end_timestamp: spanEnd,
+                is_transaction: false,
+                additional_attributes: {
+                  'app.vitals.ttfd.value': 1200,
+                },
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const ttfdIndicators = tree.indicators.filter(
+        i => i.type === 'time_to_full_display'
+      );
+      expect(ttfdIndicators).toHaveLength(1);
+      expect(ttfdIndicators[0]!.start).toBe(spanEnd * 1e3);
+      expect(ttfdIndicators[0]!.label).toBe('TTFD');
+      expect(ttfdIndicators[0]!.score).toBeUndefined();
+    });
+
+    it('does not create indicator for span-based vital with missing attribute', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-txn',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'ttid-span-no-attr',
+                op: 'ui.load.initial_display',
+                start_timestamp: start + 0.5,
+                end_timestamp: start + 1.2,
+                is_transaction: false,
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const ttidIndicators = tree.indicators.filter(
+        i => i.type === 'time_to_initial_display'
+      );
+      expect(ttidIndicators).toHaveLength(0);
+    });
+
+    it('does not create indicator for span-based vital with zero value', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-txn',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'ttid-span-zero',
+                op: 'ui.load.initial_display',
+                start_timestamp: start + 0.5,
+                end_timestamp: start + 1.2,
+                is_transaction: false,
+                additional_attributes: {
+                  'app.vitals.ttid.value': 0,
+                },
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const ttidIndicators = tree.indicators.filter(
+        i => i.type === 'time_to_initial_display'
+      );
+      expect(ttidIndicators).toHaveLength(0);
+    });
+
+    it('collects app start cold vital from app.start.cold span (stable attribute)', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-txn',
+            start_timestamp: start,
+            end_timestamp: start + 5,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'app-start-cold-span',
+                op: 'app.start.cold',
+                start_timestamp: start,
+                end_timestamp: start + 2,
+                is_transaction: false,
+                additional_attributes: {
+                  'app.vitals.start.cold.value': 1800,
+                },
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      // App start is pills-only: no indicator line
+      expect(tree.indicators.filter(i => i.type === 'app_start_cold')).toHaveLength(0);
+
+      // But it should populate vitals and vital_types
+      expect(tree.vital_types.has('mobile')).toBe(true);
+      const spanNode = tree.root.findChild(n => n.id === 'app-start-cold-span');
+      expect(tree.vitals.get(spanNode!)).toEqual([
+        expect.objectContaining({
+          key: 'app_start_cold',
+          measurement: {value: 1800, unit: 'millisecond'},
+          score: undefined,
+        }),
+      ]);
+    });
+
+    it('collects app start warm vital from app.start.warm span', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-txn',
+            start_timestamp: start,
+            end_timestamp: start + 5,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'app-start-warm-span',
+                op: 'app.start.warm',
+                start_timestamp: start,
+                end_timestamp: start + 1,
+                is_transaction: false,
+                additional_attributes: {
+                  'app.vitals.start.warm.value': 900,
+                },
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const spanNode = tree.root.findChild(n => n.id === 'app-start-warm-span');
+      expect(tree.vitals.get(spanNode!)).toEqual([
+        expect.objectContaining({
+          key: 'app_start_warm',
+          measurement: {value: 900, unit: 'millisecond'},
+        }),
+      ]);
+    });
+
+    it('collects app start cold vital from generic app.start span via attribute', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-txn',
+            start_timestamp: start,
+            end_timestamp: start + 5,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'app-start-span',
+                op: 'app.start',
+                start_timestamp: start,
+                end_timestamp: start + 2,
+                is_transaction: false,
+                additional_attributes: {
+                  'app.vitals.start.cold.value': 2100,
+                },
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const spanNode = tree.root.findChild(n => n.id === 'app-start-span');
+      // Should only have cold (because only cold attribute was set)
+      expect(tree.vitals.get(spanNode!)).toEqual([
+        expect.objectContaining({
+          key: 'app_start_cold',
+          measurement: {value: 2100, unit: 'millisecond'},
+        }),
+      ]);
+    });
+
+    it('falls back to deprecated attribute on app.start span when stable is absent', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-txn',
+            start_timestamp: start,
+            end_timestamp: start + 5,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'app-start-old-span',
+                op: 'app.start.cold',
+                start_timestamp: start,
+                end_timestamp: start + 2,
+                is_transaction: false,
+                additional_attributes: {
+                  app_start_cold: 1500,
+                },
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const spanNode = tree.root.findChild(n => n.id === 'app-start-old-span');
+      expect(tree.vitals.get(spanNode!)).toEqual([
+        expect.objectContaining({
+          key: 'app_start_cold',
+          measurement: {value: 1500, unit: 'millisecond'},
+        }),
+      ]);
+    });
+
+    it('does not fall back to deprecated attribute on ui.load.initial_display span', () => {
+      // TTID positioning is only valid with the stable attribute, so the
+      // deprecated attribute on the span should NOT trigger collection.
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-txn',
+            start_timestamp: start,
+            end_timestamp: start + 5,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'ttid-old-span',
+                op: 'ui.load.initial_display',
+                start_timestamp: start,
+                end_timestamp: start + 1,
+                is_transaction: false,
+                additional_attributes: {
+                  time_to_initial_display: 800,
+                },
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      expect(
+        tree.indicators.filter(i => i.type === 'time_to_initial_display')
+      ).toHaveLength(0);
+    });
   });
 
   describe('events', () => {

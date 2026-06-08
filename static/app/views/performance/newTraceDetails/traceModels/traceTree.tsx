@@ -29,8 +29,10 @@ import {
   isUptimeCheck,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {
+  collectSpanBasedVitals,
   collectTraceMeasurements,
   type RENDERABLE_MEASUREMENTS,
+  SPAN_VITAL_OPS,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
@@ -542,6 +544,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
         );
       }
 
+      if (c.op && SPAN_VITAL_OPS.has(c.op)) {
+        tree.indicators = tree.indicators.concat(
+          collectSpanBasedVitals(tree, c, tree.vitals, tree.vital_types)
+        );
+      }
+
       if (
         c.parent &&
         c.op === 'pageload' &&
@@ -694,6 +702,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
             this.vitals,
             this.vital_types
           )
+        );
+      }
+
+      if (node.op && SPAN_VITAL_OPS.has(node.op)) {
+        tree.indicators = tree.indicators.concat(
+          collectSpanBasedVitals(tree, node, this.vitals, this.vital_types)
         );
       }
     }
