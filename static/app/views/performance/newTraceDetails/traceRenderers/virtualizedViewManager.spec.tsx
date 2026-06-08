@@ -355,6 +355,51 @@ describe('VirtualizedViewManger', () => {
     });
   });
 
+  describe('drawCollapsedGapMarkers', () => {
+    it('centers markers using the actual compressed gap width', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 20, 1], [0, 0, 20, 1]);
+      manager.time_compression = TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [0, 1000],
+        physicalWidth: 20,
+        nodes: [
+          {type: 'span', space: [100, 0]},
+          {type: 'span', space: [900, 0]},
+        ] as any,
+        indicators: [],
+      });
+      manager.recomputeSpanToPXMatrix();
+
+      const gap = manager.time_compression.gaps[0]!;
+      const markerRef = document.createElement('div');
+      Object.defineProperty(markerRef, 'offsetWidth', {value: 40});
+      manager.collapsed_gap_markers[0] = {gap, ref: markerRef};
+
+      manager.drawCollapsedGapMarkers();
+
+      const placement = manager.transformXFromTimestamp(gap.start);
+      const actualGapWidth =
+        manager.transformXFromTimestamp(gap.end) -
+        manager.transformXFromTimestamp(gap.start);
+      const markerLeft = Number.parseFloat(
+        markerRef.style.transform.replace('translateX(', '')
+      );
+
+      expect(markerLeft).toBeCloseTo(placement + actualGapWidth / 2 - 20);
+    });
+  });
+
   describe('horizontal scrolling', () => {
     it('uses compressed viewport width when the real viewport is at max zoom', () => {
       const manager = new VirtualizedViewManager(
