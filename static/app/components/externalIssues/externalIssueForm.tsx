@@ -130,6 +130,12 @@ export function ExternalIssueForm({
   const [loadSpan, setLoadSpan] = useState<Span | null>(null);
   const [action, setAction] = useState<ExternalIssueAction>('create');
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
+  // Stable (non-dynamic) field values the user has typed, preserved across
+  // form remounts caused by dynamic-field refetches. Reset on tab switch.
+  const [stableFieldValues, setStableFieldValues] = useState<Record<string, unknown>>({});
+  // The dynamic field that last triggered a refetch, preserved so its value
+  // survives the subsequent form remount. Reset on tab switch.
+  const [lastChangedField, setLastChangedField] = useState<Record<string, unknown>>({});
 
   const {
     data: integrationDetails,
@@ -268,6 +274,10 @@ export function ExternalIssueForm({
 
   const handleClick = (newAction: ExternalIssueAction) => {
     setAction(newAction);
+    // Reset preserved field values when switching tabs — create and link forms
+    // are independent, and stale values from one should not bleed into the other.
+    setStableFieldValues({});
+    setLastChangedField({});
     refetch();
   };
 
@@ -308,15 +318,6 @@ export function ExternalIssueForm({
     ]
   );
 
-  // Track user-entered values for stable (non-dynamic) fields — e.g. summary,
-  // description — so they survive form remounts triggered by dynamic-field
-  // refetches (e.g. issue type or project changes).
-  // Dynamic fields (updatesForm: true) are intentionally excluded: their keys
-  // live in dynamicFieldValues, and preserving them across refetches could
-  // leave stale values when a different dynamic field changes the available
-  // options (e.g. switching project should let issue type reset).
-  const [stableFieldValues, setStableFieldValues] = useState<Record<string, unknown>>({});
-
   const handleValueChange = useCallback(
     (fieldName: string, value: unknown) => {
       if (!Object.hasOwn(dynamicFieldValues, fieldName)) {
@@ -325,10 +326,6 @@ export function ExternalIssueForm({
     },
     [dynamicFieldValues]
   );
-
-  // Track the field that triggered the last dynamic refetch so we can
-  // preserve its value when the form remounts with new config.
-  const [lastChangedField, setLastChangedField] = useState<Record<string, unknown>>({});
 
   const onFieldChange = useCallback(
     (fieldName: string, value: unknown) => {
