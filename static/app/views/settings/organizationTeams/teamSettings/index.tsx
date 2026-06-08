@@ -14,6 +14,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup as LegacyFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
@@ -160,6 +161,14 @@ export default function TeamSettings() {
           )}
         </FieldGroup>
       </form.AppForm>
+
+      <AvatarChooser
+        type="team"
+        supportedTypes={['upload', 'letter_avatar']}
+        endpoint={`/teams/${organization.slug}/${team.slug}/avatar/`}
+        model={team}
+        disabled={isDisabled}
+      />
 
       <Panel>
         <PanelHeader>{t('Team Administration')}</PanelHeader>
