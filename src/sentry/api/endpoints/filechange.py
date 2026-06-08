@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,6 +9,10 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.filechange import CommitFileChangeSerializerResponse
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
@@ -15,32 +20,53 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 
+_REPOSITORY_ID_QUERY_PARAM = OpenApiParameter(
+    name="repo_id",
+    location=OpenApiParameter.QUERY,
+    required=False,
+    type=str,
+    description="The repository external ID to filter file changes by.",
+)
+_REPOSITORY_NAME_QUERY_PARAM = OpenApiParameter(
+    name="repo_name",
+    location=OpenApiParameter.QUERY,
+    required=False,
+    type=str,
+    description="The repository name to filter file changes by.",
+)
 
+
+@extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
-    def get(self, request: Request, organization, version) -> Response:
-        """
-        Retrieve Files Changed in a Release's Commits
-        `````````````````````````````````````````````
-
-        Retrieve a list of files that were changed in a given release's commits.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          release belongs to.
-        :pparam string version: the version identifier of the release.
-
-        :pparam string repo_name: the repository name
-
-        :auth: required
-
-
-        """
-
+    @extend_schema(
+        operation_id="Retrieve Files Changed in a Release's Commits",
+        description="Retrieve files changed in a release's commits.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            ReleaseParams.VERSION,
+            _REPOSITORY_ID_QUERY_PARAM,
+            _REPOSITORY_NAME_QUERY_PARAM,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationReleaseCommitFilesResponse",
+                list[CommitFileChangeSerializerResponse],
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization, version
+    ) -> Response[list[CommitFileChangeSerializerResponse]]:
         try:
             release = Release.objects.get(organization=organization, version=version)
         except Release.DoesNotExist:
