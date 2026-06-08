@@ -15,6 +15,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {
+  getSpanDuration,
+  getSpanFieldBytes,
+} from 'sentry/components/events/interfaces/performance/spanMetrics';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
@@ -38,7 +42,6 @@ import {
   isTransactionBased,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
@@ -144,8 +147,8 @@ function LargeHTTPPayloadSpanEvidence({
         makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0]!)),
         makeRow(
           t('Payload Size'),
-          getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
-            getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
+          getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
+            getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
         ),
       ].filter(Boolean)}
     />
@@ -586,10 +589,7 @@ function RenderBlockingAssetSpanEvidence({
         makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpan!)),
         makeRow(
           t('FCP Delay'),
-          formatDelay(
-            getSpanDuration(offendingSpan!),
-            event.measurements?.fcp?.value ?? 0
-          )
+          formatDelay(getSpanDuration(offendingSpan), event.measurements?.fcp?.value ?? 0)
         ),
         makeRow(t('Duration Impact'), getSingleSpanDurationImpact(event, offendingSpan!)),
       ]}
@@ -611,8 +611,8 @@ function UncompressedAssetSpanEvidence({
         makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0]!)),
         makeRow(
           t('Asset Size'),
-          getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
-            getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
+          getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
+            getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
         ),
         makeRow(
           t('Duration Impact'),
@@ -796,10 +796,6 @@ const sumSpanDurations = (spans: Span[]) => {
   return totalDuration;
 };
 
-const getSpanDuration = ({timestamp, start_timestamp}: Span) => {
-  return ((timestamp ?? 0) - (start_timestamp ?? 0)) * 1000;
-};
-
 function getDurationImpact(event: EventTransaction, durationAdded: number) {
   const transactionTime = (event.endTimestamp - event.startTimestamp) * 1000;
   if (!transactionTime) {
@@ -827,18 +823,6 @@ function formatDelay(durationAdded: number, totalDuration: number) {
 
 function getSingleSpanDurationImpact(event: EventTransaction, span: Span) {
   return getDurationImpact(event, getSpanDuration(span));
-}
-
-function getSpanDataField(span: Span, field: string) {
-  return span.data?.[field];
-}
-
-function getSpanFieldBytes(span: Span, field: string) {
-  const bytes = getSpanDataField(span, field);
-  if (!bytes) {
-    return null;
-  }
-  return `${formatBytesBase2(bytes)} (${bytes} B)`;
 }
 
 type ParameterLookup = Record<string, string[]>;
