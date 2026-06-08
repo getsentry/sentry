@@ -57,7 +57,6 @@ from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.options.rollout import in_random_rollout
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
@@ -1142,19 +1141,6 @@ class CheckSuiteWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = ()
 
 
-class PullRequestReviewWebhook(GitHubWebhook):
-    EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW
-    WEBHOOK_EVENT_PROCESSORS = ()
-
-
-ROLLOUT_GATED_EVENT_TYPES = frozenset(
-    {
-        GithubWebhookType.PULL_REQUEST_REVIEW,
-        GithubWebhookType.CHECK_SUITE,
-    }
-)
-
-
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
     """
@@ -1181,7 +1167,6 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST_REVIEW_THREAD: PullRequestReviewThreadEventWebhook,
         GithubWebhookType.PUSH: PushEventWebhook,
-        GithubWebhookType.PULL_REQUEST_REVIEW: PullRequestReviewWebhook,
         GithubWebhookType.CHECK_SUITE: CheckSuiteWebhook,
     }
 
@@ -1241,13 +1226,12 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         try:
             github_event = GithubWebhookType(request.headers[GITHUB_WEBHOOK_TYPE_HEADER_KEY])
+            handler = self.get_handler(github_event)
         except KeyError:
             logger.warning("github.webhook.missing-event", extra=self.get_logging_data())
             return HttpResponse(status=400)
         except ValueError:
             return HttpResponse(status=204)
-
-        handler = self.get_handler(github_event)
 
         if not handler:
             logger.warning(
@@ -1279,15 +1263,6 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         except orjson.JSONDecodeError:
             logger.warning("github.webhook.invalid-json", extra=self.get_logging_data())
             return HttpResponse(status=400)
-
-        if github_event in ROLLOUT_GATED_EVENT_TYPES:
-            if not in_random_rollout("github-webhook.new-event-handlers-rollout-rate"):
-                return HttpResponse(status=204)
-            metrics.incr(
-                "github.webhook.new_event_handler.handled",
-                tags={"github_event": github_event.value},
-                sample_rate=1.0,
-            )
 
         event_handler = handler()
 
