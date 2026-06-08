@@ -62,7 +62,7 @@ class SeerActivityHandlerTest(TestCase):
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
     def test_feature_flag_disabled(self, mock_process_workflow_activity: MagicMock) -> None:
-        seer_activity_handler(self.group, self.activity)
+        seer_activity_handler(self.group, self.activity, None)
         mock_process_workflow_activity.delay.assert_not_called()
 
     @with_feature("organizations:workflow-engine-evaluate-seer-activities")
@@ -75,7 +75,7 @@ class SeerActivityHandlerTest(TestCase):
         for activity_type in SEER_WORKFLOW_ACTIVITIES:
             mock_process_workflow_activity.reset_mock()
             activity = self.create_group_activity(group=self.group, type=activity_type.value)
-            seer_activity_handler(self.group, activity)
+            seer_activity_handler(self.group, activity, None)
             assert mock_process_workflow_activity.delay.called, (
                 f"Task not dispatched for {activity_type.value}"
             )
@@ -93,7 +93,7 @@ class SeerActivityHandlerTest(TestCase):
         self, mock_process_workflow_activity: MagicMock
     ) -> None:
         activity = self.create_group_activity(group=self.group, type=ActivityType.NOTE.value)
-        seer_activity_handler(self.group, activity)
+        seer_activity_handler(self.group, activity, None)
 
         mock_process_workflow_activity.delay.assert_not_called()
 
@@ -108,7 +108,7 @@ class SeerActivityHandlerTest(TestCase):
     def test_skips_when_no_detector(
         self, mock_get_detector: MagicMock, mock_process_workflow_activity: MagicMock
     ) -> None:
-        seer_activity_handler(self.group, self.activity)
+        seer_activity_handler(self.group, self.activity, None)
 
         mock_process_workflow_activity.delay.assert_not_called()
 
@@ -122,7 +122,7 @@ class SeerActivityHandlerTest(TestCase):
         )
         self.create_detector_group(detector=detector, group=self.group)
 
-        seer_activity_handler(self.group, self.activity)
+        seer_activity_handler(self.group, self.activity, None)
 
         mock_process_workflow_activity.delay.assert_called_once_with(
             activity_id=self.activity.id,
@@ -142,7 +142,7 @@ class SeerActivityHandlerTest(TestCase):
             project=self.project, type=IssueStreamGroupType.slug
         )
 
-        seer_activity_handler(self.group, self.activity)
+        seer_activity_handler(self.group, self.activity, None)
 
         mock_process_workflow_activity.delay.assert_called_once_with(
             activity_id=self.activity.id,
