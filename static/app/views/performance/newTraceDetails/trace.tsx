@@ -244,11 +244,15 @@ export function Trace({
       manager.draw();
     };
     const onDividerResize: TraceEvents['divider resize'] = view => {
-      setPhysicalWidth(manager.view.trace_physical_space.width);
-      manager.recomputeTimeCompression();
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw(view);
+    };
+    const onDividerResizeEnd: TraceEvents['divider resize end'] = () => {
+      // Recompute time compression after the divider drag settles. Recomputing during
+      // every mousemove changes the compressed mapping mid-drag, which makes markers,
+      // spans, and labels jump around while the user is resizing the waterfall.
+      setPhysicalWidth(manager.view.trace_physical_space.width);
     };
 
     scheduler.on('set trace view', onTraceViewChange);
@@ -256,6 +260,7 @@ export function Trace({
     scheduler.on('set container physical space', onPhysicalSpaceChange);
     scheduler.on('initialize trace space', onTraceSpaceChange);
     scheduler.on('divider resize', onDividerResize);
+    scheduler.on('divider resize end', onDividerResizeEnd);
 
     return () => {
       scheduler.off('set trace view', onTraceViewChange);
@@ -263,6 +268,7 @@ export function Trace({
       scheduler.off('set container physical space', onPhysicalSpaceChange);
       scheduler.off('initialize trace space', onTraceSpaceChange);
       scheduler.off('divider resize', onDividerResize);
+      scheduler.off('divider resize end', onDividerResizeEnd);
     };
   }, [manager, scheduler]);
 
