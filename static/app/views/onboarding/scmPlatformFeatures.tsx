@@ -66,7 +66,13 @@ export function ScmPlatformFeatures({
   // auto-detected platform when the user clicks Continue without an explicit
   // selection.
   const {detectedPlatforms} = useScmPlatformDetection(selectedRepository);
-  const detectedPlatformKey = detectedPlatforms[0]?.platform;
+  // Mirror the core's filtering: only fall back to a detected platform the
+  // client recognizes. An unknown key from detection would otherwise enable
+  // Continue while handleContinue's getPlatformInfo lookup returns undefined,
+  // stranding the user on a no-op click.
+  const detectedPlatformKey = detectedPlatforms.find(p =>
+    getPlatformInfo(p.platform)
+  )?.platform;
   const currentPlatformKey = selectedPlatform?.key ?? detectedPlatformKey;
 
   const currentFeatures = selectedFeatures ?? [ProductSolution.ERROR_MONITORING];

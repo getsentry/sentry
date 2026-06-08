@@ -4,7 +4,8 @@ import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggesti
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platforms} from 'sentry/data/platforms';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {PlatformIntegration} from 'sentry/types/project';
 
 import type {DetectedPlatform} from './useScmPlatformDetection';
 
