@@ -9,3 +9,5 @@ This irreversible deletion will take place at {{ eta }} and will permanently rem
 If this was unintentional and you would like to cancel the deletion:
 
 {{ url }}
+
+If you deleted this organization as part of closing your account, please log in to reactivate your account before attempting to restore this organization: {% absolute_uri '/auth/login/' %}

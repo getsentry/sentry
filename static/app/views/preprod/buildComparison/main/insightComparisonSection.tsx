@@ -1,9 +1,15 @@
 import {useMemo, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Heading} from '@sentry/scraps/text';
 
+import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/fileInsightDiffTable';
 import {GroupInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/groupInsightDiffTable';
 import {InsightDiffRow} from 'sentry/views/preprod/buildComparison/main/insights/insightDiffRow';
@@ -113,6 +119,7 @@ export function InsightComparisonSection({
 }: InsightComparisonSectionProps) {
   type InsightTab = 'all' | InsightStatus;
   const [selectedTab, setSelectedTab] = useState<InsightTab>('all');
+  const organization = useOrganization();
 
   const tabbedInsights = useMemo(() => {
     const byTab: Record<InsightTab, InsightDiffItem[]> = {
@@ -178,8 +185,28 @@ export function InsightComparisonSection({
 
   return (
     <Stack gap="md">
+      <Flex align="center" justify="between" gap="md">
+        <Heading as="h2">{t('Insight Diff')}</Heading>
+        <Button
+          size="sm"
+          icon={<IconCopy />}
+          onClick={() => {
+            copyToClipboard(JSON.stringify(insightDiffItems, null, 2));
+            trackAnalytics('preprod.builds.compare.copy_insight_diff', {
+              organization,
+              insight_count: insightDiffItems.length,
+            });
+          }}
+        >
+          {t('Copy as JSON')}
+        </Button>
+      </Flex>
       <Flex align="center" gap="sm" wrap="wrap">
-        <SegmentedControl value={selectedTab} onChange={setSelectedTab}>
+        <SegmentedControl
+          aria-label={t('Filter insights by status')}
+          value={selectedTab}
+          onChange={setSelectedTab}
+        >
           {statusCounts.all > 0 ? (
             <SegmentedControl.Item key="all">
               {t('All (%s)', statusCounts.all)}
