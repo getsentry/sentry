@@ -348,6 +348,17 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     {"detail": "run_id is required for pr_iteration"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+            try:
+                state = get_autofix_agent_state(group.organization, group.id)
+            except SeerPermissionError as e:
+                if _is_unknown_run_id_error(e):
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+                raise PermissionDenied(SEER_PERMISSION_DENIED)
+            if state is None or not state.repo_pr_states:
+                return Response(
+                    {"detail": "Cannot iterate on a PR before one has been created"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         # Handle all built-in Seer steps. A missing run_id means this call starts a new
         # autofix run (the kickoff); a provided run_id is advancing an existing run.
