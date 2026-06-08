@@ -156,10 +156,14 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         newQueryParams.start = typeof start === 'string' ? start : start?.toISOString();
         newQueryParams.end = typeof end === 'string' ? end : end?.toISOString();
         newQueryParams.statsPeriod = undefined;
+        // Seer absolute ranges are UTC; carry the flag so Discover charts
+        // display them in UTC instead of the page's local timezone.
+        newQueryParams.utc = dt.utc ? 'true' : undefined;
       } else if (statsPeriod) {
         newQueryParams.statsPeriod = statsPeriod;
         newQueryParams.start = undefined;
         newQueryParams.end = undefined;
+        newQueryParams.utc = dt.utc ? 'true' : undefined;
       }
 
       if (runId !== undefined) {
