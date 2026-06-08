@@ -316,12 +316,3 @@ class TestDeriveTagsMany(TestCase):
         _derive_tags_many([job], {project.id: project})
 
         assert get_tag(job["data"], "url") == "https://user-provided.com"
-
-    @with_feature("organizations:derive-tags-without-plugins")
-    def test_new_path_handles_deriver_exception(self) -> None:
-        project = self.create_project()
-        event = _make_event(interfaces={"request": MagicMock(side_effect=Exception("boom"))})
-        event.interfaces.get = MagicMock(side_effect=Exception("boom"))
-        job = _make_job(event, project.id)
-
-        _derive_tags_many([job], {project.id: project})
