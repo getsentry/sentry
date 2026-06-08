@@ -21,7 +21,7 @@ export function getSpanDuration(span: SpanMetricInput): number {
   return ((span?.timestamp ?? 0) - (span?.start_timestamp ?? 0)) * 1000;
 }
 
-export function getSpanDataField(span: SpanMetricInput, field: string): any {
+function getSpanDataField(span: SpanMetricInput, field: string): any {
   return span?.data?.[field];
 }
 
