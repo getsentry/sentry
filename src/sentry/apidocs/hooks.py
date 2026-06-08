@@ -101,10 +101,12 @@ class CustomGenerator(SchemaGenerator):
 
 # Collected during preprocessing, used in postprocessing
 _ENDPOINT_SERVERS: dict[str, list[dict[str, Any]]] = {}
+_ENDPOINT_METHOD_SERVERS: dict[str, dict[str, list[dict[str, Any]]]] = {}
 
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     _ENDPOINT_SERVERS.clear()
+    _ENDPOINT_METHOD_SERVERS.clear()
 
     filtered = []
     ownership_data: dict[ApiOwner, dict] = {}
@@ -113,6 +115,12 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         endpoint_servers = getattr(callback.view_class, "servers", None)
         if endpoint_servers is not None:
             _ENDPOINT_SERVERS[path] = endpoint_servers
+
+        endpoint_method_servers = getattr(callback.view_class, "method_servers", None)
+        if endpoint_method_servers is not None and method in endpoint_method_servers:
+            _ENDPOINT_METHOD_SERVERS.setdefault(path, {})[method.lower()] = endpoint_method_servers[
+                method
+            ]
 
         owner_team = callback.view_class.owner
         if owner_team not in ownership_data:
@@ -226,6 +234,12 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
         if path in result["paths"]:
             for method_info in result["paths"][path].values():
                 method_info["servers"] = servers
+
+    for path, method_servers in _ENDPOINT_METHOD_SERVERS.items():
+        if path in result["paths"]:
+            for method, servers in method_servers.items():
+                if method in result["paths"][path]:
+                    result["paths"][path][method]["servers"] = servers
 
     _fix_issue_paths(result)
 

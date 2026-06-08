@@ -1,14 +1,20 @@
 from unittest import TestCase
 
-from sentry.apidocs.hooks import _ENDPOINT_SERVERS, custom_postprocessing_hook
+from sentry.apidocs.hooks import (
+    _ENDPOINT_METHOD_SERVERS,
+    _ENDPOINT_SERVERS,
+    custom_postprocessing_hook,
+)
 
 
 class EndpointServersTest(TestCase):
     def setUp(self) -> None:
         _ENDPOINT_SERVERS.clear()
+        _ENDPOINT_METHOD_SERVERS.clear()
 
     def tearDown(self) -> None:
         _ENDPOINT_SERVERS.clear()
+        _ENDPOINT_METHOD_SERVERS.clear()
 
     def test_servers_applied_to_endpoint(self) -> None:
         """Test that servers from _ENDPOINT_SERVERS are applied to matching paths."""
@@ -44,6 +50,38 @@ class EndpointServersTest(TestCase):
         ]
         # Servers should NOT be applied to non-matching endpoint
         assert "servers" not in processed["paths"]["/api/0/other/endpoint/"]["get"]
+
+    def test_method_servers_applied_to_single_method(self) -> None:
+        _ENDPOINT_METHOD_SERVERS["/api/0/releases/{version}/files/"] = {
+            "post": [{"url": "https://{region}.sentry.io"}]
+        }
+
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/releases/{version}/files/": {
+                    "get": {
+                        "tags": ["Releases"],
+                        "description": "Get files",
+                        "operationId": "get files",
+                        "parameters": [],
+                    },
+                    "post": {
+                        "tags": ["Releases"],
+                        "description": "Upload file",
+                        "operationId": "upload file",
+                        "parameters": [],
+                    },
+                },
+            },
+        }
+
+        processed = custom_postprocessing_hook(result, None)
+
+        assert processed["paths"]["/api/0/releases/{version}/files/"]["post"]["servers"] == [
+            {"url": "https://{region}.sentry.io"}
+        ]
+        assert "servers" not in processed["paths"]["/api/0/releases/{version}/files/"]["get"]
 
 
 class FixIssueRoutesTest(TestCase):
