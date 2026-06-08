@@ -15,7 +15,7 @@ from sentry.api.bases.organization import OrganizationDataExportPermission, Orga
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.data_export.base import ExportQueryType
+from sentry.data_export.base import ExportError, ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.data_export.processors.explore import (
@@ -393,6 +393,9 @@ class DataExportEndpoint(OrganizationEndpoint):
                 extra["status"] = "export_data_to_stored_blobs_sync"
             else:
                 extra["status"] = "assemble_download.task_scheduled"
+        except ExportError as error:
+            data_export.delete()
+            return Response({"detail": str(error)}, status=400)
         except ValidationError as e:
             # This will handle invalid JSON requests
             metrics.incr(
