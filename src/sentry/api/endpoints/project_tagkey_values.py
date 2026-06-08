@@ -1,4 +1,4 @@
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -19,13 +19,24 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.tagstore.types import TagValueSerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
+PROJECT_TAG_VALUES_EXAMPLE = [
+    {
+        "key": "flavor",
+        "name": "mint_choco",
+        "value": "mint_choco",
+        "count": 1,
+        "lastSeen": "2024-01-01T00:00:00Z",
+        "firstSeen": "2024-01-01T00:00:00Z",
+    }
+]
+
 
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     enforce_rate_limit = True
@@ -68,6 +79,14 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=[
+            OpenApiExample(
+                "Project tag values",
+                value=PROJECT_TAG_VALUES_EXAMPLE,
+                response_only=True,
+                status_codes=["200"],
+            )
+        ],
     )
     def get(self, request: Request, project, key) -> Response[list[TagValueSerializerResponse]]:
         """
