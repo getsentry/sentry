@@ -1,5 +1,5 @@
-import {useMutation} from '@tanstack/react-query';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
