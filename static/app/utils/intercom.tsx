@@ -98,9 +98,11 @@ async function initIntercom(orgSlug: string): Promise<void> {
         }
 
         hasRebootedAfterShow = true;
-        shutdown();
-        boot(intercomSettings);
-        show();
+        setTimeout(() => {
+          shutdown();
+          boot(intercomSettings);
+          show();
+        }, 2000);
       });
     } catch (error) {
       // Reset so user can retry on next click
