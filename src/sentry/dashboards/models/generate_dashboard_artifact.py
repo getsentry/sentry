@@ -99,6 +99,7 @@ class GeneratedWidgetQuery(BaseModel):
                   is provided as the first argument within backticks (`), which is then followed by the remaining arguments for the typical
                   4-argument tracemetric aggregate.
                     - For example, `equation|sum_if(`environment:prod`,value, my.app.errors, counter, none) / sum_if(`environment:prod`,value, my.app.requests, counter, none)`
+                - `per_second` and `per_minute` are not supported in equations, as well as the `_if` variant of these functions.
                 - An equation for tracemetrics must be the only entry in the `aggregates` array for a query (the frontend does not support rendering equations alongside aggregates).
             """
         ),

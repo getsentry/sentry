@@ -54,6 +54,7 @@ TRACE_METRICS_GUIDANCE = """When generating widgets with `widget_type: "tracemet
             - `equation|(sum(value, my.app.requests, counter, none) - sum(value, my.app.errors, counter, none)) / sum(value, my.app.requests, counter, none) * 100`
         - All aggregate functions support an `_if` variant that takes a backtick-wrapped search query as the first argument, followed by the standard 4 arguments (5 args total)
             - For example, `equation|sum_if(`environment:prod`, value, my.app.errors, counter, none) / sum_if(`environment:prod`, value, my.app.requests, counter, none)`
+        - `per_second` and `per_minute` are not supported in equations, as well as the `_if` variant of these functions.
         - An equation for tracemetrics must be the only entry in the `aggregates` array for a query (the frontend does not support rendering equations alongside aggregates).
 """
 
