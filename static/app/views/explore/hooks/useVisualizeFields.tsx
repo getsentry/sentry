@@ -4,7 +4,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
@@ -16,6 +16,7 @@ import {
 } from 'sentry/utils/fields';
 import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortKnownAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface UseVisualizeFieldsProps {
@@ -63,15 +64,13 @@ export function useVisualizeFields({
       .filter(option => {
         // Filtering by value here, so it's based off of explicit tags i.e. `key`
         // or `tags[<key>, <boolean | number | string>]
-        if (seen.has(option.value)) return false;
+        if (seen.has(option.value)) {
+          return false;
+        }
         seen.add(option.value);
         return true;
       })
-      .toSorted((a, b) => {
-        const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
-        const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
-        return aLabel.localeCompare(bLabel);
-      });
+      .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
   }, [tags, unknownField, traceItemType]);
 
   return fieldOptions;

@@ -1,6 +1,6 @@
 import type {Simplify} from 'type-fest';
 
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 
 export enum ModuleName {
@@ -17,7 +17,6 @@ export enum ModuleName {
   MCP_TOOLS = 'mcp-tools',
   MCP_RESOURCES = 'mcp-resources',
   MCP_PROMPTS = 'mcp-prompts',
-  MOBILE_UI = 'mobile-ui',
   MOBILE_VITALS = 'mobile-vitals',
   SCREEN_RENDERING = 'screen-rendering',
   SESSIONS = 'sessions',
@@ -188,25 +187,28 @@ export enum SpanFields {
   USER_DISPLAY = 'user.display', // Note: this is not implemented yet, waiting for EAP-123
 
   // Web vital fields
-  LCP_ELEMENT = 'lcp.element',
-  CLS_SOURCE = 'cls.source.1',
-  INP = 'measurements.inp',
+  BROWSER_WEB_VITAL_LCP_VALUE = 'browser.web_vital.lcp.value',
+  BROWSER_WEB_VITAL_FCP_VALUE = 'browser.web_vital.fcp.value',
+  BROWSER_WEB_VITAL_CLS_VALUE = 'browser.web_vital.cls.value',
+  BROWSER_WEB_VITAL_TTFB_VALUE = 'browser.web_vital.ttfb.value',
+  BROWSER_WEB_VITAL_INP_VALUE = 'browser.web_vital.inp.value',
+
+  // Web vital meta fields
+  BROWSER_WEB_VITAL_LCP_ELEMENT = 'browser.web_vital.lcp.element',
+  BROWSER_WEB_VITAL_CLS_SOURCE_1 = 'browser.web_vital.cls.source.1',
+
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_RATIO = 'measurements.score.ratio.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
-  LCP = 'measurements.lcp',
   LCP_SCORE = 'measurements.score.lcp',
   LCP_SCORE_RATIO = 'measurements.score.ratio.lcp',
   LCP_SCORE_WEIGHT = 'measurements.score.weight.lcp',
-  CLS = 'measurements.cls',
   CLS_SCORE = 'measurements.score.cls',
   CLS_SCORE_RATIO = 'measurements.score.ratio.cls',
   CLS_SCORE_WEIGHT = 'measurements.score.weight.cls',
-  TTFB = 'measurements.ttfb',
   TTFB_SCORE = 'measurements.score.ttfb',
   TTFB_SCORE_RATIO = 'measurements.score.ratio.ttfb',
   TTFB_SCORE_WEIGHT = 'measurements.score.weight.ttfb',
-  FCP = 'measurements.fcp',
   FCP_SCORE = 'measurements.score.fcp',
   FCP_SCORE_RATIO = 'measurements.score.ratio.fcp',
   FCP_SCORE_WEIGHT = 'measurements.score.weight.fcp',
@@ -236,6 +238,11 @@ type SpanNumberFields =
   | SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT
   | SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT
   | SpanFields.APP_VITALS_FRAMES_DELAY_VALUE
+  | SpanFields.BROWSER_WEB_VITAL_LCP_VALUE
+  | SpanFields.BROWSER_WEB_VITAL_FCP_VALUE
+  | SpanFields.BROWSER_WEB_VITAL_CLS_VALUE
+  | SpanFields.BROWSER_WEB_VITAL_TTFB_VALUE
+  | SpanFields.BROWSER_WEB_VITAL_INP_VALUE
   | SpanFields.MOBILE_FRAMES_DELAY
   | SpanFields.MOBILE_FROZEN_FRAMES
   | SpanFields.MOBILE_TOTAL_FRAMES
@@ -254,23 +261,18 @@ type SpanNumberFields =
   | SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING
   | SpanFields.TOTAL_SCORE
-  | SpanFields.INP
   | SpanFields.INP_SCORE
   | SpanFields.INP_SCORE_RATIO
   | SpanFields.INP_SCORE_WEIGHT
-  | SpanFields.LCP
   | SpanFields.LCP_SCORE
   | SpanFields.LCP_SCORE_RATIO
   | SpanFields.LCP_SCORE_WEIGHT
-  | SpanFields.CLS
   | SpanFields.CLS_SCORE
   | SpanFields.CLS_SCORE_RATIO
   | SpanFields.CLS_SCORE_WEIGHT
-  | SpanFields.TTFB
   | SpanFields.TTFB_SCORE
   | SpanFields.TTFB_SCORE_RATIO
   | SpanFields.TTFB_SCORE_WEIGHT
-  | SpanFields.FCP
   | SpanFields.FCP_SCORE
   | SpanFields.FCP_SCORE_RATIO
   | SpanFields.FCP_SCORE_WEIGHT
@@ -327,8 +329,8 @@ type NonNullableStringFields =
   | SpanFields.USER_USERNAME
   | SpanFields.USER_ID
   | SpanFields.USER_IP
-  | SpanFields.CLS_SOURCE
-  | SpanFields.LCP_ELEMENT
+  | SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT
+  | SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1
   | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.TRANSACTION_EVENT_ID
   | SpanFields.DB_SYSTEM

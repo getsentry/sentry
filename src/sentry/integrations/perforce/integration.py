@@ -49,6 +49,7 @@ class PerforceMetadata(TypedDict, total=False):
     client: str
     ssl_fingerprint: str
     web_url: str
+    charset: str
 
 
 DESCRIPTION = """
@@ -97,6 +98,20 @@ class AuthType(models.TextChoices):
     TICKET = "ticket", _("P4 Ticket")
 
 
+class Charset(models.TextChoices):
+    """
+    Whether the Perforce server is running in Unicode mode (`p4d -xi`).
+
+    A Unicode-enabled server rejects clients that don't declare a charset on
+    connect. The value here is passed verbatim to `p4.charset` before
+    `p4.connect()`. "none" preserves legacy behavior (non-Unicode server) by
+    skipping `p4.charset` entirely.
+    """
+
+    NONE = "none", _("Non-Unicode server (default)")
+    UTF8 = "utf8", _("Unicode server (UTF-8)")
+
+
 class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
     p4port = CharField(required=True)
     user = CharField(required=True)
@@ -105,6 +120,7 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
     client = CharField(required=False, allow_blank=True, default="")
     ssl_fingerprint = CharField(required=False, allow_blank=True, default="")
     web_url = URLField(required=False, allow_blank=True, default="")
+    charset = ChoiceField(choices=Charset.choices, default=Charset.NONE)
 
     def validate_p4port(self, value: str) -> str:
         return value.strip().rstrip("/")
@@ -126,7 +142,7 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
 # against the external Perforce server, so this list is allowlist-only —
 # anything new added to metadata stays out of the API response by default.
 _CONFIG_DATA_ALLOWLIST = frozenset(
-    {"p4port", "user", "auth_type", "ssl_fingerprint", "client", "web_url"}
+    {"p4port", "user", "auth_type", "ssl_fingerprint", "client", "web_url", "charset"}
 )
 
 
@@ -151,9 +167,16 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         self._client: PerforceClient | None = None
 
     def get_repo_external_id(self, repo: Mapping[str, Any]) -> str:
-        raise NotImplementedError(
-            "Perforce external_id is derived from the depot path, not the API response"
-        )
+        """
+        Derive the external_id for a depot.
+
+        Perforce has no provider-side repository id, so the depot path (e.g.
+        ``//depot``) is the stable identifier. This must match what the
+        manual-add path stores (``PerforceRepositoryProvider.get_repository_data``)
+        so periodic sync and manual adds converge on the same Repository rows
+        instead of creating duplicates.
+        """
+        return f"//{repo['name']}"
 
     def get_client(self) -> PerforceClient:
         """Get the Perforce client instance."""
@@ -354,7 +377,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
                     {
                         "name": depot_name,
                         "identifier": depot_path,
-                        "external_id": "",  # Perforce derives external_id from the user-provided depot path, not the API response
+                        "external_id": self.get_repo_external_id(depot),
                         "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )
@@ -385,10 +408,6 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
 
         except Exception:
             return False
-
-    def get_unmigratable_repositories(self) -> list[RpcRepository]:
-        """Get repositories that can't be migrated. Perforce doesn't need migration."""
-        return []
 
     def get_organization_config(self) -> list[dict[str, Any]]:
         """
@@ -456,6 +475,21 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
                 "placeholder": "https://swarm.company.com",
                 "help": "Optional: URL to P4 Core web viewer for browsing files",
                 "required": False,
+            },
+            {
+                "name": "charset",
+                "type": "choice",
+                "label": "Server Encoding",
+                "choices": [
+                    [Charset.NONE.value, Charset.NONE.label],
+                    [Charset.UTF8.value, Charset.UTF8.label],
+                ],
+                "help": (
+                    "Select 'Unicode server (UTF-8)' if your Perforce server was "
+                    "initialized in Unicode mode (`p4d -xi`). Unicode servers "
+                    "reject clients that do not declare a charset on connect."
+                ),
+                "required": True,
             },
         ]
 
@@ -579,6 +613,7 @@ class PerforceIntegrationProvider(IntegrationProvider):
             "user": installation_data.get("user", ""),
             "auth_type": installation_data.get("auth_type", "password"),  # Default to password
             "password": installation_data.get("password", ""),
+            "charset": installation_data.get("charset", Charset.NONE.value),
         }
 
         # Add optional fields if provided
@@ -664,6 +699,7 @@ class PerforceInstallationApiStep:
                             "auth_type": validated_data.get("auth_type", "password"),
                             "client": validated_data.get("client"),
                             "ssl_fingerprint": validated_data.get("ssl_fingerprint"),
+                            "charset": validated_data.get("charset", Charset.NONE.value),
                         },
                     ),
                 ),

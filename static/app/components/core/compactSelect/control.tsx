@@ -10,6 +10,7 @@ import {
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -429,7 +430,9 @@ export function Control({
     const values = Array.isArray(value) ? value : [value];
     const options = items
       .flatMap(item => {
-        if ('options' in item) return item.options;
+        if ('options' in item) {
+          return item.options;
+        }
         return item;
       })
       .filter(item => values.includes(item.value));
@@ -461,8 +464,12 @@ export function Control({
   });
 
   const hasSelection = useMemo(() => {
-    if (value === undefined) return false;
-    if (Array.isArray(value)) return value.length > 0;
+    if (value === undefined) {
+      return false;
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
     return true;
   }, [value]);
 
@@ -504,13 +511,13 @@ export function Control({
               ref={menuRef}
               width={menuWidth ?? menuFullWidth}
               height={menuHeight}
-              minWidth={menuMinWidth ?? overlayProps.style!.minWidth}
+              minWidth={menuMinWidth ?? overlayProps.style?.minWidth}
               maxWidth={
                 overlayProps.style?.maxWidth
                   ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
                   : undefined
               }
-              maxHeight={overlayProps.style!.maxHeight}
+              maxHeight={overlayProps.style?.maxHeight}
               maxHeightProp={maxMenuHeight}
               data-menu-has-header={!!menuTitle || clearable}
               data-menu-has-search={searchEnabled}
@@ -687,9 +694,21 @@ const StyledOverlay = styled(Overlay, {
   flex-direction: column;
   overflow: hidden;
 
-  ${p => p.width && `width: ${withUnits(p.width)};`}
-  ${p => p.height && `height: ${withUnits(p.height)};`}
-  ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
+  ${p =>
+    p.width &&
+    css`
+      width: ${withUnits(p.width)};
+    `}
+  ${p =>
+    p.height &&
+    css`
+      height: ${withUnits(p.height)};
+    `}
+  ${p =>
+    p.minWidth &&
+    css`
+      min-width: ${withUnits(p.minWidth)};
+    `}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : '100%')};
   max-height: ${p =>
     p.maxHeight

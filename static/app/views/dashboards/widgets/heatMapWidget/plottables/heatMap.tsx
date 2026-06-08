@@ -11,7 +11,7 @@ import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/se
 
 import type {HeatMapPlottable, PlottableTimeSeriesValueType} from './heatMapPlottable';
 
-export type HeatMapPlottingOptions = {
+type HeatMapPlottingOptions = {
   theme: Theme;
   /**
    * The Z-axis scale type. `'log'` applies `Math.log1p` to Z values so the
@@ -49,7 +49,7 @@ export class HeatMap implements HeatMapPlottable {
 
   toSeries(plottingOptions: HeatMapPlottingOptions): SeriesOption[] {
     const {heatMapSeries} = this;
-    const {scale = 'linear'} = plottingOptions;
+    const {scale = 'linear', theme} = plottingOptions;
 
     return [
       {
@@ -64,7 +64,10 @@ export class HeatMap implements HeatMapPlottable {
           ];
         }),
         emphasis: {
-          disabled: true,
+          itemStyle: {
+            borderColor: theme.tokens.border.onVibrant.dark,
+            borderWidth: parseInt(theme.border.xl.replace('px', ''), 10),
+          },
         },
       },
     ];

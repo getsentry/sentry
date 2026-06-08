@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum, auto
@@ -14,7 +14,6 @@ from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.utils import timezone
-from snuba_sdk.expressions import Expression
 from snuba_sdk.query import Query
 
 from sentry import features, options
@@ -164,7 +163,6 @@ def group_categories_from_search_filters(search_filters: Sequence[SearchFilter])
         group_categories = set(get_search_strategies().keys())
         # Hide certain categories from the default issue stream
         group_categories.discard(GroupCategory.FEEDBACK.value)
-        group_categories.discard(GroupCategory.INSTRUMENTATION.value)
         group_categories.discard(GroupCategory.CONFIGURATION.value)
 
     return group_categories
@@ -180,7 +178,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def aggregation_defs(self) -> Sequence[str] | Expression:
+    def aggregation_defs(self) -> Mapping[str, Sequence[str] | Callable]:
         """This method should return a dict of key:value
         where key is a field name for your aggregation
         and value is the aggregation function"""
@@ -303,7 +301,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
                 else:
                     aggregation = aggregation(start, end, DEFAULT_TRENDS_WEIGHTS)
-            aggregations.append(aggregation + [alias])
+            aggregations.append(list(aggregation) + [alias])
 
         return aggregations
 
@@ -383,7 +381,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             selected_columns,
             aggregations,
             organization,
-            project_ids,
+            list(project_ids),
             environments,
             group_ids,
             filters,
@@ -456,7 +454,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        group_categories = group_categories_from_search_filters(search_filters)
+        group_categories = group_categories_from_search_filters(search_filters or ())
 
         query_params_for_categories = {}
 
@@ -564,8 +562,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         ):
             try:
                 return EAPOccurrencesComparator.check_and_choose_with_timings(
-                    control_thunk=_run_snuba_query,
-                    experimental_thunk=_run_eap_query,
+                    control_data_func=_run_snuba_query,
+                    experimental_data_func=_run_eap_query,
                     callsite=callsite,
                     null_result_determiner=lambda r: len(r[0]) == 0,
                     reasonable_match_comparator=_reasonable_search_result_match,
@@ -806,27 +804,51 @@ def _recommended_aggregation(
 
     # Group type boost: additive signal per issue type
     group_type_boosts = options.get("snuba.search.recommended.group-type-boost")
+
+    # Message penalty: downranks capture_message issues (no exception/stacktrace).
+    # Subtracted from the score below, and only on the events dataset -- issue-platform
+    # occurrences don't have exception_stacks.
+    message_penalty_weight = options.get("snuba.search.recommended.message-penalty-weight")
+
+    # Skip zero-weighted factors: their term is always 0, so computing them in
+    # ClickHouse is wasted work -- especially expensive aggregates like user
+    # impact's uniq(tags[sentry:user]).
+    terms = [
+        f"multiply({weight}, {factor})"
+        for weight, factor in (
+            (recency_weight, recency),
+            (spike_weight, spike),
+            (severity_weight, severity),
+            (user_impact_weight, user_impact),
+            (event_volume_weight, event_volume),
+        )
+        if weight
+    ]
+
+    if not terms:
+        # The score must be an aggregate expression. Every factor term above is an
+        # aggregate, but if all are dropped the only remaining term may be the boost
+        # below, which can be a bare constant. Seed a constant-0 aggregate so the
+        # expression Snuba receives always contains one.
+        terms.append("multiply(0, count())")
+
     if group_type_boosts:
         type_expr = f"any({type_column})" if type_column else "1"
         conditions = []
         for type_id, boost in group_type_boosts.items():
             conditions.append(f"equals({type_expr}, {type_id}), {boost}")
-        type_boost = f"multiIf({', '.join(conditions)}, 0.0)"
-    else:
-        type_boost = "0.0"
+        terms.append(f"multiIf({', '.join(conditions)}, 0.0)")
 
-    return [
-        (
-            f"plus(plus(plus(plus(plus("
-            f"multiply({recency_weight}, {recency}), "
-            f"multiply({spike_weight}, {spike})), "
-            f"multiply({severity_weight}, {severity})), "
-            f"multiply({user_impact_weight}, {user_impact})), "
-            f"multiply({event_volume_weight}, {event_volume})), "
-            f"{type_boost})"
-        ),
-        "",
-    ]
+    score_expr = terms[0]
+    for term in terms[1:]:
+        score_expr = f"plus({score_expr}, {term})"
+
+    if type_column is None and message_penalty_weight:
+        has_exception_ratio = "divide(countIf(notEmpty(exception_stacks.type)), count())"
+        message_penalty = f"multiply({message_penalty_weight}, minus(1.0, {has_exception_ratio}))"
+        score_expr = f"minus({score_expr}, {message_penalty})"
+
+    return [score_expr, ""]
 
 
 def recommended_aggregation(
@@ -1090,7 +1112,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
-                environment_ids=environments and [environment.id for environment in environments],
+                environment_ids=[environment.id for environment in environments]
+                if environments
+                else None,
                 organization=projects[0].organization,
                 sort_field=sort_field,
                 cursor=cursor,
@@ -1248,24 +1272,23 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # +/-10% @ 95% confidence.
 
             sample_size = options.get("snuba.search.hits-sample-size")
-            kwargs = {}
-            if not too_many_candidates:
-                kwargs["group_ids"] = group_ids
 
             snuba_groups, snuba_total = self.snuba_search(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
-                environment_ids=environments and [environment.id for environment in environments],
+                environment_ids=[environment.id for environment in environments]
+                if environments
+                else None,
                 organization=projects[0].organization,
                 sort_field=sort_field,
+                group_ids=group_ids if not too_many_candidates else None,
                 limit=sample_size,
                 offset=0,
                 get_sample=True,
                 search_filters=search_filters,
                 actor=actor,
                 referrer=referrer,
-                **kwargs,
             )
             snuba_count = len(snuba_groups)
 

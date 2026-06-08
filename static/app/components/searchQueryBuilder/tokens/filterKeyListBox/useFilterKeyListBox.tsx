@@ -5,7 +5,12 @@ import type {Node} from '@react-types/shared';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenu} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox';
 import type {
@@ -91,7 +96,8 @@ function findNextMatchingItem(
 }
 
 function useFilterKeyItems() {
-  const {filterKeySections, getFieldDefinition, filterKeys} = useSearchQueryBuilder();
+  const {filterKeySections, getFieldDefinition, filterKeys} =
+    useSearchQueryBuilderConfig();
 
   const sectionedItems = useMemo(() => {
     const flatFilterKeys = Object.keys(filterKeys);
@@ -134,7 +140,8 @@ function useFilterKeySections({
 }: {
   recentSearches: RecentSearch[] | undefined;
 }) {
-  const {filterKeySections, query, disallowLogicalOperators} = useSearchQueryBuilder();
+  const {query} = useSearchQueryBuilderState();
+  const {filterKeySections, disallowLogicalOperators} = useSearchQueryBuilderConfig();
   const sections = useMemo<Section[]>(() => {
     const definedSections = filterKeySections.map(section => ({
       value: section.value,
@@ -192,15 +199,11 @@ interface UseFilterKeyListBoxArgs {
 }
 
 export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
-  const {
-    filterKeys,
-    getFieldDefinition,
-    setAutoSubmitSeer,
-    setDisplayAskSeer,
-    enableAISearch,
-    currentInputValueRef,
-    disallowLogicalOperators,
-  } = useSearchQueryBuilder();
+  const {filterKeys, getFieldDefinition, disallowLogicalOperators} =
+    useSearchQueryBuilderConfig();
+  const {setAutoSubmitSeer, setDisplayAskSeer, enableAISearch} =
+    useSearchQueryBuilderAI();
+  const {currentInputValueRef} = useSearchQueryBuilderLayout();
   const analyticsArea = useAnalyticsArea();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
@@ -419,10 +422,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
   const handleOptionSelected = useCallback(
     (option: FilterKeyItem) => {
       if (option.type === 'ask-seer') {
-        trackAnalytics('trace.explorer.ai_query_interface', {
-          organization,
-          action: 'opened',
-        });
         trackAnalytics('ai_query.interface', {
           organization,
           area: analyticsArea,
@@ -440,10 +439,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
       }
 
       if (option.type === 'ask-seer-consent') {
-        trackAnalytics('trace.explorer.ai_query_interface', {
-          organization,
-          action: 'consent_accepted',
-        });
         trackAnalytics('ai_query.interface', {
           organization,
           area: analyticsArea,

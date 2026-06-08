@@ -6,8 +6,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStar} from 'sentry/icons';
-import {defined} from 'sentry/utils';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -187,6 +187,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
       organization,
       theme,
       location,
+      navigate,
       unit,
       projects,
     };
@@ -260,7 +261,9 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
               canSort={column.sortable ?? false}
               title={<StyledTooltip title={tooltipTitle}>{name}</StyledTooltip>}
               onClick={e => {
-                if (!onChangeSort) return;
+                if (!onChangeSort) {
+                  return;
+                }
                 e.preventDefault();
                 const nextDirection = direction === 'desc' ? 'asc' : 'desc';
                 onChangeSort({
@@ -383,7 +386,9 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
       resizable={false}
       grid={{
         renderHeadCell: (_tableColumn, columnIndex) => {
-          if (!columns) return null;
+          if (!columns) {
+            return null;
+          }
           const column = columns[columnIndex]!;
           const isStarredColumn = column.key === SpanFields.IS_STARRED_TRANSACTION;
           const hasAlias = !!aliases?.[column.key];

@@ -26,6 +26,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodSnapshotComparison,
 )
 from sentry.preprod.quotas import (
     has_installable_quota,
@@ -62,7 +63,7 @@ logger = logging.getLogger(__name__)
 @launchpad_tasks.register(
     name="process_artifact",
     retry=Retry(times=3),
-    processing_deadline_duration=60 * 12,
+    processing_deadline_duration=60 * 15,
 )
 def process_artifact(artifact_id: str, project_id: str, organization_id: str) -> None:
     pass
@@ -719,7 +720,7 @@ def _assemble_preprod_artifact_installable_app(
         logger.exception(
             "PreprodArtifact not found during installable app assembly",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
                 "project_id": project.id,
                 "organization_id": org_id,
             },
@@ -835,6 +836,7 @@ def detect_expired_preprod_artifacts() -> None:
     - PreprodArtifacts that have been processing for more than 30 minutes
     - PreprodArtifactSizeMetrics that have been in progress for more than 30 minutes
     - PreprodArtifactSizeComparisons that have been in progress for more than 30 minutes
+    - PreprodSnapshotComparisons that have been in progress for more than 30 minutes
     """
     current_time = timezone.now()
     timeout_threshold = current_time - datetime.timedelta(minutes=30)
@@ -888,7 +890,7 @@ def detect_expired_preprod_artifacts() -> None:
                 "PreprodArtifact expired",
                 level="error",
                 extras={
-                    "artifact_id": artifact_id,
+                    "preprod_artifact_id": artifact_id,
                 },
             )
             try:
@@ -898,7 +900,7 @@ def detect_expired_preprod_artifacts() -> None:
             except Exception:
                 logger.exception(
                     "preprod.tasks.detect_expired_preprod_artifacts.failed_to_trigger_status_check",
-                    extra={"artifact_id": artifact_id},
+                    extra={"preprod_artifact_id": artifact_id},
                 )
 
     # Find expired PreprodArtifactSizeMetrics (those in PROCESSING state for more than 30 minutes)
@@ -956,15 +958,44 @@ def detect_expired_preprod_artifacts() -> None:
         )
         expired_size_comparisons_count = 0
 
+    # Find expired PreprodSnapshotComparisons (those in PROCESSING state for more than 30 minutes)
+    # Note: ignore snapshot comparisons in a pending state
+    expired_snapshot_comparisons = PreprodSnapshotComparison.objects.filter(
+        state=PreprodSnapshotComparison.State.PROCESSING, date_updated__lte=timeout_threshold
+    )
+
+    try:
+        with transaction.atomic(router.db_for_write(PreprodSnapshotComparison)):
+            expired_snapshot_comparisons_count = expired_snapshot_comparisons.update(
+                state=PreprodSnapshotComparison.State.FAILED,
+                error_code=PreprodSnapshotComparison.ErrorCode.TIMEOUT,
+                error_message="Snapshot comparison processing timed out after 30 minutes",
+            )
+
+            if expired_snapshot_comparisons_count > 0:
+                logger.info(
+                    "preprod.tasks.detect_expired_preprod_artifacts.batch_updated_expired_snapshot_comparisons_as_failed",
+                    extra={
+                        "expired_snapshot_comparisons_count": expired_snapshot_comparisons_count,
+                    },
+                )
+    except Exception:
+        logger.exception(
+            "preprod.tasks.detect_expired_preprod_artifacts.failed_to_batch_update_expired_snapshot_comparisons",
+        )
+        expired_snapshot_comparisons_count = 0
+
     logger.info(
         "preprod.tasks.detect_expired_preprod_artifacts.completed",
         extra={
             "expired_artifacts_count": expired_artifacts_count,
             "expired_size_metrics_count": expired_size_metrics_count,
             "expired_size_comparisons_count": expired_size_comparisons_count,
+            "expired_snapshot_comparisons_count": expired_snapshot_comparisons_count,
             "total_expired_count": expired_artifacts_count
             + expired_size_metrics_count
-            + expired_size_comparisons_count,
+            + expired_size_comparisons_count
+            + expired_snapshot_comparisons_count,
         },
     )
 

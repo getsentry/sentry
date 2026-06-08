@@ -15,12 +15,14 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
-from sentry.replays.testutils import mock_replay
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
+from sentry.replays.testutils import mock_replay, mock_replay_click
 from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.agent.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     _get_issue_event_timeseries,
     _get_recommended_event,
+    execute_replays_query,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
@@ -981,6 +983,8 @@ class _IssueMetadata(BaseModel):
     type: str
     issueType: str
     issueTypeDescription: str  # Extra field added by get_issue_and_event_details.
+    detectionContext: str | None  # Extra field added by get_issue_and_event_details.
+    troubleshootingHint: str | None  # Extra field added by get_issue_and_event_details.
     issueCategory: str
     hasSeen: bool
     project: _Project
@@ -1497,6 +1501,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["issue"]["issueTypeDescription"] == group.issue_type.description
+        assert result["issue"]["detectionContext"] is None
+        assert result["issue"]["troubleshootingHint"] is None
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
 
@@ -1521,6 +1527,28 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["issue"]["id"] == str(group.id)
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_low_value_span_issue_context(self, mock_tags, mock_ts):
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+        group = self.create_group(
+            project=self.project,
+            type=LowValueSpanConfigurationType.type_id,
+        )
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert isinstance(result, dict)
+        self._assert_issue_response_shape(result)
+        assert "Sentry detector" in result["issue"]["detectionContext"]
+        assert "low telemetry value" in result["issue"]["detectionContext"]
+        assert "manually instrumented" in result["issue"]["troubleshootingHint"]
+        assert "filter the automatically created span" in result["issue"]["troubleshootingHint"]
 
     # --- timeseries ---
 
@@ -2953,6 +2981,134 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
                 )
                 is None
             )
+
+    def test_execute_replays_query(self) -> None:
+        replay_id = uuid.uuid4().hex
+        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
+        self.store_replays(
+            mock_replay(
+                replay_timestamp,
+                self.project.id,
+                replay_id,
+                urls=["https://example.com/checkout"],
+            )
+        )
+        self.store_replays(
+            mock_replay_click(
+                replay_timestamp + timedelta(seconds=5),
+                self.project.id,
+                replay_id,
+                node_id=1,
+                tag="button",
+                is_dead=1,
+                is_rage=1,
+            )
+        )
+
+        with self.feature({"organizations:session-replay": True}):
+            result = execute_replays_query(
+                organization_id=self.organization.id,
+                project_ids=[self.project.id],
+                query="count_rage_clicks:>0",
+                fields=["id", "project_id", "started_at", "count_rage_clicks", "urls"],
+                sort="-started_at",
+                stats_period="7d",
+                per_page=5,
+            )
+
+        assert result is not None
+        assert len(result["data"]) == 1
+        row = result["data"][0]
+        assert row["id"] == replay_id
+        assert row["project_id"] == str(self.project.id)
+        assert row["started_at"] == replay_timestamp.replace(microsecond=0).isoformat()
+        assert row["count_rage_clicks"] == 1
+        assert row["urls"] == ["https://example.com/checkout"]
+
+    def test_execute_replays_query_with_project_slugs(self) -> None:
+        replay_id = uuid.uuid4().hex
+        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
+        self.store_replays(
+            mock_replay(
+                replay_timestamp,
+                self.project.id,
+                replay_id,
+                urls=["https://example.com/checkout"],
+            )
+        )
+
+        with self.feature({"organizations:session-replay": True}):
+            result = execute_replays_query(
+                organization_id=self.organization.id,
+                project_slugs=[self.project.slug],
+                query="url:*checkout*",
+                fields=["id", "project_id", "started_at", "urls"],
+                sort="-started_at",
+                stats_period="7d",
+                per_page=5,
+            )
+
+        assert result is not None
+        assert len(result["data"]) == 1
+        row = result["data"][0]
+        assert row["id"] == replay_id
+        assert row["project_id"] == str(self.project.id)
+        assert row["started_at"] == replay_timestamp.replace(microsecond=0).isoformat()
+        assert row["urls"] == ["https://example.com/checkout"]
+
+    def test_execute_replays_query_rejects_invalid_fields(self) -> None:
+        with self.feature({"organizations:session-replay": True}):
+            result = execute_replays_query(
+                organization_id=self.organization.id,
+                project_ids=[self.project.id],
+                fields=["id", "not_a_replay_field"],
+                stats_period="7d",
+                per_page=5,
+            )
+
+        assert result == {"error": "Invalid replay field(s): not_a_replay_field"}
+
+    def test_execute_replays_query_handles_invalid_sort(self) -> None:
+        replay_id = uuid.uuid4().hex
+        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
+        self.store_replays(mock_replay(replay_timestamp, self.project.id, replay_id))
+
+        with self.feature({"organizations:session-replay": True}):
+            result = execute_replays_query(
+                organization_id=self.organization.id,
+                project_ids=[self.project.id],
+                fields=["id", "started_at"],
+                sort="-not_a_sortable_field",
+                stats_period="7d",
+                per_page=5,
+            )
+
+        assert result is not None
+        assert "not_a_sortable_field" in result["error"]
+        assert "sortable field" in result["error"]
+
+    def test_execute_replays_query_pagination_has_more(self) -> None:
+        older_replay_id = uuid.uuid4().hex
+        newer_replay_id = uuid.uuid4().hex
+        older_timestamp = datetime.now(UTC) - timedelta(minutes=10)
+        newer_timestamp = datetime.now(UTC) - timedelta(minutes=5)
+        self.store_replays(mock_replay(older_timestamp, self.project.id, older_replay_id))
+        self.store_replays(mock_replay(newer_timestamp, self.project.id, newer_replay_id))
+
+        with self.feature({"organizations:session-replay": True}):
+            result = execute_replays_query(
+                organization_id=self.organization.id,
+                project_ids=[self.project.id],
+                fields=["id", "started_at"],
+                sort="-started_at",
+                stats_period="7d",
+                per_page=1,
+            )
+
+        assert result is not None
+        assert len(result["data"]) == 1
+        assert result["data"][0]["id"] == newer_replay_id
+        assert result["meta"]["has_more"] is True
 
 
 class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):

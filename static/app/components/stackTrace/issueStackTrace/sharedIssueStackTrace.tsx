@@ -29,9 +29,9 @@ import {tn} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {defined} from 'sentry/utils/defined';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {
   formatExceptionsAsText,
@@ -67,7 +67,7 @@ type SharedIssueStackTraceProps =
  * The shared issue page is viewed by unauthenticated users, so this component
  * intentionally avoids the following from {@link IssueStackTrace}:
  * - {@link IssueFrameActions}: calls stacktrace-link and source-map-debug APIs
- * - {@link IssueStackTraceFrameContext}: calls stacktrace-coverage API (Codecov)
+ * - {@link IssueStackTraceFrameContext}: fetches SCM source context when expanded (authenticated)
  * - {@link StacktraceBanners}: depends on authenticated project context
  * - {@link SuspectCommits}: requires group and project data
  *
@@ -172,7 +172,7 @@ function SharedIssueStackTraceContent({
 
   if (view === 'raw') {
     return (
-      <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
+      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
         <Panel>
           <RawStackTraceText>
             {formatExceptionsAsText({
@@ -183,7 +183,7 @@ function SharedIssueStackTraceContent({
             })}
           </RawStackTraceText>
         </Panel>
-      </InterimSection>
+      </FoldSection>
     );
   }
 
@@ -194,7 +194,7 @@ function SharedIssueStackTraceContent({
     const excMeta = exceptionValuesMeta?.[exc.exceptionIndex];
 
     return (
-      <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
+      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
         <Flex direction="column" gap="lg">
           {hasExceptionInfo && (
             <Fragment>
@@ -218,12 +218,12 @@ function SharedIssueStackTraceContent({
             <StackTraceFrames frameContextComponent={FrameContent} />
           </StackTraceProvider>
         </Flex>
-      </InterimSection>
+      </FoldSection>
     );
   }
 
   return (
-    <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
+    <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
       <Flex direction="column" gap="lg">
         <Text variant="muted">
           {tn(
@@ -295,6 +295,6 @@ function SharedIssueStackTraceContent({
           );
         })}
       </Flex>
-    </InterimSection>
+    </FoldSection>
   );
 }

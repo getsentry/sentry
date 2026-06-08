@@ -63,11 +63,25 @@ class OrganizationAlertRuleWorkflowIndexGetTest(OrganizationAlertRuleWorkflowAPI
 
         assert response.data == serialize(self.alert_rule_workflow_1, self.user)
 
-    def test_get_with_multiple_filters_with_invalid_filter(self) -> None:
+    def test_get_with_non_integer_workflow_id(self) -> None:
         self.get_error_response(
             self.organization.slug,
-            workflow_id=str(self.workflow_1.id),
-            alert_rule_id="this is not a valid ID",
+            workflow_id="not-an-integer",
+            status_code=400,
+        )
+
+    def test_get_with_non_integer_alert_rule_id(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            alert_rule_id="not-an-integer",
+            status_code=400,
+        )
+
+    def test_get_with_non_integer_rule_id(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            rule_id="not-an-integer",
+            status_code=400,
         )
 
     def test_get_with_nonexistent_workflow_id(self) -> None:

@@ -18,6 +18,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import SentryAPIException
+from sentry.api.utils import to_valid_int_id
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
 from sentry.integrations.services.integration.service import integration_service
@@ -160,7 +161,7 @@ class PushEventWebhook(BitbucketWebhook):
 
 @cell_silo_endpoint
 class BitbucketWebhookEndpoint(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -177,14 +178,15 @@ class BitbucketWebhookEndpoint(Endpoint):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: HttpRequest, organization_id: int) -> HttpResponse:
+    def post(self, request: HttpRequest, organization_id: str) -> HttpResponse:
+        org_id = to_valid_int_id("organization_id", organization_id, raise_404=True)
         try:
-            organization = Organization.objects.get_from_cache(id=organization_id)
+            organization = Organization.objects.get_from_cache(id=org_id)
         except Organization.DoesNotExist:
             logger.info(
                 "%s.webhook.invalid-organization",
                 PROVIDER_NAME,
-                extra={"organization_id": organization_id},
+                extra={"organization_id": org_id},
             )
             return HttpResponse(status=400)
 

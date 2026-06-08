@@ -112,7 +112,8 @@ export function FeedbackActivitySection(props: Props) {
       onDelete={handleDelete}
       onCreate={handleCreate}
       onUpdate={handleUpdate}
-      placeholderText={t(
+      variant="standalone"
+      placeholder={t(
         'Add details or updates to this feedback, visible only to your organization. \nTag users with @, or teams with #'
       )}
     />

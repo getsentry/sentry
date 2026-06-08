@@ -14,18 +14,18 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
+import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {Projects} from 'sentry/utils/projects';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -68,8 +68,8 @@ function getAlertListApiOptions(orgSlug: string, query: Location['query']) {
   );
 }
 
-const DataConsentBanner = HookOrDefault({
-  hookName: 'component:data-consent-banner',
+const DataConsentBanner = OverrideOrDefault({
+  overrideName: 'component:data-consent-banner',
   defaultComponent: null,
 });
 

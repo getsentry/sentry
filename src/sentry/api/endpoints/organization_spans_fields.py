@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import Literal
@@ -29,11 +30,13 @@ from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute_to_api, translate_internal_to_public_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
+
+logger = logging.getLogger(__name__)
 
 
 def as_tag_key(name: str, search_type: Literal["string", "number", "boolean"]):
@@ -125,7 +128,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                     as_tag_key(attribute.name, serialized["type"])
                     for attribute in rpc_response.attributes
                     if attribute.name
-                    and can_expose_attribute(
+                    and can_expose_attribute_to_api(
                         attribute.name,
                         SupportedTraceItemType.SPANS,
                         include_internal=include_internal,
@@ -147,6 +150,12 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 @cell_silo_endpoint
 class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
+        logger.info("a request to span-fields was made")
+        if features.has(
+            "organizations:explore-span-fields-removal", organization, actor=request.user
+        ):
+            return Response(status=404)
+
         if not features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         ):

@@ -1,4 +1,5 @@
-import type {PlatformKey} from 'sentry/types/project';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {CrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -10,22 +11,6 @@ export type TracingEventParameters = {
   };
   'trace.configurations_docs_link_clicked': {
     title: string;
-  };
-
-  'trace.explorer.ai_query_applied': {
-    group_by_count: number;
-    query: string;
-    visualize_count: number;
-  };
-  'trace.explorer.ai_query_interface': {
-    action: 'opened' | 'closed' | 'consent_accepted';
-  };
-  'trace.explorer.ai_query_rejected': {
-    natural_language_query: string;
-    num_queries_returned: number;
-  };
-  'trace.explorer.ai_query_submitted': {
-    natural_language_query: string;
   };
   'trace.explorer.cross_event_added': {
     type: CrossEventType;
@@ -59,6 +44,7 @@ export type TracingEventParameters = {
     version: 2;
     visualizes: BaseVisualize[];
     visualizes_count: number;
+    ai_query_run_id?: number;
     attribute_breakdowns_mode?: 'breakdowns' | 'cohort_comparison';
     cross_event_log_query_count?: number;
     cross_event_metric_query_count?: number;
@@ -75,6 +61,10 @@ export type TracingEventParameters = {
     direction: string;
     num_results: number;
     type: 'samples' | 'traces' | 'aggregates';
+  };
+  'trace.explorer.table_tab_changed': {
+    organization: Organization;
+    tab: string;
   };
   'trace.load.empty_state': {
     source: TraceTreeSource;
@@ -226,10 +216,6 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.metadata': 'Trace Load Metadata',
   'trace.load.empty_state': 'Trace Load Empty State',
   'trace.load.error_state': 'Trace Load Error State',
-  'trace.explorer.ai_query_applied': 'Trace Explorer: AI Query Applied',
-  'trace.explorer.ai_query_rejected': 'Trace Explorer: AI Query Rejected',
-  'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
-  'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.cross_event_added': 'Trace Explorer: Cross Event Added',
   'trace.explorer.cross_event_changed': 'Trace Explorer: Cross Event Changed',
@@ -239,6 +225,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.schema_hints_drawer':
     'Improved Trace Explorer: Schema Hints Drawer Events',
   'trace.explorer.table_pagination': 'Trace Explorer Table Pagination',
+  'trace.explorer.table_tab_changed': 'Trace Explorer: Table Tab Changed',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',

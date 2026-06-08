@@ -5,14 +5,11 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.models.apikey import ApiKey
@@ -27,7 +24,6 @@ from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
-from sentry.workflow_engine.models import AlertRuleDetector
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -140,53 +136,17 @@ def fetch_metric_issue_open_periods(
 ) -> list[Any]:
     detector_id = open_period_identifier
     try:
-        # temporarily fetch the alert rule ID from the detector ID
-        alert_rule_detector = AlertRuleDetector.objects.filter(
-            detector_id=open_period_identifier, alert_rule_id__isnull=False
-        ).first()
-        if alert_rule_detector is not None:
-            # open_period_identifier is a metric detector ID -> get the alert rule ID
-            open_period_identifier = alert_rule_detector.alert_rule_id
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
+            user=user,
+            path=f"/organizations/{organization.slug}/open-periods/",
+            params={
+                "detectorId": detector_id,
+                "bucketSize": time_window,
+                **time_period,
+            },
+        )
 
-        if features.has(
-            "organizations:workflow-engine-ui",
-            organization,
-        ):
-            resp = client.get(
-                auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
-                user=user,
-                path=f"/organizations/{organization.slug}/open-periods/",
-                params={
-                    "detectorId": detector_id,
-                    "bucketSize": time_window,
-                    **time_period,
-                },
-            )
-        else:
-            resp = client.get(
-                auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
-                user=user,
-                path=f"/organizations/{organization.slug}/incidents/",
-                params={
-                    "alertRule": open_period_identifier,
-                    "expand": "activities",
-                    "includeSnapshots": True,
-                    "project": -1,
-                    **time_period,
-                },
-            )
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-            organization,
-        ):
-            logger.info(
-                "fetching metric issue open periods",
-                extra={
-                    "organization_id": organization.id,
-                    "open_period_id": open_period_identifier,
-                    "response_data": resp.data,
-                },
-            )
         return resp.data
     except Exception as exc:
         logger.error(
@@ -199,11 +159,9 @@ def fetch_metric_issue_open_periods(
 
 def build_metric_alert_chart(
     organization: Organization,
-    alert_rule_serialized_response: AlertRuleSerializerResponse,
     snuba_query: SnubaQuery,
     alert_context: AlertContext,
     open_period_context: OpenPeriodContext | None = None,
-    selected_incident_serialized: DetailedIncidentSerializerResponse | None = None,
     period: str | None = None,
     start: str | None = None,
     end: str | None = None,
@@ -218,22 +176,12 @@ def build_metric_alert_chart(
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
-    using_new_charts = features.has(
-        "organizations:workflow-engine-ui",
-        organization,
+
+    style = (
+        ChartType.SLACK_METRIC_DETECTOR_SESSIONS
+        if is_crash_free_alert
+        else ChartType.SLACK_METRIC_DETECTOR_EVENTS
     )
-    if is_crash_free_alert:
-        style = (
-            ChartType.SLACK_METRIC_DETECTOR_SESSIONS
-            if using_new_charts
-            else ChartType.SLACK_METRIC_ALERT_SESSIONS
-        )
-    else:
-        style = (
-            ChartType.SLACK_METRIC_DETECTOR_EVENTS
-            if using_new_charts
-            else ChartType.SLACK_METRIC_ALERT_EVENTS
-        )
 
     if open_period_context:
         time_period = incident_date_range(
@@ -249,43 +197,21 @@ def build_metric_alert_chart(
             "start": period_start.strftime(TIME_FORMAT),
             "end": timezone.now().strftime(TIME_FORMAT),
         }
-    if features.has(
-        "organizations:workflow-engine-ui",
-        organization,
-    ):
-        # TODO(mifu67): create detailed serializer for open period, pass here.
-        # But we don't need it to render the chart, so it's fine for now.
-        chart_data_detector = {
-            "detector": detector_serialized_response,
-            "openPeriods": fetch_metric_issue_open_periods(
-                organization,
-                alert_context.action_identifier_id,
-                time_period,
-                user,
-                snuba_query.time_window,
-            ),
-        }
-    else:
-        chart_data_alert_rule = {
-            "rule": alert_rule_serialized_response,
-            "selectedIncident": selected_incident_serialized,
-            "incidents": fetch_metric_issue_open_periods(
-                organization,
-                alert_context.action_identifier_id,
-                time_period,
-                user,
-            ),
-        }
 
-    allow_mri = features.has(
-        "organizations:insights-alerts",
-        organization,
-        actor=user,
-    )
+    chart_data_detector = {
+        "detector": detector_serialized_response,
+        "openPeriods": fetch_metric_issue_open_periods(
+            organization,
+            alert_context.action_identifier_id,
+            time_period,
+            user,
+            snuba_query.time_window,
+        ),
+    }
+
     aggregate = translate_aggregate_field(
         snuba_query.aggregate,
         reverse=True,
-        allow_mri=allow_mri,
         allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
     )
     # If we allow alerts to be across multiple orgs this will break
@@ -355,21 +281,7 @@ def build_metric_alert_chart(
         )
 
     try:
-        if using_new_charts:
-            chart_data.update(chart_data_detector)
-        else:
-            chart_data.update(chart_data_alert_rule)
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-processing-logs",
-            organization,
-        ):
-            logger.info(
-                "passed chart data",
-                extra={
-                    "chart_data": chart_data,
-                    "style": style,
-                },
-            )
+        chart_data.update(chart_data_detector)
         return charts.generate_chart(style, chart_data, size=size)
     except RuntimeError as exc:
         logger.error(

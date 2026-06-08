@@ -19,12 +19,12 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {StackView} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
@@ -90,15 +90,6 @@ export function AnrRootCause({event, organization}: Props) {
     return Object.values(AnrRootCauseAllowlist).includes(issueType);
   });
 
-  const helpText =
-    !potentialAnrRootCause || potentialAnrRootCause.length === 0
-      ? t(
-          'Suspect Root Cause identifies common patterns that may be contributing to this ANR'
-        )
-      : t(
-          'Suspect Root Cause identifies potential Performance Issues that may be contributing to this ANR.'
-        );
-
   function renderAnrCulprit() {
     if (!defined(anrCulprit)) {
       return;
@@ -139,10 +130,9 @@ export function AnrRootCause({event, organization}: Props) {
   }
 
   return (
-    <InterimSection
+    <FoldSection
+      sectionKey={SectionKey.SUSPECT_ROOT_CAUSE}
       title={t('Suspect Root Cause')}
-      type={SectionKey.SUSPECT_ROOT_CAUSE}
-      help={helpText}
     >
       {potentialAnrRootCause?.map(occurence => {
         const project = projects.find(p => p.id === occurence.project_id.toString());
@@ -179,7 +169,7 @@ export function AnrRootCause({event, organization}: Props) {
         );
       })}
       {renderAnrCulprit()}
-    </InterimSection>
+    </FoldSection>
   );
 }
 

@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {IconArrow} from 'sentry/icons';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 interface TableProps extends HTMLAttributes<HTMLDivElement> {
   ref?: RefObject<HTMLDivElement | null>;
@@ -164,6 +164,10 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
   justify-content: space-between;
   gap: ${p => p.theme.space.md};
   height: 100%;
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};
+  }
 
   &:first-child {
     ${HeaderDivider} {

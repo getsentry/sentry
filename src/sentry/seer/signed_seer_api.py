@@ -148,7 +148,7 @@ def make_signed_seer_api_request(
         except ValueError:
             logger.warning(
                 "viewer_context_jwt.no_signing_key",
-                extra={"msg": "No key available to sign viewer context JWT."},
+                extra={"reason": "No key available to sign viewer context JWT."},
             )
         except Exception:
             logger.exception("Failed to encode viewer context JWT for call to Seer.")
@@ -477,6 +477,7 @@ class SearchAgentStartRequest(TypedDict):
     project_ids: list[int]
     natural_language_query: str
     strategy: str
+    external_idempotency_key: NotRequired[str]
     user_email: NotRequired[str]
     timezone: NotRequired[str]
     options: NotRequired[dict[str, Any]]

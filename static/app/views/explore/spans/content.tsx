@@ -8,12 +8,13 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {
   useMaxPickableDays,
@@ -47,12 +48,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
-  defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
-  maxPickableDays: MAX_DAYS_FOR_CROSS_EVENTS,
-  maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
-};
-
 function useHasCrossEvents() {
   const crossEvents = useQueryParamsCrossEvents();
   return defined(crossEvents) && crossEvents.length > 0;
@@ -76,6 +71,13 @@ function ExploreContentInner() {
     dataCategories: [DataCategory.SPANS],
   });
 
+  const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
+    defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
+    maxPickableDays: dataCategoryMaxPickableDays.maxPickableDays,
+    maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+    maxDateRange: MAX_DAYS_FOR_CROSS_EVENTS,
+  };
+
   const maxPickableDays = hasCrossEvents
     ? CROSS_EVENTS_DATE_OVERRIDE
     : dataCategoryMaxPickableDays;
@@ -85,22 +87,27 @@ function ExploreContentInner() {
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <SpansCommandPaletteActions />
-      <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
+      <PageFiltersContainer
+        maxPickableDays={datePageFilterProps.maxPickableDays}
+        maxDateRange={datePageFilterProps.maxDateRange}
+      >
         <AnalyticsArea name="explore.spans">
-          <Stack flex={1}>
-            <SpansTabWrapper>
-              <SpansTabHeader />
-              {defined(onboardingProject) ? (
-                <SpansTabOnboarding
-                  organization={organization}
-                  project={onboardingProject}
-                  datePageFilterProps={datePageFilterProps}
-                />
-              ) : (
-                <SpansTabContent datePageFilterProps={datePageFilterProps} />
-              )}
-            </SpansTabWrapper>
-          </Stack>
+          <AiQueryProvider>
+            <Stack flex={1}>
+              <SpansTabWrapper>
+                <SpansTabHeader />
+                {defined(onboardingProject) ? (
+                  <SpansTabOnboarding
+                    organization={organization}
+                    project={onboardingProject}
+                    datePageFilterProps={datePageFilterProps}
+                  />
+                ) : (
+                  <SpansTabContent datePageFilterProps={datePageFilterProps} />
+                )}
+              </SpansTabWrapper>
+            </Stack>
+          </AiQueryProvider>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>

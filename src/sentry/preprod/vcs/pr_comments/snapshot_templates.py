@@ -25,7 +25,6 @@ def format_snapshot_pr_comment(
     *,
     project: Project,
 ) -> str:
-    """Format a PR comment for snapshot comparisons."""
     if not artifacts:
         raise ValueError("Cannot format PR comment for empty artifact list")
 
@@ -90,12 +89,8 @@ def format_snapshot_pr_comment(
                 f" | {status} |"
             )
 
-    settings_url = project.organization.absolute_url(
-        f"/settings/projects/{project.slug}/mobile-builds/", query="tab=snapshots"
-    )
-
     table = f"{_HEADER}\n\n{COMPARISON_TABLE_HEADER}" + "\n".join(table_rows)
-    settings_link = f"[⚙️ {project.name} Snapshot Settings]({settings_url})"
+    settings_link = _format_settings_link(project)
 
     return f"{table}\n\n{settings_link}"
 
@@ -137,3 +132,76 @@ def _section_cell(count: int, section: str, artifact_url: str) -> str:
     if count > 0:
         return f"[{count}]({artifact_url}?selectedTypes={section})"
     return str(count)
+
+
+def _format_settings_link(project: Project) -> str:
+    settings_url = project.organization.absolute_url(
+        f"/settings/projects/{project.slug}/mobile-builds/", query="tab=snapshots"
+    )
+    return f"[⚙️ {project.name} Snapshot Settings]({settings_url})"
+
+
+def _format_solo_table(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+) -> str:
+    table_rows = []
+    for artifact in artifacts:
+        app_display, app_id = _app_display_info(artifact)
+        artifact_url = get_preprod_artifact_url(artifact, view_type="snapshots")
+        name_cell = _format_name_cell(app_display, app_id, artifact_url)
+        metrics = snapshot_metrics_map.get(artifact.id)
+        if metrics:
+            table_rows.append(
+                f"| {name_cell} | - | - | - | - | - | - | ✅ {metrics.image_count} uploaded |"
+            )
+        else:
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
+    return f"{_HEADER}\n\n{COMPARISON_TABLE_HEADER}" + "\n".join(table_rows)
+
+
+_SOLO_MESSAGE = "Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
+_WAITING_MESSAGE = "Waiting for base snapshots to finish uploading. This comment will update automatically within ~10 minutes or fail."
+_MISSING_BASE_MESSAGE = "No base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
+
+
+def _format_solo_comment(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    message: str,
+    *,
+    project: Project,
+) -> str:
+    if not artifacts:
+        raise ValueError("Cannot format PR comment for empty artifact list")
+    table = _format_solo_table(artifacts, snapshot_metrics_map)
+    return f"{table}\n\n{message}\n\n{_format_settings_link(project)}"
+
+
+def format_solo_snapshot_pr_comment(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    *,
+    project: Project,
+) -> str:
+    return _format_solo_comment(artifacts, snapshot_metrics_map, _SOLO_MESSAGE, project=project)
+
+
+def format_waiting_for_base_snapshot_pr_comment(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    *,
+    project: Project,
+) -> str:
+    return _format_solo_comment(artifacts, snapshot_metrics_map, _WAITING_MESSAGE, project=project)
+
+
+def format_missing_base_snapshot_pr_comment(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+    *,
+    project: Project,
+) -> str:
+    return _format_solo_comment(
+        artifacts, snapshot_metrics_map, _MISSING_BASE_MESSAGE, project=project
+    )

@@ -1,5 +1,5 @@
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   isEquation,
   parseFunction,
@@ -174,6 +174,7 @@ export function determineDefaultChartType(yAxes: readonly string[]): ChartType {
     [ChartType.BAR]: 0,
     [ChartType.LINE]: 0,
     [ChartType.AREA]: 0,
+    [ChartType.HEATMAP]: 0,
   };
 
   for (const yAxis of yAxes) {

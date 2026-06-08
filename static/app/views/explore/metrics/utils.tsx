@@ -5,7 +5,7 @@ import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
@@ -57,14 +57,16 @@ export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): stri
 
     search.addFilterValue('metric.name', traceMetric.name);
     search.addFilterValue('metric.type', traceMetric.type);
-    const addNoneOperators = traceMetric.unit === NONE_UNIT;
+    const metricUnit =
+      traceMetric.unit && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT;
+    const addNoneOperators = metricUnit === NONE_UNIT;
     if (addNoneOperators) {
       search.addOp('(');
       search.addFilterValue('!has', 'metric.unit');
       search.addOp('OR');
     }
 
-    search.addFilterValue('metric.unit', traceMetric.unit ?? NONE_UNIT);
+    search.addFilterValue('metric.unit', metricUnit);
 
     if (addNoneOperators) {
       search.addOp(')');
@@ -98,7 +100,7 @@ export function createTraceMetricFilter(traceMetric: TraceMetric): string | unde
 
 export function hasDisplayMetricUnit(
   hasMetricUnitsUI: boolean,
-  metricUnit?: string
+  metricUnit?: string | null
 ): metricUnit is string {
   return (
     hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
@@ -106,7 +108,9 @@ export function hasDisplayMetricUnit(
 }
 
 export function makeMetricSelectValue(metric: TraceMetric): string {
-  return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
+  // Coerce '-' to NONE_UNIT because we do not want to allow the UI to query '-' as a unit, it's a catch-all
+  // that queries for all metrics with the same name and type regardless of the unit. These should be kept separate for now.
+  return `${metric.name}||${metric.type}||${defined(metric.unit) && metric.unit !== '-' ? metric.unit : NONE_UNIT}`;
 }
 
 export function getMetricsUnit(
@@ -261,7 +265,7 @@ export function makeMetricsAggregate({
     attribute ?? 'value', // hard coded to `value` for now, but can be other attributes
     traceMetric.name,
     traceMetric.type,
-    traceMetric.unit ?? '-',
+    traceMetric.unit ?? NONE_UNIT,
   ];
   return `${aggregate}(${args.join(',')})`;
 }
@@ -300,7 +304,7 @@ const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
  * responses, so the frontend must do this mapping based on the selected
  * metric's unit.
  */
-export function mapMetricUnitToFieldType(metricUnit: string | undefined): {
+export function mapMetricUnitToFieldType(metricUnit: string | null | undefined): {
   fieldType: ColumnType;
   unit: string | undefined;
 } {

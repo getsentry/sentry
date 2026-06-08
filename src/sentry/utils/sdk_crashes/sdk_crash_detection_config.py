@@ -159,6 +159,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="*",
                     function_pattern="**SentryCrashExceptionApplicationHelper _crashOnException**",
                 ),
+                # SentryCoreDataSwizzlingHelper sets up the swizzle that routes through
+                # SentryCoreDataTracker. It always appears alongside the tracker frame and
+                # never causes crashes itself, so it is unconditionally ignored to avoid
+                # inflating the conditional SDK frame count in the detector.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentryCoreDataSwizzlingHelper**",
+                ),
             },
             sdk_crash_ignore_when_only_sdk_frame_matchers={
                 # SentrySwizzleWrapper is used for method swizzling to intercept UI events.
@@ -167,6 +175,15 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="*",
                     function_pattern="**SentrySwizzleWrapper**",
+                ),
+                # SentryCoreDataTracker swizzles NSManagedObjectContext save:/executeFetchRequest:
+                # to add tracing spans. It transparently calls the original implementation.
+                # Crashes inside CoreData internals (e.g., doesNotRecognizeSelector: during
+                # merge policy resolution or validation logging) are app-level CoreData
+                # misconfigurations, not SDK bugs.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentryCoreDataTracker**",
                 ),
             },
         )
@@ -235,6 +252,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="@sentry/core/*/instrument/fetch*",
                     function_pattern="fetch",
+                ),
+                # The Supabase integration wraps PostgREST queries and captures errors from
+                # Supabase responses via captureException. The Error is constructed inside SDK
+                # code, so the stack trace only contains SDK frames, triggering false positives.
+                # https://github.com/getsentry/sentry-javascript/blob/10.47.0/packages/core/src/integrations/supabase.ts
+                FunctionAndModulePattern(
+                    module_pattern="@sentry/core/*/integrations/supabase*",
+                    function_pattern="Reflect.apply.then$argument_0",
                 ),
             },
         )

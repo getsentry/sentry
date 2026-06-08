@@ -10,11 +10,14 @@ import orjson
 from django.db import IntegrityError, router
 from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
 from django.http import Http404, HttpResponse, StreamingHttpResponse
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
+
+from sentry.apidocs.response_types import DetailResponse
 
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
@@ -27,6 +30,12 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.debug_file import DebugFileSerializerResponse
+from sentry.api.utils import to_valid_int_id
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.dsym_examples import DebugFileExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -197,12 +206,47 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
         return Response({"releases": releases})
 
 
+DSYM_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    type=str,
+    description="Substring filter matched against object name, debug ID, code ID, CPU name, and file headers.",
+)
+
+DSYM_DEBUG_ID_PARAM = OpenApiParameter(
+    name="debug_id",
+    location="query",
+    required=False,
+    type=str,
+    description="Filter results to debug information files matching the given debug ID.",
+)
+
+DSYM_CODE_ID_PARAM = OpenApiParameter(
+    name="code_id",
+    location="query",
+    required=False,
+    type=str,
+    description="Filter results to debug information files matching the given code ID.",
+)
+
+DSYM_FILE_FORMATS_PARAM = OpenApiParameter(
+    name="file_formats",
+    location="query",
+    required=False,
+    many=True,
+    type=str,
+    description="Restrict results to one or more file formats.",
+)
+
+
+@extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
@@ -240,25 +284,36 @@ class DebugFilesEndpoint(ProjectEndpoint):
         except OSError:
             raise Http404
 
-    def get(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="List a Project's Debug Information Files",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            DSYM_QUERY_PARAM,
+            DSYM_DEBUG_ID_PARAM,
+            DSYM_CODE_ID_PARAM,
+            DSYM_FILE_FORMATS_PARAM,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListProjectDebugFilesResponse", list[DebugFileSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=DebugFileExamples.LIST_PROJECT_DEBUG_FILES,
+    )
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[DebugFileSerializerResponse]] | Response[DetailResponse]:
         """
-        List a Project's Debug Information Files
-        ````````````````````````````````````````
-
         Retrieve a list of debug information files for a given project.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          file belongs to.
-        :pparam string project_id_or_slug: the id or slug of the project to list the
-                                     DIFs of.
-        :qparam string query: If set, this parameter is used to locate DIFs with.
-        :qparam string id: If set, the specified DIF will be sent in the response.
-        :qparam string file_formats: If set, only DIFs with these formats will be returned.
-        :auth: required
         """
         download_requested = request.GET.get("id") is not None
         if download_requested and has_download_permission(request, project):
-            return self.download(request.GET.get("id"), project)
+            return self.download(to_valid_int_id("id", request.GET["id"], raise_404=True), project)
         elif download_requested:
             return Response(status=403)
 
@@ -356,9 +411,10 @@ class DebugFilesEndpoint(ProjectEndpoint):
         """
         debug_file_id = request.GET.get("id")
         if debug_file_id and _has_delete_permission(request.access, project):
+            validated_id = to_valid_int_id("id", debug_file_id, raise_404=True)
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=debug_file_id, project_id=project.id)
+                    ProjectDebugFile.objects.filter(id=validated_id, project_id=project.id)
                     .select_related("file")
                     .first()
                 )
@@ -444,7 +500,7 @@ def parse_assemble_request_payload(body: bytes) -> AssembleRequestPayload:
                 "required": ["name", "chunks"],
                 "properties": {
                     "name": {"type": "string"},
-                    "debug_id": {"type": "string"},
+                    "debug_id": {"type": "string", "pattern": "^[A-Fa-f0-9-]+$"},
                     "chunks": {
                         "type": "array",
                         "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},

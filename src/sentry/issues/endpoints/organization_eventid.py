@@ -16,9 +16,9 @@ from sentry.api.serializers.models.event import EventSerializerResponse
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.search.eap.rpc_utils import and_trace_item_filters
@@ -63,16 +63,22 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.EVENT_EXAMPLES,
     )
-    def get(self, request: Request, organization: Organization, event_id: str) -> Response:
+    def get(
+        self, request: Request, organization: Organization, event_id: str
+    ) -> Response[EventIdLookupResponse] | Response[DetailResponse]:
         """
         This resolves an event ID to the project slug and internal issue ID and internal event ID.
         """
         if event_id and not is_event_id(event_id):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
-        project_slugs_by_id = dict(
-            Project.objects.filter(organization=organization).values_list("id", "slug")
-        )
+        # Scope to projects the caller can access; the endpoint's org-level
+        # permission_classes only check org membership, not project access.
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        project_slugs_by_id = {project.id: project.slug for project in projects}
+
+        if not project_slugs_by_id:
+            raise ResourceDoesNotExist()
 
         try:
             snuba_filter = eventstore.Filter(

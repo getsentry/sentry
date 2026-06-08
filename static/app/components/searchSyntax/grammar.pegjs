@@ -32,7 +32,7 @@ free_text
   = free_text_quoted / free_text_unquoted
 
 free_text_unquoted
-  = (!filter !boolean_operator (free_parens / [^()\n ]+) spaces)+ {
+  = (!filter_start !boolean_operator (free_parens / [^()\n ]+) spaces)+ {
       return tc.tokenFreeText(text(), false);
     }
 
@@ -46,6 +46,15 @@ free_parens
 
 // All key:value filter types
 
+filter_start
+  = negation? ((text_key / search_key) sep / aggregate_filter_start)
+
+aggregate_filter_start
+  = &aggregate_key_start &aggregate_filter
+
+aggregate_key_start
+  = [a-zA-Z0-9_.-]+ "("
+
 filter
   = date_filter
   / specific_date_filter
@@ -55,16 +64,19 @@ filter
   / boolean_filter
   / numeric_in_filter
   / numeric_filter
-  / aggregate_duration_filter
+  / aggregate_filter
+  / has_filter
+  / is_filter
+  / text_in_filter
+  / text_filter
+
+aggregate_filter
+  = aggregate_duration_filter
   / aggregate_size_filter
   / aggregate_numeric_filter
   / aggregate_percentage_filter
   / aggregate_date_filter
   / aggregate_rel_date_filter
-  / has_filter
-  / is_filter
-  / text_in_filter
-  / text_filter
 
 // filter for dates
 date_filter

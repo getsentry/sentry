@@ -103,6 +103,7 @@ export function Slider({
     state
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   useImperativeHandle(ref, () => inputRef.current!, []);
 
   const thumbPercent = state.getThumbPercent(0);

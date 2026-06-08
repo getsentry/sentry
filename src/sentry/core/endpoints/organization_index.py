@@ -6,10 +6,11 @@ from django.db.models import Count, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features, options, roles
 from sentry import ratelimits as ratelimiter
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -23,8 +24,9 @@ from sentry.api.serializers.models.organization import (
 )
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.user_examples import UserExamples
-from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
+from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.demo_mode.utils import is_demo_user
@@ -33,16 +35,26 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.organizations.services.organization import organization_service
 from sentry.search.utils import tokenize_query
 from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,
     PostProvisionOptions,
 )
-from sentry.services.organization.provisioning import organization_provisioning_service
+from sentry.services.organization.provisioning import (
+    organization_provisioning_service,
+    resolve_provisioning_cell,
+)
 from sentry.silo.base import SiloMode
+from sentry.types.cell import (
+    CellResolutionError,
+    RegionCategory,
+    get_locality_by_name,
+)
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.pagination_factory import PaginatorLike
 
 logger = logging.getLogger(__name__)
@@ -53,6 +65,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
     agreeTerms = serializers.BooleanField(required=True)
     aggregatedDataConsent = serializers.BooleanField(required=False)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
+    dataStorageLocation = serializers.CharField(required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -65,6 +78,41 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         if not value:
             raise serializers.ValidationError("This attribute is required.")
         return value
+
+    def validate_slug(self, value: str) -> str:
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            value = self._validate_slug_shape(value)
+            if OrganizationMapping.objects.filter(slug=value).exists():
+                raise serializers.ValidationError(f'The slug "{value}" is already in use.')
+
+            return value
+        # TODO(cells) remove this path when cell scoped provisioning is removed.
+        return super().validate_slug(value)
+
+    def validate_dataStorageLocation(self, value: str) -> str:
+        try:
+            locality = get_locality_by_name(value)
+        except CellResolutionError:
+            raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
+        if "request" in self.context and is_active_staff(self.context["request"]):
+            # Staff users are allowed to create orgs in hidden cells/localities.
+            return value
+        if locality.category != RegionCategory.MULTI_TENANT or not locality.visible:
+            raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
+        return value
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        locality_name = attrs.get("dataStorageLocation")
+
+        if locality_name:
+            attrs["cell_name"] = resolve_provisioning_cell(locality_name)
+        else:
+            # TODO(cells) Remove this when cell silo compatibility is removed.
+            attrs["cell_name"] = settings.SENTRY_LOCAL_CELL or settings.SENTRY_MONOLITH_REGION
+
+        return attrs
 
 
 @extend_schema(tags=["Users"])
@@ -83,6 +131,7 @@ class OrganizationIndexEndpoint(Endpoint):
             CursorQueryParam,
             OrganizationParams.QUERY,
             OrganizationParams.SORT_BY,
+            VisibilityParams.PER_PAGE,
         ],
         request=None,
         responses={
@@ -95,7 +144,7 @@ class OrganizationIndexEndpoint(Endpoint):
         },
         examples=UserExamples.LIST_ORGANIZATIONS,
     )
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> Response[list[OrganizationSummarySerializerResponse]]:
         """
         Return a list of organizations available to the authenticated session in a region.
         This is particularly useful for requests with a user bound context. For API key-based requests this will only return the organization that belongs to the key.
@@ -106,6 +155,8 @@ class OrganizationIndexEndpoint(Endpoint):
         return self._get_from_cell(request)
 
     def _get_from_cell(self, request: Request) -> Response:
+        metrics.incr("api.organization_index.get", tags={"silo": "cell"}, sample_rate=1.0)
+
         owner_only = request.GET.get("owner") in ("1", "true")
 
         queryset = Organization.objects.distinct()
@@ -204,13 +255,18 @@ class OrganizationIndexEndpoint(Endpoint):
         )
 
     def _get_from_control(self, request: Request) -> Response:
+        metrics.incr("api.organization_index.get", tags={"silo": "control"}, sample_rate=1.0)
+
         owner_only = request.GET.get("owner") in ("1", "true")
 
+        # owner=1 (used by the account-close flow) means "orgs I own", which is
+        # defined by the user's membership. A userless token (org auth token or
+        # DSN) passes the permission check but has no membership to resolve, so
+        # reject it rather than falling through to the general token-scoped listing.
         if owner_only:
-            return Response(
-                {"detail": "The control-silo organizations endpoint does not support owner=1."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            if not request.user.is_authenticated:
+                raise PermissionDenied
+            return self._get_owned_from_control(request)
 
         queryset = OrganizationMapping.objects.distinct()
 
@@ -312,7 +368,50 @@ class OrganizationIndexEndpoint(Endpoint):
             paginator_cls=paginator_cls,
         )
 
-    # XXX: endpoint useless for end-users as it needs user context.
+    def _get_owned_from_control(self, request: Request) -> Response:
+        assert request.user.id is not None
+        owner_role = roles.get_top_dog().id
+
+        owner_org_ids = OrganizationMemberMapping.objects.filter(
+            user_id=request.user.id,
+            role=owner_role,
+        ).values_list("organization_id", flat=True)
+
+        org_mappings = list(
+            OrganizationMapping.objects.filter(
+                organization_id__in=owner_org_ids,
+                status=OrganizationStatus.ACTIVE,
+            ).order_by("name")
+        )
+
+        owner_counts = (
+            OrganizationMemberMapping.objects.filter(
+                organization_id__in=[m.organization_id for m in org_mappings],
+                role=owner_role,
+                user_id__isnull=False,
+                user__is_active=True,
+            )
+            .values("organization_id")
+            .annotate(count=Count("id"))
+        )
+        single_owner_org_ids = {row["organization_id"] for row in owner_counts if row["count"] == 1}
+
+        serialized = serialize(
+            org_mappings,
+            request.user,
+            serializer=ControlSiloOrganizationMappingSerializer(),
+        )
+
+        return Response(
+            [
+                {
+                    "organization": data,
+                    "singleOwner": mapping.organization_id in single_owner_org_ids,
+                }
+                for mapping, data in zip(org_mappings, serialized)
+            ]
+        )
+
     def post(self, request: Request) -> Response:
         """
         Create a New Organization
@@ -329,13 +428,6 @@ class OrganizationIndexEndpoint(Endpoint):
                                 terms of service and privacy policy.
         :auth: required, user-context-needed
         """
-        # TODO(cells): Move org creation to control as part of the broader
-        # org-listing/org-provisioning cutover. Since POST is private, the
-        # legacy cell-side path can be removed once the control implementation
-        # is ready.
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            return Response(status=404)
-
         if not request.user.is_authenticated:
             return Response({"detail": "This endpoint requires user info"}, status=401)
 
@@ -357,6 +449,12 @@ class OrganizationIndexEndpoint(Endpoint):
                 {"detail": "You are attempting to create too many organizations too quickly."},
                 status=429,
             )
+
+        metrics.incr(
+            "api.organization_index.post",
+            tags={"silo": SiloMode.get_current_mode().name.lower()},
+            sample_rate=1.0,
+        )
 
         serializer = OrganizationPostSerializer(data=request.data, context={"request": request})
 
@@ -403,16 +501,16 @@ class OrganizationIndexEndpoint(Endpoint):
             )
 
             rpc_org = organization_provisioning_service.provision_organization_in_cell(
-                cell_name=settings.SENTRY_LOCAL_CELL or settings.SENTRY_MONOLITH_REGION,
+                cell_name=result["cell_name"],
                 provisioning_options=provision_args,
             )
-            org = Organization.objects.get(id=rpc_org.id)
-
-        # TODO(hybrid-cloud): We'll need to catch a more generic error
-        # when the internal RPC is implemented.
         except IntegrityError:
+            # TODO(cells) Remove this once all provisioning goes through control
+            # Instead we'll need to handle error messages from the RPC call.
             return Response(
                 {"detail": "An organization with this slug already exists."}, status=409
             )
 
-        return Response(serialize(org, request.user), status=201)
+        org_data = organization_service.serialize_organization(id=rpc_org.id, as_user=rpc_user)
+
+        return Response(org_data, status=201)

@@ -67,6 +67,7 @@ import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/ho
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
+import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
@@ -145,6 +146,12 @@ function WidgetBuilderSlideoutInner({
     convertBuilderStateToWidget(state)
   );
 
+  const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
+
+  // Tracks whether the user has entered the metrics equation mode since we
+  // do not render the filter bar. The metrics equations UI has filters built in.
+  const isInEquationMode = traceMetricsVisualizeMode.isEquationMode;
+
   useEffect(() => {
     if (!openWidgetTemplates) {
       trackAnalytics('dashboards_views.widget_builder.opened', {
@@ -172,6 +179,7 @@ function WidgetBuilderSlideoutInner({
   const showVisualizeSection = state.displayType !== DisplayType.DETAILS && !isTextWidget;
   const showQueryFilterBuilder =
     !isTextWidget &&
+    !(state.dataset === WidgetType.TRACEMETRICS && isInEquationMode) &&
     !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
 
   // Group By is used by time-series chart widgets to break down data by a field.
@@ -478,7 +486,11 @@ function WidgetBuilderSlideoutInner({
                     )}
                     {showVisualizeSection && (
                       <Section>
-                        <Visualize error={error} setError={setError} />
+                        <Visualize
+                          error={error}
+                          setError={setError}
+                          traceMetricsVisualizeMode={traceMetricsVisualizeMode}
+                        />
                       </Section>
                     )}
                     {showQueryFilterBuilder && (

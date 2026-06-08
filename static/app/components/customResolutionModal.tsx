@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -179,7 +179,7 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
           onClose={() => setSearchQuery('')}
         />
         {selectionError ? <ErrorText role="alert">{selectionError}</ErrorText> : null}
-        <ReleaseLinkWrapper>
+        <Container marginTop="md">
           {version ? (
             // Open release in new tab to avoid closing the modal
             <ExternalLink
@@ -196,9 +196,14 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
             </ExternalLink>
           ) : (
             // Placeholder to maintain layout when no version is selected
-            <PlaceholderLink aria-hidden="true" />
+            <Container
+              as="span"
+              display="inline-block"
+              minHeight="1.2em"
+              aria-hidden="true"
+            />
           )}
-        </ReleaseLinkWrapper>
+        </Container>
       </Body>
       <Footer>
         <Flex gap="sm" align="center" justify="end">
@@ -218,15 +223,6 @@ const StyledCompactSelect = styled(CompactSelect)`
   > button {
     width: 100%;
   }
-`;
-
-const ReleaseLinkWrapper = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-`;
-
-const PlaceholderLink = styled('span')`
-  display: inline-block;
-  min-height: 1.2em;
 `;
 
 const ErrorText = styled('div')`

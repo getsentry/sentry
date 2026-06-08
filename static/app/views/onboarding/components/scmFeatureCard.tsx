@@ -48,20 +48,20 @@ export function ScmFeatureCard({
     >
       <ScmSelectableContainer
         isSelected={isSelected}
-        padding={{xs: 'md', md: 'lg'}}
+        padding="lg"
         height="100%"
         borderCompensation={3}
       >
         <Flex align="start">
           <Grid
-            columns="min-content 1fr"
+            columns="min-content 1fr min-content"
             rows="min-content min-content"
-            gap={{xs: 'xs md', md: 'xs lg'}}
+            gap="xs lg"
             align="center"
             width="100%"
             areas={`
-                    "icon label"
-                    ". description"
+                    "icon label toggle"
+                    ". description ."
                   `}
           >
             <Container area="icon">
@@ -79,31 +79,34 @@ export function ScmFeatureCard({
                 {label}
               </Text>
             </Container>
-            <Container area="description">
+
+            <Flex area="toggle" align="start" gap="sm">
+              {isVolumeLoading ? (
+                <Placeholder height="22px" width="100px" />
+              ) : (
+                <Tooltip title={volumeTooltip} delay={100}>
+                  <Tag variant="muted" icon={<IconInfo size="sm" />}>
+                    {volume}
+                  </Tag>
+                </Tooltip>
+              )}
+
+              <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
+                <Switch
+                  checked={isSelected}
+                  disabled={disabled}
+                  role="presentation"
+                  tabIndex={-1}
+                  readOnly
+                  size="sm"
+                />
+              </Tooltip>
+            </Flex>
+
+            <Container area="description" column="2 / -1">
               <Text variant="secondary">{description}</Text>
             </Container>
           </Grid>
-          <Flex align="start" gap="sm">
-            {isVolumeLoading ? (
-              <Placeholder height="22px" width="100px" />
-            ) : (
-              <Tooltip title={volumeTooltip} delay={100}>
-                <Tag variant="muted" icon={<IconInfo size="sm" />}>
-                  {volume}
-                </Tag>
-              </Tooltip>
-            )}
-            <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
-              <Switch
-                checked={isSelected}
-                disabled={disabled}
-                role="presentation"
-                tabIndex={-1}
-                readOnly
-                size="sm"
-              />
-            </Tooltip>
-          </Flex>
         </Flex>
       </ScmSelectableContainer>
     </ScmCardButton>

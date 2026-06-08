@@ -6,10 +6,10 @@ import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import type {
   ProjectSeerPreferences,
@@ -61,6 +61,8 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
 ];
 
 export function AutofixRepositories({canWrite, preference, project}: Props) {
+  const {openModal} = useModal();
+
   const organization = useOrganization();
 
   const repositoriesQuery = useInfiniteQuery({

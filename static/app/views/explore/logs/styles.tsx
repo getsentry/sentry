@@ -23,7 +23,9 @@ import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
 
 interface LogTableRowProps {
+  highlighted?: boolean;
   isClickable?: boolean;
+  pinned?: boolean;
 }
 
 const StyledPanel = styled(Panel)`
@@ -31,6 +33,9 @@ const StyledPanel = styled(Panel)`
 `;
 
 export const LogTableRow = styled(TableRow)<LogTableRowProps>`
+  margin-right: -1rem;
+  padding-right: 1rem;
+
   &:not(thead > &) {
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
 
@@ -41,11 +46,12 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
     ${p =>
       p.isClickable &&
-      `
-      &:active {
-        background-color: ${p.theme.tokens.interactive.transparent.neutral.background.active};
-      }
-    `}
+      css`
+        &:active {
+          background-color: ${p.theme.tokens.interactive.transparent.neutral.background
+            .active};
+        }
+      `}
 
     &:not(:last-child) {
       border-bottom: 0;
@@ -57,14 +63,31 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     height: 24px;
   }
 
-  &[data-row-highlighted='true']:not(thead > &) {
-    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
-    color: ${p => p.theme.tokens.content.danger};
+  ${p =>
+    p.highlighted &&
+    css`
+      &:not(thead > &) {
+        background-color: ${p.theme.tokens.background.transparent.warning.muted};
+        color: ${p.theme.tokens.content.danger};
 
-    &:hover {
-      background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
-    }
-  }
+        &:hover {
+          background-color: ${p.theme.tokens.background.transparent.warning.muted};
+        }
+      }
+    `}
+
+  ${p =>
+    p.pinned &&
+    css`
+      &:not(thead > &) {
+        background-color: ${p.theme.tokens.background.transparent.accent.muted};
+
+        &:hover {
+          background-color: ${p.theme.tokens.interactive.transparent.accent.selected
+            .background.active};
+        }
+      }
+    `}
 
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
@@ -108,7 +131,7 @@ export const LogAttributeTreeWrapper = styled('div')`
   border-bottom: 0px;
 `;
 
-export const LogTableBodyCell = styled(TableBodyCell)`
+export const LogTableBodyCell = styled(TableBodyCell)<{reservePinGutter?: boolean}>`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};
@@ -122,7 +145,9 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 
   &:last-child {
-    padding: 2px ${p => p.theme.space.xl};
+    padding: 0
+      ${p => (p.reservePinGutter ? 'var(--logsPinButtonArea)' : p.theme.space.md)} 0
+      ${p => p.theme.space.md};
   }
 `;
 
@@ -131,6 +156,8 @@ function ContentsTable(props: React.ComponentProps<typeof Table>) {
 }
 
 export const LogTable = styled(ContentsTable)<{minWidth: string}>`
+  --logsPinEdgeGap: ${p => p.theme.space.sm};
+  --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
   flex: 1;
   min-height: 0;
   display: flex;
@@ -142,7 +169,6 @@ export const LogTable = styled(ContentsTable)<{minWidth: string}>`
 
 export const LogTableBody = styled(TableBody)<{
   disableBodyPadding?: boolean;
-  expanded?: boolean;
   showHeader?: boolean;
 }>`
   ${p =>
@@ -150,24 +176,18 @@ export const LogTableBody = styled(TableBody)<{
       ? ''
       : p.disableBodyPadding
         ? ''
-        : `
-    padding-top: ${p.theme.space.md};
-    padding-bottom: ${p.theme.space.md};
-    `}
+        : css`
+            padding-top: ${p.theme.space.md};
+            padding-bottom: ${p.theme.space.md};
+          `}
   align-content: start;
   overflow-x: hidden;
   overflow-anchor: none;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 
   /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
   min-height: 1px;
-
-  ${p =>
-    p.expanded === undefined
-      ? ''
-      : `
-    overflow-y: auto;
-    height: 100%;
-    `}
 `;
 
 export const LogDetailTableBodyCell = styled(TableBodyCell)`
@@ -286,6 +306,26 @@ export const LogsFilteredHelperText = styled('span')`
   background-color: ${p => p.theme.colors.gray200};
 `;
 
+export const LogPinButton = styled(Button)<{isPinned: boolean | undefined}>`
+  position: absolute;
+  right: calc(-1 * var(--logsPinButtonArea) + var(--logsPinEdgeGap));
+  opacity: ${p => (p.isPinned ? 1 : 0)};
+  transition: opacity 0.1s;
+  z-index: 1;
+
+  ${LogTableRow}:focus-within &,
+  ${LogTableRow}:hover & {
+    background: none;
+    opacity: 1;
+  }
+
+  &:focus-within svg,
+  &:hover svg {
+    fill: ${p => p.theme.tokens.content.accent};
+    transition: fill ${p => p.theme.motion.smooth.fast};
+  }
+`;
+
 export const WrappingText = styled('div')<{wrapText?: boolean}>`
   white-space: ${p => (p.wrapText ? 'pre-wrap' : 'nowrap')};
   overflow: hidden;
@@ -306,6 +346,14 @@ export const AlignedCellContent = styled('div')<{
 export const FirstTableHeadCell = styled(TableHeadCell)`
   padding-right: ${p => p.theme.space.md};
   padding-left: ${p => p.theme.space.xl};
+`;
+
+export const LogTableHeadCell = styled(TableHeadCell)<{reservePinGutter?: boolean}>`
+  ${p =>
+    p.reservePinGutter &&
+    css`
+      padding-right: var(--logsPinButtonArea);
+    `}
 `;
 
 export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
@@ -458,12 +506,14 @@ export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
   position?: 'absolute' | 'fixed';
   tableWidth?: number;
+  topOffset?: number;
 }>`
   --floatingWidth: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
   position: ${p => p.position};
   z-index: 1;
   opacity: ${p => (p.inReplay ? 1 : 0.9)};
-  top: ${p => (p.inReplay ? p.theme.space.md : '65px')};
+  top: ${p =>
+    p.inReplay ? p.theme.space.md : `calc(${p.topOffset ?? 65}px + ${p.theme.space.xl})`};
   width: var(--floatingWidth);
   display: flex;
   justify-content: center;

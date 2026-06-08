@@ -57,13 +57,9 @@ class JiraInstalledTest(APITestCase):
     def jwt_token_cdn(self):
         return self._jwt_token("RS256", RS256_KEY, headers={"kid": self.kid})
 
-    def body(self) -> Mapping[str, Any]:
+    def body(self, client_key: str | None = None) -> Mapping[str, Any]:
         return {
-            "jira": {
-                "metadata": {},
-                "external_id": self.external_id,
-            },
-            "clientKey": "limepie",
+            "clientKey": client_key if client_key is not None else self.external_id,
             "oauthClientId": "EFG",
             "publicKey": "yourCar",
             "sharedSecret": self.shared_secret,
@@ -203,6 +199,56 @@ class JiraInstalledTest(APITestCase):
 
         mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_when_jwt_iss_does_not_match_client_key(
+        self, mock_record_event: MagicMock
+    ) -> None:
+        self.add_response()
+
+        # JWT is signed by tenant `it2may+cody` (self.external_id) but the body
+        # carries a different tenant in clientKey. build_integration falls back
+        # to clientKey for external_id, so rejecting on iss != clientKey prevents
+        # persisting a row keyed by an unsigned tenant.
+        body = dict(self.body(client_key="some-other-tenant"))
+        self.get_error_response(
+            **body,
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(
+            provider="jira", external_id="some-other-tenant"
+        ).exists()
+        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_when_top_level_external_id_does_not_match_jwt_iss(
+        self, mock_record_event: MagicMock
+    ) -> None:
+        self.add_response()
+
+        # JWT is signed by tenant `it2may+cody` (self.external_id) and clientKey
+        # matches it, but the body injects a top-level external_id + metadata for
+        # a different tenant. build_integration prefers that top-level pair (the
+        # shape the API pipeline binds), so the issuer check must validate
+        # against it rather than clientKey — otherwise a valid token for one
+        # tenant could persist a row keyed to another tenant.
+        body = dict(self.body())
+        body["external_id"] = "some-other-tenant"
+        body["metadata"] = {"base_url": "https://attacker.example"}
+        self.get_error_response(
+            **body,
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(
+            provider="jira", external_id="some-other-tenant"
+        ).exists()
+        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_without_key_id(self, mock_record_event: MagicMock) -> None:

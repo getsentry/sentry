@@ -13,7 +13,7 @@ import {
   WildcardOperators,
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 export function shiftFocusToChild(
@@ -136,7 +136,7 @@ export function getInitialFilterText(
     case FieldValueType.PERCENTAGE:
       return `${keyText}:>${defaultValue}`;
     case FieldValueType.STRING: {
-      return areWildcardOperatorsAllowed(fieldDefinition)
+      return areWildcardOperatorsAllowed(fieldDefinition, valueType)
         ? `${keyText}:${WildcardOperators.CONTAINS}${defaultValue}`
         : `${keyText}:${defaultValue}`;
     }

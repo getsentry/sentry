@@ -6,11 +6,11 @@ import {type BreakpointEvidenceData} from 'sentry/components/events/eventStatist
 import {LineChart as Chart} from 'sentry/components/events/eventStatisticalDetector/lineChart';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 
@@ -84,8 +84,8 @@ function EventFunctionBreakpointChartInner({
   };
 
   return (
-    <InterimSection
-      type={SectionKey.REGRESSION_BREAKPOINT_CHART}
+    <FoldSection
+      sectionKey={SectionKey.REGRESSION_BREAKPOINT_CHART}
       title={t('Regression Breakpoint Chart')}
     >
       <Chart
@@ -94,6 +94,6 @@ function EventFunctionBreakpointChartInner({
         datetime={datetime}
         chartType={ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION}
       />
-    </InterimSection>
+    </FoldSection>
   );
 }

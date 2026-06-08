@@ -63,9 +63,9 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
           ? projects[0]?.id
           : undefined,
   });
-  const hasOneProjectSelected = Boolean(project);
 
-  const oneProjectEligible = hasOneProjectSelected || hasOnlyOneProject;
+  // Only allow bulk delete if we have successfully resolved a project
+  const oneProjectEligible = Boolean(project);
 
   const {bulkDelete, hasAccess, queryOptionsToPayload} = useDeleteReplays({
     projectSlug: project?.slug ?? '',
@@ -90,7 +90,9 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
     >
       <Tooltip
         disabled={!oneProjectEligible || hasAccess}
-        title={t('You must have project:write or project:admin access to delete replays')}
+        title={t(
+          'You must have project:write, project:admin, or org:admin access to delete replays'
+        )}
       >
         <Button
           disabled={!oneProjectEligible || !hasAccess}

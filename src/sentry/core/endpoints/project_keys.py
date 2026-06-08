@@ -65,7 +65,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.LIST_CLIENT_KEYS,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[ProjectKeySerializerResponse]]:
         """
         Return a list of client keys bound to a project.
         """

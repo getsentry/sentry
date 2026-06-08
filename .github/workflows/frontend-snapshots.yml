@@ -78,7 +78,7 @@ jobs:
 
       - name: Install sentry-cli
         if: ${{ !cancelled() }}
-        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.4.0 sh
+        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.5.0 sh
 
       - name: Upload snapshots
         id: upload
@@ -89,7 +89,7 @@ jobs:
         run: |
           sentry-cli \
             --log-level=debug \
-            build snapshots "$SNAPSHOT_OUTPUT_DIR" \
+            snapshots upload "$SNAPSHOT_OUTPUT_DIR" \
             --app-id sentry-frontend \
             --project sentry-frontend \
             ${BASE_SHA:+--base-sha "$BASE_SHA"}

@@ -2,32 +2,6 @@
 
 > **IMPORTANT**: AGENTS.md files are the source of truth for AI agent instructions. Always update the relevant AGENTS.md file when adding or modifying agent guidance. Do not add to CLAUDE.md or Cursor rules.
 
-## Overview
-
-Sentry is a developer-first error tracking and performance monitoring platform. This repository contains the main Sentry application, which is a large-scale Django application with a React frontend.
-
-## Project Structure
-
-```
-sentry/
-├── src/
-│   ├── sentry/           # Main Django application
-│   │   ├── api/          # REST API endpoints
-│   │   ├── models/       # Django models
-│   │   ├── tasks/        # Celery tasks
-│   │   ├── integrations/ # Third-party integrations
-│   │   ├── issues/       # Issue tracking logic
-│   │   └── web/          # Web views and middleware
-│   ├── sentry_plugins/   # Plugin system
-│   └── social_auth/      # Social authentication
-├── static/               # Frontend application
-├── tests/                # Backend test suite
-├── fixtures/             # Test fixtures
-├── devenv/               # Development environment config
-├── migrations/           # Database migrations
-└── config/               # Configuration files
-```
-
 ## Command Execution Guide
 
 This section contains critical command execution instructions that apply across all Sentry development.
@@ -143,7 +117,9 @@ pnpm run dev-ui
 
 #### Typechecking
 
-Typechecking only works on the entire project. Individual files cannot be checked.
+To typecheck frontend code, run `pnpm typecheck` script.
+It checks the whole project and does not accept file paths.
+DO NOT use `tsc` directly.
 
 ```bash
 pnpm run typecheck

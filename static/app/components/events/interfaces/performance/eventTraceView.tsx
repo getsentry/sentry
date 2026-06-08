@@ -19,8 +19,8 @@ import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceIssueEvent} from 'sentry/views/issueDetails/traceTimeline/traceIssue';
 import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
@@ -92,6 +92,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: undefined,
+    timestamp,
     traceId,
   });
 
@@ -180,8 +181,8 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const hasTracePreviewFeature = organization.features.includes('profiling');
 
   return (
-    <InterimSection
-      type={SectionKey.TRACE}
+    <FoldSection
+      sectionKey={SectionKey.TRACE}
       title={t('Trace Preview')}
       actions={
         <Grid flow="column" align="center" gap="md">
@@ -211,6 +212,6 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
           </TraceStateProvider>
         )}
       </LazyRender>
-    </InterimSection>
+    </FoldSection>
   );
 }

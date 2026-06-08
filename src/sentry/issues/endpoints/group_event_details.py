@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 from collections.abc import Sequence
 from typing import Any
@@ -19,6 +20,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.api.serializers.models.event import GroupEventDetailsResponse
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -32,10 +34,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
-from sentry.issues.endpoints.project_event_details import (
-    GroupEventDetailsResponse,
-    wrap_event_response,
-)
+from sentry.issues.endpoints.project_event_details import wrap_event_response
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -51,12 +50,13 @@ from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import metrics
+from sentry.utils.snuba import get_snuba_column_name
 
 
 def issue_search_query_to_conditions(
     query: str, group: Group, user: User | AnonymousUser, environments: Sequence[Environment]
 ) -> tuple[list[Condition], list[Any]]:
-    from sentry.utils.snuba import resolve_column, resolve_conditions
+    from sentry.utils.snuba import resolve_conditions
 
     dataset = (
         Dataset.Events if group.issue_category == GroupCategory.ERROR else Dataset.IssuePlatform
@@ -98,9 +98,9 @@ def issue_search_query_to_conditions(
 
     # the transformed conditions is generic and isn't 'dataset aware', we need to map the generic columns
     # being queried to the appropriate dataset column
-    resolved_legacy_conditions = (
-        resolve_conditions(legacy_conditions, resolve_column(dataset)) or []
-    )
+    column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
+
+    resolved_legacy_conditions = resolve_conditions(legacy_conditions, column_resolver) or []
 
     # convert the legacy condition format into the SnQL condition format
     snql_conditions: list[Condition] = []

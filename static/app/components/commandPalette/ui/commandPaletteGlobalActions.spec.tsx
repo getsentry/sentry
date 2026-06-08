@@ -1,5 +1,3 @@
-jest.unmock('lodash/debounce');
-
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {
     const virtualItems = Array.from({length: count}, (_, index) => ({
@@ -19,6 +17,7 @@ jest.mock('@tanstack/react-virtual', () => ({
   },
 }));
 
+import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -95,6 +94,10 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
   });
@@ -185,35 +188,8 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getAllByRole('option', {name: 'project-b'})).toHaveLength(1);
   });
 
-  it('places the project first when identified by a single ?project= query param', async () => {
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {project: projectB.id},
-          },
-        },
-      }
-    );
-
-    await drillIntoGeneralSettings();
-
-    const option = (await screen.findAllByRole('option')).find(
-      el => !el.hasAttribute('aria-disabled')
-    );
-    expect(option).toHaveAccessibleName('project-b');
-    expect(screen.getByText('Current')).toBeInTheDocument();
-  });
-
   it.isKnownFlake(
-    'highlights all projects when multiple ?project= params are set',
+    'places the project first when identified by a single ?project= query param',
     async () => {
       render(
         <CommandPaletteProvider>
@@ -226,7 +202,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
           initialRouterConfig: {
             location: {
               pathname: `/organizations/${organization.slug}/issues/`,
-              query: {project: [projectA.id, projectB.id]},
+              query: {project: projectB.id},
             },
           },
         }
@@ -234,14 +210,41 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
 
       await drillIntoGeneralSettings();
 
-      // Both selected projects should appear with the Current tag
-      expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
-      expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
-      expect(screen.getAllByText('Current')).toHaveLength(2);
-      // Unselected project should still be present but without a tag
-      expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
+      const option = (await screen.findAllByRole('option')).find(
+        el => !el.hasAttribute('aria-disabled')
+      );
+      expect(option).toHaveAccessibleName('project-b');
+      expect(screen.getByText('Current')).toBeInTheDocument();
     }
   );
+
+  it('highlights all projects when multiple ?project= params are set', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: [projectA.id, projectB.id]},
+          },
+        },
+      }
+    );
+
+    await drillIntoGeneralSettings();
+
+    // Both selected projects should appear with the Current tag
+    expect(await screen.findByRole('option', {name: 'project-a'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
+    expect(screen.getAllByText('Current')).toHaveLength(2);
+    // Unselected project should still be present but without a tag
+    expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
+  });
 
   it('shows all projects without priority when not on a :projectId route', async () => {
     render(
@@ -307,6 +310,10 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       url: `/organizations/${organization.slug}/teams/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
   });
 
   function renderPalette() {
@@ -327,10 +334,20 @@ describe('GlobalCommandPaletteActions - search recall', () => {
 
   it.each([
     ['auth tok', /Organization Tokens/, /Personal Tokens/],
+    [
+      'SENTRY_AUTH_TOKEN',
+      /Settings.*Organization Tokens/,
+      /Settings.*Custom Integrations/,
+      /Settings.*Personal Tokens/,
+    ],
     ['source map', /Project Settings.*Source Maps/],
     ['codeowners', /Project Settings.*Ownership Rules/],
     ['inbound', /Project Settings.*Inbound Filters/],
     ['size', /Project Settings.*Mobile Builds/],
+    // The SDK env var name (and its spaced form) should surface Client Keys
+    // (DSN), just like "dsn".
+    ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 
@@ -404,4 +421,66 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       ).toBeInTheDocument();
     }
   );
+
+  it('searches for projects and navigates to project page', async () => {
+    const projectToFind = ProjectFixture({
+      id: '2',
+      slug: 'test-project',
+      name: 'Test Project',
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [projectToFind],
+      match: [MockApiClient.matchQuery({query: 'test'})],
+    });
+
+    renderPalette();
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'test');
+
+    expect(await screen.findByRole('option', {name: 'test-project'})).toBeInTheDocument();
+  });
+
+  it('searches for dashboards and displays results', async () => {
+    const dashboard1 = DashboardListItemFixture({
+      id: '1',
+      title: 'Queries Dashboard',
+      isFavorited: false,
+    });
+    const dashboard2 = DashboardListItemFixture({
+      id: '2',
+      title: 'Query Performance',
+      isFavorited: true,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      body: [dashboard1, dashboard2],
+      match: [MockApiClient.matchQuery({query: 'quer'})],
+    });
+
+    renderPalette();
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+
+    // Navigate to the Dashboards section
+    await userEvent.type(input, 'Dashboards');
+    await userEvent.click(await screen.findByRole('option', {name: /Dashboards/}));
+
+    // Click on the "All Dashboards" search action
+    await userEvent.click(await screen.findByRole('option', {name: /All Dashboards/}));
+
+    // Type the search query in the sub-prompt
+    await userEvent.type(input, 'quer');
+
+    expect(
+      await screen.findByRole('option', {name: 'Queries Dashboard'})
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('option', {name: 'Query Performance'})
+    ).toBeInTheDocument();
+  });
 });

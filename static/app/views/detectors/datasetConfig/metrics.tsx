@@ -6,6 +6,7 @@ import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMet
 import {MetricsDetectorSearchBar} from 'sentry/views/detectors/datasetConfig/components/metricsSearchBar';
 import {createEapDetectorConfig} from 'sentry/views/detectors/datasetConfig/eapBase';
 import {transformEventsStatsToSeries} from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
+import {getApiAggregateString} from 'sentry/views/detectors/datasetConfig/utils/getApiAggregateString';
 
 export const DetectorMetricsConfig = createEapDetectorConfig({
   name: t('Application Metrics'),
@@ -31,5 +32,14 @@ export const DetectorMetricsConfig = createEapDetectorConfig({
       }
       return s;
     });
+  },
+  fromApiAggregate: aggregate => {
+    if (isEquation(aggregate)) {
+      return stripEquationPrefix(aggregate);
+    }
+    return aggregate;
+  },
+  toApiAggregate: aggregate => {
+    return getApiAggregateString(aggregate);
   },
 });

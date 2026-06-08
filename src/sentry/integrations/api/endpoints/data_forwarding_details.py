@@ -17,6 +17,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import DataForwarderParams, GlobalParams
@@ -62,7 +63,7 @@ class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
 @cell_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class DataForwardingDetailsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -73,7 +74,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization_id_or_slug: int | str,
-        data_forwarder_id: int,
+        data_forwarder_id: str,
         *args,
         **kwargs,
     ):
@@ -86,7 +87,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
 
         try:
             data_forwarder = DataForwarder.objects.get(
-                id=data_forwarder_id,
+                id=to_valid_int_id("data_forwarder_id", data_forwarder_id, raise_404=True),
                 organization=kwargs["organization"],
             )
         except DataForwarder.DoesNotExist:
@@ -298,7 +299,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     )
     def put(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
-    ) -> Response:
+    ) -> Response[DataForwarderResponse]:
         """
         Updates a data forwarder for an organization or update a project-specific override.
         Updates to the data forwarder's configuration require `org:write` permissions, and the entire

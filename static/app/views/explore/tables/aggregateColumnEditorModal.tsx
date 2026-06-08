@@ -47,10 +47,10 @@ import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import type {
   AggregateField,
@@ -64,6 +64,7 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
   booleanTags: TagCollection;
@@ -339,10 +340,14 @@ function GroupBySelector({
   // synchronously while the user types. Merge in any server-only matches once
   // the debounced search returns.
   const options = useMemo(() => {
-    if (!hasSearch || searchedOptions.length === 0) return baseOptions;
+    if (!hasSearch || searchedOptions.length === 0) {
+      return baseOptions;
+    }
     const baseValues = new Set(baseOptions.map(o => o.value));
     const additions = searchedOptions.filter(o => !baseValues.has(o.value));
-    if (additions.length === 0) return baseOptions;
+    if (additions.length === 0) {
+      return baseOptions;
+    }
     return [...baseOptions, ...additions];
   }, [hasSearch, baseOptions, searchedOptions]);
 
@@ -366,7 +371,16 @@ function GroupBySelector({
       options={options}
       value={groupBy.groupBy}
       onChange={handleChange}
-      search={{onChange: setSearch}}
+      search={{
+        onChange: setSearch,
+        filter: (option, searchText) => {
+          return sortSearchedAttributes({
+            fieldDefinitionType: TraceItemDataset.SPANS,
+            option,
+            searchText,
+          });
+        },
+      }}
       loading={isSearchLoading}
       emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
       trigger={triggerProps => (
@@ -573,10 +587,14 @@ function AttributeArgumentSelect({
   // synchronously while the user types. Merge in any server-only matches once
   // the debounced search returns.
   const options = useMemo(() => {
-    if (!hasSearch || searchedOptions.length === 0) return baseOptions;
+    if (!hasSearch || searchedOptions.length === 0) {
+      return baseOptions;
+    }
     const baseValues = new Set(baseOptions.map(o => o.value));
     const additions = searchedOptions.filter(o => !baseValues.has(o.value));
-    if (additions.length === 0) return baseOptions;
+    if (additions.length === 0) {
+      return baseOptions;
+    }
     return [...baseOptions, ...additions];
   }, [hasSearch, baseOptions, searchedOptions]);
 
@@ -597,7 +615,16 @@ function AttributeArgumentSelect({
       options={options}
       value={value}
       onChange={onChange}
-      search={{onChange: setSearch}}
+      search={{
+        onChange: setSearch,
+        filter: (option, searchText) => {
+          return sortSearchedAttributes({
+            fieldDefinitionType: TraceItemDataset.SPANS,
+            option,
+            searchText,
+          });
+        },
+      }}
       loading={isSearchLoading}
       emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
       // Stay enabled whenever the function supports server-side search so the
@@ -625,12 +652,19 @@ type AttributeKind = 'string' | 'number' | 'boolean';
 function getSupportedAttributeKinds(
   functionName: string | undefined
 ): readonly AttributeKind[] {
-  if (!functionName) return ['number'];
+  if (!functionName) {
+    return ['number'];
+  }
   // COUNT renders a fixed SPAN_DURATION option and ignores tag collections.
-  if (functionName === AggregationKey.COUNT) return [];
-  if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) return [];
-  if (functionName === AggregationKey.COUNT_UNIQUE)
+  if (functionName === AggregationKey.COUNT) {
+    return [];
+  }
+  if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) {
+    return [];
+  }
+  if (functionName === AggregationKey.COUNT_UNIQUE) {
     return ['string', 'number', 'boolean'];
+  }
   return ['number'];
 }
 

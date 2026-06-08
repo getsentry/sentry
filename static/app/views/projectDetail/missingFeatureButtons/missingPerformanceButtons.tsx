@@ -50,7 +50,7 @@ export function MissingPerformanceButtons({organization}: Props) {
 
   return (
     <Feature
-      hookName="feature-disabled:project-performance-score-card"
+      overrideName="feature-disabled:project-performance-score-card"
       features="performance-view"
       organization={organization}
     >

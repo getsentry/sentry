@@ -6,7 +6,12 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption
+from sentry.models.projectkey import ProjectKey
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.apigateway import ApiGatewayTestCase
+from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
@@ -690,3 +695,136 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert b"logs.metrics" not in resp.content
         # Should fall back to base bundle without logs and metrics
         assert b"/8.10.0/bundle.min.js" in resp.content
+
+
+def _get_incr_calls(mock_metrics: mock.MagicMock) -> set[tuple[str, tuple[tuple[str, str], ...]]]:
+    return {
+        (args[0], tuple(sorted(kwargs["tags"].items())))
+        for args, kwargs in mock_metrics.incr.call_args_list
+    }
+
+
+@control_silo_test(cells=[ApiGatewayTestCase.CELL])
+@override_settings(JS_SDK_LOADER_SDK_VERSION="0.5.2")
+class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
+    def _create_project_key_with_mapping(self) -> ProjectKey:
+        with outbox_runner():
+            project_key = self.create_project_key(self.project)
+
+        return project_key
+
+    def test_proxy_js_sdk_loader(self) -> None:
+        project_key = self._create_project_key_with_mapping()
+        self.httpx_router.add(
+            "GET",
+            f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.js",
+            json_data={"proxy": True, "public_key": project_key.public_key},
+        )
+        with (
+            override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
+            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+        ):
+            resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.js")
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"] is True
+            mock_metrics.incr.assert_called_with(
+                "apigateway.proxy_request",
+                tags={
+                    "url_name": "sentry-js-sdk-loader",
+                    "kind": "cell_resolver",
+                    "request_method": "GET",
+                },
+            )
+
+    def test_proxy_js_sdk_loader_minified(self) -> None:
+        project_key = self._create_project_key_with_mapping()
+        self.httpx_router.add(
+            "GET",
+            f"{self.CELL.address}/js-sdk-loader/{project_key.public_key}.min.js",
+            json_data={"proxy": True},
+        )
+        with (
+            override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
+            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+        ):
+            resp = self.client.get(f"/js-sdk-loader/{project_key.public_key}.min.js")
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"] is True
+            mock_metrics.incr.assert_called_with(
+                "apigateway.proxy_request",
+                tags={
+                    "url_name": "sentry-js-sdk-loader",
+                    "kind": "cell_resolver",
+                    "request_method": "GET",
+                },
+            )
+
+    def test_proxy_js_sdk_loader_no_mapping_falls_through_to_regionpin(self) -> None:
+        unmapped_key = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
+        self.httpx_router.add(
+            "GET",
+            f"{self.CELL.address}/js-sdk-loader/{unmapped_key}.js",
+            json_data={"proxy": True, "fallback": True},
+        )
+        with (
+            override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
+            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+        ):
+            resp = self.client.get(f"/js-sdk-loader/{unmapped_key}.js")
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"] is True
+            assert resp_json["fallback"] is True
+            # Only regionpin — cell_resolver should not fire when no cell was resolved
+            incr_calls = _get_incr_calls(mock_metrics)
+            assert (
+                "apigateway.proxy_request",
+                (
+                    ("kind", "regionpin"),
+                    ("request_method", "GET"),
+                    ("url_name", "sentry-js-sdk-loader"),
+                ),
+            ) in incr_calls
+            assert (
+                "apigateway.proxy_request",
+                (
+                    ("kind", "cell_resolver"),
+                    ("request_method", "GET"),
+                    ("url_name", "sentry-js-sdk-loader"),
+                ),
+            ) not in incr_calls
+
+    def test_proxy_js_sdk_loader_invalid_key_falls_through_to_regionpin(self) -> None:
+        self.httpx_router.add(
+            "GET",
+            f"{self.CELL.address}/js-sdk-loader/nonexistent_key.js",
+            json_data={"proxy": True, "fallback": True},
+        )
+        with (
+            override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"),
+            mock.patch("sentry.hybridcloud.apigateway_async.apigateway.metrics") as mock_metrics,
+        ):
+            resp = self.client.get("/js-sdk-loader/nonexistent_key.js")
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"] is True
+            assert resp_json["fallback"] is True
+            incr_calls = _get_incr_calls(mock_metrics)
+            assert (
+                "apigateway.proxy_request",
+                (
+                    ("kind", "cell_resolver"),
+                    ("request_method", "GET"),
+                    ("url_name", "sentry-js-sdk-loader"),
+                ),
+            ) not in incr_calls
+            assert (
+                "apigateway.proxy_request",
+                (
+                    ("kind", "regionpin"),
+                    ("request_method", "GET"),
+                    ("url_name", "sentry-js-sdk-loader"),
+                ),
+            ) in incr_calls

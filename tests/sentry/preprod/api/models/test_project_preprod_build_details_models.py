@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
+from django.utils import timezone
 
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     SizeInfoCompleted,
@@ -8,8 +11,14 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     SizeInfoPending,
     SizeInfoProcessing,
     to_size_info,
+    to_snapshot_comparison_info,
 )
-from sentry.preprod.models import PreprodArtifactSizeMetrics
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
+from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -241,3 +250,143 @@ class TestToSizeInfo(TestCase):
             ValueError, match="FAILED state requires both error_code and error_message"
         ):
             to_size_info(list([size_metrics]))
+
+
+@cell_silo_test
+class TestToSnapshotComparisonInfoApprovalStatus(TestCase):
+    def _create_artifact_with_snapshot_metrics(self) -> PreprodArtifact:
+        artifact = self.create_preprod_artifact(project=self.project)
+        self.create_preprod_snapshot_metrics(preprod_artifact=artifact, image_count=1)
+        return PreprodArtifact.objects.select_related("preprodsnapshotmetrics").get(pk=artifact.pk)
+
+    def test_manual_approval_returns_approved(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status == "approved"
+
+    def test_auto_approval_returns_auto_approved(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            extras={"auto_approval": True},
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status == "auto_approved"
+
+    def test_needs_approval_returns_requires_approval(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status == "requires_approval"
+
+    def test_no_approval_records_returns_none(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status is None
+
+    def test_extras_none_treated_as_manual(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            extras=None,
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status == "approved"
+
+    def test_extras_without_auto_approval_key_treated_as_manual(self) -> None:
+        artifact = self._create_artifact_with_snapshot_metrics()
+        self.create_preprod_comparison_approval(
+            preprod_artifact=artifact,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+            extras={"some_other_key": True},
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.approval_status == "approved"
+
+
+@cell_silo_test
+class TestToSnapshotComparisonInfoNoBaseBuild(TestCase):
+    def _create_artifact_with_snapshot_metrics(
+        self, commit_comparison=None, date_added=None
+    ) -> PreprodArtifact:
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=commit_comparison,
+            date_added=date_added,
+        )
+        self.create_preprod_snapshot_metrics(preprod_artifact=artifact, image_count=1)
+        return PreprodArtifact.objects.select_related("preprodsnapshotmetrics").get(pk=artifact.pk)
+
+    def test_waiting_for_base_within_grace_period(self) -> None:
+        cc = self.create_commit_comparison(organization=self.organization)
+        artifact = self._create_artifact_with_snapshot_metrics(commit_comparison=cc)
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.comparison_state == "waiting_for_base"
+
+    def test_no_base_build_after_grace_period(self) -> None:
+        cc = self.create_commit_comparison(organization=self.organization)
+        expired_date = timezone.now() - timedelta(seconds=MISSING_BASE_GRACE_PERIOD_SECONDS + 1)
+        artifact = self._create_artifact_with_snapshot_metrics(
+            commit_comparison=cc, date_added=expired_date
+        )
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.comparison_state == "no_base_build"
+
+    def test_waiting_for_base_after_grace_period_when_base_artifact_exists(self) -> None:
+        cc = self.create_commit_comparison(organization=self.organization)
+        expired_date = timezone.now() - timedelta(seconds=MISSING_BASE_GRACE_PERIOD_SECONDS + 1)
+        artifact = self._create_artifact_with_snapshot_metrics(
+            commit_comparison=cc, date_added=expired_date
+        )
+
+        base_cc = self.create_commit_comparison(
+            organization=self.organization,
+            head_sha=cc.base_sha,
+            base_sha=None,
+            head_repo_name=cc.base_repo_name or cc.head_repo_name,
+        )
+        base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=base_cc,
+            app_id=artifact.app_id,
+            artifact_type=artifact.artifact_type,
+        )
+        self.create_preprod_snapshot_metrics(preprod_artifact=base_artifact, image_count=1)
+
+        result = to_snapshot_comparison_info(artifact)
+
+        assert result is not None
+        assert result.comparison_state == "waiting_for_base"

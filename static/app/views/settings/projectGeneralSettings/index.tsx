@@ -20,8 +20,8 @@ import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
-import Hook from 'sentry/components/hook';
 import {LoadingError} from 'sentry/components/loadingError';
+import {Override} from 'sentry/components/override';
 import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
@@ -34,7 +34,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {DetailedProject} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
@@ -50,7 +51,7 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 type Props = {
   onChangeSlug: (slug: string) => void;
-  project: Project;
+  project: DetailedProject;
 };
 
 function isPlatformAllowed({
@@ -321,7 +322,9 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     ...fields.platform,
     options: fields.platform.options.filter(({value}) => {
       // Always include the current project's platform to display its icon and label
-      if (project.platform === value) return true;
+      if (project.platform === value) {
+        return true;
+      }
       return isPlatformAllowed({isSelfHosted, organization, platform: value});
     }),
     isOptionDisabled: (option: SelectOptionWithKey<string>) => {
@@ -346,7 +349,10 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         />
         <JsonForm {...jsonFormProps} title={t('Email')} fields={[fields.subjectPrefix]} />
       </Form>
-      <Hook name="spend-visibility:spike-protection-project-settings" project={project} />
+      <Override
+        name="spend-visibility:spike-protection-project-settings"
+        project={project}
+      />
       <Form {...formProps}>
         <JsonForm
           {...jsonFormProps}

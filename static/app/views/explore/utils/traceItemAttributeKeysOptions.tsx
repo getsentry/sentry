@@ -5,10 +5,10 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {defined} from 'sentry/utils/defined';
 import {FieldKind} from 'sentry/utils/fields';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
@@ -31,6 +31,7 @@ type TraceItemAttributeKeyOptions = Pick<
 > & {
   attributeType: TraceItemAttributeType | TraceItemAttributeType[];
   itemType: TraceItemDataset;
+  environment?: string[];
   project?: string[];
   query?: string;
   substringMatch?: string;
@@ -40,6 +41,7 @@ interface TraceItemAttributeKeysOptions {
   organization: Organization;
   selection: PageFilters;
   traceItemType: TraceItemDataset;
+  environments?: string[];
   projectIds?: Array<string | number>;
   projects?: Project[];
   query?: string;
@@ -56,6 +58,7 @@ export function traceItemAttributeKeysOptions({
   type = ['string', 'number', 'boolean'],
   projects,
   projectIds: explicitProjectIds,
+  environments,
   query,
   search,
 }: TraceItemAttributeKeysOptions) {
@@ -68,6 +71,7 @@ export function traceItemAttributeKeysOptions({
     itemType: traceItemType,
     attributeType: type,
     project: projectIds?.map(String),
+    environment: environments ?? selection.environments,
     query,
     ...normalizeDateTimeParams(selection.datetime),
     ...(substringMatch === undefined ? {} : {substringMatch}),
@@ -162,8 +166,8 @@ export function getTraceItemTagCollection(
     // EAP spans contain tags with illegal characters
     // SnQL forbids `-` but is allowed in RPC. So add it back later
     if (
-      !/^[\w.:-]+$/.test(attribute.key) &&
-      !/^tags\[[\w.:-]+,(number|boolean)\]$/.test(attribute.key)
+      !/^[\w.:@-]+$/.test(attribute.key) &&
+      !/^tags\[[\w.:@-]+,(number|boolean)\]$/.test(attribute.key)
     ) {
       continue;
     }

@@ -13,8 +13,6 @@ from slack_sdk.webhook import WebhookClient
 from sentry import features
 from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -129,25 +127,17 @@ def _build_notification_payload(
     alert_context: AlertContext,
     metric_issue_context: MetricIssueContext,
     open_period_context: OpenPeriodContext,
-    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
-    incident_serialized_response: DetailedIncidentSerializerResponse | None,
     detector_serialized_response: DetectorSerializerResponse | None,
     notification_uuid: str | None,
 ) -> tuple[str, str]:
     chart_url = None
-    if (
-        features.has("organizations:metric-alert-chartcuterie", organization)
-        and alert_rule_serialized_response
-        and incident_serialized_response
-    ):
+    if features.has("organizations:metric-alert-chartcuterie", organization):
         try:
             chart_url = build_metric_alert_chart(
                 organization=organization,
-                alert_rule_serialized_response=alert_rule_serialized_response,
                 snuba_query=metric_issue_context.snuba_query,
                 alert_context=alert_context,
                 open_period_context=open_period_context,
-                selected_incident_serialized=incident_serialized_response,
                 subscription=metric_issue_context.subscription,
                 detector_serialized_response=detector_serialized_response,
             )
@@ -290,8 +280,6 @@ def send_incident_alert_notification(
     notification_context: NotificationContext,
     metric_issue_context: MetricIssueContext,
     open_period_context: OpenPeriodContext,
-    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
-    incident_serialized_response: DetailedIncidentSerializerResponse | None,
     detector_serialized_response: DetectorSerializerResponse | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
@@ -315,8 +303,6 @@ def send_incident_alert_notification(
         alert_context=alert_context,
         metric_issue_context=metric_issue_context,
         open_period_context=open_period_context,
-        alert_rule_serialized_response=alert_rule_serialized_response,
-        incident_serialized_response=incident_serialized_response,
         notification_uuid=notification_uuid,
         detector_serialized_response=detector_serialized_response,
     )
@@ -343,6 +329,7 @@ def respond_to_slack_command(
     integration: Integration,
     slack_id: str,
     response_url: str | None,
+    replace_original: bool = False,
 ) -> None:
     def log_msg(tag: str) -> str:
         return f"{command_response.log_key}.{tag}"
@@ -352,7 +339,9 @@ def respond_to_slack_command(
         try:
             webhook_client = WebhookClient(response_url)
             webhook_client.send(
-                text=command_response.message, replace_original=False, response_type="ephemeral"
+                text=command_response.message,
+                replace_original=replace_original,
+                response_type="ephemeral",
             )
         except (SlackApiError, SlackRequestError) as e:
             _logger.info(log_msg("error"), extra={"error": str(e)})

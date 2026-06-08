@@ -74,6 +74,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         additional_queries: AdditionalQueries | None = None,
         occurrence_category: OccurrenceCategory | None = None,
         extra_conditions: TraceItemFilter | None = None,
+        max_string_length: int | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -92,6 +93,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
                     cls._build_category_filter(occurrence_category),
                     extra_conditions,
                 ),
+                max_string_length=max_string_length,
             ),
             params.debug,
         )
@@ -224,7 +226,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
 
         # Group timeseries by their groupby attributes, then merge aggregates
         # This handles multiple y_axes correctly by merging them into the same rows
-        results_by_key: dict[tuple, dict[int, dict[str, Any]]] = {}
+        results_by_key: dict[tuple[tuple[str, Any], ...], dict[int, dict[str, Any]]] = {}
 
         for timeseries in rpc_response.result_timeseries:
             # Extract groupby values using public aliases

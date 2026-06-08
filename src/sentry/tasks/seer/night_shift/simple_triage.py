@@ -10,6 +10,7 @@ from sentry import search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
+from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.autofix.utils import is_issue_category_eligible
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
@@ -19,32 +20,16 @@ from sentry.types.group import PriorityLevel
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
 NIGHT_SHIFT_ISSUE_FETCH_LIMIT = 100
-
-# Weights for candidate scoring. Set to 0 to disable a signal.
-WEIGHT_FIXABILITY = 1.0
-WEIGHT_SEVERITY = 0.0
-WEIGHT_TIMES_SEEN = 0.0
+FIXABILITY_SCORE_THRESHOLD = FixabilityScoreThresholds.MEDIUM.value
 
 
 @dataclass
 class ScoredCandidate(TriageResult):
     """A candidate issue with raw signals for ranking."""
 
-    fixability: float = 0.0
+    fixability: float | None = None
     times_seen: int = 0
-    severity: float = 0.0
     action: TriageAction = TriageAction.AUTOFIX
-
-    @property
-    def score(self) -> float:
-        return (
-            WEIGHT_FIXABILITY * self.fixability
-            + WEIGHT_SEVERITY * self.severity
-            + WEIGHT_TIMES_SEEN * min(self.times_seen / 1000.0, 1.0)
-        )
-
-    def __lt__(self, other: ScoredCandidate) -> bool:
-        return self.score < other.score
 
 
 def fixability_score_strategy(
@@ -52,8 +37,10 @@ def fixability_score_strategy(
     max_candidates: int,
 ) -> list[ScoredCandidate]:
     """
-    Fetch top recommended unresolved issues that haven't been triaged by Seer yet,
-    then re-rank by fixability score. Doesn't require any additional LLM calls.
+    Fetch top recommended unresolved issues that haven't been triaged by Seer yet.
+    Issues with a fixability score above the threshold are taken first (sorted by
+    fixability), then backfilled with unscored issues in their original recommended
+    sort order.
     """
     result = search.backend.query(
         projects=projects,
@@ -78,27 +65,31 @@ def fixability_score_strategy(
         },
     )
 
-    candidates: list[ScoredCandidate] = []
+    scored: list[ScoredCandidate] = []
+    unscored: list[ScoredCandidate] = []
     for group in result.results:
         if group.id in skipped_ids:
             continue
         if not is_issue_category_eligible(group):
             continue
 
-        candidates.append(
-            ScoredCandidate(
-                group=group,
-                fixability=group.seer_fixability_score or 0.0,
-                times_seen=group.times_seen,
-                severity=(group.priority or 0) / PriorityLevel.HIGH,
-            )
+        candidate = ScoredCandidate(
+            group=group,
+            fixability=group.seer_fixability_score,
+            times_seen=group.times_seen,
         )
 
-    candidates.sort(reverse=True)
-    selected = candidates[:max_candidates]
+        if candidate.fixability is None:
+            unscored.append(candidate)
+        elif candidate.fixability >= FIXABILITY_SCORE_THRESHOLD:
+            scored.append(candidate)
+
+    scored.sort(key=lambda c: c.fixability or 0.0, reverse=True)
+    selected = (scored + unscored)[:max_candidates]
 
     for c in selected:
-        sentry_sdk.metrics.distribution("night_shift.fixability_score", c.fixability)
+        if c.fixability is not None:
+            sentry_sdk.metrics.distribution("night_shift.fixability_score", c.fixability)
 
     return selected
 

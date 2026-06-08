@@ -13,8 +13,8 @@ import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegra
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
@@ -29,8 +29,8 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/explore/profiling/profilesProvider';
-import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
+import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 
 interface SpanProfileProps {
@@ -169,9 +169,9 @@ export function ProfilePreview({
       <FlamegraphThemeProvider>
         {message}
         <SectionDivider orientation="horizontal" />
-        <InterimSection
+        <FoldSection
           title={t('Profile')}
-          type="no_instrumentation_profile"
+          sectionKey="no_instrumentation_profile"
           initialCollapse={false}
           actions={
             <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
@@ -195,7 +195,7 @@ export function ProfilePreview({
               )}
             </FlamegraphContainer>
           </div>
-        </InterimSection>
+        </FoldSection>
       </FlamegraphThemeProvider>
     );
   }

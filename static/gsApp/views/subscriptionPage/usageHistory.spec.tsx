@@ -50,12 +50,6 @@ describe('Subscription > UsageHistory', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/plan-migrations/`,
-      query: {scheduled: 1, applied: 0},
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
@@ -71,9 +65,7 @@ describe('Subscription > UsageHistory', () => {
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
-    expect(
-      await screen.findByRole('heading', {name: /Usage History/i})
-    ).toBeInTheDocument();
+    expect(await screen.findByTestId('history-expand')).toBeInTheDocument();
   });
 
   it('shows an error for non-billing roles', async () => {

@@ -6,10 +6,10 @@ import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {defined} from 'sentry/utils';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import {defined} from 'sentry/utils/defined';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -43,6 +43,7 @@ import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
 } from 'sentry/views/explore/logs/types';
+import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
 import {
   isRowVisibleInVirtualStream,
   useVirtualStreaming,
@@ -64,6 +65,7 @@ export function useExploreLogsTableRow(props: {
   projectId: string;
   traceId: string;
   enabled?: boolean;
+  timestamp?: number | null;
 }) {
   const {isReady: pageFiltersReady} = usePageFilters();
   return useTraceItemDetails({
@@ -73,6 +75,7 @@ export function useExploreLogsTableRow(props: {
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
     enabled: props.enabled && pageFiltersReady,
+    timestamp: props.timestamp,
   });
 }
 
@@ -98,6 +101,7 @@ function useLogsApiOptions({
   const projectIds = useLogsFrozenProjectIds();
   const groupBys = useQueryParamsGroupBys();
   const [caseInsensitive] = useCaseInsensitivity();
+  const truncate = useLogsQueryTruncate();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -139,6 +143,7 @@ function useLogsApiOptions({
     referrer,
     sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
     caseInsensitive: caseInsensitive ? '1' : undefined,
+    truncate,
   };
 
   const path = {organizationIdOrSlug: organization.slug};
@@ -741,11 +746,26 @@ interface AutoFetchWindowOptions {
   queryKey: QueryKey;
 }
 
+function getAutoFetchWindowDeadlineMs(
+  resumeCount: number,
+  windowStartMs: number | undefined
+) {
+  if (!windowStartMs) {
+    return;
+  }
+
+  if (!resumeCount) {
+    return windowStartMs + LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS;
+  }
+
+  return windowStartMs + LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS * resumeCount;
+}
+
 /**
  * Time-bounds the high-fidelity "needle in a haystack" auto-fetching.
  * Whenever the caller reports it wants to start (`canAutoFetchNextPage`),
  * this hook continuously calls `fetchNextPage` until the window closes.
- * `resumeAutoFetch` reopens a fresh (longer) window after the first.
+ * `resumeAutoFetch` reopens progressively longer windows after the first.
  */
 function useAutoFetchWindow({
   queryKey,
@@ -754,8 +774,10 @@ function useAutoFetchWindow({
   nextPageCursor,
   fetchNextPage,
 }: AutoFetchWindowOptions) {
-  const [deadlineMs, setDeadlineMs] = useState<number | null>(null);
+  const [windowStartMs, setWindowStartMs] = useState<number | undefined>();
+  const [resumeCount, setResumeCount] = useState(0);
   const timesFetched = useRef(0);
+  const deadlineMs = getAutoFetchWindowDeadlineMs(resumeCount, windowStartMs);
 
   const queryKeyHash = useMemo(() => {
     const {url, options} = parseQueryKey(queryKey);
@@ -763,7 +785,8 @@ function useAutoFetchWindow({
   }, [queryKey]);
 
   useEffect(() => {
-    setDeadlineMs(null);
+    setWindowStartMs(undefined);
+    setResumeCount(0);
     timesFetched.current = 0;
   }, [queryKeyHash]);
 
@@ -772,12 +795,12 @@ function useAutoFetchWindow({
       return;
     }
 
-    if (deadlineMs === null) {
-      setDeadlineMs(Date.now() + LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS);
+    if (!windowStartMs) {
+      setWindowStartMs(Date.now());
       return;
     }
 
-    if (Date.now() >= deadlineMs) {
+    if (deadlineMs && Date.now() >= deadlineMs) {
       Sentry.metrics.distribution(
         'explore.logs.flex_time_pages_before_data',
         timesFetched.current,
@@ -796,19 +819,21 @@ function useAutoFetchWindow({
     fetchNextPage();
   }, [
     canAutoFetchNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    nextPageCursor,
     deadlineMs,
+    fetchNextPage,
+    isFetchingNextPage,
+    nextPageCursor,
+    resumeCount,
+    windowStartMs,
   ]);
 
-  const resumeAutoFetch = useCallback(
-    () => setDeadlineMs(Date.now() + LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS),
-    []
-  );
+  const resumeAutoFetch = useCallback(() => {
+    setResumeCount(resumeCount + 1);
+    setWindowStartMs(Date.now());
+  }, [resumeCount]);
 
   const shouldAutoFetchNextPage =
-    canAutoFetchNextPage && (deadlineMs === null || Date.now() < deadlineMs);
+    canAutoFetchNextPage && (!deadlineMs || Date.now() < deadlineMs);
 
   return {shouldAutoFetchNextPage, resumeAutoFetch};
 }

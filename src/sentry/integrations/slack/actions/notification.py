@@ -15,7 +15,6 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.repository.issue_alert import NewIssueAlertNotificationMessage
 from sentry.integrations.repository.notification_action import (
     NewNotificationActionNotificationMessage,
 )
@@ -104,10 +103,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         reply_broadcast: bool,
         event: GroupEvent,
         lifecycle: EventLifecycle,
-        new_notification_message_object: (
-            NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
-        )
-        | None,
+        new_notification_message_object: NewNotificationActionNotificationMessage | None,
     ) -> str | None:
         """Send a message to Slack and handle any errors."""
         try:
@@ -161,10 +157,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         integration: RpcIntegration,
         channel: str,
         notification_uuid: str | None = None,
-        notification_message_object: (
-            NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
-        )
-        | None = None,
+        notification_message_object: NewNotificationActionNotificationMessage | None = None,
         save_notification_method: Callable | None = None,
         thread_ts: str | None = None,
     ) -> None:

@@ -17,8 +17,8 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {
   useListItemCheckboxContext,
   type ListItemCheckboxState,
@@ -112,18 +112,11 @@ export function ProjectTableHeader({
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {
-    countSelected,
-    isAllSelected,
-    isAnySelected,
-    queryKeyRef,
-    selectAll,
-    selectedIds,
-  } = listItemCheckboxState;
-  const queryOptions = queryKeyRef.current
-    ? parseQueryKey(queryKeyRef.current).options
-    : undefined;
-  const queryString = queryOptions?.query?.query as string | undefined;
+  const {countSelected, endpointOptionsRef, selectAll, selectedIds} =
+    listItemCheckboxState;
+  const endpointOptions = endpointOptionsRef.current;
+  const rawQuery = endpointOptions?.query?.query;
+  const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const projectIds = useMemo(
     () => (selectedIds === 'all' ? projects.map(project => project.id) : selectedIds),
@@ -165,7 +158,7 @@ export function ProjectTableHeader({
         ))}
       </TableHeader>
 
-      {isAnySelected ? (
+      <ListItemSelectedState selected="indeterminate-or-all">
         <TableHeader>
           <TableCellFirst>
             <SelectAllCheckbox
@@ -246,9 +239,9 @@ export function ProjectTableHeader({
             />
           </TableCellsRemainingContent>
         </TableHeader>
-      ) : null}
+      </ListItemSelectedState>
 
-      {isAllSelected === 'indeterminate' ? (
+      <ListItemSelectedState selected="indeterminate">
         <FullGridAlert variant="info" system>
           <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
@@ -262,9 +255,9 @@ export function ProjectTableHeader({
             </a>
           </Flex>
         </FullGridAlert>
-      ) : null}
+      </ListItemSelectedState>
 
-      {isAllSelected === true ? (
+      <ListItemSelectedState selected="all">
         <FullGridAlert variant="info" system>
           {queryString
             ? tct('Selected all [count] projects matching: [queryString].', {
@@ -275,7 +268,7 @@ export function ProjectTableHeader({
               ? t('Selected all %s+ projects.', projects.length)
               : tn('Selected %s project.', 'Selected all %s projects.', countSelected)}
         </FullGridAlert>
-      ) : null}
+      </ListItemSelectedState>
     </Fragment>
   );
 }

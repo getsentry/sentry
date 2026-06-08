@@ -11,7 +11,6 @@ from django.db.models import Count
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.access import (
     Access,
@@ -28,6 +27,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 from sentry.roles import organization_roles, team_roles
+from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.query import RangeQuerySetWrapper
@@ -383,7 +383,7 @@ def get_team_memberships(team_ids: list[int]) -> list[TeamMembership]:
     return list(members.values())
 
 
-class TeamSCIMSerializer(Serializer):
+class TeamSCIMSerializer(Serializer[OrganizationTeamSCIMSerializerResponse]):
     def __init__(
         self,
         expand: Sequence[str] | None = None,

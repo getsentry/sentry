@@ -151,7 +151,7 @@ describe('SpansSearchBar', () => {
     });
   });
 
-  it('triggers onClose when the query changes', async () => {
+  it.isKnownFlake('triggers onClose when the query changes', async () => {
     const onClose = jest.fn();
 
     renderWithProvider({

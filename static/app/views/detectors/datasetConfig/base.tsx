@@ -1,6 +1,7 @@
 import type {UseQueryOptions} from '@tanstack/react-query';
 
-import type {SelectValue} from 'sentry/types/core';
+import type {SelectValue} from '@sentry/scraps/select';
+
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -91,7 +92,7 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   defaultField: QueryFieldValue;
   /**
    * Transform the aggregate function from the API response to a more user friendly title.
-   * This is currently only used for the releases dataset.
+   * This is currently only used for the releases and tracemetrics dataset.
    */
   fromApiAggregate: (aggregate: string) => string;
   /**

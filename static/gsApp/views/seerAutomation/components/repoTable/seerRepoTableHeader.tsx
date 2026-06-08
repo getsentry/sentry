@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -12,14 +13,13 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import type {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {
   useListItemCheckboxContext,
   type ListItemCheckboxState,
@@ -46,12 +46,11 @@ const COLUMNS = [
     title: (
       <Flex gap="sm" align="center">
         {t('Trigger')}
-        <QuestionTooltip
+        <InfoTip
           title={tct(
             'Code review can always be triggered manaully by mentioning [code:@sentry review].',
             {code: <code />}
           )}
-          size="xs"
         />
       </Flex>
     ),
@@ -71,19 +70,11 @@ export function SeerRepoTableHeader({
 }: Props) {
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {
-    countSelected,
-    isAllSelected,
-    isAnySelected,
-    queryKeyRef,
-    selectAll,
-    selectedIds,
-    knownIds,
-  } = listItemCheckboxState;
-  const queryOptions = queryKeyRef.current
-    ? parseQueryKey(queryKeyRef.current).options
-    : undefined;
-  const queryString = queryOptions?.query?.query as string | undefined;
+  const {countSelected, endpointOptionsRef, selectAll, selectedIds, knownIds} =
+    listItemCheckboxState;
+  const endpointOptions = endpointOptionsRef.current;
+  const rawQuery = endpointOptions?.query?.query;
+  const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const selectedRepos = useMemo(() => {
     if (selectedIds === 'all') {
@@ -246,7 +237,7 @@ export function SeerRepoTableHeader({
 
   return (
     <Fragment>
-      {isAnySelected ? null : (
+      <ListItemSelectedState selected="none">
         <TableHeader gridColumns={gridColumns}>
           <SimpleTable.HeaderCell>
             <SelectAllCheckbox
@@ -278,9 +269,9 @@ export function SeerRepoTableHeader({
             </SimpleTable.HeaderCell>
           ))}
         </TableHeader>
-      )}
+      </ListItemSelectedState>
 
-      {isAnySelected ? (
+      <ListItemSelectedState selected="indeterminate-or-all">
         <TableHeader gridColumns={gridColumns}>
           <TableCellFirst>
             <SelectAllCheckbox
@@ -349,9 +340,9 @@ export function SeerRepoTableHeader({
             />
           </TableCellsRemainingContent>
         </TableHeader>
-      ) : null}
+      </ListItemSelectedState>
 
-      {isAllSelected === 'indeterminate' ? (
+      <ListItemSelectedState selected="indeterminate">
         <FullGridAlert variant="info" system>
           <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
@@ -365,9 +356,9 @@ export function SeerRepoTableHeader({
             </a>
           </Flex>
         </FullGridAlert>
-      ) : null}
+      </ListItemSelectedState>
 
-      {isAllSelected === true ? (
+      <ListItemSelectedState selected="all">
         <FullGridAlert variant="info" system>
           {queryString
             ? tct('Selected all [count] repositories matching: [queryString].', {
@@ -382,7 +373,7 @@ export function SeerRepoTableHeader({
                   countSelected
                 )}
         </FullGridAlert>
-      ) : null}
+      </ListItemSelectedState>
     </Fragment>
   );
 }

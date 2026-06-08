@@ -240,7 +240,7 @@ function NoViewsBanner({
       </BannerText>
       <Feature
         features="organizations:issue-views"
-        hookName="feature-disabled:issue-views"
+        overrideName="feature-disabled:issue-views"
         renderDisabled={props => (
           <Hovercard
             body={
@@ -401,7 +401,7 @@ export default function IssueViewsList() {
                 <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions} />
                 <Feature
                   features="organizations:issue-views"
-                  hookName="feature-disabled:issue-views"
+                  overrideName="feature-disabled:issue-views"
                   renderDisabled={props => (
                     <Hovercard
                       body={
@@ -462,7 +462,7 @@ export default function IssueViewsList() {
                 {hasPageFrameFeature ? (
                   <Feature
                     features="organizations:issue-views"
-                    hookName="feature-disabled:issue-views"
+                    overrideName="feature-disabled:issue-views"
                     renderDisabled={props => (
                       <Hovercard
                         body={

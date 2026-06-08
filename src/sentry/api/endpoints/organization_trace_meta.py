@@ -1,17 +1,23 @@
 import logging
-from typing import TypedDict
 
 import sentry_sdk
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableResponse
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_trace import count_performance_issues
+from sentry.api.endpoints.organization_trace_meta_types import OrganizationTraceMetaResponse
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.trace_examples import TraceExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
@@ -19,7 +25,7 @@ from sentry.search.eap.occurrences.common_queries import count_occurrences_group
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.types import SnubaData, SnubaParams
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.ourlogs import OurLogs
@@ -27,19 +33,27 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import _run_uptime_results_query, _uptime_results_query
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
+TRACE_ID_PATH_PARAM = OpenApiParameter(
+    name="trace_id",
+    location="path",
+    required=True,
+    type=str,
+    description="The ID of the trace, a 32-character hexadecimal string.",
+)
 
-class SerializedResponse(TypedDict, total=False):
-    logs: int
-    errors: int
-    performance_issues: int
-    span_count: int
-    transaction_child_count_map: SnubaData
-    span_count_map: dict[str, int]
-    uptime_checks: int  # Only present when include_uptime is True
+INCLUDE_UPTIME_PARAM = OpenApiParameter(
+    name="include_uptime",
+    location="query",
+    required=False,
+    type=str,
+    enum=["0", "1"],
+    description="Set to `1` to include uptime check counts in the response. Defaults to `0` (disabled).",
+)
 
 
 def extract_uptime_count(uptime_result: list[TraceItemTableResponse]) -> int:
@@ -82,7 +96,7 @@ def run_errors_query(trace_id: str, snuba_params: SnubaParams) -> int:
             snuba_count,
             eap_count,
             callsite,
-            is_experimental_data_a_null_result=(eap_count == 0),
+            is_experimental_data_nullish=(eap_count == 0),
             reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
             debug_context={
                 "trace_id": trace_id,
@@ -98,15 +112,17 @@ def run_errors_query(trace_id: str, snuba_params: SnubaParams) -> int:
     return errors_count
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
+    owner = ApiOwner.EXPLORE
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     def get_projects(
         self,
-        request: HttpRequest,
+        request: Request,
         organization: Organization | RpcOrganization,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
@@ -126,7 +142,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
             include_all_accessible=True,
         )
 
-    def query_span_data(
+    def query_meta_data(
         self,
         trace_id: str,
         snuba_params: SnubaParams,
@@ -134,6 +150,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
         config = SearchResolverConfig(disable_aggregate_extrapolation=True)
         spans_resolver = Spans.get_resolver(snuba_params, config)
         logs_resolver = OurLogs.get_resolver(snuba_params, config)
+        trace_metrics_resolver = TraceMetrics.get_resolver(snuba_params, config)
         return RPCBase.run_bulk_table_queries(
             [
                 TableQuery(
@@ -188,10 +205,48 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                     resolver=logs_resolver,
                     name="logs_meta",
                 ),
+                TableQuery(
+                    query_string=f"trace:{trace_id}",
+                    selected_columns=[
+                        "count(value)",
+                    ],
+                    orderby=None,
+                    offset=0,
+                    limit=1,
+                    referrer=Referrer.API_TRACE_VIEW_TRACE_METRICS_META.value,
+                    sampling_mode=None,
+                    resolver=trace_metrics_resolver,
+                    name="metrics_meta",
+                ),
             ]
         )
 
+    @extend_schema(
+        operation_id="Retrieve Trace Metadata",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            TRACE_ID_PATH_PARAM,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            INCLUDE_UPTIME_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationTraceMetaResponse", OrganizationTraceMetaResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TraceExamples.TRACE_META,
+    )
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
+        """
+        Retrieve aggregate metadata for a single trace, including counts of spans,
+        errors, performance issues, logs, and metrics, along with per-span-operation
+        and per-transaction child-count breakdowns.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -212,9 +267,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                 thread_name_prefix=__name__,
                 max_workers=max_workers,
             ) as query_thread_pool:
-                spans_future = query_thread_pool.submit(
-                    self.query_span_data, trace_id, snuba_params
-                )
+                meta_future = query_thread_pool.submit(self.query_meta_data, trace_id, snuba_params)
                 perf_issues_future = query_thread_pool.submit(
                     count_performance_issues, trace_id, snuba_params
                 )
@@ -227,7 +280,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                         _run_uptime_results_query, uptime_query
                     )
 
-            results = spans_future.result()
+            results = meta_future.result()
             perf_issues = perf_issues_future.result()
             errors_count = errors_future.result()
 
@@ -246,32 +299,33 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
         errors_count: int,
         perf_issues: int,
         uptime_count: int | None = None,
-    ) -> SerializedResponse:
-        response: SerializedResponse = {
-            # Values can be null if there's no result
-            "logs": results["logs_meta"]["data"][0].get("count()") or 0,
-            "errors": errors_count,
-            "performance_issues": perf_issues,
-            "span_count": results["spans_meta"]["data"][0].get("count()") or 0,
-            "transaction_child_count_map": results["transaction_children"]["data"],
-            "span_count_map": {
+    ) -> OrganizationTraceMetaResponse:
+        # Values can be null if there's no result
+        response: OrganizationTraceMetaResponse = {
+            "errorsCount": errors_count,
+            "logsCount": results["logs_meta"]["data"][0].get("count()") or 0,
+            "metricsCount": results["metrics_meta"]["data"][0].get("count(value)") or 0,
+            "performanceIssuesCount": perf_issues,
+            "spansCount": results["spans_meta"]["data"][0].get("count()") or 0,
+            "transactionChildCountMap": results["transaction_children"]["data"],
+            "spansCountMap": {
                 row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
             },
         }
 
         sentry_sdk.metrics.distribution(
             "performance.trace.logs.count",
-            response["logs"],
+            response["logsCount"],
         )
         sentry_sdk.metrics.distribution(
             "performance.trace.span.count",
-            response["span_count"],
+            response["spansCount"],
         )
         sentry_sdk.metrics.distribution(
             "performance.trace.errors.count",
-            response["errors"],
+            response["errorsCount"],
         )
 
         if uptime_count is not None:
-            response["uptime_checks"] = uptime_count
+            response["uptimeCount"] = uptime_count
         return response

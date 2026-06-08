@@ -12,9 +12,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {getRegions} from 'sentry/utils/regions';
 import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -28,7 +28,7 @@ export function LaunchpadAdminPage() {
   const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState('');
   const [downloadArtifactId, setDownloadArtifactId] = useState('');
   const [fetchedArtifactInfo, setFetchedArtifactInfo] = useState<any>(null);
-  const regions = ConfigStore.get('regions');
+  const regions = getRegions();
   const [region, setRegion] = useState(regions[0] ?? null);
 
   const {mutate: rerunAnalysis} = useMutation({
@@ -383,8 +383,8 @@ export function LaunchpadAdminPage() {
               <Flex direction="column" gap="md">
                 <Heading as="h3">Batch Rerun Analyses</Heading>
                 <Text as="p" variant="muted">
-                  Rerun analysis for one or more preprod artifacts using comma-separated
-                  IDs.
+                  Rerun all enabled analyses (size, snapshots, etc.) for one or more
+                  preprod artifacts using comma-separated IDs.
                 </Text>
                 <label htmlFor="rerunArtifactId">
                   <Text bold>Preprod Artifact ID (comma-separated):</Text>

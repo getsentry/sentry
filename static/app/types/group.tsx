@@ -1,8 +1,9 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TitledPlugin} from 'sentry/components/group/pluginActionsModal';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
+import type {ParsedOwnershipRule} from 'sentry/types/ownership';
+import type {TitledPlugin} from 'sentry/types/plugins';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -16,7 +17,8 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
-import type {AvatarProject, PlatformKey, Project} from './project';
+import type {PlatformKey} from './platform';
+import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
@@ -109,8 +111,6 @@ export enum IssueCategory {
 
   PREPROD = 'preprod',
 
-  INSTRUMENTATION = 'instrumentation',
-
   CONFIGURATION = 'configuration',
 }
 
@@ -148,9 +148,6 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.UPTIME]: '',
   [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
-  [IssueCategory.INSTRUMENTATION]: t(
-    'Improvements to your instrumentation and SDK usage.'
-  ),
   [IssueCategory.CONFIGURATION]: t(
     'Issues detected from SDK/tooling configuration problems.'
   ),
@@ -217,6 +214,7 @@ export enum IssueType {
 
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'sourcemap_configuration',
+  LOW_VALUE_SPAN_CONFIGURATION = 'low_value_span_configuration',
 }
 
 // Issue types that should not be visible to users anywhere in the UI
@@ -302,6 +300,7 @@ export enum IssueTitle {
 
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
+  LOW_VALUE_SPAN_CONFIGURATION = 'AI Detected Low-Value Span',
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -354,6 +353,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   preprod_size_analysis: IssueTitle.PREPROD_SIZE_ANALYSIS,
 
   sourcemap_configuration: IssueTitle.SOURCEMAP_CONFIGURATION,
+  low_value_span_configuration: IssueTitle.LOW_VALUE_SPAN_CONFIGURATION,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -561,20 +561,6 @@ type SuggestedOwner = {
   type: SuggestedOwnerReason;
 };
 
-/**
- * Mirrors OwnershipRuleOwnerResponse from the backend
- */
-interface OwnershipRuleOwner {
-  name: string;
-  type: 'user' | 'team';
-  id?: string;
-}
-
-export interface ParsedOwnershipRule {
-  matcher: {pattern: string; type: string};
-  owners: OwnershipRuleOwner[];
-}
-
 export type IssueOwnership = {
   autoAssignment:
     | 'Auto Assign to Suspect Commits'
@@ -615,7 +601,24 @@ export enum GroupActivityType {
   SET_ESCALATING = 'set_escalating',
   SET_PRIORITY = 'set_priority',
   DELETED_ATTACHMENT = 'deleted_attachment',
+  SEER_RCA_STARTED = 'seer_rca_started',
+  SEER_RCA_COMPLETED = 'seer_rca_completed',
+  SEER_SOLUTION_STARTED = 'seer_solution_started',
+  SEER_SOLUTION_COMPLETED = 'seer_solution_completed',
+  SEER_CODING_STARTED = 'seer_coding_started',
+  SEER_CODING_COMPLETED = 'seer_coding_completed',
+  SEER_PR_CREATED = 'seer_pr_created',
 }
+
+export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
+  GroupActivityType.SEER_RCA_STARTED,
+  GroupActivityType.SEER_RCA_COMPLETED,
+  GroupActivityType.SEER_SOLUTION_STARTED,
+  GroupActivityType.SEER_SOLUTION_COMPLETED,
+  GroupActivityType.SEER_CODING_STARTED,
+  GroupActivityType.SEER_CODING_COMPLETED,
+  GroupActivityType.SEER_PR_CREATED,
+]);
 
 interface GroupActivityBase {
   dateCreated: string;
@@ -894,6 +897,65 @@ interface GroupActivityDeletedAttachment extends GroupActivityBase {
   type: GroupActivityType.DELETED_ATTACHMENT;
 }
 
+interface GroupActivitySeerRcaStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_RCA_STARTED;
+}
+
+interface GroupActivitySeerRcaCompleted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+    summary?: string;
+  };
+  type: GroupActivityType.SEER_RCA_COMPLETED;
+}
+
+interface GroupActivitySeerSolutionStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_SOLUTION_STARTED;
+}
+
+interface GroupActivitySeerSolutionCompleted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+    summary?: string;
+  };
+  type: GroupActivityType.SEER_SOLUTION_COMPLETED;
+}
+
+interface GroupActivitySeerCodingStarted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_CODING_STARTED;
+}
+
+interface GroupActivitySeerCodingCompleted extends GroupActivityBase {
+  data: {
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_CODING_COMPLETED;
+}
+
+interface GroupActivitySeerPrCreated extends GroupActivityBase {
+  data: {
+    pull_requests?: Array<{
+      provider: string;
+      pull_request: {
+        pr_number: number;
+        pr_url: string;
+      };
+      repo_name: string;
+    }>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_PR_CREATED;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -923,7 +985,14 @@ export type GroupActivity =
   | GroupActivityAutoSetOngoing
   | GroupActivitySetEscalating
   | GroupActivitySetPriority
-  | GroupActivityDeletedAttachment;
+  | GroupActivityDeletedAttachment
+  | GroupActivitySeerRcaStarted
+  | GroupActivitySeerRcaCompleted
+  | GroupActivitySeerSolutionStarted
+  | GroupActivitySeerSolutionCompleted
+  | GroupActivitySeerCodingStarted
+  | GroupActivitySeerCodingCompleted
+  | GroupActivitySeerPrCreated;
 
 export type Activity = GroupActivity;
 
@@ -1181,13 +1250,20 @@ export type ChunkType = {
 export type UserReport = {
   comments: string;
   dateCreated: string;
-  email: string;
+  email: string | null;
   event: {eventID: string; id: string};
   eventID: string;
   id: string;
-  issue: Group;
-  name: string;
-  user: User;
+  name: string | null;
+  user: {
+    avatarUrl: string | null;
+    email: string | null;
+    id: string;
+    ipAddress: string | null;
+    name: string | null;
+    username: string | null;
+  } | null;
+  issue?: Group | null;
 };
 
 export type KeyValueListDataItem = {

@@ -77,10 +77,7 @@ class SlackAutofixEntrypointTest(TestCase):
         )
 
     def test_has_access(self) -> None:
-        with self.feature({"organizations:seer-slack-workflows": False}):
-            assert not SlackAutofixEntrypoint.has_access(self.organization)
-        with self.feature("organizations:seer-slack-workflows"):
-            assert SlackAutofixEntrypoint.has_access(self.organization)
+        assert SlackAutofixEntrypoint.has_access(self.organization)
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     def test_on_trigger_autofix_error(self, mock_send_threaded_ephemeral_message):
@@ -180,7 +177,10 @@ class SlackAutofixEntrypointTest(TestCase):
             )
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
     def test_send_thread_update(
         self, mock_send_threaded_message, mock_send_threaded_ephemeral_message
     ):
@@ -316,7 +316,10 @@ class SlackAutofixEntrypointTest(TestCase):
 
         assert mock_process_thread_update.apply_async.call_count == len(threads)
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
     def test_process_thread_update(self, mock_send_threaded_message):
         data = self._create_update(AutofixStoppingPoint.SOLUTION)
         serialized_data = serialize_notification_data(data)
@@ -588,37 +591,7 @@ class SlackAgentEntrypointTest(TestCase):
             )
 
     def test_has_access(self) -> None:
-        explorer_flags = {
-            "organizations:gen-ai-features": True,
-            "organizations:seer-explorer": True,
-        }
-        with self.feature({"organizations:seer-slack-explorer": False, **explorer_flags}):
-            assert not SlackAgentEntrypoint.has_access(self.organization)
-        with self.feature({"organizations:seer-slack-explorer": True, **explorer_flags}):
-            assert SlackAgentEntrypoint.has_access(self.organization)
-            self.organization.update_option("sentry:hide_ai_features", True)
-            assert not SlackAgentEntrypoint.has_access(self.organization)
-            self.organization.update_option("sentry:hide_ai_features", False)
-            assert SlackAgentEntrypoint.has_access(self.organization)
-
-    def test_has_feature_flag(self) -> None:
-        """
-        has_feature_flag is the cheap, control-silo-safe gate: it only checks the Slack
-        feature flag, not the subscription-gated Seer Agent access. Used by the
-        parser to avoid evaluating Flagpole rules that need subscription context
-        (which getsentry's FlagpoleFeatureHandler does not populate in control silo).
-        """
-        with self.feature({"organizations:seer-slack-explorer": False}):
-            assert not SlackAgentEntrypoint.has_feature_flag(self.organization)
-        with self.feature({"organizations:seer-slack-explorer": True}):
-            assert SlackAgentEntrypoint.has_feature_flag(self.organization)
-
-        # hide_ai_features and the other subscription-gated signals must NOT influence
-        # has_feature_flag — that's precisely what makes it safe to call from control.
-        with self.feature({"organizations:seer-slack-explorer": True}):
-            self.organization.update_option("sentry:hide_ai_features", True)
-            assert SlackAgentEntrypoint.has_feature_flag(self.organization)
-            self.organization.update_option("sentry:hide_ai_features", False)
+        assert SlackAgentEntrypoint.has_access(self.organization)
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     def test_on_trigger_agent_error(self, mock_send_ephemeral):

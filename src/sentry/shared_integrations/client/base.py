@@ -152,6 +152,18 @@ class BaseApiClient:
         """
         return prepared_request
 
+    def set_proxy_request_options(
+        self,
+        prepared_request: PreparedRequest,
+        timeout: int | float | tuple[float, float] | None,
+    ) -> None:
+        """
+        Allows subclasses to annotate the outgoing request with per-call options
+        (such as the resolved timeout) that aren't otherwise part of the prepared
+        request. No-op by default.
+        """
+        return None
+
     def is_response_fatal(self, resp: Response) -> bool:
         return False
 
@@ -335,6 +347,7 @@ class BaseApiClient:
         try:
             with self.build_session() as session:
                 finalized_request = self.finalize_request(_prepared_request)
+                self.set_proxy_request_options(finalized_request, timeout)
                 environment_settings = session.merge_environment_settings(
                     url=finalized_request.url,
                     proxies={},
@@ -350,7 +363,7 @@ class BaseApiClient:
                     verify=environment_settings.get("verify"),
                     cert=environment_settings.get("cert"),
                 )
-                resp: Response = session.send(finalized_request, **session_settings)
+                resp = self._do_send(session, finalized_request, session_settings)
                 if raw_response:
                     return resp
                 resp.raise_for_status()
@@ -405,6 +418,11 @@ class BaseApiClient:
         return BaseApiResponse.from_response(
             resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
         )
+
+    def _do_send(
+        self, session: SafeSession, request: PreparedRequest, session_settings: SessionSettings
+    ) -> Response:
+        return session.send(request, **session_settings)
 
     # subclasses should override ``request``
     def request(self, *args: Any, **kwargs: Any) -> Any:

@@ -1,10 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {TransactionHeader} from 'sentry/views/performance/transactionSummary/header';
 import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
@@ -21,18 +22,17 @@ function initializeData(opts?: InitialOpts) {
     features: features ?? [],
   });
 
-  const initialData = initializeOrg({
+  initializeOrg({
     organization,
-    router: {
-      location: {
-        query: {
-          project: project.id,
-        },
-      },
-    },
     projects: [],
   });
-  const router = initialData.router;
+  const router = RouterFixture({
+    location: {
+      query: {
+        project: project.id,
+      },
+    },
+  });
   const eventView = EventView.fromSavedQuery({
     id: undefined,
     version: 2,

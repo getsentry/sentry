@@ -16,7 +16,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {
@@ -24,9 +24,13 @@ import {
   EXPLORE_FIVE_MIN_STALE_TIME,
 } from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  sortKnownAttributes,
+  sortSearchedAttributes,
+} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
   booleanTags: TagCollection;
@@ -226,7 +230,9 @@ function ColumnEditorRow({
   // returns, merge in any attributes baseOptions doesn't already cover so the
   // user can still pick keys that weren't in the initial fetch.
   const options = useMemo(() => {
-    if (!hasSearch) return baseOptions;
+    if (!hasSearch) {
+      return baseOptions;
+    }
     const searched = buildColumnOptions({
       columns: [],
       stringTags: searchedStringTags,
@@ -235,10 +241,14 @@ function ColumnEditorRow({
       hiddenKeys,
       traceItemType,
     });
-    if (searched.length === 0) return baseOptions;
+    if (searched.length === 0) {
+      return baseOptions;
+    }
     const baseValues = new Set(baseOptions.map(o => o.value));
     const additions = searched.filter(o => !baseValues.has(o.value));
-    if (additions.length === 0) return baseOptions;
+    if (additions.length === 0) {
+      return baseOptions;
+    }
     return [...baseOptions, ...additions];
   }, [
     hasSearch,
@@ -299,7 +309,16 @@ function ColumnEditorRow({
         value={column.column ?? ''}
         onChange={handleColumnChange}
         disabled={required}
-        search={{onChange: setSearch}}
+        search={{
+          onChange: setSearch,
+          filter: (option, searchText) => {
+            return sortSearchedAttributes({
+              fieldDefinitionType: traceItemType,
+              option,
+              searchText,
+            });
+          },
+        }}
         loading={isSearchLoading}
         emptyMessage={isSearchLoading ? t('Loading\u2026') : t('No matching attributes')}
         trigger={triggerProps => (
@@ -352,21 +371,15 @@ function buildColumnOptions({
   })
     .filter(option => {
       const hidden = hiddenKeys ?? [];
-      if (hidden.includes(option.value)) return false;
-      if (typeof option.label === 'string' && hidden.includes(option.label)) return false;
+      if (hidden.includes(option.value)) {
+        return false;
+      }
+      if (typeof option.label === 'string' && hidden.includes(option.label)) {
+        return false;
+      }
       return true;
     })
-    .toSorted((a, b) => {
-      const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
-      const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
-      if (aLabel < bLabel) {
-        return -1;
-      }
-      if (aLabel > bLabel) {
-        return 1;
-      }
-      return 0;
-    });
+    .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
 }
 
 const RowContainer = styled('div')`

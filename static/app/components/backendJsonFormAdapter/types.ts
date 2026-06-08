@@ -1,4 +1,4 @@
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 /**
  * Field configuration returned by the backend's `get_organization_config()`.
@@ -29,6 +29,8 @@ interface JsonFormAdapterBoolean extends JsonFormAdapterBase {
 
 interface JsonFormAdapterString extends JsonFormAdapterBase {
   type: 'string' | 'text' | 'textarea' | 'url' | 'email';
+  autosize?: boolean;
+  maxRows?: number;
 }
 
 interface JsonFormAdapterSecret extends JsonFormAdapterBase {

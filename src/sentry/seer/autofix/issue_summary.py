@@ -18,14 +18,13 @@ from sentry.constants import DataCategory
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
-from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_legacy_autofix
+from sentry.seer.autofix.autofix import get_trace_tree_for_event
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import (
-    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     AutofixAutomationTuningSettings,
     AutofixReferrer,
     FixabilityScoreThresholds,
@@ -37,7 +36,6 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
-    read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
@@ -54,22 +52,17 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
 auto_run_source_map = {
-    SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
-    SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
     SeerAutomationSource.NIGHT_SHIFT: "night_shift",
 }
 
 referrer_map = {
-    SeerAutomationSource.ISSUE_DETAILS: AutofixReferrer.ISSUE_SUMMARY_FIXABILITY,
-    SeerAutomationSource.ALERT: AutofixReferrer.ISSUE_SUMMARY_ALERT_FIXABILITY,
     SeerAutomationSource.POST_PROCESS: AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
     SeerAutomationSource.NIGHT_SHIFT: AutofixReferrer.NIGHT_SHIFT,
 }
@@ -182,41 +175,17 @@ def _trigger_autofix_task(
             }
         )
 
-        user: User | AnonymousUser | RpcUser | None = None
-        if user_id:
-            user = user_service.get_user(user_id=user_id)
-            if user is None:
-                logger.warning(
-                    "_trigger_autofix_task.user_not_found",
-                    extra={"group_id": group_id, "user_id": user_id},
-                )
-                user = AnonymousUser()
-        else:
-            user = AnonymousUser()
-
-        # Route to agent-based autofix if both feature flags are enabled
         run_id: int | None = None
-        if features.has("organizations:autofix-on-explorer", group.organization):
-            try:
-                run_id = trigger_autofix_agent(
-                    group=group,
-                    step=AutofixStep.ROOT_CAUSE,
-                    referrer=referrer,
-                    run_id=None,
-                    stopping_point=stopping_point,
-                )
-            except NoSeerQuotaException:
-                pass
-        else:
-            response = trigger_legacy_autofix(
+        try:
+            run_id = trigger_autofix_agent(
                 group=group,
-                event_id=event_id,
-                user=user,
+                step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,
-                auto_run_source=auto_run_source,
+                run_id=None,
                 stopping_point=stopping_point,
             )
-            run_id = response.data.get("run_id")
+        except NoSeerQuotaException:
+            pass
 
         if run_id and SeerAutofixOperator.has_access(organization=group.project.organization):
             SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
@@ -402,17 +371,6 @@ def run_automation(
     if source == SeerAutomationSource.ISSUE_DETAILS:
         return
 
-    # Check event count for ALERT source with seat-based tier
-    if is_seer_seat_based_tier_enabled(group.organization) and source == SeerAutomationSource.ALERT:
-        # Use times_seen_with_pending if available (set by post_process), otherwise fall back
-        times_seen = (
-            group.times_seen_with_pending
-            if hasattr(group, "_times_seen_pending")
-            else group.times_seen
-        )
-        if times_seen < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
-            return
-
     user_id = user.id if user else None
     auto_run_source = auto_run_source_map.get(source, "unknown_source")
     referrer = referrer_map.get(source, AutofixReferrer.UNKNOWN)
@@ -439,9 +397,7 @@ def run_automation(
     if is_seer_autotriggered_autofix_rate_limited_and_increment(group.project, group.organization):
         return
 
-    stopping_point = None
-    if is_seer_seat_based_tier_enabled(group.organization):
-        stopping_point = get_automation_stopping_point(group)
+    stopping_point = get_automation_stopping_point(group)
 
     _trigger_autofix_task.delay(
         group_id=group.id,
@@ -480,16 +436,19 @@ def is_group_triggering_automation(group: Group) -> bool:
     return True
 
 
-def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint:
+def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint | None:
     """
     Get the automation stopping point for a group.
     """
-    fixability_score = get_and_update_group_fixability_score(group)
-    fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
+    user_preference = group.project.get_option("sentry:seer_automated_run_stopping_point")
 
-    user_preference = read_preference_from_sentry_db(group.project).automated_run_stopping_point
+    if is_seer_seat_based_tier_enabled(group.organization):
+        fixability_score = get_and_update_group_fixability_score(group)
+        fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 
-    return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
+        return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
+
+    return AutofixStoppingPoint(user_preference)
 
 
 def _generate_summary(
@@ -509,7 +468,7 @@ def _generate_summary(
     trace_tree = None
     if event:
         try:
-            trace_tree = _get_trace_tree_for_event(event, group.project, timeout=3)
+            trace_tree = get_trace_tree_for_event(event, group.project, timeout=3)
         except Exception:
             logger.warning(
                 "Failed to get trace for event in issue summary",

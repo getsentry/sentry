@@ -4,9 +4,8 @@ import {z} from 'zod';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
@@ -14,7 +13,7 @@ import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useA
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {
   getProjectAgentMutationOptions,
@@ -36,7 +35,7 @@ const NIGHT_SHIFT_OPTIONS = [
   {value: 'default' as const, label: t('Default (On)')},
 ];
 
-function getNightShiftValue(project: Project): NightShiftValue {
+function getNightShiftValue(project: DetailedProject): NightShiftValue {
   const enabled = project.seerNightshiftTweaks?.enabled;
   if (enabled === true) {
     return 'on';
@@ -50,7 +49,7 @@ function getNightShiftValue(project: Project): NightShiftValue {
 interface Props {
   canWrite: boolean;
   preference: ProjectSeerPreferences;
-  project: Project;
+  project: DetailedProject;
 }
 
 export function AutofixAgent({canWrite, preference, project}: Props) {
@@ -103,49 +102,35 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
         {field => (
           <field.Layout.Row
             label={t('Handoff to Agent')}
-            hintText={
-              <Text>
-                {tct(
-                  'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step.',
-                  {
-                    manageLink: (
-                      <Link
-                        to={{
-                          pathname: `/settings/${organization.slug}/integrations/`,
-                          query: {category: 'coding agent'},
-                        }}
-                      />
-                    ),
-                  }
-                )}
-              </Text>
-            }
+            hintText={tct(
+              'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. [manageLink:Manage Coding Agents].',
+              {
+                manageLink: (
+                  <Link
+                    to={{
+                      pathname: `/settings/${organization.slug}/integrations/`,
+                      query: {category: 'coding agent'},
+                    }}
+                  />
+                ),
+              }
+            )}
           >
             {agentOptions.isPending ? (
               <Placeholder height="36px" width="100%" />
             ) : agentOptions.isError ? (
               <LoadingError />
             ) : (
-              <Stack gap="md">
-                <field.Select
-                  disabled={Boolean(disabledReason)}
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  options={agentOptions.data}
-                  isValueEqual={(a, b) =>
-                    a === b ||
-                    (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
-                  }
-                />
-                <Link
-                  to={{
-                    pathname: `/settings/${organization.slug}/integrations/`,
-                    query: {category: 'coding agent'},
-                  }}
-                >
-                  {t('Manage Coding Agents')}
-                </Link>
-              </Stack>
+              <field.Select
+                disabled={Boolean(disabledReason)}
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={agentOptions.data}
+                isValueEqual={(a, b) =>
+                  a === b ||
+                  (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
+                }
+              />
             )}
           </field.Layout.Row>
         )}

@@ -22,11 +22,11 @@ from typing import Any
 
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
-from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.seer.models.night_shift import SeerNightShiftRunResult
 from sentry.services.eventstore.models import Event
@@ -80,6 +80,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupSubscription,
     models.GroupReaction,
     models.Activity,
+    GroupActionLogEntry,
 )
 
 # Additional group-related models that require special handling during reprocessing.
@@ -96,7 +97,6 @@ ADDITIONAL_GROUP_RELATED_MODELS = (
     models.EventAttachment,
     NotificationMessage,
     SeerNightShiftRunResult,
-    RuleFireHistory,
 )
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
 

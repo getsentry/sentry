@@ -294,6 +294,12 @@ class BaseModel(models.Model):
 
         return old_pk
 
+    def normalize_before_relocation_export(self) -> None:
+        """
+        Called during export and enables records to clean/prep their data for export.
+        """
+        pass
+
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
     ) -> tuple[int, ImportKind] | None:

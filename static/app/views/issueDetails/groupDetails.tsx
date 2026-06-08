@@ -25,8 +25,8 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {
   getAnalyticsDataForEvent,
   getAnalyticsDataForGroup,
@@ -52,21 +52,22 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
 import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {useIssueActivityDrawer} from 'sentry/views/issueDetails/hooks/useIssueActivityDrawer';
+import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/hooks/useSimilarIssuesDrawer';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
+  IssueDetailsTourModal,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
-import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
-import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
-import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
 import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -565,38 +566,40 @@ function GroupDetailsContentError({
   }
 }
 
-function getIssueDetailContextHint(
-  view: 'specific-event' | 'events-list' | 'issue-overview'
-): string {
-  const tools =
-    'Tools: get_issue_details(issue_id) for issue aggregate stats and stack trace; ' +
-    'get_event_details(event_id?, issue_id?) for a specific error event; ' +
-    'telemetry_live_search(dataset, question, project_slugs) for querying spans/errors/logs/metrics.';
+type IssueView =
+  | 'specific-event'
+  | 'events-list'
+  | 'issue-overview'
+  | 'replays'
+  | 'attachments'
+  | 'distributions'
+  | 'distributions-tag-detail';
+
+const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
+  'specific-event':
+    'Sentry issue detail page. The user is viewing a specific event — You can get event details with the eventId below to see what they see.',
+  'events-list':
+    'Sentry issue events list. The user is browsing all events for this issue. You can search live telemetry to query events matching this issue.',
+  replays:
+    'Sentry issue replays tab. The user is viewing session replays where this issue occurred. You can search replays to find sessions that encountered this error, or get replay details for a specific session.',
+  attachments:
+    'Sentry issue attachments tab. The user is viewing files attached to events for this issue (screenshots, crash reports, minidumps). You can get event attachments to inspect specific files.',
+  distributions:
+    'Sentry issue distributions (tags) tab. The user is viewing how this issue is distributed across tag values. You can get issue tag values for breakdown by browser, environment, URL, release, OS, device, or any other tag.',
+  'distributions-tag-detail':
+    'Sentry issue tag detail page. The user is drilling into a specific tag distribution. You can get issue tag values for the tagKey below to see exact counts and percentages.',
+  'issue-overview':
+    'Sentry issue detail page. Shows a single grouped issue with its latest event.',
+};
+
+function getIssueDetailContextHint(view: IssueView): string {
+  const preamble = ISSUE_VIEW_PREAMBLES[view];
   const shortIdNote = 'shortId is the human-readable issue identifier (e.g. PROJ-123). ';
-
-  if (view === 'specific-event') {
-    return (
-      'Sentry issue detail page. The user is viewing a specific event — ' +
-      'call get_event_details(event_id) with the eventId below to see what they see. ' +
-      shortIdNote +
-      tools
-    );
-  }
-
-  if (view === 'events-list') {
-    return (
-      'Sentry issue events list. The user is browsing all events for this issue. ' +
-      'Use telemetry_live_search to query events matching this issue. ' +
-      shortIdNote +
-      tools
-    );
-  }
-
-  return (
-    'Sentry issue detail page. Shows a single grouped issue with its latest event. ' +
-    shortIdNote +
-    tools
-  );
+  const tools =
+    'You can get issue details for aggregate stats and stack trace, get event details for a specific error event, ' +
+    'and search live telemetry for related spans/errors/logs/metrics. ' +
+    "If an autofix section appears in the page context below, Sentry's Autofix has already analyzed this issue — use that analysis as a starting point if needed.";
+  return `${preamble} ${shortIdNote}${tools}`;
 }
 
 function GroupDetailsContentInner({
@@ -670,13 +673,22 @@ function GroupDetailsContentInner({
 
   useEngagedViewTracking({group, project});
 
-  const {eventId: eventIdParam} = useParams<{eventId?: string}>();
+  const {eventId: eventIdParam, tagKey} = useParams<{
+    eventId?: string;
+    tagKey?: string;
+  }>();
 
-  let issueView: 'specific-event' | 'events-list' | 'issue-overview' = 'issue-overview';
+  let issueView: IssueView = 'issue-overview';
   if (eventIdParam && !RESERVED_EVENT_IDS.has(eventIdParam)) {
     issueView = 'specific-event';
   } else if (currentTab === Tab.EVENTS) {
     issueView = 'events-list';
+  } else if (currentTab === Tab.REPLAYS) {
+    issueView = 'replays';
+  } else if (currentTab === Tab.ATTACHMENTS) {
+    issueView = 'attachments';
+  } else if (currentTab === Tab.DISTRIBUTIONS) {
+    issueView = tagKey ? 'distributions-tag-detail' : 'distributions';
   }
 
   useLLMContext({
@@ -693,6 +705,8 @@ function GroupDetailsContentInner({
     lastSeen: group.lastSeen,
     projectSlug: project.slug,
     eventId: event?.id,
+    currentTab,
+    ...(tagKey ? {tagKey} : {}),
   });
 
   const isDisplayingEventDetails = [
@@ -824,6 +838,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
       TourContext={IssueDetailsTourContext}
     >
+      <IssueDetailsTourModal />
       <GroupDetailsContent
         project={projectWithFallback}
         group={props.group}

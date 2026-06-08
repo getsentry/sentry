@@ -7,7 +7,10 @@ import type {KeyboardEvent} from '@react-types/shared';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {getEscapedKey} from '@sentry/scraps/compactSelect';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
@@ -19,7 +22,7 @@ import type {
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
@@ -160,7 +163,7 @@ function useParameterSuggestions({
   parameterIndex: number;
   token: AggregateFilter;
 }): Array<SelectOptionWithKey<string>> {
-  const {getFieldDefinition, filterKeys} = useSearchQueryBuilder();
+  const {getFieldDefinition, filterKeys} = useSearchQueryBuilderConfig();
   const fieldDefinition = getFieldDefinition(token.key.name.text);
 
   const parameterDefinition = fieldDefinition?.parameters?.[parameterIndex];
@@ -240,10 +243,10 @@ export function SearchQueryBuilderParametersCombobox({
   onDelete,
   onKeyDown: passedOnKeyDown,
 }: ParametersComboboxProps) {
-  const {getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilder();
+  const {getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilderConfig();
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
   const initialValue = getInitialInputValue(token);
   const [inputValue, setInputValue] = useState('');
   const [inputChanged, setInputChanged] = useState(false);

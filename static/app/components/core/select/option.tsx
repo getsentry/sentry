@@ -7,7 +7,7 @@ import {CheckWrap} from '@sentry/scraps/select';
 
 import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
@@ -57,9 +57,11 @@ export function SelectOption(props: Props) {
           innerWrapProps={{'data-test-id': value}}
           labelProps={{as: typeof label === 'string' ? 'p' : 'div'}}
           leadingItems={
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             itemProps.__isNew__ ? (
               <Fragment>
                 <IconAdd size="sm" />
+                {/* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */}
                 {data.leadingItems}
               </Fragment>
             ) : (
@@ -72,6 +74,7 @@ export function SelectOption(props: Props) {
                     />
                   )}
                 </CheckWrap>
+                {/* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */}
                 {data.leadingItems}
               </Fragment>
             )

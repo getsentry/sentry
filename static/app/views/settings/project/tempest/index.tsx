@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -17,7 +17,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -36,7 +35,6 @@ const PS5_WARNING_DISMISS_KEY = 'tempest-ps5-warning-dismissed';
 export default function TempestSettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const location = useLocation();
   const navigate = useNavigate();
   const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =
@@ -109,31 +107,15 @@ export default function TempestSettings() {
   return (
     <Fragment>
       <SentryDocumentTitle title={getPageTitle()} />
-      <SettingsPageHeader
-        title={getPageTitle()}
-        action={
-          hasPageFrameFeature ? (
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
-          ) : (
-            <Grid flow="column" align="center" gap="lg">
-              <FeedbackButton />
-              <RequestSdkAccessButton
-                gamingPlatform="playstation"
-                organization={organization}
-                projectId={project.id}
-                origin="project-settings"
-              />
-            </Grid>
-          )
-        }
-      />
+      <SettingsPageHeader title={getPageTitle()} />
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
 
       {!isPS5WarningDismissed && (
         <div>
@@ -167,14 +149,12 @@ export default function TempestSettings() {
             ))}
           </TabList>
         </Tabs>
-        {hasPageFrameFeature && (
-          <RequestSdkAccessButton
-            gamingPlatform="playstation"
-            organization={organization}
-            projectId={project.id}
-            origin="project-settings"
-          />
-        )}
+        <RequestSdkAccessButton
+          gamingPlatform="playstation"
+          organization={organization}
+          projectId={project.id}
+          origin="project-settings"
+        />
       </Flex>
 
       {renderTabContent()}

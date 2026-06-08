@@ -8,6 +8,7 @@ Use the public client functions from client.py instead.
 from __future__ import annotations
 
 import logging
+import re
 import time
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
@@ -54,13 +55,12 @@ class AgentChatRequest(TypedDict):
     run_id: int | None
     insert_index: int | None
     on_page_context: str | None
+    external_idempotency_key: NotRequired[str]
     page_name: NotRequired[str | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
     reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
-    enable_coding: NotRequired[bool]
-    enable_code_mode_tools: NotRequired[str]
     project_id: NotRequired[int]
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
@@ -70,7 +70,7 @@ class AgentChatRequest(TypedDict):
     category_key: NotRequired[str]
     category_value: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
-    is_context_engine_enabled: NotRequired[bool]
+    agent_run_options: NotRequired[dict[str, Any]]
     max_iterations: NotRequired[int]
     proxy_headers: NotRequired[dict[str, str] | None]
     ui_tools: NotRequired[str | None]
@@ -87,6 +87,7 @@ class AgentRunsRequest(TypedDict):
     expand: NotRequired[str]
     start: NotRequired[datetime]
     end: NotRequired[datetime]
+    query: NotRequired[str]
 
 
 class AgentUpdateRequest(TypedDict):
@@ -99,6 +100,12 @@ class AgentPrStateRequest(TypedDict):
     organization_id: int
     provider: str
     pr_id: int
+
+
+class SeerFeatureRunRequest(TypedDict):
+    feature_id: str
+    ref: str
+    payload: dict[str, Any]
 
 
 def make_agent_state_request(
@@ -166,6 +173,28 @@ def make_agent_state_pr_request(
     )
 
 
+def trigger_seer_feature(
+    body: SeerFeatureRunRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> int | None:
+    """Trigger a Seer feature run and return the resulting agent run id.
+
+    Seer runs the feature asynchronously and pushes results back via
+    deliver_feature_result. Raises SeerApiError on a non-2xx response.
+    """
+    response = make_signed_seer_api_request(
+        connection_pool or agent_connection_pool,
+        "/v1/automation/agent/feature/run",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+    if response.status >= 400:
+        raise SeerApiError("Seer feature run request failed", response.status)
+
+    return response.json().get("run_id")
+
+
 def get_agent_state_from_pr_id(
     organization_id: int, provider: str, pr_id: int
 ) -> SeerRunState | None:
@@ -204,24 +233,7 @@ def has_seer_agent_access_with_detail(
     if not has_access:
         return False, error
 
-    feature_names = [
-        # Access to seer agent
-        "organizations:seer-explorer",
-        # Access to seer agent powered autofix
-        "organizations:autofix-on-explorer",
-    ]
-
-    batch_features = features.batch_has(
-        feature_names,
-        organization=organization,
-        actor=actor,
-    )
-
-    if batch_features is None:
-        return False, "Feature flag not enabled"
-
-    org_features = batch_features.get(f"organization:{organization.id}", {})
-    if not any(bool(org_features.get(feature_name)) for feature_name in feature_names):
+    if not features.has("organizations:seer-explorer", organization, actor=actor):
         return False, "Feature flag not enabled"
 
     # Check open team membership (the agent requires this for context)
@@ -392,6 +404,26 @@ def poll_until_done(
         time.sleep(poll_interval)
 
 
+_WILDCARD_LABEL_MAP = {
+    "\uf00dDoesNotContain\uf00d": " does not contain ",
+    "\uf00dDoesNotStartWith\uf00d": " does not start with ",
+    "\uf00dDoesNotEndWith\uf00d": " does not end with ",
+    "\uf00dContains\uf00d": " contains ",
+    "\uf00dStartsWith\uf00d": " starts with ",
+    "\uf00dEndsWith\uf00d": " ends with ",
+}
+
+_ESCAPED_WILDCARD_RE = re.compile(r"\\uf00d", re.IGNORECASE)
+
+
+def _normalize_wildcard_operators(text: str) -> str:
+    """Replace U+F00D-delimited wildcard operators with readable labels."""
+    text = _ESCAPED_WILDCARD_RE.sub("\uf00d", text)
+    for pattern, label in _WILDCARD_LABEL_MAP.items():
+        text = text.replace(pattern, label)
+    return text
+
+
 def _render_node(node: dict[str, Any], depth: int) -> str:
     """Recursively render an LLMContextSnapshot node and its children as markdown."""
     heading = "#" * min(depth + 1, 6)
@@ -437,4 +469,5 @@ def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     preamble = (
         "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
     )
-    return preamble + "\n".join(_render_node(node, 0) for node in selected)
+    result = preamble + "\n".join(_render_node(node, 0) for node in selected)
+    return _normalize_wildcard_operators(result)

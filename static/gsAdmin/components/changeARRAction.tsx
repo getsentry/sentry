@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {useModal} from '@sentry/scraps/modal';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 
 type Props = {
@@ -13,6 +13,8 @@ type Props = {
 };
 
 export function ChangeARRAction(props: Props) {
+  const {openModal} = useModal();
+
   return (
     <Button
       variant="link"

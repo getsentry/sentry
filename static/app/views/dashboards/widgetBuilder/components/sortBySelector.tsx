@@ -2,11 +2,11 @@ import {Fragment, useEffect} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tn} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -29,7 +29,7 @@ import {
   SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
 export function WidgetBuilderSortBySelector() {

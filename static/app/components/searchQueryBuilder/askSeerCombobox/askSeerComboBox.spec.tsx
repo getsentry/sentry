@@ -7,7 +7,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
@@ -68,7 +68,6 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization}
@@ -88,7 +87,6 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization}
@@ -107,7 +105,6 @@ describe('AskSeerComboBox', () => {
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization}
@@ -119,13 +116,12 @@ describe('AskSeerComboBox', () => {
 
   it('closes seer search when close button is clicked', async () => {
     function TestComponent() {
-      const {displayAskSeer, setDisplayAskSeer} = useSearchQueryBuilder();
+      const {displayAskSeer, setDisplayAskSeer} = useSearchQueryBuilderAI();
       return displayAskSeer ? (
         <AskSeerComboBox
           initialQuery="test"
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
         />
       ) : (
         <div>
@@ -161,7 +157,6 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization}
@@ -184,7 +179,6 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={applySeerSearchQuery}
-          analyticsSource="test"
         />
       </SearchQueryBuilderProvider>,
       {
@@ -221,7 +215,6 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization}
@@ -245,7 +238,6 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
         />
       </SearchQueryBuilderProvider>
     );
@@ -259,7 +251,6 @@ describe('AskSeerComboBox', () => {
           initialQuery=""
           askSeerMutationOptions={askSeerMutationOptions}
           applySeerSearchQuery={() => {}}
-          analyticsSource="test"
         />
       </SearchQueryBuilderProvider>,
       {organization: {...organization, hideAiFeatures: true}}

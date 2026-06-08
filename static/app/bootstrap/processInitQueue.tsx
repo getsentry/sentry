@@ -21,8 +21,6 @@ const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 const COMPONENT_MAP = {
   [SentryInitRenderReactComponent.INDICATORS]: () =>
     import(/* webpackChunkName: "Indicators" */ 'sentry/components/indicators'),
-  [SentryInitRenderReactComponent.SYSTEM_ALERTS]: () =>
-    import(/* webpackChunkName: "SystemAlerts" */ 'sentry/views/app/systemAlerts'),
   [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
   [SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT]: () =>

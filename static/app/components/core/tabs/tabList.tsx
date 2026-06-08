@@ -5,7 +5,7 @@ import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
 import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import type {TabListStateOptions} from '@react-stately/tabs';
+import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
@@ -50,7 +50,7 @@ const StyledTabListWrap = styled('ul', {
           grid-auto-flow: row;
           align-content: start;
           padding-right: ${p.theme.space.xs};
-        `};
+        `}
 `;
 
 const StyledTabListOverflowWrap = styled('div')`
@@ -154,7 +154,13 @@ function useOverflowTabs({
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-function OverflowMenu({state, overflowMenuItems, disabled}: any) {
+interface OverflowMenuProps {
+  disabled: boolean | undefined;
+  overflowMenuItems: Array<SelectOption<string | number>>;
+  state: TabListState<TabListItemProps>;
+}
+
+function OverflowMenu({state, overflowMenuItems, disabled}: OverflowMenuProps) {
   return (
     <TabListOverflowWrap>
       <CompactSelect
@@ -248,20 +254,23 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
       (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
     );
 
-    return sortedOverflowTabs.flatMap<SelectOption<string | number>>(key => {
+    return sortedOverflowTabs.flatMap(key => {
       const item = state.collection.getItem(key);
 
       if (!item) {
         return [];
       }
 
+      const itemProps: TabListItemProps = item.props;
+
       return {
         value: key,
-        label: item.props.children,
-        disabled: item.props.disabled,
-        tooltip: item.props.tooltip,
+        label: itemProps.children,
+        disabled: itemProps.disabled,
+        tooltip: itemProps.tooltip?.title,
+        tooltipOptions: itemProps.tooltip,
         textValue: item.textValue,
-      };
+      } satisfies SelectOption<string | number>;
     });
   }, [state.collection, overflowTabs]);
 
@@ -281,7 +290,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
             orientation={orientation}
             size={size}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
-            tooltipProps={item.props.tooltip}
+            tooltipProps={(item.props as TabListItemProps).tooltip}
             ref={element => {
               tabItemsRef.current[item.key] = element;
             }}
@@ -315,6 +324,7 @@ export function TabList({variant, ...props}: TabListProps) {
   const collection = useCollection(props, collectionFactory);
 
   const parsedItems: TabListItemProps[] = useMemo(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     () => [...collection].map(({key, props: itemProps}) => ({key, ...itemProps})),
     [collection]
   );

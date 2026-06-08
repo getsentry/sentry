@@ -6,8 +6,8 @@ import moment from 'moment-timezone';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -37,6 +37,8 @@ export function PolicyRow({
   onAccept,
   subscription,
 }: PolicyRowProps) {
+  const {openModal} = useModal();
+
   const theme = useTheme();
   const organization = useOrganization();
 

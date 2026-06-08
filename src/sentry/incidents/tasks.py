@@ -39,25 +39,6 @@ def handle_snuba_query_update(
 
 
 @instrumented_task(
-    name="sentry.incidents.tasks.handle_trigger_action",
-    namespace=alerts_tasks,
-    retry=Retry(times=5, delay=60),
-    processing_deadline_duration=60,
-    silo_mode=SiloMode.CELL,
-)
-def handle_trigger_action(
-    action_id: int,
-    incident_id: int,
-    project_id: int,
-    method: str,
-    new_status: int,
-    metric_value: float | int | None = None,
-    **kwargs: Any,
-) -> None:
-    pass
-
-
-@instrumented_task(
     name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
     namespace=alerts_tasks,
     retry=Retry(times=2, delay=60),

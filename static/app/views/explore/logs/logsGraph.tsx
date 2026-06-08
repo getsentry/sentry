@@ -11,8 +11,8 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -334,7 +334,7 @@ function ContextMenu({
         textValue: t('Add to Dashboard'),
         label: (
           <Feature
-            hookName="feature-disabled:dashboards-edit"
+            overrideName="feature-disabled:dashboards-edit"
             features="organizations:dashboards-edit"
             renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
           >

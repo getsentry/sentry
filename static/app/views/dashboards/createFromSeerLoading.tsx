@@ -4,7 +4,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
+import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 interface CreateFromSeerLoadingProps {

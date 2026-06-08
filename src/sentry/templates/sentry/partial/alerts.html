@@ -28,11 +28,12 @@
 
   /* Default alert banner color */
   .alert-banner.default {
-    background: rgb(255, 219, 74);
-    color: #3e3446;
+    background: #6c5fc7;
+    color: white;
   }
   .alert-banner.default a {
-    color: #2562d4;
+    color: white;
+    text-decoration: underline;
   }
 
   /* Partner login banner color */
@@ -50,20 +51,11 @@
 {% endif %}
 {% endblock %}
 
-<div id="blk_alerts" class="messages-container"></div>
 <div id="blk_indicators"></div>
 
 {% script %}
 <script>
   window.__onSentryInit = window.__onSentryInit || [];
-  window.__onSentryInit.push({
-    name: 'renderReact',
-    component: 'SystemAlerts',
-    container: '#blk_alerts',
-    props: {
-      className: 'alert-list',
-    },
-  });
   window.__onSentryInit.push({
     name: 'renderReact ',
     component: 'Indicators',

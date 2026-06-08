@@ -1,6 +1,6 @@
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {
   QueryDefinitionWithKey,
   WidgetDataConstraint,

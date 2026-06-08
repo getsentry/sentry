@@ -13,6 +13,13 @@ interface FormFieldDefinition {
 }
 
 export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
+  'account-emails.email': {
+    name: 'email',
+    formId: 'account-emails',
+    route: '/settings/account/emails/',
+    label: t('Additional Email'),
+    hintText: t('Designate an alternative email for this account'),
+  },
   'account-details.name': {
     name: 'name',
     formId: 'account-details',
@@ -73,13 +80,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/account/details/',
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
-  },
-  'account-emails.email': {
-    name: 'email',
-    formId: 'account-emails',
-    route: '/settings/account/emails/',
-    label: t('Additional Email'),
-    hintText: t('Designate an alternative email for this account'),
   },
   'notification-settings.personalActivityNotifications': {
     name: 'personalActivityNotifications',
@@ -202,6 +202,124 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Allowed Origins'),
     hintText: '',
   },
+  'project-filters-settings.filters:blacklisted_ips': {
+    name: 'filters:blacklisted_ips',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('IP Addresses'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:releases': {
+    name: 'filters:releases',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Releases'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:error_messages': {
+    name: 'filters:error_messages',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Error Message'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:log_messages': {
+    name: 'filters:log_messages',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Log Message'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:trace_metric_names': {
+    name: 'filters:trace_metric_names',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Application Metrics'),
+    hintText: '',
+  },
+  'project-filters-settings.legacy-browsers': {
+    name: 'legacy-browsers',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out legacy browsers'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:react-hydration-errors': {
+    name: 'filters:react-hydration-errors',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out hydration errors'),
+    hintText: '',
+  },
+  'project-filters-settings.filters:chunk-load-error': {
+    name: 'filters:chunk-load-error',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('Filter out ChunkLoadError(s)'),
+    hintText: t(
+      "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
+    ),
+  },
+  'project-security-and-privacy.storeCrashReports': {
+    name: 'storeCrashReports',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Store Minidumps As Attachments'),
+    hintText: '',
+  },
+  'project-security-and-privacy.dataScrubber': {
+    name: 'dataScrubber',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Data Scrubber'),
+    hintText: t('Enable server-side data scrubbing'),
+  },
+  'project-security-and-privacy.dataScrubberDefaults': {
+    name: 'dataScrubberDefaults',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Use Default Scrubbers'),
+    hintText: t(
+      'Apply default scrubbers to prevent things like passwords and credit cards from being stored'
+    ),
+  },
+  'project-security-and-privacy.scrubIPAddresses': {
+    name: 'scrubIPAddresses',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Prevent Storing of IP Addresses'),
+    hintText: t('Preventing IP addresses from being stored for new events'),
+  },
+  'project-security-and-privacy.sensitiveFields': {
+    name: 'sensitiveFields',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Additional Sensitive Fields'),
+    hintText: t(
+      'Additional field names to match against when scrubbing data. Separate multiple entries with a newline'
+    ),
+  },
+  'project-security-and-privacy.safeFields': {
+    name: 'safeFields',
+    formId: 'project-security-and-privacy',
+    route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+    label: t('Safe Fields'),
+    hintText: t(
+      'Field names which data scrubbers should ignore. Separate multiple entries with a newline'
+    ),
+  },
+  'project-issue-grouping.fingerprintingRules': {
+    name: 'fingerprintingRules',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Fingerprint Rules'),
+  },
+  'project-issue-grouping.groupingEnhancements': {
+    name: 'groupingEnhancements',
+    formId: 'project-issue-grouping',
+    route: '/settings/:orgId/projects/:projectId/issue-grouping/',
+    label: t('Stack Trace Rules'),
+  },
   'project-replays.sentry:replay_rage_click_issues': {
     name: 'sentry:replay_rage_click_issues',
     formId: 'project-replays',
@@ -284,9 +402,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     name: 'alertsMemberWrite',
     formId: 'organization-settings-form',
     route: '/settings/organization/',
-    label: t('Let Members Create and Edit Alerts'),
+    label: t('Let Members Create and Edit Monitors and Alerts'),
     hintText: t(
-      'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
+      'Allow members to create, edit, and delete monitors and alert rules by granting them the `alerts:write` scope.'
     ),
   },
   'organization-settings-form.attachmentsRole': {

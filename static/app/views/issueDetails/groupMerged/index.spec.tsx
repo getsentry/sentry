@@ -1,63 +1,68 @@
 import {DetailedEventsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {GroupingStore} from 'sentry/stores/groupingStore';
 import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
 
-describe('Issues -> Merged View', () => {
+describe('GroupMergedView', () => {
   const events = DetailedEventsFixture();
   const group = GroupFixture();
-  const mockData = {
-    merged: [
-      {
-        latestEvent: events[0],
-        state: 'unlocked',
-        id: '2c4887696f708c476a81ce4e834c4b02',
-        mergedBySeer: true,
-      },
-      {
-        latestEvent: events[1],
-        state: 'unlocked',
-        id: 'e05da55328a860b21f62e371f0a7507d',
-      },
-    ],
-  };
+  const project = ProjectFixture();
+  const hashesUrl = `/organizations/org-slug/issues/${group.id}/hashes/`;
+  const pageLinks =
+    '<http://localhost/api/0/issues/1/hashes/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
+    '<http://localhost/api/0/issues/1/hashes/?cursor=0:50:0>; rel="next"; results="false"; cursor="0:50:0"';
+  const mergedFingerprints = [
+    {
+      latestEvent: events[0],
+      id: '2c4887696f708c476a81ce4e834c4b02',
+      mergedBySeer: true,
+    },
+    {
+      latestEvent: events[1],
+      id: 'e05da55328a860b21f62e371f0a7507d',
+    },
+  ];
 
   beforeEach(() => {
-    GroupingStore.init();
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/hashes/?limit=50&query=`,
-      body: mockData.merged,
-    });
   });
 
   it('renders merged groups', async () => {
-    const {organization, project, router} = initializeOrg({
-      router: {
-        params: {groupId: 'groupId'},
-      },
+    MockApiClient.addMockResponse({
+      url: hashesUrl,
+      body: mergedFingerprints,
+      headers: {Link: pageLinks},
     });
 
-    render(
-      <GroupMergedView project={project} groupId={group.id} location={router.location} />,
-      {
-        organization,
-      }
-    );
+    render(<GroupMergedView project={project} groupId={group.id} />);
 
-    // Wait for the component to load
-    await screen.findByText('Fingerprints included in this issue');
+    const links = await screen.findAllByRole('link', {name: 'Latest event'});
+    expect(links).toHaveLength(mergedFingerprints.length);
+    expect(links[0]).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/268/events/904/?project=1&referrer=merged-item'
+    );
+    const showFingerprint = screen.getByRole('button', {
+      name: `Show ${mergedFingerprints[0]!.id} fingerprints`,
+    });
 
     const title = await screen.findByText('Fingerprints included in this issue');
-    expect(title.parentElement).toHaveTextContent(
-      'Fingerprints included in this issue (2)'
-    );
+    expect(title).toBeInTheDocument();
+    expect(screen.getByText(/Merged by Sentry/)).toBeInTheDocument();
+    expect(screen.queryByText(mergedFingerprints[0]!.id)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: `Copy fingerprint ${mergedFingerprints[0]!.id} to clipboard`,
+      })
+    ).not.toBeInTheDocument();
 
-    const links = await screen.findAllByRole('button', {name: 'View latest event'});
-    expect(links).toHaveLength(mockData.merged.length);
+    await userEvent.click(showFingerprint);
+
+    expect(
+      await screen.findByText(`Fingerprint ${mergedFingerprints[0]!.id}`)
+    ).toBeInTheDocument();
   });
 });

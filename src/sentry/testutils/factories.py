@@ -57,9 +57,7 @@ from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
-    IncidentTrigger,
     IncidentType,
-    TriggerStatus,
 )
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
@@ -77,6 +75,8 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -113,6 +113,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
@@ -145,6 +146,8 @@ from sentry.preprod.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.seer.models.project_repository import SeerProjectRepository
+from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -890,12 +893,33 @@ class Factories:
 
         if not repo:
             repo = Factories.create_repo(project=project)
+        if "project_repository" not in kwargs:
+            project_repo, _ = ProjectRepository.objects.get_or_create(
+                project=project,
+                repository=repo,
+                defaults={"source": ProjectRepositorySource.MANUAL},
+            )
+            kwargs["project_repository"] = project_repo
         return RepositoryProjectPathConfig.objects.create(
-            project=project,
-            repository=repo,
             organization_integration_id=organization_integration.id,
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_project_repository(project, repository=None, repository_id=None, **kwargs):
+        if repository is None and repository_id is not None:
+            repository = Repository.objects.get(id=repository_id)
+        assert repository is not None, "repository or repository_id is required"
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=project,
+            repository=repository,
+            defaults={"source": ProjectRepositorySource.SEER_PREFERENCE},
+        )
+        return SeerProjectRepository.objects.create(
+            project_repository=project_repo,
             **kwargs,
         )
 
@@ -1244,6 +1268,34 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_group_activity(group, *args, **kwargs):
         return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_action_log_entry(
+        group, type=None, actor_type=None, actor_id=None, source=None, data=None, *args, **kwargs
+    ) -> GroupActionLogEntry:
+        if type is None:
+            type = GroupActionType.VIEW
+        if actor_type is None:
+            actor_type = GroupActorType.SYSTEM
+        if actor_id is None:
+            actor_id = 1234
+        if source is None:
+            source = "testutils.factories"
+        if data is None:
+            data = {}
+
+        return GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project.id,
+            type=type,
+            actor_type=actor_type,
+            actor_id=actor_id,
+            source=source,
+            data=data,
+            *args,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -1849,16 +1901,6 @@ class Factories:
             label = petname.generate(2, " ", letters=10).title()
 
         return create_alert_rule_trigger(alert_rule, label, alert_threshold)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident_trigger(incident, alert_rule_trigger, status=None):
-        if status is None:
-            status = TriggerStatus.ACTIVE.value
-
-        return IncidentTrigger.objects.create(
-            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -2610,6 +2652,7 @@ class Factories:
         approval_status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
         approved_at: datetime | None = None,
         approved_by_id: int | None = None,
+        extras: dict | None = None,
     ) -> PreprodComparisonApproval:
         return PreprodComparisonApproval.objects.create(
             preprod_artifact=preprod_artifact,
@@ -2617,6 +2660,7 @@ class Factories:
             approval_status=approval_status,
             approved_at=approved_at,
             approved_by_id=approved_by_id,
+            extras=extras,
         )
 
     @staticmethod
@@ -2865,3 +2909,9 @@ class Factories:
             type="github", external_id="github-app", defaults=kwargs
         )
         return identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_run(organization, type: str = SeerRunType.EXPLORER, **kwargs) -> SeerRun:
+        kwargs.setdefault("last_triggered_at", timezone.now())
+        return SeerRun.objects.create(organization=organization, type=type, **kwargs)

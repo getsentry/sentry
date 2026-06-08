@@ -2,6 +2,7 @@ import type {Scope, TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
+import type {PlatformKey} from './platform';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
 
@@ -20,20 +21,25 @@ export type AvatarProject = {
   platform?: PlatformKey;
 };
 
-export type Project = {
+export type ProjectStats = TimeseriesValue[];
+
+/**
+ * Matches the response from `ProjectSummarySerializer` used by
+ * `GET /organizations/{org}/projects/`.
+ *
+ * This is what `ProjectsStore`, `useProjects`, and the bootstrap requests hold.
+ * Optional fields like `stats`, `transactionStats`, and `sessionStats` are only
+ * present when the corresponding query params (`statsPeriod`, etc.) are passed.
+ * `latestDeploys` is excluded when `collapse=latestDeploys` is sent.
+ */
+interface ProjectSummary extends AvatarProject {
   access: Scope[];
-  allowedDomains: string[];
   dateCreated: string;
-  digestsMaxDelay: number;
-  digestsMinDelay: number;
-  dynamicSamplingBiases: DynamicSamplingBias[] | null;
   environments: string[];
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
-  groupingConfig: string;
   hasAccess: boolean;
-  hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
   hasFlags: boolean;
   hasInsightsAgentMonitoring: boolean;
@@ -56,13 +62,58 @@ export type Project = {
   hasTraceMetrics: boolean;
   id: string;
   isBookmarked: boolean;
-  isInternal: boolean;
   isMember: boolean;
   name: string;
+  platforms: PlatformKey[];
+  team: Team;
+  teams: Team[];
+  hasUserReports?: boolean;
+  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
+  latestRelease?: {version: string} | null;
+  organization?: Pick<Organization, 'id' | 'slug'>;
+  sessionStats?: {
+    currentCrashFreeRate: number | null;
+    hasHealthData: boolean;
+    previousCrashFreeRate: number | null;
+  };
+  stats?: ProjectStats;
+  transactionStats?: ProjectStats;
+}
+
+/**
+ * Matches `ProjectSummarySerializer` when callers request project option
+ * expansion from `GET /organizations/{org}/projects/` using one or more
+ * `options` query params.
+ *
+ * The `options` field is omitted unless requested and may still be empty when
+ * none of the requested options have been set for the project.
+ */
+export interface ProjectSummaryWithOptions extends ProjectSummary {
+  options?: Record<string, unknown>;
+}
+
+/**
+ * Matches the response from `DetailedProjectSerializer` used by
+ * `GET /projects/{org}/{project}/`.
+ *
+ * The `organization` field can be collapsed to `{id, slug}` with
+ * `collapse=organization`.
+ */
+export interface DetailedProject extends ProjectSummary {
+  allowedDomains: string[];
+  dataScrubber: boolean;
+  dataScrubberDefaults: boolean;
+  derivedGroupingEnhancements: string;
+  digestsMaxDelay: number;
+  digestsMinDelay: number;
+  dynamicSamplingBiases: DynamicSamplingBias[] | null;
+  fingerprintingRules: string;
+  groupingConfig: string;
+  groupingEnhancements: string;
+  isInternal: boolean;
   organization: Pick<Organization, 'id' | 'slug'>;
   plugins: Plugin[];
   processingIssues: number;
-  relayCustomMetricCardinalityLimit: number | null;
   relayPiiConfig: string;
   resolveAge: number;
   safeFields: string[];
@@ -71,23 +122,18 @@ export type Project = {
   sensitiveFields: string[];
   storeCrashReports: number | null;
   subjectTemplate: string;
-  team: Team;
-  teams: Team[];
   verifySSL: boolean;
   attachmentsRole?: string | null;
   autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
   debugFilesRole?: string | null;
   defaultEnvironment?: string;
-  hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
     context: Record<string, string[]>;
     tags: string[];
   };
   highlightTags?: string[];
-  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
-  latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
   preprodDistributionEnabledByCustomer?: boolean;
   preprodDistributionEnabledQuery?: string | null;
@@ -111,19 +157,14 @@ export type Project = {
   securityTokenHeader?: string;
   seerNightshiftTweaks?: SeerNightshiftTweaks | null;
   seerScannerAutomation?: boolean;
-  sessionStats?: {
-    currentCrashFreeRate: number | null;
-    hasHealthData: boolean;
-    previousCrashFreeRate: number | null;
-  };
-  stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
   tempestFetchScreenshots?: boolean;
-  transactionStats?: TimeseriesValue[];
-} & AvatarProject;
+}
 
-export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
+export type Project = ProjectSummary;
+
+export type MinimalProject = Pick<ProjectSummary, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
 export type ProjectKey = {
@@ -178,172 +219,11 @@ export type Environment = {
   displayName: string;
   id: string;
   name: string;
-
-  // XXX: Provided by the backend but unused due to `getUrlRoutingName()`
-  // urlRoutingName: string;
 };
 
 export interface TeamWithProjects extends Team {
   projects: Project[];
 }
-
-/**
- * The type of all platform keys.
- * Also includes platforms that cannot be created in the UI anymore.
- */
-export type PlatformKey =
-  | 'android'
-  | 'apple'
-  | 'apple-ios'
-  | 'apple-macos'
-  | 'bun'
-  | 'c'
-  | 'capacitor'
-  | 'cfml'
-  | 'clojure'
-  | 'cocoa'
-  | 'cocoa-objc'
-  | 'cocoa-swift'
-  | 'cordova'
-  | 'csharp'
-  | 'csharp-aspnetcore'
-  | 'dart'
-  | 'dart-flutter'
-  | 'deno'
-  | 'django'
-  | 'dotnet'
-  | 'dotnet-aspnet'
-  | 'dotnet-aspnetcore'
-  | 'dotnet-awslambda'
-  | 'dotnet-gcpfunctions'
-  | 'dotnet-google-cloud-functions'
-  | 'dotnet-maui'
-  | 'dotnet-uwp'
-  | 'dotnet-winforms'
-  | 'dotnet-wpf'
-  | 'dotnet-xamarin'
-  | 'electron'
-  | 'elixir'
-  | 'flutter'
-  | 'go'
-  | 'go-echo'
-  | 'go-fasthttp'
-  | 'go-fiber'
-  | 'go-gin'
-  | 'go-http'
-  | 'go-iris'
-  | 'go-martini'
-  | 'go-negroni'
-  | 'godot'
-  | 'groovy'
-  | 'ionic'
-  | 'java'
-  | 'java-android'
-  | 'java-appengine'
-  | 'java-log4j'
-  | 'java-log4j2'
-  | 'java-logback'
-  | 'java-logging'
-  | 'java-spring'
-  | 'java-spring-boot'
-  | 'javascript'
-  | 'javascript-angular'
-  | 'javascript-angularjs'
-  | 'javascript-astro'
-  | 'javascript-backbone'
-  | 'javascript-browser'
-  | 'javascript-capacitor'
-  | 'javascript-cordova'
-  | 'javascript-electron'
-  | 'javascript-ember'
-  | 'javascript-gatsby'
-  | 'javascript-nextjs'
-  | 'javascript-nuxt'
-  | 'javascript-react'
-  | 'javascript-react-router'
-  | 'javascript-remix'
-  | 'javascript-solid'
-  | 'javascript-solidstart'
-  | 'javascript-svelte'
-  | 'javascript-sveltekit'
-  | 'javascript-tanstackstart-react'
-  | 'javascript-vue'
-  | 'kotlin'
-  | 'minidump'
-  | 'native'
-  | 'native-crashpad'
-  | 'native-breakpad'
-  | 'native-minidump'
-  | 'native-qt'
-  | 'nintendo-switch'
-  | 'node'
-  | 'node-awslambda'
-  | 'node-azurefunctions'
-  | 'node-cloudflare-pages'
-  | 'node-cloudflare-workers'
-  | 'node-connect'
-  | 'node-express'
-  | 'node-fastify'
-  | 'node-gcpfunctions'
-  | 'node-hapi'
-  | 'node-hono'
-  | 'node-koa'
-  | 'node-nestjs'
-  | 'node-nodeawslambda'
-  | 'node-nodegcpfunctions'
-  | 'objc'
-  | 'other'
-  | 'perl'
-  | 'php'
-  | 'PHP'
-  | 'php-laravel'
-  | 'php-monolog'
-  | 'php-symfony'
-  | 'php-symfony2'
-  | 'playstation'
-  | 'powershell'
-  | 'python'
-  | 'python-aiohttp'
-  | 'python-asgi'
-  | 'python-awslambda'
-  | 'python-azurefunctions'
-  | 'python-bottle'
-  | 'python-celery'
-  | 'python-chalice'
-  | 'python-django'
-  | 'python-falcon'
-  | 'python-fastapi'
-  | 'python-flask'
-  | 'python-gcpfunctions'
-  | 'python-litestar'
-  | 'python-pylons'
-  | 'python-pymongo'
-  | 'python-pyramid'
-  | 'python-pythonawslambda'
-  | 'python-pythonazurefunctions'
-  | 'python-pythongcpfunctions'
-  | 'python-pythonserverless'
-  | 'python-quart'
-  | 'python-rq'
-  | 'python-sanic'
-  | 'python-serverless'
-  | 'python-starlette'
-  | 'python-tornado'
-  | 'python-tryton'
-  | 'python-wsgi'
-  | 'rails'
-  | 'react'
-  | 'react-native'
-  | 'ruby'
-  | 'ruby-rack'
-  | 'ruby-rails'
-  | 'rust'
-  | 'scala'
-  | 'swift'
-  | 'switt'
-  | 'unity'
-  | 'unreal'
-  | 'xbox';
 
 export type PlatformIntegration = {
   id: PlatformKey;

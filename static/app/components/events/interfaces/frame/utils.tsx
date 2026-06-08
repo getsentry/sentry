@@ -1,11 +1,11 @@
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
 export function trimPackage(pkg: string) {
@@ -182,7 +182,7 @@ export function isPotentiallyThirdPartyFrame(frame: Frame, event: Event): boolea
 
   const eventOrigin = extractEventOrigin(event);
 
-  if (!frame.absPath || !isUrl(eventOrigin) || !isUrl(frame.absPath)) {
+  if (!frame.absPath || !isValidUrl(eventOrigin) || !isValidUrl(frame.absPath)) {
     return false;
   }
 

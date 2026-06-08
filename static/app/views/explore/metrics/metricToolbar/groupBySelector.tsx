@@ -18,6 +18,7 @@ import {
   useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 import {
   selectTraceItemTagCollection,
   traceItemAttributeKeysOptions,
@@ -28,6 +29,10 @@ interface GroupBySelectorProps {
    * The metric to filter attributes by
    */
   traceMetric: TraceMetric;
+  /**
+   * If set, disables the selector and shows this string as a tooltip.
+   */
+  disabledReason?: string;
   /**
    * Whether to skip the trace metric filter.
    *
@@ -45,11 +50,13 @@ interface GroupBySelectorProps {
 export function GroupBySelector({
   traceMetric,
   skipTraceMetricFilter,
+  disabledReason,
 }: GroupBySelectorProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const isDisabled = disabledReason !== undefined;
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
@@ -64,29 +71,26 @@ export function GroupBySelector({
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
   });
 
-  const visibleNumberTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(data?.numberAttributes ?? {}).filter(
-        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-      )
-    );
-  }, [data?.numberAttributes]);
-
-  const visibleStringTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(data?.stringAttributes ?? {}).filter(
-        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-      )
-    );
-  }, [data?.stringAttributes]);
-
-  const visibleBooleanTags = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(data?.booleanAttributes ?? {}).filter(
-        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-      )
-    );
-  }, [data?.booleanAttributes]);
+  const {visibleBooleanTags, visibleNumberTags, visibleStringTags} = useMemo(
+    () => ({
+      visibleBooleanTags: Object.fromEntries(
+        Object.entries(data?.booleanAttributes ?? {}).filter(
+          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+        )
+      ),
+      visibleNumberTags: Object.fromEntries(
+        Object.entries(data?.numberAttributes ?? {}).filter(
+          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+        )
+      ),
+      visibleStringTags: Object.fromEntries(
+        Object.entries(data?.stringAttributes ?? {}).filter(
+          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+        )
+      ),
+    }),
+    [data?.booleanAttributes, data?.numberAttributes, data?.stringAttributes]
+  );
 
   const enabledOptions = useGroupByFields({
     groupBys,
@@ -115,11 +119,20 @@ export function GroupBySelector({
   return (
     <CompactSelect
       multiple
-      search
+      search={{
+        filter: (option, searchText) => {
+          return sortSearchedAttributes({
+            fieldDefinitionType: TraceItemDataset.TRACEMETRICS,
+            option,
+            searchText,
+          });
+        },
+      }}
       clearable
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
+          tooltipProps={{title: disabledReason}}
           prefix={t('Group by')}
           style={{width: '100%'}}
         />
@@ -127,7 +140,7 @@ export function GroupBySelector({
       options={enabledOptions}
       value={[...groupBys]}
       loading={isLoading}
-      disabled={!skipTraceMetricFilter && !traceMetricFilter}
+      disabled={isDisabled || isLoading || (!skipTraceMetricFilter && !traceMetricFilter)}
       onChange={handleChange}
       style={{width: '100%'}}
     />

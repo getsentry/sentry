@@ -11,6 +11,7 @@ from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
 )
 from snuba_sdk import Column, Function, Op
 
+from sentry.billing.platform.services.category_mapping import sentry_to_proto_category
 from sentry.billing.platform.services.usage._outcomes_query import (
     _BILLABLE_OUTCOMES,
     _build_query,
@@ -86,7 +87,7 @@ class TestOverQuotaCondition:
 
 class TestBuildResponse:
     def test_build_response_empty(self):
-        response = _build_response([])
+        response = _build_response([], None)
 
         assert isinstance(response, GetUsageResponse)
         assert list(response.days) == []
@@ -97,7 +98,7 @@ class TestBuildResponse:
             _make_row(time="2025-03-15T00:00:00+00:00", accepted=100, total=100),
             _make_row(time="2025-03-16T00:00:00+00:00", accepted=75, total=75),
         ]
-        response = _build_response(rows)
+        response = _build_response(rows, None)
 
         assert len(response.days) == 3
         assert response.days[0].date == Date(year=2025, month=3, day=15)
@@ -110,18 +111,32 @@ class TestBuildResponse:
             _make_row(time="2025-03-15T00:00:00+00:00", category=1, accepted=100, total=100),
             _make_row(time="2025-03-15T00:00:00+00:00", category=9, accepted=25, total=25),
         ]
-        response = _build_response(rows)
+        response = _build_response(rows, None)
 
         assert len(response.days) == 1
         day = response.days[0]
         assert len(day.usage) == 3
-        assert day.usage[0].category == 1
-        assert day.usage[1].category == 2
-        assert day.usage[2].category == 9
 
-        assert day.usage[0].data.accepted == 100
-        assert day.usage[1].data.accepted == 50
-        assert day.usage[2].data.accepted == 25
+        usage_by_cat = {u.category: u.data.accepted for u in day.usage}
+        assert usage_by_cat[sentry_to_proto_category(1)] == 100
+        assert usage_by_cat[sentry_to_proto_category(2)] == 50
+        assert usage_by_cat[sentry_to_proto_category(9)] == 25
+
+    def test_build_response_skips_unmapped_sentry_category(self):
+        # Sentry SESSION=5 has no proto mapping; passing the int through would
+        # collide with proto REPLAY=5 and clobber real replay data via the
+        # response builder's overwrite.
+        rows = [
+            _make_row(time="2025-03-15T00:00:00+00:00", category=7, accepted=42, total=42),
+            _make_row(time="2025-03-15T00:00:00+00:00", category=5, accepted=999, total=999),
+        ]
+        response = _build_response(rows, None)
+
+        assert len(response.days) == 1
+        day = response.days[0]
+        assert len(day.usage) == 1
+        assert day.usage[0].category == sentry_to_proto_category(7)
+        assert day.usage[0].data.accepted == 42
 
     def test_build_response_preserves_overlapping_semantics(self):
         """dropped >= over_quota + spike_protection — all values preserved as-is from query."""
@@ -136,7 +151,7 @@ class TestBuildResponse:
                 dynamic_sampling=0,
             )
         ]
-        response = _build_response(rows)
+        response = _build_response(rows, None)
 
         data = response.days[0].usage[0].data
         assert data.dropped == 175
@@ -158,7 +173,7 @@ class TestBuildResponse:
                 dynamic_sampling=0,
             ),
         ]
-        response = _build_response(rows)
+        response = _build_response(rows, None)
 
         assert len(response.days) == 1
         data = response.days[0].usage[0].data
@@ -287,6 +302,7 @@ class TestBuildQuery:
         assert aliases == [
             "category",
             "time",
+            "max_ts",
             "total",
             "accepted",
             "dropped",
@@ -342,6 +358,7 @@ class TestQueryOutcomesUsage:
                 {
                     "time": "2025-03-15T00:00:00+00:00",
                     "category": 1,
+                    "max_ts": "2025-03-15T11:00:00+00:00",
                     "total": 200,
                     "accepted": 200,
                     "dropped": 0,

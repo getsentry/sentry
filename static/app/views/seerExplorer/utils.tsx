@@ -32,6 +32,7 @@ import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {
   Block,
   ToolCall,
@@ -405,7 +406,7 @@ export function getToolsStringFromBlock(block: Block): string[] {
   });
 
   for (const tool of toolCalls) {
-    const toolLink = toolLinkByCallId.get(tool.id) ?? null;
+    const toolLink = (tool.id ? toolLinkByCallId.get(tool.id) : undefined) ?? null;
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {
@@ -430,84 +431,6 @@ export function getToolsStringFromBlock(block: Block): string[] {
   }
 
   return tools;
-}
-
-/**
- * Converts issue short IDs in text to markdown links.
- * Examples: INTERNAL-4K, JAVASCRIPT-2SDJ, PROJECT-1
- * Excludes IDs that are already inside markdown code blocks, links, or URLs.
- */
-function linkifyIssueShortIds(text: string): string {
-  // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
-  // Requires at least 2 chars before hyphen and 1+ chars after
-  // First segment must contain at least one uppercase letter (all letters must be uppercase)
-  // Allows multi-hyphen project slugs like FRONTEND-REACT-59A or BACKEND-RUBY-ON-RAILS-58
-  const shortIdPattern =
-    /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/g;
-
-  // Track positions that should be excluded (inside code blocks, links, or URLs)
-  const excludedRanges: Array<{end: number; start: number}> = [];
-
-  // Find all markdown code blocks (inline and block)
-  const codeBlockPattern = /(`+)([^`]+)\1|```[\s\S]*?```/g;
-  for (const codeMatch of text.matchAll(codeBlockPattern)) {
-    excludedRanges.push({
-      end: codeMatch.index + codeMatch[0].length,
-      start: codeMatch.index,
-    });
-  }
-  // Find all markdown links [text](url)
-  const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
-  for (const linkMatch of text.matchAll(markdownLinkPattern)) {
-    excludedRanges.push({
-      end: linkMatch.index + linkMatch[0].length,
-      start: linkMatch.index,
-    });
-  }
-  // Find all URLs (http://, https://, or starting with /)
-  const urlPattern = /(https?:\/\/\S+|\/[^\s)]+)/g;
-  for (const urlMatch of text.matchAll(urlPattern)) {
-    excludedRanges.push({
-      end: urlMatch.index + urlMatch[0].length,
-      start: urlMatch.index,
-    });
-  }
-
-  // Sort ranges by start position for efficient checking
-  excludedRanges.sort((a, b) => a.start - b.start);
-
-  // Helper function to check if a position is within any excluded range
-  const isExcluded = (pos: number): boolean => {
-    return excludedRanges.some(range => pos >= range.start && pos < range.end);
-  };
-
-  // Replace matches, but skip those in excluded ranges
-  return text.replace(shortIdPattern, (idMatch, _content, offset) => {
-    if (isExcluded(offset)) {
-      return idMatch;
-    }
-    return `[${idMatch}](/issues/${idMatch}/)`;
-  });
-}
-
-/**
- * Post-processes markdown text from LLM responses.
- * Applies various transformations to enhance the text with links and formatting.
- * Add new processing rules to this function as needed.
- */
-export function postProcessLLMMarkdown(text: string | null | undefined): string {
-  if (!text) {
-    return '';
-  }
-
-  let processed = text;
-
-  // Convert issue short IDs to clickable links
-  processed = linkifyIssueShortIds(processed);
-
-  // Add more processing rules here as needed
-
-  return processed;
 }
 
 /**
@@ -642,12 +565,14 @@ function buildMetricsQueryParam(params: Record<string, any>): string[] | undefin
  */
 export function buildToolLinkUrl(
   toolLink: ToolLink | undefined,
-  orgSlug: string,
+  organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
   if (!toolLink) {
     return null;
   }
+
+  const orgSlug = organization.slug;
 
   switch (toolLink.kind) {
     case 'telemetry_live_search': {
@@ -862,7 +787,10 @@ export function buildToolLinkUrl(
       }
 
       return {
-        pathname: `/organizations/${orgSlug}/replays/${replay_id}/`,
+        pathname: makeReplaysPathname({
+          path: `/${replay_id}/`,
+          organization,
+        }),
       };
     }
     case 'get_profile_flamegraph': {
@@ -889,7 +817,7 @@ export function buildToolLinkUrl(
         const endDate = new Date(end_ts * 1000).toISOString();
 
         return {
-          pathname: `/explore/profiling/profile/${project.slug}/flamegraph/`,
+          pathname: `/explore/profiles/profile/${project.slug}/flamegraph/`,
           query: {
             start: startDate,
             end: endDate,
@@ -901,7 +829,7 @@ export function buildToolLinkUrl(
 
       // Transaction profiles use profile_id in the path
       return {
-        pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/${profile_id}/flamegraph/`,
+        pathname: `/organizations/${orgSlug}/explore/profiles/profile/${project.slug}/${profile_id}/flamegraph/`,
         ...(thread_id && {query: {tid: thread_id}}),
       };
     }
@@ -938,7 +866,7 @@ export function getValidToolLinks(
   tool_links: Array<ToolLink | null>,
   tool_results: Array<ToolResult | null>,
   tool_calls: ToolCall[],
-  orgSlug: string,
+  organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ) {
   // Get valid tool links sorted by their corresponding tool call indices
@@ -956,8 +884,10 @@ export function getValidToolLinks(
 
       // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
       const toolCallId = tool_results[idx]?.tool_call_id;
-      const toolCallIndex = tool_calls.findIndex(call => call.id === toolCallId);
-      const canBuildUrl = buildToolLinkUrl(link, orgSlug, projects) !== null;
+      const toolCallIndex = toolCallId
+        ? tool_calls.findIndex(call => call.id === toolCallId)
+        : -1;
+      const canBuildUrl = buildToolLinkUrl(link, organization, projects) !== null;
 
       if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
         return {link, toolCallIndex};
@@ -1021,7 +951,7 @@ export function useCopySessionDataToClipboard({
     setIsError(false);
     try {
       const text = blocks
-        ? formatSessionData(blocks, organization.slug, projects)
+        ? formatSessionData(blocks, organization, projects)
         : `No data available. Status: ${status ?? 'unknown'}`;
       await navigator.clipboard.writeText(text);
       addSuccessMessage('Copied conversation to clipboard');
@@ -1038,7 +968,7 @@ export function useCopySessionDataToClipboard({
 
 function formatSessionData(
   blocks: Block[],
-  orgSlug: string,
+  organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ): string {
   const formatBlock = (block: Block): string => {
@@ -1050,7 +980,7 @@ function formatSessionData(
       tool_links || [],
       tool_results || [],
       tool_calls || [],
-      orgSlug,
+      organization,
       projects
     );
 
@@ -1063,7 +993,9 @@ function formatSessionData(
       const validLinkIdx = toolCallToLinkIndexMap.get(idx);
       const validLink =
         validLinkIdx === undefined ? null : (sortedToolLinks[validLinkIdx] ?? null);
-      const location = validLink ? buildToolLinkUrl(validLink, orgSlug, projects) : null;
+      const location = validLink
+        ? buildToolLinkUrl(validLink, organization, projects)
+        : null;
       const url = location ? locationToUrl(location) : null;
 
       // Get metadata from raw tool_links array.
@@ -1089,7 +1021,7 @@ function formatSessionData(
         const status = isError ? 'ERRORED' : emptyResults ? 'EMPTY RESULTS' : 'SUCCESS';
 
         lines.push(
-          `${item.tool_call.function} (${status}) (${item.tool_call.id}):`,
+          `${item.tool_call.function} (${status})${item.tool_call.id ? ` (${item.tool_call.id})` : ''}:`,
           `args: ${item.tool_call.args}`
         );
         if (item.url) {
@@ -1142,7 +1074,9 @@ export function useSeerExplorerDeepLink({
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
 
     const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
     if (!paramValue || typeof paramValue !== 'string') {
@@ -1195,7 +1129,11 @@ export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOpt
  * - Organization has not disabled open membership
  * - Organization has not disabled AI features (hideAiFeatures is false)
  */
-export function isSeerExplorerEnabled(organization: Organization): boolean {
+export function isSeerExplorerEnabled(organization: Organization | null): boolean {
+  if (!organization) {
+    return false;
+  }
+
   return (
     organization.openMembership &&
     !organization.hideAiFeatures &&

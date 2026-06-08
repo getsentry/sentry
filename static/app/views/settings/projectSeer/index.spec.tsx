@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {
@@ -15,7 +15,7 @@ import {
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {ProjectSeerContainer as ProjectSeer} from 'sentry/views/settings/projectSeer';
 
 // Needed to mock useVirtualizer lists.
@@ -32,12 +32,16 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
 }));
 
 describe('ProjectSeer', () => {
-  let project: Project;
+  let project: DetailedProject;
   let organization: Organization;
 
   beforeEach(() => {
-    project = ProjectFixture();
+    project = DetailedProjectFixture();
     organization = OrganizationFixture();
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/`,
+      body: project,
+    });
 
     // Mock the seer setup check endpoint
     MockApiClient.addMockResponse({
@@ -300,7 +304,7 @@ describe('ProjectSeer', () => {
   });
 
   it('can update the autofix autorun threshold setting', async () => {
-    const initialProject: Project = {
+    const initialProject: DetailedProject = {
       ...project,
       autofixAutomationTuning: 'high', // Start from high
       seerScannerAutomation: true,
@@ -350,7 +354,7 @@ describe('ProjectSeer', () => {
   });
 
   it('can update the project scanner automation setting', async () => {
-    const initialProject: Project = {
+    const initialProject: DetailedProject = {
       ...project,
       seerScannerAutomation: false, // Start from off
     };
@@ -389,7 +393,7 @@ describe('ProjectSeer', () => {
   });
 
   it('can update the automation stopping point setting', async () => {
-    const initialProject: Project = {
+    const initialProject: DetailedProject = {
       ...project,
       autofixAutomationTuning: 'medium',
       seerScannerAutomation: true,
@@ -453,7 +457,7 @@ describe('ProjectSeer', () => {
       features: [],
     });
 
-    const initialProject: Project = {
+    const initialProject: DetailedProject = {
       ...project,
       autofixAutomationTuning: 'medium',
       seerScannerAutomation: true,
@@ -568,18 +572,14 @@ describe('ProjectSeer', () => {
   });
 
   it('can enable automation handoff to Claude when Claude integration is available', async () => {
-    const orgWithClaudeFeature = OrganizationFixture({
-      features: ['integrations-claude-code'],
-    });
-
-    const initialProject: Project = {
+    const initialProject: DetailedProject = {
       ...project,
       autofixAutomationTuning: 'medium',
       seerScannerAutomation: true,
     };
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithClaudeFeature.slug}/seer/setup-check/`,
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
       method: 'GET',
       body: {
         billing: {
@@ -590,20 +590,20 @@ describe('ProjectSeer', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithClaudeFeature.slug}/repos/`,
+      url: `/organizations/${organization.slug}/repos/`,
       query: {status: 'active'},
       method: 'GET',
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'GET',
       body: initialProject,
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/seer/preferences/`,
+      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'GET',
       body: {
         code_mapping_repos: [],
@@ -613,7 +613,7 @@ describe('ProjectSeer', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithClaudeFeature.slug}/integrations/coding-agents/`,
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
       body: {
         integrations: [
@@ -627,18 +627,18 @@ describe('ProjectSeer', () => {
     });
 
     const projectPutRequest = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
       body: {},
     });
 
     const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/seer/preferences/`,
+      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'POST',
     });
 
     render(<ProjectSeer />, {
-      organization: orgWithClaudeFeature,
+      organization,
       outletContext: {project: initialProject},
     });
 
@@ -682,7 +682,7 @@ describe('ProjectSeer', () => {
 
   describe('Auto Create PR Setting', () => {
     it('does not render when stopping point is not cursor_handoff', async () => {
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
@@ -711,11 +711,15 @@ describe('ProjectSeer', () => {
         features: [],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
@@ -790,11 +794,15 @@ describe('ProjectSeer', () => {
         features: [],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
@@ -898,11 +906,15 @@ describe('ProjectSeer', () => {
         features: [],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
@@ -988,11 +1000,15 @@ describe('ProjectSeer', () => {
         features: [],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
@@ -1107,18 +1123,18 @@ describe('ProjectSeer', () => {
     it('only shows same-provider integrations in selector when both cursor and claude exist', async () => {
       MockApiClient.clearMockResponses();
 
-      const orgWithBothFeatures = OrganizationFixture({
-        features: ['integrations-claude-code'],
-      });
-
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithBothFeatures.slug}/seer/setup-check/`,
+        url: `/organizations/${organization.slug}/seer/setup-check/`,
         method: 'GET',
         body: {
           billing: {hasAutofixQuota: true, hasScannerQuota: true},
@@ -1126,14 +1142,14 @@ describe('ProjectSeer', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithBothFeatures.slug}/repos/`,
+        url: `/organizations/${organization.slug}/repos/`,
         query: {status: 'active'},
         method: 'GET',
         body: [],
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithBothFeatures.slug}/integrations/coding-agents/`,
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         method: 'GET',
         body: {
           integrations: [
@@ -1152,7 +1168,7 @@ describe('ProjectSeer', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/projects/${orgWithBothFeatures.slug}/${project.slug}/seer/preferences/`,
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
         method: 'GET',
         body: {
           preference: {
@@ -1170,7 +1186,7 @@ describe('ProjectSeer', () => {
       });
 
       render(<ProjectSeer />, {
-        organization: orgWithBothFeatures,
+        organization,
         outletContext: {project: initialProject},
       });
 
@@ -1193,11 +1209,15 @@ describe('ProjectSeer', () => {
         features: [],
       });
 
-      const initialProject: Project = {
+      const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
         seerScannerAutomation: true,
       };
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        body: initialProject,
+      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,

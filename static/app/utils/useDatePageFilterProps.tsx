@@ -13,6 +13,7 @@ export function useDatePageFilterProps({
   defaultPeriod,
   maxPickableDays,
   maxUpgradableDays,
+  maxDateRange,
   upsellFooter,
 }: UseDatePageFilterPropsProps): DatePageFilterProps {
   return useMemo(() => {
@@ -26,9 +27,12 @@ export function useDatePageFilterProps({
       [90, '90d', t('Last 90 days')],
     ];
 
+    // if maxDateRange is set, we need to make sure the options shown don't exceed this max range.
     // find the relative options that should be enabled based on the maxPickableDays
     const pickableIndex =
-      availableRelativeOptions.findLastIndex(([days]) => days <= maxPickableDays) + 1;
+      availableRelativeOptions.findLastIndex(([days]) =>
+        maxDateRange ? days <= maxDateRange : days <= maxPickableDays
+      ) + 1;
     const enabledOptions = Object.fromEntries(
       availableRelativeOptions
         .slice(0, pickableIndex)
@@ -54,6 +58,7 @@ export function useDatePageFilterProps({
       defaultPeriod,
       isOptionDisabled,
       maxPickableDays,
+      maxDateRange,
       menuFooter,
       relativeOptions: ({arbitraryOptions}) => ({
         ...arbitraryOptions,
@@ -61,5 +66,5 @@ export function useDatePageFilterProps({
         ...disabledOptions,
       }),
     };
-  }, [defaultPeriod, maxPickableDays, maxUpgradableDays, upsellFooter]);
+  }, [defaultPeriod, maxDateRange, maxPickableDays, maxUpgradableDays, upsellFooter]);
 }

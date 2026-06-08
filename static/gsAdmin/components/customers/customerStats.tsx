@@ -5,6 +5,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {Legend} from 'sentry/components/charts/components/legend';
@@ -18,8 +20,8 @@ import type {DataCategoryExact} from 'sentry/types/core';
 import type {DataPoint, ECharts} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -595,9 +597,9 @@ export const CustomerStats = memo(
       [updateAbuseRegionOpacity]
     );
 
-    const handleChartMouseLeave = useCallback(() => {
+    const handleChartMouseLeave = () => {
       dismissAbuseTooltip(chartInstanceRef.current ?? undefined);
-    }, [dismissAbuseTooltip]);
+    };
 
     const handleBarHighlight = useCallback(
       (
@@ -722,7 +724,7 @@ export const CustomerStats = memo(
             >
               {zoomRenderProps => (
                 <Fragment>
-                  <ChartContainer onMouseLeave={handleChartMouseLeave}>
+                  <Container position="relative" onMouseLeave={handleChartMouseLeave}>
                     <BarChart
                       onHighlight={handleBarHighlight}
                       onMouseOut={(_params, instance) => dismissAbuseTooltip(instance)}
@@ -747,7 +749,7 @@ export const CustomerStats = memo(
                       <AbuseDot />
                       <span data-abuse-text />
                     </AbuseTooltip>
-                  </ChartContainer>
+                  </Container>
                   <Footer>
                     <FooterLegend points={stats} />
                   </Footer>
@@ -761,10 +763,6 @@ export const CustomerStats = memo(
     );
   }
 );
-
-const ChartContainer = styled('div')`
-  position: relative;
-`;
 
 const AbuseDot = styled('span')`
   width: 8px;

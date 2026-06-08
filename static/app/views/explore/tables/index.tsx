@@ -3,20 +3,20 @@ import {Fragment, useEffect} from 'react';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
+import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsCrossEvents,
@@ -32,7 +32,7 @@ import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
-  setTab: (tab: Mode | Tab) => void;
+  setTab: (tab: Mode | Tab, reason: 'click' | 'effect') => void;
   tab: Mode | Tab;
 }
 
@@ -43,6 +43,8 @@ interface ExploreTablesProps extends BaseExploreTablesProps {
 }
 
 export function ExploreTables(props: ExploreTablesProps) {
+  const {openModal} = useModal();
+
   const {setTab, tab} = props;
   const crossEvents = useQueryParamsCrossEvents();
   const hasCrossEvents = !!crossEvents?.length;
@@ -91,14 +93,19 @@ export function ExploreTables(props: ExploreTablesProps) {
 
   useEffect(() => {
     if ((tab === Tab.TRACE || tab === Tab.ATTRIBUTE_BREAKDOWNS) && hasCrossEvents) {
-      setTab(Tab.SPAN);
+      setTab(Tab.SPAN, 'effect');
     }
   }, [hasCrossEvents, setTab, tab]);
 
   return (
     <Fragment>
       <Flex justify="between" marginBottom="md" gap="md" wrap="wrap">
-        <Tabs value={tab} onChange={setTab} size="sm" disableOverflow>
+        <Tabs
+          value={tab}
+          onChange={newTab => setTab(newTab, 'click')}
+          size="sm"
+          disableOverflow
+        >
           <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item

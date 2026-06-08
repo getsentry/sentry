@@ -94,13 +94,13 @@ export function getValidOpsForFilter({
     comparisonOperators.forEach(op => validOps.add(op));
   }
 
-  // Conditionally remove wildcard operators if:
-  // - Feature flag is not enabled
-  // - Field definition does not allow wildcard operators
-  // - Field definition is a string field
+  // Conditionally remove wildcard operators unless the effective field value
+  // type is string and the field definition has not opted out.
   if (
-    !areWildcardOperatorsAllowed(fieldDefinition) ||
-    fieldDefinition?.valueType !== FieldValueType.STRING
+    !areWildcardOperatorsAllowed(
+      fieldDefinition,
+      getFilterValueType(filterToken, fieldDefinition)
+    )
   ) {
     wildcardOperators.forEach(op => validOps.delete(op));
   }
@@ -305,21 +305,18 @@ export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
  *
  * The logic is:
  * - If `disallowWildcardOperators` is explicitly true, wildcard operators are not allowed
- * - If `disallowWildcardOperators` is explicitly false or undefined, check `allowWildcard` (defaults to true)
+ * - If the effective value type is string, check `allowWildcard` (defaults to true)
  */
 export function areWildcardOperatorsAllowed(
-  fieldDefinition: FieldDefinition | null
+  fieldDefinition: FieldDefinition | null,
+  valueType: FieldValueType | null = fieldDefinition?.valueType ?? null
 ): boolean {
-  if (!fieldDefinition) {
+  if (fieldDefinition?.disallowWildcardOperators === true) {
     return false;
   }
 
-  if (fieldDefinition.disallowWildcardOperators === true) {
-    return false;
-  }
-
-  if (fieldDefinition.valueType === FieldValueType.STRING) {
-    return fieldDefinition.allowWildcard ?? true;
+  if (valueType === FieldValueType.STRING) {
+    return fieldDefinition?.allowWildcard ?? true;
   }
 
   return false;

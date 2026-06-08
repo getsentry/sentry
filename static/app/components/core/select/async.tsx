@@ -78,7 +78,7 @@ class SelectAsyncControl<TData = unknown> extends Component<
         query: typeof onQuery === 'function' ? onQuery(query) : {query},
       })
       .then(
-        data => cb(null, data),
+        (data: TData) => cb(null, data),
         (err: Error) => cb(err)
       );
   }, 250);
@@ -115,7 +115,7 @@ class SelectAsyncControl<TData = unknown> extends Component<
       <Select
         // The key is used as a way to force a reload of the options:
         // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
-        key={value}
+        key={String(value)}
         ref={forwardedRef}
         value={value}
         defaultOptions={defaultOptions}
