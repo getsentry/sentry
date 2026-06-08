@@ -300,7 +300,6 @@ export const withPerformanceOnboarding = new Set<PlatformKey>([
 // List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
 // views such as Performance onboarding checklist.
 export const withoutPerformanceSupport = new Set<PlatformKey>([
-  'elixir',
   'minidump',
   'nintendo-switch',
   'playstation',
@@ -495,6 +494,8 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'ruby',
   'ruby-rack',
   'ruby-rails',
+  'rust',
+  'elixir',
   'unity',
 ]);
 

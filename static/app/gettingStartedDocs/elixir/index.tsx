@@ -1,6 +1,7 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {crashReport} from 'sentry/gettingStartedDocs/elixir/crashReport';
 import {logs} from 'sentry/gettingStartedDocs/elixir/logs';
+import {metrics} from 'sentry/gettingStartedDocs/elixir/metrics';
 import {onboarding} from 'sentry/gettingStartedDocs/elixir/onboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -13,4 +14,5 @@ export const docs: Docs = {
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
   logsOnboarding: logs,
+  metricsOnboarding: metrics,
 };

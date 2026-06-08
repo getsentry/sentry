@@ -5,6 +5,8 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
+import {metricsVerify} from './metrics';
+
 const getInstallSnippet = () => `
 defp deps do
   [
@@ -20,7 +22,20 @@ const getConfigureSnippet = (params: DocsParams) => `
   dsn: "${params.dsn.public}",
   environment_name: Mix.env(),
   enable_source_code_context: true,
-  root_source_code_paths: [File.cwd!()]`;
+  root_source_code_paths: [File.cwd!()]${
+    params.isPerformanceSelected
+      ? `,
+  # Set traces_sample_rate to 1.0 to capture 100%
+  # of transactions for tracing.
+  traces_sample_rate: 1.0`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `,
+  # Enable sending logs to Sentry
+  enable_logs: true`
+      : ''
+  }`;
 
 const getPlugSnippet = () => `
  defmodule MyAppWeb.Endpoint
@@ -154,7 +169,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       content: [
@@ -167,6 +182,7 @@ export const onboarding: OnboardingConfig = {
           language: 'elixir',
           code: getVerifySnippet(),
         },
+        metricsVerify(params),
       ],
     },
   ],

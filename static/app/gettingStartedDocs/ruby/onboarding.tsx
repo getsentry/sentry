@@ -7,6 +7,8 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
+import {metricsVerify} from './metrics';
+
 const getInstallSnippet = (params: DocsParams) =>
   `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"`;
 
@@ -128,7 +130,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       content: [
@@ -143,6 +145,7 @@ export const onboarding: OnboardingConfig = {
           language: 'ruby',
           code: getVerifySnippet(),
         },
+        metricsVerify(params),
       ],
     },
   ],
