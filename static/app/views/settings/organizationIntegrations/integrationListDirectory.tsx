@@ -455,25 +455,29 @@ export default function IntegrationListDirectory() {
   return (
     <Fragment>
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-      <IntegrationSettingsHeader
-        title={title}
-        list={list}
-        category={category}
-        onChangeCategory={onCategoryChange}
-        search={search}
-        onChangeSearch={onSearchChange}
-      />
-      <OrganizationPermissionAlert access={['org:integrations']} />
-      <ReinstallAlert integrations={integrations} />
-      <Panel>
-        <PanelBody data-test-id="integration-panel">
-          {displayList.length ? (
-            displayList.map(renderIntegration)
-          ) : (
-            <IntegrationResultsEmpty searchTerm={search} />
-          )}
-        </PanelBody>
-      </Panel>
+      <Stack gap="xl">
+        <IntegrationSettingsHeader
+          title={title}
+          list={list}
+          category={category}
+          onChangeCategory={onCategoryChange}
+          search={search}
+          onChangeSearch={onSearchChange}
+        />
+        <Stack>
+          <OrganizationPermissionAlert access={['org:integrations']} />
+          <ReinstallAlert integrations={integrations} />
+          <Panel>
+            <PanelBody data-test-id="integration-panel">
+              {displayList.length ? (
+                displayList.map(renderIntegration)
+              ) : (
+                <IntegrationResultsEmpty searchTerm={search} />
+              )}
+            </PanelBody>
+          </Panel>
+        </Stack>
+      </Stack>
     </Fragment>
   );
 }
@@ -505,35 +509,33 @@ function IntegrationSettingsHeader({
   }, [list, getCategoryLabel]);
 
   return (
-    <SettingsPageHeader
-      title={title}
-      body={
-        <Flex align="center" gap="md">
-          <Container width="240px">
-            <Select
-              name="select-categories"
-              onChange={onChangeCategory}
-              value={category}
-              options={categoryOptions}
+    <Fragment>
+      <SettingsPageHeader title={title} />
+      <Flex align="center" gap="md">
+        <Container width="240px">
+          <Select
+            name="select-categories"
+            onChange={onChangeCategory}
+            value={category}
+            options={categoryOptions}
+          />
+        </Container>
+        <Container flex={1}>
+          {({className}) => (
+            <SearchBar
+              className={className}
+              query={search}
+              onSearch={onChangeSearch}
+              placeholder={t('Filter Integrations\u2026')}
+              aria-label={t('Filter')}
+              width="100%"
+              data-test-id="search-bar"
             />
-          </Container>
-          <Container flex={1}>
-            {({className}) => (
-              <SearchBar
-                className={className}
-                query={search}
-                onSearch={onChangeSearch}
-                placeholder={t('Filter Integrations\u2026')}
-                aria-label={t('Filter')}
-                width="100%"
-                data-test-id="search-bar"
-              />
-            )}
-          </Container>
-          <CreateIntegrationButton analyticsView="integrations_directory" size="md" />
-        </Flex>
-      }
-    />
+          )}
+        </Container>
+        <CreateIntegrationButton analyticsView="integrations_directory" size="md" />
+      </Flex>
+    </Fragment>
   );
 }
 
