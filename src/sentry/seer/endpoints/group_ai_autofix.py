@@ -263,9 +263,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             # Only record the action when autofix is actually kicked off, not on each
             # subsequent step advancement within the same run.
             if is_autofix_kickoff:
+                resolved = resolve_action_source(request)
                 publish_action(
                     TriggerAutofixAction(),
-                    source=resolve_action_source(request),
+                    source=resolved.source,
+                    source_variant=resolved.variant,
                     group_id=group.id,
                     organization_id=group.project.organization_id,
                     project_id=group.project_id,
