@@ -31,6 +31,7 @@ from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.logging import LoggingFormat
 
 
 def gettext_noop(s: str) -> str:
@@ -1278,6 +1279,11 @@ else:
 # providing the cli with -l/--loglevel or the SENTRY_LOG_LEVEL env var.
 # The loggers that it overrides are root and any in LOGGING.overridable.
 # Be very careful with this in a production system
+# Output format for application logs. See sentry.logging.LoggingFormat for
+# valid values ("human" or "machine"). Set at deploy time via the
+# SENTRY_LOG_FORMAT environment variable.
+SENTRY_LOGGING_FORMAT = os.environ.get("SENTRY_LOG_FORMAT", LoggingFormat.HUMAN).lower()
+
 LOGGING: LoggingConfig = {
     "default_level": "INFO",
     "version": 1,
