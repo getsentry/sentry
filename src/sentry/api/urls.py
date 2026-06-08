@@ -53,9 +53,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
-from sentry.api.endpoints.organization_weekly_report_metrics import (
-    OrganizationWeeklyReportMetricsEndpoint,
-)
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.project_web_vitals_detection import ProjectWebVitalsDetectionEndpoint
@@ -2421,11 +2418,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/stats-summary/$",
         OrganizationStatsSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-stats-summary",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/weekly-report-metrics/$",
-        OrganizationWeeklyReportMetricsEndpoint.as_view(),
-        name="sentry-api-0-organization-weekly-report-metrics",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/teams/$",
