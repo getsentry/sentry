@@ -190,10 +190,10 @@ describe('SnapshotsToolbar', () => {
       {tags: {area: 'snapshots'}}
     );
 
-    describe.each(['split', 'wipe', 'onion'] as const)('diff mode %s', diffMode => {
-      it.snapshot(
-        'toolbar',
-        () => (
+    describe('diff mode', () => {
+      it.snapshot.each<DiffMode>(['split', 'wipe', 'onion'])(
+        '%s',
+        diffMode => (
           <ThemeProvider theme={themes[themeName]}>
             <div style={{width: 960}}>
               <SnapshotsToolbarWithControls
@@ -210,7 +210,7 @@ describe('SnapshotsToolbar', () => {
             </div>
           </ThemeProvider>
         ),
-        {tags: {area: 'snapshots', diffMode}}
+        diffMode => ({tags: {area: 'snapshots', diffMode}})
       );
     });
   });
