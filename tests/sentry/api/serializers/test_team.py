@@ -30,7 +30,7 @@ class TeamSerializerTest(TestCase):
             "isMember": False,
             "teamRole": None,
             "flags": {"idp:provisioned": False},
-            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
             "memberCount": 0,
         }
 
@@ -271,7 +271,7 @@ class TeamWithProjectsSerializerTest(TestCase):
             "teamRole": None,
             "flags": {"idp:provisioned": False},
             "projects": serialized_projects,
-            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
             "memberCount": 0,
             "dateCreated": team.date_added,
             "externalTeams": [],
