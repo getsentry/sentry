@@ -15,6 +15,7 @@ import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmProviderPills} from './scmProviderPills';
 import {ScmRepoSelector} from './scmRepoSelector';
+import {useMultiPlatformDetectionTest} from './useMultiPlatformDetectionTest';
 import {useScmPlatformDetection} from './useScmPlatformDetection';
 import {useScmProviders} from './useScmProviders';
 
@@ -68,6 +69,9 @@ export function ScmIntegrationConnect({
 
   // Pre-warm platform detection so results are cached when the user advances
   useScmPlatformDetection(selectedRepository);
+
+  // Measurement call, to judge latency (no UI impact).
+  useMultiPlatformDetectionTest(selectedRepository);
 
   // Derive integration from explicit selection, falling back to existing
   const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
