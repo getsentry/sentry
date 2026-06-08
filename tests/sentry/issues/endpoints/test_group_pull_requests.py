@@ -157,8 +157,9 @@ class GroupPullRequestsEndpointTest(APITestCase):
             name="getsentry/disabled",
             provider="integrations:github",
             integration_id=789,
-            status=ObjectStatus.DISABLED,
         )
+        disabled_repo.status = ObjectStatus.DISABLED
+        disabled_repo.save(update_fields=["status"])
         self.create_linked_pull_request(
             key="disabled-repo",
             linked_delta=timedelta(hours=3),
