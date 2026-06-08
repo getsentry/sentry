@@ -170,7 +170,6 @@ export function formatSpanEvidenceToMarkdown(
   organization: Organization,
   group: Group
 ): string {
-  const eventTransaction = event as EventTransaction;
   const issueType = group.issueType;
 
   const regressionData = getKeyValueListData(organization, issueType, event);
@@ -217,6 +216,9 @@ export function formatSpanEvidenceToMarkdown(
     // offending spans in the event. Summarize them with dedup, cardinality,
     // timing and code location instead of dumping every span.
     //
+    // Safe to treat the event as a transaction now that we've verified it's a
+    // transaction-based perf issue.
+    const eventTransaction = event as EventTransaction;
     // Only resolve span info when the event carries the evidence payload, to
     // avoid the error capture inside the helper.
     const spanInfo =
