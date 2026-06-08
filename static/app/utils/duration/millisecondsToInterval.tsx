@@ -1,3 +1,5 @@
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+
 /**
  * A list of valid interval durations in milliseconds corresponding to the interval strings.
  * These values are copied from VALID_GRANULARITIES in src/sentry/search/eap/constants.py
@@ -52,8 +54,11 @@ export function millisecondsToClosestInterval(
   }
 
   // Find the interval duration that is closest to ms
-  let closestInterval = VALID_INTERVALS[0]![1];
-  let smallestDiff = Math.abs(ms - VALID_INTERVALS[0]![0]);
+  let closestInterval = options?.availableIntervals
+    ? options.availableIntervals[0]?.value
+    : VALID_INTERVALS[0]![1];
+  const closestIntervalDurationMs = intervalToMilliseconds(closestInterval!);
+  let smallestDiff = Math.abs(ms - closestIntervalDurationMs);
 
   for (const [intervalDurationInMs, interval] of VALID_INTERVALS) {
     // want to make sure the interval available in the options presented if needed
