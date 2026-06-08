@@ -855,40 +855,55 @@ class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
-    def test_multiple_swizzle_wrapper_frames_reported(
+    def test_multiple_swizzle_wrapper_frames_not_reported(
         self, mock_sdk_crash_reporter: MagicMock
     ) -> None:
         """
-        Multiple SentrySwizzleWrapper frames in the stack.
-        Even though each individual frame would be ignored when it's the only SDK frame,
-        having multiple SDK frames (even if all conditional) should be reported.
+        Multiple SentrySwizzleWrapperHelper frames in the stack from UIKit calling
+        sendAction: twice in the responder chain. All SDK frames are conditional
+        (instrumentation wrappers), so the crash is not an SDK bug.
+
+        Real stack trace from SDK-CRASHES-COCOA-8F8 event b2a5f61242a043caa60bac684bda7f28.
         """
-        # Frames ordered from oldest (caller) to youngest (exception)
         frames = [
             {
-                "function": "-[UIApplication sendEvent:]",
+                "function": "-[UIControl sendAction:to:forEvent:]",
                 "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
                 "in_app": False,
             },
             {
-                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+                "function": "__38+[SentrySwizzleWrapperHelper swizzle:]_block_invoke_2",
                 "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
                 "in_app": False,
             },
             {
-                "function": "-[UIGestureRecognizer _updateGestureForActiveEvents]",
+                "function": "-[UIApplication sendAction:to:from:forEvent:]",
                 "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
                 "in_app": False,
             },
             {
-                # Second SentrySwizzleWrapper frame
-                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_3",
+                "function": "-[UIBarButtonItem _triggerActionForEvent:fallbackSender:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "__38+[SentrySwizzleWrapperHelper swizzle:]_block_invoke_2",
                 "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
                 "in_app": False,
             },
             {
-                "function": "-[NSString substringWithRange:]",
+                "function": "-[UIApplication sendAction:to:from:forEvent:]",
+                "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+                "in_app": False,
+            },
+            {
+                "function": "-[NSUndoManager undo]",
                 "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "objc_exception_throw",
+                "package": "/usr/lib/libobjc.A.dylib",
                 "in_app": False,
             },
             {
@@ -900,7 +915,7 @@ class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
 
         self.execute_test(
             get_crash_event_with_frames(frames),
-            True,  # Should be reported - multiple SDK frames even if all conditional
+            False,
             mock_sdk_crash_reporter,
         )
 
