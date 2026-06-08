@@ -1,4 +1,4 @@
-import type {ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export function parseApiError(resp: ResponseMeta | RequestError): string {

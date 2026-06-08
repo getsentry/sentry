@@ -6,7 +6,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {SettingsBreadcrumb} from './settingsBreadcrumb';
-import {SettingsSearch} from './settingsSearch';
 
 interface Props {
   children: React.ReactNode;
@@ -20,10 +19,6 @@ export function SettingsLayout({children}: Props) {
       <TopBar.Slot name="title">
         <StyledSettingsBreadcrumb params={params} />
       </TopBar.Slot>
-      <TopBar.Slot name="search">
-        <SettingsSearch />
-      </TopBar.Slot>
-
       <Flex flex="1">
         <Container flex="1" padding="xl" minWidth="0">
           {children}

@@ -72,7 +72,7 @@ def create_event(
 
 
 class SourceMapDebugEndpointTestCase(APITestCase):
-    endpoint = "sentry-api-0-event-source-map-debug-blue-thunder-edition"
+    endpoint = "sentry-api-0-event-source-map-debug"
 
     def setUp(self) -> None:
         self.login_as(self.user)

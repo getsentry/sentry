@@ -9,7 +9,8 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, tagstore, tsdb
+from sentry import analytics, features, tagstore, tsdb
+from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -40,6 +41,13 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    GroupActionActor,
+    publish_action,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
@@ -149,6 +157,20 @@ class GroupDetailsEndpoint(GroupEndpoint):
         )[group.id]
 
         return hourly_stats, daily_stats
+
+    def finalize_response(
+        self,
+        request: Request,
+        response: Response,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Response:
+        response = super().finalize_response(request, response, *args, **kwargs)
+
+        group = kwargs.get("group")
+        send_issue_view_attribution(request, response, group)
+
+        return response
 
     @extend_schema(
         operation_id="Retrieve an Issue",
@@ -319,6 +341,17 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             data.update({"participants": participants})
 
+            publish_action(
+                ViewAction(),
+                source=resolve_action_source(request),
+                group_id=group.id,
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                actor=GroupActionActor.user(request.user.id)
+                if request.user.is_authenticated
+                else SYSTEM_ACTOR,
+            )
+
             metrics.incr(
                 "group.get.http_response",
                 sample_rate=1.0,
@@ -453,3 +486,27 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 tags={"status": 500, "detail": "group_details:delete:Exception"},
             )
             raise
+
+
+def send_issue_view_attribution(request: Request, response: Response, group: Any) -> None:
+    if request.method != "GET":
+        return
+
+    if response.status_code < 200 or response.status_code >= 300:
+        return
+
+    if not isinstance(group, Group):
+        return
+
+    user_agent = request.META.get("HTTP_USER_AGENT", "")
+    if isinstance(user_agent, str) and user_agent.startswith("sentry-mcp/"):
+        client_family = request.headers.get("x-sentry-mcp-client-family")
+        analytics.record(
+            IssueViewedEvent(
+                organization_id=group.project.organization_id,
+                project_id=group.project.id,
+                group_id=group.id,
+                client=f"mcp - {client_family or 'unknown'}",
+                user_id=request.user.id,
+            )
+        )

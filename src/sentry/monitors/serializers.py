@@ -36,7 +36,7 @@ class MonitorEnvBrokenDetectionSerializerResponse(TypedDict):
 
 
 @register(MonitorEnvBrokenDetection)
-class MonitorEnvBrokenDetectionSerializer(Serializer):
+class MonitorEnvBrokenDetectionSerializer(Serializer[MonitorEnvBrokenDetectionSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorEnvBrokenDetectionSerializerResponse:
         return {
             "userNotifiedTimestamp": obj.user_notified_timestamp,
@@ -51,7 +51,7 @@ class MonitorIncidentSerializerResponse(TypedDict):
 
 
 @register(MonitorIncident)
-class MonitorIncidentSerializer(Serializer):
+class MonitorIncidentSerializer(Serializer[MonitorIncidentSerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Any], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
@@ -87,7 +87,7 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
 
 
 @register(MonitorEnvironment)
-class MonitorEnvironmentSerializer(Serializer):
+class MonitorEnvironmentSerializer(Serializer[MonitorEnvironmentSerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Any], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
@@ -195,7 +195,7 @@ class MonitorBulkEditResponse:
 
 
 @register(Monitor)
-class MonitorSerializer(Serializer):
+class MonitorSerializer(Serializer[MonitorSerializerResponse]):
     def __init__(self, environments=None, expand=None):
         self.environments = environments
         self.expand = expand
@@ -214,7 +214,9 @@ class MonitorSerializer(Serializer):
         )
         filtered_actors = list(filter(None, actors))
 
-        actors_serialized = serialize(Actor.resolve_many(filtered_actors), user, ActorSerializer())
+        actors_serialized = serialize(
+            Actor.resolve_many(filtered_actors, filter_none=False), user, ActorSerializer()
+        )
         actor_data = {
             actor: serialized_actor
             for actor, serialized_actor in zip(filtered_actors, actors_serialized)
@@ -341,7 +343,7 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
 
 
 @register(MonitorCheckIn)
-class MonitorCheckInSerializer(Serializer):
+class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
     def __init__(self, start=None, end=None, expand=None, organization_id=None, project_id=None):
         self.start = start  # timestamp of the beginning of the specified date range
         self.end = end  # timestamp of the end of the specified date range
@@ -424,7 +426,7 @@ class MonitorCheckInSerializer(Serializer):
 
 
 @register(CheckinProcessingError)
-class CheckinProcessingErrorSerializer(Serializer):
+class CheckinProcessingErrorSerializer(Serializer[CheckinProcessingErrorData]):
     def serialize(
         self, obj: CheckinProcessingError, attrs, user, **kwargs
     ) -> CheckinProcessingErrorData:

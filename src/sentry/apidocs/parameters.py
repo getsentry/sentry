@@ -3,9 +3,9 @@ from typing import Any
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
-from rest_framework import serializers
 
 from sentry import constants
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -206,6 +206,14 @@ Valid fields include:
 """,
     )
 
+    PROJECT_QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter projects by name or slug.",
+    )
+
     EXTERNAL_USER_ID = OpenApiParameter(
         name="external_user_id",
         location="path",
@@ -230,6 +238,13 @@ class ReleaseParams:
         required=True,
         type=str,
         description="The version identifier of the release",
+    )
+    FILE_ID = OpenApiParameter(
+        name="file_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the release file.",
     )
     QUERY = OpenApiParameter(
         name="query",
@@ -313,7 +328,7 @@ class IssueParams:
         name="issue_id",
         location="path",
         required=True,
-        type=int,
+        type=str,
         description="The ID of the issue you'd like to query.",
     )
 
@@ -598,6 +613,13 @@ class SentryAppParams:
         type=str,
         description="The ID or slug of the custom integration.",
     )
+    INSTALLATION_UUID = OpenApiParameter(
+        name="uuid",
+        location="path",
+        required=True,
+        type=str,
+        description="The UUID of the Sentry App installation.",
+    )
 
 
 class SentryAppStatusParams:
@@ -613,6 +635,13 @@ class SentryAppStatusParams:
 
 
 class VisibilityParams:
+    ALLOW_AGGREGATE_CONDITIONS = OpenApiParameter(
+        name="allowAggregateConditions",
+        location="query",
+        required=False,
+        type=OpenApiTypes.BOOL,
+        description="If false, aggregate conditions in the query string are disallowed. Defaults to true.",
+    )
     QUERY = OpenApiParameter(
         name="query",
         location="query",
@@ -749,11 +778,15 @@ events that aren't in the top groups.""",
     )
 
 
-class CursorQueryParam(serializers.Serializer):
-    cursor = serializers.CharField(
-        help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
-        required=False,
-    )
+CursorQueryParam = OpenApiParameter(
+    name="cursor",
+    location="query",
+    required=False,
+    type=str,
+    allow_blank=False,
+    description="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
+    extensions={"x-learn-more": "https://docs.sentry.io/api/pagination/"},
+)
 
 
 class MonitorParams:
@@ -930,6 +963,13 @@ keys if not specified.
 
 
 class TeamParams:
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter teams by name or slug.",
+    )
     DETAILED = OpenApiParameter(
         name="detailed",
         location="query",
@@ -984,6 +1024,28 @@ class ReplayParams:
         required=True,
         type=OpenApiTypes.INT,
         description="""The ID of the replay deletion job you'd like to retrieve.""",
+    )
+
+    DATA_SOURCE = OpenApiParameter(
+        name="data_source",
+        location="query",
+        required=False,
+        type=OpenApiTypes.STR,
+        enum=[
+            Dataset.Discover.value,
+            Dataset.Events.value,
+            Dataset.Transactions.value,
+            Dataset.IssuePlatform.value,
+        ],
+        description="The data source to query replays from. Defaults to 'discover'.",
+    )
+
+    RETURN_IDS = OpenApiParameter(
+        name="returnIds",
+        location="query",
+        required=False,
+        type=OpenApiTypes.BOOL,
+        description="If true, return issue IDs rather than counts.",
     )
 
 

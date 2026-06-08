@@ -16,8 +16,8 @@ import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScreenshotPagination} from './screenshotPagination';

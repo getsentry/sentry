@@ -182,6 +182,48 @@ describe('SearchQueryBuilder', () => {
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
   });
 
+  it('syncs external initial query changes while disabled', async () => {
+    function ExternalProviderSearchQueryBuilder({
+      disabled,
+      initialQuery,
+    }: {
+      disabled: boolean;
+      initialQuery: string;
+    }) {
+      return (
+        <SearchQueryBuilderProvider
+          {...defaultProps}
+          disabled={disabled}
+          initialQuery={initialQuery}
+        >
+          <SearchQueryBuilder
+            {...defaultProps}
+            disabled={disabled}
+            initialQuery={initialQuery}
+          />
+        </SearchQueryBuilderProvider>
+      );
+    }
+
+    const {rerender} = render(
+      <ExternalProviderSearchQueryBuilder disabled initialQuery="" />
+    );
+
+    rerender(
+      <ExternalProviderSearchQueryBuilder disabled initialQuery="browser.name:Firefox" />
+    );
+    rerender(
+      <ExternalProviderSearchQueryBuilder
+        disabled={false}
+        initialQuery="browser.name:Firefox"
+      />
+    );
+
+    expect(
+      await screen.findByRole('row', {name: 'browser.name:Firefox'})
+    ).toBeInTheDocument();
+  });
+
   describe('rendering search query builder', () => {
     it('does not show the size-limit prompt after the user searches filter keys', async () => {
       const manyMatchingFilterKeys = Object.fromEntries(
@@ -758,6 +800,8 @@ describe('SearchQueryBuilder', () => {
           body: [
             // Level is not a valid filter key
             {query: 'assigned:me level:error'},
+            // Prototype keys should be treated as invalid filter keys
+            {query: '__proto__:a'},
           ],
         });
 

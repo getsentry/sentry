@@ -487,7 +487,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         examples=IssueExamples.ORGANIZATION_GROUP_INDEX_PUT,
     )
     @track_slo_response("workflow")
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response[MutateIssueResponse]:
         projects = self.get_projects(request, organization)
 
         search_fn = functools.partial(

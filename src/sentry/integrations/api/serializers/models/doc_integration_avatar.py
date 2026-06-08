@@ -6,7 +6,7 @@ from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvat
 
 
 @register(DocIntegrationAvatar)
-class DocIntegrationAvatarSerializer(Serializer):
+class DocIntegrationAvatarSerializer(Serializer[MutableMapping[str, Any]]):
     def serialize(
         self, obj: DocIntegrationAvatar, attrs, user, **kwargs
     ) -> MutableMapping[str, Any]:
