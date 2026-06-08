@@ -32,7 +32,7 @@ export default function SeerAutomationRepos() {
   return (
     <AnalyticsArea name="repos">
       <SentryDocumentTitle title={t('Code Review')} />
-      <Stack gap="lg" flex="1" minHeight="0" contain="size">
+      <Stack gap="lg" flex="1" minHeight="0">
         <SettingsPageHeader
           title={t('Code Review')}
           action={

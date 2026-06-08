@@ -35,7 +35,6 @@ export default function SeerAutomationAdvancedSettings() {
   return (
     <AnalyticsArea name="advanced">
       <SentryDocumentTitle title={t('Advanced Settings')} />
-
       <Stack gap="lg" flex="1" minHeight="0">
         <SettingsPageHeader
           title={t('Advanced Settings')}
@@ -54,7 +53,6 @@ export default function SeerAutomationAdvancedSettings() {
             }
           )}
         />
-
         <SeerSettingsPageBanners />
         <FieldGroup>
           <AutoSaveForm

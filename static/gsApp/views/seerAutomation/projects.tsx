@@ -49,6 +49,7 @@ export default function SeerAutomationProjects() {
             }
           )}
         />
+
         <SeerSettingsPageBanners />
         <SeerProjectTable />
       </Stack>
