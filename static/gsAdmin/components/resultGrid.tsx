@@ -470,10 +470,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         );
       });
       return (
-        <tr
-          key={this.props.keyForRow?.(row) ?? i}
-          style={labelVars as React.CSSProperties}
-        >
+        <tr key={this.props.keyForRow?.(row) ?? i} style={labelVars}>
           {labeledCells}
         </tr>
       );
