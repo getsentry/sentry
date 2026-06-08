@@ -8,6 +8,7 @@ import sentry.issues.endpoints.group_details
 import sentry.issues.endpoints.group_integration_details
 import sentry.issues.priority
 import sentry.issues.status_change
+import sentry.models.group
 import sentry.models.groupassignee
 import sentry.models.groupinbox
 from sentry.issues.action_log import (
@@ -39,9 +40,10 @@ from sentry.issues.action_log.types import (
     ViewAction,
 )
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
 
@@ -82,7 +84,7 @@ class TestResolveActionSource(TestCase):
         )
         with self.assertLogs("sentry.issues.action_log", level="WARNING") as logs:
             assert resolve_action_source(request) == ResolvedSource(ActionSource.MCP)
-        assert any(r.__dict__.get("client_family") == "some-new-editor" for r in logs.records)
+        assert any(getattr(r, "client_family", None) == "some-new-editor" for r in logs.records)
 
     def test_mcp_catchall_family_is_not_logged(self) -> None:
         request = _make_request(
@@ -187,14 +189,13 @@ class TestPublishAction(TestCase):
             )
         assert len(logs.records) == 1
         record = logs.records[0]
-        extra = record.__dict__
         assert record.message == "group.action_log"
-        assert extra["action"] == "resolve"
-        assert extra["source"] == ActionSource.MCP
-        assert extra["source_variant"] == "claude-code"
+        assert getattr(record, "action") == "resolve"
+        assert getattr(record, "source") == ActionSource.MCP
+        assert getattr(record, "source_variant") == "claude-code"
         # The variant is folded into the persisted payload.
-        assert extra["metadata"] == {"source_variant": "claude-code"}
-        assert extra["actor_id"] == "4"
+        assert getattr(record, "metadata") == {"source_variant": "claude-code"}
+        assert getattr(record, "actor_id") == "4"
 
     def test_no_variant_is_omitted_from_payload(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
@@ -205,9 +206,9 @@ class TestPublishAction(TestCase):
                 organization_id=2,
                 project_id=3,
             )
-        extra = logs.records[0].__dict__
-        assert extra["source_variant"] is None
-        assert extra["metadata"] == {}
+        record = logs.records[0]
+        assert getattr(record, "source_variant") is None
+        assert getattr(record, "metadata") == {}
 
     def test_actor_type_derived_from_actor(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
@@ -219,7 +220,7 @@ class TestPublishAction(TestCase):
                 project_id=3,
                 actor=GroupActionActor.user(99),
             )
-        assert logs.records[0].__dict__["actor_type"] == "user"
+        assert getattr(logs.records[0], "actor_type") == "user"
 
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action(
@@ -229,7 +230,7 @@ class TestPublishAction(TestCase):
                 organization_id=2,
                 project_id=3,
             )
-        assert logs.records[0].__dict__["actor_type"] == "system"
+        assert getattr(logs.records[0], "actor_type") == "system"
 
 
 class TestPublishActionFromContext(TestCase):
@@ -246,8 +247,8 @@ class TestPublishActionFromContext(TestCase):
         error_records = [r for r in logs.records if r.levelname == "ERROR"]
         assert any("without ActionContext" in r.message for r in error_records)
         info_record = [r for r in logs.records if r.message == "group.action_log"][0]
-        assert info_record.__dict__["source"] == "unknown"
-        assert info_record.__dict__["source_variant"] is None
+        assert getattr(info_record, "source") == "unknown"
+        assert getattr(info_record, "source_variant") is None
 
 
 class TestActionLogIntegration(APITestCase, SnubaTestCase):
@@ -401,6 +402,57 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         ]
         assert len(merge_from) == 1
         assert len(merge_into) == 1
+
+
+class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
+    def test_resolve_emits_action_with_context_source(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            with action_context_scope(
+                source=ActionSource.SLACK, actor=GroupActionActor.user(self.user.id)
+            ):
+                Group.objects.update_group_status(
+                    groups=[group],
+                    status=GroupStatus.RESOLVED,
+                    substatus=None,
+                    activity_type=ActivityType.SET_RESOLVED,
+                )
+        records = [r for r in logs.records if r.message == "group.action_log"]
+        assert len(records) == 1
+        assert getattr(records[0], "action") == "resolve"
+        assert getattr(records[0], "source") == ActionSource.SLACK
+        assert getattr(records[0], "group_id") == str(group.id)
+        assert getattr(records[0], "actor_id") == str(self.user.id)
+
+    def test_ignore_emits_archive_action(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                Group.objects.update_group_status(
+                    groups=[group],
+                    status=GroupStatus.IGNORED,
+                    substatus=GroupSubStatus.UNTIL_ESCALATING,
+                    activity_type=ActivityType.SET_IGNORED,
+                )
+        records = [r for r in logs.records if r.message == "group.action_log"]
+        assert len(records) == 1
+        assert getattr(records[0], "action") == "archive"
+        assert getattr(records[0], "source") == ActionSource.SYSTEM
+
+    @patch.object(sentry.models.group, "publish_action_from_context", autospec=True)
+    def test_substatus_only_transition_emits_no_action(self, mock_publish: MagicMock) -> None:
+        # AUTO_SET_ONGOING moves a group NEW -> ONGOING but it stays UNRESOLVED; that
+        # substatus-only change must not be logged as an unresolve.
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            Group.objects.update_group_status(
+                groups=[group],
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.ONGOING,
+                activity_type=ActivityType.AUTO_SET_ONGOING,
+                from_substatus=GroupSubStatus.NEW,
+            )
+        assert mock_publish.call_count == 0
 
 
 class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):

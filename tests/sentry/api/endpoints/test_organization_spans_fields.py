@@ -3,6 +3,11 @@ from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesResponse,
+)
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SpanTestCase
@@ -162,6 +167,27 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
         assert "tags[is_feature_enabled,boolean]" in keys
         assert "tags[is_debug,boolean]" in keys
         assert "tags[is_production,boolean]" in keys
+
+    @mock.patch("sentry.api.endpoints.organization_spans_fields.snuba_rpc.attribute_names_rpc")
+    def test_internal_sentry_convention_attributes_are_hidden(self, mock_attribute_names) -> None:
+        self.create_span(start_ts=before_now(days=0, minutes=10))
+        mock_attribute_names.return_value = TraceItemAttributeNamesResponse(
+            attributes=[
+                TraceItemAttributeNamesResponse.Attribute(
+                    name="public.attribute",
+                    type=AttributeKey.Type.TYPE_STRING,
+                ),
+                TraceItemAttributeNamesResponse.Attribute(
+                    name=ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
+                    type=AttributeKey.Type.TYPE_STRING,
+                ),
+            ]
+        )
+
+        response = self.do_request()
+
+        assert response.status_code == 200, response.data
+        assert response.data == [{"key": "public.attribute", "name": "public.attribute"}]
 
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
