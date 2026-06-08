@@ -69,6 +69,7 @@ class SiloRouter:
         "authidentity_duplicate": SiloMode.CONTROL,
         "authprovider_duplicate": SiloMode.CONTROL,
         "feedback_feedback": SiloMode.CELL,
+        "hybridcloud_organizationslugreservationreplica": SiloMode.CELL,
         "prevent_ai_configuration": SiloMode.CELL,
         "releases_commit": SiloMode.CELL,
         "releases_commitfilechange": SiloMode.CELL,

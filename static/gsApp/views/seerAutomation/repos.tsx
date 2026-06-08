@@ -32,21 +32,9 @@ export default function SeerAutomationRepos() {
   return (
     <AnalyticsArea name="repos">
       <SentryDocumentTitle title={t('Code Review')} />
-      <Stack gap="lg" flex="1" minHeight="0">
+      <Stack gap="lg" flex="1" minHeight="0" contain="size">
         <SettingsPageHeader
           title={t('Code Review')}
-          action={
-            <LinkButton
-              size="sm"
-              icon={<IconSettings />}
-              to={{
-                pathname: `/settings/${organization.slug}/seer/repos/defaults/`,
-                query: location.query,
-              }}
-            >
-              {t('Defaults')}
-            </LinkButton>
-          }
           subtitle={tct(
             "Enable [code_review:Code Review] on your repositories to automatically catch bugs before they're merged into production. Reviews can be triggered when a PR is ready for review, after each update to a PR, and always manually by tagging [code:@sentry review] in the comments. [docs:Read the docs] to learn what Seer can do.",
             {
@@ -59,6 +47,18 @@ export default function SeerAutomationRepos() {
               ),
             }
           )}
+          action={
+            <LinkButton
+              size="sm"
+              icon={<IconSettings />}
+              to={{
+                pathname: `/settings/${organization.slug}/seer/repos/defaults/`,
+                query: location.query,
+              }}
+            >
+              {t('Defaults')}
+            </LinkButton>
+          }
         />
         <SeerSettingsPageBanners />
         <SeerRepoTable />
