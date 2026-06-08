@@ -20,6 +20,7 @@ from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
+    get_latest_iteration_index,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -29,6 +30,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.introspection import (
     IntrospectionDecision,
     introspect_code_changes,
+    introspect_iteration,
     introspect_root_cause,
     introspect_solution,
 )
@@ -167,18 +169,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # handled but the expectation is that we only create PRs once
                 # per seer run.
                 webhook_action_type = SeerActionType.PR_CREATED
-                webhook_payload["pull_requests"] = [
-                    {
-                        "provider": "unknown",  # TODO: we don't have the repo object readily accessible here
-                        "repo_name": pull_request.repo_name,
-                        "pull_request": {
-                            "pr_id": pull_request.pr_id,
-                            "pr_number": pull_request.pr_number,
-                            "pr_url": pull_request.pr_url,
-                        },
-                    }
-                    for pull_request in state.repo_pr_states.values()
-                ]
+                webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
                 is_pr_created = True
                 analytics.record(
                     AiAutofixPrCreatedCompletedEvent(
@@ -190,20 +181,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 )
             else:
                 webhook_action_type = SeerActionType.CODING_COMPLETED
-                diffs_by_repo = state.get_diffs_by_repo()
-                webhook_payload["code_changes"] = {
-                    repo: [
-                        {
-                            "diff": p.diff,
-                            "path": p.patch.path,
-                            "type": p.patch.type,
-                            "added": p.patch.added,
-                            "removed": p.patch.removed,
-                        }
-                        for p in patches
-                    ]
-                    for repo, patches in diffs_by_repo.items()
-                }
+                webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
+        elif current_step == AutofixStep.PR_ITERATION:
+            # PR iteration only runs against an existing PR, so there must be pr states.
+            assert state.repo_pr_states, "PR iteration completed without any repo PR states"
+            webhook_action_type = SeerActionType.ITERATION_COMPLETED
+            iteration_index = get_latest_iteration_index(state)
+            webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
+            webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
+            webhook_payload["iteration_index"] = iteration_index
 
         if not webhook_action_type:
             return
@@ -263,6 +249,38 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         referrer=referrer,
                     )
                 )
+
+    @classmethod
+    def _format_code_changes_payload(cls, state: SeerRunState) -> dict:
+        diffs_by_repo = state.get_diffs_by_repo()
+        return {
+            repo: [
+                {
+                    "diff": p.diff,
+                    "path": p.patch.path,
+                    "type": p.patch.type,
+                    "added": p.patch.added,
+                    "removed": p.patch.removed,
+                }
+                for p in patches
+            ]
+            for repo, patches in diffs_by_repo.items()
+        }
+
+    @classmethod
+    def _format_pull_requests_payload(cls, state: SeerRunState) -> list[dict]:
+        return [
+            {
+                "provider": "unknown",
+                "repo_name": pull_request.repo_name,
+                "pull_request": {
+                    "pr_id": pull_request.pr_id,
+                    "pr_number": pull_request.pr_number,
+                    "pr_url": pull_request.pr_url,
+                },
+            }
+            for pull_request in state.repo_pr_states.values()
+        ]
 
     @classmethod
     def _get_current_step(
@@ -350,6 +368,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 group,
             )
             if decision is not None:
+                iteration_index = get_latest_iteration_index(state)
                 analytics.record(
                     AiAutofixIntrospectionEvent(
                         organization_id=organization.id,
@@ -359,6 +378,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         step=current_step.value,
                         action=decision.action.value,
                         reached_stopping_point=reached_stopping_point,
+                        iteration_index=iteration_index,
                     )
                 )
                 logger.info(
@@ -452,7 +472,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return introspect_solution(organization, run_id, state, group)
         elif step == AutofixStep.CODE_CHANGES:
             return introspect_code_changes(organization, run_id, state, group)
-        return None
+        elif step == AutofixStep.PR_ITERATION:
+            return introspect_iteration(organization, run_id, state, group)
 
     @classmethod
     def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> None:
