@@ -12,10 +12,11 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -42,6 +43,9 @@ from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 logger = logging.getLogger(__name__)
+
+# `has:issue.seer_last_run` only matches issues Seer ran on within this window.
+SEER_LAST_RUN_RECENCY_WINDOW = timedelta(days=30)
 
 
 def assigned_to_filter(
@@ -247,6 +251,15 @@ def regressed_in_release_filter(versions: Sequence[str], projects: Sequence[Proj
     )
 
 
+def issue_agent_filter(activity_types: list[int], projects: Sequence[Project]) -> Q:
+    return Q(
+        id__in=Activity.objects.filter(
+            project__in=projects,
+            type__in=activity_types,
+        ).values_list("group_id", flat=True)
+    )
+
+
 def seer_actionability_filter(trigger_values: list[float]) -> Q:
     """
     Converts float thresholds for the Seer fixability score into a query of ranges:
@@ -356,6 +369,32 @@ class ScalarCondition(Condition):
             q_dict.update(self.extra)
 
         return qs_method(**q_dict)
+
+
+class RecentDateCondition(ScalarCondition):
+    """
+    Like ``ScalarCondition`` but for a datetime field, ``has:`` means the field
+    was set within the trailing ``window`` (a recent run), not merely non-NULL.
+    ``!has:`` is the complement: never set, or set longer ago than the window.
+    """
+
+    def __init__(self, field: str, window: timedelta):
+        super().__init__(field)
+        self.window = window
+
+    def apply(
+        self, queryset: BaseQuerySet[Group, Group], search_filter: SearchFilter
+    ) -> BaseQuerySet[Group, Group]:
+        if search_filter.value.raw_value == "" and search_filter.operator in ("=", "!="):
+            # `__gte` matches a run within the window (NULLs are excluded
+            # implicitly). has: → operator "!=" keeps those; !has: → operator
+            # "=" is the complement (NULL or older than the window).
+            cutoff = timezone.now() - self.window
+            recent = {f"{self.field}__gte": cutoff}
+            if search_filter.operator == "!=":
+                return queryset.filter(**recent)
+            return queryset.exclude(**recent)
+        return super().apply(queryset, search_filter)
 
 
 class QuerySetBuilder:
@@ -595,10 +634,15 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
             "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
-            "issue.seer_last_run": ScalarCondition(
-                "seer_explorer_autofix_last_triggered"
-                if features.has("organizations:autofix-on-explorer", organization)
-                else "seer_autofix_last_triggered"
+            "issue.agent": QCallbackCondition(
+                functools.partial(issue_agent_filter, projects=projects)
+            ),
+            # TODO: the recency window approximates an "active" run while
+            # we figure out how to handle deletion of seer runs better. Once runs
+            # clear the column on deletion, this should go back to a plain
+            # ScalarCondition.
+            "issue.seer_last_run": RecentDateCondition(
+                "seer_explorer_autofix_last_triggered", SEER_LAST_RUN_RECENCY_WINDOW
             ),
             "issue.id": QCallbackCondition(
                 lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])

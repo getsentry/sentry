@@ -11,7 +11,7 @@ from django.conf import settings as django_settings
 from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.models.project import Project
 
 
@@ -56,9 +56,9 @@ from sentry.seer.autofix.utils import (
     StoreCodingAgentStatesRequest,
     extract_api_error_message,
     get_autofix_state,
+    get_automation_handoff,
     get_coding_agent_prompt,
     make_store_coding_agent_states_request,
-    read_preference_from_sentry_db,
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError
@@ -243,9 +243,9 @@ def _launch_agents_for_repos(
     auto_create_pr = False
     try:
         project = Project.objects.get_from_cache(id=autofix_state.request.project_id)
-        preference = read_preference_from_sentry_db(project)
-        if preference.automation_handoff:
-            auto_create_pr = preference.automation_handoff.auto_create_pr
+        handoff = get_automation_handoff(project.get_option)
+        if handoff:
+            auto_create_pr = handoff.auto_create_pr
     except Project.DoesNotExist:
         logger.exception(
             "coding_agent.project_not_found",
@@ -476,8 +476,6 @@ def launch_coding_agents_for_run(
     is_github_copilot = provider == "github_copilot"
 
     if is_github_copilot:
-        if not features.has("organizations:integrations-github-copilot-agent", organization):
-            raise PermissionDenied("GitHub Copilot is not enabled for this organization")
         user_access_token: str | None = None
         if user_id is not None:
             user_access_token = github_copilot_identity_service.get_access_token_for_user(

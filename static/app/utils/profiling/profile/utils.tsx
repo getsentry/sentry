@@ -1,7 +1,7 @@
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 

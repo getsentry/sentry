@@ -1,8 +1,9 @@
 import type {LocationDescriptor} from 'history';
 
-import type {TitledPlugin} from 'sentry/components/group/pluginActionsModal';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
+import type {ParsedOwnershipRule} from 'sentry/types/ownership';
+import type {TitledPlugin} from 'sentry/types/plugins';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -16,7 +17,8 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
-import type {AvatarProject, PlatformKey, Project} from './project';
+import type {PlatformKey} from './platform';
+import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
@@ -558,20 +560,6 @@ type SuggestedOwner = {
   owner: string;
   type: SuggestedOwnerReason;
 };
-
-/**
- * Mirrors OwnershipRuleOwnerResponse from the backend
- */
-interface OwnershipRuleOwner {
-  name: string;
-  type: 'user' | 'team';
-  id?: string;
-}
-
-export interface ParsedOwnershipRule {
-  matcher: {pattern: string; type: string};
-  owners: OwnershipRuleOwner[];
-}
 
 export type IssueOwnership = {
   autoAssignment:
@@ -1262,13 +1250,20 @@ export type ChunkType = {
 export type UserReport = {
   comments: string;
   dateCreated: string;
-  email: string;
+  email: string | null;
   event: {eventID: string; id: string};
   eventID: string;
   id: string;
-  issue: Group;
-  name: string;
-  user: User;
+  name: string | null;
+  user: {
+    avatarUrl: string | null;
+    email: string | null;
+    id: string;
+    ipAddress: string | null;
+    name: string | null;
+    username: string | null;
+  } | null;
+  issue?: Group | null;
 };
 
 export type KeyValueListDataItem = {

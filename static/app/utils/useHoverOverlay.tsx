@@ -16,7 +16,7 @@ import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 
-import {NODE_ENV} from 'sentry/constants';
+import {NODE_ENV} from 'sentry/constants/env';
 import type {Theme} from 'sentry/utils/theme';
 
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {

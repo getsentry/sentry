@@ -2,6 +2,7 @@ import functools
 import logging
 
 import sentry_sdk
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -22,6 +23,13 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    IssueParams,
+    VisibilityParams,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
@@ -60,6 +68,24 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         }
     )
 
+    @extend_schema(
+        operation_id="List a Project's Issues",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            CursorQueryParam,
+            VisibilityParams.PER_PAGE,
+            IssueParams.DEFAULT_QUERY,
+            IssueParams.GROUP_INDEX_COLLAPSE,
+            IssueParams.SHORT_ID_LOOKUP,
+        ],
+        responses={
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+    )
     @track_slo_response("workflow")
     def get(self, request: Request, project: Project) -> Response:
         """

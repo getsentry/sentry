@@ -11,7 +11,7 @@ from sentry.utils.services import Service
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-    from sentry.tagstore.types import GroupTagValue
+    from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey
 
 # Valid pattern for tag key names
 TAG_KEY_RE = re.compile(r"^[a-zA-Z0-9_\.:-]+$")
@@ -104,7 +104,7 @@ class TagStorage(Service):
 
     def get_tag_key(
         self, project_id, environment_id, key: str, status=TagKeyStatus.ACTIVE, tenant_ids=None
-    ):
+    ) -> GroupTagKey | TagKey:
         """
         >>> get_tag_key(1, 2, "key1")
         """
@@ -152,7 +152,7 @@ class TagStorage(Service):
         environment_id,
         key: str,
         tenant_ids=None,
-    ):
+    ) -> GroupTagKey | TagKey:
         """
         >>> get_group_tag_key(group, 3, "key1")
         """

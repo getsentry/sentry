@@ -60,13 +60,13 @@ function renderFrameworkModalMockRequests({
     body: {slug: 'testProj'},
   });
 
-  const experimentalprojectCreationMockRequest = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/experimental/projects/`,
+  const orgProjectCreationMockRequest = MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/projects/`,
     method: 'POST',
     body: {slug: 'testProj', team: {slug: 'testTeam'}},
   });
 
-  return {projectCreationMockRequest, experimentalprojectCreationMockRequest};
+  return {projectCreationMockRequest, orgProjectCreationMockRequest};
 }
 
 describe('CreateProject', () => {
@@ -483,7 +483,7 @@ describe('CreateProject', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
 
     expect(
-      frameWorkModalMockRequests.experimentalprojectCreationMockRequest
+      frameWorkModalMockRequests.orgProjectCreationMockRequest
     ).toHaveBeenCalledTimes(1);
     expect(addSuccessMessage).toHaveBeenCalledWith(
       'Created testProj under new team #testTeam'

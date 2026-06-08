@@ -15,7 +15,7 @@ import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export type HighlightTags = Required<DetailedProject>['highlightTags'];
 export type HighlightContext = Required<DetailedProject>['highlightContext'];

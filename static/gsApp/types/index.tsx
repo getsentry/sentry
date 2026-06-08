@@ -23,10 +23,6 @@ declare global {
      */
     uetq: any;
     /**
-     * Zendesk widget
-     */
-    zE: any;
-    /**
      * Stripe SDK
      */
     Stripe?: StripeConstructor;
@@ -949,54 +945,6 @@ export type RecurringCredit =
   | RecurringDiscount
   | RecurringPercentDiscount
   | RecurringEventCredit;
-
-export enum CohortId {
-  SECOND = 2,
-  THIRD = 3,
-  FOURTH = 4,
-  FIFTH = 5,
-  SIXTH = 6,
-  SEVENTH = 7,
-  EIGHTH = 8,
-  NINTH = 9,
-  TENTH = 10,
-  TEST_ONE = 111,
-}
-
-export type Cohort = {
-  cohortId: CohortId;
-  nextPlan: NextPlanInfo | null;
-  secondDiscount: number;
-};
-
-export type NextPlanInfo = {
-  contractPeriod: string;
-  discountAmount: number;
-  discountMonths: number;
-  id: string;
-  name: string;
-  reserved: Partial<Record<DataCategory, number>>;
-  totalPrice: number;
-  categoryCredits?: Partial<
-    Record<
-      DataCategory,
-      {
-        credits: number;
-        months: number;
-      }
-    >
-  >;
-};
-
-export type PlanMigration = {
-  cohort: Cohort | null;
-  dateApplied: string | null;
-  effectiveAt: string | null;
-  id: number | string;
-  planTier: string;
-  recurringCredits: RecurringCredit[];
-  scheduled: boolean;
-};
 
 export enum PlanTier {
   /**

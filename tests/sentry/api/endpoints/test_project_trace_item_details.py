@@ -19,7 +19,6 @@ def test_convert_rpc_attribute_to_json_serializes_known_string_array_without_arr
             }
         ],
         SupportedTraceItemType.SPANS,
-        use_sentry_conventions=True,
     )
 
     assert result == [
@@ -40,7 +39,6 @@ def test_convert_rpc_attribute_to_json_hides_unknown_array_without_array_flag() 
             }
         ],
         SupportedTraceItemType.SPANS,
-        use_sentry_conventions=True,
     )
 
     assert result == []
@@ -69,7 +67,6 @@ def test_convert_rpc_attribute_to_json_exposes_array_with_array_flag() -> None:
             }
         ],
         SupportedTraceItemType.SPANS,
-        use_sentry_conventions=True,
         include_arrays=True,
     )
 
@@ -83,8 +80,8 @@ def test_convert_rpc_attribute_to_json_exposes_array_with_array_flag() -> None:
 
 
 class TestReplacementAttributeFiltering:
-    """When use_sentry_conventions is off, replacement attributes should only be
-    hidden if a deprecated source attribute is also present in the response."""
+    """Replacement attributes should only be hidden if a deprecated source
+    attribute is also present in the response."""
 
     @pytest.mark.parametrize(
         "attr_name,attr_value",
@@ -100,7 +97,6 @@ class TestReplacementAttributeFiltering:
         result = convert_rpc_attribute_to_json(
             [{"name": attr_name, "value": attr_value}],
             SupportedTraceItemType.SPANS,
-            use_sentry_conventions=False,
         )
 
         assert len(result) == 1
@@ -113,7 +109,6 @@ class TestReplacementAttributeFiltering:
                 {"name": "gen_ai.usage.input_tokens", "value": {"valInt": "42"}},
             ],
             SupportedTraceItemType.SPANS,
-            use_sentry_conventions=False,
         )
 
         names = [r["name"] for r in result]
@@ -129,7 +124,6 @@ class TestReplacementAttributeFiltering:
                 }
             ],
             SupportedTraceItemType.SPANS,
-            use_sentry_conventions=False,
         )
 
         assert len(result) == 1
