@@ -189,10 +189,10 @@ describe('buildSeerDateTimeSelection', () => {
     start: '2024-01-01T00:00:00',
     end: '2024-01-02T00:00:00',
     period: '24h',
-    utc: true,
+    utc: false,
   };
 
-  it('strips Z suffix and converts to ISO when both start and end provided', () => {
+  it('treats Seer UTC datetimes as plain UTC when both start and end provided', () => {
     const result = buildSeerDateTimeSelection(
       '2024-06-01T00:00:00Z',
       '2024-06-02T00:00:00Z',
@@ -200,9 +200,11 @@ describe('buildSeerDateTimeSelection', () => {
       pageFiltersDatetime
     );
 
-    expect(result.start).toBe(new Date('2024-06-01T00:00:00').toISOString());
-    expect(result.end).toBe(new Date('2024-06-02T00:00:00').toISOString());
+    expect(result.start).toBe('2024-06-01T00:00:00');
+    expect(result.end).toBe('2024-06-02T00:00:00');
     expect(result.period).toBeNull();
+    // Forces UTC display so the picker matches the UTC suggestion preview,
+    // even though the page filter is not in UTC.
     expect(result.utc).toBe(true);
   });
 
@@ -212,7 +214,8 @@ describe('buildSeerDateTimeSelection', () => {
     expect(result.start).toBe('2024-01-01T00:00:00');
     expect(result.end).toBe('2024-01-02T00:00:00');
     expect(result.period).toBe('24h');
-    expect(result.utc).toBe(true);
+    // Inherits the page filter's utc flag when falling back.
+    expect(result.utc).toBe(false);
   });
 
   it('uses statsPeriod when no start/end', () => {
@@ -234,7 +237,7 @@ describe('buildSeerDateTimeSelection', () => {
     expect(result.period).toBeNull();
   });
 
-  it('handles dates without Z suffix', () => {
+  it('does not shift dates without a Z suffix', () => {
     const result = buildSeerDateTimeSelection(
       '2024-06-01T12:00:00',
       '2024-06-02T12:00:00',
@@ -242,8 +245,8 @@ describe('buildSeerDateTimeSelection', () => {
       pageFiltersDatetime
     );
 
-    expect(result.start).toBe(new Date('2024-06-01T12:00:00').toISOString());
-    expect(result.end).toBe(new Date('2024-06-02T12:00:00').toISOString());
+    expect(result.start).toBe('2024-06-01T12:00:00');
+    expect(result.end).toBe('2024-06-02T12:00:00');
   });
 });
 

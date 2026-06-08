@@ -152,14 +152,9 @@ export function formatQueryToNaturalLanguage(query: string): string {
 }
 
 /**
- * Formats a date range for display.
- *
- * The endpoint returns times in UTC format, but the values represent what the user
- * intended in their local context. E.g., if user asks for "9pm", endpoint returns
- * "T21:00:00Z" - we want to display "9:00 PM", not convert to local timezone.
+ * Formats a UTC date range for display.
  */
 export function formatDateRange(start: string, end: string, separator = ' to '): string {
-  // Parse as UTC but display the UTC values directly (without timezone conversion)
   const startMoment = moment.utc(start);
   const endMoment = moment.utc(end);
 
