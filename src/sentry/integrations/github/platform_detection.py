@@ -1141,17 +1141,10 @@ def _bucket_languages_count(languages: dict[str, int]) -> str:
     return "4+" if count >= 4 else str(count)
 
 
-def _bucket_content_reads(count: int) -> str:
+def _bucket_content_reads(needed_paths: set[str]) -> str:
     """Bucket the number of content-fetch API calls into a metric tag."""
-    if count == 0:
-        return "0"
-    if count <= 2:
-        return "1-2"
-    if count <= 5:
-        return "3-5"
-    if count <= 10:
-        return "6-10"
-    return "11+"
+    count = len(needed_paths)
+    return "6+" if count >= 6 else str(count)
 
 
 def detect_platforms(
@@ -1286,7 +1279,7 @@ def detect_platforms(
         tags={
             "confidence": results[0]["confidence"] if results else "none",
             "languages_count": _bucket_languages_count(languages),
-            "content_reads": _bucket_content_reads(len(needed_paths)),
+            "content_reads": _bucket_content_reads(needed_paths),
         },
     )
 
