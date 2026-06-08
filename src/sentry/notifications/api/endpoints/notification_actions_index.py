@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.helpers.projects import parse_id_or_slug_params
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
@@ -136,10 +137,13 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         # team admins and regular org members don't have project:write on an org level
         if not request.access.has_scope("project:write"):
             # check if user has access to create notification actions for all requested projects
-            requested_projects = request.data.get("projects", [])
+            requested_projects = parse_id_or_slug_params(request.data.get("projects") or [])
             projects = self.get_projects(request, organization)
-            project_slugs = [project.slug for project in projects]
-            missing_access_projects = set(requested_projects).difference(set(project_slugs))
+            project_ids = {project.id for project in projects}
+            project_slugs = {project.slug for project in projects}
+            missing_access_projects = requested_projects.ids.difference(
+                project_ids
+            ) | requested_projects.slugs.difference(project_slugs)
 
             if missing_access_projects:
                 raise PermissionDenied(

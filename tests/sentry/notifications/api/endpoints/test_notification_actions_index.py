@@ -451,6 +451,43 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         self.test_post_simple()
 
     @patch.dict(NotificationAction._registry, {})
+    def test_post_team_admin__success_with_project_ids(self) -> None:
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
+
+        registration = MockActionRegistration
+        _mock_register(self.base_data)(registration)
+
+        data = {
+            **self.base_data,
+            "projects": [self.projects[0].id, str(self.projects[1].id)],
+        }
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=status.HTTP_201_CREATED,
+            method="POST",
+            **data,
+        )
+
+        registration.validate_action.assert_called()
+        notif_action_projects = NotificationActionProject.objects.filter(
+            action_id=response.data["id"]
+        )
+        assert {action_project.project_id for action_project in notif_action_projects} == {
+            project.id for project in self.projects
+        }
+
+    @patch.dict(NotificationAction._registry, {})
     def test_post_team_admin__missing_access(self) -> None:
         user = self.create_user()
         member = self.create_member(organization=self.organization, user=user, role="member")
