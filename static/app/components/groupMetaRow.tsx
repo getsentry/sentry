@@ -147,6 +147,8 @@ const GroupExtra = styled('div')`
   grid-auto-flow: column dense;
   justify-content: start;
   align-items: center;
+  position: relative;
+  z-index: 1;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;

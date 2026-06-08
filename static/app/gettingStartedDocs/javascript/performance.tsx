@@ -52,9 +52,9 @@ Sentry.init({
   tracesSampleRate: 1.0,
   // Set \`tracePropagationTargets\` to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-  // Setting this option to true will send default PII data to Sentry.
-  // For example, automatic IP address collection on events
-  sendDefaultPii: true,
+  // To disable sending user data, uncomment the line below. For more info visit:
+  // https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
+  // dataCollection: { userInfo: false },
 });
 `,
         },
@@ -101,9 +101,9 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [Sentry.browserTracingIntegration()],
   tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-  // Setting this option to true will send default PII data to Sentry.
-  // For example, automatic IP address collection on events
-  sendDefaultPii: true,
+  // To disable sending user data, uncomment the line below. For more info visit:
+  // https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
+  // dataCollection: { userInfo: false },
 });
 `,
         },

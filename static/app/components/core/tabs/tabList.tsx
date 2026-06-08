@@ -50,7 +50,7 @@ const StyledTabListWrap = styled('ul', {
           grid-auto-flow: row;
           align-content: start;
           padding-right: ${p.theme.space.xs};
-        `};
+        `}
 `;
 
 const StyledTabListOverflowWrap = styled('div')`

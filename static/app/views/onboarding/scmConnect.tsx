@@ -1,4 +1,3 @@
-import {useCallback, useEffect} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,17 +5,12 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconClose, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {ScmProviderPills} from './components/scmProviderPills';
-import {ScmRepoSelector} from './components/scmRepoSelector';
+import {ScmIntegrationConnect} from './components/scmIntegrationConnect';
 import {ScmStepHeader} from './components/scmStepHeader';
-import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import {useScmProviders} from './components/useScmProviders';
 import {SCM_STEP_CONTENT_WIDTH} from './consts';
 import type {StepProps} from './types';
@@ -68,34 +62,12 @@ export function ScmConnect({
   selectedRepository,
   genBackButton,
 }: ScmConnectProps) {
-  const organization = useOrganization();
-  const {
-    scmProviders,
-    isPending,
-    isError,
-    refetch,
-    refetchIntegrations,
-    activeIntegrationExisting,
-  } = useScmProviders();
-
-  // Pre-warm platform detection so results are cached when the user advances
-  useScmPlatformDetection(selectedRepository);
-
-  // Derive integration from explicit selection, falling back to existing
+  // React Query dedupes with ScmIntegrationConnect's call; only the
+  // activeIntegrationExisting fallback is needed here for the footer's
+  // analyticsParams and the "commit auto-detected integration on Continue"
+  // behavior.
+  const {activeIntegrationExisting} = useScmProviders();
   const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
-
-  useEffect(() => {
-    trackAnalytics('onboarding.scm_connect_step_viewed', {organization});
-  }, [organization]);
-
-  const handleInstall = useCallback(
-    (data: Integration) => {
-      onIntegrationChange(data);
-      onRepositoryChange(undefined);
-      refetchIntegrations();
-    },
-    [onIntegrationChange, onRepositoryChange, refetchIntegrations]
-  );
 
   return (
     <Flex direction="column" align="center" gap="3xl" flexGrow={1}>
@@ -107,48 +79,14 @@ export function ScmConnect({
       />
 
       <LayoutGroup>
-        {isPending ? (
-          <Flex justify="center" align="center">
-            <LoadingIndicator mini />
-          </Flex>
-        ) : isError ? (
-          <Stack gap="lg" align="center">
-            <Text variant="muted">{t('Failed to load integrations.')}</Text>
-            <Button onClick={() => refetch()}>{t('Retry')}</Button>
-          </Stack>
-        ) : effectiveIntegration ? (
-          <MotionStack
-            key="with-integration"
-            gap="xl"
-            width="100%"
-            maxWidth={SCM_STEP_CONTENT_WIDTH}
-          >
-            <Stack gap="md" paddingTop="2xl">
-              <Text variant="secondary" bold size="sm" density="compressed" uppercase>
-                {t(
-                  'Connected to %s / %s',
-                  effectiveIntegration.provider.name,
-                  effectiveIntegration.name
-                )}
-              </Text>
-              <ScmRepoSelector
-                integration={effectiveIntegration}
-                selectedRepository={selectedRepository}
-                onRepositoryChange={onRepositoryChange}
-                onClearDerivedState={onClearDerivedState}
-              />
-            </Stack>
-          </MotionStack>
-        ) : (
-          <MotionStack
-            key="without-integration"
-            gap="2xl"
-            width="100%"
-            maxWidth={SCM_STEP_CONTENT_WIDTH}
-          >
-            <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
-          </MotionStack>
-        )}
+        <ScmIntegrationConnect
+          analyticsFlow="onboarding"
+          onClearDerivedState={onClearDerivedState}
+          onIntegrationChange={onIntegrationChange}
+          onRepositoryChange={onRepositoryChange}
+          selectedIntegration={selectedIntegration}
+          selectedRepository={selectedRepository}
+        />
         <MotionFlex
           layout="position"
           gap="sm"
@@ -246,6 +184,5 @@ export function ScmConnect({
   );
 }
 
-const MotionStack = motion.create(Stack);
 const MotionFlex = motion.create(Flex);
 const MotionGrid = motion.create(Grid);

@@ -6,7 +6,7 @@ import {Slider} from '@sentry/scraps/slider';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {SliderAndInputWrapper} from './sliderAndInputWrapper';
 import {SliderLabel} from './sliderLabel';

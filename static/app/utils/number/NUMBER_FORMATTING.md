@@ -527,13 +527,13 @@ Only `static/app/utils/discover/charts.tsx` (discover y-axis formatter for durat
 
 ## `getExactDuration` — ~7 call sites
 
-| Where                                                                      | Pattern                                          |
-| -------------------------------------------------------------------------- | ------------------------------------------------ |
-| `gsApp/views/spikeProtection/spikeProtectionHistoryTable.tsx`              | `getExactDuration(duration, true)` (abbreviated) |
-| `views/issueDetails/streamline/sidebar/metricDetectorTriggeredSection.tsx` | Default                                          |
-| `views/detectors/components/details/metric/detect.tsx` (×2)                | Default                                          |
-| `views/settings/project/projectKeys/details/keyRateLimitsForm.tsx` (×2)    | Default                                          |
-| `components/duration.tsx`                                                  | Conditional via `<Duration exact>` prop          |
+| Where                                                                   | Pattern                                          |
+| ----------------------------------------------------------------------- | ------------------------------------------------ |
+| `gsApp/views/spikeProtection/spikeProtectionHistoryTable.tsx`           | `getExactDuration(duration, true)` (abbreviated) |
+| `views/issueDetails/sidebar/metricDetectorTriggeredSection.tsx`         | Default                                          |
+| `views/detectors/components/details/metric/detect.tsx` (×2)             | Default                                          |
+| `views/settings/project/projectKeys/details/keyRateLimitsForm.tsx` (×2) | Default                                          |
+| `components/duration.tsx`                                               | Conditional via `<Duration exact>` prop          |
 
 Used only where a full breakdown is desired (e.g., `"1 hour 25 minutes 15 seconds"` for an alert time window, not `"1.4 hours"`).
 

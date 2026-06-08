@@ -107,9 +107,7 @@ export function MetricToolbar({
       </Flex>
 
       <Flex align="center" height="36px">
-        <DeleteMetricButton
-          disabledReason={isFunction ? deleteDisabledReason : undefined}
-        />
+        <DeleteMetricButton disabledReason={deleteDisabledReason} />
       </Flex>
     </Grid>
   );

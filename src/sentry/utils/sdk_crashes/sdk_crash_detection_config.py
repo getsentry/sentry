@@ -159,6 +159,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="*",
                     function_pattern="**SentryCrashExceptionApplicationHelper _crashOnException**",
                 ),
+                # SentryCoreDataSwizzlingHelper sets up the swizzle that routes through
+                # SentryCoreDataTracker. It always appears alongside the tracker frame and
+                # never causes crashes itself, so it is unconditionally ignored to avoid
+                # inflating the conditional SDK frame count in the detector.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentryCoreDataSwizzlingHelper**",
+                ),
             },
             sdk_crash_ignore_when_only_sdk_frame_matchers={
                 # SentrySwizzleWrapper is used for method swizzling to intercept UI events.
@@ -167,6 +175,15 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="*",
                     function_pattern="**SentrySwizzleWrapper**",
+                ),
+                # SentryCoreDataTracker swizzles NSManagedObjectContext save:/executeFetchRequest:
+                # to add tracing spans. It transparently calls the original implementation.
+                # Crashes inside CoreData internals (e.g., doesNotRecognizeSelector: during
+                # merge policy resolution or validation logging) are app-level CoreData
+                # misconfigurations, not SDK bugs.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentryCoreDataTracker**",
                 ),
             },
         )

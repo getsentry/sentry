@@ -54,7 +54,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeProject,
 )
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
-from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.project_web_vitals_detection import ProjectWebVitalsDetectionEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
@@ -68,23 +67,8 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
     ReleaseThresholdStatusIndexEndpoint,
 )
 from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
-from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
-    SourceMapDebugBlueThunderEditionEndpoint,
-)
+from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
-from sentry.codecov.endpoints.branches.branches import RepositoryBranchesEndpoint
-from sentry.codecov.endpoints.repositories.repositories import RepositoriesEndpoint
-from sentry.codecov.endpoints.repository.repository import RepositoryEndpoint
-from sentry.codecov.endpoints.repository_token_regenerate.repository_token_regenerate import (
-    RepositoryTokenRegenerateEndpoint,
-)
-from sentry.codecov.endpoints.repository_tokens.repository_tokens import RepositoryTokensEndpoint
-from sentry.codecov.endpoints.sync_repos.sync_repos import SyncReposEndpoint
-from sentry.codecov.endpoints.test_results.test_results import TestResultsEndpoint
-from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates import (
-    TestResultsAggregatesEndpoint,
-)
-from sentry.codecov.endpoints.test_suites.test_suites import TestSuitesEndpoint
 from sentry.conduit.endpoints.organization_conduit_demo import OrganizationConduitDemoEndpoint
 from sentry.core.endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
@@ -106,9 +90,6 @@ from sentry.core.endpoints.organization_member_team_details import (
 from sentry.core.endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
-)
-from sentry.core.endpoints.organization_projects_experiment import (
-    OrganizationProjectsExperimentEndpoint,
 )
 from sentry.core.endpoints.organization_request_project_creation import (
     OrganizationRequestProjectCreation,
@@ -336,7 +317,6 @@ from sentry.issues.endpoints import (
     RelatedIssuesEndpoint,
     SharedGroupDetailsEndpoint,
     ShortIdLookupEndpoint,
-    SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
 from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
@@ -588,7 +568,11 @@ from sentry.sentry_apps.api.endpoints.installation_external_requests import (
 from sentry.sentry_apps.api.endpoints.installation_service_hook_projects import (
     SentryAppInstallationServiceHookProjectsEndpoint,
 )
+from sentry.sentry_apps.api.endpoints.organization_legacy_webhooks import (
+    OrganizationLegacyWebhooksEndpoint,
+)
 from sentry.sentry_apps.api.endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
+from sentry.sentry_apps.api.endpoints.project_legacy_webhooks import ProjectLegacyWebhooksEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_authorizations import (
     SentryAppAuthorizationsEndpoint,
 )
@@ -759,7 +743,6 @@ from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from .endpoints.organization_events_trace import (
     OrganizationEventsTraceEndpoint,
-    OrganizationEventsTraceLightEndpoint,
     OrganizationEventsTraceMetaEndpoint,
 )
 from .endpoints.organization_events_trends import (
@@ -1139,54 +1122,6 @@ RELAY_URLS = [
         r"^(?P<relay_id>[^/]+)/$",
         RelayDetailsEndpoint.as_view(),
         name="sentry-api-0-relays-details",
-    ),
-]
-
-PREVENT_URLS = [
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results/$",
-        TestResultsEndpoint.as_view(),
-        name="sentry-api-0-test-results",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-suites/$",
-        TestSuitesEndpoint.as_view(),
-        name="sentry-api-0-test-suites",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/test-results-aggregates/$",
-        TestResultsAggregatesEndpoint.as_view(),
-        name="sentry-api-0-test-results-aggregates",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/branches/$",
-        RepositoryBranchesEndpoint.as_view(),
-        name="sentry-api-0-repository-branches",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/$",
-        RepositoryEndpoint.as_view(),
-        name="sentry-api-0-repository",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repositories/$",
-        RepositoriesEndpoint.as_view(),
-        name="sentry-api-0-repositories",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repositories/tokens/$",
-        RepositoryTokensEndpoint.as_view(),
-        name="sentry-api-0-repository-tokens",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repository/(?P<repository>[^/]+)/token/regenerate/$",
-        RepositoryTokenRegenerateEndpoint.as_view(),
-        name="sentry-api-0-repository-token-regenerate",
-    ),
-    re_path(
-        r"^owner/(?P<owner>[^/]+)/repositories/sync/$",
-        SyncReposEndpoint.as_view(),
-        name="sentry-api-0-repositories-sync",
     ),
 ]
 
@@ -1903,11 +1838,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-trends-statsv2",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-trace-light/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-        OrganizationEventsTraceLightEndpoint.as_view(),
-        name="sentry-api-0-organization-events-trace-light",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationEventsTraceEndpoint.as_view(),
         name="sentry-api-0-organization-events-trace",
@@ -2217,11 +2147,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-projects",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/experimental/projects/$",
-        OrganizationProjectsExperimentEndpoint.as_view(),
-        name="sentry-api-0-organization-projects-experiment",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/projects-count/$",
         OrganizationProjectsCountEndpoint.as_view(),
         name="sentry-api-0-organization-projects-count",
@@ -2265,6 +2190,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/configs/$",
         OrganizationPluginsConfigsEndpoint.as_view(),
         name="sentry-api-0-organization-plugins-configs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/legacy-webhooks/$",
+        OrganizationLegacyWebhooksEndpoint.as_view(),
+        name="sentry-api-0-organization-legacy-webhooks",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/releases/$",
@@ -2723,10 +2653,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationInsightsTreeEndpoint.as_view(),
         name="sentry-api-0-organization-insights-tree",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/prevent/",
-        include(PREVENT_URLS),
-    ),
     *workflow_urls.organization_urlpatterns,
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/(?P<plugin_slug>[^/]+)/deprecation-info/$",
@@ -2825,7 +2751,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/reprocessable/$",
         EventReprocessableEndpoint.as_view(),
-        name="sentry-api-0-event-attachments",
+        name="sentry-api-0-event-reprocessable",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/attachments/(?P<attachment_id>[^/]+)/$",
@@ -2851,11 +2777,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/source-map-debug/$",
         SourceMapDebugEndpoint.as_view(),
         name="sentry-api-0-event-source-map-debug",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/source-map-debug-blue-thunder-edition/$",
-        SourceMapDebugBlueThunderEditionEndpoint.as_view(),
-        name="sentry-api-0-event-source-map-debug-blue-thunder-edition",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/actionable-items/$",
@@ -3227,6 +3148,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectWebVitalsDetectionEndpoint.as_view(),
         name="sentry-api-0-project-web-vitals-detection",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/legacy-webhooks/$",
+        ProjectLegacyWebhooksEndpoint.as_view(),
+        name="sentry-api-0-project-legacy-webhooks",
+    ),
     # Load plugin project urls
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/plugins/$",
@@ -3253,11 +3179,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/tombstones/(?P<tombstone_id>\d+)/$",
         GroupTombstoneDetailsEndpoint.as_view(),
         name="sentry-api-0-group-tombstone-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-coverage/$",
-        ProjectStacktraceCoverageEndpoint.as_view(),
-        name="sentry-api-0-project-stacktrace-coverage",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-link/$",

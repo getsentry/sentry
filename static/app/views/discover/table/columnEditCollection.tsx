@@ -712,7 +712,7 @@ const RowContainer = styled('div')<{
           ? `1fr calc(200px + ${p.theme.space.md})`
           : `${p.theme.space['2xl']} 1fr calc(200px + ${p.theme.space.md}) 40px 40px`};
       }
-    `};
+    `}
 `;
 
 const Ghost = styled('div')`

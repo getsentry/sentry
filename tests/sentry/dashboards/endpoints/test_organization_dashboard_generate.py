@@ -32,7 +32,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
     @patch("sentry.dashboards.endpoints.organization_dashboard_generate.SeerAgentClient")
     def test_post_starts_run_and_returns_run_id(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 789
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=789)
         mock_client_class.return_value = mock_client
 
         data = {"prompt": "Show me error rates by project"}
@@ -105,7 +105,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         self, mock_client_class: MagicMock
     ) -> None:
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 123
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
         mock_client_class.return_value = mock_client
 
         data = {

@@ -1,6 +1,9 @@
 import {t} from 'sentry/locale';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -143,7 +146,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   4
 );
 
-const CRASH_RATE_TABLE: Widget = {
+const CRASH_RATE_TABLE: PrebuiltWidget = {
   id: 'crash-rate-table',
   title: t('Crash Free Rate by Project'),
   displayType: DisplayType.TABLE,
@@ -163,7 +166,7 @@ const CRASH_RATE_TABLE: Widget = {
   layout: {x: 0, y: 6, w: 6, h: 2, minH: 2},
 };
 
-const RELEASE_TABLE: Widget = {
+const RELEASE_TABLE: PrebuiltWidget = {
   id: 'release-table',
   title: t('Releases'),
   displayType: DisplayType.TABLE,

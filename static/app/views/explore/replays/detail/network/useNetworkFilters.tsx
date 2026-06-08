@@ -18,15 +18,6 @@ const DEFAULT_FILTERS = {
   f_n_type: [],
 } as Record<NetworkSelectOption['qs'], string[]>;
 
-export type FilterFields = {
-  f_n_method: string[];
-  f_n_search: string;
-  f_n_status: string[];
-  f_n_type: string[];
-  n_detail_row?: string;
-  n_detail_tab?: string;
-};
-
 type Options = {
   networkFrames: SpanFrame[];
 };
@@ -60,7 +51,7 @@ const FILTERS = {
 };
 
 export function useNetworkFilters({networkFrames}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const {setFilter, query} = useFiltersInLocationQuery();
 
   const method = useMemo(() => decodeList(query.f_n_method), [query.f_n_method]);
   const status = useMemo(() => decodeList(query.f_n_status), [query.f_n_status]);
@@ -108,7 +99,14 @@ export function useNetworkFilters({networkFrames}: Options): Return {
 
   const getResourceTypes = useCallback(
     () =>
-      Array.from(new Set(networkFrames.map(frame => frame.op).concat(type)))
+      Array.from(
+        new Set(
+          networkFrames
+            .map(frame => frame.op)
+            .concat('resource.fetch')
+            .concat(type)
+        )
+      )
         .sort((a, b) => (operationName(a) < operationName(b) ? -1 : 1))
         .map(
           (value): NetworkSelectOption => ({
@@ -126,6 +124,7 @@ export function useNetworkFilters({networkFrames}: Options): Return {
         new Set(
           networkFrames
             .map(frame => String(getFrameStatus(frame) ?? UNKNOWN_STATUS))
+            .concat('200')
             .concat(status)
             .map(String)
         )

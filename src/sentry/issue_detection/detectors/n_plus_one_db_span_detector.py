@@ -13,8 +13,6 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
@@ -60,10 +58,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         self.potential_parents = {}
         self.previous_span: Span | None = None
@@ -73,10 +70,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
-    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project | None) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     def visit_span(self, span: Span) -> None:
