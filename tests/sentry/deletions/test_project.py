@@ -1,3 +1,4 @@
+import time
 from unittest import mock
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -226,10 +227,20 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not GroupSeen.objects.filter(id=group_seen.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
 
+        # While Snuba queries are synchronous, ClickHouse deletes are not, so the
+        # events may still be returned for a short window after the deletion task
+        # completes. Poll until they drain to avoid flakiness.
         conditions = eventstore.Filter(project_ids=[project.id, keeper.id], group_ids=[group.id])
         events = eventstore.backend.get_events(
             conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
         )
+        for _ in range(10):
+            if len(events) == 0:
+                break
+            time.sleep(0.25)
+            events = eventstore.backend.get_events(
+                conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
+            )
         assert len(events) == 0
 
     @mock.patch("sentry.quotas.backend.remove_seat")
