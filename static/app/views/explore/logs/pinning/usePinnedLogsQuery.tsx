@@ -50,6 +50,7 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
         field: fields,
         query: missingIds.length > 0 ? `id:[${missingIds.join(',')}]` : '',
         project: selection.projects,
+        statsPeriod: '9999d',
         environment: selection.environments,
         per_page: missingIds.length,
         sampling: SAMPLING_MODE.HIGH_ACCURACY,

@@ -117,6 +117,7 @@ describe('usePinnedLogsQuery', () => {
           query: 'id:[log-missing]',
           dataset: 'ourlogs',
           sampling: 'HIGHEST_ACCURACY',
+          statsPeriod: '9999d',
         }),
       })
     );
