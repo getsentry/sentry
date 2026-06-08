@@ -90,9 +90,18 @@ export function hasTokenMismatch({
 
   const sum = adjustedInput + adjustedOutput;
 
+  // Also check if the displayed values (after clamping) don't add up.
+  // netNewInput is clamped to 0 when cached > adjustedInput, so the
+  // displayed sum can differ from total even when raw values match.
+  const netNewInput = cached > 0 ? Math.max(0, adjustedInput - cached) : adjustedInput;
+  const displayedSum = netNewInput + cached + adjustedOutput;
+
   // Allow a small tolerance for rounding
   const tolerance = Math.max(1, totalTokens * 0.01);
-  return Math.abs(sum - totalTokens) > tolerance;
+  return (
+    Math.abs(sum - totalTokens) > tolerance ||
+    Math.abs(displayedSum - totalTokens) > tolerance
+  );
 }
 
 /**

@@ -245,4 +245,19 @@ describe('hasTokenMismatch', () => {
       })
     ).toBe(false);
   });
+
+  it('returns true when displayed values do not add up due to clamping', () => {
+    // input=5796, cached=9500, output=4, total=5800
+    // Raw: adjustedInput(5796) + output(4) = 5800 = total ✓
+    // Display: netNewInput=max(0, 5796-9500)=0, so 0+9500+4=9504 ≠ 5800 ✗
+    expect(
+      hasTokenMismatch({
+        inputTokens: 5796,
+        cachedTokens: 9500,
+        outputTokens: 4,
+        reasoningTokens: 0,
+        totalTokens: 5800,
+      })
+    ).toBe(true);
+  });
 });
