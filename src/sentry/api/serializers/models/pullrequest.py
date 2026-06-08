@@ -4,7 +4,7 @@ from typing import TypedDict
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
-from sentry.api.serializers.release_details_types import Author
+from sentry.api.serializers.release_details_types import Author, EmptyResponseObject
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -15,8 +15,8 @@ class PullRequestSerializerResponse(TypedDict):
     title: str | None
     message: str | None
     dateCreated: datetime
-    repository: RepositorySerializerResponse
-    author: Author
+    repository: RepositorySerializerResponse | EmptyResponseObject
+    author: Author | EmptyResponseObject
     externalUrl: str
 
 
