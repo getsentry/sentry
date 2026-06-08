@@ -901,7 +901,7 @@ export const extractSpanURLString = (span: Span, baseURL?: string): URL | null =
 };
 
 export function extractQueryParameters(URLs: URL[]): ParameterLookup {
-  const parameterValuesByKey: ParameterLookup = {};
+  const parameterValuesByKey: ParameterLookup = Object.create(null);
 
   URLs.forEach(url => {
     for (const [key, value] of url.searchParams) {
