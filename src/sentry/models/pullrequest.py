@@ -106,17 +106,27 @@ class PullRequest(Model):
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
 
-    # Source-of-truth lifecycle timestamps for the PR metrics pipeline. Nullable
-    # because we only know them for PRs whose events Sentry actually saw: a
-    # late-installed integration, a missed/dropped webhook, or a non-webhook
-    # creation path (e.g. attribution get_or_create) leaves opened_at unset.
-    # date_added is deliberately NOT a substitute — it defaults to row-creation
-    # time and would silently skew opened_at-derived metrics for exactly those PRs.
+    # Source-of-truth facts for the PR metrics pipeline, kept current by the
+    # GitHub webhook so the emit path can read them straight off the row (no
+    # payload, which the judge/Seer path doesn't have). All nullable because we
+    # only know them for PRs whose events Sentry actually saw: a late-installed
+    # integration, a missed/dropped webhook, or a non-webhook creation path
+    # (e.g. attribution get_or_create) leaves them unset, and null is the honest
+    # "Sentry never saw this fact" — emit coalesces. date_added is deliberately
+    # NOT a substitute for opened_at: it defaults to row-creation time and would
+    # silently skew open-time metrics for exactly those PRs.
     opened_at = models.DateTimeField(null=True)
     closed_at = models.DateTimeField(null=True)
     merged_at = models.DateTimeField(null=True)
     state = models.CharField(max_length=32, null=True, choices=PullRequestLifecycleState.choices)
     head_commit_sha = models.CharField(max_length=64, null=True)
+    draft = models.BooleanField(null=True)
+    # Webhook-sourced activity counters (additions, deletions, files_changed,
+    # commits_count, comments_count, review_comments_count, is_assigned). A
+    # single JSONB column rather than one column per counter: the metric set is
+    # provisional and expected to grow, and this avoids widening the hot
+    # PullRequest table with many sparse integer columns.
+    metrics = models.JSONField(null=True)
 
     objects: ClassVar[PullRequestManager] = PullRequestManager()
 
@@ -336,10 +346,18 @@ class PullRequestAttribution(DefaultFieldsModel):
 
 @cell_silo_model
 class PullRequestMetrics(DefaultFieldsModel):
+    """Deprecated: never written or read. Superseded by ``PullRequest.metrics``
+    (the webhook-sourced counters) and, later, by CORE-217's Seer-derived
+    summary. The empty table is dropped in a separate follow-up migration; the
+    model is kept until then so the table stays managed (and cascade-deleted).
+    """
+
     __relocation_scope__ = RelocationScope.Excluded
 
+    # related_name="+" (no reverse accessor): the "metrics" reverse name now
+    # belongs to PullRequest.metrics, the JSONB column that replaces this model.
     pull_request = models.OneToOneField(
-        "sentry.PullRequest", on_delete=models.CASCADE, related_name="metrics"
+        "sentry.PullRequest", on_delete=models.CASCADE, related_name="+"
     )
     verdict = models.CharField(max_length=64, null=True, choices=PullRequestVerdict.choices)
     additions = BoundedPositiveIntegerField(default=0)

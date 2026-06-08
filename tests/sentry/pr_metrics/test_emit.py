@@ -29,10 +29,20 @@ SENTRY_APP_ATTRIBUTION = {
 
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
-# All lifecycle facts — including open time — live on the PullRequest row. Past
-# year avoids S015.
+# Every fact — open time, draft, and the activity counters — lives on the
+# PullRequest row; build_pr_metrics_row takes no payload. Past year avoids S015.
 OPENED_AT = datetime(2020, 6, 4, 9, 0, 0, tzinfo=timezone.utc)
 CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
+# Mirrors the webhook-sourced ``PullRequest.metrics`` JSONB shape.
+METRICS = {
+    "additions": 12,
+    "deletions": 3,
+    "files_changed": 2,
+    "commits_count": 4,
+    "comments_count": 5,
+    "review_comments_count": 6,
+    "is_assigned": True,
+}
 
 
 @cell_silo_test
@@ -44,27 +54,15 @@ class PrMetricsEmissionTest(TestCase):
         self.pull_request = self.create_pull_request(
             repository_id=self.repo.id, organization_id=self.organization.id, key="42"
         )
-        # build_pr_metrics_row reads lifecycle from the row, not the payload.
-        # Default to a merged PR; close-specific tests null the merge fields.
+        # build_pr_metrics_row reads everything off the row. Default to a merged
+        # PR; close-specific tests null the merge fields.
         self.pull_request.head_commit_sha = HEAD_SHA
         self.pull_request.merge_commit_sha = MERGE_SHA
         self.pull_request.opened_at = OPENED_AT
         self.pull_request.closed_at = CLOSED_AT
         self.pull_request.merged_at = CLOSED_AT
-
-    def _payload(self) -> dict[str, Any]:
-        # Payload-sourced fields only: draft and activity counters.
-        return {
-            "number": 42,
-            "draft": False,
-            "additions": 12,
-            "deletions": 3,
-            "changed_files": 2,
-            "commits": 4,
-            "comments": 5,
-            "review_comments": 6,
-            "assignees": [{"login": "octocat"}],
-        }
+        self.pull_request.draft = False
+        self.pull_request.metrics = dict(METRICS)
 
     def _track(
         self,
@@ -89,7 +87,6 @@ class PrMetricsEmissionTest(TestCase):
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
-            payload=self._payload(),
             attributions=[SENTRY_APP_ATTRIBUTION],
         )
         assert row.close_action == "merged"
@@ -99,11 +96,10 @@ class PrMetricsEmissionTest(TestCase):
         assert row.merged_at == CLOSED_AT.isoformat()
         assert json.loads(row.attributions) == [SENTRY_APP_ATTRIBUTION]
 
-    def test_build_row_carries_payload_counters(self) -> None:
+    def test_build_row_carries_stored_counters(self) -> None:
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
-            payload=self._payload(),
             attributions=[],
         )
         assert row.opened_at == OPENED_AT.isoformat()
@@ -116,16 +112,20 @@ class PrMetricsEmissionTest(TestCase):
         assert row.review_comments_count == 6
         assert row.is_assigned is True
 
-    def test_build_row_counters_default_to_zero_when_absent(self) -> None:
+    def test_build_row_counters_default_to_zero_when_metrics_null(self) -> None:
+        # A PR Sentry never saw active (no webhook counters) has a null metrics
+        # JSONB; emit coalesces every counter to its zero/false default.
+        self.pull_request.metrics = None
+        self.pull_request.draft = None
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="closed",
-            payload={"number": 42},
             attributions=[],
         )
         assert row.additions == 0
         assert row.commits_count == 0
         assert row.is_assigned is False
+        assert row.draft is False
 
     def test_build_row_opened_at_is_null_when_unknown(self) -> None:
         # opened_at is best-effort: a PR Sentry never saw opened (late-installed
@@ -135,7 +135,6 @@ class PrMetricsEmissionTest(TestCase):
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
-            payload=self._payload(),
             attributions=[],
         )
         assert row.opened_at is None
@@ -148,7 +147,6 @@ class PrMetricsEmissionTest(TestCase):
             build_pr_metrics_row(
                 pull_request=self.pull_request,
                 close_action="merged",
-                payload=self._payload(),
                 attributions=[],
             )
 
@@ -159,35 +157,12 @@ class PrMetricsEmissionTest(TestCase):
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="closed",
-            payload=self._payload(),
             attributions=[],
         )
         assert row.merge_commit_sha is None
         assert row.merged_at is None
         assert row.head_commit_sha == HEAD_SHA
         assert row.closed_at == CLOSED_AT.isoformat()
-
-    def test_build_row_reads_lifecycle_from_stored_row_not_payload(self) -> None:
-        # Lifecycle in the payload must be ignored — the stored row is the source
-        # of truth, shared with the judge path (which has no payload at all).
-        row = build_pr_metrics_row(
-            pull_request=self.pull_request,
-            close_action="merged",
-            payload={
-                **self._payload(),
-                "head": {"sha": "c" * 40},
-                "created_at": "2020-01-01T00:00:00Z",
-                "closed_at": "2020-01-01T00:00:00Z",
-                "merged_at": "2020-01-01T00:00:00Z",
-                "merge_commit_sha": "d" * 40,
-            },
-            attributions=[],
-        )
-        assert row.head_commit_sha == HEAD_SHA
-        assert row.merge_commit_sha == MERGE_SHA
-        assert row.opened_at == OPENED_AT.isoformat()
-        assert row.closed_at == CLOSED_AT.isoformat()
-        assert row.merged_at == CLOSED_AT.isoformat()
 
     def test_active_attributions_only_includes_valid_signals(self) -> None:
         self._track(PullRequestAttributionSignalType.SENTRY_APP)
@@ -221,7 +196,6 @@ class PrMetricsEmissionTest(TestCase):
         emitted = emit_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
-            payload=self._payload(),
         )
         assert emitted is True
         assert_last_analytics_event(
@@ -254,7 +228,6 @@ class PrMetricsEmissionTest(TestCase):
         emitted = emit_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
-            payload=self._payload(),
         )
         assert emitted is False
         assert mock_record.call_count == 0

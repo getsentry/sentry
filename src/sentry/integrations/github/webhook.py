@@ -966,6 +966,24 @@ def _pull_request_lifecycle_state(pull_request: Mapping[str, Any]) -> str:
     return PullRequestLifecycleState.OPEN
 
 
+def _pull_request_metrics(pull_request: Mapping[str, Any]) -> dict[str, Any]:
+    """Snapshot the webhook-sourced activity counters into the ``metrics`` JSONB.
+
+    Stored on the ``PullRequest`` row so the emit path is fully stored-sourced.
+    Counts are kept raw (may be absent on partial payloads); emit coalesces them.
+    ``is_assigned`` is derived here since the payload carries assignees, not a flag.
+    """
+    return {
+        "additions": pull_request.get("additions"),
+        "deletions": pull_request.get("deletions"),
+        "files_changed": pull_request.get("changed_files"),
+        "commits_count": pull_request.get("commits"),
+        "comments_count": pull_request.get("comments"),
+        "review_comments_count": pull_request.get("review_comments"),
+        "is_assigned": bool(pull_request.get("assignees") or pull_request.get("assignee")),
+    }
+
+
 class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
@@ -1009,12 +1027,15 @@ class PullRequestEventWebhook(GitHubWebhook):
         """
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
-        # Lifecycle facts kept current for the PR metrics pipeline.
+        # Facts kept current for the PR metrics pipeline so the emit path can
+        # read them off the row (no payload — the judge/Seer path has none).
         head_commit_sha = pull_request["head"]["sha"]
         opened_at = _parse_github_timestamp(pull_request.get("created_at"))
         closed_at = _parse_github_timestamp(pull_request.get("closed_at"))
         merged_at = _parse_github_timestamp(pull_request.get("merged_at"))
         state = _pull_request_lifecycle_state(pull_request)
+        draft = pull_request.get("draft")
+        metrics_snapshot = _pull_request_metrics(pull_request)
 
         author_email = "{}@localhost".format(user["login"][:65])
 
@@ -1083,6 +1104,8 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "closed_at": closed_at,
                     "merged_at": merged_at,
                     "state": state,
+                    "draft": draft,
+                    "metrics": metrics_snapshot,
                 },
             )
 

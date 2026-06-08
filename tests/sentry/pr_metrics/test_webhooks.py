@@ -345,14 +345,16 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
 
     def _call(self, *, action: str = "closed", merged: bool = True) -> None:
         if action == "closed":
-            # PullRequestEventWebhook._handle persists lifecycle on the PR row
-            # before the emission processor runs; emit reads it from there.
+            # PullRequestEventWebhook._handle persists every emit-sourced fact on
+            # the PR row before the emission processor runs; emit reads it there.
             self.pull_request.update(
                 head_commit_sha=HEAD_SHA,
                 opened_at=OPENED_AT,
                 closed_at=CLOSED_AT,
                 merged_at=CLOSED_AT if merged else None,
                 merge_commit_sha=MERGE_SHA if merged else None,
+                draft=False,
+                metrics={"additions": 1, "deletions": 2, "is_assigned": True},
             )
         handle_emission(
             github_event=GithubWebhookType.PULL_REQUEST,

@@ -187,7 +187,7 @@ def handle_emission(
             extra={"organization_id": organization.id, "pull_request_id": pr.id},
         )
 
-    emit_pr_metrics_row(pull_request=pr, close_action=close_action, payload=pull_request)
+    emit_pr_metrics_row(pull_request=pr, close_action=close_action)
 
 
 def handle_activity(
