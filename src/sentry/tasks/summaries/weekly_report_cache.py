@@ -6,7 +6,7 @@ from typing import Any
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
-from sentry.utils import json, redis
+from sentry.utils import json, metrics, redis
 
 CACHE_TTL = timedelta(days=14)
 KEY_PREFIX = "wr:proj_metrics"
@@ -37,9 +37,9 @@ def cache_project_metrics(
     pipeline = client.pipeline()
     ttl_seconds = int(CACHE_TTL.total_seconds())
 
-    for project_id, metrics in project_metrics.items():
+    for project_id, values in project_metrics.items():
         key = _make_cache_key(org_id, project_id, timestamp)
-        pipeline.set(key, json.dumps(metrics), ex=ttl_seconds)
+        pipeline.set(key, json.dumps(values), ex=ttl_seconds)
 
     pipeline.execute()
 
@@ -76,6 +76,11 @@ def read_project_metrics(
 
         current = json.loads(current_raw) if current_raw else None
         previous = json.loads(previous_raw) if previous_raw else None
+
+        if current is None:
+            metrics.incr("weekly_report.cache.miss", tags={"week": "current"})
+        if previous is None:
+            metrics.incr("weekly_report.cache.miss", tags={"week": "previous"})
 
         if current is not None or previous is not None:
             result_map[project_id] = {
