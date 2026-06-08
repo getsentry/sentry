@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 import sentry_sdk
 from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releases.util import SemverFilter
 from sentry.search.events import constants
@@ -22,6 +23,24 @@ from sentry.search.events.types import WhereType
 from sentry.search.utils import DEVICE_CLASS, parse_release, validate_snuba_array_parameter
 from sentry.utils.glob import glob_match
 from sentry.utils.strings import oxfordize_list
+
+
+def _non_null_environments(environments: Sequence[Environment | None]) -> list[Environment]:
+    return [environment for environment in environments if environment is not None]
+
+
+def _coerce_to_str(value: object, field_name: str) -> str:
+    if isinstance(value, str):
+        return value
+    raise InvalidSearchQuery(f"Invalid value for {field_name} condition.")
+
+
+def _coerce_to_str_list(value: object, field_name: str) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, (list, tuple)) and all(isinstance(item, str) for item in value):
+        return list(value)
+    raise InvalidSearchQuery(f"Invalid value for {field_name} condition.")
 
 
 def team_key_transaction_filter(
@@ -52,16 +71,18 @@ def release_filter_converter(
         operator = search_filter.operator
         value = search_filter.value
     else:
+        release_values = _coerce_to_str_list(search_filter.value.value, "release")
+        environments = _non_null_environments(builder.params.environments)
         operator_conversions = {"=": "IN", "!=": "NOT IN"}
         operator = operator_conversions.get(search_filter.operator, search_filter.operator)
         value = SearchValue(
             [
                 part
-                for v in to_list(search_filter.value.value)
+                for v in release_values
                 for part in parse_release(
                     v,
                     builder.params.project_ids,
-                    builder.params.environments,
+                    environments or None,
                     builder.params.organization.id if builder.params.organization else None,
                 )
             ]
@@ -96,7 +117,7 @@ def project_slug_converter(
             'Cannot query for has:project or project:"" as every event will have a project'
         )
 
-    slug_patterns = to_list(value)
+    slug_patterns = _coerce_to_str_list(value, "project")
 
     project_slugs: Mapping[str, int] = {
         slug: project_id
@@ -138,13 +159,14 @@ def span_is_segment_converter(search_filter: SearchFilter) -> WhereType | None:
     """Convert the search filter from a string to a boolean
     and unalias the filter key.
     """
-    if search_filter.value.raw_value not in ["0", "1"]:
+    raw_value = _coerce_to_str(search_filter.value.raw_value, "is_segment")
+    if raw_value not in ["0", "1"]:
         raise ValueError("is_segment must be 0 or 1")
 
     return Condition(
         Column("is_segment"),
         Op.NEQ if search_filter.operator == "!=" else Op.EQ,
-        int(search_filter.value.raw_value),
+        int(raw_value),
     )
 
 
@@ -157,6 +179,9 @@ def release_stage_filter_converter(
     """
     if builder.params.organization is None:
         raise ValueError("organization is a required param")
+    environments = [
+        environment.id for environment in builder.params.environments if environment is not None
+    ]
     # TODO: Filter by project here as well. It's done elsewhere, but could critically limit versions
     # for orgs with thousands of projects, each with their own releases (potentially drowning out ones we care about)
     qs = (
@@ -165,7 +190,7 @@ def release_stage_filter_converter(
             search_filter.operator,
             search_filter.value.value,
             project_ids=builder.params.project_ids,
-            environments=builder.params.environments,
+            environments=environments or None,
         )
         .values_list("version", flat=True)
         .order_by("date_added")[: constants.MAX_SEARCH_RELEASES]
@@ -206,7 +231,7 @@ def semver_filter_converter(
         raise ValueError("organization is a required param")
     organization_id: int = builder.params.organization.id
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
-    version: str = search_filter.value.raw_value
+    version = _coerce_to_str(search_filter.value.raw_value, "release.version")
     operator: str = search_filter.operator
 
     # Note that we sort this such that if we end up fetching more than
@@ -268,7 +293,7 @@ def semver_package_filter_converter(
     """
     if builder.params.organization is None:
         raise ValueError("organization is a required param")
-    package: str = search_filter.value.raw_value
+    package = _coerce_to_str(search_filter.value.raw_value, "release.package")
 
     versions = list(
         Release.objects.filter_by_semver(
@@ -299,7 +324,7 @@ def semver_build_filter_converter(
     """
     if builder.params.organization is None:
         raise ValueError("organization is a required param")
-    build: str = search_filter.value.raw_value
+    build = _coerce_to_str(search_filter.value.raw_value, "release.build")
 
     operator, negated = handle_operator_negation(search_filter.operator)
     try:
@@ -347,19 +372,19 @@ def device_class_converter(
 def lowercase_search(builder: BaseQueryBuilder, search_filter: SearchFilter) -> WhereType | None:
     """Convert the search value to lower case"""
     raw_value = search_filter.value.raw_value
-    if isinstance(raw_value, list):
-        raw_value = [val.lower() for val in raw_value]
+    if isinstance(raw_value, str):
+        lowered_raw_value: str | list[str] = raw_value.lower()
     else:
-        raw_value = raw_value.lower()
+        lowered_raw_value = [val.lower() for val in _coerce_to_str_list(raw_value, "search value")]
     return builder.default_filter_converter(
-        SearchFilter(search_filter.key, search_filter.operator, SearchValue(raw_value))
+        SearchFilter(search_filter.key, search_filter.operator, SearchValue(lowered_raw_value))
     )
 
 
 def span_module_filter_converter(
     builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
-    module_value = search_filter.value.raw_value.lower()
+    module_value = _coerce_to_str(search_filter.value.raw_value, "span.module").lower()
 
     if module_value != "cache" and module_value in constants.SPAN_MODULE_CATEGORY_VALUES:
         # Creating the condition this way hits the tags index for span_module if using an actual value
@@ -373,17 +398,21 @@ def span_module_filter_converter(
 def span_status_filter_converter(
     builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
+    raw_value = search_filter.value.raw_value
+    internal_value: int | list[int]
     # Handle "has" queries
-    if search_filter.value.raw_value == "":
+    if raw_value == "":
         return Condition(
             builder.resolve_field(search_filter.key.name),
             Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
         )
-    internal_value = (
-        [translate_transaction_status(val) for val in search_filter.value.raw_value]
-        if search_filter.is_in_filter
-        else translate_transaction_status(search_filter.value.raw_value)
-    )
+    if search_filter.is_in_filter:
+        internal_value = [
+            translate_transaction_status(val)
+            for val in _coerce_to_str_list(raw_value, search_filter.key.name)
+        ]
+    else:
+        internal_value = translate_transaction_status(_coerce_to_str(raw_value, search_filter.key.name))
     return Condition(
         builder.resolve_field(search_filter.key.name),
         Op(search_filter.operator),
