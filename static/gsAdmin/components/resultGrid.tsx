@@ -444,6 +444,16 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     const columnLabels = this.props.columns.map(extractColumnLabel);
     const firstPrimaryIndex = columnLabels.findIndex(label => (label ?? '') !== '');
 
+    // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
+    // via inheritance, which works even when cells are rendered inside wrapper components
+    // (where cloneElement can't reach the inner <td> elements).
+    const labelVars = Object.fromEntries(
+      columnLabels.map((label, j) => [
+        `--cl-${j + 1}`,
+        `"${(label ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
+      ])
+    );
+
     return this.state.rows.map((row, i) => {
       const cells = this.props.columnsForRow?.(row, this.state.rows, this.state) ?? [];
       const labeledCells = cells.map((cell, j) => {
@@ -459,7 +469,14 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
           extraProps
         );
       });
-      return <tr key={this.props.keyForRow?.(row) ?? i}>{labeledCells}</tr>;
+      return (
+        <tr
+          key={this.props.keyForRow?.(row) ?? i}
+          style={labelVars as React.CSSProperties}
+        >
+          {labeledCells}
+        </tr>
+      );
     });
   }
 
