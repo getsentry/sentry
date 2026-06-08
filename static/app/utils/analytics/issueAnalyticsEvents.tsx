@@ -1,5 +1,5 @@
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {PriorityLevel} from 'sentry/types/group';
+import type {PriorityLevel} from 'sentry/types/groupBase';
 import type {IntegrationType} from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';

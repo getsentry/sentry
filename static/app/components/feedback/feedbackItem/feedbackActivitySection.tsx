@@ -5,12 +5,8 @@ import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import {useMutateActivity} from 'sentry/components/feedback/useMutateActivity';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
-import {
-  GroupActivityType,
-  type Group,
-  type GroupActivity,
-  type GroupActivityNote,
-} from 'sentry/types/group';
+import {type Group, type GroupActivity, type GroupActivityNote} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/groupBase';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import {useOrganization} from 'sentry/utils/useOrganization';

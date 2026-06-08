@@ -19,7 +19,7 @@ import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
-import {PriorityLevel} from 'sentry/types/group';
+import {PriorityLevel} from 'sentry/types/groupBase';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';

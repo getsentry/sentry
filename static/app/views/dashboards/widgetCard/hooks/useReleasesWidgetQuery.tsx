@@ -5,7 +5,7 @@ import {releaseHealthApiOptions} from 'sentry/actionCreators/metrics';
 import {sessionsApiOptions} from 'sentry/actionCreators/sessions';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {SessionApiResponse} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organizationBase';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';

@@ -15,7 +15,7 @@ import {components as SelectComponents} from 'sentry/components/forms/controls/r
 import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';
-import type {Choices} from 'sentry/types/core';
+import type {Choices} from 'sentry/types/coreBase';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';

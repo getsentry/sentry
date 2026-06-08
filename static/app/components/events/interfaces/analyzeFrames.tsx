@@ -8,8 +8,9 @@ import {
 } from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
 import {t, tct} from 'sentry/locale';
-import type {EntryException, Event, Frame, Lock, Thread} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import type {EntryException, Event, Frame, Thread} from 'sentry/types/event';
+import type {Lock} from 'sentry/types/eventBase';
+import {EntryType} from 'sentry/types/eventBase';
 import {defined} from 'sentry/utils/defined';
 
 type SuspectFrame = {

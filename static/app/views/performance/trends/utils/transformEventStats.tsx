@@ -1,5 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
-import type {EventsStatsData} from 'sentry/types/organization';
+import type {EventsStatsData} from 'sentry/types/organizationBase';
 
 export function transformEventStats(
   data: EventsStatsData,

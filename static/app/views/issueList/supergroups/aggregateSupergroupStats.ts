@@ -1,4 +1,4 @@
-import type {TimeseriesValue} from 'sentry/types/core';
+import type {TimeseriesValue} from 'sentry/types/coreBase';
 import type {Group} from 'sentry/types/group';
 
 export interface AggregatedSupergroupStats {

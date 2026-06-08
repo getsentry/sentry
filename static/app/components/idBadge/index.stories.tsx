@@ -1,6 +1,6 @@
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import * as Storybook from 'sentry/stories';
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {Member} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';

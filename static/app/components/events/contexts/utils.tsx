@@ -44,7 +44,7 @@ import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
+import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';

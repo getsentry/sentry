@@ -4,7 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {ProjectKey} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

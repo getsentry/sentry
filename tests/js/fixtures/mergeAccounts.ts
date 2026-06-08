@@ -1,4 +1,4 @@
-import type {AvatarUser} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 
 interface UserWithOrganizations extends Omit<AvatarUser, 'options'> {
   lastActive: string;

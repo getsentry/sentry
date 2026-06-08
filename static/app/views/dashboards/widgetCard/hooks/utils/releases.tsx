@@ -1,7 +1,8 @@
 import trimStart from 'lodash/trimStart';
 
 import {t} from 'sentry/locale';
-import type {DateString, PageFilters} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/coreBase';
 import type {Organization} from 'sentry/types/organization';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';

@@ -1,7 +1,7 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryFixture} from 'sentry-fixture/eventEntry';
 
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 
 const exception = EventEntryFixture({
   type: EntryType.EXCEPTION,

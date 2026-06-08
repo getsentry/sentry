@@ -4,7 +4,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/groupBase';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/sizeAnalysisTriggeredSection';

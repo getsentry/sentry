@@ -28,8 +28,10 @@ import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLe
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import type {Event, FeatureFlag} from 'sentry/types/event';
-import {IssueCategory, type Group} from 'sentry/types/group';
+import type {Event} from 'sentry/types/event';
+import type {FeatureFlag} from 'sentry/types/eventBase';
+import {type Group} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/groupBase';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

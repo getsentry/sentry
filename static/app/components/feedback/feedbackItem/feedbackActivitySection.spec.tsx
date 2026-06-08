@@ -12,7 +12,7 @@ import {
 
 import {FeedbackActivitySection} from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
-import {GroupActivityType, IssueCategory} from 'sentry/types/group';
+import {GroupActivityType, IssueCategory} from 'sentry/types/groupBase';
 
 describe('FeedbackActivitySection', () => {
   const organization = OrganizationFixture();

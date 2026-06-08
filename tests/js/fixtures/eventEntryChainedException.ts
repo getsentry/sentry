@@ -1,5 +1,5 @@
 import type {EntryException} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 
 /**
  * Exception group chained exceptions

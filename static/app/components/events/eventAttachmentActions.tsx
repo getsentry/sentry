@@ -6,7 +6,7 @@ import {Confirm} from 'sentry/components/confirm';
 import {hasInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {IssueAttachment} from 'sentry/types/group';
+import type {IssueAttachment} from 'sentry/types/groupBase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {

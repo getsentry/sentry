@@ -1,6 +1,6 @@
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
-import type {KeyValueListData} from 'sentry/types/group';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 
 // https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/#culture-context
 const enum CultureContextKeys {

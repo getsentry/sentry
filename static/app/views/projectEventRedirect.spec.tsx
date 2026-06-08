@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/groupBase';
 import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
 
 describe('ProjectEventRedirect', () => {

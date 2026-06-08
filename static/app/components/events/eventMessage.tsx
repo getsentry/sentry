@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
-import type {EventOrGroupType, Level} from 'sentry/types/event';
+import type {EventOrGroupType, Level} from 'sentry/types/eventBase';
 import {eventTypeHasLogLevel} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
 

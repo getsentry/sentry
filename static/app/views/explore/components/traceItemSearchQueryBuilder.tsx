@@ -8,7 +8,8 @@ import {
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
-import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import {type TagCollection} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/groupBase';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';

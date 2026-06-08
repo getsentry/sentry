@@ -1,5 +1,5 @@
 import type {Event, EventTransaction} from 'sentry/types/event';
-import {EventOrGroupType} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/eventBase';
 
 export function EventFixture(params = {}): Event {
   return {

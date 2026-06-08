@@ -23,7 +23,7 @@ import {
   getArbitraryRelativePeriod,
 } from 'sentry/components/timeRangeSelector/utils';
 import {t, tct} from 'sentry/locale';
-import type {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/coreBase';
 import type {AuditLog, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {getInternalDate} from 'sentry/utils/dates';

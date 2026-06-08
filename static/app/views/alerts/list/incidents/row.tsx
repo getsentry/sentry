@@ -12,7 +12,7 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Incident} from 'sentry/views/alerts/types';

@@ -5,7 +5,7 @@ import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {EventsStatsData} from 'sentry/types/organization';
+import type {EventsStatsData} from 'sentry/types/organizationBase';
 import {toArray} from 'sentry/utils/array/toArray';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';

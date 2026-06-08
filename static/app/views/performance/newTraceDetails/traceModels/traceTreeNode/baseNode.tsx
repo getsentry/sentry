@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import type {Level, Measurement} from 'sentry/types/event';
+import type {Level, Measurement} from 'sentry/types/eventBase';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';

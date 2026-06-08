@@ -2,11 +2,11 @@ import {useCallback, useState} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {
-  Confidence,
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {defined} from 'sentry/utils/defined';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';

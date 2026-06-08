@@ -13,7 +13,7 @@ import {Content as StackTraceContent} from 'sentry/components/events/interfaces/
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {EventOrGroupType} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/eventBase';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 const organization = OrganizationFixture();

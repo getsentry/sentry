@@ -1,4 +1,4 @@
-import type {PinnedPageFilter} from 'sentry/types/core';
+import type {PinnedPageFilter} from 'sentry/types/coreBase';
 
 interface DateSelector {
   field_changed: 'start' | 'end';

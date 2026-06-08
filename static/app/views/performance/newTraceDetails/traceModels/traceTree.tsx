@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import type {Level, Measurement} from 'sentry/types/event';
+import type {Level, Measurement} from 'sentry/types/eventBase';
 import type {Organization} from 'sentry/types/organization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';

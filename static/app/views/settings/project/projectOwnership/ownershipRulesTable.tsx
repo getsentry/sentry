@@ -16,7 +16,7 @@ import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {CodeOwner} from 'sentry/types/integrations';
 import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import {defined} from 'sentry/utils/defined';

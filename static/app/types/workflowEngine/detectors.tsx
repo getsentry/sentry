@@ -1,4 +1,4 @@
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {SimpleGroup} from 'sentry/types/group';
 import type {
   DataConditionGroupLogicType,

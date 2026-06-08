@@ -2,7 +2,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {IssueAttachment} from 'sentry/types/group';
+import type {IssueAttachment} from 'sentry/types/groupBase';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';

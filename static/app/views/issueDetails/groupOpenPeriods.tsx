@@ -10,7 +10,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import type {GroupOpenPeriodActivity} from 'sentry/types/group';
+import type {GroupOpenPeriodActivity} from 'sentry/types/groupBase';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getShortEventId} from 'sentry/utils/events';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';

@@ -1,4 +1,4 @@
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 import {explodeSlug} from 'sentry/utils';
 
 import {

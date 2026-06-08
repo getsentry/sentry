@@ -3,7 +3,8 @@ import omit from 'lodash/omit';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organizationBase';
 import {SessionField} from 'sentry/types/sessions';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';

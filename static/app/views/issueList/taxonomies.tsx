@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {t} from 'sentry/locale';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/groupBase';
 
 const SENTRY_CONFIGURATION_FEATURE_FLAGS = [
   'issue-sourcemap-configuration-visible',

@@ -14,7 +14,7 @@ import {
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {GroupStore} from 'sentry/stores/groupStore';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/groupBase';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {

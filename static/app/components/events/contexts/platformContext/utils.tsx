@@ -7,7 +7,7 @@ import {getUnityContextData} from 'sentry/components/events/contexts/platformCon
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import type {KeyValueListData} from 'sentry/types/group';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 
 enum PlatformContextKeys {
   LARAVEL = 'laravel',

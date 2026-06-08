@@ -1,7 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {EventOrGroupType} from 'sentry/types/event';
-import {GroupStatus, PriorityLevel} from 'sentry/types/group';
+import {EventOrGroupType} from 'sentry/types/eventBase';
+import {GroupStatus, PriorityLevel} from 'sentry/types/groupBase';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;

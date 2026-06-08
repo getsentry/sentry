@@ -23,7 +23,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {ApiApplication} from 'sentry/types/user';
+import type {ApiApplication} from 'sentry/types/userBase';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {

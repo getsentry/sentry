@@ -5,7 +5,7 @@ import {AvatarList} from '@sentry/scraps/avatar';
 import {ListGroupItem} from 'sentry/components/listGroup';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import type {CommitAuthor} from 'sentry/types/integrations';
-import type {AvatarUser} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 
 import {FileIcon} from './fileIcon';
 

@@ -1,4 +1,4 @@
-import type {TimeseriesValue} from './core';
+import type {TimeseriesValue} from './coreBase';
 import type {Commit} from './integrations';
 import type {PlatformKey} from './platform';
 import type {User} from './user';

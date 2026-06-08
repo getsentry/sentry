@@ -11,7 +11,8 @@ import type {
   PENDING_DELETION,
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
-import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
+import type {Scope} from './core';
+import type {Avatar, Choice, Choices, ObjectStatus} from './coreBase';
 import type {ParsedOwnershipRule} from './ownership';
 import type {PlatformKey} from './platform';
 import type {BaseRelease} from './release';

@@ -28,15 +28,16 @@ import {
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
-import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
-import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
+import type {Entry, Event, EventTransaction} from 'sentry/types/event';
+import type {EntryRequest} from 'sentry/types/eventBase';
+import {EntryType} from 'sentry/types/eventBase';
 import {
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
-  IssueType,
   isTransactionBased,
 } from 'sentry/types/group';
+import {IssueType} from 'sentry/types/groupBase';
+import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';

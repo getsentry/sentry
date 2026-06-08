@@ -10,7 +10,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PreviewFeature} from 'sentry/components/previewFeature';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {ProjectKey} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';

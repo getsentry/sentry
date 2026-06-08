@@ -10,7 +10,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {UserReport} from 'sentry/types/group';
-import type {AvatarUser} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 type Props = {

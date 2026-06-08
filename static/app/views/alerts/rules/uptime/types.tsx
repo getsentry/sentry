@@ -1,4 +1,4 @@
-import type {Actor, ObjectStatus} from 'sentry/types/core';
+import type {Actor, ObjectStatus} from 'sentry/types/coreBase';
 
 export enum UptimeMonitorStatus {
   OK = 1,

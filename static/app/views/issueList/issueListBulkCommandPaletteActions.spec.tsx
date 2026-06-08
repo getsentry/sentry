@@ -22,7 +22,7 @@ import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/colle
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {GroupStatus} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/groupBase';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {IssueListCommandPaletteActions} from 'sentry/views/issueList/issueListCommandPaletteActions';
 import {

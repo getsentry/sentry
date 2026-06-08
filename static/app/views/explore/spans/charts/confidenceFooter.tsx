@@ -5,7 +5,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
-import type {Confidence} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 import {defined} from 'sentry/utils/defined';
 import {
   Placeholder,

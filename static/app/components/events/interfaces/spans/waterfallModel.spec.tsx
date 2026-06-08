@@ -3,7 +3,7 @@ import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
 import type {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {WaterfallModel} from 'sentry/components/events/interfaces/spans/waterfallModel';
 import type {EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import {assert} from 'sentry/types/utils';
 
 describe('WaterfallModel', () => {

@@ -5,9 +5,9 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {StreamGroup} from 'sentry/components/stream/group';
 import {GuideStore} from 'sentry/stores/guideStore';
-import {EventOrGroupType} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/eventBase';
 import type {Group} from 'sentry/types/group';
-import {GroupStatus, PriorityLevel} from 'sentry/types/group';
+import {GroupStatus, PriorityLevel} from 'sentry/types/groupBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 

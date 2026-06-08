@@ -32,11 +32,11 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {
-  Confidence,
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 import type {Project} from 'sentry/types/project';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

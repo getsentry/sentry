@@ -11,7 +11,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {Timeline} from 'sentry/components/timeline';
 import {IconCheckmark, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {GroupOpenPeriod} from 'sentry/types/group';
+import type {GroupOpenPeriod} from 'sentry/types/groupBase';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';

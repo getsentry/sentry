@@ -9,12 +9,8 @@ import {
 } from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {
-  SavedSearchType,
-  type Tag,
-  type TagCollection,
-  type TagValue,
-} from 'sentry/types/group';
+import {type Tag, type TagCollection} from 'sentry/types/group';
+import {SavedSearchType, type TagValue} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';

@@ -1,11 +1,7 @@
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  GroupStatusResolution,
-  MarkReviewed,
-  PriorityLevel,
-  TagValue,
-} from 'sentry/types/group';
-import type {AvatarUser} from 'sentry/types/user';
+import type {GroupStatusResolution} from 'sentry/types/group';
+import type {MarkReviewed, PriorityLevel, TagValue} from 'sentry/types/groupBase';
+import type {AvatarUser} from 'sentry/types/userBase';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export type TagValueLoader = (key: string, search: string) => Promise<TagValue[]>;

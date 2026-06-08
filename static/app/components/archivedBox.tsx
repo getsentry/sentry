@@ -1,8 +1,9 @@
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {t} from 'sentry/locale';
-import type {Group, IgnoredStatusDetails} from 'sentry/types/group';
-import {GroupSubstatus} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
+import type {IgnoredStatusDetails} from 'sentry/types/groupBase';
+import {GroupSubstatus} from 'sentry/types/groupBase';
 
 interface ArchivedBoxProps {
   statusDetails: IgnoredStatusDetails;

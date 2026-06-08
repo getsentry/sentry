@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {SharedViewOrganization} from 'sentry/types/organization';
+import type {SharedViewOrganization} from 'sentry/types/organizationBase';
 
 import {SharedEventContent} from './sharedEventContent';
 

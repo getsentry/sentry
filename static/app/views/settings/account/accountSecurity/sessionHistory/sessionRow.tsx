@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {TimeSince} from 'sentry/components/timeSince';
-import type {InternetProtocol} from 'sentry/types/user';
+import type {InternetProtocol} from 'sentry/types/userBase';
 
 import {tableLayout} from './utils';
 

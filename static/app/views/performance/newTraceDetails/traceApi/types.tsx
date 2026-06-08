@@ -1,4 +1,4 @@
-import type {EventTag, Level, Measurement} from 'sentry/types/event';
+import type {EventTag, Level, Measurement} from 'sentry/types/eventBase';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 /**

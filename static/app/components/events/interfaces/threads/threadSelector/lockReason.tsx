@@ -1,5 +1,5 @@
-import type {Lock} from 'sentry/types/event';
-import {LockType} from 'sentry/types/event';
+import type {Lock} from 'sentry/types/eventBase';
+import {LockType} from 'sentry/types/eventBase';
 import {defined} from 'sentry/utils/defined';
 
 export function getLockReason(

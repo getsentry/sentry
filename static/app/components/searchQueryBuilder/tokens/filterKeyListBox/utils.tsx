@@ -30,7 +30,8 @@ import {
   getKeyName,
 } from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
+import type {RecentSearch} from 'sentry/types/groupBase';
 import {defined} from 'sentry/utils/defined';
 import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';

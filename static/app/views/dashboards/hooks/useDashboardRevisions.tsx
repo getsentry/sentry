@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import type {Avatar} from 'sentry/types/core';
-import type {AvatarUser} from 'sentry/types/user';
+import type {Avatar} from 'sentry/types/coreBase';
+import type {AvatarUser} from 'sentry/types/userBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';

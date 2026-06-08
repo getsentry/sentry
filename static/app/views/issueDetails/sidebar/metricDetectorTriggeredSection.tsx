@@ -19,7 +19,8 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import type {Event, EventOccurrence} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {EventOccurrence} from 'sentry/types/eventBase';
 import type {Group} from 'sentry/types/group';
 import type {
   MetricCondition,

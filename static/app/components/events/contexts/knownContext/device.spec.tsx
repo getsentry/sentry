@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
-import type {DeviceContext} from 'sentry/types/event';
+import type {DeviceContext} from 'sentry/types/eventBase';
 
 const MOCK_DEVICE_CONTEXT: DeviceContext = {
   name: '', // redacted

@@ -1,4 +1,4 @@
-import type {EventGroupComponent} from 'sentry/types/event';
+import type {EventGroupComponent} from 'sentry/types/eventBase';
 
 export function shouldInlineComponentValue(component: EventGroupComponent) {
   return (component.values as EventGroupComponent[]).every(

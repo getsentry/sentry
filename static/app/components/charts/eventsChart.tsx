@@ -27,9 +27,9 @@ import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadin
 import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/coreBase';
 import type {Series} from 'sentry/types/echarts';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 import {defined} from 'sentry/utils/defined';
 import {
   axisLabelFormatter,

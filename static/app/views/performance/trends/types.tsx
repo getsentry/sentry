@@ -1,7 +1,7 @@
 import type moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import type {EventsStatsData} from 'sentry/types/organization';
+import type {EventsStatsData} from 'sentry/types/organizationBase';
 import type {Project} from 'sentry/types/project';
 import type {EventView, LocationQuery} from 'sentry/utils/discover/eventView';
 

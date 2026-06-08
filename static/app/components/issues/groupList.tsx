@@ -17,7 +17,8 @@ import {
   StreamGroup,
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
-import type {Group, PriorityLevel} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
+import type {PriorityLevel} from 'sentry/types/groupBase';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';

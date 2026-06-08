@@ -5,7 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconSentry} from 'sentry/icons';
-import type {AvatarUser} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 
 type Props = {
   type: 'system' | 'user';

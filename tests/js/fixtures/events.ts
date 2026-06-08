@@ -1,4 +1,5 @@
-import {EventOrGroupType, type Event} from 'sentry/types/event';
+import {type Event} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/eventBase';
 import type {EventsStats} from 'sentry/types/organization';
 
 export function EventsStatsFixture(params = {}): EventsStats {

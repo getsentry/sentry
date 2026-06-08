@@ -1,5 +1,5 @@
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
-import type {TagValue} from 'sentry/types/group';
+import type {TagValue} from 'sentry/types/groupBase';
 import {DEVICE_CLASS_TAG_VALUES, FieldKey, isDeviceClass} from 'sentry/utils/fields';
 
 /**

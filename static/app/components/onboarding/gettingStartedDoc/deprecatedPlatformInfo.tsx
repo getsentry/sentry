@@ -7,7 +7,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
-import type {PlatformIntegration, ProjectKey} from 'sentry/types/project';
+import type {PlatformIntegration} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 
 type DeprecatedPlatformInfoProps = {
   dsn: ProjectKey['dsn'];

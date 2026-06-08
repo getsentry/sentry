@@ -5,7 +5,8 @@ import {EventTagCustomBanner} from 'sentry/components/events/eventTags/eventTagC
 import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
 import {associateTagsWithMeta, TagFilter} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import type {Event, EventTagWithMeta} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {EventTagWithMeta} from 'sentry/types/eventBase';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';

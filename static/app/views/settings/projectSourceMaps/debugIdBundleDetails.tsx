@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
-import type {KeyValueListData} from 'sentry/types/group';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 import type {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
 

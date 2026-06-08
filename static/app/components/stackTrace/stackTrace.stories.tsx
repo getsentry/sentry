@@ -25,13 +25,8 @@ import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrac
 import {IconCopy, IconGithub, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
-import {
-  EntryType,
-  EventOrGroupType,
-  type Event,
-  type ExceptionValue,
-  type Frame,
-} from 'sentry/types/event';
+import {type Event, type ExceptionValue, type Frame} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/eventBase';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 type StacktraceWithFrames = StacktraceType & {

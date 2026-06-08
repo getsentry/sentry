@@ -2,8 +2,9 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type {BaseChart} from 'sentry/components/charts/baseChart';
-import type {DateString} from 'sentry/types/core';
-import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {DateString} from 'sentry/types/coreBase';
+import type {Organization} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 import type {EventView} from 'sentry/utils/discover/eventView';
 
 import type {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';

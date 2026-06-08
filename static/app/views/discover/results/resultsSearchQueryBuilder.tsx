@@ -27,7 +27,8 @@ import type {
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import {type TagCollection} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/groupBase';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {defined} from 'sentry/utils/defined';
 import type {Field} from 'sentry/utils/discover/fields';

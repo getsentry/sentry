@@ -2,7 +2,7 @@ import {Fragment, isValidElement} from 'react';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
-import type {KeyValueListData} from 'sentry/types/group';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 
 export interface ValueProps extends Pick<
   KeyValueListData[0],

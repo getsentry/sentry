@@ -1,7 +1,7 @@
 import {useCallback, useLayoutEffect, useState, type RefObject} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 
-import type {EventTag, EventTagWithMeta} from 'sentry/types/event';
+import type {EventTag, EventTagWithMeta} from 'sentry/types/eventBase';
 
 export const TAGS_DOCS_LINK =
   'https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags';

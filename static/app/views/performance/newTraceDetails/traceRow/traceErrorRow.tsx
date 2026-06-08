@@ -1,7 +1,7 @@
 import {PlatformIcon} from 'platformicons';
 
 import {t} from 'sentry/locale';
-import type {Level} from 'sentry/types/event';
+import type {Level} from 'sentry/types/eventBase';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {ErrorNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/errorNode';
 import {InvisibleTraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';

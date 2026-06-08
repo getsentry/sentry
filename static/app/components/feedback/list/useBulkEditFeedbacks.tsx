@@ -9,7 +9,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct, tn} from 'sentry/locale';
-import {GroupStatus} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/groupBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {decodeList} from 'sentry/utils/queryString';

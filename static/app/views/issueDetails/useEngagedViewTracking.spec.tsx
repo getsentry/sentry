@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {IssueType} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/groupBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {useEngagedViewTracking} from './useEngagedViewTracking';

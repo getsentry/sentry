@@ -6,7 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
-import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import {GroupStatus, IssueCategory} from 'sentry/types/groupBase';
 
 describe('GroupMetaRow', () => {
   it('renders last and first seen', () => {

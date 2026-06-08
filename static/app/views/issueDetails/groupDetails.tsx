@@ -22,7 +22,7 @@ import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {GroupStatus, IssueType} from 'sentry/types/group';
+import {GroupStatus, IssueType} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';

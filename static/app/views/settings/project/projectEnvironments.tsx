@@ -13,7 +13,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import type {TagValue} from 'sentry/types/group';
+import type {TagValue} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {ActorAvatar, type ActorAvatarProps} from '@sentry/scraps/avatar';
 
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 
 interface SuggestedAvatarStackProps extends Omit<
   ActorAvatarProps,

@@ -11,7 +11,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {DetailedProject, SeerNightshiftTweaks} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
+import type {SeerNightshiftTweaks} from 'sentry/types/projectBase';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';

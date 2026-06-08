@@ -12,7 +12,8 @@ import {
   type SearchConfig,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import {type TagCollection} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/groupBase';
 import {FieldValueType} from 'sentry/utils/fields';
 
 function getFilterKeysFromQuery(value: string | undefined): string[] {

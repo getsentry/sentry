@@ -1,6 +1,7 @@
 import {uuid4} from '@sentry/core';
 
-import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
+import {type Event, type EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import type {TraceSplitResults} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {
   isEAPSpanNode,

@@ -29,9 +29,9 @@ import {
   IssueAlertFilterType,
   MailActionTargetType,
 } from 'sentry/types/alerts';
-import type {Choices} from 'sentry/types/core';
-import type {IssueCategory} from 'sentry/types/group';
+import type {Choices} from 'sentry/types/coreBase';
 import {VALID_ISSUE_CATEGORIES} from 'sentry/types/group';
+import type {IssueCategory} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {MemberTeamFields} from 'sentry/views/alerts/rules/issue/memberTeamFields';

@@ -4,7 +4,7 @@ import {
 } from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {KeyValueListData} from 'sentry/types/group';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 
 // https://github.com/getsentry/relay/blob/25.3.0/relay-event-schema/src/protocol/contexts/app.rs

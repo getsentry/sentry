@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
-import type {ChunkType} from 'sentry/types/group';
+import type {ChunkType} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';

@@ -38,7 +38,7 @@ import {
 } from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Avatar} from 'sentry/types/core';
+import type {Avatar} from 'sentry/types/coreBase';
 import type {
   PermissionResource,
   SentryApp,

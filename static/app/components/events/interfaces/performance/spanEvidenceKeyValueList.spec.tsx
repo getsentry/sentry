@@ -9,7 +9,7 @@ import {
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {EventTransaction} from 'sentry/types/event';
-import {IssueType} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/groupBase';
 
 import {
   extractQueryParameters,

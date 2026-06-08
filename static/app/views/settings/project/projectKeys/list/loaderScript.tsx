@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {ProjectKey} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 
 type Props = {

@@ -17,7 +17,8 @@ import {
 } from 'sentry/components/group/groupSummary';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {EntryType, type Event} from 'sentry/types/event';
+import {type Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';

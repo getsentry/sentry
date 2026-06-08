@@ -1,6 +1,6 @@
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
-import type {KeyValueListData} from 'sentry/types/group';
+import type {KeyValueListData} from 'sentry/types/groupBase';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 

@@ -2,7 +2,7 @@ import type {TagProps} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {GroupSubstatus} from 'sentry/types/group';
+import {GroupSubstatus} from 'sentry/types/groupBase';
 
 export function getBadgeProperties(
   status: Group['status'],

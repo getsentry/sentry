@@ -1,4 +1,4 @@
-import type {ApiApplication} from 'sentry/types/user';
+import type {ApiApplication} from 'sentry/types/userBase';
 
 export function ApiApplicationFixture(
   params: Partial<ApiApplication> = {}

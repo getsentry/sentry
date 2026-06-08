@@ -22,9 +22,11 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
+import type {DateString, PinnedPageFilter} from 'sentry/types/coreBase';
 import type {Organization} from 'sentry/types/organization';
-import type {Environment, MinimalProject, Project} from 'sentry/types/project';
+import type {MinimalProject, Project} from 'sentry/types/project';
+import type {Environment} from 'sentry/types/projectBase';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';

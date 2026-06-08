@@ -10,7 +10,7 @@ import {Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import type {IgnoredStatusDetails} from 'sentry/types/group';
+import type {IgnoredStatusDetails} from 'sentry/types/groupBase';
 
 type Props = ModalRenderProps & {
   onSelected: (details: IgnoredStatusDetails) => void;

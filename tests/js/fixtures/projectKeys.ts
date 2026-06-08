@@ -1,4 +1,4 @@
-import type {ProjectKey} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 
 export function ProjectKeysFixture(params: ProjectKey[] = []): ProjectKey[] {
   return [

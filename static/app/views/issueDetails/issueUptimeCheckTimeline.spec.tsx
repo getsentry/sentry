@@ -8,7 +8,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/groupBase';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/issueUptimeCheckTimeline';

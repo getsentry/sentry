@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
-import {Outcome} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/coreBase';
 
 import {getDateFromMoment} from './usageChart/utils';
 import {getReasonGroupName} from './getReasonGroupName';

@@ -24,7 +24,7 @@ import {
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {NewQuery, Organization} from 'sentry/types/organization';
-import {SessionFieldWithOperation} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organizationBase';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';

@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
-import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
+import {GroupActivityType, PriorityLevel} from 'sentry/types/groupBase';
 
 describe('GroupPriority', () => {
   beforeEach(() => {

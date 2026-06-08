@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 
 import {OwnershipRulesTable} from './ownershipRulesTable';

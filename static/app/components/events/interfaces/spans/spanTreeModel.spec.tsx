@@ -11,7 +11,7 @@ import {
   parseTrace,
 } from 'sentry/components/events/interfaces/spans/utils';
 import type {EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import {assert} from 'sentry/types/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 

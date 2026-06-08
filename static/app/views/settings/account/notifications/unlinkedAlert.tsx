@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 
 type Props = {
   organizations: OrganizationSummary[];

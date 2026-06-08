@@ -6,7 +6,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {t} from 'sentry/locale';
-import {GroupActivityType, GroupStatus, type Group} from 'sentry/types/group';
+import {type Group} from 'sentry/types/group';
+import {GroupActivityType, GroupStatus} from 'sentry/types/groupBase';
 
 const DOWNTIME_START_TYPES = [
   GroupActivityType.SET_UNRESOLVED,

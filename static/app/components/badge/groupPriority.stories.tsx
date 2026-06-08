@@ -5,7 +5,7 @@ import {
   GroupPriorityDropdown,
 } from 'sentry/components/badge/groupPriority';
 import * as Storybook from 'sentry/stories';
-import {PriorityLevel} from 'sentry/types/group';
+import {PriorityLevel} from 'sentry/types/groupBase';
 
 const PRIORITIES = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
 

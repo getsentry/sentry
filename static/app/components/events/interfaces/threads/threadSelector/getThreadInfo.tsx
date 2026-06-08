@@ -3,7 +3,7 @@ import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {getMappedThreadState} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
-import type {EntryData} from 'sentry/types/group';
+import type {EntryData} from 'sentry/types/groupBase';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import {getThreadException} from './getThreadException';

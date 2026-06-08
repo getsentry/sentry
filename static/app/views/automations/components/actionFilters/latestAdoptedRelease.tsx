@@ -2,7 +2,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
-import type {Environment} from 'sentry/types/project';
+import type {Environment} from 'sentry/types/projectBase';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';

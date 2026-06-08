@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {type ProjectStats} from 'sentry/types/project';
+import {type ProjectStats} from 'sentry/types/projectBase';
 import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
 
 function addProjectStatsResponse({

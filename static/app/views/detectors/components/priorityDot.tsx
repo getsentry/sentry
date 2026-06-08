@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {PriorityLevel} from 'sentry/types/group';
+import {PriorityLevel} from 'sentry/types/groupBase';
 
 export const PriorityDot = styled('div')<{priority: PriorityLevel | 'resolved'}>`
   width: 8px;

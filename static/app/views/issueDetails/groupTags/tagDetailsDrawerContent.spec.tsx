@@ -12,7 +12,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {TagValue, TagWithTopValues} from 'sentry/types/group';
+import type {TagValue, TagWithTopValues} from 'sentry/types/groupBase';
 
 import {TagDetailsDrawerContent} from './tagDetailsDrawerContent';
 

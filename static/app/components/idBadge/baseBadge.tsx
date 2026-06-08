@@ -10,10 +10,11 @@ import {
 } from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 
-import type {Actor} from 'sentry/types/core';
-import type {OrganizationSummary, Team} from 'sentry/types/organization';
+import type {Actor} from 'sentry/types/coreBase';
+import type {Team} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 import type {AvatarProject} from 'sentry/types/project';
-import type {AvatarUser} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 import type {SpaceSize} from 'sentry/utils/theme';
 
 export interface BaseBadgeProps {

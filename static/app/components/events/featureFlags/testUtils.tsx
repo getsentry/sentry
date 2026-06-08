@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import type {FeatureFlag} from 'sentry/types/event';
+import type {FeatureFlag} from 'sentry/types/eventBase';
 
 export const MOCK_FLAGS: Array<Required<FeatureFlag>> = [
   {

@@ -5,11 +5,11 @@ import omitBy from 'lodash/omitBy';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {
-  Organization,
   SessionApiResponse,
   SessionFieldWithOperation,
-} from 'sentry/types/organization';
+} from 'sentry/types/organizationBase';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 
 const propNamesToIgnore = ['api', 'children', 'organization'];

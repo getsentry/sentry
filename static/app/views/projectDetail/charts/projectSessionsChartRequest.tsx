@@ -12,8 +12,9 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {Organization, SessionApiResponse} from 'sentry/types/organization';
-import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organizationBase';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organizationBase';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {
   filterSessionsInTimeWindow,

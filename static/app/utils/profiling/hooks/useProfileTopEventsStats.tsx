@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import type {EventsStatsSeries} from 'sentry/types/organization';
+import type {EventsStatsSeries} from 'sentry/types/organizationBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {transformSingleSeries} from 'sentry/utils/profiling/hooks/utils';

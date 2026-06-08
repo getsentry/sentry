@@ -5,7 +5,8 @@ import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
-import type {Project, ProjectKey} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 
 export type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 

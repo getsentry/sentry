@@ -1,4 +1,4 @@
-import type {Measurement} from 'sentry/types/event';
+import type {Measurement} from 'sentry/types/eventBase';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 
 import type {BaseNode} from './traceTreeNode/baseNode';

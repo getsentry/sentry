@@ -1,5 +1,6 @@
 import type {PageFiltersState} from 'sentry/components/pageFilters/store';
-import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
+import type {PinnedPageFilter} from 'sentry/types/coreBase';
 
 export function PageFiltersFixture(params: Partial<PageFilters> = {}): PageFilters {
   return {

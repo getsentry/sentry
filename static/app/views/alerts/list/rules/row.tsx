@@ -21,7 +21,7 @@ import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEllipsis, IconUser} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useUserTeams} from 'sentry/utils/useUserTeams';

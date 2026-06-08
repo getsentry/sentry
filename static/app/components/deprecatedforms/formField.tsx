@@ -4,7 +4,7 @@ import classNames from 'classnames';
 
 import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import type {Meta} from 'sentry/types/group';
+import type {Meta} from 'sentry/types/groupBase';
 import {defined} from 'sentry/utils/defined';
 
 type Value = string | number | boolean;

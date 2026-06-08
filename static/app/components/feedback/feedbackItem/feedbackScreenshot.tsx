@@ -9,7 +9,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventAttachment} from 'sentry/types/group';
+import type {EventAttachment} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 

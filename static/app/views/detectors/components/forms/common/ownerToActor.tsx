@@ -1,4 +1,4 @@
-import type {Actor} from 'sentry/types/core';
+import type {Actor} from 'sentry/types/coreBase';
 
 /**
  * Converts an owner string (e.g. "user:123" or "team:456") to an Actor object.

@@ -13,8 +13,9 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import type {GroupStatusResolution} from 'sentry/types/group';
+import type {IgnoredStatusDetails} from 'sentry/types/groupBase';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/groupBase';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 
 const ONE_HOUR = 60;

@@ -4,7 +4,7 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
-import type {TagValue} from 'sentry/types/group';
+import type {TagValue} from 'sentry/types/groupBase';
 import {SpansSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 
 // The endpoint seems to just return these fields, but the original TagValue type

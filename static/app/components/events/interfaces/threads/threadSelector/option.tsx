@@ -6,7 +6,7 @@ import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Thread} from 'sentry/types/event';
-import type {EntryData} from 'sentry/types/group';
+import type {EntryData} from 'sentry/types/groupBase';
 
 import {ThreadSelectorGrid} from './styles';
 import type {ThreadStates} from './threadStates';

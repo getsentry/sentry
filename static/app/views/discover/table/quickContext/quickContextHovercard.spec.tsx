@@ -5,7 +5,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {EventOrGroupType} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/eventBase';
 import {ReleaseStatus} from 'sentry/types/release';
 import type {EventData, EventView} from 'sentry/utils/discover/eventView';
 

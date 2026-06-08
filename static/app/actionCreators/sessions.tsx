@@ -1,7 +1,8 @@
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import type {DateString} from 'sentry/types/core';
-import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {DateString} from 'sentry/types/coreBase';
+import type {Organization} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organizationBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 

@@ -5,13 +5,9 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {
-  EntrySpans,
-  Event,
-  EventGroupComponent,
-  EventGroupVariant,
-} from 'sentry/types/event';
-import {EventGroupVariantType} from 'sentry/types/event';
+import type {EntrySpans, Event} from 'sentry/types/event';
+import type {EventGroupComponent, EventGroupVariant} from 'sentry/types/eventBase';
+import {EventGroupVariantType} from 'sentry/types/eventBase';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 import {GroupingComponent, GroupingHint} from './groupingComponent';

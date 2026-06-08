@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
-import {EventOrGroupType} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/eventBase';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';

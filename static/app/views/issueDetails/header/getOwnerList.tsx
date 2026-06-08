@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
-import type {Actor} from 'sentry/types/core';
-import type {SuggestedOwnerReason} from 'sentry/types/group';
+import type {Actor} from 'sentry/types/coreBase';
+import type {SuggestedOwnerReason} from 'sentry/types/groupBase';
 import type {Commit, Committer} from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
