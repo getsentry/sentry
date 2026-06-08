@@ -157,11 +157,11 @@ class UpdateGroupsTest(TestCase):
         resolve_records = [
             r
             for r in logs.records
-            if r.message == "group.action_log" and r.__dict__["action"] == "resolve"
+            if r.message == "group.action_log" and getattr(r, "action") == "resolve"
         ]
         assert len(resolve_records) == 1
-        assert resolve_records[0].__dict__["source"] == ActionSource.SLACK
-        assert resolve_records[0].__dict__["actor_id"] == str(self.user.id)
+        assert getattr(resolve_records[0], "source") == ActionSource.SLACK
+        assert getattr(resolve_records[0], "actor_id") == str(self.user.id)
 
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
