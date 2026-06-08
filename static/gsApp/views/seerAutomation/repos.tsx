@@ -35,18 +35,6 @@ export default function SeerAutomationRepos() {
       <Stack gap="lg" flex="1" minHeight="0" contain="size">
         <SettingsPageHeader
           title={t('Code Review')}
-          subtitle={tct(
-            "Enable [code_review:Code Review] on your repositories to automatically catch bugs before they're merged into production. Reviews can be triggered when a PR is ready for review, after each update to a PR, and always manually by tagging [code:@sentry review] in the comments. [docs:Read the docs] to learn what Seer can do.",
-            {
-              code: <code />,
-              code_review: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
-              ),
-              docs: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
-              ),
-            }
-          )}
           action={
             <LinkButton
               size="sm"
@@ -59,6 +47,18 @@ export default function SeerAutomationRepos() {
               {t('Defaults')}
             </LinkButton>
           }
+          subtitle={tct(
+            "Enable [code_review:Code Review] on your repositories to automatically catch bugs before they're merged into production. Reviews can be triggered when a PR is ready for review, after each update to a PR, and always manually by tagging [code:@sentry review] in the comments. [docs:Read the docs] to learn what Seer can do.",
+            {
+              code: <code />,
+              code_review: (
+                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
+              ),
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
+              ),
+            }
+          )}
         />
         <SeerSettingsPageBanners />
         <SeerRepoTable />
