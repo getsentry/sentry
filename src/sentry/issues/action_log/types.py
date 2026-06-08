@@ -82,6 +82,8 @@ class GroupActionType(IntEnum):
     UNLINK_PLATFORM_EXTERNAL_ISSUE = 23
     AUTOFIX_PR_CREATED = 24
     RESOLVED_IN_PULL_REQUEST = 25
+    ROOT_CAUSE_IDENTIFIED = 26
+    AUTOFIX_CODING_COMPLETE = 27
 
 
 class GroupAction(BaseModel, abc.ABC):
@@ -287,3 +289,24 @@ class ResolvedInPullRequestAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.RESOLVED_IN_PULL_REQUEST
+
+
+class RootCauseIdentifiedAction(GroupAction):
+    """Seer (or a human) identified the root cause of an issue."""
+
+    run_id: str | None = None
+    summary: str | None = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.ROOT_CAUSE_IDENTIFIED
+
+
+class AutofixCodingCompleteAction(GroupAction):
+    """Seer finished writing a fix (code ready, PR not yet created)."""
+
+    run_id: str | None = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.AUTOFIX_CODING_COMPLETE

@@ -10,6 +10,18 @@ class IssueStatus(StrEnum):
     CLOSED = "closed"
 
 
+class Progress(StrEnum):
+    """Where an open issue is in the journey toward resolution."""
+
+    IDENTIFIED = "identified"
+    TRIAGED = "triaged"
+    DIAGNOSED = "diagnosed"
+    FIX_PROPOSED = "fix_proposed"
+    FIX_APPLIED = "fix_applied"
+    FIX_DEPLOYED = "fix_deployed"
+    REGRESSED = "regressed"
+
+
 class WorkingOnEntry(BaseModel):
     since: float
 
@@ -46,3 +58,5 @@ CLOSING_PRS = Feature[frozenset[str]](
 )
 
 WAS_AUTOFIXED = Feature[bool]("was_autofixed", default=False)
+
+PROGRESS = Feature[str | None]("progress", default=Progress.IDENTIFIED)

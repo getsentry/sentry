@@ -36,9 +36,13 @@ class GroupDerivedData(DefaultFieldsModel):
     # Column-backed features — promoted from JSON for indexing/querying.
     last_seen = models.FloatField(null=True, default=None)
     view_count = BoundedPositiveIntegerField(default=0)
+    progress = models.CharField(max_length=32, null=True, default="identified")
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupderiveddata"
+        indexes = [
+            models.Index(fields=["progress", "group"]),
+        ]
 
     __repr__ = sane_repr("group_id", "cursor_date", "cursor_id")

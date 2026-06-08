@@ -24,12 +24,14 @@ from sentry.issues.derived.fields import (
     CLOSING_PRS,
     LAST_OPENED,
     LAST_SEEN,
+    PROGRESS,
     RECENT_VIEWERS,
     STATUS,
     VIEW_COUNT,
     WAS_AUTOFIXED,
     WORKING_ON,
     IssueStatus,
+    Progress,
     WorkingOnEntry,
 )
 from sentry.issues.derived.lib import Pipeline, resolve
@@ -445,6 +447,132 @@ def test_working_on_since_preserved() -> None:
 
 
 # ---------------------------------------------------------------------------
+# track_progress
+# ---------------------------------------------------------------------------
+
+
+def test_progress_starts_identified() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    assert state[PROGRESS] == Progress.IDENTIFIED
+
+
+def test_view_does_not_advance_progress() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    state = p.step(state, FakeEntry(type=GroupActionType.VIEW))
+    assert state[PROGRESS] == Progress.IDENTIFIED
+
+
+def test_assign_advances_to_triaged() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
+    assert state[PROGRESS] == Progress.TRIAGED
+
+
+def test_root_cause_identified_advances_to_diagnosed() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    state = p.step(state, FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED))
+    assert state[PROGRESS] == Progress.DIAGNOSED
+
+
+def test_autofix_coding_complete_advances_to_fix_proposed() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    state = p.step(state, FakeEntry(type=GroupActionType.AUTOFIX_CODING_COMPLETE))
+    assert state[PROGRESS] == Progress.FIX_PROPOSED
+
+
+def test_autofix_pr_advances_to_fix_proposed() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    state = p.step(
+        state,
+        FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data=_seer_pr_data(101)),
+    )
+    assert state[PROGRESS] == Progress.FIX_PROPOSED
+
+
+def test_progress_never_goes_backward() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    state = p.step(
+        state,
+        FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data=_seer_pr_data(101)),
+    )
+    assert state[PROGRESS] == Progress.FIX_PROPOSED
+    # A VIEW shouldn't regress from FIX_PROPOSED back to TRIAGED
+    state = p.step(state, FakeEntry(type=GroupActionType.VIEW))
+    assert state[PROGRESS] == Progress.FIX_PROPOSED
+
+
+def test_progress_none_when_closed() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
+    assert state[PROGRESS] == Progress.TRIAGED
+    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
+    assert state[PROGRESS] is None
+
+
+def test_progress_regressed_on_reopen() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
+    state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
+    assert state[PROGRESS] == Progress.REGRESSED
+
+
+def test_progress_advances_from_regressed() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
+    state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
+    assert state[PROGRESS] == Progress.REGRESSED
+    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
+    assert state[PROGRESS] == Progress.TRIAGED
+
+
+def test_progress_full_lifecycle() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    assert state[PROGRESS] == Progress.IDENTIFIED
+
+    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
+    assert state[PROGRESS] == Progress.TRIAGED
+
+    state = p.step(state, FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED))
+    assert state[PROGRESS] == Progress.DIAGNOSED
+
+    state = p.step(state, FakeEntry(type=GroupActionType.AUTOFIX_CODING_COMPLETE))
+    assert state[PROGRESS] == Progress.FIX_PROPOSED
+
+    # PR created doesn't advance past FIX_PROPOSED (same rank)
+    state = p.step(
+        state,
+        FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data=_seer_pr_data(101)),
+    )
+    assert state[PROGRESS] == Progress.FIX_PROPOSED
+
+    # Resolve closes the issue
+    state = p.step(
+        state,
+        FakeEntry(type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)),
+    )
+    assert state[PROGRESS] is None
+
+    # Reopen
+    state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
+    assert state[PROGRESS] == Progress.REGRESSED
+
+    # New investigation
+    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
+    assert state[PROGRESS] == Progress.TRIAGED
+
+
+# ---------------------------------------------------------------------------
 # Full pipeline
 # ---------------------------------------------------------------------------
 
@@ -456,6 +584,7 @@ def test_full_pipeline_constructs() -> None:
     assert state[VIEW_COUNT] == 0
     assert state[LAST_SEEN] is None
     assert state[WAS_AUTOFIXED] is False
+    assert state[PROGRESS] == Progress.IDENTIFIED
 
 
 def test_full_pipeline_mixed_events() -> None:
