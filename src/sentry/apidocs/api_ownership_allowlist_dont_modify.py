@@ -71,7 +71,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/accept-invite/{organization_id_or_slug}/{member_id}/{token}/",
     "/api/0/users/",
     "/api/0/broadcasts/",
-    "/api/0/organizations/{organization_id_or_slug}/releases/{version}/files/{file_id}/",
     "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/release-count/",
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/assemble/",
     "/api/0/users/{user_id}/user-identities/",
