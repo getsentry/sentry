@@ -1,10 +1,10 @@
 import {useMutation} from '@tanstack/react-query';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {Form} from 'sentry/components/forms/form';
 import type {Data} from 'sentry/components/forms/types';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -109,7 +109,7 @@ function AcceptProjectTransfer() {
   return (
     <NarrowLayout>
       <SentryDocumentTitle title={t('Accept Project Transfer')} />
-      <Layout.Title>{t('Approve Transfer Project Request')}</Layout.Title>
+      <PageTitle>{t('Approve Transfer Project Request')}</PageTitle>
       <p>
         {tct(
           'Projects must be transferred to a specific [organization]. You can grant specific teams access to the project later under the [projectSettings]. (Note that granting access to at least one team is necessary for the project to appear in all parts of the UI.)',
@@ -143,5 +143,11 @@ function AcceptProjectTransfer() {
     </NarrowLayout>
   );
 }
+
+const PageTitle = styled('h1')`
+  font-size: 1.625rem;
+  font-weight: 600;
+  margin: 0 0 ${p => p.theme.space.md};
+`;
 
 export default AcceptProjectTransfer;
