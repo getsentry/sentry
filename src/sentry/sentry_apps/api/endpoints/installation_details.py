@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import SentryAppParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import SentryAppInstallationStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
@@ -60,7 +61,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, installation) -> Response:
+    def get(self, request: Request, installation) -> Response[SentryAppInstallationResult]:
         """
         Return details about a single custom integration (Sentry App) installation.
         """
@@ -140,7 +141,9 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, installation) -> Response:
+    def put(
+        self, request: Request, installation
+    ) -> Response[SentryAppInstallationResult] | Response[ValidationErrorResponse]:
         """
         Update a custom integration (Sentry App) installation, for example to mark a
         pending installation as installed.
@@ -161,4 +164,4 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
                     serializer=SentryAppInstallationSerializer(),
                 )
             )
-        return Response(serializer.errors, status=400)
+        return Response(as_validation_errors(serializer), status=400)

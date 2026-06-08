@@ -13,6 +13,7 @@ PROXY_BASE_URL_HEADER = "X-Sentry-Subnet-Base-URL"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
 PROXY_PATH = "X-Sentry-Subnet-Path"
 PROXY_KEYID_HEADER = "X-Sentry-Subnet-Keyid"
+PROXY_TIMEOUT_HEADER = "X-Sentry-Subnet-Timeout"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 PROXY_APIGATEWAY_HEADER = "X-Apigateway"
 
@@ -22,6 +23,7 @@ INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
     PROXY_SIGNATURE_HEADER,
     PROXY_BASE_URL_HEADER,
     PROXY_PATH,
+    PROXY_TIMEOUT_HEADER,
 }
 
 DEFAULT_REQUEST_BODY = b""
@@ -53,6 +55,38 @@ def clean_proxy_headers(headers: Mapping[str, str] | None) -> MutableMapping[str
 
 def clean_outbound_headers(headers: Mapping[str, str] | None) -> MutableMapping[str, str]:
     return clean_headers(headers, invalid_headers=INVALID_OUTBOUND_HEADERS)
+
+
+def encode_proxy_timeout(timeout: float | tuple[float, float] | None) -> str | None:
+    """Serialize a requests-style timeout for transport in a proxy header.
+
+    A scalar is encoded as a single value; a (connect, read) tuple is encoded as
+    two comma-separated values. ``None`` returns ``None`` so callers can skip the
+    header entirely and let the downstream client fall back to its default.
+    """
+    if timeout is None:
+        return None
+    if isinstance(timeout, tuple):
+        connect, read = timeout
+        return f"{connect},{read}"
+    return str(timeout)
+
+
+def decode_proxy_timeout(value: str | None) -> float | tuple[float, float] | None:
+    """Parse the value produced by :func:`encode_proxy_timeout`.
+
+    Returns ``None`` for a missing or unparseable header so the downstream client
+    falls back to its own default timeout rather than failing the request.
+    """
+    if not value:
+        return None
+    try:
+        if "," in value:
+            connect, read = value.split(",", 1)
+            return (float(connect), float(read))
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def encode_subnet_signature(
