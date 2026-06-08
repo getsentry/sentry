@@ -5,7 +5,8 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {IssueType, type Group} from 'sentry/types/group';
+import {type Group} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/groupBase';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';

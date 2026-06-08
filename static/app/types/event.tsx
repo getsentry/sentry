@@ -40,30 +40,11 @@ import type {
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory, UserReport} from './group';
+import type {UserReport} from './group';
+import type {IssueAttachment, IssueCategory} from './groupBase';
 import type {PlatformKey} from './platform';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
-export {EntryType, EventOrGroupType};
-export type {
-  DeviceContext,
-  EntryRequest,
-  EventMetadata,
-  EventOccurrence,
-  EventTag,
-  Lock,
-  ProfileContext,
-};
-export {DeviceContextKey, EventGroupVariantType} from 'sentry/types/eventBase';
-export type {
-  EntryRequestDataGraphQl,
-  EventEvidenceDisplay,
-  EventGroupComponent,
-  EventGroupVariant,
-  EventTagWithMeta,
-  FeatureFlag,
-  Level,
-} from 'sentry/types/eventBase';
 
 /**
  * Grouping Configuration.

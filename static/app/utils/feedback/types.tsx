@@ -1,5 +1,6 @@
 import type {Event} from 'sentry/types/event';
-import type {BaseGroup, GroupStats} from 'sentry/types/group';
+import type {BaseGroup} from 'sentry/types/group';
+import type {GroupStats} from 'sentry/types/groupBase';
 import type {Project} from 'sentry/types/project';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;

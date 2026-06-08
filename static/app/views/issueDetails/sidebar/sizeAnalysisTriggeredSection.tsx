@@ -3,7 +3,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
-import type {Event, EventOccurrence} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {EventOccurrence} from 'sentry/types/eventBase';
 import type {Group} from 'sentry/types/group';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';

@@ -16,8 +16,8 @@ import type {
   GroupActivityAssigned,
   GroupActivitySetEscalating,
   GroupActivitySetIgnored,
-  IssueCategory,
 } from 'sentry/types/group';
+import type {IssueCategory} from 'sentry/types/groupBase';
 import {
   GroupActivityType,
   IssueCategory as IssueCategoryEnum,

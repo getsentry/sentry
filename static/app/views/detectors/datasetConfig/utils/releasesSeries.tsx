@@ -1,5 +1,6 @@
 import type {Series} from 'sentry/types/echarts';
-import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
+import type {SessionApiResponse} from 'sentry/types/organizationBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDuration} from 'sentry/utils/duration/getDuration';

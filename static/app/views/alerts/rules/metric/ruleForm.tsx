@@ -34,11 +34,11 @@ import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import {pulse} from 'sentry/styles/animations';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
-  Confidence,
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organizationBase';
 import type {Project} from 'sentry/types/project';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';

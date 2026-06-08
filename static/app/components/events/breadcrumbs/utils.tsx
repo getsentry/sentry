@@ -33,7 +33,8 @@ import {
   BreadcrumbType,
   type RawCrumb,
 } from 'sentry/types/breadcrumbs';
-import {EntryType, type Event} from 'sentry/types/event';
+import {type Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');

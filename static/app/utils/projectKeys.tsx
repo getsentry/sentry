@@ -1,7 +1,8 @@
 import {skipToken} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
-import type {Project, ProjectKey} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface ProjectKeysParameters {

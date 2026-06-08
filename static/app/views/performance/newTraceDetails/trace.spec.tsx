@@ -16,7 +16,8 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {EntryType, type EventTransaction} from 'sentry/types/event';
+import {type EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
   makeEventTransaction,

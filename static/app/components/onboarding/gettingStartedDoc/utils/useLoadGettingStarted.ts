@@ -12,7 +12,8 @@ import {
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 
 type Props = {

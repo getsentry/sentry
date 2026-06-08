@@ -28,7 +28,8 @@ import {
   type FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
-import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import {type TagCollection} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/groupBase';
 import {
   FieldKey,
   FieldKind,

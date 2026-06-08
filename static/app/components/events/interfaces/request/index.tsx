@@ -20,7 +20,8 @@ import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData
 import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {EntryRequest, Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {EntryRequest} from 'sentry/types/eventBase';
 import {EntryType} from 'sentry/types/eventBase';
 import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';

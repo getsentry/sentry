@@ -9,7 +9,8 @@ import {
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Event, EventTagWithMeta} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {EventTagWithMeta} from 'sentry/types/eventBase';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';

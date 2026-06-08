@@ -3,7 +3,8 @@ import type {Client} from 'sentry/api';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project, ProjectKey} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 

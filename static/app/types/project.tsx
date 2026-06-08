@@ -7,8 +7,6 @@ import type {Organization, Team} from './organization';
 import type {PlatformKey} from './platform';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
-export type {ProjectStats, SeerNightshiftTweaks};
-export type {Environment, ProjectKey} from 'sentry/types/projectBase';
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {

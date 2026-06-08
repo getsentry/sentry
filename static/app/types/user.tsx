@@ -2,9 +2,8 @@ import {StacktraceOrder} from 'sentry/types/userBase';
 import type {AvatarUser} from 'sentry/types/userBase';
 
 import type {UserEnrolledAuthenticator} from './auth';
-import type {Avatar, Scope} from './core';
-export {StacktraceOrder};
-export type {AvatarUser};
+import type {Scope} from './core';
+import type {Avatar} from './coreBase';
 
 /**
  * Avatars are a more primitive version of User.

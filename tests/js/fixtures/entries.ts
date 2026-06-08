@@ -1,6 +1,7 @@
 import {EventEntryFixture} from 'sentry-fixture/eventEntry';
 
-import {EntryType, type Entry} from 'sentry/types/event';
+import {type Entry} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/eventBase';
 
 export function Entries123Target(): Entry[] {
   return [

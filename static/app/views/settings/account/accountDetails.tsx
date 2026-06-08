@@ -12,7 +12,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {languages} from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
-import {StacktraceOrder, type User} from 'sentry/types/user';
+import {type User} from 'sentry/types/user';
+import {StacktraceOrder} from 'sentry/types/userBase';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,

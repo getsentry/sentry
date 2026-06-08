@@ -10,7 +10,8 @@ import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
-import type {AvatarUser, User} from 'sentry/types/user';
+import type {User} from 'sentry/types/user';
+import type {AvatarUser} from 'sentry/types/userBase';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useOverlay} from 'sentry/utils/useOverlay';
 

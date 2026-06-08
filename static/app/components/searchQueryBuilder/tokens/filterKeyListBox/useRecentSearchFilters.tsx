@@ -13,7 +13,8 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import type {RecentSearch, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
+import type {RecentSearch} from 'sentry/types/groupBase';
 
 const MAX_RECENT_FILTERS = 3;
 const NO_FILTERS: any = [];

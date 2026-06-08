@@ -58,7 +58,8 @@ import {
 } from 'sentry/types/alerts';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization, Team} from 'sentry/types/organization';
-import type {Environment, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
+import type {Environment} from 'sentry/types/projectBase';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';

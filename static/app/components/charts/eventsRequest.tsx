@@ -14,12 +14,8 @@ import {
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/coreBase';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import type {
-  EventsStats,
-  EventsStatsData,
-  MultiSeriesEventsStats,
-  OrganizationSummary,
-} from 'sentry/types/organization';
+import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {EventsStatsData, OrganizationSummary} from 'sentry/types/organizationBase';
 import {defined} from 'sentry/utils/defined';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';

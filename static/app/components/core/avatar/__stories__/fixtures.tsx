@@ -1,5 +1,6 @@
 import type {DocIntegration} from 'sentry/types/integrations';
-import type {OrganizationSummary, Team} from 'sentry/types/organization';
+import type {Team} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 import type {AvatarUser} from 'sentry/types/userBase';
 
 export const USER: AvatarUser = {

@@ -16,7 +16,8 @@ import type {
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {ReadableSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
-import type {Actor, Avatar, Scope} from './core';
+import type {Scope} from './core';
+import type {Actor, Avatar} from './coreBase';
 import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
@@ -24,13 +25,6 @@ import type {Relay} from './relay';
 import type {BaseRole, OrgRole, TeamRole} from './roles';
 import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
-export type {Confidence, EventsStatsData, OrganizationSummary, SavedQueryVersions};
-export {SessionFieldWithOperation} from 'sentry/types/organizationBase';
-export type {
-  MissingMember,
-  SessionApiResponse,
-  SharedViewOrganization,
-} from 'sentry/types/organizationBase';
 
 /**
  * Organization summaries are sent when you request a list of all organizations

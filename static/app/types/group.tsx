@@ -21,8 +21,9 @@ import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import type {TitledPlugin} from 'sentry/types/plugins';
 import type {FieldKind} from 'sentry/utils/fields';
 
-import type {Actor} from './core';
-import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
+import type {Actor} from './coreBase';
+import type {Event} from './event';
+import type {EventMetadata, EventOrGroupType, Level} from './eventBase';
 import type {
   AvatarSentryApp,
   Commit,
@@ -34,27 +35,8 @@ import type {
 import type {Team} from './organization';
 import type {PlatformKey} from './platform';
 import type {AvatarProject, Project} from './project';
-import type {AvatarUser, User} from './user';
-export {
-  GroupActivityType,
-  GroupStatus,
-  IssueCategory,
-  IssueTitle,
-  IssueType,
-  PriorityLevel,
-};
-export type {GroupStats, IgnoredStatusDetails, InboxDetails};
-export {FixabilityScoreThresholds, SavedSearchType} from 'sentry/types/groupBase';
-export type {
-  GroupOpenPeriod,
-  GroupTombstoneHelper,
-  IssueAttachment,
-  KeyValueListData,
-  MarkReviewed,
-  RecentSearch,
-  SuggestedOwnerReason,
-  TagValue,
-} from 'sentry/types/groupBase';
+import type {User} from './user';
+import type {AvatarUser} from './userBase';
 
 /**
  * Saved issues searches

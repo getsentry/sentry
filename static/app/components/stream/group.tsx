@@ -29,12 +29,8 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/coreBase';
-import type {
-  Group,
-  GroupReprocessing,
-  InboxDetails,
-  PriorityLevel,
-} from 'sentry/types/group';
+import type {Group, GroupReprocessing} from 'sentry/types/group';
+import type {InboxDetails, PriorityLevel} from 'sentry/types/groupBase';
 import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {percent} from 'sentry/utils';

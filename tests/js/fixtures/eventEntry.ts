@@ -1,6 +1,7 @@
 import {ImageFixture} from 'sentry-fixture/image';
 
-import type {Entry, EntryDebugMeta, EntryRequest} from 'sentry/types/event';
+import type {Entry, EntryDebugMeta} from 'sentry/types/event';
+import type {EntryRequest} from 'sentry/types/eventBase';
 import {EntryType} from 'sentry/types/eventBase';
 
 export function EventEntryFixture(params = {}): Entry {

@@ -10,11 +10,8 @@ import {t} from 'sentry/locale';
 import type {ApiResult} from 'sentry/types/api';
 import type {DateString} from 'sentry/types/coreBase';
 import type {IssueAttachment} from 'sentry/types/groupBase';
-import type {
-  EventsStats,
-  MultiSeriesEventsStats,
-  OrganizationSummary,
-} from 'sentry/types/organization';
+import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';

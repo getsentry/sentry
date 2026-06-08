@@ -11,7 +11,8 @@ import {
 } from 'sentry/components/events/contexts/utils';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
 import {t} from 'sentry/locale';
-import type {Event, EventTagWithMeta} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {EventTagWithMeta} from 'sentry/types/eventBase';
 import type {KeyValueListData} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';

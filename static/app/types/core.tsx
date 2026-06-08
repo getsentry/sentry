@@ -6,16 +6,6 @@
  */
 import type {getInterval} from 'sentry/components/charts/utils';
 import type {DateString} from 'sentry/types/coreBase';
-export type {DateString};
-export {Outcome} from 'sentry/types/coreBase';
-export type {
-  Actor,
-  Avatar,
-  Choice,
-  Choices,
-  ObjectStatus,
-  PinnedPageFilter,
-} from 'sentry/types/coreBase';
 
 export type {Scope} from 'sentry/constants/scopes';
 export {DataCategory, DataCategoryExact} from 'sentry/types/dataCategory';

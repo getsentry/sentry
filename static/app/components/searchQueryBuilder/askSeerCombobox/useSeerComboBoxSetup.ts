@@ -7,8 +7,8 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
-import type {DateString} from 'sentry/types/core';
 import type {PageFilters} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/coreBase';
 import {useProjects} from 'sentry/utils/useProjects';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 

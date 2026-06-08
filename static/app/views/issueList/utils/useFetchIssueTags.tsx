@@ -4,16 +4,18 @@ import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {ItemType, type SearchGroup} from 'sentry/components/searchBar/types';
 import {
-  FixabilityScoreThresholds,
   getIssueTitleFromType,
   ISSUE_CATEGORY_TO_DESCRIPTION,
-  IssueCategory,
-  PriorityLevel,
   VALID_ISSUE_CATEGORIES,
   AI_DETECTED_ISSUE_TYPES,
   VISIBLE_ISSUE_TYPES,
   type TagCollection,
 } from 'sentry/types/group';
+import {
+  FixabilityScoreThresholds,
+  IssueCategory,
+  PriorityLevel,
+} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {

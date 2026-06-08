@@ -27,7 +27,8 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import type {SavedSearchType, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
+import type {SavedSearchType} from 'sentry/types/groupBase';
 import {defined} from 'sentry/utils/defined';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';

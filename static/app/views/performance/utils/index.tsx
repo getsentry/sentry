@@ -4,11 +4,8 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  NewQuery,
-  Organization,
-  OrganizationSummary,
-} from 'sentry/types/organization';
+import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organizationBase';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseProject} from 'sentry/types/release';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

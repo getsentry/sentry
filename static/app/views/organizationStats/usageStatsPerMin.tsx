@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
-import {DataCategoryExact, Outcome} from 'sentry/types/core';
+import {DataCategoryExact} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/coreBase';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';

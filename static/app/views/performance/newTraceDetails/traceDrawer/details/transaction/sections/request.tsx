@@ -17,7 +17,8 @@ import {
 import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {EntryType, type EntryRequest, type EventTransaction} from 'sentry/types/event';
+import {type EventTransaction} from 'sentry/types/event';
+import {EntryType, type EntryRequest} from 'sentry/types/eventBase';
 import type {Meta} from 'sentry/types/groupBase';
 import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';

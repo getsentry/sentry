@@ -14,7 +14,8 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {DetailedProject, ProjectKey} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
+import type {ProjectKey} from 'sentry/types/projectBase';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,

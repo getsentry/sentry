@@ -18,7 +18,8 @@ import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingF
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {MissingMember, OrgRole} from 'sentry/types/organization';
+import type {OrgRole} from 'sentry/types/organization';
+import type {MissingMember} from 'sentry/types/organizationBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useApi} from 'sentry/utils/useApi';
