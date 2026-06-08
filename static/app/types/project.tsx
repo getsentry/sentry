@@ -1,3 +1,5 @@
+import type {ProjectStats, SeerNightshiftTweaks} from 'sentry/types/projectBase';
+
 import type {Scope} from './core';
 import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
@@ -5,11 +7,8 @@ import type {Organization, Team} from './organization';
 import type {PlatformKey} from './platform';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
-
-import type {ProjectStats, SeerNightshiftTweaks} from 'sentry/types/projectBase';
 export type {ProjectStats, SeerNightshiftTweaks};
 export type {Environment, ProjectKey} from 'sentry/types/projectBase';
-
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {

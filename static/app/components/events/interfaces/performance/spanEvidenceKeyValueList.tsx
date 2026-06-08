@@ -30,13 +30,13 @@ import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/eventBase';
-import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/groupBase';
 import {
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
   IssueType,
   isTransactionBased,
 } from 'sentry/types/group';
+import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/groupBase';
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
