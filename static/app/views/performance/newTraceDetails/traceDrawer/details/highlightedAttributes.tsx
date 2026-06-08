@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {InfoText} from '@sentry/scraps/info';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
@@ -13,7 +14,6 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {NegativeCostWarning} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -157,9 +157,13 @@ function getAISpanAttributes({
       name: t('Cost'),
       value:
         costValue < 0 ? (
-          <NegativeCostWarning>
-            <LLMCosts cost={totalCosts.toString()} />
-          </NegativeCostWarning>
+          <Stack gap="xs">
+            <Flex align="center" gap="xs">
+              <IconWarning legacySize="1em" variant="warning" />
+              <LLMCosts cost={totalCosts.toString()} />
+            </Flex>
+            <TokenReportingWarningText />
+          </Stack>
         ) : (
           <LLMCosts cost={totalCosts.toString()} />
         ),
@@ -355,7 +359,7 @@ function HighlightedTokenAttributes({
 
   const hasCached = breakdown.cached > 0;
 
-  return (
+  const tokenDisplay = (
     <Tooltip
       title={
         <TokensTooltipTitle>
@@ -375,7 +379,6 @@ function HighlightedTokenAttributes({
       }
     >
       <TokensSpan>
-        {mismatch && <TokenMismatchIcon />}
         <Container as="span" display="inline-block">
           <Count value={breakdown.netNewInput} /> {t('in')}
         </Container>
@@ -399,6 +402,20 @@ function HighlightedTokenAttributes({
       </TokensSpan>
     </Tooltip>
   );
+
+  if (mismatch) {
+    return (
+      <Stack gap="xs">
+        <Flex align="center" gap="xs">
+          <IconWarning legacySize="1em" variant="warning" />
+          {tokenDisplay}
+        </Flex>
+        <TokenReportingWarningText />
+      </Stack>
+    );
+  }
+
+  return tokenDisplay;
 }
 
 function HighlightedContextUtilization({
@@ -458,26 +475,20 @@ function HighlightedContextUtilization({
 const TOKEN_TROUBLESHOOTING_URL =
   'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
 
-function TokenMismatchIcon() {
+function TokenReportingWarningText() {
   return (
-    <Tooltip
+    <InfoText
+      size="sm"
+      variant="warning"
       title={tct(
-        'Token counts do not add up correctly, which may indicate an error in token reporting. [link:Follow this guide] to troubleshoot.',
+        'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
         {
           link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />,
         }
       )}
-      skipWrapper
-      isHoverable
     >
-      <Container
-        as="span"
-        display="inline-flex"
-        style={{verticalAlign: 'middle', marginLeft: 4}}
-      >
-        <IconWarning legacySize="1em" variant="warning" />
-      </Container>
-    </Tooltip>
+      {t('This may indicate an error in token reporting.')}
+    </InfoText>
   );
 }
 
