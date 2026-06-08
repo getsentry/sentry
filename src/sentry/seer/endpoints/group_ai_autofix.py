@@ -9,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -93,6 +94,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
             "root_cause",
             "solution",
             "code_changes",
+            "pr_iteration",
             "open_pr",
             "coding_agent_handoff",
         ],
@@ -265,6 +267,29 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 return Response(status=status.HTTP_404_NOT_FOUND)
             open_pr_body: AutofixPostResponse = {"run_id": run_id}
             return Response(open_pr_body, status=status.HTTP_202_ACCEPTED)
+
+        if step == "pr_iteration":
+            if not features.has("organizations:autofix-pr-iteration", group.organization):
+                return Response(
+                    {"detail": "PR iteration is not enabled for this organization"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            if not run_id:
+                return Response(
+                    {"detail": "run_id is required for pr_iteration"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                state = get_autofix_agent_state(group.organization, group.id)
+            except SeerPermissionError as e:
+                if _is_unknown_run_id_error(e):
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+                raise PermissionDenied(SEER_PERMISSION_DENIED)
+            if state is None or not state.repo_pr_states:
+                return Response(
+                    {"detail": "Cannot iterate on a PR before one has been created"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         # Handle all built-in Seer steps. A missing run_id means this call starts a new
         # autofix run (the kickoff); a provided run_id is advancing an existing run.
