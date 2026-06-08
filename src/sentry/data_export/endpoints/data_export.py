@@ -393,9 +393,14 @@ class DataExportEndpoint(OrganizationEndpoint):
                 extra["status"] = "export_data_to_stored_blobs_sync"
             else:
                 extra["status"] = "assemble_download.task_scheduled"
-        except ExportError as error:
+        except ExportError:
+            # For sync export HTTP response is the only way to signal failure.
+            # Export can fail due to EAP timeouts or ratelimits.
             data_export.delete()
-            return Response({"detail": str(error)}, status=400)
+            return Response(
+                {"detail": "Failed to export your data. Please try again."},
+                status=500,
+            )
         except ValidationError as e:
             # This will handle invalid JSON requests
             metrics.incr(
