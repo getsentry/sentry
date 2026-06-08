@@ -50,7 +50,7 @@ function PinnedLogsWrapper({
       <PinnedLogs
         allRows={allRows}
         logsPinning={logsPinning}
-        query={{
+        pinnedLogsQuery={{
           fetchedRows: fetchedPinnedRows,
           isPending: isFetchingPinnedRows,
         }}

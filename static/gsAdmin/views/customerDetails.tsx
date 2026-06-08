@@ -46,12 +46,9 @@ import {CustomerAuditLog} from 'admin/components/customers/customerAuditLog';
 import {CustomerCharges} from 'admin/components/customers/customerCharges';
 import {CustomerHistory} from 'admin/components/customers/customerHistory';
 import {CustomerIntegrationDebugDetails} from 'admin/components/customers/customerIntegrationDebugDetails';
-import {CustomerIntegrations} from 'admin/components/customers/customerIntegrations';
 import {CustomerInvoices} from 'admin/components/customers/customerInvoices';
 import {CustomerMembers} from 'admin/components/customers/customerMembers';
-import {CustomerOnboardingTasks} from 'admin/components/customers/customerOnboardingTasks';
 import {CustomerOverview} from 'admin/components/customers/customerOverview';
-import {CustomerPlatforms} from 'admin/components/customers/customerPlatforms';
 import {CustomerPolicies} from 'admin/components/customers/customerPolicies';
 import {CustomerProjects} from 'admin/components/customers/customerProjects';
 import {CustomerStats} from 'admin/components/customers/customerStats';
@@ -375,34 +372,6 @@ export function CustomerDetails() {
       panelTitle="Billing Details"
       dropdownPrefix="Billing"
       sections={billingSections}
-    />
-  );
-
-  const productUsageSections = [
-    {
-      key: 'onboardingTasks',
-      name: 'Onboarding Tasks',
-      content: ({Panel}: any) => (
-        <CustomerOnboardingTasks inPanel={Panel} orgId={orgId} />
-      ),
-    },
-    {
-      key: 'integrations',
-      name: 'Plugins',
-      content: ({Panel}: any) => <CustomerIntegrations inPanel={Panel} orgId={orgId} />,
-    },
-    {
-      key: 'platforms',
-      name: 'Platforms',
-      content: ({Panel}: any) => <CustomerPlatforms inPanel={Panel} orgId={orgId} />,
-    },
-  ];
-
-  const productUsage = (
-    <SelectableContainer
-      panelTitle="Product Usage"
-      dropdownPrefix="Product"
-      sections={productUsageSections}
     />
   );
 
@@ -974,10 +943,6 @@ export function CustomerDetails() {
           {
             noPanel: true,
             content: billingDetails,
-          },
-          {
-            noPanel: true,
-            content: productUsage,
           },
           {
             noPanel: true,

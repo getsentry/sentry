@@ -536,7 +536,7 @@ export function LogsInfiniteTable({
           <PinnedLogs
             allRows={data}
             logsPinning={logsPinning}
-            query={pinnedLogsQuery}
+            pinnedLogsQuery={pinnedLogsQuery}
             renderRow={renderRow}
           />
         )}
