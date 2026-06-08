@@ -1,8 +1,8 @@
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {getRegionUrlOptions, getRegionNameOptions} from 'sentry/utils/regions';
+import {getLocalityUrlOptions, getLocalityNameOptions} from 'sentry/utils/regions';
 
-describe('getRegionUrlOptions', () => {
+describe('getLocalityUrlOptions', () => {
   let configstate: Config;
 
   beforeEach(() => {
@@ -20,7 +20,7 @@ describe('getRegionUrlOptions', () => {
       {name: 'ja', url: 'https://ja.sentry.io'},
     ]);
 
-    const res = getRegionUrlOptions([
+    const res = getLocalityUrlOptions([
       {name: 'us', url: 'https://us.sentry.io', displayName: 'us', label: 'us'},
     ]);
     expect(res).toHaveLength(2);
@@ -31,7 +31,7 @@ describe('getRegionUrlOptions', () => {
     expect(res[1]).toEqual({value: 'https://ja.sentry.io', label: ' ja'});
 
     // Excluding the only included option = empty set.
-    const none = getRegionUrlOptions(
+    const none = getLocalityUrlOptions(
       [{name: 'us', url: 'https://us.sentry.io', displayName: 'us', label: 'us'}],
       ['us']
     );
@@ -45,7 +45,7 @@ describe('getRegionUrlOptions', () => {
       {name: 'ja', url: 'https://ja.sentry.io'},
     ]);
 
-    const res = getRegionUrlOptions([], ['us']);
+    const res = getLocalityUrlOptions([], ['us']);
     expect(res).toHaveLength(1);
     expect(res[0]).toEqual({
       value: 'https://us.sentry.io',
@@ -61,13 +61,13 @@ describe('getRegionUrlOptions', () => {
       {name: 'ja', url: 'https://ja.sentry.io'},
     ]);
 
-    const res = getRegionUrlOptions();
+    const res = getLocalityUrlOptions();
     expect(res).toHaveLength(3);
     res.forEach(item => expect(item.value).not.toContain('us2'));
   });
 });
 
-describe('getRegionNameOptions', () => {
+describe('getLocalityNameOptions', () => {
   let configstate: Config;
 
   beforeEach(() => {
@@ -85,7 +85,7 @@ describe('getRegionNameOptions', () => {
       {name: 'ja', url: 'https://ja.sentry.io'},
     ]);
 
-    const res = getRegionNameOptions();
+    const res = getLocalityNameOptions();
     expect(res).toHaveLength(3);
 
     expect(res[0]).toEqual({value: 'us', label: '🇺🇸 United States of America (US)'});
