@@ -139,7 +139,7 @@ export function ExternalIssueForm({
   // Ref holding the set of dynamic field names derived from formFields.
   // Updated synchronously during render (useMemo) so handleValueChange always
   // sees the current set without a useEffect timing gap.
-  const dynamicFieldNamesRef = useRef<Set<string>>(new Set());
+  const dynamicFieldNamesRef = useRef(new Set());
 
   const {
     data: integrationDetails,
