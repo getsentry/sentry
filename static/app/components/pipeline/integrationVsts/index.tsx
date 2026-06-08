@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
@@ -21,6 +21,9 @@ interface VstsAccount {
 }
 
 interface VstsAccountSelectionStepData {
+  // Present for Marketplace installs: the pre-selected (and server-verified)
+  // account id. When set, the step advances without prompting.
+  account?: string;
   accounts?: VstsAccount[];
 }
 
@@ -55,8 +58,25 @@ function VstsAccountSelectionStep({
   advance,
   isAdvancing,
 }: PipelineStepProps<VstsAccountSelectionStepData, VstsAccountSelectionAdvanceData>) {
+  // Marketplace installs pre-select the account (verified server-side), which
+  // the backend surfaces as `account`. Advance immediately without prompting.
+  // The ref guards against React strict mode double-firing the effect.
+  const hasAutoAdvanced = useRef(false);
+  const preselectedAccount = stepData?.account;
+  useEffect(() => {
+    if (!preselectedAccount || hasAutoAdvanced.current) {
+      return;
+    }
+    hasAutoAdvanced.current = true;
+    advance({account: preselectedAccount});
+  }, [preselectedAccount, advance]);
+
   if (stepData === null) {
     return null;
+  }
+
+  if (preselectedAccount) {
+    return <Text>{t('Finishing up Azure DevOps integration installation...')}</Text>;
   }
 
   const accounts = stepData.accounts ?? [];

@@ -101,6 +101,11 @@ function trackExternalAnalytics({
  *    `/extensions/vercel/configure/`). Drives the pipeline with
  *    `vercelParams`.
  *
+ *  - Azure DevOps (VSTS Marketplace)
+ *    `/extensions/vsts/link/?targetId=...` (redirected from
+ *    `/extensions/vsts/configure/`). Drives the `vsts` pipeline with
+ *    `vstsParams`.
+ *
  *  - Anything else
  *    falls through to {@link finishLegacyInstallation}, which bounces to the
  *    legacy `/extensions/<slug>/configure/` backend endpoint.
@@ -276,6 +281,22 @@ export default function IntegrationOrganizationLink() {
     return {code};
   }, [integrationSlug, location.query]);
 
+  // Azure DevOps Marketplace installs arrive here with `targetId` in the URL
+  // query (forwarded from `/extensions/vsts/configure/`). It identifies the
+  // Azure DevOps organization to install; the `vsts` pipeline treats it as a
+  // pre-selected account (verified against the user's memberships) and
+  // auto-advances past account selection.
+  const vstsParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'vsts') {
+      return null;
+    }
+    const targetId = location.query.targetId;
+    if (typeof targetId !== 'string') {
+      return null;
+    }
+    return {targetId};
+  }, [integrationSlug, location.query]);
+
   // Legacy install path. Redirects to `/extensions/<slug>/configure/`, which
   // runs the Django-rendered `IntegrationExtensionConfigurationView` to drive
   // the install server-side via the legacy pipeline. Used by every provider
@@ -309,7 +330,8 @@ export default function IntegrationOrganizationLink() {
       discordAppDirectoryParams ??
       msTeamsParams ??
       jiraParams ??
-      vercelParams;
+      vercelParams ??
+      vstsParams;
     if (urlParams) {
       startFlow({provider, organization, onInstall, urlParams});
       return;
@@ -324,6 +346,7 @@ export default function IntegrationOrganizationLink() {
     msTeamsParams,
     jiraParams,
     vercelParams,
+    vstsParams,
     startFlow,
     onInstall,
     finishLegacyInstallation,
