@@ -1,151 +1,54 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
+import type {
+  AskSeerSearchQuery,
+  SeerRawResponse,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
-  useSearchQueryBuilderAI,
-  useSearchQueryBuilderLayout,
-  useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {Token} from 'sentry/components/searchSyntax/types';
-import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+  mapSeerResponseItem,
+  transformSeerResponse,
+  useInitialSeerQuery,
+  useSelectedProjectIds,
+  useSelectedProjectIdsForMutation,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 
-interface IssueAskSeerSearchQuery {
-  query: string;
-  end?: string | null;
-  groupBys?: string[];
-  sort?: string;
-  start?: string | null;
-  statsPeriod?: string;
-}
-
-interface IssueAskSeerTranslateResponse {
-  responses: Array<{
-    end: string | null;
-    group_by: string[];
-    query: string;
-    sort: string;
-    start: string | null;
-    stats_period: string;
-  }>;
-  unsupported_reason: string | null;
-}
-
-/**
- * Component that renders the AI-powered search combobox for the Issues list.
- * Uses the search-agent/translate endpoint with 'Issues' strategy.
- * Navigates directly to apply both query and sort in a single navigation.
- */
 export function IssueListSeerComboBox() {
-  const {projects} = useProjects();
-  const pageFilters = usePageFilters();
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
   const {setRunId} = useAiQueryContext();
   const analyticsArea = useAnalyticsArea();
-  const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
-  const {currentInputValueRef} = useSearchQueryBuilderLayout();
   const {enableAISearch, askSeerSuggestedQueryRef} = useSearchQueryBuilderAI();
 
-  let initialSeerQuery = '';
-  const queryDetails = useMemo(() => {
-    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
-    const parsedQuery = parseQuery(queryToUse);
-    return {parsedQuery, queryToUse};
-  }, [committedQuery, query, parseQuery]);
+  const initialSeerQuery = useInitialSeerQuery();
+  const selectedProjectIds = useSelectedProjectIds();
+  const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
 
-  const inputValue = currentInputValueRef.current.trim();
-
-  // Only filter out FREE_TEXT tokens if there's actual input value to filter by
-  const filteredCommittedQuery = queryDetails?.parsedQuery
-    ?.filter(
-      token =>
-        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
-    )
-    ?.map(token => stringifyToken(token))
-    ?.join(' ')
-    ?.trim();
-
-  // Use filteredCommittedQuery if it has content.
-  // Only fall back to queryToUse when there's no inputValue to filter by.
-  // This prevents duplication when the entire query is free text matching inputValue.
-  if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
-    initialSeerQuery = filteredCommittedQuery;
-  } else if (!inputValue && queryDetails?.queryToUse) {
-    initialSeerQuery = queryDetails.queryToUse;
-  }
-
-  if (inputValue) {
-    initialSeerQuery =
-      initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
-  }
-
-  // Get selected project IDs for the polling variant
-  const selectedProjectIds = useMemo(() => {
-    if (
-      pageFilters.selection.projects?.length > 0 &&
-      pageFilters.selection.projects?.[0] !== -1
-    ) {
-      return pageFilters.selection.projects;
-    }
-    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
-  }, [pageFilters.selection.projects, projects]);
-
-  // Transform the final_response from Seer to match the expected format
   const transformResponse = useCallback(
-    (response: IssueAskSeerSearchQuery): IssueAskSeerSearchQuery[] => {
-      const seerResponse = response as unknown as {
-        responses?: Array<{
-          end: string | null;
-          group_by: string[];
-          query: string;
-          sort: string;
-          start: string | null;
-          stats_period: string;
-        }>;
-      };
-
-      if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
-        return seerResponse.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-        }));
-      }
-
-      return [response];
-    },
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
+      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
     []
   );
 
   const issueListAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
-      const selectedProjects =
-        pageFilters.selection.projects?.length > 0 &&
-        pageFilters.selection.projects?.[0] !== -1
-          ? pageFilters.selection.projects
-          : projects.filter(p => p.isMember).map(p => p.id);
-
-      const data = await fetchMutation<IssueAskSeerTranslateResponse>({
+      const data = await fetchMutation<SeerRawResponse>({
         url: `/organizations/${organization.slug}/search-agent/translate/`,
         method: 'POST',
         data: {
           natural_language_query: queryToSubmit,
-          project_ids: selectedProjects,
+          project_ids: selectedProjectIdsForMutation,
           strategy: 'Issues',
         },
       });
@@ -153,20 +56,13 @@ export function IssueListSeerComboBox() {
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-        })),
+        queries: data.responses.map(response => mapSeerResponseItem(response)),
       };
     },
   });
 
   const applySeerSearchQuery = useCallback(
-    (result: IssueAskSeerSearchQuery, runId?: number) => {
+    (result: AskSeerSearchQuery, runId?: number) => {
       if (!result) {
         return;
       }
@@ -179,7 +75,6 @@ export function IssueListSeerComboBox() {
         end: resultEnd,
       } = result;
 
-      // Store the suggested query for feedback tracking
       askSeerSuggestedQueryRef.current = JSON.stringify({
         query: queryToUse,
         sort,
@@ -251,7 +146,7 @@ export function IssueListSeerComboBox() {
   }
 
   return (
-    <AskSeerPollingComboBox<IssueAskSeerSearchQuery>
+    <AskSeerPollingComboBox<AskSeerSearchQuery>
       initialQuery={initialSeerQuery}
       projectIds={selectedProjectIds}
       strategy="Issues"

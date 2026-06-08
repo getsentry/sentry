@@ -43,7 +43,9 @@ class ProjectReleaseRepositories(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, version) -> Response:
+    def get(
+        self, request: Request, project, version
+    ) -> Response[list[RepositorySerializerResponse]]:
         """
         Return the repositories that have commits associated with a given release.
         """
@@ -61,9 +63,5 @@ class ProjectReleaseRepositories(ProjectEndpoint):
 
         repositories = Repository.objects.filter(id__in=repository_ids)
 
-        return Response(
-            serialize(
-                list(repositories),
-                request.user,
-            )
-        )
+        data: list[RepositorySerializerResponse] = serialize(list(repositories), request.user)
+        return Response(data)

@@ -31,6 +31,8 @@ from sentry.silo.util import (
     PROXY_OI_HEADER,
     PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
+    PROXY_TIMEOUT_HEADER,
+    encode_proxy_timeout,
     encode_subnet_signature,
     trim_leading_slashes,
 )
@@ -243,3 +245,21 @@ class IntegrationProxyClient(ApiClient):
         )
         prepared_request.url = url
         return prepared_request
+
+    def set_proxy_request_options(
+        self,
+        prepared_request: PreparedRequest,
+        timeout: int | float | tuple[float, float] | None,
+    ) -> None:
+        """
+        Forward the resolved per-call timeout to the Control Silo proxy so the
+        downstream request to the service provider stays open as long as the
+        caller intended, instead of falling back to the Control Silo client's
+        default timeout.
+        """
+        if not self._should_proxy_to_control:
+            return
+
+        encoded = encode_proxy_timeout(timeout)
+        if encoded is not None:
+            prepared_request.headers[PROXY_TIMEOUT_HEADER] = encoded

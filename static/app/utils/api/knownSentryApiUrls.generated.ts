@@ -204,7 +204,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/issues/$issueId/attachments/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/'
-  | '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/update/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/comments/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/comments/$noteId/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/current-release/'

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Sequence
 from functools import cached_property
 
@@ -24,6 +25,8 @@ from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.utils import metrics
 
 from . import default_manager
+
+logger = logging.getLogger(__name__)
 
 IDENTITY_LINKED = _("Your {identity_provider} account has been associated with your Sentry account")
 
@@ -75,6 +78,16 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
                     "data": identity.get("data", {}),
                 },
             )
+
+            # Let providers react to a freshly linked identity (e.g. backfilling
+            # derived mappings). Best-effort: never let it break the link flow.
+            try:
+                self.provider.post_link_identity(identity, self.request.user.id)
+            except Exception:
+                logger.exception(
+                    "identity.post_link_identity.failed",
+                    extra={"provider": self.provider.key},
+                )
 
             messages.add_message(
                 self.request,

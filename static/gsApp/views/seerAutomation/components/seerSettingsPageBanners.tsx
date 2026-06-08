@@ -1,5 +1,6 @@
+import {Fragment} from 'react';
+
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -8,11 +9,7 @@ import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/components/noActiveSeerSubscriptionBanner';
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
-interface Props {
-  children: React.ReactNode;
-}
-
-export function SeerSettingsPageContent({children}: Props) {
+export function SeerSettingsPageBanners() {
   const subscription = useSubscription();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
@@ -25,7 +22,7 @@ export function SeerSettingsPageContent({children}: Props) {
     subscription?.canSelfServe;
 
   return (
-    <Stack gap="lg">
+    <Fragment>
       {showNoActiveSeerSubscriptionBanner ? <NoActiveSeerSubscriptionBanner /> : null}
 
       {canWrite ? null : (
@@ -35,8 +32,6 @@ export function SeerSettingsPageContent({children}: Props) {
           )}
         </Alert>
       )}
-
-      {children}
-    </Stack>
+    </Fragment>
   );
 }

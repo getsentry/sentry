@@ -72,7 +72,7 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = mock_response
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Test query")
+        run_id = client.start_run("Test query").seer_run_state_id
 
         assert run_id == 123
         mock_collect_context.assert_called_once_with(self.user, self.organization, request=None)
@@ -94,7 +94,7 @@ class TestSeerAgentClient(TestCase):
 
         client = SeerAgentClient(self.organization, self.user)
         request, _ = make_request()
-        run_id = client.start_run("Test query", request=request)
+        run_id = client.start_run("Test query", request=request).seer_run_state_id
 
         assert run_id == 123
         mock_collect_context.assert_called_once_with(self.user, self.organization, request=request)
@@ -111,7 +111,7 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = mock_response
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Query", on_page_context="some context")
+        run_id = client.start_run("Query", on_page_context="some context").seer_run_state_id
 
         assert run_id == 789
         call_args = mock_post.call_args
@@ -144,7 +144,7 @@ class TestSeerAgentClient(TestCase):
             self.organization, self.user, category_key="bug-fixer", category_value="issue-123"
         )
         with self.feature("organizations:seer-agent-source-code-search"):
-            run_id = client.start_run("Fix bug")
+            run_id = client.start_run("Fix bug").seer_run_state_id
 
         assert run_id == 999
         body = mock_post.call_args[0][0]
@@ -241,7 +241,7 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = mock_response
 
         client = SeerAgentClient(self.organization, self.user, intelligence_level="low")
-        run_id = client.start_run("Test query")
+        run_id = client.start_run("Test query").seer_run_state_id
 
         assert run_id == 555
         body = mock_post.call_args[0][0]
@@ -276,7 +276,7 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = mock_response
 
         client = SeerAgentClient(self.organization, self.user, max_iterations=3)
-        run_id = client.start_run("Test query")
+        run_id = client.start_run("Test query").seer_run_state_id
 
         assert run_id == 444
         body = mock_post.call_args[0][0]
@@ -297,7 +297,7 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = mock_response
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Test query")
+        run_id = client.start_run("Test query").seer_run_state_id
 
         assert run_id == 445
         body = mock_post.call_args[0][0]
@@ -483,7 +483,7 @@ class TestSeerAgentClientArtifacts(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         run_id = client.start_run(
             "Analyze errors", artifact_key="analysis", artifact_schema=IssueAnalysis
-        )
+        ).seer_run_state_id
 
         assert run_id == 123
 
@@ -1057,7 +1057,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
 
         client = SeerAgentClient(self.organization, self.user)
         with self.options({"seer.explorer_index.killswitch.enable": False}):
-            run_id = client.start_run("Why are my errors spiking?")
+            run_id = client.start_run("Why are my errors spiking?").seer_run_state_id
 
         assert run_id == 123
         mock_dispatch.assert_called_once()
@@ -1084,7 +1084,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
                 "explorer.context_engine_indexing.enable": True,
             }
         ):
-            run_id = client.start_run("Why are my errors spiking?")
+            run_id = client.start_run("Why are my errors spiking?").seer_run_state_id
 
         assert run_id == 123
         mock_dispatch.assert_not_called()
@@ -1117,7 +1117,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         )
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Why are my errors spiking?")
+        run_id = client.start_run("Why are my errors spiking?").seer_run_state_id
 
         assert run_id == 123
         mock_dispatch.assert_not_called()
@@ -1128,7 +1128,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
         mock_chat.return_value = self._mock_chat_response()
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Why are my errors spiking?")
+        run_id = client.start_run("Why are my errors spiking?").seer_run_state_id
 
         assert run_id == 123
         mock_dispatch.assert_not_called()
