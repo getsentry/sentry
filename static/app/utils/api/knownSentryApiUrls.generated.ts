@@ -245,6 +245,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/issues/$issueId/plugins/trello/link/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/plugins/trello/options'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/plugins/trello/unlink/'
+  | '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/related-issues/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/reprocessing/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/similar-issues-embeddings/'
