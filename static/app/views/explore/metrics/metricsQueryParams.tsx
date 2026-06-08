@@ -15,8 +15,9 @@ import {
   QueryParamsContextProvider,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
+  useSetQueryParamsVisualizesAndGroupBys,
 } from 'sentry/views/explore/queryParams/context';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualizeEquation,
@@ -209,6 +210,20 @@ export function useSetMetricVisualizes() {
     [setVisualizes]
   );
   return setMetricVisualizes;
+}
+
+export function useSetMetricVisualizesAndGroupBys() {
+  const setVisualizesAndGroupBys = useSetQueryParamsVisualizesAndGroupBys();
+  const setMetricVisualizesAndGroupBys = useCallback(
+    (newVisualizes: Visualize[], newGroupBys: GroupBy[]) => {
+      setVisualizesAndGroupBys(
+        newVisualizes.map(v => v.serialize()),
+        newGroupBys
+      );
+    },
+    [setVisualizesAndGroupBys]
+  );
+  return setMetricVisualizesAndGroupBys;
 }
 
 function updateQueryParams(
