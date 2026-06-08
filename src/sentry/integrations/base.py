@@ -205,7 +205,8 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     """
     a unique identifier to use when creating the ``Integration`` object.
     Only needed when you want to create the above object with something other
-    than ``key``. See: VstsExtensionIntegrationProvider.
+    than ``key`` (e.g. a provider variant that stores its ``Integration`` under
+    a shared provider key).
     """
 
     visible = True
