@@ -1,6 +1,7 @@
 import {createContext} from 'react';
 
-import type {IntegrationProvider, IntegrationType} from 'sentry/types/integrations';
+import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {IntegrationType} from 'sentry/types/integrationsBase';
 import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 type IntegrationContextProps = {

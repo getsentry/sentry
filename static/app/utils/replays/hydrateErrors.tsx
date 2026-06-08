@@ -10,7 +10,7 @@ import type {
   BreadcrumbFrame,
   ErrorFrame,
   RawReplayError,
-} from 'sentry/utils/replays/types';
+} from 'sentry/utils/replays/typesBase';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function hydrateErrors(

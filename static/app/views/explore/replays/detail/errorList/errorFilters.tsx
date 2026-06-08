@@ -4,7 +4,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import type {ErrorFrame} from 'sentry/utils/replays/types';
+import type {ErrorFrame} from 'sentry/utils/replays/typesBase';
 import type {useErrorFilters} from 'sentry/views/explore/replays/detail/errorList/useErrorFilters';
 import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
 

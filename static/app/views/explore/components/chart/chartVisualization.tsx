@@ -8,7 +8,7 @@ import {Container} from '@sentry/scraps/layout';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
 import {t} from 'sentry/locale';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echartsBase';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';

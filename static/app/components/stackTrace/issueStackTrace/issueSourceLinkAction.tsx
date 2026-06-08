@@ -9,10 +9,8 @@ import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import type {
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
+import type {SentryAppComponent} from 'sentry/types/integrations';
+import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrationsBase';
 import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
 const HOVER_ACTIONS_SLOT_HEIGHT = 28;

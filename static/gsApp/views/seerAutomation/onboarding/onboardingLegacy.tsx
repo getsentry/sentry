@@ -34,7 +34,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useQueryState} from 'nuqs';
 
 import {DetailsSplitDivider} from 'sentry/components/replays/virtualizedGrid/detailsSplitDivider';
-import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {SpanFrame} from 'sentry/utils/replays/typesBase';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {NetworkDetailsContent} from 'sentry/views/explore/replays/detail/network/details/content';
 import {

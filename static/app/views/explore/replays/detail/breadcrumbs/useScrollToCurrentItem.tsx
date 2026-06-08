@@ -2,7 +2,7 @@ import {useEffect, useMemo} from 'react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 
 import {getPrevReplayFrame} from 'sentry/utils/replays/getReplayEvent';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/typesBase';
 
 interface Opts {
   autoScrollEnabled: boolean;

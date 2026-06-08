@@ -10,7 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import type {RawReplayError} from 'sentry/utils/replays/types';
+import type {RawReplayError} from 'sentry/utils/replays/typesBase';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
 

@@ -9,7 +9,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {t} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';

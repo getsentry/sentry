@@ -6,7 +6,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {Plugin} from 'sentry/types/integrations';
+import type {Plugin} from 'sentry/types/integrationsBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';

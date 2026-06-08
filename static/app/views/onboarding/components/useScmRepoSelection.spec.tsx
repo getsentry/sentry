@@ -3,7 +3,7 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import type {IntegrationRepository} from 'sentry/types/integrations';
+import type {IntegrationRepository} from 'sentry/types/integrationsBase';
 
 import {useScmRepoSelection} from './useScmRepoSelection';
 

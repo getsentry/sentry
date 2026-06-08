@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 
 interface Props {
   isSelected: boolean;

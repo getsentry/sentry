@@ -1,7 +1,8 @@
 import type {ButtonProps} from '@sentry/scraps/button';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 /**

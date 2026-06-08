@@ -43,8 +43,8 @@ import type {
   PermissionResource,
   SentryApp,
   SentryAppAvatar,
-  WebhookEvent,
 } from 'sentry/types/integrations';
+import type {WebhookEvent} from 'sentry/types/integrationsBase';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

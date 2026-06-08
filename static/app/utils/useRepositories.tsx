@@ -1,6 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 export function useRepositories({orgSlug}: {orgSlug: string}) {

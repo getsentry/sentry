@@ -6,7 +6,7 @@ import {
   type SeerPreferencesResponse,
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';

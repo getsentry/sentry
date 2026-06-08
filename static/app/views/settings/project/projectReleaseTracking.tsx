@@ -18,7 +18,7 @@ import {PluginList} from 'sentry/components/pluginList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import type {Plugin} from 'sentry/types/integrations';
+import type {Plugin} from 'sentry/types/integrationsBase';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';

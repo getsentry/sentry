@@ -1,9 +1,9 @@
+import {isSpanFrame} from 'sentry/utils/replays/types';
 import type {
   BreadcrumbFrame,
   NavigationFrame,
   SpanFrame,
-} from 'sentry/utils/replays/types';
-import {isSpanFrame} from 'sentry/utils/replays/types';
+} from 'sentry/utils/replays/typesBase';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';

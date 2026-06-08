@@ -1,4 +1,4 @@
-import type {OurLogsPseudoFrame} from 'sentry/utils/replays/types';
+import type {OurLogsPseudoFrame} from 'sentry/utils/replays/typesBase';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,

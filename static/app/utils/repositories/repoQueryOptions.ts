@@ -1,6 +1,7 @@
 import type {InfiniteData} from '@tanstack/react-query';
 
-import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations';
+import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';

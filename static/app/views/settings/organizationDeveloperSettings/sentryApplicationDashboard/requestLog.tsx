@@ -20,11 +20,11 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {SentryApp} from 'sentry/types/integrations';
 import type {
-  SentryApp,
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';

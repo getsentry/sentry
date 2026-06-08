@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import type {ScmRepoMatches} from 'sentry/views/settings/organizationRepositories/types';
 

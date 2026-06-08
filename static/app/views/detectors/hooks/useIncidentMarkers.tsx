@@ -18,7 +18,7 @@ import type {
   EChartMouseOutHandler,
   EChartMouseOverHandler,
   ECharts,
-} from 'sentry/types/echarts';
+} from 'sentry/types/echartsBase';
 
 const INCIDENT_MARKER_SERIES_ID = '__incident_marker__';
 const INCIDENT_MARKER_AREA_SERIES_ID = '__incident_marker_area__';

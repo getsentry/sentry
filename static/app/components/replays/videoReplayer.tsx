@@ -1,5 +1,5 @@
 import {Timer} from 'sentry/utils/replays/timer';
-import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
+import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/typesBase';
 
 import {findVideoSegmentIndex} from './utils';
 

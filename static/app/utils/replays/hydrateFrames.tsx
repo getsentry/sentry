@@ -1,10 +1,3 @@
-import type {
-  OptionFrame,
-  RawBreadcrumbFrame,
-  RawSpanFrame,
-  RecordingFrame,
-  VideoEvent,
-} from 'sentry/utils/replays/types';
 import {
   isBreadcrumbFrameEvent,
   isOptionFrameEvent,
@@ -12,6 +5,13 @@ import {
   isSpanFrameEvent,
   isVideoFrameEvent,
 } from 'sentry/utils/replays/types';
+import type {
+  OptionFrame,
+  RawBreadcrumbFrame,
+  RawSpanFrame,
+  RecordingFrame,
+  VideoEvent,
+} from 'sentry/utils/replays/typesBase';
 
 export function hydrateFrames(attachments: unknown[]) {
   const rrwebFrames: RecordingFrame[] = [];

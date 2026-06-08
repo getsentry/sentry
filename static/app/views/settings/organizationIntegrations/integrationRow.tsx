@@ -14,8 +14,8 @@ import type {
   IntegrationInstallationStatus,
   PluginWithProjectList,
   SentryApp,
-  SentryAppStatus,
 } from 'sentry/types/integrations';
+import type {SentryAppStatus} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import {
   convertIntegrationTypeToSnakeCase,

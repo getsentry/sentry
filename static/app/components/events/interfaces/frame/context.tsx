@@ -7,10 +7,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
-import type {
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
+import type {SentryAppComponent} from 'sentry/types/integrations';
+import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrationsBase';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';

@@ -1,8 +1,8 @@
+import type {Integration} from 'sentry/types/integrations';
 import type {
-  Integration,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import type {Project} from 'sentry/types/project';
 
 interface RepositoryProjectPathConfigArgs extends Partial<RepositoryProjectPathConfig> {

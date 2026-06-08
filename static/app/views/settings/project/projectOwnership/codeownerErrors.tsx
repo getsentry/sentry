@@ -5,7 +5,8 @@ import uniqBy from 'lodash/uniqBy';
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types/integrations';
+import type {CodeOwner} from 'sentry/types/integrations';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrationsBase';
 
 type CodeOwnerErrorKeys = keyof CodeOwner['errors'];
 

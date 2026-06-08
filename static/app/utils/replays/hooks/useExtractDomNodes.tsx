@@ -2,7 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/typesBase';
 
 interface Params {
   enabled: boolean;

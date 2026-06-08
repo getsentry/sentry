@@ -8,11 +8,8 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
-import type {
-  PermissionResource,
-  Permissions,
-  WebhookEvent,
-} from 'sentry/types/integrations';
+import type {PermissionResource, Permissions} from 'sentry/types/integrations';
+import type {WebhookEvent} from 'sentry/types/integrationsBase';
 import {
   comparePermissionLevels,
   toResourcePermissions,

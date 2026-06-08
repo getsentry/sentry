@@ -19,7 +19,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import type {Plugin} from 'sentry/types/integrations';
+import type {Plugin} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

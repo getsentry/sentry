@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import type {IntegrationRepository, Repository} from 'sentry/types/integrations';
+import type {IntegrationRepository, Repository} from 'sentry/types/integrationsBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

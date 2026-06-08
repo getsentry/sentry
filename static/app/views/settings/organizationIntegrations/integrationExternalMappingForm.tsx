@@ -14,11 +14,11 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
+import type {Integration} from 'sentry/types/integrations';
 import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
-  Integration,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import type {Member, Team} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {

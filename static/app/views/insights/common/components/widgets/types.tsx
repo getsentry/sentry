@@ -1,5 +1,5 @@
 import type {PageFilters} from 'sentry/types/core';
-import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echartsBase';
 
 /**
  * These props are common across components that are required to dynamically

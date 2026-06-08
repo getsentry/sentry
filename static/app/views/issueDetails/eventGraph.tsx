@@ -16,7 +16,7 @@ import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries'
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echartsBase';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';

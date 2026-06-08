@@ -30,6 +30,7 @@ import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
 import {MarkLine} from 'sentry/components/charts/components/markLine';
+import type {Series} from 'sentry/types/echarts';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -45,8 +46,7 @@ import type {
   EChartMouseOverHandler,
   EChartRenderedHandler,
   EChartRestoreHandler,
-  Series,
-} from 'sentry/types/echarts';
+} from 'sentry/types/echartsBase';
 import {defined} from 'sentry/utils/defined';
 
 import {Grid} from './components/grid';

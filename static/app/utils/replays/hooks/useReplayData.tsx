@@ -20,7 +20,7 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import type {RawReplayError} from 'sentry/utils/replays/types';
+import type {RawReplayError} from 'sentry/utils/replays/typesBase';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function replayRecordApiOptions({

@@ -1,4 +1,4 @@
-import type {Plugin} from 'sentry/types/integrations';
+import type {Plugin} from 'sentry/types/integrationsBase';
 
 export function PluginFixture(params: Partial<Plugin> = {}): Plugin {
   return {

@@ -8,7 +8,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/typesBase';
 import {MessageFormatter} from 'sentry/views/explore/replays/detail/console/messageFormatter';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
 

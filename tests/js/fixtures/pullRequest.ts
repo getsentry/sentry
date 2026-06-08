@@ -1,6 +1,6 @@
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import type {PullRequest} from 'sentry/types/integrations';
+import type {PullRequest} from 'sentry/types/integrationsBase';
 
 export function PullRequestFixture(params: Partial<PullRequest> = {}): PullRequest {
   return {

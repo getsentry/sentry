@@ -1,5 +1,5 @@
-import type {Repository} from 'sentry/types/integrations';
-import {RepositoryStatus} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
+import {RepositoryStatus} from 'sentry/types/integrationsBase';
 
 export function getRepoStatusLabel(repo: Repository) {
   switch (repo.status) {

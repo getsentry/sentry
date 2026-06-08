@@ -1,6 +1,6 @@
 import type {Scope, TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
-import type {Plugin} from './integrations';
+import type {Plugin} from './integrationsBase';
 import type {Organization, Team} from './organization';
 import type {PlatformKey} from './platform';
 import type {Deploy} from './release';

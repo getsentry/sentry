@@ -11,10 +11,8 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {
-  OrganizationIntegration,
-  ServerlessFunction,
-} from 'sentry/types/integrations';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {ServerlessFunction} from 'sentry/types/integrationsBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';

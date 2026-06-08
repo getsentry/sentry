@@ -1,6 +1,6 @@
 import {Replayer} from '@sentry-internal/rrweb';
 
-import type {RecordingFrame} from 'sentry/utils/replays/types';
+import type {RecordingFrame} from 'sentry/utils/replays/typesBase';
 
 export function createHiddenPlayer(rrwebEvents: RecordingFrame[]): {
   cleanupReplayer: () => void;

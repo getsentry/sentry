@@ -25,9 +25,9 @@ import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,
   Integration,
-  IntegrationExternalIssue,
   IntegrationIssueConfig,
 } from 'sentry/types/integrations';
+import type {IntegrationExternalIssue} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';

@@ -3,7 +3,8 @@ import {useMemo} from 'react';
 import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import type {Integration, Repository} from 'sentry/types/integrations';
+import type {Integration} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

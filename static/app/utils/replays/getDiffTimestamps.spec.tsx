@@ -16,12 +16,11 @@ import {
 } from 'sentry/utils/replays/getDiffTimestamps';
 import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
+import {IncrementalSource, isHydrationErrorFrame} from 'sentry/utils/replays/types';
 import {
-  IncrementalSource,
-  isHydrationErrorFrame,
   type RawBreadcrumbFrame,
   type RawReplayError,
-} from 'sentry/utils/replays/types';
+} from 'sentry/utils/replays/typesBase';
 
 const START_DATE = new Date('2022-06-15T00:40:00.000Z');
 const INIT_DATE = new Date('2022-06-15T00:40:00.100Z');

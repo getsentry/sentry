@@ -1,6 +1,7 @@
 import {useQuery} from '@tanstack/react-query';
 
-import type {Commit, Repository} from 'sentry/types/integrations';
+import type {Commit} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

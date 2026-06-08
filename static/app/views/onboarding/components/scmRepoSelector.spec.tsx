@@ -4,7 +4,8 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Integration, Repository} from 'sentry/types/integrations';
+import type {Integration} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import * as analytics from 'sentry/utils/analytics';
 
 import {ScmRepoSelector} from './scmRepoSelector';

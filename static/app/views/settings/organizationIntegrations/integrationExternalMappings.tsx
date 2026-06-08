@@ -13,12 +13,12 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import type {Integration} from 'sentry/types/integrations';
 import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   ExternalActorSuggestion,
-  Integration,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';

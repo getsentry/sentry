@@ -9,7 +9,7 @@ import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {ReadableSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
-import type {ExternalTeam} from './integrations';
+import type {ExternalTeam} from './integrationsBase';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
 import type {Relay} from './relay';

@@ -19,7 +19,7 @@ import {
   getReqRespContentTypes,
   isRequestFrame,
 } from 'sentry/utils/replays/resourceFrame';
-import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {SpanFrame} from 'sentry/utils/replays/typesBase';
 import type {KeyValueTuple} from 'sentry/views/explore/replays/detail/network/details/components';
 import {
   Indent,

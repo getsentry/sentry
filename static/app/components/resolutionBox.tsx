@@ -8,7 +8,7 @@ import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t, tct} from 'sentry/locale';
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

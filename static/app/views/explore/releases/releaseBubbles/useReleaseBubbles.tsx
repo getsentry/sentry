@@ -17,12 +17,12 @@ import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tn} from 'sentry/locale';
+import type {Series} from 'sentry/types/echarts';
 import type {
   EChartMouseOutHandler,
   EChartMouseOverHandler,
   ReactEchartsRef,
-  Series,
-} from 'sentry/types/echarts';
+} from 'sentry/types/echartsBase';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat} from 'sentry/utils/dates';

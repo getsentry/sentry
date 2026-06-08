@@ -1,6 +1,7 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {Commit, Repository} from 'sentry/types/integrations';
+import type {Commit} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {User} from 'sentry/types/user';
 import type {EventData} from 'sentry/utils/discover/eventView';
 

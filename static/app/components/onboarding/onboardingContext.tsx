@@ -1,7 +1,8 @@
 import {createContext, useContext, useMemo} from 'react';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {Integration, Repository} from 'sentry/types/integrations';
+import type {Integration} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';

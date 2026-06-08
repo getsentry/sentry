@@ -19,7 +19,7 @@ import {
   IconTag,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 
 interface Props {
   onRemove: () => void;

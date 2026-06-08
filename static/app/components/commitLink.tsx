@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 
 type CommitFormatterParameters = {

@@ -4,7 +4,7 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import type {ClickFrame} from 'sentry/utils/replays/types';
+import type {ClickFrame} from 'sentry/utils/replays/typesBase';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';

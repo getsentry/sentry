@@ -8,7 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {ExternalTeam} from 'sentry/types/integrations';
+import type {ExternalTeam} from 'sentry/types/integrationsBase';
 import TeamNotificationSettings from 'sentry/views/settings/organizationTeams/teamNotifications';
 
 const EXTERNAL_NAME = 'marcos';

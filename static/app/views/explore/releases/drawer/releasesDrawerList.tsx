@@ -17,11 +17,8 @@ import {
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import {t, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  EChartDataZoomHandler,
-  ReactEchartsRef,
-  SeriesDataUnit,
-} from 'sentry/types/echarts';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echartsBase';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

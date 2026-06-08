@@ -16,7 +16,7 @@ import {
   getReqRespContentTypes,
   getResponseBodySize,
 } from 'sentry/utils/replays/resourceFrame';
-import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {SpanFrame} from 'sentry/utils/replays/typesBase';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/explore/replays/detail/utils';
 

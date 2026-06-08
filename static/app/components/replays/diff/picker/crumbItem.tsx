@@ -7,7 +7,7 @@ import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
 import {t} from 'sentry/locale';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
-import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame} from 'sentry/utils/replays/typesBase';
 
 export function CrumbItem({
   crumb,

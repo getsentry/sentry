@@ -4,12 +4,9 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {
-  Integration,
-  IntegrationRepository,
-  Repository,
-} from 'sentry/types/integrations';
-import {RepositoryStatus} from 'sentry/types/integrations';
+import type {Integration} from 'sentry/types/integrations';
+import type {IntegrationRepository, Repository} from 'sentry/types/integrationsBase';
+import {RepositoryStatus} from 'sentry/types/integrationsBase';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';

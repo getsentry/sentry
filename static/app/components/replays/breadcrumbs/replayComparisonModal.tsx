@@ -21,7 +21,8 @@ import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import {isHydrateCrumb, type HydrationErrorFrame} from 'sentry/utils/replays/types';
+import {isHydrateCrumb} from 'sentry/utils/replays/types';
+import {type HydrationErrorFrame} from 'sentry/utils/replays/typesBase';
 
 interface Props extends ModalRenderProps {
   frameOrEvent: HydrationErrorFrame | Event;

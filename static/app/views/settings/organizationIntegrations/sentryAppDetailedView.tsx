@@ -20,7 +20,10 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {IntegrationFeature, SentryAppInstallation} from 'sentry/types/integrations';
+import type {
+  IntegrationFeature,
+  SentryAppInstallation,
+} from 'sentry/types/integrationsBase';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
 import {

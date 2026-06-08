@@ -2,7 +2,7 @@ import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {
   RawBreadcrumbFrame,
   RawHydrationErrorFrame,
-} from 'sentry/utils/replays/types';
+} from 'sentry/utils/replays/typesBase';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 

@@ -19,9 +19,9 @@ import {t, tct} from 'sentry/locale';
 import type {Avatar} from 'sentry/types/core';
 import type {
   SentryApp,
-  SentryAppAvatarPhotoType,
   SentryAppAvatar as SentryAppAvatarType,
 } from 'sentry/types/integrations';
+import type {SentryAppAvatarPhotoType} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {useApi} from 'sentry/utils/useApi';

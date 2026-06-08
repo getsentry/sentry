@@ -1,4 +1,4 @@
-import type {Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,

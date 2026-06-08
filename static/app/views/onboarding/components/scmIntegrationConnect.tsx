@@ -7,7 +7,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Integration, Repository} from 'sentry/types/integrations';
+import type {Integration} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';

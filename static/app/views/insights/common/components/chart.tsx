@@ -35,6 +35,7 @@ import {
 } from 'sentry/components/metrics/chart/chart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
+import type {Series} from 'sentry/types/echarts';
 import type {
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -43,8 +44,7 @@ import type {
   EChartMouseOutHandler,
   EChartMouseOverHandler,
   ReactEchartsRef,
-  Series,
-} from 'sentry/types/echarts';
+} from 'sentry/types/echartsBase';
 import {
   axisLabelFormatter,
   getDurationUnit,

@@ -1,11 +1,11 @@
 import type {ReplayOptionFrameEvent} from '@sentry/react';
 
+import {EventType} from 'sentry/utils/replays/types';
 import type {
   BreadcrumbFrameEvent,
   OptionFrame,
   SpanFrameEvent,
-} from 'sentry/utils/replays/types';
-import {EventType} from 'sentry/utils/replays/types';
+} from 'sentry/utils/replays/typesBase';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 

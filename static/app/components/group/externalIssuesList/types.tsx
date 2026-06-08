@@ -1,12 +1,11 @@
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {GroupIntegration, SentryAppComponent} from 'sentry/types/integrations';
 import type {
   ExternalIssue,
-  GroupIntegration,
   PlatformExternalIssue,
-  SentryAppComponent,
   SentryAppInstallation,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 

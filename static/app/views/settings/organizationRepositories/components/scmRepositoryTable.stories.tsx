@@ -7,9 +7,9 @@ import * as Storybook from 'sentry/stories';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
-  Repository,
 } from 'sentry/types/integrations';
-import {RepositoryStatus} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
+import {RepositoryStatus} from 'sentry/types/integrationsBase';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useRepoSearch} from 'sentry/views/settings/organizationRepositories/hooks/useRepoSearch';
 import type {ScmInstallation} from 'sentry/views/settings/organizationRepositories/types';

@@ -4,7 +4,7 @@ import {useFetchGroupAndEvent} from 'sentry/components/featureFlags/hooks/useFet
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echartsBase';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {decodeScalar} from 'sentry/utils/queryString';

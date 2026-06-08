@@ -12,7 +12,7 @@ import {
   ReplayNavigationFrameFixture,
 } from 'sentry-fixture/replay/replaySpanFrameData';
 
-import type {SlowClickFrame} from 'sentry/utils/replays/types';
+import type {SlowClickFrame} from 'sentry/utils/replays/typesBase';
 
 export function ReplayConsoleEventFixture({
   timestamp,

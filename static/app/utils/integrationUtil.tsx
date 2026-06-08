@@ -18,18 +18,20 @@ import type {
   AppOrProviderOrPlugin,
   CodeOwner,
   DocIntegration,
-  ExternalActorMapping,
-  ExternalActorMappingOrSuggestion,
   Integration,
-  IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationProvider,
-  IntegrationType,
-  PluginNoProject,
   PluginWithProjectList,
   SentryApp,
-  SentryAppInstallation,
 } from 'sentry/types/integrations';
+import type {
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
+  IntegrationFeature,
+  IntegrationType,
+  PluginNoProject,
+  SentryAppInstallation,
+} from 'sentry/types/integrationsBase';
 import type {Overrides} from 'sentry/types/overrides';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {capitalize} from 'sentry/utils/string/capitalize';

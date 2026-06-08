@@ -6,7 +6,8 @@ import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echartsBase';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,

@@ -9,7 +9,8 @@ import {SentryAppExternalIssueForm} from 'sentry/components/group/sentryAppExter
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
+import type {SentryAppComponent} from 'sentry/types/integrations';
+import type {SentryAppInstallation} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';

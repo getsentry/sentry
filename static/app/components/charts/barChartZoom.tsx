@@ -7,7 +7,7 @@ import type {
   EChartDataZoomHandler,
   EChartFinishedHandler,
   ECharts,
-} from 'sentry/types/echarts';
+} from 'sentry/types/echartsBase';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RenderProps = {

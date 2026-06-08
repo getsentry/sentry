@@ -15,8 +15,8 @@ import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
 import {useExtractDomNodes} from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/typesBase';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
 import type {OnExpandCallback} from 'sentry/views/explore/replays/detail/useVirtualizedInspector';
 
