@@ -32,7 +32,7 @@ interface LegacyWebhookResponse {
   urls: string[];
 }
 
-export function LegacyWebhookDetails() {
+export default function LegacyWebhookDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const queryClient = useQueryClient();
