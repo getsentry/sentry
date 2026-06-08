@@ -480,8 +480,11 @@ class PkceOAuth2CallbackViewTest(SentryTestCase):
 
         data = dict(parse_qsl(responses.calls[0].request.body))
         assert data["code_verifier"] == "test-verifier-abc"
-        assert data["client_id"] == "pkce-client"
-        assert data["client_secret"] == "pkce-secret"
+        assert "client_id" not in data
+        assert "client_secret" not in data
+
+        auth_header = responses.calls[0].request.headers["Authorization"]
+        assert auth_header == f"Basic {base64.b64encode(b'pkce-client:pkce-secret').decode()}"
 
     @responses.activate
     def test_exchange_token_no_code_verifier(self, mock_record: MagicMock) -> None:
