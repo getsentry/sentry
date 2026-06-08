@@ -375,6 +375,7 @@ function HighlightedTokenAttributes({
       }
     >
       <TokensSpan>
+        {mismatch && <TokenMismatchIcon />}
         <Container as="span" display="inline-block">
           <Count value={breakdown.netNewInput} /> {t('in')}
         </Container>
@@ -395,7 +396,6 @@ function HighlightedTokenAttributes({
           {' = '}
           <Count value={breakdown.total} /> {t('total')}
         </Container>
-        {mismatch && <TokenMismatchIcon />}
       </TokensSpan>
     </Tooltip>
   );
