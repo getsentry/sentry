@@ -863,7 +863,7 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
 # If true, taskbroker-client's TaskProducer will be used to produce messages to Kafka
 # from within tasks.
-# Set to True in the taskworker entrypoint in run.py.
+# Set to True in the worker child entrypoint in taskworker/bootstrap.py.
 TASKWORKER_USE_TASK_PRODUCER: bool = False
 
 # The list of modules that workers will import after starting up
