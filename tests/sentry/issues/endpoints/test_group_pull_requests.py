@@ -10,6 +10,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 from sentry.types.activity import ActivityType
 
@@ -41,10 +42,12 @@ class GroupPullRequestsEndpointTest(APITestCase):
         relationship: int = GroupLink.Relationship.resolves,
         linked_type: int = GroupLink.LinkedType.pull_request,
         group: Group | None = None,
+        repo: Repository | None = None,
     ) -> tuple[PullRequest, GroupLink]:
         group = group or self.group
+        repo = repo or self.repo
         pull_request = self.create_pull_request(
-            repository_id=self.repo.id,
+            repository_id=repo.id,
             organization_id=group.project.organization_id,
             key=key,
             title=title,
@@ -109,6 +112,76 @@ class GroupPullRequestsEndpointTest(APITestCase):
         )
         assert response.data["pullRequests"][0]["dateLinked"] == newer_link.datetime
         assert "author" in response.data["pullRequests"][0]
+
+    def test_limits_to_five_most_recent_pull_requests(self) -> None:
+        for index in range(6):
+            self.create_linked_pull_request(
+                key=str(index + 1),
+                linked_delta=timedelta(days=index + 1),
+            )
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data["pullRequests"]] == [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+        ]
+
+    def test_ignores_invalid_pull_request_and_repository_before_applying_limit(self) -> None:
+        deleted_pull_request, _ = self.create_linked_pull_request(
+            key="deleted-pr",
+            linked_delta=timedelta(hours=1),
+        )
+        deleted_pull_request.delete()
+
+        deleted_repo = self.create_repo(
+            project=self.group.project,
+            name="getsentry/deleted",
+            provider="integrations:github",
+            integration_id=456,
+        )
+        self.create_linked_pull_request(
+            key="deleted-repo",
+            linked_delta=timedelta(hours=2),
+            repo=deleted_repo,
+        )
+        deleted_repo.delete()
+
+        disabled_repo = self.create_repo(
+            project=self.group.project,
+            name="getsentry/disabled",
+            provider="integrations:github",
+            integration_id=789,
+            status=ObjectStatus.DISABLED,
+        )
+        self.create_linked_pull_request(
+            key="disabled-repo",
+            linked_delta=timedelta(hours=3),
+            repo=disabled_repo,
+        )
+
+        for index in range(6):
+            self.create_linked_pull_request(
+                key=str(index + 1),
+                linked_delta=timedelta(days=index + 1),
+            )
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data["pullRequests"]] == [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+        ]
 
     def test_ignores_pull_requests_with_repositories_in_other_orgs(self) -> None:
         other_org = self.create_organization(owner=self.user)

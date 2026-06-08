@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Literal, TypedDict
 
+from django.db.models import Exists, OuterRef
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -45,6 +46,30 @@ class LinkedPullRequestResponse(PullRequestSerializerResponse):
 
 class GroupPullRequestsResponse(TypedDict):
     pullRequests: list[LinkedPullRequestResponse]
+
+
+def _get_valid_group_pull_request_links(group: Group, organization_id: int) -> list[GroupLink]:
+    """Return recent resolving pull request links with valid pull requests and active repositories."""
+    active_repositories = Repository.objects.filter(
+        id=OuterRef("repository_id"),
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    valid_pull_requests = PullRequest.objects.filter(
+        id=OuterRef("linked_id"),
+        organization_id=organization_id,
+    ).filter(Exists(active_repositories))
+
+    return list(
+        GroupLink.objects.filter(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+        )
+        .filter(Exists(valid_pull_requests))
+        .order_by("-datetime")[:DEFAULT_LIMIT]
+    )
 
 
 def _get_pull_request_repo_name(repository: Repository) -> str:
@@ -139,19 +164,15 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
         ):
             return Response(status=404)
 
-        group_links = list(
-            GroupLink.objects.filter(
-                group_id=group.id,
-                project_id=group.project_id,
-                linked_type=GroupLink.LinkedType.pull_request,
-                relationship=GroupLink.Relationship.resolves,
-            ).order_by("-datetime")[:DEFAULT_LIMIT]
-        )
+        organization_id = group.project.organization_id
+        group_links = _get_valid_group_pull_request_links(group, organization_id)
+        if not group_links:
+            return Response({"pullRequests": []})
 
         pull_request_ids = [link.linked_id for link in group_links]
         pull_requests_by_id = PullRequest.objects.filter(
             id__in=pull_request_ids,
-            organization_id=group.project.organization_id,
+            organization_id=organization_id,
         ).in_bulk()
         pull_requests = [
             pull_requests_by_id[pull_request_id]
@@ -160,8 +181,9 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
         ]
 
         repositories_by_id = Repository.objects.filter(
-            organization_id=group.project.organization_id,
+            organization_id=organization_id,
             id__in={pull_request.repository_id for pull_request in pull_requests},
+            status=ObjectStatus.ACTIVE,
         ).in_bulk()
         pull_requests = [
             pull_request
