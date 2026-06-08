@@ -17,6 +17,7 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {getExpandedProjectIds} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -87,10 +88,18 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         },
       });
 
+      const expandedProjectIds = getExpandedProjectIds(
+        data.project_ids,
+        selectedProjectIds
+      );
+
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(response => mapSeerResponseItem(response)),
+        queries: data.responses.map(response => ({
+          ...mapSeerResponseItem(response),
+          ...(expandedProjectIds ? {expandedProjectIds} : {}),
+        })),
       };
     },
   });
@@ -294,6 +303,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           ...location,
           query: {
             ...location.query,
+            // Widen to the agent's expanded scope when it broadened the query.
+            ...(result.expandedProjectIds?.length
+              ? {project: result.expandedProjectIds.map(String)}
+              : {}),
             metric: newEncodedMetrics,
             start: seerQuery.datetime.start,
             end: seerQuery.datetime.end,
@@ -323,9 +336,17 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     organization.features.includes('gen-ai-explore-metrics-search');
 
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
-    []
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
+      const expandedProjectIds = getExpandedProjectIds(
+        (response as unknown as SeerRawResponse).project_ids,
+        selectedProjectIds
+      );
+      return transformSeerResponse(response, responseItem => ({
+        ...mapSeerResponseItem(responseItem),
+        ...(expandedProjectIds ? {expandedProjectIds} : {}),
+      }));
+    },
+    [selectedProjectIds]
   );
 
   if (!enableAISearch) {

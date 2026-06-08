@@ -17,6 +17,7 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {getExpandedProjectIds} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -70,10 +71,18 @@ export function SpansTabSeerComboBox() {
           },
         });
 
+        const expandedProjectIds = getExpandedProjectIds(
+          data.project_ids,
+          selectedProjectIds
+        );
+
         return {
           status: 'ok',
           unsupported_reason: data.unsupported_reason,
-          queries: data.responses.map(response => mapSeerResponseItem(response, 'spans')),
+          queries: data.responses.map(response => ({
+            ...mapSeerResponseItem(response, 'spans'),
+            ...(expandedProjectIds ? {expandedProjectIds} : {}),
+          })),
         };
       }
 
@@ -121,6 +130,10 @@ export function SpansTabSeerComboBox() {
 
       const selection = {
         ...pageFilters.selection,
+        // Widen to the agent's expanded scope when it broadened the query.
+        ...(result.expandedProjectIds?.length
+          ? {projects: result.expandedProjectIds}
+          : {}),
         datetime: seerQuery.datetime,
       };
 
@@ -170,11 +183,17 @@ export function SpansTabSeerComboBox() {
   });
 
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, responseItem =>
-        mapSeerResponseItem(responseItem, 'spans')
-      ),
-    []
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
+      const expandedProjectIds = getExpandedProjectIds(
+        (response as unknown as SeerRawResponse).project_ids,
+        selectedProjectIds
+      );
+      return transformSeerResponse(response, responseItem => ({
+        ...mapSeerResponseItem(responseItem, 'spans'),
+        ...(expandedProjectIds ? {expandedProjectIds} : {}),
+      }));
+    },
+    [selectedProjectIds]
   );
 
   if (useTranslateEndpoint) {

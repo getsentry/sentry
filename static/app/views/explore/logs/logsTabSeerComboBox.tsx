@@ -13,6 +13,7 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {getExpandedProjectIds} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,6 +37,7 @@ interface AskSeerSearchQuery {
   sort: string;
   start: string | null;
   statsPeriod: string;
+  expandedProjectIds?: number[];
 }
 
 export function LogsTabSeerComboBox() {
@@ -68,6 +70,11 @@ export function LogsTabSeerComboBox() {
         },
       });
 
+      const expandedProjectIds = getExpandedProjectIds(
+        data.project_ids,
+        selectedProjectIds
+      );
+
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
@@ -79,6 +86,7 @@ export function LogsTabSeerComboBox() {
           start: r?.start ?? null,
           end: r?.end ?? null,
           mode: r?.mode ?? 'samples',
+          ...(expandedProjectIds ? {expandedProjectIds} : {}),
         })),
       };
     },
@@ -95,6 +103,7 @@ export function LogsTabSeerComboBox() {
         statsPeriod,
         start: resultStart,
         end: resultEnd,
+        expandedProjectIds,
       } = result;
 
       const dt = buildSeerDateTimeSelection(
@@ -159,6 +168,8 @@ export function LogsTabSeerComboBox() {
 
       const newQuery = {
         ...location.query,
+        // Widen to the agent's expanded scope when it broadened the query.
+        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
         [LOGS_QUERY_KEY]: queryToUse,
         mode,
         [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
@@ -201,8 +212,12 @@ export function LogsTabSeerComboBox() {
   );
 
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, r => ({
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
+      const expandedProjectIds = getExpandedProjectIds(
+        (response as unknown as SeerRawResponse).project_ids,
+        selectedProjectIds
+      );
+      return transformSeerResponse(response, r => ({
         query: r?.query ?? '',
         sort: r?.sort ?? '',
         groupBys: r?.group_by ?? [],
@@ -210,8 +225,10 @@ export function LogsTabSeerComboBox() {
         start: r?.start ?? null,
         end: r?.end ?? null,
         mode: r?.mode ?? 'samples',
-      })),
-    []
+        ...(expandedProjectIds ? {expandedProjectIds} : {}),
+      }));
+    },
+    [selectedProjectIds]
   );
 
   if (!enableAISearch) {

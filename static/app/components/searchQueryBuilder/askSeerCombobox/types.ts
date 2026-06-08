@@ -14,6 +14,9 @@ export interface SeerRawResponseItem {
 export interface SeerRawResponse {
   responses: SeerRawResponseItem[];
   unsupported_reason: string | null;
+  // Projects Seer actually scoped the query to — a superset of the projects we
+  // sent when it broadens scope. `null`/absent when there's no expansion.
+  project_ids?: number[] | null;
 }
 
 export interface NoneOfTheseItem {
@@ -29,6 +32,12 @@ export type AskSeerSearchItems<T> = (AskSeerSearchItem<string> & T) | NoneOfThes
 
 export interface QueryTokensProps {
   end?: string | null;
+  /**
+   * Projects the agent broadened the query to, when it expanded scope beyond
+   * the user's selection. Set only when there is an actual expansion; drives
+   * the "Projects" chip and the projects applied when the suggestion is chosen.
+   */
+  expandedProjectIds?: number[];
   groupBys?: string[];
   query?: string;
   sort?: string;
