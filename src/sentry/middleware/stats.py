@@ -9,6 +9,7 @@ from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.silo.util import PROXY_APIGATEWAY_HEADER
 from sentry.utils import metrics
 
 from . import ViewFunc, get_path, is_frontend_request
@@ -77,6 +78,10 @@ class RequestTimingMiddleware(MiddlewareMixin):
             ),
             "url_name": url_name,
         }
+
+        proxy_request_header = request.headers.get(PROXY_APIGATEWAY_HEADER, None) == "true"
+        tags["proxy_request"] = proxy_request_header
+
         metrics.incr("view.response", instance=view_path, tags=tags, skip_internal=False)
 
         start_time = getattr(request, "_start_time", None)
