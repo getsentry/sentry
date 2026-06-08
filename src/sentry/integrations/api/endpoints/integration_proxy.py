@@ -40,7 +40,9 @@ from sentry.silo.util import (
     PROXY_OI_HEADER,
     PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
+    PROXY_TIMEOUT_HEADER,
     clean_outbound_headers,
+    decode_proxy_timeout,
     trim_leading_slashes,
     verify_subnet_signature,
 )
@@ -266,6 +268,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             method=request.method, url=full_url, headers=headers, data=request.body
         ).prepare()
 
+        # Honor the timeout the original caller forwarded so the downstream
+        # request can stay open as long as intended. Falls back to the client's
+        # default timeout when the header is absent or unparseable.
+        timeout = decode_proxy_timeout(request.headers.get(PROXY_TIMEOUT_HEADER))
+
         resp: Response = self.client.request(
             request.method,
             self.proxy_path,
@@ -273,6 +280,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             prepared_request=prepared_request,
             raw_response=True,
             stream=True,
+            timeout=timeout,
         )
 
         def iter_response(response: Response) -> Generator[bytes]:
