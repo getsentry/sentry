@@ -29,8 +29,8 @@ import type {
   IntegrationProvider,
   PluginWithProjectList,
   SentryApp,
-  SentryAppInstallation,
 } from 'sentry/types/integrations';
+import type {SentryAppInstallation} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';

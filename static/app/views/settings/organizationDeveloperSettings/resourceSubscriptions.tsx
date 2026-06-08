@@ -1,7 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
+import type {Permissions} from 'sentry/types/integrations';
+import type {WebhookEvent} from 'sentry/types/integrationsBase';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,

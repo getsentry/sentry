@@ -8,7 +8,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler} from 'sentry/types/echartsBase';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';

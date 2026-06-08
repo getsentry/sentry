@@ -8,8 +8,8 @@ import {
   EventType,
   IncrementalSource,
   isRRWebChangeFrame,
-  type RecordingFrame,
 } from 'sentry/utils/replays/types';
+import {type RecordingFrame} from 'sentry/utils/replays/typesBase';
 
 type DiffMutation = Record<
   number,

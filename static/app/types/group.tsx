@@ -8,14 +8,13 @@ import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
+import type {AvatarSentryApp, Commit} from './integrations';
 import type {
-  AvatarSentryApp,
-  Commit,
   ExternalIssue,
   PlatformExternalIssue,
   PullRequest,
   Repository,
-} from './integrations';
+} from './integrationsBase';
 import type {Team} from './organization';
 import type {PlatformKey} from './platform';
 import type {AvatarProject, Project} from './project';

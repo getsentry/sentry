@@ -8,10 +8,8 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import type {
-  OrganizationIntegration,
-  ServerlessFunction,
-} from 'sentry/types/integrations';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {ServerlessFunction} from 'sentry/types/integrationsBase';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';

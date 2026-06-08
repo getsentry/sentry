@@ -8,12 +8,12 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {Integration} from 'sentry/types/integrations';
 import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   ExternalUser,
-  Integration,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import type {Member} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

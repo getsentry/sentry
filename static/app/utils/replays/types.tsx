@@ -19,25 +19,6 @@ import type {
   VideoFrameEvent,
   WebVitalFrame,
 } from 'sentry/utils/replays/typesBase';
-export type {
-  BreadcrumbFrame,
-  ConsoleFrame,
-  ErrorFrame,
-  HydrationErrorFrame,
-  RecordingFrame,
-  ReplayFrame,
-  SlowClickFrame,
-  SpanFrame,
-  WebVitalFrame,
-};
-export type {
-  ClipWindow,
-  MemoryFrame,
-  OptionFrame,
-  RawBreadcrumbFrame,
-  RawReplayError,
-  VideoEvent,
-} from 'sentry/utils/replays/typesBase';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';

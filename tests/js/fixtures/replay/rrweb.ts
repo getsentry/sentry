@@ -1,10 +1,10 @@
 import type {
   fullSnapshotEvent,
   incrementalSnapshotEvent,
-  RecordingFrame,
   serializedNodeWithId,
 } from 'sentry/utils/replays/types';
 import {EventType, NodeType} from 'sentry/utils/replays/types';
+import type {RecordingFrame} from 'sentry/utils/replays/typesBase';
 
 interface FullSnapshotEvent extends fullSnapshotEvent {
   timestamp: number;

@@ -11,12 +11,12 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
+import type {Integration} from 'sentry/types/integrations';
 import type {
-  Integration,
   IntegrationRepository,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

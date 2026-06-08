@@ -23,21 +23,9 @@ import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
 import {replayerDomQuery} from 'sentry/utils/replays/replayerDomQuery';
 import type {
-  BreadcrumbFrame,
-  ClipWindow,
-  ErrorFrame,
   fullSnapshotEvent,
   incrementalSnapshotEvent,
-  MemoryFrame,
-  OptionFrame,
-  RawReplayError,
-  RecordingFrame,
-  ReplayFrame,
   serializedNodeWithId,
-  SlowClickFrame,
-  SpanFrame,
-  VideoEvent,
-  WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
@@ -55,6 +43,20 @@ import {
   isWebVitalFrame,
   NodeType,
 } from 'sentry/utils/replays/types';
+import type {
+  BreadcrumbFrame,
+  ClipWindow,
+  ErrorFrame,
+  MemoryFrame,
+  OptionFrame,
+  RawReplayError,
+  RecordingFrame,
+  ReplayFrame,
+  SlowClickFrame,
+  SpanFrame,
+  VideoEvent,
+  WebVitalFrame,
+} from 'sentry/utils/replays/typesBase';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface ReplayReaderParams {

@@ -16,7 +16,8 @@ import {SentryAppDetailsModal} from 'sentry/components/modals/sentryAppDetailsMo
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {SentryAppInstallation} from 'sentry/types/integrationsBase';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';

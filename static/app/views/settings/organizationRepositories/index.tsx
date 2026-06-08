@@ -15,12 +15,11 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import type {Integration, OrganizationIntegration} from 'sentry/types/integrations';
 import type {
-  Integration,
-  OrganizationIntegration,
   Repository,
   RepositoryProjectPathConfig,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isScmProvider} from 'sentry/utils/integrationUtil';

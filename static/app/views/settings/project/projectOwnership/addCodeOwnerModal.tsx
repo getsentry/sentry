@@ -15,12 +15,11 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {CodeOwner, Integration} from 'sentry/types/integrations';
 import type {
-  CodeOwner,
   CodeownersFile,
-  Integration,
   RepositoryProjectPathConfig,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';

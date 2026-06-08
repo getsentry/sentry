@@ -34,39 +34,6 @@ import type {ParsedOwnershipRule} from './ownership';
 import type {PlatformKey} from './platform';
 import type {BaseRelease} from './release';
 import type {User} from './user';
-export type {
-  IntegrationExternalIssue,
-  IntegrationFeature,
-  PluginNoProject,
-  PullRequest,
-  Repository,
-  RepositoryProjectPathConfig,
-  SentryAppAvatarPhotoType,
-  SentryAppSchemaElement,
-  SentryAppSchemaStacktraceLink,
-  SentryAppStatus,
-  WebhookEvent,
-};
-export {RepositoryStatus} from 'sentry/types/integrationsBase';
-export type {
-  CodeownersFile,
-  CommitFile,
-  ExternalActorMapping,
-  ExternalActorMappingOrSuggestion,
-  ExternalActorSuggestion,
-  ExternalIssue,
-  ExternalTeam,
-  ExternalUser,
-  FilesByRepository,
-  IntegrationRepository,
-  IntegrationType,
-  PlatformExternalIssue,
-  Plugin,
-  SentryAppInstallation,
-  SentryAppSchemaIssueLink,
-  SentryAppWebhookRequest,
-  ServerlessFunction,
-} from 'sentry/types/integrationsBase';
 
 export type {
   PermissionValue,

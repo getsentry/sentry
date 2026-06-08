@@ -1,7 +1,5 @@
-import type {
-  SentryAppComponent,
-  SentryAppSchemaIssueLink,
-} from 'sentry/types/integrations';
+import type {SentryAppComponent} from 'sentry/types/integrations';
+import type {SentryAppSchemaIssueLink} from 'sentry/types/integrationsBase';
 
 export function SentryAppComponentFixture(
   params = {}

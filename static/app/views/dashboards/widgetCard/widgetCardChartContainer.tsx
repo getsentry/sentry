@@ -4,12 +4,12 @@ import type {LegendComponentOption} from 'echarts';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import type {
   EChartDataZoomHandler,
   EChartEventHandler,
   EChartLegendSelectChangeHandler,
-  Series,
-} from 'sentry/types/echarts';
+} from 'sentry/types/echartsBase';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';

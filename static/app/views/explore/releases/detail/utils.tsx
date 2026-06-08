@@ -8,12 +8,12 @@ import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
+import type {Commit} from 'sentry/types/integrations';
 import type {
-  Commit,
   CommitFile,
   FilesByRepository,
   Repository,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {decodeList} from 'sentry/utils/queryString';

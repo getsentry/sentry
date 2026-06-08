@@ -1,11 +1,10 @@
 import {Access} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
+import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {
-  SentryApp,
-  SentryAppAvatar,
   SentryAppAvatarPhotoType,
   SentryAppSchemaElement,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 import type {Organization} from 'sentry/types/organization';
 
 import {ActionButtons} from './actionButtons';

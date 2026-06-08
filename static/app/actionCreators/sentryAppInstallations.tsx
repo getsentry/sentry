@@ -6,7 +6,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {SentryAppInstallation} from 'sentry/types/integrationsBase';
 
 /**
  * Install a sentry application

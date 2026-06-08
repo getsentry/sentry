@@ -7,7 +7,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconCheckmark, IconClose, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Integration, Repository} from 'sentry/types/integrations';
+import type {Integration} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrationsBase';
 
 import {ScmIntegrationConnect} from './components/scmIntegrationConnect';
 import {ScmStepHeader} from './components/scmStepHeader';

@@ -2,25 +2,6 @@ import type {AxisPointerComponentOption, LineSeriesOption, PatternObject} from '
 
 import type {ECharts} from 'sentry/types/echartsBase';
 import type {Confidence} from 'sentry/types/organization';
-export type {ECharts};
-export type {
-  EChartBrushEndHandler,
-  EChartBrushSelectedHandler,
-  EChartBrushStartHandler,
-  EChartChartReadyHandler,
-  EChartClickHandler,
-  EChartDataZoomHandler,
-  EChartDownplayHandler,
-  EChartEventHandler,
-  EChartFinishedHandler,
-  EChartHighlightHandler,
-  EChartLegendSelectChangeHandler,
-  EChartMouseOutHandler,
-  EChartMouseOverHandler,
-  EChartRenderedHandler,
-  EChartRestoreHandler,
-  ReactEchartsRef,
-} from 'sentry/types/echartsBase';
 
 export type SeriesDataUnit = {
   // number because we sometimes use timestamps

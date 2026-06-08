@@ -5,10 +5,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SentryAppComponentIcon} from 'sentry/components/sentryAppComponentIcon';
-import type {
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
+import type {SentryAppComponent} from 'sentry/types/integrations';
+import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrationsBase';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 

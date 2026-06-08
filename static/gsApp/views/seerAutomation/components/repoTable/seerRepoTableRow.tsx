@@ -20,9 +20,9 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
 import {
   DEFAULT_CODE_REVIEW_TRIGGERS,
-  RepositoryStatus,
   type RepositoryWithSettings,
 } from 'sentry/types/integrations';
+import {RepositoryStatus} from 'sentry/types/integrationsBase';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {setApiQueryData} from 'sentry/utils/queryClient';

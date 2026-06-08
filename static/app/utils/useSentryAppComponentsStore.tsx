@@ -1,11 +1,11 @@
 import {useEffect, useMemo, useState} from 'react';
 
 import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
+import type {SentryAppComponent} from 'sentry/types/integrations';
 import type {
-  SentryAppComponent,
   SentryAppSchemaElement,
   SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
+} from 'sentry/types/integrationsBase';
 
 export function useSentryAppComponentsStore<
   Schema extends SentryAppSchemaStacktraceLink | SentryAppSchemaElement =

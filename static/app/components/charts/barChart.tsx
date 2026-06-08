@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 import type {BarSeriesOption} from 'echarts';
 
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echartsBase';
 
 import {BarSeries} from './series/barSeries';
 import type {BaseChartProps} from './baseChart';

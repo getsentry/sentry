@@ -19,10 +19,8 @@ import {IconGeneric} from 'sentry/icons/iconGeneric';
 import {IconGithub} from 'sentry/icons/iconGithub';
 import {IconProject} from 'sentry/icons/iconProject';
 import {t} from 'sentry/locale';
-import type {
-  IntegrationFeature,
-  IntegrationInstallationStatus,
-} from 'sentry/types/integrations';
+import type {IntegrationInstallationStatus} from 'sentry/types/integrations';
+import type {IntegrationFeature} from 'sentry/types/integrationsBase';
 import {getCategories, getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
