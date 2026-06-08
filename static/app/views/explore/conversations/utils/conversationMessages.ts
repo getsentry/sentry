@@ -145,6 +145,16 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
     }
   }
 
+  // Flush any remaining pending tool calls as a tool-call-only turn
+  if (pendingToolCalls.length > 0 && result.length > 0) {
+    const lastTurn = result[result.length - 1]!;
+    result[result.length - 1] = {
+      ...lastTurn,
+      toolCalls: [...lastTurn.toolCalls, ...pendingToolCalls],
+      toolSpanNodes: [...(lastTurn.toolSpanNodes ?? []), ...pendingToolSpanNodes],
+    };
+  }
+
   return result;
 }
 
@@ -172,12 +182,16 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       });
     }
 
-    if (
+    const hasAssistantContent =
       turn.assistantContent &&
       (turn.assistantContent === FILTERED ||
-        !seenAssistantContent.has(turn.assistantContent))
-    ) {
-      seenAssistantContent.add(turn.assistantContent);
+        !seenAssistantContent.has(turn.assistantContent));
+    const hasToolCalls = turn.toolCalls.length > 0;
+
+    if (hasAssistantContent || hasToolCalls) {
+      if (turn.assistantContent) {
+        seenAssistantContent.add(turn.assistantContent);
+      }
 
       const toolSpanNodes = turn.toolSpanNodes ?? [];
       const lastToolEnd =
@@ -199,10 +213,10 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       messages.push({
         id: `assistant-${turn.generation.id}`,
         role: 'assistant',
-        content: turn.assistantContent,
+        content: turn.assistantContent ?? '',
         timestamp: endTs,
         nodeId: turn.generation.id,
-        toolCalls: turn.toolCalls.length > 0 ? turn.toolCalls : undefined,
+        toolCalls: hasToolCalls ? turn.toolCalls : undefined,
         duration,
         agentName: agentName || undefined,
         modelName: modelName || undefined,
@@ -270,6 +284,11 @@ export function parseAssistantContent(node: AITraceSpanNode): string | null {
     });
     if (extracted.responseText) {
       return extracted.responseText;
+    }
+    // If tool calls were found but no text, don't fall through to response
+    // attributes — tool calls are rendered separately as badges
+    if (extracted.toolCalls) {
+      return null;
     }
   }
 
