@@ -13,8 +13,6 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
-    PullRequestMetrics,
-    PullRequestVerdict,
 )
 from sentry.pr_metrics.webhooks import (
     handle_activity,
@@ -657,35 +655,6 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
-    # --- verdict clearing ---
-
-    def test_reopened_clears_verdict(self) -> None:
-        PullRequestMetrics.objects.create(  # no factory available
-            pull_request=self.pr,
-            verdict=PullRequestVerdict.CLOSED_UNMERGED,
-        )
-
-        self._call(action="reopened")
-
-        metrics = PullRequestMetrics.objects.get(pull_request=self.pr)
-        assert metrics.verdict is None
-
-    def test_reopened_noop_when_no_metrics_row(self) -> None:
-        # Should not raise even when PullRequestMetrics doesn't exist yet
-        self._call(action="reopened")
-
-        assert not PullRequestMetrics.objects.filter(pull_request=self.pr).exists()
-
-    def test_reopened_noop_when_verdict_already_none(self) -> None:
-        PullRequestMetrics.objects.create(  # no factory available
-            pull_request=self.pr, verdict=None
-        )
-
-        self._call(action="reopened")
-
-        metrics = PullRequestMetrics.objects.get(pull_request=self.pr)
-        assert metrics.verdict is None
-
     # --- Review requests ---
 
     def test_review_requested_writes_activity_for_individual(self) -> None:
@@ -792,44 +761,6 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
             self._call(action="opened")
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
-
-    def test_clear_verdict_runs_when_both_flags_off(self) -> None:
-        PullRequestMetrics.objects.create(  # no factory available
-            pull_request=self.pr,
-            verdict=PullRequestVerdict.CLOSED_UNMERGED,
-        )
-
-        with self.feature(
-            {
-                "organizations:pr-metrics-activity": False,
-                "organizations:pr-metrics-attribution": False,
-            }
-        ):
-            self._call(action="reopened")
-
-        metrics = PullRequestMetrics.objects.get(pull_request=self.pr)
-        assert metrics.verdict is None
-
-    def test_update_head_sha_runs_when_flag_off(self) -> None:
-        with self.feature({"organizations:pr-metrics-activity": False}):
-            self._call(action="opened", head_sha="newsha123")
-
-        self.pr.refresh_from_db()
-        assert self.pr.head_commit_sha == "newsha123"
-
-    def test_update_head_sha_runs_when_flag_off_synchronize(self) -> None:
-        with self.feature({"organizations:pr-metrics-activity": False}):
-            self._call(action="synchronize", head_sha="syncsha456")
-
-        self.pr.refresh_from_db()
-        assert self.pr.head_commit_sha == "syncsha456"
-
-    def test_update_head_sha_runs_when_flag_off_reopened(self) -> None:
-        with self.feature({"organizations:pr-metrics-activity": False}):
-            self._call(action="reopened", head_sha="reopensha789")
-
-        self.pr.refresh_from_db()
-        assert self.pr.head_commit_sha == "reopensha789"
 
     # --- Unhandled actions ---
 

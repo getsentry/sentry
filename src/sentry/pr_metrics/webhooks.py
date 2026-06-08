@@ -34,7 +34,6 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
-    PullRequestMetrics,
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.activity_types import (
@@ -209,12 +208,6 @@ def handle_activity(
     pr = _get_pull_request(organization, repo, pull_request_data)
     if pr is None:
         return
-
-    # These are data-correctness concerns, not gated by the activity flag.
-    if action == "reopened":
-        _clear_verdict(pr)
-    if action in ("opened", "synchronize", "reopened"):
-        _update_head_commit_sha(pr, pull_request_data or {})
 
     if not features.has("organizations:pr-metrics-activity", organization):
         return
@@ -498,17 +491,6 @@ def _refresh_referenced_issue_attribution(
         source=PullRequestAttributionSource.WEBHOOK_DATA,
         signal_details=details.dict(),
     )
-
-
-def _update_head_commit_sha(pr: PullRequest, pull_request: dict[str, Any]) -> None:
-    head_sha = (pull_request.get("head") or {}).get("sha")
-    if head_sha and pr.head_commit_sha != head_sha:
-        pr.head_commit_sha = head_sha
-        pr.save(update_fields=["head_commit_sha"])
-
-
-def _clear_verdict(pr: PullRequest) -> None:
-    PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=False).update(verdict=None)
 
 
 def _write_activity_row(
