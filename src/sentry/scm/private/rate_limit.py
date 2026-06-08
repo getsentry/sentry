@@ -84,9 +84,9 @@ class DynamicRateLimiter:
         This check is best-effort and is not guaranteed to prevent a rate-limit error response from
         a service-provider.
         """
-        assert referrer == "shared" or referrer in self.referrer_allocation, (
-            'Referrer must exist in the allocation pool. Pass "shared" if no allocation was defined.'
-        )
+
+        if referrer not in self.referrer_allocation:
+            referrer = "shared"
 
         # Find the bucket ID of the request. The bucket ID is the number of windows which have
         # previously elapsed.

@@ -64,6 +64,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/close-account/`,
           title: t('Close Account'),
+          keywords: [t('delete account')],
           description: t('Permanently close your Sentry account'),
         },
       ],
@@ -130,8 +131,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/api-keys/`,
           title: t('API Keys'),
-          show: ({access, features}) =>
-            (features?.has('api-keys') && access?.has('org:admin')) ?? false,
+          show: false, // deprecated: hide from settings nav and cmd+k (SEC-551)
           id: 'api-keys',
         },
         {
@@ -247,6 +247,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('pagerduty'),
             t('opsgenie'),
             t('discord'),
+            t('linear'),
             t('microsoft teams'),
             t('msteams'),
             t('aws lambda'),
@@ -301,6 +302,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('api token'),
             t('token'),
             t('credentials'),
+            t('user auth tokens'),
           ],
           description: t('Manage organization tokens'),
           id: 'auth-tokens',
@@ -315,6 +317,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('api token'),
             t('token'),
             t('credentials'),
+            t('user auth tokens'),
           ],
           description: t(
             "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."

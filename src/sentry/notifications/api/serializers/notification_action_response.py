@@ -15,7 +15,7 @@ from sentry.utils.serializers import manytoone_to_dict
 
 
 @register(NotificationAction)
-class OutgoingNotificationActionSerializer(Serializer):
+class OutgoingNotificationActionSerializer(Serializer[dict[str, Any]]):
     """
     Model serializer for outgoing NotificationAction API payloads
     """

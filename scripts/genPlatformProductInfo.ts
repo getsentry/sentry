@@ -26,8 +26,13 @@ import {fileURLToPath} from 'node:url';
 import * as ts from 'typescript';
 import {parse as parseYaml} from 'yaml';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SENTRY_ROOT = path.resolve(__dirname, '..');
+// Named THIS_DIR rather than __dirname so SWC's CJS transform (used by Jest)
+// doesn't emit a `const __dirname = ...` that collides with the wrapper-
+// provided binding and crashes the whole frontend test run with a
+// SyntaxError. The original `__dirname` only shadowed the wrapper inside
+// this module anyway, so the rename is behavior-equivalent at runtime.
+const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
+const SENTRY_ROOT = path.resolve(THIS_DIR, '..');
 const DOCS_ROOT = process.env.SENTRY_DOCS_PATH
   ? path.resolve(process.env.SENTRY_DOCS_PATH)
   : path.resolve(SENTRY_ROOT, '..', 'sentry-docs');
@@ -431,7 +436,7 @@ function emit(map: Record<string, string[]>): string {
 // \`scripts/genPlatformProductInfo.ts\`.
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 `;
 

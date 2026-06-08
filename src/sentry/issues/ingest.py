@@ -22,6 +22,7 @@ from sentry.event_manager import (
     save_grouphash_and_group,
 )
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
@@ -53,7 +54,6 @@ logger = logging.getLogger(__name__)
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
-    # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
     if occurrence.event_id != event.event_id:
         raise ValueError("IssueOccurrence must have the same event_id as the passed Event")
@@ -143,7 +143,6 @@ def _create_issue_kwargs(
         "data": materialize_metadata(occurrence, event),
         "priority": priority,
     }
-    kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
 
 
@@ -256,9 +255,11 @@ def save_issue_from_occurrence(
                 project, event, primary_hash, **issue_kwargs
             )
             if is_new:
-                detector_id = None
-                if occurrence.evidence_data:
-                    detector_id = occurrence.evidence_data.get("detector_id")
+                detector_id = (
+                    occurrence.evidence_data.get("detector_id")
+                    if occurrence.evidence_data
+                    else None
+                )
                 associate_new_group_with_detector(group, detector_id)
 
             open_period = get_latest_open_period(group)
@@ -297,9 +298,10 @@ def save_issue_from_occurrence(
             try:
                 # Since this calls hybrid cloud it has to be run outside the transaction
                 assignee = occurrence.assignee.resolve()
-                GroupAssignee.objects.assign(group, assignee, create_only=True)
+                with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                    GroupAssignee.objects.assign(group, assignee, create_only=True)
             except Exception:
-                logger.exception("Failed process assignment for occurrence")
+                logger.exception("Failed to process assignment for occurrence")
 
     elif primary_grouphash.group is None:
         return None
@@ -322,9 +324,9 @@ def save_issue_from_occurrence(
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
-        detector_id = None
-        if occurrence.evidence_data:
-            detector_id = occurrence.evidence_data.get("detector_id")
+        detector_id = (
+            occurrence.evidence_data.get("detector_id") if occurrence.evidence_data else None
+        )
         ensure_association_with_detector(group, detector_id)
 
         # if it's a regression and the priority changed, we should update the existing GroupOpenPeriodActivity
@@ -334,15 +336,16 @@ def save_issue_from_occurrence(
             and group.priority != issue_kwargs["priority"]
             and group.priority_locked_at is None
         ):
-            update_priority(
-                group=group,
-                priority=PriorityLevel(issue_kwargs["priority"]),
-                sender="save_issue_from_occurrence",
-                reason=PriorityChangeReason.ISSUE_PLATFORM,
-                project=project,
-                is_regression=is_regression,
-                event_id=occurrence.event_id,
-            )
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                update_priority(
+                    group=group,
+                    priority=PriorityLevel(issue_kwargs["priority"]),
+                    sender="save_issue_from_occurrence",
+                    reason=PriorityChangeReason.ISSUE_PLATFORM,
+                    project=project,
+                    is_regression=is_regression,
+                    event_id=occurrence.event_id,
+                )
 
             open_period = get_latest_open_period(group)
             if open_period is not None:

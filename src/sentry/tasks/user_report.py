@@ -31,7 +31,7 @@ def user_report(
     project = Project.objects.get_from_cache(id=project_id)
     if report_id:
         user_report = UserReport.objects.get(id=report_id)
-        user_report = serialize(user_report, AnonymousUser(), UserReportWithGroupSerializer())
-        safe_execute(mail_adapter.handle_user_report, report=user_report, project=project)
+        serialized_report = serialize(user_report, AnonymousUser(), UserReportWithGroupSerializer())
+        safe_execute(mail_adapter.handle_user_report, report=serialized_report, project=project)
     else:
         safe_execute(mail_adapter.handle_user_report, report=report, project=project)

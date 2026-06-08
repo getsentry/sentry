@@ -4,12 +4,6 @@ from typing import Any, TypedDict
 from sentry.api.serializers.release_details_types import Author, LastDeploy, Project, VersionInfo
 
 
-class SerializedAvatarFields(TypedDict, total=False):
-    avatarType: str
-    avatarUuid: str | None
-    avatarUrl: str | None
-
-
 # Reponse type for OrganizationReleaseDetailsEndpoint
 class ReleaseSerializerResponseOptional(TypedDict, total=False):
     ref: str | None
@@ -28,6 +22,11 @@ class ReleaseSerializerResponseOptional(TypedDict, total=False):
 
 
 class ReleaseSerializerResponse(ReleaseSerializerResponseOptional):
+    # NOTE: The API design guidelines (https://develop.sentry.dev/backend/api/design/)
+    # call for resource identifiers to be returned as strings. This release `id` is a
+    # long-standing integer in the public response and is relied on by existing clients,
+    # so changing it would be breaking; left as-is intentionally. `version` is the
+    # human-friendly identifier. Do not copy this pattern into new public responses.
     id: int
     version: str
     newGroups: int

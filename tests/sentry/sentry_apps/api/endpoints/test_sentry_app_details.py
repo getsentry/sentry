@@ -161,7 +161,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
                 },
             ],
             "popularity": self.popularity,
-            "avatars": set(),
+            "avatars": [],
             "metadata": {},
         }
 

@@ -7,28 +7,54 @@ const baseEvidenceData: LowValueSpanEvidenceData = {
   op: 'function',
   description: 'compute_checksum',
   count: 1234,
+  extrapolatedCount: 60_000,
   avgDurationMs: 0.4,
   estimatedCostUsd: 12.34,
-  sdkName: 'sentry.javascript.nextjs',
+  spanOrigin: 'auto',
 };
 
 describe('LowValueSpanIssues TroubleshootingSection', () => {
-  it('renders the two troubleshooting paths', () => {
-    render(<TroubleshootingSection evidenceData={baseEvidenceData} />);
+  it('renders automatic instrumentation guidance for auto spans', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={baseEvidenceData}
+        projectPlatform="javascript-nextjs"
+      />
+    );
 
     expect(screen.getByText('Troubleshooting')).toBeInTheDocument();
-    expect(screen.getByText('1. Find where the span is created')).toBeInTheDocument();
-    expect(
-      screen.getByText('2. Remove custom instrumentation when possible')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('3. Filter automatic instrumentation exactly')
-    ).toBeInTheDocument();
-    expect(screen.getByText('function - compute_checksum')).toBeInTheDocument();
+    expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
+    expect(screen.queryByText('function - compute_checksum')).not.toBeInTheDocument();
+    expect(screen.queryByText('1. Find the custom span')).not.toBeInTheDocument();
+    expect(screen.queryByText('2. Remove or replace the span')).not.toBeInTheDocument();
+  });
+
+  it('renders manual instrumentation guidance only for manual spans', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          spanOrigin: 'manual',
+        }}
+        projectPlatform="javascript-nextjs"
+      />
+    );
+
+    expect(screen.getByText('1. Find the custom span')).toBeInTheDocument();
+    expect(screen.getByText('2. Remove or replace the span')).toBeInTheDocument();
+    expect(screen.getByText(/delete the custom span line/)).toBeInTheDocument();
+    expect(screen.getAllByText('function - compute_checksum').length).toBeGreaterThan(0);
+    expect(screen.queryByText('ignoreSpans')).not.toBeInTheDocument();
+    expect(screen.queryByText('before_send_transaction')).not.toBeInTheDocument();
   });
 
   it('recommends JavaScript span filtering and mentions beforeSendSpan', () => {
-    render(<TroubleshootingSection evidenceData={baseEvidenceData} />);
+    render(
+      <TroubleshootingSection
+        evidenceData={baseEvidenceData}
+        projectPlatform="javascript-nextjs"
+      />
+    );
 
     expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
     expect(screen.getByText('beforeSendSpan')).toBeInTheDocument();
@@ -36,13 +62,11 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     expect(screen.getByText(/name: "compute_checksum"/)).toBeInTheDocument();
   });
 
-  it('recommends before_send_transaction for Python SDKs', () => {
+  it('recommends before_send_transaction for Python project platforms', () => {
     render(
       <TroubleshootingSection
-        evidenceData={{
-          ...baseEvidenceData,
-          sdkName: 'sentry.python',
-        }}
+        evidenceData={baseEvidenceData}
+        projectPlatform="python-django"
       />
     );
 
@@ -51,19 +75,54 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
   });
 
-  it('renders generic guidance when the SDK is unavailable', () => {
+  it('uses a JavaScript project platform for JavaScript snippets', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={baseEvidenceData}
+        projectPlatform="javascript-nextjs"
+      />
+    );
+
+    expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
+    expect(screen.getByText(/op: "function"/)).toBeInTheDocument();
+    expect(screen.queryByText(/Add an exact-match span filter/)).not.toBeInTheDocument();
+  });
+
+  it('uses a Python project platform for Python snippets', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={baseEvidenceData}
+        projectPlatform="python-django"
+      />
+    );
+
+    expect(screen.getByText('before_send_transaction')).toBeInTheDocument();
+    expect(screen.getByText(/span.get\("op"\) == "function"/)).toBeInTheDocument();
+    expect(screen.queryByText(/Add an exact-match span filter/)).not.toBeInTheDocument();
+  });
+
+  it('renders generic guidance when the project platform is unavailable', () => {
+    render(
+      <TroubleshootingSection evidenceData={baseEvidenceData} projectPlatform={null} />
+    );
+
+    expect(screen.getByText(/Add an exact-match span filter/)).toBeInTheDocument();
+    expect(screen.queryByText('ignoreSpans')).not.toBeInTheDocument();
+    expect(screen.queryByText('before_send_transaction')).not.toBeInTheDocument();
+  });
+
+  it('treats missing span origin as automatic instrumentation', () => {
     render(
       <TroubleshootingSection
         evidenceData={{
           ...baseEvidenceData,
-          sdkName: null,
+          spanOrigin: null,
         }}
+        projectPlatform="javascript-nextjs"
       />
     );
 
-    expect(
-      screen.getByText(/Check your SDK tracing options and add an exact-match filter/)
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/beforeSendTransaction/)).not.toBeInTheDocument();
+    expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
+    expect(screen.queryByText('1. Find the custom span')).not.toBeInTheDocument();
   });
 });

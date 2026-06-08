@@ -2,10 +2,10 @@ import {useCallback, useRef} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderState} from 'sentry/components/searchQueryBuilder/context';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type UndoItem = {
   /**
@@ -77,7 +77,7 @@ function updateUndoStack({
  * Hook that manages the undo stack for the search query builder.
  */
 export function useUndoStack(state: ListState<ParseResultToken>) {
-  const {query, focusOverride, dispatch} = useSearchQueryBuilder();
+  const {query, focusOverride, dispatch} = useSearchQueryBuilderState();
   const undoStackRef = useRef<UndoItem[]>([]);
   const trimmedQuery = query.trim();
 

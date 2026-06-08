@@ -15,7 +15,6 @@ import {
   type TagCollection,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {escapeIssueTagKey} from 'sentry/utils';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
   FieldKey,
@@ -28,6 +27,7 @@ import {
 } from 'sentry/utils/fields';
 import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsernames';
+import {escapeIssueTagKey} from 'sentry/utils/queryString';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 

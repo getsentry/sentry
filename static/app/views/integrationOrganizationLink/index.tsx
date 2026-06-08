@@ -1,12 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -14,13 +14,13 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {
   getIntegrationFeatureGate,
@@ -28,7 +28,6 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -36,16 +35,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {RouteError} from 'sentry/views/routeError';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
-interface GitHubIntegrationInstallation {
-  account: {
-    login: string;
-    type: string;
-  };
-  sender: {
-    id: number;
-    login: string;
-  };
-}
+import {GitHubInstallationCallout} from './gitHubInstallationCallout';
 
 function trackExternalAnalytics({
   eventName,
@@ -77,20 +67,60 @@ function trackExternalAnalytics({
   );
 }
 
+/**
+ * Landing page that completes an integration install initiated from a
+ * third-party "app directory" or marketplace listing. After the user authorizes
+ * on the provider side, the provider redirects here so the user can pick which
+ * Sentry organization the install should land in, and then the install
+ * pipeline is driven with the params the provider supplied.
+ *
+ * Provider-initiated entry points handled here:
+ *
+ *  - GitHub
+ *    `/extensions/github/link/?installationId=...` (redirected from
+ *    `/extensions/external-install/github/:installationId`). Drives the
+ *    pipeline with `gitHubAppListingParams`.
+ *
+ *  - Discord
+ *    `/extensions/discord/link/?code=...&guild_id=...` (redirected from
+ *    `/extensions/discord/configure/`). Drives the pipeline with
+ *    `discordAppDirectoryParams`.
+ *
+ *  - Microsoft Teams
+ *    `/extensions/msteams/link/?signed_params=...` (redirected from
+ *    `/extensions/msteams/configure/`). Drives the pipeline with
+ *    `msTeamsParams`.
+ *
+ *  - Jira
+ *    `/extensions/jira/link/?signed_params=...` (redirected from
+ *    `/extensions/jira/configure/`). Drives the pipeline with
+ *    `jiraParams`.
+ *
+ *  - Vercel
+ *    `/extensions/vercel/link/...` (redirected from
+ *    `/extensions/vercel/configure/`). Drives the pipeline with
+ *    `vercelParams`.
+ *
+ *  - Anything else
+ *    falls through to {@link finishLegacyInstallation}, which bounces to the
+ *    legacy `/extensions/<slug>/configure/` backend endpoint.
+ */
 export default function IntegrationOrganizationLink() {
   const location = useLocation();
-  const {integrationSlug, installationId} = useParams<{
-    integrationSlug: string;
-    // installationId present for Github flow
-    installationId?: string;
-  }>();
+  const {integrationSlug} = useParams<{integrationSlug: string}>();
+  // GitHub installs forwarded here from `/extensions/external-install/...`
+  // carry `installationId` in the query string.
+  const installationId =
+    typeof location.query.installationId === 'string'
+      ? location.query.installationId
+      : undefined;
   const [selectedOrgSlug, setSelectedOrgSlug] = useState<string | null>(null);
 
   const {
     data: organizations = [],
     isPending: isPendingOrganizations,
     error: organizationsError,
-  } = useApiQuery<Organization[]>([getApiUrl('/organizations/')], {staleTime: Infinity});
+  } = useQuery(apiOptions.as<Organization[]>()('/organizations/', {staleTime: Infinity}));
 
   const hasSelectedOrg = !!selectedOrgSlug;
   const organizationQuery = useQuery(
@@ -107,44 +137,29 @@ export default function IntegrationOrganizationLink() {
     }
   }, [hasSelectedOrg, organizationQuery.error]);
 
-  const isProviderQueryEnabled = hasSelectedOrg;
-  const providerQuery = useApiQuery<{
-    providers: IntegrationProvider[];
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-        path: {organizationIdOrSlug: selectedOrgSlug!},
-      }),
-      {query: {provider_key: integrationSlug}},
-    ],
-    {staleTime: Infinity, enabled: isProviderQueryEnabled}
+  const providerQuery = useQuery(
+    apiOptions.as<{providers: IntegrationProvider[]}>()(
+      '/organizations/$organizationIdOrSlug/config/integrations/',
+      {
+        path: hasSelectedOrg ? {organizationIdOrSlug: selectedOrgSlug} : skipToken,
+        query: {provider_key: integrationSlug},
+        staleTime: Infinity,
+      }
+    )
   );
+
   const provider = providerQuery.data?.providers[0] ?? null;
+
   useEffect(() => {
     const hasEmptyProvider = !provider && !providerQuery.isPending;
-    if (isProviderQueryEnabled && (providerQuery.error || hasEmptyProvider)) {
+    if (hasSelectedOrg && (providerQuery.error || hasEmptyProvider)) {
       addErrorMessage(t('Failed to retrieve integration details'));
     }
-  }, [isProviderQueryEnabled, providerQuery.error, providerQuery.isPending, provider]);
-
-  const isInstallationQueryEnabled = !!installationId && integrationSlug === 'github';
-  const installationQuery = useApiQuery<GitHubIntegrationInstallation>(
-    // @ts-expect-error TODO(ryan953): Invalid useApiQuery path
-    [`/../../extensions/github/installation/${installationId}/`],
-    {staleTime: Infinity, enabled: isInstallationQueryEnabled}
-  );
-  const installationData = installationQuery.data ?? null;
-
-  useEffect(() => {
-    if (isInstallationQueryEnabled && installationQuery.error) {
-      addErrorMessage(t('Failed to retrieve GitHub installation details'));
-    }
-  }, [isInstallationQueryEnabled, installationQuery.error]);
+  }, [hasSelectedOrg, providerQuery.error, providerQuery.isPending, provider]);
 
   // These two queries are recomputed when an organization is selected
   const isPendingSelection =
-    (hasSelectedOrg && organizationQuery.isPending) ||
-    (isProviderQueryEnabled && providerQuery.isPending);
+    hasSelectedOrg && (organizationQuery.isPending || providerQuery.isPending);
 
   const selectOrganization = useCallback(
     (orgSlug: string) => {
@@ -173,12 +188,14 @@ export default function IntegrationOrganizationLink() {
     }
   }, [organizations, location.search, selectOrganization]);
 
-  const hasAccess = useMemo(() => {
-    return organization?.access.includes('org:integrations');
-  }, [organization]);
+  const hasAccess = organization?.access.includes('org:integrations');
 
-  // used with Github to redirect to the integration detail
-  const onInstallWithInstallationId = useCallback(
+  const {startFlow} = useAddIntegration();
+
+  // Lands the user on the integration's settings page after a successful
+  // API-driven install. Used as `startFlow`'s `onInstall` callback by both
+  // the GitHub App listing and Discord App Directory entry points.
+  const onInstall = useCallback(
     (data: Integration) => {
       const orgId = organization?.slug;
       const normalizedUrl = normalizeUrl(
@@ -191,8 +208,79 @@ export default function IntegrationOrganizationLink() {
     [organization]
   );
 
-  // non-Github redirects to the extension view where the backend will finish the installation
-  const finishInstallation = useCallback(() => {
+  // GitHub App listing installs arrive here with `installationId` as a URL
+  // path segment. The install button uses this as `initialData` for the
+  // pipeline modal.
+  const gitHubAppListingParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'github' || !installationId) {
+      return null;
+    }
+    return {installation_id: installationId};
+  }, [integrationSlug, installationId]);
+
+  // Discord App Directory installs arrive here with `code` and `guild_id` in
+  // the URL query (forwarded from `/extensions/discord/configure/`). The
+  // install button uses these as `initialData` for the pipeline modal.
+  const discordAppDirectoryParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'discord') {
+      return null;
+    }
+    const code = location.query.code;
+    const guildId = location.query.guild_id;
+    if (typeof code !== 'string' || typeof guildId !== 'string') {
+      return null;
+    }
+    return {code, guild_id: guildId, use_configure: '1'};
+  }, [integrationSlug, location.query]);
+
+  // Microsoft Teams installs arrive here with `signed_params` in the URL query
+  // (forwarded from `/extensions/msteams/configure/`). The install button uses
+  // it as `initialData` for the pipeline modal.
+  const msTeamsParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'msteams') {
+      return null;
+    }
+    const signedParams = location.query.signed_params;
+    if (typeof signedParams !== 'string') {
+      return null;
+    }
+    return {signedParams};
+  }, [integrationSlug, location.query]);
+
+  // Jira Cloud installs arrive here with `signed_params` in the URL query
+  // (forwarded from `/extensions/jira/configure/`). The install button uses it
+  // as `initialData` for the pipeline modal.
+  const jiraParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'jira') {
+      return null;
+    }
+    const signedParams = location.query.signed_params;
+    if (typeof signedParams !== 'string') {
+      return null;
+    }
+    return {signedParams};
+  }, [integrationSlug, location.query]);
+
+  // Vercel marketplace installs arrive here (forwarded from
+  // `/extensions/vercel/configure/`) with the OAuth `code` Vercel already
+  // granted. The install pipeline exchanges that code, so we forward it as
+  // initialData for the modal -- no second authorize round-trip.
+  const vercelParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'vercel') {
+      return null;
+    }
+    const code = location.query.code;
+    if (typeof code !== 'string') {
+      return null;
+    }
+    return {code};
+  }, [integrationSlug, location.query]);
+
+  // Legacy install path. Redirects to `/extensions/<slug>/configure/`, which
+  // runs the Django-rendered `IntegrationExtensionConfigurationView` to drive
+  // the install server-side via the legacy pipeline. Used by every provider
+  // that hasn't been migrated to the API pipeline modal yet.
+  const finishLegacyInstallation = useCallback(() => {
     // add the selected org to the query parameters and then redirect back to configure
     const query = {orgSlug: selectedOrgSlug, ...location.query};
     trackExternalAnalytics({
@@ -208,6 +296,39 @@ export default function IntegrationOrganizationLink() {
     );
   }, [integrationSlug, location.query, organization, provider, selectedOrgSlug]);
 
+  const handleInstallClick = useCallback(() => {
+    if (!provider || !organization) {
+      return;
+    }
+
+    // Each provider-initiated entry point contributes its own params bag.
+    // Whichever one is non-null routes through the API pipeline modal;
+    // otherwise we fall back to the legacy server-driven install flow.
+    const urlParams =
+      gitHubAppListingParams ??
+      discordAppDirectoryParams ??
+      msTeamsParams ??
+      jiraParams ??
+      vercelParams;
+    if (urlParams) {
+      startFlow({provider, organization, onInstall, urlParams});
+      return;
+    }
+
+    finishLegacyInstallation();
+  }, [
+    provider,
+    organization,
+    gitHubAppListingParams,
+    discordAppDirectoryParams,
+    msTeamsParams,
+    jiraParams,
+    vercelParams,
+    startFlow,
+    onInstall,
+    finishLegacyInstallation,
+  ]);
+
   const renderAddButton = useMemo(() => {
     if (!provider || !organization) {
       return null;
@@ -218,9 +339,9 @@ export default function IntegrationOrganizationLink() {
     const featuresComponents = features.map(f => ({
       featureGate: f.featureGate,
       description: (
-        <FeatureListItem
-          dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}}
-        />
+        <Text density="comfortable">
+          <span dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}} />
+        </Text>
       ),
     }));
 
@@ -229,27 +350,20 @@ export default function IntegrationOrganizationLink() {
     return (
       <IntegrationFeatures organization={organization} features={featuresComponents}>
         {({disabled, disabledReason}) => (
-          <AddIntegrationButton
-            provider={provider}
-            organization={organization}
-            onInstall={onInstallWithInstallationId}
-            installationId={installationId}
-            hasAccess={hasAccess}
-            disabled={disabled}
-            disabledReason={disabledReason}
-            finishInstallation={finishInstallation}
-          />
+          <Flex direction="column" align="center" justify="center">
+            <Button
+              variant="primary"
+              disabled={!hasAccess || disabled}
+              onClick={handleInstallClick}
+            >
+              {t('Install %s', provider.name)}
+            </Button>
+            {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
+          </Flex>
         )}
       </IntegrationFeatures>
     );
-  }, [
-    installationId,
-    provider,
-    organization,
-    hasAccess,
-    onInstallWithInstallationId,
-    finishInstallation,
-  ]);
+  }, [provider, organization, hasAccess, handleInstallClick]);
 
   const renderBottom = useMemo(() => {
     const {FeatureList} = getIntegrationFeatureGate();
@@ -271,7 +385,7 @@ export default function IntegrationOrganizationLink() {
                   {organization: <strong>{organization.slug}</strong>}
                 )}
               </p>
-              <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
+              <TextCopyInput>{generateOrgSlugUrl(selectedOrgSlug)}</TextCopyInput>
             </Alert>
           </Alert.Container>
         )}
@@ -303,55 +417,6 @@ export default function IntegrationOrganizationLink() {
     selectedOrgSlug,
   ]);
 
-  const renderCallout = useCallback(() => {
-    if (integrationSlug !== 'github') {
-      return null;
-    }
-
-    if (!installationData) {
-      return (
-        <Alert.Container>
-          <Alert variant="warning">
-            {t(
-              'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
-            )}
-          </Alert>
-        </Alert.Container>
-      );
-    }
-
-    const sender_url = `https://github.com/${installationData?.sender.login}`;
-    const target_url = `https://github.com/${installationData?.account.login}`;
-
-    const alertText = tct(
-      'GitHub user [sender_login] has installed GitHub app to [account_type] [account_login]. Proceed if you want to attach this installation to your Sentry account.',
-      {
-        account_type: <strong>{installationData?.account.type}</strong>,
-        account_login: (
-          <strong>
-            <ExternalLink href={target_url}>
-              {installationData?.account.login}
-            </ExternalLink>
-          </strong>
-        ),
-        sender_id: <strong>{installationData?.sender.id}</strong>,
-        sender_login: (
-          <strong>
-            <ExternalLink href={sender_url}>
-              {installationData?.sender.login}
-            </ExternalLink>
-          </strong>
-        ),
-      }
-    );
-
-    return (
-      <Alert.Container>
-        <Alert variant="info">{alertText}</Alert>
-      </Alert.Container>
-    );
-  }, [integrationSlug, installationData]);
-
   if (isPendingOrganizations) {
     return <LoadingIndicator />;
   }
@@ -376,7 +441,9 @@ export default function IntegrationOrganizationLink() {
     <NarrowLayout>
       <SentryDocumentTitle title={t('Choose Installation Organization')} />
       <h3>{t('Finish integration installation')}</h3>
-      {renderCallout()}
+      {integrationSlug === 'github' && installationId && (
+        <GitHubInstallationCallout installationId={installationId} />
+      )}
       <p>
         {tct(
           `Please pick a specific [organization:organization] to link with
@@ -399,64 +466,3 @@ export default function IntegrationOrganizationLink() {
     </NarrowLayout>
   );
 }
-
-function AddIntegrationButton({
-  provider,
-  organization,
-  onInstall,
-  installationId,
-  hasAccess,
-  disabled,
-  disabledReason,
-  finishInstallation,
-}: {
-  disabled: boolean;
-  disabledReason: React.ReactNode;
-  finishInstallation: () => void;
-  hasAccess: boolean | undefined;
-  onInstall: (data: Integration) => void;
-  organization: Organization;
-  provider: IntegrationProvider;
-  installationId?: string;
-}) {
-  const {startFlow} = useAddIntegration();
-
-  return (
-    <ButtonWrapper>
-      <Button
-        variant="primary"
-        disabled={!hasAccess || disabled}
-        onClick={() =>
-          installationId
-            ? startFlow({
-                provider,
-                organization,
-                onInstall,
-                urlParams: {installation_id: installationId},
-              })
-            : finishInstallation()
-        }
-      >
-        {t('Install %s', provider.name)}
-      </Button>
-      {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
-    </ButtonWrapper>
-  );
-}
-
-const InstallLink = styled('pre')`
-  margin-bottom: 0;
-  background: #fbe3e1;
-`;
-
-const FeatureListItem = styled('span')`
-  line-height: 24px;
-`;
-
-const ButtonWrapper = styled('div')`
-  margin-left: auto;
-  align-self: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;

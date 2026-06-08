@@ -28,7 +28,7 @@ class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
 
 
 @register(OrganizationMemberTeam)
-class DetailedOrganizationMemberTeamSerializer(Serializer):
+class DetailedOrganizationMemberTeamSerializer(Serializer[OrganizationMemberOnTeamResponse]):
     def __init__(self, *args, **kwargs):
         self.team = kwargs.pop("team", None)
         super().__init__(*args, **kwargs)
@@ -83,7 +83,7 @@ class TeamMembersEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.LIST_TEAM_MEMBERS,
     )
-    def get(self, request: Request, team) -> Response:
+    def get(self, request: Request, team) -> Response[list[OrganizationMemberOnTeamResponse]]:
         """
         List all members on a team.
 

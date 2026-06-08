@@ -29,7 +29,7 @@ class FlagWebhookSigningSecretResponse(TypedDict):
 
 
 @register(FlagWebHookSigningSecretModel)
-class FlagWebhookSigningSecretSerializer(Serializer):
+class FlagWebhookSigningSecretSerializer(Serializer[FlagWebhookSigningSecretResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> FlagWebhookSigningSecretResponse:
         return {
             "createdAt": obj.date_added.isoformat(),

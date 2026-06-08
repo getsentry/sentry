@@ -15,6 +15,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.testutils import mock_replay, mock_replay_click
 from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.agent.tools import (
@@ -982,6 +983,8 @@ class _IssueMetadata(BaseModel):
     type: str
     issueType: str
     issueTypeDescription: str  # Extra field added by get_issue_and_event_details.
+    detectionContext: str | None  # Extra field added by get_issue_and_event_details.
+    troubleshootingHint: str | None  # Extra field added by get_issue_and_event_details.
     issueCategory: str
     hasSeen: bool
     project: _Project
@@ -1498,6 +1501,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["issue"]["issueTypeDescription"] == group.issue_type.description
+        assert result["issue"]["detectionContext"] is None
+        assert result["issue"]["troubleshootingHint"] is None
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
 
@@ -1522,6 +1527,28 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["issue"]["id"] == str(group.id)
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_low_value_span_issue_context(self, mock_tags, mock_ts):
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+        group = self.create_group(
+            project=self.project,
+            type=LowValueSpanConfigurationType.type_id,
+        )
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert isinstance(result, dict)
+        self._assert_issue_response_shape(result)
+        assert "Sentry detector" in result["issue"]["detectionContext"]
+        assert "low telemetry value" in result["issue"]["detectionContext"]
+        assert "manually instrumented" in result["issue"]["troubleshootingHint"]
+        assert "filter the automatically created span" in result["issue"]["troubleshootingHint"]
 
     # --- timeseries ---
 

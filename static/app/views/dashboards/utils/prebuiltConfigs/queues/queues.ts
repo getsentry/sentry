@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {
+  PrebuiltDashboard,
+  PrebuiltWidget,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
@@ -10,7 +13,7 @@ import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow([...QUEUE_CHARTS], 0);
 
-const DESTINATION_TABLE: Widget = {
+const DESTINATION_TABLE: PrebuiltWidget = {
   id: 'destination-table',
   title: t('Destinations'),
   displayType: DisplayType.TABLE,
