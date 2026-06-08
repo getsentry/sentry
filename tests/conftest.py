@@ -103,6 +103,33 @@ def setup_enforce_monotonic_transactions(request: pytest.FixtureRequest) -> Gene
 
 
 @pytest.fixture(autouse=True)
+def repair_leaked_transactions() -> Generator[None]:
+    """Prevent a single transaction leak from poisoning the whole xdist worker.
+
+    When a test fails partway through a multi-database operation it can leave a
+    savepoint open on the (process-shared) connection that Django's rollback
+    does not unwind. Because the cross-transaction guard compares each
+    connection's transaction depth against a watermark that is re-baselined at
+    the start of every test, the leftover savepoint makes every subsequent test
+    on that worker raise CrossTransactionAssertionError (or "pop from empty
+    list") in setUp/teardown -- turning one flake into hundreds of failures.
+
+    After each test, close any connection still left above its watermark so the
+    next test gets a clean connection. On a healthy test there is nothing above
+    the watermark, so this is a no-op and adds no latency.
+    """
+    from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+
+    yield
+
+    for conn in connections.all():
+        if simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+            connection=conn
+        ):
+            conn.close()
+
+
+@pytest.fixture(autouse=True)
 def audit_hybrid_cloud_writes_and_deletes(request: pytest.FixtureRequest) -> Generator[None]:
     """
     Ensure that write operations on hybrid cloud foreign keys are recorded
