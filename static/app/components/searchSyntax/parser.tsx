@@ -2,6 +2,18 @@ import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 import type {LocationRange} from 'peggy';
 
+import {
+  BooleanOperator,
+  FilterType,
+  InvalidReason,
+  TermOperator,
+  Token,
+} from 'sentry/components/searchSyntax/types';
+import type {
+  InvalidFilter,
+  LocationFn,
+  TextFn,
+} from 'sentry/components/searchSyntax/types';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {
@@ -12,12 +24,8 @@ import {
 
 import {parse} from './grammar.pegjs';
 import {getKeyName} from './utils';
-
-import {BooleanOperator, FilterType, InvalidReason, TermOperator, Token} from 'sentry/components/searchSyntax/types';
-import type {InvalidFilter, LocationFn, TextFn} from 'sentry/components/searchSyntax/types';
 export {BooleanOperator, FilterType, InvalidReason, TermOperator, Token};
 export {WildcardOperators} from 'sentry/components/searchSyntax/types';
-
 
 type ListItem<V> = [
   space: ReturnType<TokenConverter['tokenSpaces']>,

@@ -1,12 +1,10 @@
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/typesBase';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 export {DiscoverDatasets, DisplayModes};
 export {DatasetSource, SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
-
 
 export const TOP_N = 5;
 
