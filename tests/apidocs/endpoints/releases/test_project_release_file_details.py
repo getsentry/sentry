@@ -42,3 +42,9 @@ class ProjectReleaseFileDetailsDocsTest(APIDocsTestCase):
         request = RequestFactory().put(self.url, data)
 
         self.validate_schema(request, response)
+
+    def test_delete(self) -> None:
+        response = self.client.delete(self.url)
+        request = RequestFactory().delete(self.url)
+
+        self.validate_schema(request, response)

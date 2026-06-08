@@ -1,8 +1,9 @@
 import posixpath
+from datetime import datetime
 from zipfile import ZipFile
 
 from django.http.response import FileResponse
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -42,6 +43,47 @@ class ReleaseFileSerializer(serializers.Serializer):
     name = serializers.CharField(
         max_length=200, required=True, help_text="The new name (full path) of the file."
     )
+
+
+_RETRIEVE_RELEASE_FILE_EXAMPLE: ReleaseFileSerializerResponse = {
+    "id": "1",
+    "name": "/demo/message-for-you.txt",
+    "dist": None,
+    "headers": {"Content-Type": "text/plain; encoding=utf-8"},
+    "size": 12,
+    "sha1": "2ef7bde608ce5404e97d5f042f95f89f1c232871",
+    "dateCreated": datetime.fromisoformat("2018-11-06T21:20:19.150Z"),
+}
+_UPDATE_RELEASE_FILE_EXAMPLE: ReleaseFileSerializerResponse = {
+    "id": "3",
+    "name": "/demo/goodbye.txt",
+    "dist": None,
+    "headers": {"Content-Type": "text/plain; encoding=utf-8"},
+    "size": 15,
+    "sha1": "94d6b21e962a9fc65889617ec1f17a1e2fe11b65",
+    "dateCreated": datetime.fromisoformat("2018-11-06T21:20:22.894Z"),
+}
+_RETRIEVE_RELEASE_FILE_EXAMPLES = [
+    OpenApiExample(
+        "Retrieve a release file",
+        value=_RETRIEVE_RELEASE_FILE_EXAMPLE,
+        response_only=True,
+        status_codes=["200"],
+    )
+]
+_UPDATE_RELEASE_FILE_EXAMPLES = [
+    OpenApiExample(
+        "Update a release file",
+        value={"name": "/demo/goodbye.txt"},
+        request_only=True,
+    ),
+    OpenApiExample(
+        "Return an updated release file",
+        value=_UPDATE_RELEASE_FILE_EXAMPLE,
+        response_only=True,
+        status_codes=["200"],
+    ),
+]
 
 
 def _entry_from_index(release: Release, dist: Distribution | None, url: str) -> ReleaseFile:
@@ -222,14 +264,15 @@ class ReleaseFileDetailsMixin:
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
 
     @extend_schema(
         operation_id="Retrieve a Project Release's File",
+        description="Retrieve a file for a given release.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -239,8 +282,11 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
                 name="download",
                 location="query",
                 required=False,
-                type=str,
-                description="If set, download the file contents instead of returning metadata.",
+                type=bool,
+                description=(
+                    "If this is set to true, then the response payload will be the raw "
+                    "file contents. Otherwise, the response will be the file metadata as JSON."
+                ),
             ),
         ],
         responses={
@@ -251,12 +297,11 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=_RETRIEVE_RELEASE_FILE_EXAMPLES,
     )
-    def get(self, request: Request, project, version, file_id) -> Response:
-        """
-        Return metadata for an individual file within a release. Does not return the file
-        contents unless `download` is set.
-        """
+    def get(
+        self, request: Request, project, version, file_id
+    ) -> Response[ReleaseFileSerializerResponse] | Response[None] | FileResponse:
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
@@ -272,7 +317,8 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
         )
 
     @extend_schema(
-        operation_id="Update a Project Release's File",
+        operation_id="Update a Project Release File",
+        description="Update a project release file.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -289,12 +335,11 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=_UPDATE_RELEASE_FILE_EXAMPLES,
     )
-    def put(self, request: Request, project, version, file_id) -> Response:
-        """
-        Update metadata of an existing release file. Currently only the name of the file
-        can be changed.
-        """
+    def put(
+        self, request: Request, project, version, file_id
+    ) -> Response[ReleaseFileSerializerResponse]:
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
@@ -306,6 +351,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
 
     @extend_schema(
         operation_id="Delete a Project Release's File",
+        description="Delete a file for a given release.",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -319,11 +365,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project, version, file_id) -> Response:
-        """
-        Permanently remove a file from a release. Also removes the physical file from
-        storage, unless it is stored as part of an artifact bundle.
-        """
+    def delete(self, request: Request, project, version, file_id) -> Response[None]:
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
