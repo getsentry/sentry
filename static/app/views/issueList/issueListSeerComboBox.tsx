@@ -106,6 +106,9 @@ export function IssueListSeerComboBox() {
           statsPeriod,
           start: undefined,
           end: undefined,
+          // Clear any utc flag left over from a prior absolute range; a relative
+          // window has no UTC display semantics to preserve.
+          utc: undefined,
         };
       }
 
