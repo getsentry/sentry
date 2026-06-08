@@ -39,3 +39,21 @@ class RootCauseAnalysisQuerySerializerTest(APITestCase):
 
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["project"] == self.project
+
+    def test_rejects_project_id_from_another_organization(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        serializer = RootCauseAnalysisQuerySerializer(
+            data=self._data(str(other_project.id)), context=self._context()
+        )
+
+        assert not serializer.is_valid()
+        assert str(serializer.errors["project"][0]) == "Invalid project"
+
+    def test_rejects_project_id_without_scope(self) -> None:
+        self.access.has_any_project_scope.return_value = False
+        serializer = RootCauseAnalysisQuerySerializer(
+            data=self._data(str(self.project.id)), context=self._context()
+        )
+
+        assert not serializer.is_valid()
+        assert str(serializer.errors["project"][0]) == "Insufficient access to project"

@@ -526,3 +526,44 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "You do not have permission to create notification actions for projects"
             in response.data["detail"]
         )
+
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_team_admin__missing_access_with_project_id(self) -> None:
+        user = self.create_user()
+        member = self.create_member(organization=self.organization, user=user, role="member")
+        OrganizationMemberTeam.objects.create(
+            team=self.team, organizationmember=member, role="admin"
+        )
+        self.login_as(user)
+
+        non_admin_project = self.create_project(
+            organization=self.organization, teams=[self.create_team()]
+        )
+
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
+
+        registration = MockActionRegistration
+        _mock_register(self.base_data)(registration)
+
+        data = {
+            **self.base_data,
+            "projects": [self.projects[0].id, non_admin_project.id],
+        }
+
+        assert not registration.validate_action.called
+        response = self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+            method="POST",
+            **data,
+        )
+
+        assert not registration.validate_action.called
+        assert (
+            "You do not have permission to create notification actions for projects"
+            in response.data["detail"]
+        )
