@@ -156,7 +156,7 @@ function ContentsTable(props: React.ComponentProps<typeof Table>) {
 }
 
 export const LogTable = styled(ContentsTable)<{minWidth: string}>`
-  --logsPinEdgeGap: 6px;
+  --logsPinEdgeGap: ${p => p.theme.space.sm};
   --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
   flex: 1;
   min-height: 0;
