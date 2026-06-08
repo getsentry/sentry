@@ -17,14 +17,8 @@ import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/typesBa
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
-import {
-  DisplayType,
-  WidgetType,
-  type DashboardFilters,
-  type DashboardPermissions,
-  type Widget,
-  type WidgetQuery,
-} from './types';
+import {type DashboardFilters, type Widget, type WidgetQuery} from './types';
+import {DisplayType, WidgetType, type DashboardPermissions} from './typesBase';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;

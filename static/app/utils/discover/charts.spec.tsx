@@ -9,7 +9,8 @@ import {
   tooltipFormatter,
   tooltipFormatterUsingAggregateOutputType,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType, DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fieldsBase';
 import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
 import {categorizeDuration} from './categorizeDuration';

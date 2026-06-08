@@ -1,12 +1,14 @@
 import type {Series} from 'sentry/types/echarts';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
 import {
   SERIES_NAME_PART_DELIMITER,
   SERIES_QUERY_DELIMITER,
   transformLegacySeriesToTimeSeries,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import {WidgetType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 

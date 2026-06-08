@@ -14,7 +14,8 @@ import {
   ON_DEMAND_METRICS_UNSUPPORTED_TAGS,
   STANDARD_SEARCH_FIELD_KEYS,
 } from 'sentry/utils/onDemandMetrics/constants';
-import {WidgetType, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {type WidgetQuery} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 
 import {hasOnDemandMetricWidgetFeature} from './features';
 

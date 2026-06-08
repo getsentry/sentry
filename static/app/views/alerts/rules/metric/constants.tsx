@@ -7,7 +7,8 @@ import {parseFunction, SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fie
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {AggregationKey, MobileVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import type {Trigger, UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {Trigger} from 'sentry/views/alerts/rules/metric/typesBase';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,

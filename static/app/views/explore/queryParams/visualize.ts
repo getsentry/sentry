@@ -6,8 +6,8 @@ import {
   isEquation,
   parseFunction,
   stripEquationPrefix,
-  type ParsedFunction,
 } from 'sentry/utils/discover/fields';
+import {type ParsedFunction} from 'sentry/utils/discover/fieldsBase';
 import {decodeList} from 'sentry/utils/queryString';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';

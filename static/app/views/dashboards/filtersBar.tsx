@@ -47,13 +47,8 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
-import type {
-  DashboardDetails,
-  DashboardFilters,
-  DashboardPermissions,
-  GlobalFilter,
-  Widget,
-} from './types';
+import type {DashboardDetails, DashboardFilters, GlobalFilter, Widget} from './types';
+import type {DashboardPermissions} from './typesBase';
 import {DashboardFilterKeys, WidgetType} from './typesBase';
 
 /**

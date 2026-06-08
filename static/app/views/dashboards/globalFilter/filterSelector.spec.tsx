@@ -4,7 +4,8 @@ import {WildcardOperators} from 'sentry/components/searchSyntax/types';
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {FilterSelector} from 'sentry/views/dashboards/globalFilter/filterSelector';
-import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {type GlobalFilter} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {SpanFields} from 'sentry/views/insights/types';
 
 describe('FilterSelector', () => {

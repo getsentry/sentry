@@ -21,11 +21,11 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateArg, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
-  DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   TOP_EVENT_MODES,
   TOP_N,
 } from 'sentry/utils/discover/types';
+import {DisplayModes} from 'sentry/utils/discover/typesBase';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {decodeScalar} from 'sentry/utils/queryString';

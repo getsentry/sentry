@@ -12,7 +12,8 @@ import type {
 } from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';

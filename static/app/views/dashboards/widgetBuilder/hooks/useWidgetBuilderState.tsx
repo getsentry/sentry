@@ -10,8 +10,8 @@ import {
   isEquationAlias,
   type Column,
   type QueryFieldValue,
-  type Sort,
 } from 'sentry/utils/discover/fields';
+import {type Sort} from 'sentry/utils/discover/fieldsBase';
 import {
   decodeInteger,
   decodeList,
@@ -23,12 +23,14 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DEFAULT_CATEGORICAL_BAR_LIMIT,
-  DisplayType,
-  WidgetType,
-  type LegendType,
   type LinkedDashboard,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  WidgetType,
+  type LegendType,
+} from 'sentry/views/dashboards/typesBase';
 import {
   doesDisplayTypeSupportThresholds,
   usesTimeSeriesData,

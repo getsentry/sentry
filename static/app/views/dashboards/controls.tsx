@@ -35,8 +35,10 @@ import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardRevisionsButton} from './dashboardRevisions';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {exportDashboard} from './exportDashboard';
-import type {DashboardDetails, DashboardPermissions} from './types';
-import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
+import type {DashboardDetails} from './types';
+import {MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
+import type {DashboardPermissions} from './typesBase';
+import {DashboardState} from './typesBase';
 
 type Props = {
   dashboard: DashboardDetails;

@@ -27,9 +27,9 @@ import {
   getAggregateAlias,
   isEquation,
   isMeasurement,
-  RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fieldsBase';
 import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
@@ -41,12 +41,12 @@ import type {
   Widget,
   WidgetQuery,
 } from 'sentry/views/dashboards/types';
+import {WIDGET_TYPE_TO_SAVED_QUERY_DATASET} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
   DisplayType,
-  WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 
 type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;

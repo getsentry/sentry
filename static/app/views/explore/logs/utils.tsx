@@ -12,12 +12,8 @@ import type {Project} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {
-  CurrencyUnit,
-  DurationUnit,
-  fieldAlignment,
-  type Sort,
-} from 'sentry/utils/discover/fields';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {CurrencyUnit, DurationUnit, type Sort} from 'sentry/utils/discover/fieldsBase';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

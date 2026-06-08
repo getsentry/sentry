@@ -11,7 +11,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer, renderUrlCellValue} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
-import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
+import {type DashboardFilters} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/actionCreators/modal', () => ({

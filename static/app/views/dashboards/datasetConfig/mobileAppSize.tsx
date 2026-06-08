@@ -13,9 +13,9 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {
   Aggregation,
   AggregationOutputType,
-  DataUnit,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
 import {SizeUnit} from 'sentry/utils/discover/fieldsBase';
 import {AggregationKey} from 'sentry/utils/fields';
 import type {

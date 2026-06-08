@@ -38,12 +38,9 @@ import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWr
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
-import type {
-  DashboardDetails,
-  DashboardListItem,
-  DashboardPermissions,
-} from 'sentry/views/dashboards/types';
+import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import type {DashboardPermissions} from 'sentry/views/dashboards/typesBase';
 
 type Props = {
   api: Client;

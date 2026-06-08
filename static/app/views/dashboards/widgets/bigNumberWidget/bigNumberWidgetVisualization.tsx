@@ -13,12 +13,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
 import {NON_FINITE_NUMBER_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import type {Thresholds} from 'sentry/views/dashboards/widgets/common/types';
 import type {
   TabularRow,
   TabularValueType,
   TabularValueUnit,
-  Thresholds,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 

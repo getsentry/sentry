@@ -19,7 +19,8 @@ import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetric
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
-import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {Action} from 'sentry/views/alerts/rules/metric/typesBase';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,

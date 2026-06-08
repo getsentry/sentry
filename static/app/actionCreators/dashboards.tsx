@@ -15,13 +15,12 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
-  DashboardFilter,
-  DisplayType,
   MAX_CATEGORICAL_BAR_LIMIT,
   type DashboardDetails,
   type DashboardListItem,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {DashboardFilter, DisplayType} from 'sentry/views/dashboards/typesBase';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
 import {getResultsLimit} from 'sentry/views/dashboards/widgetBuilder/utils';
 

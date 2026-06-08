@@ -11,12 +11,11 @@ import {
   getEquationAliasIndex,
   isEquationAlias,
   parseFunction,
-  RateUnit,
   stripEquationPrefix,
   type AggregationOutputType,
-  type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {RateUnit, type DataUnit} from 'sentry/utils/discover/fieldsBase';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {
   type DatasetConfig,
@@ -31,7 +30,8 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {type WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {

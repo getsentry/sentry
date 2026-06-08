@@ -13,10 +13,10 @@ import {
   getViableDateRange,
 } from 'sentry/views/alerts/rules/metric/details/utils';
 import {
-  Dataset,
   EAP_EXTRAPOLATION_MODE_MAP,
   type MetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';

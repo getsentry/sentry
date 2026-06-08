@@ -1,10 +1,10 @@
+import {type AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   DurationUnit,
   RateUnit,
   SizeUnit,
-  type AggregationOutputType,
   type DataUnit,
-} from 'sentry/utils/discover/fields';
+} from 'sentry/utils/discover/fieldsBase';
 
 /**
  * Fallback data type when the actual type cannot be determined.

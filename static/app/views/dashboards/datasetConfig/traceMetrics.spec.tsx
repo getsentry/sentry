@@ -10,7 +10,8 @@ import {
   formatTraceMetricsFunction,
   TraceMetricsConfig,
 } from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import {DisplayType, WidgetType, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {type WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 

@@ -12,7 +12,8 @@ import {
   getInitialColumnDepths,
 } from './layoutUtils';
 import {DEFAULT_TABLE_LIMIT} from './types';
-import type {DashboardDetails, Widget, WidgetLayout} from './types';
+import type {DashboardDetails, Widget} from './types';
+import type {WidgetLayout} from './typesBase';
 
 const DASHBOARD_ARTIFACT_KEY = 'dashboard';
 

@@ -1,4 +1,5 @@
-import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
+import {type Widget} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 
 const SUPPORTED_DISPLAY_TYPES = new Set<DisplayType>([
   DisplayType.LINE,

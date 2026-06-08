@@ -9,8 +9,10 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {DiscoverDatasets, TOP_N} from 'sentry/utils/discover/types';
-import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
+import {TOP_N} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
+import {type Widget} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {getNumEquations, getWidgetInterval} from 'sentry/views/dashboards/utils';
 
 /**

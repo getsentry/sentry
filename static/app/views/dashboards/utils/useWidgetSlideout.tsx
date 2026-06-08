@@ -3,11 +3,8 @@ import {useCallback} from 'react';
 import {useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
-import {
-  SlideoutId,
-  type DashboardFilters,
-  type Widget,
-} from 'sentry/views/dashboards/types';
+import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
+import {SlideoutId} from 'sentry/views/dashboards/typesBase';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
 import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';

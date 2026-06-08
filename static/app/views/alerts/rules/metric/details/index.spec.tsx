@@ -11,12 +11,12 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
+import {type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   Dataset,
   EventTypes,
   ExtrapolationMode,
-  type MetricRule,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/analytics');

@@ -12,17 +12,18 @@ import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {DataUnit, Sort} from 'sentry/utils/discover/fieldsBase';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import {
-  WidgetType,
   type DashboardFilters,
   type Widget as TWidget,
 } from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {applyDashboardFilters, usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   findLinkedDashboardForField,
@@ -33,12 +34,12 @@ import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {
   LegendSelection,
   TabularColumn,
-  TimeSeries,
   TimeSeriesGroupBy,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatBreakdownLegendValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatBreakdownLegendValue';
 import {createPlottableFromTimeSeriesAndWidget} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';

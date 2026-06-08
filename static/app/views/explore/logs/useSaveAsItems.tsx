@@ -23,12 +23,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
+import {DEFAULT_WIDGET_NAME} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
-  DEFAULT_WIDGET_NAME,
   DisplayType,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';

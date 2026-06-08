@@ -50,8 +50,9 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import type {RateUnit} from 'sentry/utils/discover/fieldsBase';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 

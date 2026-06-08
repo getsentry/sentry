@@ -12,8 +12,8 @@ import {
   isEquation,
   isEquationAlias,
   type AggregationOutputType,
-  type DataUnit,
 } from 'sentry/utils/discover/fields';
+import {type DataUnit} from 'sentry/utils/discover/fieldsBase';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {decodeSorts} from 'sentry/utils/queryString';

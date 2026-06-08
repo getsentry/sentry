@@ -14,11 +14,13 @@ import {DurationUnit, RateUnit} from 'sentry/utils/discover/fieldsBase';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import type {
-  LegendSelection,
-  Release,
   TimeSeries,
   TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  LegendSelection,
+  Release,
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 import {shiftTabularDataToNow} from './__stories__/shiftTabularDataToNow';
 import {shiftTimeSeriesToNow} from './__stories__/shiftTimeSeriesToNow';

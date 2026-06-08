@@ -43,16 +43,15 @@ import {
 import type {
   DashboardDetails,
   DashboardListItem,
-  DashboardWidgetSource,
   Widget,
 } from 'sentry/views/dashboards/types';
+import {DEFAULT_WIDGET_NAME, MAX_WIDGETS} from 'sentry/views/dashboards/types';
+import type {DashboardWidgetSource} from 'sentry/views/dashboards/typesBase';
 import {
   DashboardFilter,
-  DEFAULT_WIDGET_NAME,
   DisplayType,
-  MAX_WIDGETS,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 import {
   eventViewFromWidget,
   getMergedDashboardFilters,

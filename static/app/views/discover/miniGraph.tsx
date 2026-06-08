@@ -23,7 +23,8 @@ import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import type {PlotType} from 'sentry/utils/discover/fieldsBase';
-import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
+import {TOP_N} from 'sentry/utils/discover/types';
+import {DisplayModes} from 'sentry/utils/discover/typesBase';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {withApi} from 'sentry/utils/withApi';
 

@@ -35,11 +35,8 @@ import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 
-import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
-export {DurationUnit, RateUnit, SizeUnit};
-export type {AggregationRefinement, Field, ParsedFunction};
-export {CurrencyUnit} from 'sentry/utils/discover/fieldsBase';
-export type {DataUnit, Sort, SortKind} from 'sentry/utils/discover/fieldsBase';
+import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from './types';
+import {DiscoverDatasets} from './typesBase';
 
 // Contains the URL field value & the related table column width.
 // Can be parsed into a Column using explodeField()

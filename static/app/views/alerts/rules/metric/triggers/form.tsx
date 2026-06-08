@@ -10,13 +10,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {ThresholdControl} from 'sentry/views/alerts/rules/metric/triggers/thresholdControl';
+import type {UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import type {
   AlertRuleThresholdType,
   ThresholdControlValue,
   Trigger,
-  UnsavedMetricRule,
   UnsavedTrigger,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {
   AlertRuleComparisonType,
   AlertRuleTriggerType,

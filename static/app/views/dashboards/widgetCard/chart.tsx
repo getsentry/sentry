@@ -20,13 +20,14 @@ import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSer
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   isAggregateField,
   parseFunction,
   prettifyParsedFunction,
   stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
+import type {DataUnit, Sort} from 'sentry/utils/discover/fieldsBase';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';

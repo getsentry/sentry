@@ -5,11 +5,8 @@ import {useQuery} from '@tanstack/react-query';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  DashboardFilter,
-  type DashboardDetails,
-  type Widget,
-} from 'sentry/views/dashboards/types';
+import {type DashboardDetails, type Widget} from 'sentry/views/dashboards/types';
+import {DashboardFilter} from 'sentry/views/dashboards/typesBase';
 import {
   PREBUILT_DASHBOARDS,
   PrebuiltDashboardId,

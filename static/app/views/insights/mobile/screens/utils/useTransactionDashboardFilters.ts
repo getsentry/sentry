@@ -2,7 +2,8 @@ import {useQueryState} from 'nuqs';
 
 import {escapeTagValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {FieldKind} from 'sentry/utils/fields';
-import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {type GlobalFilter} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 
 export function useTransactionGlobalFilters(): GlobalFilter[] | undefined {
   const [transaction] = useQueryState('transaction');

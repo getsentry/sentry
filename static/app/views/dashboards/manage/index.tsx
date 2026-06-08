@@ -46,7 +46,8 @@ import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWr
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {type DashboardsLayout, DashboardsTab} from 'sentry/views/dashboards/manage/types';
 import {getDashboardsTab} from 'sentry/views/dashboards/manage/utils/getDashboardsTab';
-import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {DashboardFilter} from 'sentry/views/dashboards/typesBase';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';

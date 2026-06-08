@@ -1,9 +1,6 @@
 import type {Project} from 'sentry/types/project';
-import {
-  type DashboardDetails,
-  type Widget,
-  type WidgetLayout,
-} from 'sentry/views/dashboards/types';
+import {type DashboardDetails, type Widget} from 'sentry/views/dashboards/types';
+import {type WidgetLayout} from 'sentry/views/dashboards/typesBase';
 import {AI_AGENTS_MODELS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsModels';
 import {AI_AGENTS_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsOverview';
 import {AI_AGENTS_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsTools';

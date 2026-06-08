@@ -1,8 +1,8 @@
 import {
   DURATION_UNIT_LABELS,
   DURATION_UNIT_MULTIPLIERS,
-  DurationUnit,
 } from 'sentry/utils/discover/fields';
+import {DurationUnit} from 'sentry/utils/discover/fieldsBase';
 
 /**
  * Format the duration value for a chart Y axis. Automatically chooses the appropriate unit, and formats for the current locale.

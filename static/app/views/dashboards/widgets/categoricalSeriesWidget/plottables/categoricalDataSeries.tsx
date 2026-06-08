@@ -8,9 +8,9 @@ import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/categoricalSeriesWi
 import {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   CategoricalItem,
-  CategoricalItemCategory,
   CategoricalSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
+import type {CategoricalItemCategory} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 import type {PlottableCategoricalValueType} from './plottable';
 

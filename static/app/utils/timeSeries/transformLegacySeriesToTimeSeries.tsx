@@ -2,10 +2,9 @@ import type {Series} from 'sentry/types/echarts';
 import type {EventsStats} from 'sentry/types/organization';
 import {
   aggregateOutputType,
-  RateUnit,
   type AggregationOutputType,
-  type DataUnit,
 } from 'sentry/utils/discover/fields';
+import {RateUnit, type DataUnit} from 'sentry/utils/discover/fieldsBase';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';

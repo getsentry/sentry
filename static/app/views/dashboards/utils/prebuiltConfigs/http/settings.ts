@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
+import {RATE_UNIT_TITLE} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fieldsBase';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const DASHBOARD_TITLE = t('Outbound API Requests');

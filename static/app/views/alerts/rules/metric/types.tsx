@@ -14,28 +14,6 @@ import type {Trigger} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {Incident} from 'sentry/views/alerts/types';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-export {
-  ActionType,
-  AlertRuleSeasonality,
-  AlertRuleSensitivity,
-  AlertRuleThresholdType,
-  Dataset,
-  EventTypes,
-  ExtrapolationMode,
-  TimeWindow,
-};
-export type {Trigger};
-export {
-  AlertRuleComparisonType,
-  AlertRuleTriggerType,
-  SessionsAggregate,
-  TimePeriod,
-} from 'sentry/views/alerts/rules/metric/typesBase';
-export type {
-  Action,
-  ThresholdControlValue,
-  UnsavedTrigger,
-} from 'sentry/views/alerts/rules/metric/typesBase';
 
 export const EAP_EXTRAPOLATION_MODE_MAP = {
   [ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED]: 'sampleWeighted',

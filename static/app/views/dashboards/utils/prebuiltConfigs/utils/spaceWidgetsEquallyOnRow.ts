@@ -1,5 +1,6 @@
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
-import type {Widget, WidgetLayout} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import type {WidgetLayout} from 'sentry/views/dashboards/typesBase';
 import type {
   PrebuiltWidget,
   PrebuiltWidgetLayout,

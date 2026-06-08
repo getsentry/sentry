@@ -6,19 +6,9 @@ import type {
   CategoricalItemValue,
   CategoricalSeriesMeta,
   IncompleteReason,
-  TabularRow,
   TimeSeriesGroupBy,
   TimeSeriesValueType,
   TimeSeriesValueUnit,
-} from 'sentry/views/dashboards/widgets/common/typesBase';
-export type {CategoricalItemCategory, TabularRow, TimeSeriesGroupBy, TimeSeriesValueUnit};
-export type {
-  LegendSelection,
-  Release,
-  TabularColumn,
-  TabularData,
-  TabularValueType,
-  TabularValueUnit,
 } from 'sentry/views/dashboards/widgets/common/typesBase';
 
 export type TimeSeriesMeta = {

@@ -19,7 +19,7 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {toArray} from 'sentry/utils/array/toArray';
-import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
+import type {Column, ColumnType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
   generateFieldAsString,
@@ -30,15 +30,18 @@ import {
   isEquation,
   isLegalYAxisType,
 } from 'sentry/utils/discover/fields';
+import type {Field, Sort} from 'sentry/utils/discover/fieldsBase';
 import {
   CHART_AXIS_OPTIONS,
-  DiscoverDatasets,
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
-  DisplayModes,
   TOP_N,
-  type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DisplayModes,
+  type SavedQueryDatasets,
+} from 'sentry/utils/discover/typesBase';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {WebVital} from 'sentry/utils/fields';
 import {AggregationKey} from 'sentry/utils/fields';

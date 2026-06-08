@@ -40,10 +40,8 @@ import {
   parseFunction,
 } from 'sentry/utils/discover/fields';
 import type {Field} from 'sentry/utils/discover/fieldsBase';
-import {
-  DiscoverDatasets,
-  DiscoverDatasetsToDatasetMap,
-} from 'sentry/utils/discover/types';
+import {DiscoverDatasetsToDatasetMap} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {
   DEVICE_CLASS_TAG_VALUES,
   FieldKey,

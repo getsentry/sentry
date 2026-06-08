@@ -4,7 +4,8 @@ import * as Sentry from '@sentry/react';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/typesBase';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import {type Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 
 interface UseTrackAnalyticsOnErrorProps {
   loading: boolean;

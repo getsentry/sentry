@@ -100,6 +100,11 @@ import {
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
 import {
+  type MetricActionTemplate,
+  type MetricRule,
+  type UnsavedMetricRule,
+} from './types';
+import {
   AlertRuleComparisonType,
   AlertRuleSeasonality,
   AlertRuleSensitivity,
@@ -109,11 +114,8 @@ import {
   ExtrapolationMode,
   TimeWindow,
   type EventTypes,
-  type MetricActionTemplate,
-  type MetricRule,
   type Trigger,
-  type UnsavedMetricRule,
-} from './types';
+} from './typesBase';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 

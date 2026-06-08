@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {Select} from '@sentry/scraps/select';
 
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {type UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
-  type UnsavedMetricRule,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 
 type Props = {
   disabled: boolean;

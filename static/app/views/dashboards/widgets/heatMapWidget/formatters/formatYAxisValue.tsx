@@ -1,12 +1,7 @@
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {
-  ABYTE_UNITS,
-  DurationUnit,
-  RATE_UNIT_LABELS,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
+import {ABYTE_UNITS, RATE_UNIT_LABELS} from 'sentry/utils/discover/fields';
+import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fieldsBase';
 import {formatAbbreviatedNumber, formatDollars} from 'sentry/utils/formatters';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';

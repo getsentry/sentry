@@ -22,12 +22,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {DEFAULT_WIDGET_NAME} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
-  DEFAULT_WIDGET_NAME,
   DisplayType,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';

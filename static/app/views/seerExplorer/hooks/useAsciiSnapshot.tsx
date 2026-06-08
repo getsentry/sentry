@@ -6,8 +6,8 @@ import {
   aggregateFunctionOutputType,
   parseFunction,
   prettifyParsedFunction,
-  RateUnit,
 } from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fieldsBase';
 import {
   formatAbbreviatedNumberWithDynamicPrecision,
   formatRate,

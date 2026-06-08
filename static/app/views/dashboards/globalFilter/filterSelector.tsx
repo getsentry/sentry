@@ -50,7 +50,8 @@ import {
   getFilterToken,
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
-import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {type GlobalFilter} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {
   SpanFields,
   subregionCodeToName,

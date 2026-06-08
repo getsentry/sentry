@@ -10,11 +10,8 @@ import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEn
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useOnDemandControl} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  WidgetType,
-  type DashboardFilters,
-  type Widget,
-} from 'sentry/views/dashboards/types';
+import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';

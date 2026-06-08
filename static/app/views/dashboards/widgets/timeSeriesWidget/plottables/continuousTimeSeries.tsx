@@ -2,10 +2,8 @@ import type {SeriesOption} from 'echarts';
 
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
-import type {
-  TimeSeries,
-  TimeSeriesValueUnit,
-} from 'sentry/views/dashboards/widgets/common/types';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {TimeSeriesValueUnit} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';

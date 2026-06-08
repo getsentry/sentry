@@ -26,11 +26,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  DisplayType,
   type DashboardDetails,
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {
   DEFAULT_WIDGET_DRAG_POSITIONING,

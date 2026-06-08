@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
-import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
+import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/typesBase';
 import {
   DashboardFilterKeys,
   DisplayType,
@@ -21,15 +21,6 @@ import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltCo
 import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
-export {DashboardFilterKeys, DisplayType, SlideoutId, WidgetType};
-export type {DashboardPermissions, LegendType, WidgetLayout};
-export {
-  DashboardFilter,
-  DashboardState,
-  DashboardWidgetSource,
-  OnDemandExtractionState,
-} from 'sentry/views/dashboards/typesBase';
-export type {ValidateWidgetResponse} from 'sentry/views/dashboards/typesBase';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the

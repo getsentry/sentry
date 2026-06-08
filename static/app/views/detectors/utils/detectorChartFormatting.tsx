@@ -6,8 +6,8 @@ import {
 import {
   aggregateOutputType,
   type AggregationOutputType,
-  type DataUnit,
 } from 'sentry/utils/discover/fields';
+import {type DataUnit} from 'sentry/utils/discover/fieldsBase';
 import {isARateUnit} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
