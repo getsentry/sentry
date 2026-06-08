@@ -1,4 +1,4 @@
-import {useContext, useLayoutEffect} from 'react';
+import {useLayoutEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,9 +7,11 @@ import {Input} from '@sentry/scraps/input';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
-  SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
-  useSearchQueryBuilder,
+  useHasSearchQueryBuilderProvider,
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChange';
@@ -26,7 +28,7 @@ import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -217,8 +219,9 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
-  const {clearSearchQuery, disabled, query, caseInsensitive, onCaseInsensitiveClick} =
-    useSearchQueryBuilder();
+  const {clearSearchQuery, query} = useSearchQueryBuilderState();
+  const {disabled, caseInsensitive, onCaseInsensitiveClick} =
+    useSearchQueryBuilderConfig();
 
   if (disabled) {
     return null;
@@ -269,12 +272,12 @@ function SearchQueryBuilderUI({
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
-  const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
-    useSearchQueryBuilder();
+  const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
+  const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
 
   useOnChange({onChange});
   useLayoutEffect(() => {
-    dispatch({type: 'UPDATE_QUERY', query: initialQuery});
+    dispatch({type: 'UPDATE_QUERY', query: initialQuery, ignoreDisabled: true});
   }, [dispatch, initialQuery]);
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
@@ -311,9 +314,9 @@ function SearchQueryBuilderUI({
 }
 
 export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
-  const contextValue = useContext(SearchQueryBuilderContext);
+  const hasProvider = useHasSearchQueryBuilderProvider();
 
-  if (contextValue) {
+  if (hasProvider) {
     return <SearchQueryBuilderUI {...props} />;
   }
   return (

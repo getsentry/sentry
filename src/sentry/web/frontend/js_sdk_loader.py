@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 import time
-from typing import NotRequired, TypedDict
+from typing import Any, Callable, NotRequired, TypedDict
 
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBase
 from django.views.generic import View
 from packaging.version import Version
 from rest_framework.request import Request
 
 from sentry import analytics
+from sentry.hybridcloud.apigateway.cell_request_resolvers import (
+    CellRequestResolver,
+)
 from sentry.loader.browsersdkversion import get_browser_sdk_version
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.models.projectkeymapping import ProjectKeyMapping
+from sentry.types.cell import Cell, get_cell_by_name
 from sentry.utils import metrics
 from sentry.web.frontend.analytics import JsSdkLoaderRendered
 from sentry.web.frontend.base import cell_silo_view
@@ -55,7 +60,26 @@ class LoaderContext(TypedDict):
     publicKey: NotRequired[str | None]
 
 
-@cell_silo_view
+class SdkPublicKeyResolver(CellRequestResolver):
+    def resolve(
+        self,
+        request: Request,
+        view_func: Callable[..., HttpResponseBase],
+        view_kwargs: dict[str, Any],
+    ) -> Cell | None:
+        public_key = view_kwargs.get("public_key")
+        if not public_key:
+            return None
+
+        try:
+            project_mapping = ProjectKeyMapping.objects.get(public_key=public_key)
+        except ProjectKeyMapping.DoesNotExist:
+            return None
+
+        return get_cell_by_name(project_mapping.cell_name)
+
+
+@cell_silo_view(cell_resolver=SdkPublicKeyResolver())
 class JavaScriptSdkLoader(View):
     def _get_loader_config(
         self, key: ProjectKey | None, sdk_version: Version | None

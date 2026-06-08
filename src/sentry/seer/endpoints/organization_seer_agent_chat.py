@@ -116,8 +116,8 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
 @cell_silo_endpoint
 class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
@@ -274,7 +274,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     ui_tools=ui_tools,
                     override_ce_enable=override_ce_enable,
                     request=request,
-                )
+                ).seer_run_state_id
 
             return Response({"run_id": result_run_id})
         except SeerPermissionError as e:

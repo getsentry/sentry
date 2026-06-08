@@ -30,7 +30,8 @@ import type {
   EChartHighlightHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import {defined, escape} from 'sentry/utils';
+import {escape} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -614,7 +615,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
           notMerge={props.notMerge}
-          replaceMerge={['xAxis', 'yAxis']}
+          replaceMerge={['series', 'xAxis', 'yAxis']}
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from

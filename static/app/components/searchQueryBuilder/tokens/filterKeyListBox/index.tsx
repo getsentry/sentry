@@ -16,7 +16,12 @@ import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {Section} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -74,7 +79,7 @@ function ListBoxSectionButton({
 }
 
 function FeedbackFooter() {
-  const {searchSource} = useSearchQueryBuilder();
+  const {searchSource} = useSearchQueryBuilderConfig();
 
   return (
     <SectionedOverlayFooter>
@@ -204,7 +209,8 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   fullWidth,
   sections,
 }: FilterKeyMenuContentProps<T>) {
-  const {filterKeys, enableAISearch} = useSearchQueryBuilder();
+  const {filterKeys} = useSearchQueryBuilderConfig();
+  const {enableAISearch} = useSearchQueryBuilderAI();
   const focusedItem = state.selectionManager.focusedKey
     ? (state.collection.getItem(state.selectionManager.focusedKey)?.props?.value as
         | string
@@ -290,8 +296,10 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   setSelectedSection,
   overlayProps,
 }: FilterKeyListBoxProps<T>) {
-  const {filterKeyMenuWidth, wrapperRef, query, portalTarget, enableAISearch, size} =
-    useSearchQueryBuilder();
+  const {query} = useSearchQueryBuilderState();
+  const {filterKeyMenuWidth, wrapperRef, portalTarget, size} =
+    useSearchQueryBuilderLayout();
+  const {enableAISearch} = useSearchQueryBuilderAI();
 
   const hiddenOptionsWithRecentsAndAskSeerAdded = useMemo<Set<SelectKey>>(() => {
     const baseHidden = [

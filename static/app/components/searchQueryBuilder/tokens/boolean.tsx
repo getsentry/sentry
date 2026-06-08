@@ -9,7 +9,10 @@ import type {Node} from '@react-types/shared';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
-import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {
   BaseGridCell,
@@ -25,7 +28,7 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type SearchQueryBuilderBooleanProps = {
   item: Node<ParseResultToken>;
@@ -34,7 +37,8 @@ type SearchQueryBuilderBooleanProps = {
 };
 
 function FilterDelete({token, state, item}: SearchQueryBuilderBooleanProps) {
-  const {dispatch, disabled} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
+  const {disabled} = useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});
 
   return (
@@ -64,7 +68,8 @@ export function SearchQueryBuilderBoolean({
 }: SearchQueryBuilderBooleanProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const {disabled, dispatch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilderState();
+  const {disabled} = useSearchQueryBuilderConfig();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
   const {focusWithinProps} = useFocusWithin({});
   const filterButtonProps = useFilterButtonProps({state, item});

@@ -4,12 +4,13 @@ import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {RequestOptions, ResponseMeta} from 'sentry/api';
+import type {RequestOptions} from 'sentry/api';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
@@ -18,7 +19,8 @@ import {getConfigName} from 'sentry/components/externalIssues/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {Choice, Choices, SelectValue} from 'sentry/types/core';
+import type {ResponseMeta} from 'sentry/types/api';
+import type {Choice, Choices} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,

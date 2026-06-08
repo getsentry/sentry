@@ -1,12 +1,13 @@
 import logging
 from typing import Any
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
@@ -35,6 +36,7 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.registry import invoke_workflow_activity_handlers
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
@@ -520,7 +522,7 @@ class SeerAgentOperator[CachePayloadT]:
                     run_id = client.start_run(
                         prompt=prompt,
                         on_page_context=on_page_context,
-                    )
+                    ).seer_run_state_id
                     lifecycle.add_extra("continued", "false")
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
@@ -563,8 +565,7 @@ def _create_seer_activity(
     if not activity_type:
         return
 
-    organization = group.project.organization
-    if not features.has("organizations:seer-activity-timeline", organization):
+    if not options.get("issues.record-seer-actions-as-activities"):
         return
 
     run_id = event_payload.get("run_id")
@@ -586,12 +587,13 @@ def _create_seer_activity(
         if pull_requests:
             activity_data["pull_requests"] = pull_requests
 
-    Activity.objects.create_group_activity(
+    activity = Activity.objects.create_group_activity(
         group,
         activity_type,
         data=activity_data if activity_data else None,
         send_notification=False,
     )
+    invoke_workflow_activity_handlers(group=group, activity=activity)
 
 
 @instrumented_task(
@@ -655,6 +657,22 @@ def process_autofix_updates(
                     "event_type": str(event_type),
                 },
             )
+
+        if event_type == SentryAppEventType.SEER_PR_CREATED and features.has(
+            "organizations:pr-metrics-attribution", organization
+        ):
+            try:
+                attribute_seer_created_pull_requests(
+                    organization=organization,
+                    pull_requests=event_payload.get("pull_requests", []),
+                    run_id=run_id,
+                    group_id=group_id,
+                )
+            except Exception:
+                logger.exception(
+                    "seer.pr_attribution.failed",
+                    extra={"group_id": group_id, "run_id": run_id},
+                )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {
