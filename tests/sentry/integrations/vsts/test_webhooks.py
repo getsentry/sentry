@@ -3,6 +3,7 @@ from time import time
 from unittest.mock import MagicMock, patch
 
 import responses
+from django.test import override_settings
 from responses import matchers
 
 from fixtures.vsts import (
@@ -20,7 +21,6 @@ from sentry.models.grouplink import GroupLink
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
@@ -299,7 +299,7 @@ class VstsWebhookWorkItemTest(APITestCase):
             assert len(Activity.objects.filter(group_id=group.id)) == 0
 
     @responses.activate
-    @override_options({"viewer-context.enabled": True})
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_status_change_sets_viewer_context(self) -> None:
         """ViewerContext is set with correct org_id and actor_type during status sync."""
         captured_contexts: list = []
