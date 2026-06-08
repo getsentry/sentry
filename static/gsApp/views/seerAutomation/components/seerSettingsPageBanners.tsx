@@ -9,7 +9,7 @@ import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/components/noActiveSeerSubscriptionBanner';
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
-export function SeerSettingsPageContent() {
+export function SeerSettingsPageBanners() {
   const subscription = useSubscription();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();

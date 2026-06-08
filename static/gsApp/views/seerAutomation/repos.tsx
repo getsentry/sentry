@@ -14,7 +14,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {SeerRepoTable} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTable';
-import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
+import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
 
 export default function SeerAutomationRepos() {
@@ -60,7 +60,7 @@ export default function SeerAutomationRepos() {
             }
           )}
         />
-        <SeerSettingsPageContent />
+        <SeerSettingsPageBanners />
         <SeerRepoTable />
       </Stack>
       <Outlet />

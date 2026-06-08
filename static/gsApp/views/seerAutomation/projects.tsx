@@ -13,7 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {SeerProjectTable} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTable';
-import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
+import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 
 export default function SeerAutomationProjects() {
   const location = useLocation();
@@ -50,7 +50,7 @@ export default function SeerAutomationProjects() {
           )}
         />
 
-        <SeerSettingsPageContent />
+        <SeerSettingsPageBanners />
         <SeerProjectTable />
       </Stack>
       <Outlet />

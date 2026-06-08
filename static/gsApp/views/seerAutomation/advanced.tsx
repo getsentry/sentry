@@ -14,7 +14,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
+import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 const schema = z.object({
@@ -53,7 +53,7 @@ export default function SeerAutomationAdvancedSettings() {
             }
           )}
         />
-        <SeerSettingsPageContent />
+        <SeerSettingsPageBanners />
         <FieldGroup>
           <AutoSaveForm
             name="enableSeerCoding"
