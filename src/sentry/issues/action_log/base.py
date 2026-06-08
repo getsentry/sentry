@@ -71,9 +71,7 @@ class ActionSource(StrEnum):
 class ResolvedSource:
     """
     The origin of an action: a bounded base ``source`` plus an optional free-form
-    ``variant`` qualifier (e.g. the MCP client family or the Seer surface). The variant
-    is sparse — most sources have none — and is persisted in the action's ``data`` JSON
-    rather than baked into ``source``.
+    ``variant`` qualifier (e.g. the MCP client family or the Seer surface).
     """
 
     source: ActionSource
