@@ -8,7 +8,6 @@ from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from sentry import options
 from sentry.identity.base import Provider
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import IntegrationProviderSlug
@@ -35,8 +34,6 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
     def _get_provider(self, provider_key: str, organization: RpcOrganization | None) -> Provider:
         if provider_key == IntegrationProviderSlug.AZURE_DEVOPS.value:
             provider_key = "vsts_new"
-        if provider_key == "vsts_login" and options.get("vsts.social-auth-migration"):
-            provider_key = "vsts_login_new"
 
         return default_manager.get(provider_key)
 
