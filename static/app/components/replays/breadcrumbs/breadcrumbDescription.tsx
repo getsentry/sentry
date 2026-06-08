@@ -9,8 +9,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ReplayFrame, WebVitalFrame} from 'sentry/utils/replays/typesBase';
 import {isSpanFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame, WebVitalFrame} from 'sentry/utils/replays/typesBase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {

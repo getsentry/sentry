@@ -1,10 +1,26 @@
 import type {AxisPointerComponentOption, LineSeriesOption, PatternObject} from 'echarts';
-import type {Confidence} from 'sentry/types/organization';
 
 import type {ECharts} from 'sentry/types/echartsBase';
+import type {Confidence} from 'sentry/types/organization';
 export type {ECharts};
-export type {EChartBrushEndHandler, EChartBrushSelectedHandler, EChartBrushStartHandler, EChartChartReadyHandler, EChartClickHandler, EChartDataZoomHandler, EChartDownplayHandler, EChartEventHandler, EChartFinishedHandler, EChartHighlightHandler, EChartLegendSelectChangeHandler, EChartMouseOutHandler, EChartMouseOverHandler, EChartRenderedHandler, EChartRestoreHandler, ReactEchartsRef} from 'sentry/types/echartsBase';
-
+export type {
+  EChartBrushEndHandler,
+  EChartBrushSelectedHandler,
+  EChartBrushStartHandler,
+  EChartChartReadyHandler,
+  EChartClickHandler,
+  EChartDataZoomHandler,
+  EChartDownplayHandler,
+  EChartEventHandler,
+  EChartFinishedHandler,
+  EChartHighlightHandler,
+  EChartLegendSelectChangeHandler,
+  EChartMouseOutHandler,
+  EChartMouseOverHandler,
+  EChartRenderedHandler,
+  EChartRestoreHandler,
+  ReactEchartsRef,
+} from 'sentry/types/echartsBase';
 
 export type SeriesDataUnit = {
   // number because we sometimes use timestamps
@@ -50,4 +66,3 @@ export type Series = {
  * Taken from https://echarts.apache.org/en/api.html#events.Mouse%20events
  */
 export type DataPoint = Pick<SeriesDataUnit, 'name' | 'value'>;
-

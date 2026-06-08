@@ -1,4 +1,8 @@
-import type {RequestFrame, ResourceFrame, SpanFrame} from 'sentry/utils/replays/typesBase';
+import type {
+  RequestFrame,
+  ResourceFrame,
+  SpanFrame,
+} from 'sentry/utils/replays/typesBase';
 
 export function isRequestFrame(frame: SpanFrame): frame is RequestFrame {
   return ['resource.fetch', 'resource.xhr', 'resource.http'].includes(frame.op);

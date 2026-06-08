@@ -30,6 +30,13 @@ import {
 import {t, tct} from 'sentry/locale';
 import {explodeSlug} from 'sentry/utils';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {
+  getFrameOpOrCategory,
+  isCLSFrame,
+  isDeadClick,
+  isDeadRageClick,
+  isRageClick,
+} from 'sentry/utils/replays/types';
 import type {
   BreadcrumbFrame,
   ClickFrame,
@@ -53,13 +60,6 @@ import type {
   TapFrame,
   WebVitalFrame,
 } from 'sentry/utils/replays/typesBase';
-import {
-  getFrameOpOrCategory,
-  isCLSFrame,
-  isDeadClick,
-  isDeadRageClick,
-  isRageClick,
-} from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {GraphicsVariant} from 'sentry/utils/theme';
 import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';

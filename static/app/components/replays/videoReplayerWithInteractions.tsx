@@ -6,7 +6,11 @@ import {
   VideoReplayer,
   DEFAULT_MAX_VIDEO_ELEMENTS,
 } from 'sentry/components/replays/videoReplayer';
-import type {ClipWindow, RecordingFrame, VideoEvent} from 'sentry/utils/replays/typesBase';
+import type {
+  ClipWindow,
+  RecordingFrame,
+  VideoEvent,
+} from 'sentry/utils/replays/typesBase';
 
 interface VideoReplayerWithInteractionsOptions {
   durationMs: number;

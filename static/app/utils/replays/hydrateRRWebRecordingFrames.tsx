@@ -1,5 +1,5 @@
-import type {RecordingFrame} from 'sentry/utils/replays/typesBase';
 import {EventType} from 'sentry/utils/replays/types';
+import type {RecordingFrame} from 'sentry/utils/replays/typesBase';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function recordingEndFrame(replayRecord: HydratedReplayRecord): RecordingFrame {
