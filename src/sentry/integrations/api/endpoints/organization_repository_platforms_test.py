@@ -20,6 +20,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiConflictError
 
 # Metric namespace for the candidate (tree-based) detector.
 _MULTI_METRICS_PREFIX = "onboarding-scm.platform_detection.multi"
@@ -116,9 +117,12 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
                 repo_size_bytes,
                 unit="byte",
             )
-        except Exception:
+        except Exception as e:
+            # Empty repositories return a 409 (ApiConflictError) — an expected
+            # measurement failure, so log only. Surface anything else as an issue.
             sentry_logger.warning(
                 f"{_MULTI_METRICS_PREFIX}.failed",
                 attributes={"repo_id": repo.id, "repo_name": repo.name},
             )
-            sentry_sdk.capture_exception()
+            if not isinstance(e, ApiConflictError):
+                sentry_sdk.capture_exception()
