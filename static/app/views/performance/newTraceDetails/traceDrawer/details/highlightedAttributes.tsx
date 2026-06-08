@@ -7,7 +7,6 @@ import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Count} from 'sentry/components/count';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {IconWarning} from 'sentry/icons';
@@ -420,20 +419,10 @@ function HighlightedContextUtilization({
   const tokensUsed =
     windowSize === undefined ? totalTokens : Math.round(utilization * windowSize);
 
-  const inlineValue = (
-    <Fragment>
-      {percentage}%
-      {tokensUsed !== undefined && windowSize !== undefined && (
-        <Fragment>
-          {' ('}
-          <Count value={tokensUsed} />
-          {' / '}
-          <Count value={windowSize} />
-          {')'}
-        </Fragment>
-      )}
-    </Fragment>
-  );
+  const inlineText =
+    tokensUsed !== undefined && windowSize !== undefined
+      ? `${percentage}% (${formatAbbreviatedNumber(tokensUsed)} / ${formatAbbreviatedNumber(windowSize)})`
+      : `${percentage}%`;
 
   const tooltipContent = (
     <TokensTooltipTitle>
@@ -454,11 +443,7 @@ function HighlightedContextUtilization({
     </TokensTooltipTitle>
   );
 
-  return (
-    <Tooltip title={tooltipContent}>
-      <TokensSpan>{inlineValue}</TokensSpan>
-    </Tooltip>
-  );
+  return <InfoText title={tooltipContent}>{inlineText}</InfoText>;
 }
 
 const TOKEN_TROUBLESHOOTING_URL =
@@ -474,10 +459,4 @@ const TokensTooltipTitle = styled('div')`
     text-align: right;
   }
   gap: ${p => p.theme.space.xs};
-`;
-
-const TokensSpan = styled('span')`
-  border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
 `;
