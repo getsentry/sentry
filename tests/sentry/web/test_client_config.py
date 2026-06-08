@@ -261,6 +261,25 @@ def test_client_config_with_hidden_region_data() -> None:
     assert {r["name"] for r in localities} == {"us"}
 
 
+@control_silo_test(cells=hidden_regions)
+@django_db_all
+def test_client_config_with_hidden_cell_membership() -> None:
+    request, user = make_user_request_from_org()
+
+    Factories.create_organization(slug="acme-co", owner=user, cell="eu")
+    request.user = user
+
+    result = get_client_config(request)
+
+    # Localities (customer facing) don't include hidden cells/localities
+    assert len(result["localities"]) == 1
+    localities = result["localities"]
+    assert [r["name"] for r in localities] == ["us"]
+
+    # Cell list is hidden for regular users.
+    assert len(result["cells"]) == 0
+
+
 @multiregion_client_config_test
 @django_db_all
 def test_client_config_with_multiple_membership() -> None:
