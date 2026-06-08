@@ -72,18 +72,18 @@ class ProjectBalancingCalculationsTest(TestCase):
         assert result == rebalanced_projects
 
     def test_compare_rebalanced_projects_with_cache_logs_per_project(self) -> None:
-        org_id = 1
-        project_with_volume_id = 2
-        project_without_volume_id = 3
+        org = self.create_organization()
+        project_with_volume = self.create_project(organization=org)
+        project_without_volume = self.create_project(organization=org)
         config = Mock()
-        config.organization.id = org_id
+        config.organization = org
         rebalanced_projects = [
-            RebalancedItem(id=project_with_volume_id, count=100, new_sample_rate=0.25),
-            RebalancedItem(id=project_without_volume_id, count=0, new_sample_rate=1.0),
+            RebalancedItem(id=project_with_volume.id, count=100, new_sample_rate=0.25),
+            RebalancedItem(id=project_without_volume.id, count=0, new_sample_rate=1.0),
         ]
         cached_sample_rates: dict[int, float | None] = {
-            project_with_volume_id: 0.2,
-            project_without_volume_id: 0.96,
+            project_with_volume.id: 0.2,
+            project_without_volume.id: 0.96,
         }
 
         with patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info:
@@ -95,8 +95,8 @@ class ProjectBalancingCalculationsTest(TestCase):
         ]
         assert [call.kwargs["extra"] for call in logger_info.call_args_list] == [
             {
-                "org_id": org_id,
-                "project_id": project_with_volume_id,
+                "org_id": org.id,
+                "project_id": project_with_volume.id,
                 "generic_metrics_sample_rate": 0.2,
                 "eap_sample_rate": 0.25,
                 "relative_deviation": pytest.approx(0.2),
@@ -104,8 +104,8 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "total_volume_eap": 100,
             },
             {
-                "org_id": org_id,
-                "project_id": project_without_volume_id,
+                "org_id": org.id,
+                "project_id": project_without_volume.id,
                 "generic_metrics_sample_rate": 0.96,
                 "eap_sample_rate": 1.0,
                 "relative_deviation": pytest.approx(0.04),
