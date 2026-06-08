@@ -1,7 +1,8 @@
+import type {LocationDescriptor} from 'history';
+
 import type {TimeseriesValue} from 'sentry/types/coreBase';
 import type {EventMetadata, EventOrGroupType, Level} from 'sentry/types/eventBase';
 import type {AvatarUser} from 'sentry/types/userBase';
-import type {LocationDescriptor} from 'history';
 
 export type EntryData = Record<string, any | any[]>;
 export type RecentSearch = {
@@ -234,7 +235,7 @@ export type TagValue = {
   query?: string;
   username?: string;
 } & AvatarUser;
-export type Topvalue = {
+type Topvalue = {
   count: number;
   firstSeen: string;
   key: string;
@@ -257,14 +258,14 @@ export type Annotation = {
   displayName: string;
   url: string;
 };
-export type InboxReasonDetails = {
+type InboxReasonDetails = {
   count?: number | null;
   until?: string | null;
   user_count?: number | null;
   user_window?: number | null;
   window?: number | null;
 };
-export const enum GroupInboxReason {
+const enum GroupInboxReason {
   NEW = 0,
   UNIGNORED = 1,
   REGRESSION = 2,
@@ -323,7 +324,7 @@ export enum GroupActivityType {
   SEER_CODING_COMPLETED = 'seer_coding_completed',
   SEER_PR_CREATED = 'seer_pr_created',
 }
-export interface GroupFiltered {
+interface GroupFiltered {
   count: string;
   firstSeen: string;
   lastSeen: string;
@@ -425,7 +426,7 @@ export type Meta = {
   rem: MetaRemark[];
 };
 export type MetaError = string | [string, any];
-export type MetaRemark = Array<string | number>;
+type MetaRemark = Array<string | number>;
 export type ChunkType = {
   rule_id: string | number;
   text: string;

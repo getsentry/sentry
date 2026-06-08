@@ -34,14 +34,14 @@ export enum Outcome {
   DROPPED = 'dropped', // this is not a real outcome coming from the server
 }
 export type PinnedPageFilter = 'projects' | 'environments' | 'datetime';
-export type EmptyState = {type: 'empty'};
-export type InitialState = {type: 'initial'};
-export type LoadingState = {type: 'loading'};
-export type ResolvedState<T> = {
+type EmptyState = {type: 'empty'};
+type InitialState = {type: 'initial'};
+type LoadingState = {type: 'loading'};
+type ResolvedState<T> = {
   data: T;
   type: 'resolved';
 };
-export type ErroredState = {
+type ErroredState = {
   error: string;
   type: 'errored';
 };

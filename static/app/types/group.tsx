@@ -1,5 +1,22 @@
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
+import {
+  GroupActivityType,
+  GroupStatus,
+  GroupSubstatus,
+  IssueCategory,
+  IssueTitle,
+  IssueType,
+  PriorityLevel,
+} from 'sentry/types/groupBase';
+import type {
+  Annotation,
+  GroupStats,
+  IgnoredStatusDetails,
+  InboxDetails,
+  ReprocessingStatusDetails,
+  SuggestedOwner,
+} from 'sentry/types/groupBase';
 import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import type {TitledPlugin} from 'sentry/types/plugins';
 import type {FieldKind} from 'sentry/utils/fields';
@@ -18,14 +35,26 @@ import type {Team} from './organization';
 import type {PlatformKey} from './platform';
 import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';
-
-import {GroupActivityType, GroupStatus, GroupSubstatus, IssueCategory, IssueTitle, IssueType, PriorityLevel} from 'sentry/types/groupBase';
-import type {Annotation, GroupStats, IgnoredStatusDetails, InboxDetails, ReprocessingStatusDetails, SuggestedOwner} from 'sentry/types/groupBase';
-export {GroupActivityType, GroupStatus, GroupSubstatus, IssueCategory, IssueTitle, IssueType, PriorityLevel};
+export {
+  GroupActivityType,
+  GroupStatus,
+  IssueCategory,
+  IssueTitle,
+  IssueType,
+  PriorityLevel,
+};
 export type {GroupStats, IgnoredStatusDetails, InboxDetails};
-export {FixabilityScoreThresholds, SavedSearchType, SavedSearchVisibility} from 'sentry/types/groupBase';
-export type {ChunkType, EntryData, EventAttachment, GroupOpenPeriod, GroupOpenPeriodActivity, GroupTombstone, GroupTombstoneHelper, IssueAttachment, KeyValueListData, KeyValueListDataItem, MarkReviewed, Meta, MetaError, RecentSearch, SavedSearch, SuggestedOwnerReason, TagValue, TagWithTopValues} from 'sentry/types/groupBase';
-
+export {FixabilityScoreThresholds, SavedSearchType} from 'sentry/types/groupBase';
+export type {
+  GroupOpenPeriod,
+  GroupTombstoneHelper,
+  IssueAttachment,
+  KeyValueListData,
+  MarkReviewed,
+  RecentSearch,
+  SuggestedOwnerReason,
+  TagValue,
+} from 'sentry/types/groupBase';
 
 /**
  * Saved issues searches

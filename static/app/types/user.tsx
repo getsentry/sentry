@@ -1,12 +1,10 @@
-import type {UserEnrolledAuthenticator} from './auth';
-import type {Avatar, Scope} from './core';
-
 import {StacktraceOrder} from 'sentry/types/userBase';
 import type {AvatarUser} from 'sentry/types/userBase';
+
+import type {UserEnrolledAuthenticator} from './auth';
+import type {Avatar, Scope} from './core';
 export {StacktraceOrder};
 export type {AvatarUser};
-export type {ApiApplication, InternetProtocol, OrgAuthToken, UserEmail} from 'sentry/types/userBase';
-
 
 /**
  * Avatars are a more primitive version of User.

@@ -8,7 +8,7 @@ export type EventGroupComponent = {
   name: string | null;
   values: EventGroupComponent[] | string[];
 };
-export type VariantEvidence = {
+type VariantEvidence = {
   desc: string;
   fingerprint: string;
   cause_span_hashes?: string[];
@@ -27,7 +27,7 @@ export const enum EventGroupVariantType {
   SALTED_COMPONENT = 'salted_component',
   PERFORMANCE_PROBLEM = 'performance_problem',
 }
-export interface BaseVariant {
+interface BaseVariant {
   contributes: boolean;
   description: string | null;
   hash: string | null;
@@ -36,28 +36,28 @@ export interface BaseVariant {
   key: string;
   type: string;
 }
-export interface FallbackVariant extends BaseVariant {
+interface FallbackVariant extends BaseVariant {
   type: EventGroupVariantType.FALLBACK;
 }
-export interface ChecksumVariant extends BaseVariant {
+interface ChecksumVariant extends BaseVariant {
   type: EventGroupVariantType.CHECKSUM;
 }
-export interface HasComponentGrouping {
+interface HasComponentGrouping {
   client_values?: string[];
   component?: EventGroupComponent;
   matched_rule?: string;
   values?: string[];
 }
-export interface ComponentVariant extends BaseVariant, HasComponentGrouping {
+interface ComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.COMPONENT;
 }
-export interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
+interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.CUSTOM_FINGERPRINT;
 }
-export interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
+interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
 }
-export interface PerformanceProblemVariant extends BaseVariant {
+interface PerformanceProblemVariant extends BaseVariant {
   evidence: VariantEvidence;
   type: EventGroupVariantType.PERFORMANCE_PROBLEM;
 }
@@ -131,7 +131,7 @@ export type EntryMessage = {
   };
   type: EntryType.MESSAGE;
 };
-export interface EntryRequestDataDefault {
+interface EntryRequestDataDefault {
   apiTarget: null;
   method: string | null;
   url: string;
@@ -174,7 +174,7 @@ export type EntryResources = {
   data: any; // Data is unused here
   type: EntryType.RESOURCES;
 };
-export interface BaseContext {
+interface BaseContext {
   type: string;
 }
 export enum DeviceContextKey {
@@ -278,7 +278,7 @@ export interface DeviceContext
   // This field is deprecated in favour of locale field in culture context
   language?: string;
 }
-export enum RuntimeContextKey {
+enum RuntimeContextKey {
   BUILD = 'build',
   NAME = 'name',
   RAW_DESCRIPTION = 'raw_description',
@@ -299,11 +299,12 @@ export type OSContext = {
   type: string;
   version: string;
 };
-export enum OtelContextKey {
+enum OtelContextKey {
   ATTRIBUTES = 'attributes',
   RESOURCE = 'resource',
 }
-export interface OtelContext extends Partial<Record<OtelContextKey, unknown>>, BaseContext {
+export interface OtelContext
+  extends Partial<Record<OtelContextKey, unknown>>, BaseContext {
   type: 'otel';
   [OtelContextKey.ATTRIBUTES]?: Record<string, unknown>;
   [OtelContextKey.RESOURCE]?: Record<string, unknown>;

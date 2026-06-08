@@ -9,6 +9,34 @@ import type {
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import {EntryType, EventOrGroupType} from 'sentry/types/eventBase';
+import type {
+  BrowserContext,
+  DeviceContext,
+  EntryCsp,
+  EntryGeneric,
+  EntryMessage,
+  EntryRequest,
+  EntryResources,
+  EventMetadata,
+  EventOccurrence,
+  EventTag,
+  EventUser,
+  Flags,
+  Lock,
+  Measurement,
+  MemoryInfoContext,
+  MetricAlertContextType,
+  OSContext,
+  OtelContext,
+  PerformanceDetectorData,
+  ProfileContext,
+  ReplayContext,
+  ResponseContext,
+  RuntimeContext,
+  ThreadPoolInfoContext,
+  UnityContext,
+} from 'sentry/types/eventBase';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
@@ -16,14 +44,26 @@ import type {IssueAttachment, IssueCategory, UserReport} from './group';
 import type {PlatformKey} from './platform';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
-
-import {EntryType, EventOrGroupType} from 'sentry/types/eventBase';
-import type {BrowserContext, DeviceContext, EntryCsp, EntryGeneric, EntryMessage, EntryRequest, EntryResources, EventMetadata, EventOccurrence, EventTag, EventUser, Flags, Lock, Measurement, MemoryInfoContext, MetricAlertContextType, OSContext, OtelContext, PerformanceDetectorData, ProfileContext, ReplayContext, ResponseContext, RuntimeContext, ThreadPoolInfoContext, UnityContext} from 'sentry/types/eventBase';
 export {EntryType, EventOrGroupType};
-export type {DeviceContext, EntryRequest, EventMetadata, EventOccurrence, EventTag, Lock, Measurement, MemoryInfoContext, ProfileContext, ReplayContext, ThreadPoolInfoContext, UnityContext};
-export {DeviceContextKey, EventGroupVariantType, LockType, MemoryInfoContextKey, ProfileContextKey, ReplayContextKey, ThreadPoolInfoContextKey, UnityContextKey} from 'sentry/types/eventBase';
-export type {EntryRequestDataGraphQl, EventEvidenceDisplay, EventGroupComponent, EventGroupVariant, EventTagWithMeta, FeatureFlag, Level} from 'sentry/types/eventBase';
-
+export type {
+  DeviceContext,
+  EntryRequest,
+  EventMetadata,
+  EventOccurrence,
+  EventTag,
+  Lock,
+  ProfileContext,
+};
+export {DeviceContextKey, EventGroupVariantType} from 'sentry/types/eventBase';
+export type {
+  EntryRequestDataGraphQl,
+  EventEvidenceDisplay,
+  EventGroupComponent,
+  EventGroupVariant,
+  EventTagWithMeta,
+  FeatureFlag,
+  Level,
+} from 'sentry/types/eventBase';
 
 /**
  * Grouping Configuration.

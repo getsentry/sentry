@@ -1,4 +1,12 @@
 import type {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
+import type {
+  AccuracyStats,
+  Confidence,
+  ConfidenceStatsData,
+  EventsStatsData,
+  OrganizationSummary,
+  SavedQueryVersions,
+} from 'sentry/types/organizationBase';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {
   DatasetSource,
@@ -16,12 +24,13 @@ import type {Relay} from './relay';
 import type {BaseRole, OrgRole, TeamRole} from './roles';
 import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
-
-import type {AccuracyStats, Confidence, ConfidenceStatsData, EventsStatsData, OrganizationSummary, SavedQueryVersions} from 'sentry/types/organizationBase';
 export type {Confidence, EventsStatsData, OrganizationSummary, SavedQueryVersions};
-export {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organizationBase';
-export type {EventsStatsSeries, MissingMember, SeriesApi, SessionApiResponse, SharedViewOrganization} from 'sentry/types/organizationBase';
-
+export {SessionFieldWithOperation} from 'sentry/types/organizationBase';
+export type {
+  MissingMember,
+  SessionApiResponse,
+  SharedViewOrganization,
+} from 'sentry/types/organizationBase';
 
 /**
  * Organization summaries are sent when you request a list of all organizations
