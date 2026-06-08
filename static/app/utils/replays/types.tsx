@@ -2,7 +2,6 @@ import {EventType, IncrementalSource, MouseInteractions} from '@sentry-internal/
 import type {ReplayOptionFrameEvent as TOptionFrameEvent} from '@sentry/react';
 import invariant from 'invariant';
 
-import type {Event} from 'sentry/types/event';
 import type {
   BreadcrumbFrame,
   BreadcrumbFrameEvent,
@@ -142,8 +141,13 @@ export function isFeedbackFrame(frame: ReplayFrame | undefined): frame is Feedba
   return Boolean(frame && 'category' in frame && frame.category === 'feedback');
 }
 
-export function isHydrateCrumb(item: BreadcrumbFrame | Event): item is BreadcrumbFrame {
-  return 'category' in item && item.category === 'replay.hydrate-error';
+export function isHydrateCrumb(item: unknown): item is BreadcrumbFrame {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    'category' in item &&
+    item.category === 'replay.hydrate-error'
+  );
 }
 
 export function isSpanFrame(frame: ReplayFrame | undefined): frame is SpanFrame {
