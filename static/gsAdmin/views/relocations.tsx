@@ -61,7 +61,6 @@ export function Relocations() {
           Create New Relocation
         </LinkButton>
       </PageHeader>
-
       <ResultGrid
         inPanel
         isRegional

@@ -3,7 +3,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import type {Cell, Locality, Region} from 'sentry/types/system';
+import type {Cell, Locality} from 'sentry/types/system';
 
 const LocalityDisplayName: Record<string, string> = {
   US: t('United States of America (US)'),
@@ -57,10 +57,6 @@ export function getLocalityDataFromOrganization(
     name: locality.name,
     url: locality.url,
   };
-}
-
-export function getRegions(): Region[] {
-  return ConfigStore.get('regions') ?? [];
 }
 
 /**
