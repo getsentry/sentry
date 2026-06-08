@@ -1,4 +1,4 @@
-import {getTokenBreakdown} from './tokenBreakdown';
+import {getTokenBreakdown, hasTokenMismatch} from './tokenBreakdown';
 
 describe('getTokenBreakdown', () => {
   it('returns input as netNewInput when there are no cached tokens', () => {
@@ -156,5 +156,79 @@ describe('getTokenBreakdown', () => {
       output: 50,
       total: 150,
     });
+  });
+});
+
+describe('hasTokenMismatch', () => {
+  it('returns false when tokens add up correctly', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 0,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 150,
+      })
+    ).toBe(false);
+  });
+
+  it('returns false when tokens add up with cached included', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 80,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 150,
+      })
+    ).toBe(false);
+  });
+
+  it('returns true when any token value is negative', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: -10,
+        cachedTokens: 0,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 40,
+      })
+    ).toBe(true);
+  });
+
+  it('returns true when total tokens is negative', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 0,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: -50,
+      })
+    ).toBe(true);
+  });
+
+  it('returns true when total does not match input + output', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 0,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 500,
+      })
+    ).toBe(true);
+  });
+
+  it('returns false within small rounding tolerance', () => {
+    expect(
+      hasTokenMismatch({
+        inputTokens: 100,
+        cachedTokens: 0,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        totalTokens: 151,
+      })
+    ).toBe(false);
   });
 });

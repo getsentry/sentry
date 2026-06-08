@@ -48,6 +48,51 @@ export function getTokenBreakdown({
 }
 
 /**
+ * Checks whether the reported token counts look wrong.
+ *
+ * Returns `true` when any value is negative or when the breakdown
+ * (input + output, after adjustments for cached/reasoning) doesn't
+ * add up to `total` within a small tolerance.
+ */
+export function hasTokenMismatch({
+  inputTokens,
+  cachedTokens,
+  outputTokens,
+  reasoningTokens,
+  totalTokens,
+}: {
+  cachedTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  totalTokens: number;
+}): boolean {
+  if (
+    inputTokens < 0 ||
+    outputTokens < 0 ||
+    totalTokens < 0 ||
+    cachedTokens < 0 ||
+    reasoningTokens < 0
+  ) {
+    return true;
+  }
+
+  const breakdown = getTokenBreakdown({
+    inputTokens,
+    cachedTokens,
+    outputTokens,
+    reasoningTokens,
+    totalTokens,
+  });
+
+  const sum = breakdown.netNewInput + breakdown.cached + breakdown.output;
+
+  // Allow a small tolerance for rounding
+  const tolerance = Math.max(1, totalTokens * 0.01);
+  return Math.abs(sum - breakdown.total) > tolerance;
+}
+
+/**
  * Some providers report `inputTokens` exclusive of cached; others inclusive.
  * We pick whichever interpretation makes `input + output` closest to `total`.
  */

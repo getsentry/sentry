@@ -7,10 +7,13 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {StructuredData} from 'sentry/components/structuredEventData';
-import {t, tn} from 'sentry/locale';
+import {IconWarning} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {NegativeCostWarning} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -20,7 +23,10 @@ import {
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
+import {
+  getTokenBreakdown,
+  hasTokenMismatch,
+} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import {SpanFields} from 'sentry/views/insights/types';
 import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
@@ -145,10 +151,18 @@ function getAISpanAttributes({
   }
 
   const totalCosts = attributes['gen_ai.cost.total_tokens'];
-  if (totalCosts && Number(totalCosts) > 0) {
+  if (totalCosts && Number(totalCosts) !== 0) {
+    const costValue = Number(totalCosts);
     highlightedAttributes.push({
       name: t('Cost'),
-      value: <LLMCosts cost={totalCosts.toString()} />,
+      value:
+        costValue < 0 ? (
+          <NegativeCostWarning>
+            <LLMCosts cost={totalCosts.toString()} />
+          </NegativeCostWarning>
+        ) : (
+          <LLMCosts cost={totalCosts.toString()} />
+        ),
     });
   }
 
@@ -329,13 +343,15 @@ function HighlightedTokenAttributes({
   reasoningTokens: number;
   totalTokens: number;
 }) {
-  const breakdown = getTokenBreakdown({
+  const tokenArgs = {
     inputTokens,
     cachedTokens,
     outputTokens,
     reasoningTokens,
     totalTokens,
-  });
+  };
+  const breakdown = getTokenBreakdown(tokenArgs);
+  const mismatch = hasTokenMismatch(tokenArgs);
 
   const hasCached = breakdown.cached > 0;
 
@@ -379,6 +395,7 @@ function HighlightedTokenAttributes({
           {' = '}
           <Count value={breakdown.total} /> {t('total')}
         </Container>
+        {mismatch && <TokenMismatchIcon />}
       </TokensSpan>
     </Tooltip>
   );
@@ -434,6 +451,32 @@ function HighlightedContextUtilization({
   return (
     <Tooltip title={tooltipContent}>
       <TokensSpan>{inlineValue}</TokensSpan>
+    </Tooltip>
+  );
+}
+
+const TOKEN_TROUBLESHOOTING_URL =
+  'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
+
+function TokenMismatchIcon() {
+  return (
+    <Tooltip
+      title={tct(
+        'Token counts do not add up correctly, which may indicate an error in token reporting. [link:Follow this guide] to troubleshoot.',
+        {
+          link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />,
+        }
+      )}
+      skipWrapper
+      isHoverable
+    >
+      <Container
+        as="span"
+        display="inline-flex"
+        style={{verticalAlign: 'middle', marginLeft: 4}}
+      >
+        <IconWarning legacySize="1em" variant="warning" />
+      </Container>
     </Tooltip>
   );
 }
