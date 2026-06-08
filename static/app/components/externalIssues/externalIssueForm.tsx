@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -136,6 +136,10 @@ export function ExternalIssueForm({
   // The dynamic field that last triggered a refetch, preserved so its value
   // survives the subsequent form remount. Reset on tab switch.
   const [lastChangedField, setLastChangedField] = useState<Record<string, unknown>>({});
+  // Ref holding the set of dynamic field names derived from formFields.
+  // Updated synchronously during render (useMemo) so handleValueChange always
+  // sees the current set without a useEffect timing gap.
+  const dynamicFieldNamesRef = useRef<Set<string>>(new Set());
 
   const {
     data: integrationDetails,
@@ -320,11 +324,13 @@ export function ExternalIssueForm({
 
   const handleValueChange = useCallback(
     (fieldName: string, value: unknown) => {
-      if (!Object.hasOwn(dynamicFieldValues, fieldName)) {
+      // Read from ref rather than dynamicFieldValues so we always use the
+      // synchronously-computed field list, not the one-render-stale useEffect value.
+      if (!dynamicFieldNamesRef.current.has(fieldName)) {
         setStableFieldValues(prev => ({...prev, [fieldName]: value}));
       }
     },
-    [dynamicFieldValues]
+    [] // stable — dynamicFieldNamesRef.current is kept up-to-date via useMemo below
   );
 
   const onFieldChange = useCallback(
@@ -363,6 +369,13 @@ export function ExternalIssueForm({
       return field;
     }) as JsonFormAdapterFieldConfig[];
   }, [integrationDetails, action, asyncOptionsCache]);
+
+  // Update synchronously during render so handleValueChange never reads a
+  // stale set caused by the useEffect delay in useDynamicFields.
+  dynamicFieldNamesRef.current = useMemo(
+    () => new Set(formFields.filter(f => f.updatesForm).map(f => f.name)),
+    [formFields]
+  );
 
   const hasFormErrors = formFields.some(
     field => field.name === 'error' && field.type === 'blank'
