@@ -192,50 +192,26 @@ describe('SnapshotsToolbar', () => {
       {tags: {area: 'snapshots'}}
     );
 
-    it.snapshot(
-      'split',
-      () => (
+    it.snapshot.each<DiffMode>(['split', 'wipe', 'onion'])(
+      '%s',
+      diffMode => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{width: 960}}>
             <SnapshotsToolbarWithControls
-              viewMode="list"
+              viewMode="single"
               onViewModeChange={noop}
               progress={{current: 1, total: 5, percent: 20}}
               diff={{
-                mode: 'split',
+                mode: diffMode,
                 onModeChange: noop,
                 overlayColor: '#f55459',
                 onOverlayColorChange: noop,
-                showSplit: true,
               }}
             />
           </div>
         </ThemeProvider>
       ),
-      {tags: {area: 'snapshots'}}
-    );
-
-    it.snapshot(
-      'wipe',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{width: 960}}>
-            <SnapshotsToolbarWithControls
-              viewMode="list"
-              onViewModeChange={noop}
-              progress={{current: 1, total: 5, percent: 20}}
-              diff={{
-                mode: 'wipe',
-                onModeChange: noop,
-                overlayColor: '#f55459',
-                onOverlayColorChange: noop,
-                showSplit: true,
-              }}
-            />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'snapshots'}}
+      diffMode => ({tags: {area: 'snapshots', diffMode}})
     );
   });
 });
