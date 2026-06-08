@@ -315,7 +315,8 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
-CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)  # past year avoids S015
+OPENED_AT = datetime(2020, 6, 4, 9, 0, 0, tzinfo=timezone.utc)  # past year avoids S015
+CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
 @with_feature("organizations:pr-metrics-emit")
@@ -336,11 +337,10 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
 
     def _payload(self, *, merged: bool = True) -> dict[str, Any]:
         # Lifecycle is read from the stored PR row; the payload supplies only the
-        # PR number, the merged flag, and the open time.
+        # PR number and the merged flag.
         return {
             "number": 42,
             "merged": merged,
-            "created_at": "2026-06-04T09:00:00Z",
         }
 
     def _call(self, *, action: str = "closed", merged: bool = True) -> None:
@@ -349,6 +349,7 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             # before the emission processor runs; emit reads it from there.
             self.pull_request.update(
                 head_commit_sha=HEAD_SHA,
+                opened_at=OPENED_AT,
                 closed_at=CLOSED_AT,
                 merged_at=CLOSED_AT if merged else None,
                 merge_commit_sha=MERGE_SHA if merged else None,

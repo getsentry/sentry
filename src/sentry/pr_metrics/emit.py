@@ -73,8 +73,8 @@ def build_pr_metrics_row(
 
     Lifecycle facts are read from the ``PullRequest`` row (the webhook keeps it
     current; it's also the only source on the judge path, which has no payload).
-    ``payload`` supplies the fields with no persisted column — ``opened_at`` and
-    the activity counters. ``attributions`` is the active-attribution snapshot,
+    ``payload`` supplies the fields with no persisted column — ``draft`` and the
+    activity counters. ``attributions`` is the active-attribution snapshot,
     passed in so the tracking gate and the emitted row read the same query.
     """
     head_commit_sha = pull_request.head_commit_sha
@@ -94,7 +94,7 @@ def build_pr_metrics_row(
         closed_at=closed_at.isoformat(),
         merge_commit_sha=pull_request.merge_commit_sha,
         merged_at=_iso(pull_request.merged_at),
-        opened_at=payload["created_at"],
+        opened_at=_iso(pull_request.opened_at),
         draft=bool(payload.get("draft")),
         additions=payload.get("additions") or 0,
         deletions=payload.get("deletions") or 0,

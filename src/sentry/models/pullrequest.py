@@ -106,6 +106,13 @@ class PullRequest(Model):
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
 
+    # Source-of-truth lifecycle timestamps for the PR metrics pipeline. Nullable
+    # because we only know them for PRs whose events Sentry actually saw: a
+    # late-installed integration, a missed/dropped webhook, or a non-webhook
+    # creation path (e.g. attribution get_or_create) leaves opened_at unset.
+    # date_added is deliberately NOT a substitute — it defaults to row-creation
+    # time and would silently skew opened_at-derived metrics for exactly those PRs.
+    opened_at = models.DateTimeField(null=True)
     closed_at = models.DateTimeField(null=True)
     merged_at = models.DateTimeField(null=True)
     state = models.CharField(max_length=32, null=True, choices=PullRequestLifecycleState.choices)

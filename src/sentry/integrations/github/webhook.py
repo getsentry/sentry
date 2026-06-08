@@ -1011,6 +1011,7 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         # Lifecycle facts kept current for the PR metrics pipeline.
         head_commit_sha = pull_request["head"]["sha"]
+        opened_at = _parse_github_timestamp(pull_request.get("created_at"))
         closed_at = _parse_github_timestamp(pull_request.get("closed_at"))
         merged_at = _parse_github_timestamp(pull_request.get("merged_at"))
         state = _pull_request_lifecycle_state(pull_request)
@@ -1078,6 +1079,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "message": body,
                     "merge_commit_sha": merge_commit_sha,
                     "head_commit_sha": head_commit_sha,
+                    "opened_at": opened_at,
                     "closed_at": closed_at,
                     "merged_at": merged_at,
                     "state": state,

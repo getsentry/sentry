@@ -1311,6 +1311,7 @@ class PullRequestEventWebhookTest(APITestCase):
         # Lifecycle fallback fields persisted for the PR metrics pipeline.
         assert pr.head_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert pr.state == PullRequestLifecycleState.OPEN
+        assert pr.opened_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
         assert pr.closed_at is None
         assert pr.merged_at is None
 
@@ -1527,6 +1528,7 @@ class PullRequestEventWebhookTest(APITestCase):
         # payload's merged flag wins over its (open) state, so the PR is "merged".
         assert pr.head_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert pr.state == PullRequestLifecycleState.MERGED
+        assert pr.opened_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
         assert pr.closed_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
         assert pr.merged_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
 
