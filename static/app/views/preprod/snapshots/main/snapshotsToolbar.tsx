@@ -208,28 +208,38 @@ export function DiffModeToggle({
   onDiffModeChange: (mode: DiffMode) => void;
   showSplit: boolean;
 }) {
+  const splitLabel = t('Split');
+  const wipeLabel = t('Wipe');
+  const onionLabel = t('Onion');
+
   return (
     <SegmentedControl size="xs" value={diffMode} onChange={onDiffModeChange}>
       {showSplit ? (
         <SegmentedControl.Item
           key="split"
           icon={<IconPause />}
-          aria-label={t('Split')}
-          tooltip={t('Split')}
-        />
+          aria-label={splitLabel}
+          tooltip={splitLabel}
+        >
+          {diffMode === 'split' ? splitLabel : undefined}
+        </SegmentedControl.Item>
       ) : null}
       <SegmentedControl.Item
         key="wipe"
         icon={<IconInput />}
-        aria-label={t('Wipe')}
-        tooltip={t('Wipe')}
-      />
+        aria-label={wipeLabel}
+        tooltip={wipeLabel}
+      >
+        {diffMode === 'wipe' ? wipeLabel : undefined}
+      </SegmentedControl.Item>
       <SegmentedControl.Item
         key="onion"
         icon={<IconStack />}
-        aria-label={t('Onion')}
-        tooltip={t('Onion')}
-      />
+        aria-label={onionLabel}
+        tooltip={onionLabel}
+      >
+        {diffMode === 'onion' ? onionLabel : undefined}
+      </SegmentedControl.Item>
     </SegmentedControl>
   );
 }
