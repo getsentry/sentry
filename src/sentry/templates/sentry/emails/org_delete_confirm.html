@@ -12,4 +12,5 @@ Date: {{ deletion_datetime }}</pre></p>
     <p>This irreversible deletion will take place at <strong>{{ eta }}</strong> and will permanently remove all associated data including events, projects, and team members.</p>
     <p><strong>If this was unintentional and you would like to cancel the deletion:</strong></p>
     <p><a href="{{ url }}" class="btn">Restore Organization</a></p>
+    <p>If you deleted this organization as part of closing your account, <a href="{% absolute_uri '/auth/login/' %}">please log in</a> to reactivate your account before attempting to restore this organization.</p>
 {% endblock %}
