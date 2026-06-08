@@ -145,6 +145,7 @@ type FirstPartyIntegrationAdditionalCTAProps = {
 type AttemptCloseAttemptProps = {
   handleRemoveAccount: () => void;
   organizationSlugs: string[];
+  userEmail: string;
 };
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
