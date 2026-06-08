@@ -28,7 +28,7 @@ SEER_WORKFLOW_ACTIVITIES = [
 def seer_activity_handler(
     group: Group,
     activity: Activity,
-    detector_id: DetectorId,
+    detector_id: DetectorId | None = None,
 ) -> None:
     logging_ctx = {
         "activity_type": activity.type,
