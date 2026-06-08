@@ -50,7 +50,7 @@ _occurrence_producer = SingletonProducer(
 )
 
 _occurrence_task_producer = get_task_producer(
-    name="sentry.issues.tasks.producer",
+    producer_name="sentry.issues.tasks.producer",
     producer_factory=partial(_get_occurrence_producer, name="sentry.issues.tasks.producer"),
 )
 
