@@ -33,7 +33,6 @@ import {
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -413,8 +412,6 @@ function AutofixPreviews({
     autofix_referrer: referrer,
   });
 
-  const {data: summaryData, isPending: isSummaryPending} = useGroupSummaryData(group);
-
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -461,7 +458,6 @@ function AutofixPreviews({
           has_streamlined_ui: true,
           autofix_exists: true,
           autofix_step_type: sections[sections.length - 1]?.step ?? null,
-          has_summary: Boolean(summaryData && !isSummaryPending),
           has_root_cause: hasRootCause,
           has_solution: hasSolution,
           has_coded_solution: hasCodeChanges,
