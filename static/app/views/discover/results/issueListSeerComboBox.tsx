@@ -136,6 +136,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         query: queryToUse,
       };
 
+      // Convert to aliased format for Discover (e.g., "-count()" -> "-count")
       if (sort) {
         const isDescending = sort.startsWith('-');
         const sortField = isDescending ? sort.substring(1) : sort;

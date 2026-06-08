@@ -286,6 +286,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         setRunId(runId);
       }
 
+      // Single navigate with both metric params and datetime — previously
+      // setQueryParams and navigate were separate calls, and the second
+      // navigate overwrote the first with stale location.
       navigate(
         {
           ...location,

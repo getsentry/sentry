@@ -114,6 +114,9 @@ export function LogsTabSeerComboBox() {
             ? Mode.AGGREGATE
             : Mode.SAMPLES;
 
+      // Build aggregateFields: combines groupBys with existing visualizations,
+      // preserving the existing field ordering (groupBy-before-visualize vs
+      // visualize-before-groupBy layout).
       let seenVisualizes = false;
       let groupByAfterVisualizes = false;
 
