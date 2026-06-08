@@ -730,7 +730,7 @@ function SentryApplicationForm({
             <field.Layout.Row
               label={t('Alert Rule Action')}
               hintText={tct(
-                'If enabled, this integration will be available in Issue Alert rules and Metric Alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learnMore:here].',
+                'If enabled, this integration will be available as an action in Alerts. The notification destination is the Webhook URL specified above. More on actions [learnMore:here].',
                 {
                   learnMore: (
                     <ExternalLink href="https://docs.sentry.io/product/alerts-notifications/notifications/" />
