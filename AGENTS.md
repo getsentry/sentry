@@ -230,3 +230,7 @@ Frontend (`static/`) and backend (`src/`, `tests/`) are **not atomically deploye
 - If your changes touch both frontend and backend, split them into **separate PRs**.
 - Land the backend PR first when the frontend depends on new API changes.
 - Pure test additions alongside `src/` changes are fine in one PR.
+- **Always open PRs as drafts.** Create single PRs with `gh pr create --draft`. For
+  stacks, `gh stack submit --auto` does not reliably honor draft status, so after
+  submitting, verify with `gh pr view <n> --json isDraft` and convert any non-draft
+  back with `gh pr ready <n> --undo`. Let a human mark a PR ready for review.
