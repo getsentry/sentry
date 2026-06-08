@@ -39,6 +39,12 @@ class CommitAuthor(Model):
     # - Legacy data(?): integer (rare)
     external_id = models.CharField(max_length=164, null=True)
 
+    # Last time we queried the author's public profile email from the SCM API
+    # (e.g. GitHub) in an attempt to create an ExternalActor mapping. Null means
+    # never queried. Used to rate-limit these expensive lookups so we only retry
+    # stale authors. See sentry.integrations.github.tasks.query_commit_author_public_emails.
+    public_email_queried_at = models.DateTimeField(null=True)
+
     objects: ClassVar[CommitAuthorManager] = CommitAuthorManager()
 
     class Meta:

@@ -5,6 +5,7 @@ import {
   extractMessagesFromNodes,
   getNodeTimestamp,
   mergeEmptyTurns,
+  messagesToMarkdown,
   parseAssistantContent,
   parseUserContent,
   partitionSpansByType,
@@ -339,6 +340,43 @@ describe('conversationMessages utilities', () => {
       });
       expect(parseAssistantContent(node as any)).toBe('fallback text');
     });
+
+    it('returns null when output.messages has tool calls but no text', () => {
+      const messages = JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [{type: 'tool_call', toolCallId: 'tc-1', toolName: 'search', args: {}}],
+        },
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+          [SpanFields.GEN_AI_RESPONSE_OBJECT]: '{"tool_calls": [{"name": "search"}]}',
+        },
+      });
+      // Should NOT fall through to gen_ai.response.object
+      expect(parseAssistantContent(node as any)).toBeNull();
+    });
+
+    it('returns text when output.messages has both text and tool calls', () => {
+      const messages = JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [
+            {type: 'text', text: 'Let me search for that'},
+            {type: 'tool_call', toolCallId: 'tc-1', toolName: 'search', args: {}},
+          ],
+        },
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+        },
+      });
+      expect(parseAssistantContent(node as any)).toBe('Let me search for that');
+    });
   });
 
   describe('partitionSpansByType', () => {
@@ -505,6 +543,32 @@ describe('conversationMessages utilities', () => {
         'tool-b',
         'tool-c',
       ]);
+    });
+
+    it('flushes pending tool calls onto last turn when no subsequent turn has content', () => {
+      const turns = [
+        {
+          generation: {id: 'gen-1'} as any,
+          userContent: 'Question',
+          assistantContent: 'Answer',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+        {
+          generation: {id: 'gen-2'} as any,
+          userContent: null,
+          assistantContent: null,
+          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+          userEmail: undefined,
+        },
+      ];
+
+      const merged = mergeEmptyTurns(turns);
+
+      // The pending tool call should be flushed onto the last result turn
+      expect(merged).toHaveLength(1);
+      expect(merged[0]?.toolCalls).toHaveLength(1);
+      expect(merged[0]?.toolCalls[0]?.name).toBe('search');
     });
 
     it('preserves user content turns even without assistant response', () => {
@@ -843,6 +907,49 @@ describe('conversationMessages utilities', () => {
       expect(messages[3]?.content).toBe('Second response');
     });
 
+    it('creates assistant message for tool-call-only turns without text', () => {
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
+          userContent: 'Do something',
+          assistantContent: null,
+          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      expect(assistantMessages).toHaveLength(1);
+      expect(assistantMessages[0]?.content).toBe('');
+      expect(assistantMessages[0]?.toolCalls).toHaveLength(1);
+      expect(assistantMessages[0]?.toolCalls?.[0]?.name).toBe('search');
+    });
+
+    it('does not create assistant message when no content and no tool calls', () => {
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 1000, end_timestamp: 1100},
+          } as any,
+          userContent: 'Hello',
+          assistantContent: null,
+          toolCalls: [],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      expect(assistantMessages).toHaveLength(0);
+    });
+
     it('keeps user→assistant pairing across back-to-back turns under one second apart', () => {
       // Turns complete within ~1s of each other; user is anchored at span
       // start, assistant at span end, so pairing must hold even when turns
@@ -1053,6 +1160,121 @@ describe('conversationMessages utilities', () => {
     it('returns empty array when no generation spans', () => {
       const tool = createMockToolNode({id: 'tool-1', toolName: 'search'});
       expect(extractMessagesFromNodes([tool as any])).toEqual([]);
+    });
+  });
+
+  describe('messagesToMarkdown', () => {
+    it('formats user messages with email', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'user-1',
+          role: 'user',
+          content: 'Hello world',
+          timestamp: 1000,
+          nodeId: 'n1',
+          userEmail: 'dev@example.com',
+        },
+      ]);
+      expect(result).toBe('### dev@example.com\n\nHello world');
+    });
+
+    it('formats user messages without email as User', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'user-1',
+          role: 'user',
+          content: 'Hello',
+          timestamp: 1000,
+          nodeId: 'n1',
+        },
+      ]);
+      expect(result).toBe('### User\n\nHello');
+    });
+
+    it('formats assistant messages with model and duration', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'Here is the answer',
+          timestamp: 1000,
+          nodeId: 'n1',
+          modelName: 'claude-sonnet-4-20250514',
+          duration: 2.5,
+        },
+      ]);
+      expect(result).toBe('### claude-sonnet-4-20250514 — 2.5s\n\nHere is the answer');
+    });
+
+    it('formats assistant messages with agent name', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'Done',
+          timestamp: 1000,
+          nodeId: 'n1',
+          agentName: 'My Agent',
+        },
+      ]);
+      expect(result).toBe('### My Agent\n\nDone');
+    });
+
+    it('includes tool calls', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'I ran the tools',
+          timestamp: 1000,
+          nodeId: 'n1',
+          toolCalls: [
+            {name: 'bash', nodeId: 't1', hasError: false},
+            {name: 'read', nodeId: 't2', hasError: false},
+          ],
+        },
+      ]);
+      expect(result).toContain('> Called tools: `bash`, `read`');
+      expect(result).toContain('I ran the tools');
+    });
+
+    it('formats a full conversation with separators between messages', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'user-1',
+          role: 'user',
+          content: 'What files?',
+          timestamp: 1000,
+          nodeId: 'n1',
+          userEmail: 'dev@example.com',
+        },
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'Here they are',
+          timestamp: 1001,
+          nodeId: 'n1',
+          modelName: 'gpt-4o',
+          duration: 1.2,
+        },
+      ]);
+      expect(result).toBe(
+        [
+          '### dev@example.com',
+          '',
+          'What files?',
+          '',
+          '---',
+          '',
+          '### gpt-4o — 1.2s',
+          '',
+          'Here they are',
+        ].join('\n')
+      );
+    });
+
+    it('returns empty string for empty messages', () => {
+      expect(messagesToMarkdown([])).toBe('');
     });
   });
 });

@@ -15,10 +15,10 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   getCountSeries,
   getCrashFreeRateSeries,
@@ -26,8 +26,7 @@ import {
   initSessionsChart,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
-// eslint-disable-next-line no-restricted-imports
-import {withSentryRouter} from 'sentry/utils/withSentryRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   generateReleaseMarkLines,
   releaseComparisonChartHelp,
@@ -691,4 +690,9 @@ class ReleaseSessionsChart extends Component<Props> {
   }
 }
 
-export default withTheme(withSentryRouter(ReleaseSessionsChart));
+function WithLocation(props: Omit<Props, 'location'>) {
+  const location = useLocation();
+  return <ReleaseSessionsChart {...props} location={location} />;
+}
+
+export default withTheme(WithLocation);

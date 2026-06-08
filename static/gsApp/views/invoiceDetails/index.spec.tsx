@@ -226,7 +226,6 @@ describe('InvoiceDetails', () => {
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
 
-    expect(await screen.findByText(/Receipt Details/)).toBeInTheDocument();
     expect(await screen.findByText(/AWAITING PAYMENT/)).toBeInTheDocument();
     expect(screen.queryByText(/Pay Now/)).not.toBeInTheDocument();
   });
@@ -314,7 +313,6 @@ describe('InvoiceDetails', () => {
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
     await waitFor(() => expect(mockapiPayments).toHaveBeenCalled());
 
-    expect(await screen.findByText(/Receipt Details/)).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByText(/Pay Now/)).toHaveLength(2));
     expect(screen.getByText(/Pay Bill/)).toBeInTheDocument();
     expect(screen.getByTestId('modal-backdrop')).toBeInTheDocument();

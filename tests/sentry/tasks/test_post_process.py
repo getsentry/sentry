@@ -16,7 +16,6 @@ from django.utils import timezone
 
 from sentry import buffer
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
-from sentry.autopilot.grouptype import InstrumentationIssueExperimentalGroupType
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
@@ -59,14 +58,18 @@ from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.tasks import post_process as post_process_module
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
+    GROUP_CATEGORY_POST_PROCESS_PIPELINE,
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     feedback_filter_decorator,
     locks,
     post_process_group,
+    process_siem_security_logging,
     run_post_process_job,
+    set_siem_security_log_hook,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
@@ -155,6 +158,29 @@ class ProcessWorkflowsKwargsMatcher:
             return False
 
         return True
+
+
+class SiemSecurityLoggingTest(TestCase):
+    def test_registered_in_error_pipeline(self) -> None:
+        assert (
+            process_siem_security_logging
+            in GROUP_CATEGORY_POST_PROCESS_PIPELINE[GroupCategory.ERROR]
+        )
+
+    def test_noop(self) -> None:
+        # Default hook is a no-op: the call must complete without touching the job.
+        process_siem_security_logging({})
+
+    def test_hook_swap_takes_effect(self) -> None:
+        original = post_process_module._siem_security_log_hook
+        calls = []
+        try:
+            set_siem_security_log_hook(lambda job: calls.append(job))
+            process_siem_security_logging({})
+        finally:
+            set_siem_security_log_hook(original)
+
+        assert calls == [{}]
 
 
 class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -4360,82 +4386,3 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
         # Both forwarders should be called despite SQS failure
         assert mock_sqs_forward.call_count == 1
         assert mock_splunk_forward.call_count == 1
-
-
-class PostProcessGroupInstrumentationIssueTest(
-    TestCase,
-    SnubaTestCase,
-    OccurrenceTestMixin,
-):
-    """Tests that instrumentation issues do not trigger alerts."""
-
-    def create_event(
-        self,
-        data,
-        project_id,
-        assert_no_errors=True,
-    ):
-        data["type"] = "generic"
-
-        event = self.store_event(
-            data=data, project_id=project_id, assert_no_errors=assert_no_errors
-        )
-
-        occurrence_data = self.build_occurrence_data(
-            event_id=event.event_id,
-            project_id=project_id,
-            id=uuid.uuid4().hex,
-            fingerprint=["instrumentation-" + uuid.uuid4().hex],
-            issue_title="Missing Instrumentation",
-            subtitle="Database query not instrumented",
-            culprit="api/endpoint",
-            resource_id="1234",
-            evidence_data={"test": "data"},
-            evidence_display=[
-                {"name": "issue", "value": "missing span", "important": True},
-            ],
-            type=InstrumentationIssueExperimentalGroupType.type_id,
-            detection_time=datetime.now().timestamp(),
-            level="info",
-        )
-        occurrence, group_info = save_issue_occurrence(occurrence_data, event)
-        assert group_info is not None
-
-        group_event = event.for_group(group_info.group)
-        group_event.occurrence = occurrence
-        return group_event
-
-    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
-        with self.feature(
-            InstrumentationIssueExperimentalGroupType.build_post_process_group_feature_name()
-        ):
-            post_process_group(
-                is_new=is_new,
-                is_regression=is_regression,
-                is_new_group_environment=is_new_group_environment,
-                cache_key=None,
-                group_id=event.group_id,
-                occurrence_id=event.occurrence.id,
-                project_id=event.group.project_id,
-                eventstream_type=EventStreamEventType.Generic.value,
-            )
-
-    @patch("sentry.tasks.post_process.process_workflow_engine")
-    def test_instrumentation_issues_do_not_trigger_alerts(
-        self,
-        mock_process_workflow_engine,
-    ):
-        """Instrumentation issues should not trigger process_rules or process_workflow_engine."""
-        event = self.create_event(
-            data={},
-            project_id=self.project.id,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-
-        mock_process_workflow_engine.assert_not_called()

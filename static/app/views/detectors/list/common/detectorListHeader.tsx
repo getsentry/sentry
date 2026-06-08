@@ -9,7 +9,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -80,6 +80,7 @@ export function DetectorListHeader({
               title: canCreateDetector
                 ? undefined
                 : getNoPermissionToCreateMonitorsTooltip(),
+              isHoverable: true,
             }}
           >
             {t('Create Monitor')}

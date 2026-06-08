@@ -40,31 +40,34 @@ describe('MonitorForm', () => {
     });
   });
 
-  it('shows validation errors on required sibling fields after first field change', async () => {
-    render(
-      <MonitorForm
-        apiMethod="POST"
-        apiEndpoint={`/organizations/${organization.slug}/monitors/`}
-        onSubmitSuccess={jest.fn()}
-      />,
-      {organization}
-    );
+  it.isKnownFlake(
+    'shows validation errors on required sibling fields after first field change',
+    async () => {
+      render(
+        <MonitorForm
+          apiMethod="POST"
+          apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+          onSubmitSuccess={jest.fn()}
+        />,
+        {organization}
+      );
 
-    // Initially no validation error tooltips should be rendered
-    expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
+      // Initially no validation error tooltips should be rendered
+      expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
 
-    // Change one field (schedule) to trigger first-change validation
-    const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
-    await userEvent.clear(schedule);
-    await userEvent.type(schedule, '5 * * * *');
+      // Change one field (schedule) to trigger first-change validation
+      const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+      await userEvent.clear(schedule);
+      await userEvent.type(schedule, '5 * * * *');
 
-    // Validation error tooltips should now appear on other required empty fields
-    await waitFor(() => {
-      expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
-    });
-  });
+      // Validation error tooltips should now appear on other required empty fields
+      await waitFor(() => {
+        expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
+      });
+    }
+  );
 
-  it('displays human readable schedule', async () => {
+  it.isKnownFlake('displays human readable schedule', async () => {
     render(
       <MonitorForm
         apiMethod="POST"
@@ -83,7 +86,7 @@ describe('MonitorForm', () => {
     expect(screen.getByText('"At 5 minutes past the hour"')).toBeInTheDocument();
   });
 
-  it.isKnownFlake('submits a new monitor', async () => {
+  it('submits a new monitor', async () => {
     const mockHandleSubmitSuccess = jest.fn();
 
     const apiEndpont = `/organizations/${organization.slug}/monitors/`;
@@ -215,7 +218,7 @@ describe('MonitorForm', () => {
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Schedule Type'}));
     const crontabOption = screen.getByRole('menuitemradio', {name: 'Crontab'});
     expect(crontabOption).toBeChecked();
-    await userEvent.click(crontabOption);
+    await userEvent.keyboard('{Escape}');
 
     // Schedule value
     expect(screen.getByRole('textbox', {name: 'Crontab Schedule'})).toHaveValue(
@@ -226,7 +229,7 @@ describe('MonitorForm', () => {
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Timezone'}));
     const losAngelesOption = screen.getByRole('menuitemradio', {name: 'Los Angeles'});
     expect(losAngelesOption).toBeChecked();
-    await userEvent.click(losAngelesOption);
+    await userEvent.keyboard('{Escape}');
 
     // Margins
     expect(screen.getByRole('spinbutton', {name: 'Grace Period'})).toHaveValue(5);
@@ -299,7 +302,7 @@ describe('MonitorForm', () => {
     );
   });
 
-  it.isKnownFlake('filters non-ASCII characters from crontab schedule', async () => {
+  it('filters non-ASCII characters from crontab schedule', async () => {
     render(
       <MonitorForm
         apiMethod="POST"

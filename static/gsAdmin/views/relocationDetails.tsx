@@ -16,10 +16,10 @@ import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Truncate} from 'sentry/components/truncate';
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getRegions} from 'sentry/utils/regions';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -36,7 +36,7 @@ import {RelocationCancelModal} from 'admin/components/relocationCancelModal';
 import {RelocationPauseModal} from 'admin/components/relocationPauseModal';
 import {RelocationRetryModal} from 'admin/components/relocationRetryModal';
 import {RelocationUnpauseModal} from 'admin/components/relocationUnpauseModal';
-import ResultGrid from 'admin/components/resultGrid';
+import {ResultGrid} from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
 import {titleCase} from 'getsentry/utils/titleCase';
@@ -181,7 +181,8 @@ export function RelocationDetails() {
   const [artifactsState, setArtifactsState] = useState(ArtifactsState.DISABLED);
   const navigate = useNavigate();
 
-  const region = ConfigStore.get('regions').find((r: any) => r.name === regionName);
+  const regions = getRegions();
+  const region = regions.find((r: any) => r.name === regionName);
   const regionClient = new Client({baseUrl: `${region?.url || ''}/api/0`});
   const regionApi = useApi({api: regionClient});
 
@@ -207,7 +208,7 @@ export function RelocationDetails() {
 
   const relocationData = {
     ...data,
-    region: ConfigStore.get('regions').find((r: any) => r.name === regionName) || {
+    region: regions.find((r: any) => r.name === regionName) || {
       name: regionName,
       url: '',
     },

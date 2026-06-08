@@ -42,7 +42,12 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/widget-builder/widget/new/',
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
   '/explore/logs/',
+  '/explore/logs/trace/:traceSlug/',
+  '/explore/metrics/',
+  '/explore/profiling/',
   '/explore/releases/',
+  '/explore/replays/',
+  '/explore/replays/:replaySlug/',
   '/explore/traces/',
   '/explore/traces/trace/:traceSlug/',
   '/issues/',
@@ -53,6 +58,10 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/issues/:groupId/',
   '/issues/:groupId/events/',
   '/issues/:groupId/events/:eventId/',
+  '/issues/:groupId/replays/',
+  '/issues/:groupId/attachments/',
+  '/issues/:groupId/distributions/',
+  '/issues/:groupId/distributions/:tagKey/',
 ]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
 const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
@@ -63,9 +72,7 @@ function supportsStructuredContext(
 ): boolean {
   if (STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
     return (
-      organization?.features.includes('seat-based-seer-enabled') === true ||
-      organization?.features.includes('seer-added') === true ||
-      organization?.features.includes('seer-explorer-context-engine') === true
+      organization?.features.includes('seer-explorer-structured-context-rollout') === true
     );
   }
   if (NEW_STRUCTURED_CONTEXT_ROUTES.has(referrer)) {

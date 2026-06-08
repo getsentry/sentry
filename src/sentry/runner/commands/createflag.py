@@ -43,6 +43,7 @@ def condition_wizard(display_sample_condition_properties: bool = False) -> Condi
         ConditionOperatorKind.IN,
         ConditionOperatorKind.NOT_IN,
         ConditionOperatorKind.MATCHES,
+        ConditionOperatorKind.NOT_MATCHES,
     }:
         value = []
     condition = {
@@ -183,7 +184,7 @@ def createissueflag(
                 conditions=[
                     InCondition(
                         "organization_slug",
-                        ["sentry", "codecov", "sentry", "sentry-eu", "sentry-sdks", "sentry-st"],
+                        ["sentry", "sentry-eu", "sentry-sdks", "sentry-st"],
                         operator=ConditionOperatorKind.IN.value,
                     )
                 ],

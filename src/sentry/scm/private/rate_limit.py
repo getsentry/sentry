@@ -84,9 +84,9 @@ class DynamicRateLimiter:
         This check is best-effort and is not guaranteed to prevent a rate-limit error response from
         a service-provider.
         """
-        assert referrer == "shared" or referrer in self.referrer_allocation, (
-            'Referrer must exist in the allocation pool. Pass "shared" if no allocation was defined.'
-        )
+
+        if referrer not in self.referrer_allocation:
+            referrer = "shared"
 
         # Find the bucket ID of the request. The bucket ID is the number of windows which have
         # previously elapsed.
@@ -129,6 +129,10 @@ class DynamicRateLimiter:
             referrer_capacity = int(service_capacity * self.referrer_allocation[referrer])
 
         return quota_used > referrer_capacity
+
+    def update_rate_limit_meta(self, capacity: int, consumed: int, next_window_start: int) -> None:
+        """Update the store with select rate-limit metadata."""
+        self.set_total_capacity(capacity)
 
     def set_total_capacity(self, capacity: int) -> None:
         """Set the service capacity if it does not match what already exists."""

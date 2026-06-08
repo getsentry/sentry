@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import partition from 'lodash/partition';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   explodeField,
   generateFieldAsString,
@@ -450,6 +450,9 @@ export function useWidgetBuilderState(): {
             setTextContent(undefined);
           }
           const [aggregates, columns] = partition(fields, field => {
+            if (field.kind === FieldValueKind.EQUATION) {
+              return true;
+            }
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
           });
@@ -466,11 +469,22 @@ export function useWidgetBuilderState(): {
             setLimit(undefined, options);
             setYAxis([], options);
             setLegendAlias([], options);
-            const newFields = [
-              ...columnsWithoutAlias,
-              ...aggregatesWithoutAlias,
-              ...(yAxisWithoutAlias ?? []),
-            ];
+            // When coming from DETAILS, its hardcoded display columns are not
+            // user-chosen, so reset to the dataset's default table fields
+            // instead of carrying them over.
+            let newFields: Column[];
+            if (displayType === DisplayType.DETAILS) {
+              newFields =
+                currentDatasetConfig.defaultWidgetQuery.fields?.map(field =>
+                  explodeField({field})
+                ) ?? [];
+            } else {
+              newFields = [
+                ...columnsWithoutAlias,
+                ...aggregatesWithoutAlias,
+                ...(yAxisWithoutAlias ?? []),
+              ];
+            }
             setFields(newFields, options);
 
             // Keep the sort if it's already contained in the new fields
@@ -493,16 +507,14 @@ export function useWidgetBuilderState(): {
                     ? [
                         {
                           kind: 'desc',
-                          field: generateFieldAsString(
-                            validReleaseSortOptions[0] as QueryFieldValue
-                          ),
+                          field: generateFieldAsString(validReleaseSortOptions[0]!),
                         },
                       ]
                     : []
                   : [
                       {
                         kind: 'desc',
-                        field: generateFieldAsString(newFields[0] as QueryFieldValue),
+                        field: generateFieldAsString(newFields[0]!),
                       },
                     ],
                 options
@@ -884,7 +896,7 @@ export function useWidgetBuilderState(): {
               [
                 {
                   kind: 'desc',
-                  field: generateFieldAsString(action.payload[0]!),
+                  field: generateSortField(action.payload, 0),
                 },
               ],
               options
@@ -1374,6 +1386,10 @@ function checkTraceMetricSortUsed(
 ): boolean {
   const sortValue = sort[0]?.field;
   const sortInFields = fields?.some(field => generateFieldAsString(field) === sortValue);
-  const sortInYAxis = yAxis?.some(field => generateFieldAsString(field) === sortValue);
+  const sortInYAxis = yAxis?.some(
+    (field, i) =>
+      generateFieldAsString(field) === sortValue ||
+      generateSortField(yAxis, i) === sortValue
+  );
   return sortInFields || sortInYAxis;
 }

@@ -26,6 +26,8 @@ describe('ProjectPluginDetails', () => {
   });
 
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
+
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',
@@ -59,7 +61,7 @@ describe('ProjectPluginDetails', () => {
       outletContext: {project},
       initialRouterConfig,
     });
-    expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
+    expect(await screen.findByText('Plugin Information')).toBeInTheDocument();
   });
 
   it('resets plugin', async () => {
@@ -92,5 +94,62 @@ describe('ProjectPluginDetails', () => {
     await waitFor(() =>
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Plugin was enabled')
     );
+  });
+});
+
+describe('ProjectPluginDetails - webhook routing', () => {
+  const organization = OrganizationFixture({
+    features: ['legacy-webhook-ui'],
+  });
+  const project = ProjectFixture();
+
+  const webhookRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/plugins/webhooks/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/plugins/:pluginId/',
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('renders webhook details page for pluginId=webhooks', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
+      method: 'GET',
+      body: {urls: ['https://example.com/hook'], enabled: true},
+    });
+
+    render(<ProjectPluginDetails />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: webhookRouterConfig,
+    });
+
+    expect(await screen.findByText(/strongly recommend using an/)).toBeInTheDocument();
+  });
+
+  it('does not call plugin API for webhooks route', async () => {
+    const pluginsMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/plugins/`,
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
+      method: 'GET',
+      body: {urls: [], enabled: false},
+    });
+
+    render(<ProjectPluginDetails />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: webhookRouterConfig,
+    });
+
+    await screen.findByText(/strongly recommend using an/);
+    expect(pluginsMock).not.toHaveBeenCalled();
   });
 });

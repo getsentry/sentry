@@ -10,7 +10,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.occurrences.rollout_utils import EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -759,6 +759,33 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             )
         ]
 
+    def test_get_tag_value_paginator_array_meta_columns(self) -> None:
+        # tags.key/tags.value are array meta-columns that previously crashed with
+        # "TypeError: unhashable type: 'list'" in nest_groups (SENTRY-5PD7). They should
+        # short-circuit to an empty result instead.
+        assert (
+            list(
+                self.ts.get_tag_value_paginator(
+                    self.proj1.id,
+                    self.proj1env1.id,
+                    "tags.key",
+                    tenant_ids={"referrer": "r", "organization_id": 1234},
+                ).get_result(10)
+            )
+            == []
+        )
+        assert (
+            list(
+                self.ts.get_tag_value_paginator(
+                    self.proj1.id,
+                    self.proj1env1.id,
+                    "tags.value",
+                    tenant_ids={"referrer": "r", "organization_id": 1234},
+                ).get_result(10)
+            )
+            == []
+        )
+
     def test_get_tag_value_paginator_with_dates(self) -> None:
         from sentry.tagstore.types import TagValue
 
@@ -1203,7 +1230,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             assert total_count == 15
 
     def test_eap_read_path(self) -> None:
-        with self.options({EAPOccurrencesComparator._should_eval_option_name(): True}):
+        with self.options({EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION: True}):
             gk = self.ts.get_group_tag_key(
                 self.proj1group1,
                 None,
@@ -1215,6 +1242,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
             assert gk.key == "foo"
             assert gk.values_seen == 1
+            assert gk.top_values is not None
             assert gk.top_values[0].value == "bar"
 
 

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -24,9 +25,21 @@ import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
+import {LegacyWebhookDetails} from './legacyWebhookDetails';
 import {useTogglePluginMutation} from './useTogglePluginMutation';
 
 export default function ProjectPluginDetails() {
+  const organization = useOrganization();
+  const {pluginId} = useParams<{pluginId: string; projectId: string}>();
+
+  if (pluginId === 'webhooks' && organization.features.includes('legacy-webhook-ui')) {
+    return <LegacyWebhookDetails />;
+  }
+
+  return <PluginDetails />;
+}
+
+function PluginDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const {pluginId} = useParams<{pluginId: string; projectId: string}>();
@@ -149,12 +162,12 @@ export default function ProjectPluginDetails() {
     const toggleEnable = enabled ? disable : enable;
 
     return (
-      <div className="pull-right">
+      <Flex gap="md">
         {pluginDetails.canDisable && toggleEnable}
         <Button size="sm" onClick={() => resetMutation.mutate()}>
           {t('Reset Configuration')}
         </Button>
-      </div>
+      </Flex>
     );
   };
 

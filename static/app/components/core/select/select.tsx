@@ -9,6 +9,7 @@ import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import type {
   GroupedOptionsType,
@@ -26,9 +27,9 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Choices, SelectValue} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
+import type {Choices} from 'sentry/types/core';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
+import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
@@ -79,7 +80,7 @@ const getStylesConfig = ({
   // Unfortunately we cannot use emotions `css` helper here, since react-select
   // *requires* object styles, which the css helper cannot produce.
   const indicatorStyles: StylesConfig['clearIndicator'] &
-    StylesConfig['loadingIndicator'] = (provided, state: any) => ({
+    StylesConfig['loadingIndicator'] = (provided, state: {isDisabled?: boolean}) => ({
     ...provided,
     padding: '0 4px 0 4px',
     alignItems: 'center',
@@ -486,7 +487,7 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
        * Because this type is embedded in the OptionType generic we
        * can't have a good type here.
        */
-      value?: any;
+      value?: unknown;
     };
 
 // TODO(ts) The exported component uses forwardRef.
@@ -581,8 +582,12 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
 
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val => flatOptions.find(option => compare(option.value, val)))
-        : flatOptions.find(opt => compare(opt.value, value)) || noMatchFallback;
+        ? value.map((val: OptionType['value'] | null | undefined) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            flatOptions.find(option => compare(option.value, val))
+          )
+        : // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          flatOptions.find(opt => compare(opt.value, value)) || noMatchFallback;
   }
 
   // Override the default style with in-field labels if they are provided
@@ -635,13 +640,16 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       isClearable={clearable}
       backspaceRemovesValue={clearable}
       value={mappedValue}
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       isMulti={props.multiple || anyProps.multi}
       isDisabled={props.isDisabled || props.disabled}
       isOptionDisabled={opt => !!opt.disabled}
       showDividers={props.showDividers}
       options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus}
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       blurInputOnSelect={!props.multiple && !anyProps.multi}
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       closeMenuOnSelect={!(props.multiple || anyProps.multi)}
       hideSelectedOptions={false}
       tabSelectsValue={false}

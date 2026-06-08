@@ -662,13 +662,6 @@ describe('Dashboards > WidgetCard', () => {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={{
-          ...organization,
-          features: [
-            ...organization.features,
-            'transaction-widget-deprecation-explore-view',
-          ],
-        }}
         widget={transactionQueryWidget}
         selection={selection}
         isEditingDashboard={false}
@@ -679,9 +672,7 @@ describe('Dashboards > WidgetCard', () => {
         widgetLimitReached={false}
         isPreview
         widgetLegendState={widgetLegendState}
-      />,
-      // passed feature flag in context because the hook for the warning does not have org passed in
-      ['transaction-widget-deprecation-explore-view']
+      />
     );
 
     expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();

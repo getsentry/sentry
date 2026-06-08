@@ -1,8 +1,10 @@
-import React, {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {InlineCode} from '@sentry/scraps/code';
+import {Flex, Surface} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
+import {Text} from '@sentry/scraps/text';
 
 const STREAMING_CHUNKS = [
   'Investigating the issue in ',
@@ -82,7 +84,7 @@ export function CustomComponentsDemo() {
         Text: ({children}) => {
           const parts = children.split(/(SENTRY-\d+)/);
           return (
-            <React.Fragment>
+            <Fragment>
               {parts.map((part, i) =>
                 /SENTRY-\d+/.test(part) ? (
                   <a
@@ -99,7 +101,53 @@ export function CustomComponentsDemo() {
                   part
                 )
               )}
-            </React.Fragment>
+            </Fragment>
+          );
+        },
+      }}
+    />
+  );
+}
+
+const TAG_DEMO_MD = `Investigating {% ref type="issue" id="PROJ-123" /%} in the auth middleware.
+
+{% artifact type="root-cause" %}
+{"description":"Race condition in session refresh","severity":"high"}
+{% /artifact %}
+
+The fix involves normalizing timestamps to UTC. See {% ref type="event" id="abc123" /%} for the stack trace.`;
+
+export function TagDemo() {
+  return (
+    <Markdown
+      raw={TAG_DEMO_MD}
+      components={{
+        Tag: ({level, attrs, data}) => {
+          if (level === 'inline') {
+            return (
+              <InlineCode variant="neutral">
+                {attrs.type}({attrs.id})
+              </InlineCode>
+            );
+          }
+          const typedData = data as Record<string, string> | undefined;
+          return (
+            <Surface variant="overlay" elevation="medium" padding="lg">
+              <Flex direction="column" gap="lg">
+                <Flex gap="sm" align="center">
+                  <Flex flexGrow={1}>
+                    <Text>{attrs.type}</Text>
+                  </Flex>
+                  <Text>severity</Text>
+                  <Text variant="danger">{typedData?.severity}</Text>
+                </Flex>
+                {typedData?.description ? (
+                  <Flex borderTop="primary" paddingTop="lg">
+                    <Text>{typedData.description}</Text>
+                  </Flex>
+                ) : null}
+              </Flex>
+            </Surface>
           );
         },
       }}

@@ -11,6 +11,7 @@ export interface SnapshotImage {
   group?: string | null;
   height: number;
   key: string;
+  tags: Record<string, string> | null;
   width: number;
 }
 
@@ -61,6 +62,8 @@ export interface SnapshotDetailsApiResponse {
   renamed_count?: number;
   unchanged: SnapshotImage[];
   unchanged_count: number;
+  skipped?: SnapshotImage[];
+  skipped_count?: number;
 }
 
 export enum DiffStatus {
@@ -69,10 +72,17 @@ export enum DiffStatus {
   REMOVED = 'removed',
   RENAMED = 'renamed',
   UNCHANGED = 'unchanged',
+  SKIPPED = 'skipped',
 }
 
 export function getImageName(image: SnapshotImage): string {
   return image.display_name ?? image.image_file_name;
+}
+
+export function getSnapshotImageUrl(imageBaseUrl: string, image: SnapshotImage): string {
+  const url = `${imageBaseUrl}${image.key}/`;
+  const fileName = image.image_file_name?.split('/').pop();
+  return fileName ? `${url}?filename=${encodeURIComponent(fileName)}` : url;
 }
 
 interface SidebarItemBase {
@@ -86,6 +96,6 @@ export type SidebarItem =
   | (SidebarItemBase & {type: 'changed'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {type: 'renamed'; pairs: SnapshotDiffPair[]})
   | (SidebarItemBase & {
-      type: 'added' | 'removed' | 'unchanged';
+      type: 'added' | 'removed' | 'unchanged' | 'skipped';
       images: SnapshotImage[];
     });

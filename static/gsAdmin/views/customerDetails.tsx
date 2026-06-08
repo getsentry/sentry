@@ -19,17 +19,18 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {getRegions} from 'sentry/utils/regions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
@@ -322,7 +323,7 @@ export function CustomerDetails() {
     }
   };
 
-  const regionMap = ConfigStore.get('regions').reduce<Record<string, string>>(
+  const regionMap = getRegions().reduce<Record<string, string>>(
     (acc: any, region: any) => {
       acc[region.url] = region.name;
       return acc;
@@ -511,6 +512,21 @@ export function CustomerDetails() {
                 ...params,
                 overageNotificationsDisabled:
                   !subscription.hasOverageNotificationsDisabled,
+              }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
+            key: 'toggleBillingPlatformMigration',
+            name: subscription.hasMigratedToBillingPlatform
+              ? '[Do Not Use] Unmigrate to Billing Platform'
+              : '[Do Not Use] Migrate to Billing Platform',
+            help: subscription.hasMigratedToBillingPlatform
+              ? 'Mark this org as not migrated to the billing platform.'
+              : 'Mark this org as migrated to the billing platform.',
+            onAction: params =>
+              onUpdateMutation.mutate({
+                ...params,
+                migratedToBillingPlatform: !subscription.hasMigratedToBillingPlatform,
               }),
             ...actionRequiresBillingAdmin,
           },

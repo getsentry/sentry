@@ -57,14 +57,12 @@ from .public.project_preprod_size_analysis_status_check_rules import (
 from .public.project_preprod_snapshot_status_check_rules import (
     ProjectPreprodSnapshotStatusCheckRulesEndpoint,
 )
-from .pull_request.organization_pullrequest_comments import OrganizationPrCommentsEndpoint
-from .pull_request.organization_pullrequest_details import OrganizationPullRequestDetailsEndpoint
-from .pull_request.organization_pullrequest_size_analysis_download import (
-    OrganizationPullRequestSizeAnalysisDownloadEndpoint,
-)
 from .snapshots.preprod_artifact_snapshot import (
     OrganizationPreprodSnapshotEndpoint,
     ProjectPreprodSnapshotEndpoint,
+)
+from .snapshots.preprod_artifact_snapshot_archive import (
+    OrganizationPreprodSnapshotArchiveEndpoint,
 )
 from .snapshots.preprod_artifact_snapshot_download import (
     OrganizationPreprodSnapshotDownloadEndpoint,
@@ -183,22 +181,6 @@ preprod_organization_urlpatterns = [
         PreprodArtifactRerunStatusChecksEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-artifact-rerun-status-checks",
     ),
-    # PR page
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/pullrequest-details/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
-        OrganizationPullRequestDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-pullrequest-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/pull-requests/size-analysis/(?P<artifact_id>[^/]+)/$",
-        OrganizationPullRequestSizeAnalysisDownloadEndpoint.as_view(),
-        name="sentry-api-0-organization-pullrequest-size-analysis-download",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/pr-comments/(?P<repo_name>.+?)/(?P<pr_number>\d+)/$",
-        OrganizationPrCommentsEndpoint.as_view(),
-        name="sentry-api-0-organization-pr-comments",
-    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/builds/$",
         BuildsEndpoint.as_view(),
@@ -241,6 +223,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/download/$",
         OrganizationPreprodSnapshotDownloadEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-snapshots-download",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/archive/$",
+        OrganizationPreprodSnapshotArchiveEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-snapshots-archive",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/snapshots/(?P<snapshot_id>[^/]+)/images/(?P<image_identifier>.+)/$",

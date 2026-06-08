@@ -6,10 +6,13 @@ export function trackEngagementAnalytics(
   widgets: Widget[],
   organization: Organization,
   dashboardTitle: string,
-  globalFilterCount: number
+  globalFilterCount: number,
+  isSentryBuilt: boolean
 ) {
   // Handle edge-case of dashboard with no widgets.
-  if (!widgets.length) return;
+  if (!widgets.length) {
+    return;
+  }
 
   // For attributing engagement metrics initially track the ratio
   // of widgets reading from Transactions, Spans, Errors, and Issues, and Logs.
@@ -48,6 +51,7 @@ export function trackEngagementAnalytics(
     logRatio: logWidgetCount / widgets.length,
     metricsRatio: metricsWidgetCount / widgets.length,
     globalFilterCount,
+    isSentryBuilt,
   };
   trackAnalytics('dashboards_views.engagement.load', analyticsPayload);
 }

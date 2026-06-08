@@ -10,7 +10,7 @@ import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -281,7 +281,9 @@ function Chart({
                   }
                 },
                 onInsideSelectionClick: params => {
-                  if (!params.selectionState) return;
+                  if (!params.selectionState) {
+                    return;
+                  }
 
                   params.setSelectionState({
                     ...params.selectionState,
@@ -289,7 +291,9 @@ function Chart({
                   });
                 },
                 onOutsideSelectionClick: params => {
-                  if (!params.selectionState?.isActionMenuVisible) return;
+                  if (!params.selectionState?.isActionMenuVisible) {
+                    return;
+                  }
 
                   params.setSelectionState({
                     ...params.selectionState,

@@ -14,15 +14,15 @@ import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
-import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Activity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -134,8 +134,8 @@ function PriorityChangeActor({
   );
 }
 
-const DataConsentLearnMore = HookOrDefault({
-  hookName: 'component:data-consent-priority-learn-more',
+const DataConsentLearnMore = OverrideOrDefault({
+  overrideName: 'component:data-consent-priority-learn-more',
   defaultComponent: null,
 });
 

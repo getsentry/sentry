@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
@@ -29,7 +30,7 @@ const Type = styled('div')<{disabled: boolean}>`
 
   ${p =>
     p.disabled &&
-    `
-    color: ${p.theme.tokens.content.disabled};
-  `}
+    css`
+      color: ${p.theme.tokens.content.disabled};
+    `}
 `;

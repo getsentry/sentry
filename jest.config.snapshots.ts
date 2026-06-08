@@ -41,6 +41,7 @@ const swcConfig: SwcOptions = {
 const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
 
 const config: Config.InitialOptions = {
+  testTimeout: 30_000,
   cacheDirectory: '.cache/jest-snapshots',
   // testEnvironment and testMatch are the core differences between this and the main config
   testEnvironment: 'node',
@@ -68,6 +69,7 @@ const config: Config.InitialOptions = {
 
   transform: {
     '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
+    '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length
@@ -75,7 +77,7 @@ const config: Config.InitialOptions = {
       : '/node_modules/',
   ],
 
-  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
 };
 
 export default config;

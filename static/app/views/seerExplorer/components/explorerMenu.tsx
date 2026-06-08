@@ -149,7 +149,9 @@ export function useExplorerMenu({
   // Handle keyboard navigation with higher priority
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (!isVisible) return;
+      if (!isVisible) {
+        return;
+      }
 
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 

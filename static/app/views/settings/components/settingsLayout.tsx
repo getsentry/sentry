@@ -1,16 +1,11 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {SettingsBreadcrumb} from './settingsBreadcrumb';
-import {SettingsHeader} from './settingsHeader';
-import {SettingsSearch} from './settingsSearch';
 
 interface Props {
   children: React.ReactNode;
@@ -18,36 +13,14 @@ interface Props {
 
 export function SettingsLayout({children}: Props) {
   const params = useParams();
-  const routes = useRoutes();
-
-  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <SettingsColumn>
-      {hasPageFrame ? (
-        <Fragment>
-          <TopBar.Slot name="title">
-            <StyledSettingsBreadcrumb params={params} routes={routes} />
-          </TopBar.Slot>
-          <TopBar.Slot name="actions">
-            <SettingsSearch />
-          </TopBar.Slot>
-        </Fragment>
-      ) : (
-        <SettingsHeader>
-          <Flex align="center" justify="between">
-            <StyledSettingsBreadcrumb params={params} routes={routes} />
-            <SettingsSearch />
-          </Flex>
-        </SettingsHeader>
-      )}
-
-      <Flex flex="1" maxWidth={hasPageFrame ? undefined : '1440px'}>
-        <Container
-          flex="1"
-          padding={hasPageFrame ? {sm: 'xl', md: 'md xl'} : {xs: 'xl', md: '3xl'}}
-          minWidth="0"
-        >
+      <TopBar.Slot name="title">
+        <StyledSettingsBreadcrumb params={params} />
+      </TopBar.Slot>
+      <Flex flex="1">
+        <Container flex="1" padding="xl" minWidth="0">
           {children}
         </Container>
       </Flex>
@@ -58,8 +31,8 @@ export function SettingsLayout({children}: Props) {
 const SettingsColumn = styled('div')`
   display: flex;
   flex-direction: column;
-  flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
-  min-width: 0; /* fixes problem when child content stretches beyond layout width */
+  flex: 1;
+  min-width: 0;
   footer {
     margin-top: 0;
   }

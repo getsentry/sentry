@@ -183,6 +183,7 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     key = PROVIDER_KEY
     name = PROVIDER_NAME
     metadata = metadata
+    requires_feature_flag = False
 
     def get_pipeline_views(self):
         return []

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -265,7 +265,7 @@ describe('Markdown', () => {
             Text: ({children}) => {
               const parts = children.split(/(PROJ-\d+)/);
               return (
-                <React.Fragment>
+                <Fragment>
                   {parts.map((part, i) =>
                     /PROJ-\d+/.test(part) ? (
                       <a key={i} href={`/issues/${part}/`}>
@@ -275,7 +275,7 @@ describe('Markdown', () => {
                       part
                     )
                   )}
-                </React.Fragment>
+                </Fragment>
               );
             },
           }}
@@ -348,6 +348,51 @@ describe('Markdown', () => {
     it('images are stripped without an explicit Image component', () => {
       render(<Markdown raw="![alt](https://example.com/img.png)" />);
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('tags', () => {
+    it('renders nothing for tags by default', () => {
+      const {container} = render(
+        <Markdown raw='{% ref type="issue" id="PROJ-123" /%}' />
+      );
+      expect(container).toHaveTextContent('');
+    });
+
+    it('renders custom Tag component with attrs', () => {
+      render(
+        <Markdown
+          raw='{% ref type="issue" id="PROJ-123" /%}'
+          components={{
+            Tag: ({attrs}) => <output role="log">{JSON.stringify(attrs)}</output>,
+          }}
+        />
+      );
+      expect(screen.getByRole('log')).toHaveTextContent(
+        '{"type":"issue","id":"PROJ-123"}'
+      );
+    });
+
+    it('passes separate attrs and data for block tags', () => {
+      render(
+        <Markdown
+          raw='{% artifact type="root-cause" %}{"description":"Race condition"}{% /artifact %}'
+          components={{
+            Tag: ({attrs, data}) => (
+              <output role="log">{JSON.stringify({attrs, data})}</output>
+            ),
+          }}
+        />
+      );
+      expect(screen.getByRole('log')).toHaveTextContent(
+        '{"attrs":{"type":"root-cause"},"data":{"description":"Race condition"}}'
+      );
+    });
+
+    it('suppresses partial tag syntax in text', () => {
+      const {container} = render(<Markdown raw='Some text {% ref type="issue"' />);
+      expect(container).toHaveTextContent(/Some text/);
+      expect(container).not.toHaveTextContent(/\{%/);
     });
   });
 

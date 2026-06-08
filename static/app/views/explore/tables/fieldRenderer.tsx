@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container as ScrapsContainer} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -13,17 +13,21 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer, nullableValue} from 'sentry/utils/discover/fieldRenderers';
+import {
+  getFieldRenderer,
+  nullableValue,
+  renderUrlCellValue,
+} from 'sentry/utils/discover/fieldRenderers';
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
@@ -132,6 +136,7 @@ function BaseExploreFieldRenderer({
   usePortalOnDropdown,
 }: BaseFieldProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const theme = useTheme();
   const {selection} = usePageFilters();
@@ -157,6 +162,7 @@ function BaseExploreFieldRenderer({
 
   let rendered = renderer(data, {
     location,
+    navigate,
     organization,
     theme,
     unit,
@@ -362,13 +368,7 @@ function spanDescriptionRenderFunc(field: string, projects: Record<string, Proje
                 disableLink
               />
             )}
-            <WrappingText>
-              {isValidUrl(value) ? (
-                <ExternalLink href={value}>{value}</ExternalLink>
-              ) : (
-                nullableValue(value)
-              )}
-            </WrappingText>
+            <WrappingText>{renderUrlCellValue(value)}</WrappingText>
           </Description>
         </Tooltip>
       </span>

@@ -198,7 +198,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         },
         examples=SCIMExamples.LIST_ORG_PAGINATED_TEAMS,
     )
-    def get(self, request: Request, organization: Organization, **kwds: Any) -> Response:
+    def get(
+        self, request: Request, organization: Organization, **kwds: Any
+    ) -> Response[SCIMListTeamsResponse]:
         """
         Returns a paginated list of teams bound to a organization with a SCIM Groups GET Request.
 

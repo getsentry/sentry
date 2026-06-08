@@ -11,9 +11,10 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack, Container} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Select, SelectOption} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
@@ -23,13 +24,13 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import {defined} from 'sentry/utils';
 import {CAN_MARK, trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -79,7 +80,6 @@ import {
   dashboardFiltersToString,
   eventViewFromWidget,
   getFieldsFromEquations,
-  getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
@@ -306,7 +306,6 @@ function DataWidgetViewerModal(props: Props) {
   };
   const {aggregates, columns} = tableWidget.queries[0]!;
   const {orderby} = widget.queries[0]!;
-  const order = orderby.startsWith('-');
   const rawOrderby = trimStart(orderby, '-');
 
   const fields =
@@ -340,14 +339,6 @@ function DataWidgetViewerModal(props: Props) {
         }
       });
     }
-  }
-
-  // Need to set the orderby of the eventsv2 query to equation[index] format
-  // since eventsv2 does not accept the raw equation as a valid sort payload
-  if (isEquation(rawOrderby) && tableWidget.queries[0]!.orderby === orderby) {
-    tableWidget.queries[0]!.orderby = `${order ? '-' : ''}equation[${
-      getNumEquations(fields) - 1
-    }]`;
   }
 
   // Default table columns for visualizations that don't have a group by set
@@ -1075,8 +1066,8 @@ function ViewerTableV2({
     datasetConfig?.getFieldHeaderMap?.(tableWidget.queries[selectedQueryIndex]) ?? {}
   );
 
-  // Inject any prettified function names that aren't currently aliased into the aliases
   for (const column of tableColumns) {
+    // Inject any prettified function names that aren't currently aliased into the aliases
     const parsedFunction = parseFunction(column.key);
     if (!aliases[column.key] && parsedFunction) {
       aliases[column.key] = prettifyParsedFunction(parsedFunction);
@@ -1171,6 +1162,7 @@ function ViewerTableV2({
 
           return {
             location,
+            navigate,
             organization,
             theme,
             unit,

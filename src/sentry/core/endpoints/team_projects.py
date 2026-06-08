@@ -218,7 +218,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         """,
     )
     def post(self, request: Request, team: Team) -> Response:
-        from sentry.core.endpoints.organization_projects_experiment import (
+        from sentry.core.endpoints.organization_projects import (
             DISABLED_FEATURE_ERROR_STRING,
         )
 

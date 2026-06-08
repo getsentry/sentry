@@ -16,13 +16,13 @@ from sentry.interfaces.template import Template
 
 if TYPE_CHECKING:
     from sentry.grouping.context import GroupingContext
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import BaseEvent
 
 
 @strategy(ids=["template:v1"], interface=Template, score=1100)
 @produces_variants(["default"])
 def template_v1(
-    interface: Template, event: Event, context: GroupingContext, **kwargs: Any
+    interface: Template, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     variant_name = context["variant_name"]
 

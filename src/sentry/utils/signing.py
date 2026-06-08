@@ -24,9 +24,12 @@ def sign(*, salt: str = SALT, **kwargs: object) -> str:
     )
 
 
-def unsign(data: str | bytes, salt: str = SALT, max_age: int = 60 * 60 * 24 * 2) -> dict[str, Any]:
+def unsign(data: str | bytes, salt: str = SALT, max_age: int = 60 * 60 * 24 * 2) -> Any:
     """
-    Unsign a signed base64 string. Accepts the base64 value as a string or bytes
+    Unsign a signed base64 string. Accepts the base64 value as a string or bytes.
+
+    Returns the decoded payload. Typed as ``Any`` (like ``json.loads``) so
+    callers can annotate the concrete shape they expect without casting.
     """
     return loads(
         TimestampSigner(salt=salt).unsign(urlsafe_b64decode(data).decode(), max_age=max_age)

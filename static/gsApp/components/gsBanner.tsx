@@ -1,4 +1,4 @@
-import React, {Component, Fragment, useEffect} from 'react';
+import {Component, Fragment, useEffect} from 'react';
 import {ThemeProvider, useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
@@ -44,7 +44,6 @@ import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialA
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import {withSubscription} from 'getsentry/components/withSubscription';
-import ZendeskLink from 'getsentry/components/zendeskLink';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
@@ -108,16 +107,12 @@ function SuspensionModal({
   organization,
   subscription,
 }: SuspensionModalProps) {
-  const hasIntercom = organization.features.includes('intercom-support');
-
   useEffect(() => {
-    if (hasIntercom) {
-      trackGetsentryAnalytics('intercom_link.viewed', {
-        organization,
-        source: 'account-suspension',
-      });
-    }
-  }, [hasIntercom, organization]);
+    trackGetsentryAnalytics('intercom_link.viewed', {
+      organization,
+      source: 'account-suspension',
+    });
+  }, [organization]);
 
   async function handleIntercomClick() {
     trackGetsentryAnalytics('intercom_link.clicked', {
@@ -154,17 +149,7 @@ function SuspensionModal({
         </p>
       </Body>
       <Footer>
-        {hasIntercom ? (
-          <Button onClick={handleIntercomClick}>{t('Contact Support')}</Button>
-        ) : (
-          <ZendeskLink
-            subject="Account Suspension"
-            Component={props => <LinkButton {...props} href={props.href ?? ''} />}
-            source="account-suspension"
-          >
-            {t('Contact Support')}
-          </ZendeskLink>
-        )}
+        <Button onClick={handleIntercomClick}>{t('Contact Support')}</Button>
       </Footer>
     </Fragment>
   );
@@ -1040,9 +1025,9 @@ class GSBanner extends Component<Props, State> {
     const overageAlertType = this.overageAlertType;
     if (overageAlertType !== null) {
       return (
-        <React.Fragment>
+        <Fragment>
           {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
-        </React.Fragment>
+        </Fragment>
       );
     }
 
@@ -1056,7 +1041,7 @@ class GSBanner extends Component<Props, State> {
       const wrappedNumber = <strong>{membersDeactivatedFromLimit}</strong>;
       // only disabling members if the plan allows exactly one member
       return (
-        <React.Fragment>
+        <Fragment>
           {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
           <Alert.Container>
             <InvertedAlert
@@ -1106,7 +1091,7 @@ class GSBanner extends Component<Props, State> {
               )}
             </InvertedAlert>
           </Alert.Container>
-        </React.Fragment>
+        </Fragment>
       );
     }
 

@@ -4,7 +4,6 @@ import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
-from urllib.parse import urljoin
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -25,7 +24,6 @@ from sentry.api.serializers.models.role import (
     TeamRoleSerializerResponse,
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
-from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.api.utils import generate_locality_url
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
@@ -87,6 +85,7 @@ from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.types.cell import get_locality_name_for_cell
+from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -306,7 +305,8 @@ class ControlSiloOrganizationSerializerResponse(TypedDict):
     name: str
 
 
-class ControlSiloOrganizationSerializer(Serializer):
+@register(RpcOrganizationSummary)
+class ControlSiloOrganizationSerializer(Serializer[ControlSiloOrganizationSerializerResponse]):
     def serialize(
         self,
         obj: RpcOrganizationSummary,
@@ -341,7 +341,10 @@ class ControlSiloOrganizationMappingSerializerResponse(TypedDict):
     hasAuthProvider: bool
 
 
-class ControlSiloOrganizationMappingSerializer(Serializer):
+@register(OrganizationMapping)
+class ControlSiloOrganizationMappingSerializer(
+    Serializer[ControlSiloOrganizationMappingSerializerResponse]
+):
     _AVATAR_TYPE_BY_ID: ClassVar[dict[int, str]] = dict(OrganizationAvatar.AVATAR_TYPES)
 
     def get_attrs(
@@ -382,13 +385,10 @@ class ControlSiloOrganizationMappingSerializer(Serializer):
             # The avatar file is served by the cell that owns the org, so the
             # URL must point at that cell's locality rather than the local
             # control silo.
-            locality_url = generate_locality_url(get_locality_name_for_cell(obj.cell_name))
             avatar: SerializedAvatarFields = {
                 "avatarType": avatar_type,
                 "avatarUuid": avatar_replica.avatar_ident if avatar_type == "upload" else None,
-                "avatarUrl": urljoin(
-                    locality_url, f"/{OrganizationAvatar.url_path}/{avatar_replica.avatar_ident}/"
-                ),
+                "avatarUrl": avatar_replica.absolute_url(),
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
@@ -413,7 +413,7 @@ class ControlSiloOrganizationMappingSerializer(Serializer):
 
 
 @register(Organization)
-class OrganizationSummarySerializer(Serializer):
+class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -600,7 +600,7 @@ class _OnboardingTasksAttrs(TypedDict):
 
 
 @register(OrganizationOnboardingTask)
-class OnboardingTasksSerializer(Serializer):
+class OnboardingTasksSerializer(Serializer[OnboardingTasksSerializerResponse]):
     def get_attrs(
         self,
         item_list: Sequence[OrganizationOnboardingTask],
@@ -672,7 +672,6 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     relayPiiConfig: str | None
     trustedRelays: list[TrustedRelaySerializerResponse]
     pendingAccessRequests: int
-    codecovAccess: bool
     hideAiFeatures: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
@@ -828,7 +827,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
             ),
             "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
-            "codecovAccess": bool(obj.flags.codecov_access),
             "hideAiFeatures": bool(
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),

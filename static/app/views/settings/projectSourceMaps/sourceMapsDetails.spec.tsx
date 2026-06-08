@@ -120,8 +120,6 @@ describe('SourceMapsDetails', () => {
         }
       );
 
-      // Title
-      expect(screen.getByRole('heading')).toHaveTextContent('Release Bundle');
       // Subtitle
       expect(screen.getByText('bea7335dfaebc0ca6e65a057')).toBeInTheDocument();
 
@@ -207,11 +205,6 @@ describe('SourceMapsDetails', () => {
         {
           organization,
         }
-      );
-
-      // Title
-      expect(screen.getByRole('heading')).toHaveTextContent(
-        '7227e105-744e-4066-8c69-3e5e344723fc'
       );
 
       // Details

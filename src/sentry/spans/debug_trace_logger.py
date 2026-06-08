@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
     from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
-    from sentry.spans.buffer import Span
+    from sentry.spans.buffer_types import Span
 
 logger = logging.getLogger(__name__)
 

@@ -36,6 +36,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -44,6 +45,7 @@ from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribut
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
+from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
@@ -58,6 +60,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
+from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
 from sentry.seer.agent.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -124,6 +127,7 @@ from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
+from sentry.users.services.user.service import user_service
 from sentry.utils import snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
@@ -219,7 +223,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     authentication_classes = (SeerRpcSignatureAuthentication,)
@@ -315,6 +319,47 @@ def get_organization_project_ids(*, org_id: int) -> dict:
     )
 
     return {"projects": projects}
+
+
+_ORGANIZATION_SCOPE_PREFIX = "organizations:"
+
+
+def get_organization_features(*, org_id: int, user_id: int | None = None) -> dict[str, list[str]]:
+    try:
+        organization = Organization.objects.get(id=org_id)
+    except Organization.DoesNotExist:
+        return {"features": []}
+
+    actor = user_service.get_user(user_id=user_id) if user_id is not None else None
+
+    features_to_check = {
+        feature
+        for feature in features.all(feature_type=OrganizationFeature, api_expose_only=True).keys()
+        if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
+    }
+
+    feature_set: set[str] = set()
+
+    with sentry_sdk.start_span(op="features.check", name="check batch features"):
+        batch = features.batch_has(
+            list(features_to_check),
+            actor=actor,
+            organization=organization,
+            skip_experiment_exposure=True,
+        )
+
+        if batch:
+            for name, active in batch.get(f"organization:{organization.id}", {}).items():
+                if active:
+                    feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+                features_to_check.discard(name)
+
+    with sentry_sdk.start_span(op="features.check", name="check individual features"):
+        for name in features_to_check:
+            if features.has(name, organization, actor=actor, skip_entity=True):
+                feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+
+    return {"features": list(sorted(feature_set))}
 
 
 class SentryOrganizaionIdsAndSlugs(TypedDict):
@@ -476,7 +521,6 @@ def get_attributes_for_span(
     attributes = convert_rpc_attribute_to_json(
         response_dict.get("attributes", []),
         SupportedTraceItemType.SPANS,
-        use_sentry_conventions=False,
         include_internal=False,
     )
 
@@ -913,10 +957,32 @@ def bulk_get_project_preferences(
     return {str(project_id): pref.dict() for project_id, pref in preferences.items()}
 
 
+def deliver_feature_result(
+    *,
+    organization_id: int,
+    feature_id: str,
+    run_uuid: str,
+    status: FeatureRunStatus,
+    result: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> None:
+    """Dispatch a feature result from Seer to the registered handler."""
+    handler = DELIVERY_HANDLERS.get(feature_id)
+    if handler is None:
+        logger.warning(
+            "seer.feature_delivery.unknown_feature_id",
+            extra={"feature_id": feature_id, "run_uuid": run_uuid},
+        )
+        return
+
+    handler(organization_id, run_uuid, status, result, error)
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
+    "get_organization_features": get_organization_features,
     "check_repository_integrations_status": check_repository_integrations_status,
     "validate_repo": validate_repo,
     "get_repo_installation_id": get_repo_installation_id,
@@ -969,6 +1035,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
     "call_on_completion_hook": call_on_completion_hook,
+    "deliver_feature_result": deliver_feature_result,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     "get_baseline_tag_distribution": get_baseline_tag_distribution,

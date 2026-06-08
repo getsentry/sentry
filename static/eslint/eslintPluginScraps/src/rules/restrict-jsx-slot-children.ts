@@ -276,7 +276,9 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
       propName: string,
       state: State
     ) {
-      if (!expr) return;
+      if (!expr) {
+        return;
+      }
 
       if (expr.type === 'JSXElement') {
         checkSlotTree(expr, propName, state);
@@ -326,7 +328,9 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
      */
     let allowedNamesResolved = false;
     function resolveAllowedNames() {
-      if (allowedNamesResolved) return;
+      if (allowedNamesResolved) {
+        return;
+      }
       allowedNamesResolved = true;
 
       for (const [, state] of slotState) {
@@ -359,10 +363,14 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
         // any JSXAttribute nodes, so importTracker has all imports recorded.
         resolveAllowedNames();
         const propName = node.name.type === 'JSXIdentifier' ? node.name.name : null;
-        if (!propName) return;
+        if (!propName) {
+          return;
+        }
 
         const state = slotState.get(propName);
-        if (!state) return;
+        if (!state) {
+          return;
+        }
 
         if (state.componentNames.size > 0) {
           const nameNode = node.parent.name; // JSXAttribute → JSXOpeningElement

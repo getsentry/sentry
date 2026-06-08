@@ -16,7 +16,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {
@@ -230,7 +230,9 @@ function ColumnEditorRow({
   // returns, merge in any attributes baseOptions doesn't already cover so the
   // user can still pick keys that weren't in the initial fetch.
   const options = useMemo(() => {
-    if (!hasSearch) return baseOptions;
+    if (!hasSearch) {
+      return baseOptions;
+    }
     const searched = buildColumnOptions({
       columns: [],
       stringTags: searchedStringTags,
@@ -239,10 +241,14 @@ function ColumnEditorRow({
       hiddenKeys,
       traceItemType,
     });
-    if (searched.length === 0) return baseOptions;
+    if (searched.length === 0) {
+      return baseOptions;
+    }
     const baseValues = new Set(baseOptions.map(o => o.value));
     const additions = searched.filter(o => !baseValues.has(o.value));
-    if (additions.length === 0) return baseOptions;
+    if (additions.length === 0) {
+      return baseOptions;
+    }
     return [...baseOptions, ...additions];
   }, [
     hasSearch,
@@ -365,8 +371,12 @@ function buildColumnOptions({
   })
     .filter(option => {
       const hidden = hiddenKeys ?? [];
-      if (hidden.includes(option.value)) return false;
-      if (typeof option.label === 'string' && hidden.includes(option.label)) return false;
+      if (hidden.includes(option.value)) {
+        return false;
+      }
+      if (typeof option.label === 'string' && hidden.includes(option.label)) {
+        return false;
+      }
       return true;
     })
     .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));

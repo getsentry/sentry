@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -14,7 +14,6 @@ import {
   getTargetWithReadableQueryParams,
   isDefaultFields,
 } from 'sentry/views/explore/logs/logsQueryParams';
-import {useOurLogsTableExpando} from 'sentry/views/explore/logs/tables/useOurLogsTableExpando';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
@@ -31,13 +30,12 @@ export function LogsLocationQueryParamsProvider({
 }: LogsLocationQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const ourlogsTableExpando = useOurLogsTableExpando();
 
   const [_, setPersistentParams] = usePersistedLogsPageParams();
 
   const _readableQueryParams = useMemo(
-    () => getReadableQueryParamsFromLocation(!ourlogsTableExpando, location),
-    [location, ourlogsTableExpando]
+    () => getReadableQueryParamsFromLocation(false, location),
+    [location]
   );
 
   const readableQueryParams = useMemo(

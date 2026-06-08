@@ -7,7 +7,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   generateProfileFlamechartRouteWithQuery,
   generateProfilingRouteWithQuery,
@@ -48,7 +48,7 @@ function trailToCrumb(
           query: omit(trail.payload.query, ['cursor', 'query']),
           organization,
         }),
-        label: t('Profiling'),
+        label: t('Profiles'),
         preservePageFilters: true,
       };
     }

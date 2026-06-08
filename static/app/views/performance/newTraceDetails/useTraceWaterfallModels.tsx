@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 import {TraceScheduler} from './traceRenderers/traceScheduler';
@@ -9,6 +10,7 @@ import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 
 export function useTraceWaterfallModels() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const traceState = useTraceState();
   const traceView = useMemo(() => new TraceView(), []);
   const traceScheduler = useMemo(() => new TraceScheduler(), []);
@@ -26,6 +28,8 @@ export function useTraceWaterfallModels() {
     // We only care about initial state when we initialize the view manager
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  viewManager.navigate = navigate;
 
   return {traceView, traceScheduler, viewManager};
 }

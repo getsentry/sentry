@@ -170,8 +170,8 @@ export function SeerProjectTable() {
     return projects.toSorted((a, b) => {
       if (sort.field === 'project') {
         return sort.kind === 'asc'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
+          ? a.slug.localeCompare(b.slug)
+          : b.slug.localeCompare(a.slug);
       }
 
       const aSettings = autofixSettingsByProjectId?.[a.id];

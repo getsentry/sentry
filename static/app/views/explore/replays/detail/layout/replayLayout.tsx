@@ -169,7 +169,6 @@ const BodyGrid = styled('div')`
   display: grid;
   grid-template-rows: 1fr auto;
   gap: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.xl};
   flex: 1;
 
   /*

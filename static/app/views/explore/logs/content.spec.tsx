@@ -116,32 +116,6 @@ describe('LogsPage', () => {
     expect(table).toHaveTextContent(/User login successful/);
   });
 
-  it('hides the footer when logs table is expanded', async () => {
-    const organizationWithExpando = {
-      ...organization,
-      features: [...organization.features, 'ourlogs-table-expando'],
-    };
-
-    render(
-      <div>
-        <LogsPage />
-        <footer data-test-id="global-footer" />
-      </div>,
-      {
-        organization: organizationWithExpando,
-        initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
-        },
-      }
-    );
-
-    await screen.findByTestId('logs-table');
-
-    expect(screen.getByTestId('global-footer')).toBe(
-      document.querySelector('[data-hide-footer] ~ footer')
-    );
-  });
-
   it('should show onboarding when project is not onboarded', async () => {
     ProjectsStore.reset();
     const {
@@ -392,7 +366,8 @@ describe('LogsPage', () => {
       // - one for the table
       // - one for the normal sample mode count
       // - one for the high accuracy sample mode count
-      expect(eventTableMock).toHaveBeenCalledTimes(3);
+      // - one for the table refetch triggered by resetQueries when auto-refresh is paused
+      expect(eventTableMock).toHaveBeenCalledTimes(4);
 
       eventTableMock.mockClear();
       eventTableMock = setupEventsMock(autorefreshBaseFixtures.slice(0, 5));

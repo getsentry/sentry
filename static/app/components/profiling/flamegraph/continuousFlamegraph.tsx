@@ -22,7 +22,7 @@ import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/f
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -88,7 +88,13 @@ function getMaxConfigSpace(
   unit: ProfilingFormatterUnit | string,
   [start, end]: readonly [number, number] | readonly [null, null]
 ): Rect {
-  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
+  // Use the end position of each profile (startedAt offset + duration) rather than
+  // just duration, so profiles that start late in the window don't get clipped.
+  const maxProfileEnd = Math.max(
+    ...profileGroup.profiles.map(p =>
+      start === null ? p.duration : p.startedAt - start + p.duration
+    )
+  );
   const spaceDuration = start !== null && end !== null ? end - start : 0;
 
   if (transactionSpan) {
@@ -103,15 +109,15 @@ function getMaxConfigSpace(
     // and profile are fully visible to the user.
     const duration = Math.max(
       formatTo(transactionDuration, 'seconds', unit),
-      maxProfileDuration,
+      maxProfileEnd,
       spaceDuration
     );
     return new Rect(0, 0, duration, 0);
   }
 
   // No transaction was found, so best we can do is align it to the starting
-  // position of the profiles - find the max of profile durations
-  return new Rect(0, 0, Math.max(maxProfileDuration, spaceDuration), 0);
+  // position of the profiles - find the max end position across all profiles
+  return new Rect(0, 0, Math.max(maxProfileEnd, spaceDuration), 0);
 }
 
 function getProfileOffset(

@@ -8,6 +8,7 @@ import {slot, withSlots} from '@sentry/scraps/slot';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
@@ -24,7 +25,7 @@ import {
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['title', 'actions', 'feedback'] as const);
+const Slot = slot(['title', 'search', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();
@@ -77,10 +78,15 @@ function TopBarContent() {
         </Slot.Outlet>
 
         <Flex align="center" gap="sm">
+          <Slot.Outlet name="search">
+            {props => <Flex {...props} align="center" gap="sm" />}
+          </Slot.Outlet>
+
           <Slot.Outlet name="actions">
             {props => <Flex {...props} align="center" gap="sm" />}
           </Slot.Outlet>
 
+          <SearchButton />
           {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
 
           <Slot.Outlet name="feedback">

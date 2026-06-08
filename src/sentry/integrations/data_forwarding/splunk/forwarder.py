@@ -149,3 +149,30 @@ class SplunkForwarder(BaseDataForwarder):
                 return False
             raise
         return True
+
+    def get_task_payload(self, event: Event | GroupEvent, config: dict[str, Any]) -> dict[str, Any]:
+        return {"host": self.host}
+
+    @staticmethod
+    def forward_event_from_task(
+        *,
+        config: dict[str, Any],
+        event_payload: dict[str, Any],
+        task_payload: dict[str, Any],
+    ) -> None:
+        token = config.get("token")
+        index = config.get("index")
+        instance = config.get("instance_url")
+
+        if not token or not index or not instance:
+            return
+
+        if not instance.endswith("/services/collector"):
+            instance = instance.rstrip("/") + "/services/collector"
+
+        host = task_payload.get("host")
+        if host:
+            event_payload["host"] = host
+
+        client = SplunkApiClient(instance, token)
+        client.request(event_payload)

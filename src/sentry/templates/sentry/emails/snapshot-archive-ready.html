@@ -1,0 +1,12 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block preheader %}Your snapshot images are ready to download{% endblock %}
+
+{% block main %}
+    <h3>Your snapshot images are ready</h3>
+    <p>Your snapshot image archive has finished building.</p>
+    <p><a href="{{ url|safe }}" class="btn">Download snapshot images</a></p>
+    <p>This link requires you to be signed in to Sentry with access to the project.</p>
+{% endblock %}

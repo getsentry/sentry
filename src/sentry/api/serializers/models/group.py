@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import options, tagstore
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -111,7 +111,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     id: str
-    shareId: str
+    shareId: str | None
     shortId: str
     title: str
     culprit: str | None
@@ -134,12 +134,37 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     issueCategory: str
     metadata: dict[str, Any]
     numComments: int
-    assignedTo: ActorSerializerResponse
+    assignedTo: ActorSerializerResponse | None
     isBookmarked: bool
     isSubscribed: bool
     subscriptionDetails: SubscriptionDetails | None
     hasSeen: bool
     annotations: list[GroupAnnotation]
+
+
+class GroupDetailsResponseOptional(TypedDict, total=False):
+    # Included by default; removable via `?collapse=release|tags|stats`
+    firstRelease: dict[str, Any] | None
+    lastRelease: dict[str, Any] | None
+    tags: list[dict[str, Any]]
+    stats: dict[str, list[list[float]]]
+    # Opt-in via `?expand=...`
+    inbox: dict[str, Any] | None
+    owners: list[dict[str, Any]] | None
+    forecast: dict[str, Any]
+    integrationIssues: list[dict[str, Any]]
+    sentryAppIssues: list[dict[str, Any]]
+    latestEventHasAttachments: bool
+
+
+class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
+    activity: list[dict[str, Any]]
+    seenBy: list[dict[str, Any]]
+    pluginActions: list[Any]
+    pluginIssues: list[dict[str, Any]]
+    pluginContexts: list[dict[str, Any]]
+    userReportCount: int
+    participants: list[dict[str, Any]]
 
 
 class SeenStats(TypedDict):
@@ -927,6 +952,7 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.type",
         "issue.seer_actionability",
         "issue.seer_last_run",
+        "issue.agent",
     )
 )
 
@@ -1071,16 +1097,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        # Match the issue surfacing query's resolver so a tag that collides
-        # with a reserved column name (e.g. user tag `platform` vs the SDK
-        # `platform` column) resolves to the tag — keeping the badge count
-        # consistent with the surfacing result. Gated for safe rollout.
-        condition_resolver = (
-            get_snuba_column_name
-            if options.get("issues.search.use-tag-aware-condition-resolver")
-            else None
-        )
-
         return aliased_query(
             dataset=Dataset.Events,
             start=start,
@@ -1089,7 +1105,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
-            condition_resolver=condition_resolver,
+            condition_resolver=get_snuba_column_name,
             referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
             tenant_ids=(
                 {"organization_id": item_list[0].project.organization_id} if item_list else None
@@ -1112,12 +1128,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        condition_resolver = (
-            get_snuba_column_name
-            if options.get("issues.search.use-tag-aware-condition-resolver")
-            else None
-        )
-
         return aliased_query(
             dataset=Dataset.IssuePlatform,
             start=start,
@@ -1126,7 +1136,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
-            condition_resolver=condition_resolver,
+            condition_resolver=get_snuba_column_name,
             referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
             tenant_ids=(
                 {"organization_id": item_list[0].project.organization_id} if item_list else None
@@ -1193,7 +1203,7 @@ class SimpleGroupSerializerResponse(TypedDict):
     lastSeen: datetime | None
 
 
-class SimpleGroupSerializer(Serializer):
+class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
     """
     A serializer that only returns the most basic information about a group.
     It should make minimal queries to the database.
