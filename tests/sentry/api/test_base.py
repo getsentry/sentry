@@ -139,7 +139,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert "Access-Control-Allow-Credentials" not in response
 
-    @override_options({"system.base-hostname": "example.com"})
+    @override_settings(SENTRY_BASE_HOSTNAME="example.com")
     def test_allow_credentials_subdomain(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -166,7 +166,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
-    @override_options({"system.base-hostname": "example.com"})
+    @override_settings(SENTRY_BASE_HOSTNAME="example.com")
     def test_allow_credentials_root_domain(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -193,7 +193,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
-    @override_options({"system.base-hostname": "example.com"})
+    @override_settings(SENTRY_BASE_HOSTNAME="example.com")
     @override_settings(ALLOWED_CREDENTIAL_ORIGINS=["http://docs.example.org"])
     def test_allow_credentials_allowed_domain(self) -> None:
         org = self.create_organization()
@@ -221,7 +221,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
-    @override_options({"system.base-hostname": "acme.com"})
+    @override_settings(SENTRY_BASE_HOSTNAME="acme.com")
     def test_allow_credentials_incorrect(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -236,7 +236,7 @@ class EndpointTest(APITestCase):
             response.render()
             assert "Access-Control-Allow-Credentials" not in response
 
-    @override_options({"system.base-hostname": "acme.com"})
+    @override_settings(SENTRY_BASE_HOSTNAME="acme.com")
     def test_disallow_credentials_when_two_origins(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -431,11 +431,9 @@ class CursorGenerationTest(APITestCase):
         )
         request.GET = QueryDict("member=1&cursor=foo")
         endpoint = Endpoint()
-        with override_options(
-            {
-                "system.url-prefix": "https://testserver",
-                "system.organization-url-template": "https://{hostname}",
-            }
+        with (
+            override_options({"system.url-prefix": "https://testserver"}),
+            override_settings(SENTRY_ORGANIZATION_URL_TEMPLATE="https://{hostname}"),
         ):
             result = endpoint.build_cursor_link(
                 request, "next", Cursor.from_string("1492107369532:0:0")
