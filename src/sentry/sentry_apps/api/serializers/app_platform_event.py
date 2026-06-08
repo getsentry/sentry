@@ -90,7 +90,12 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         )
 
     @property
-    def headers(self) -> dict[str, str]:
+    def sentry_headers(self) -> dict[str, str]:
+        """Headers Sentry sets on every webhook request.
+
+        These are the only headers recorded in the request buffer / debug UI:
+        custom webhook headers may carry secrets and must never be logged there.
+        """
         request_uuid = uuid4().hex
 
         return {
@@ -100,3 +105,19 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
             "Sentry-Hook-Timestamp": str(int(time())),
             "Sentry-Hook-Signature": self.install.sentry_app.build_signature(self.body),
         }
+
+    @property
+    def custom_headers(self) -> dict[str, str]:
+        """User-configured headers parsed from the SentryApp's webhook_headers."""
+        headers: dict[str, str] = {}
+        for header in self.install.sentry_app.webhook_headers or []:
+            name, separator, value = header.partition(":")
+            if separator:
+                headers[name.strip()] = value.strip()
+        return headers
+
+    @property
+    def headers(self) -> dict[str, str]:
+        # Sentry's headers are merged last so they always win: a custom header
+        # can never override the signature and spoof payload integrity.
+        return {**self.custom_headers, **self.sentry_headers}
