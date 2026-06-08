@@ -210,7 +210,6 @@ def configure_structlog() -> None:
     import structlog
     from django.conf import settings
 
-    from sentry import options
     from sentry.logging import LoggingFormat
 
     kwargs: dict[str, Any] = {
@@ -223,11 +222,7 @@ def configure_structlog() -> None:
         ],
     }
 
-    fmt_from_env = os.environ.get("SENTRY_LOG_FORMAT")
-    if fmt_from_env:
-        settings.SENTRY_OPTIONS["system.logging-format"] = fmt_from_env.lower()
-
-    fmt = options.get("system.logging-format")
+    fmt = settings.SENTRY_LOGGING_FORMAT
 
     if fmt == LoggingFormat.HUMAN:
         from sentry.logging.handlers import HumanRenderer

@@ -11,6 +11,7 @@ from typing import Any
 
 import lxml.html
 import toronado
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.utils.encoding import force_str
 
@@ -262,7 +263,7 @@ class MessageBuilder:
     ) -> None:
         from sentry.tasks.email import send_email, send_email_control
 
-        fmt = options.get("system.logging-format")
+        fmt = settings.SENTRY_LOGGING_FORMAT
         messages = self.get_built_messages(to, reply_to, cc=cc, bcc=bcc)
         extra: MutableMapping[str, str | tuple[str]] = {"message_type": self.type}
         loggable = [v for k, v in self.context.items() if hasattr(v, "id")]
