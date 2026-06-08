@@ -189,5 +189,29 @@ describe('SnapshotsToolbar', () => {
       ),
       {tags: {area: 'snapshots'}}
     );
+
+    describe.each(['split', 'wipe', 'onion'] as const)('diff mode %s', diffMode => {
+      it.snapshot(
+        'toolbar',
+        () => (
+          <ThemeProvider theme={themes[themeName]}>
+            <div style={{width: 960}}>
+              <SnapshotsToolbarWithControls
+                viewMode="single"
+                onViewModeChange={noop}
+                diff={{
+                  mode: diffMode,
+                  onModeChange: noop,
+                  overlayColor: '#f55459',
+                  onOverlayColorChange: noop,
+                }}
+                solo={{isActive: false, onToggle: noop}}
+              />
+            </div>
+          </ThemeProvider>
+        ),
+        {tags: {area: 'snapshots', diffMode}}
+      );
+    });
   });
 });
