@@ -30,6 +30,7 @@ import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {
   TableBodyCell,
   TableHead,
@@ -232,6 +233,7 @@ export function LogsInfiniteTable({
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const {width: tableWidth} = useDimensions({elementRef: tableRef});
+  const {top: backToTopOffset} = useElementOffset(tableBodyRef, tableRef);
   const [expandedLogRows, setExpandedLogRows] = useState(
     new Set(embeddedOptions?.openWithExpandedIds)
   );
@@ -536,7 +538,7 @@ export function LogsInfiniteTable({
           <PinnedLogs
             allRows={data}
             logsPinning={logsPinning}
-            query={pinnedLogsQuery}
+            pinnedLogsQuery={pinnedLogsQuery}
             renderRow={renderRow}
           />
         )}
@@ -629,6 +631,7 @@ export function LogsInfiniteTable({
         position="absolute"
         inReplay={!!embeddedOptions?.replay}
         tableWidth={tableWidth}
+        topOffset={backToTopOffset}
       >
         {!embeddedOptions?.replay && (
           <BackToTopButton

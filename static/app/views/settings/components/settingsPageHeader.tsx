@@ -9,12 +9,11 @@ import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcru
 type Props = {
   title: React.ReactNode;
   action?: React.ReactNode;
-  body?: React.ReactNode;
   subtitle?: React.ReactNode;
   tabs?: React.ReactNode;
 };
 
-export function SettingsPageHeader({title, subtitle, action, body, tabs}: Props) {
+export function SettingsPageHeader({title, subtitle, action, tabs}: Props) {
   return (
     <Fragment>
       {typeof title === 'string' ? (
@@ -28,7 +27,6 @@ export function SettingsPageHeader({title, subtitle, action, body, tabs}: Props)
           {action}
         </Flex>
       )}
-      {body && <BodyWrapper>{body}</BodyWrapper>}
       {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
     </Fragment>
   );
@@ -42,10 +40,6 @@ const Subtitle = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const BodyWrapper = styled('div')`
-  flex: 1;
-  margin: 0 0 ${p => p.theme.space['2xl']};
-`;
 const TabsWrapper = styled('div')`
   flex: 1;
   margin: 0;

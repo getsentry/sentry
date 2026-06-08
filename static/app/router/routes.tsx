@@ -1021,6 +1021,14 @@ function buildRoutes(): RouteObject[] {
           ),
         },
         {
+          path: 'legacy-webhooks/',
+          name: t('Webhooks'),
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationIntegrations/webhookDetailedView')
+          ),
+        },
+        {
           path: ':integrationSlug',
           name: t('Integration Details'),
           component: make(

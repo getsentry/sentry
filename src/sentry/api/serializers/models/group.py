@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Protocol, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict, TypeGuard
 
 import sentry_sdk
 from django.conf import settings
@@ -59,6 +59,13 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
+
+if TYPE_CHECKING:
+    from sentry.models.groupinbox import InboxDetails
+    from sentry.models.groupowner import OwnersSerialized
+    from sentry.sentry_apps.api.serializers.platform_external_issue import (
+        PlatformExternalIssueSerializerResponse,
+    )
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -149,11 +156,11 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
     tags: list[dict[str, Any]]
     stats: dict[str, list[list[float]]]
     # Opt-in via `?expand=...`
-    inbox: dict[str, Any] | None
-    owners: list[dict[str, Any]] | None
+    inbox: InboxDetails | None
+    owners: list[OwnersSerialized] | None
     forecast: dict[str, Any]
     integrationIssues: list[dict[str, Any]]
-    sentryAppIssues: list[dict[str, Any]]
+    sentryAppIssues: list[PlatformExternalIssueSerializerResponse]
     latestEventHasAttachments: bool
 
 
