@@ -2,7 +2,12 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
-import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
+import type {
+  ECharts,
+  SeriesOption,
+  XAXisComponentOption,
+  YAXisComponentOption,
+} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -422,7 +427,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 
   const handleChartReady = useCallback(
-    (instance: echarts.ECharts) => {
+    (instance: ECharts) => {
       onChartReadyZoom(instance);
       unregisterRef.current?.();
       unregisterRef.current = registerWithWidgetSyncContext(instance);
