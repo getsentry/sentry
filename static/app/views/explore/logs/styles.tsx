@@ -506,12 +506,14 @@ export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
   position?: 'absolute' | 'fixed';
   tableWidth?: number;
+  topOffset?: number;
 }>`
   --floatingWidth: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
   position: ${p => p.position};
   z-index: 1;
   opacity: ${p => (p.inReplay ? 1 : 0.9)};
-  top: ${p => (p.inReplay ? p.theme.space.md : '65px')};
+  top: ${p =>
+    p.inReplay ? p.theme.space.md : `calc(${p.topOffset ?? 65}px + ${p.theme.space.xl})`};
   width: var(--floatingWidth);
   display: flex;
   justify-content: center;

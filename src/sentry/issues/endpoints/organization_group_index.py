@@ -52,6 +52,7 @@ from sentry.apidocs.parameters import (
     IssueParams,
     OrganizationParams,
 )
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
@@ -312,7 +313,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         examples=IssueExamples.ORGANIZATION_GROUP_INDEX_GET,
     )
     @track_slo_response("workflow")
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[StreamGroupSerializerSnubaResponse]] | Response[DetailResponse]:
         stats_period = request.GET.get("groupStatsPeriod")
         start, end = get_date_range_from_stats_period(request.GET)
 
@@ -384,7 +387,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     )
                 )
                 if len(groups) == 1:
-                    serialized_groups = serialize(
+                    serialized_groups: list[StreamGroupSerializerSnubaResponse] = serialize(
                         groups, request.user, serializer(), request=request
                     )
                     serialized_groups[0]["matchingEventId"] = event_id
@@ -393,15 +396,19 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     return response
 
                 if groups:
-                    return Response(serialize(groups, request.user, serializer(), request=request))
+                    by_event: list[StreamGroupSerializerSnubaResponse] = serialize(
+                        groups, request.user, serializer(), request=request
+                    )
+                    return Response(by_event)
 
             group = get_by_short_id(organization.id, request.GET.get("shortIdLookup") or "0", query)
             if group is not None:
                 # check all projects user has access to
                 if request.access.has_project_access(group.project):
-                    response = Response(
-                        serialize([group], request.user, serializer(), request=request)
+                    by_short_id: list[StreamGroupSerializerSnubaResponse] = serialize(
+                        [group], request.user, serializer(), request=request
                     )
+                    response = Response(by_short_id)
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response
 
@@ -415,7 +422,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
             if any(g for g in groups if not request.access.has_project_access(g.project)):
                 raise PermissionDenied
-            return Response(serialize(groups, request.user, serializer(), request=request))
+            by_group_id: list[StreamGroupSerializerSnubaResponse] = serialize(
+                groups, request.user, serializer(), request=request
+            )
+            return Response(by_group_id)
 
         try:
             with handle_query_errors():

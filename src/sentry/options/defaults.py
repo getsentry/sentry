@@ -3672,7 +3672,14 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
+# TODO(cells): Routes the org listing through the control silo endpoint instead of
+# fanning out across cells. Remove once the cell fan-out path is deleted.
+register(
+    "cells.use-control-org-listing",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # SCM
 
@@ -3715,14 +3722,6 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enables cell resolver in APIGateway, should be removed after rollout
-register(
-    "apigateway.cell_resolver.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # When True, auto-link-repos-by-name logs matches but does not create ProjectRepository rows.

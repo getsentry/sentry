@@ -503,7 +503,6 @@ from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftT
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
-from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoint
 from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
     OrganizationAutofixAutomationSettingsEndpoint,
@@ -975,11 +974,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/autofix/$",
             GroupAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-autofix",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/autofix/update/$",
-            GroupAutofixUpdateEndpoint.as_view(),
-            name=f"{name_prefix}-group-autofix-update",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/autofix/setup/$",

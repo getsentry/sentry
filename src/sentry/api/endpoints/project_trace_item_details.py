@@ -32,7 +32,7 @@ from sentry.search.eap.types import (
     TraceItemAttribute,
 )
 from sentry.search.eap.utils import (
-    can_expose_attribute,
+    can_expose_attribute_to_api,
     get_deprecated_source_internal_names,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
@@ -120,7 +120,7 @@ def convert_rpc_attribute_to_json(
     for attribute in attributes:
         internal_name = attribute["name"]
 
-        if not can_expose_attribute(
+        if not can_expose_attribute_to_api(
             internal_name, trace_item_type, include_internal=include_internal
         ):
             continue

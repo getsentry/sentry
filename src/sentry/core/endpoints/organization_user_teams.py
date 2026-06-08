@@ -7,7 +7,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.api.serializers.models.team import (
+    TeamSerializerResponse,
+    TeamWithProjectsSerializer,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -31,14 +34,16 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "ListOrgTeamResponse", list[TeamWithProjectsSerializer]
+                "ListOrgTeamResponse", list[TeamSerializerResponse]
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
         examples=TeamExamples.LIST_ORG_TEAMS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[TeamSerializerResponse]]:
         """
         Returns a list of teams the user has access to in the specified organization.
         Note that this endpoint is restricted to [user auth tokens](https://docs.sentry.io/account/auth-tokens/#user-auth-tokens).
@@ -57,4 +62,7 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
                 status=TeamStatus.ACTIVE,
                 id__in=request.access.team_ids_with_membership,
             ).order_by("slug")
-        return Response(serialize(list(queryset), request.user, TeamWithProjectsSerializer()))
+        teams: list[TeamSerializerResponse] = serialize(
+            list(queryset), request.user, TeamWithProjectsSerializer()
+        )
+        return Response(teams)

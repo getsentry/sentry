@@ -75,7 +75,7 @@ from sentry.search.eap.types import (
     SupportedTraceItemType,
 )
 from sentry.search.eap.utils import (
-    can_expose_attribute,
+    can_expose_attribute_to_api,
     get_secondary_aliases,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
@@ -332,6 +332,22 @@ def as_attribute_key(
     return attribute_key
 
 
+def can_expose_trace_item_attribute_to_api(
+    attribute_key: TraceItemAttributeKey,
+    item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+) -> bool:
+    return can_expose_attribute_to_api(
+        attribute_key["key"],
+        item_type,
+        include_internal=include_internal,
+    ) and can_expose_attribute_to_api(
+        attribute_key["name"],
+        item_type,
+        include_internal=include_internal,
+    )
+
+
 @extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
@@ -585,7 +601,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
-            if attribute.name and can_expose_attribute(
+            if attribute.name and can_expose_attribute_to_api(
                 attribute.name,
                 trace_item_type,
                 include_internal=include_internal,
@@ -603,6 +619,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     # This can happen when the public alias is different, but that's handled by
                     # aliased_attributes
                     and (substring_match in attr_key["name"] if substring_match else True)
+                    and can_expose_trace_item_attribute_to_api(
+                        attr_key, trace_item_type, include_internal=include_internal
+                    )
                 ):
                     attribute_keys[attr_key["key"]] = attr_key
         # We need to exclude any aliased attributes here since because of pagination they might have already been seen
@@ -617,7 +636,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             if attr_key["name"] in attribute_keys:
                 del attribute_keys[attr_key["name"]]
         for aliased_attr in aliased_attributes:
-            if can_expose_attribute(
+            if can_expose_attribute_to_api(
                 aliased_attr.public_alias,
                 trace_item_type,
                 include_internal=include_internal,
@@ -628,7 +647,14 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     trace_item_type,
                     is_proxy=isinstance(aliased_attr, ProxyResolvedAttribute),
                 )
-                attribute_keys[attr_key["key"]] = attr_key
+                if can_expose_attribute_to_api(
+                    aliased_attr.internal_name,
+                    trace_item_type,
+                    include_internal=include_internal,
+                ) and can_expose_trace_item_attribute_to_api(
+                    attr_key, trace_item_type, include_internal=include_internal
+                ):
+                    attribute_keys[attr_key["key"]] = attr_key
         attributes = list(attribute_keys.values())
         sentry_sdk.set_context("api_response", {"attributes": attributes})
         return attributes
