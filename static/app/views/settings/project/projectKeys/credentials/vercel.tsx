@@ -25,7 +25,7 @@ export function VercelTab({
         label={t('Vercel Log Drain Endpoint')}
         help={tct('Use this endpoint to configure Vercel Log Drains. [link:Learn more]', {
           link: (
-            <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/#log-drains" />
+            <ExternalLink href="https://docs.sentry.io/product/drains/vercel/#manual-log-drain-setup" />
           ),
         })}
         inline={false}
@@ -56,7 +56,7 @@ export function VercelTab({
               'Set this URL as your Vercel Trace Drain Endpoint (OTLP format). [link:Learn more]',
               {
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/#trace-drains" />
+                  <ExternalLink href="https://docs.sentry.io/product/drains/vercel/#manual-trace-drain-setup" />
                 ),
               }
             )}
