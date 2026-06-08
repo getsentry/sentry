@@ -5,6 +5,7 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
+import {getExpandedProjectIds} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {
   useSearchQueryBuilderAI,
   useSearchQueryBuilderLayout,
@@ -38,6 +39,7 @@ interface AskSeerSearchQuery {
   sort: string;
   start: string | null;
   statsPeriod: string;
+  expandedProjectIds?: number[];
 }
 
 interface LogsAskSeerTranslateResponse {
@@ -51,6 +53,7 @@ interface LogsAskSeerTranslateResponse {
     stats_period: string;
   }>;
   unsupported_reason: string | null;
+  project_ids?: number[] | null;
 }
 
 export function LogsTabSeerComboBox() {
@@ -121,6 +124,11 @@ export function LogsTabSeerComboBox() {
         },
       });
 
+      const expandedProjectIds = getExpandedProjectIds(
+        data.project_ids,
+        selectedProjects.map(Number)
+      );
+
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
@@ -132,6 +140,7 @@ export function LogsTabSeerComboBox() {
           start: r?.start ?? null,
           end: r?.end ?? null,
           mode: r?.mode ?? 'samples',
+          ...(expandedProjectIds ? {expandedProjectIds} : {}),
         })),
       };
     },
@@ -148,6 +157,7 @@ export function LogsTabSeerComboBox() {
         statsPeriod,
         start: resultStart,
         end: resultEnd,
+        expandedProjectIds,
       } = result;
 
       let start: DateString = null;
@@ -231,6 +241,8 @@ export function LogsTabSeerComboBox() {
       // This matches the Trace Explorer pattern of single navigation
       const newQuery = {
         ...location.query,
+        // Widen to the agent's expanded scope when it broadened the query.
+        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
         [LOGS_QUERY_KEY]: queryToUse,
         mode,
         [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
@@ -289,6 +301,7 @@ export function LogsTabSeerComboBox() {
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
       const seerResponse = response as unknown as {
+        project_ids?: number[] | null;
         responses?: Array<{
           end: string | null;
           group_by: string[];
@@ -301,6 +314,10 @@ export function LogsTabSeerComboBox() {
       };
 
       if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
+        const expandedProjectIds = getExpandedProjectIds(
+          seerResponse.project_ids,
+          selectedProjectIds
+        );
         return seerResponse.responses.map(r => ({
           query: r?.query ?? '',
           sort: r?.sort ?? '',
@@ -309,12 +326,13 @@ export function LogsTabSeerComboBox() {
           start: r?.start ?? null,
           end: r?.end ?? null,
           mode: r?.mode ?? 'samples',
+          ...(expandedProjectIds ? {expandedProjectIds} : {}),
         }));
       }
 
       return [response];
     },
-    []
+    [selectedProjectIds]
   );
 
   if (!enableAISearch) {
@@ -332,3 +350,5 @@ export function LogsTabSeerComboBox() {
     />
   );
 }
+
+

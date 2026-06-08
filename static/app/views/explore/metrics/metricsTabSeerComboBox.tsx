@@ -6,6 +6,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
+import {getExpandedProjectIds} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {
   useSearchQueryBuilderAI,
   useSearchQueryBuilderLayout,
@@ -56,6 +57,7 @@ interface AskSeerSearchQuery {
   start: string | null;
   statsPeriod: string;
   visualizations: Visualization[];
+  expandedProjectIds?: number[];
 }
 
 interface MetricsAskSeerTranslateResponse {
@@ -73,6 +75,7 @@ interface MetricsAskSeerTranslateResponse {
     }>;
   }>;
   unsupported_reason: string | null;
+  project_ids?: number[] | null;
 }
 
 export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProps) {
@@ -151,6 +154,11 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         },
       });
 
+      const expandedProjectIds = getExpandedProjectIds(
+        data.project_ids,
+        selectedProjects.map(Number)
+      );
+
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
@@ -167,6 +175,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           start: r.start,
           end: r.end,
           mode: r.mode,
+          ...(expandedProjectIds ? {expandedProjectIds} : {}),
         })),
       };
     },
@@ -184,6 +193,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         start: resultStart,
         end: resultEnd,
         visualizations,
+        expandedProjectIds,
       } = result;
 
       let start: DateString = null;
@@ -310,6 +320,8 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           ...location,
           query: {
             ...location.query,
+            // Widen to the agent's expanded scope when it broadened the query.
+            ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
             metric: newEncodedMetrics,
             start: selection.datetime.start,
             end: selection.datetime.end,
@@ -352,6 +364,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
       const seerResponse = response as unknown as {
+        project_ids?: number[] | null;
         responses?: Array<{
           end: string | null;
           group_by: string[];
@@ -368,6 +381,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       };
 
       if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
+        const expandedProjectIds = getExpandedProjectIds(
+          seerResponse.project_ids,
+          selectedProjectIds
+        );
         return seerResponse.responses.map(r => ({
           visualizations:
             r.visualization?.map(v => ({
@@ -381,12 +398,13 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           start: r.start,
           end: r.end,
           mode: r.mode,
+          ...(expandedProjectIds ? {expandedProjectIds} : {}),
         }));
       }
 
       return [response];
     },
-    []
+    [selectedProjectIds]
   );
 
   if (!enableAISearch) {

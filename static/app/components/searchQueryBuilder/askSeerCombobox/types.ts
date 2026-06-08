@@ -13,6 +13,12 @@ export type AskSeerSearchItems<T> = (AskSeerSearchItem<string> & T) | NoneOfThes
 
 export interface QueryTokensProps {
   end?: string | null;
+  /**
+   * Projects the agent broadened the query to, when it expanded scope beyond
+   * the user's selection. Set only when there is an actual expansion; drives
+   * the "Projects" chip and the projects applied when the suggestion is chosen.
+   */
+  expandedProjectIds?: number[];
   groupBys?: string[];
   query?: string;
   sort?: string;
