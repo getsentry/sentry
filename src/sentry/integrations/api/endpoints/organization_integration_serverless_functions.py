@@ -79,7 +79,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(CellOrganizationIntegra
         organization: Organization,
         integration_id: int,
         **kwds: Any,
-    ) -> Response:
+    ) -> Response[list[ServerlessFunctionResponse]]:
         """
         Return the serverless functions discovered for an organization's integration.
         """
@@ -117,7 +117,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(CellOrganizationIntegra
         organization: Organization,
         integration_id: int,
         **kwds: Any,
-    ) -> Response:
+    ) -> Response[ServerlessFunctionResponse]:
         """
         Enable, disable, or update the Sentry layer version of a serverless function in
         an organization's integration.

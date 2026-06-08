@@ -281,11 +281,6 @@ register(
     default="signed-url-confirmation-emails-salt",
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "user-settings.signed-url-confirmation-emails",
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Staff
 register(
@@ -1187,6 +1182,12 @@ register(
     default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.night_shift.use_feature_delivery",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "seer.supergroups_backfill_lightweight.killswitch",
@@ -1304,6 +1305,9 @@ register(
 
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
+# Whether Relay requests sent from internal ip addresses should be allowed even if the
+# credentials can not be verified.
+register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
@@ -3705,6 +3709,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# When True, publish_action writes to the GroupActionLogEntry table.
+register(
+    "issues.action-log.write-to-db",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables cell resolver in APIGateway, should be removed after rollout
 register(
     "apigateway.cell_resolver.enabled",
@@ -3719,4 +3731,12 @@ register(
     default=True,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out the new TaskProducer to calls of produce_occurrence_to_kafka() from within taskworkers
+register(
+    "tasks.producer.occurrences.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

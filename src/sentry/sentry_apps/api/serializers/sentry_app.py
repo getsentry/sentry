@@ -101,7 +101,7 @@ class SentryAppSerializer(Serializer):
         return {
             item: {
                 "features": app_feature_attrs.get(item.id, set()),
-                "avatars": app_avatar_attrs.get(item.id, set()),
+                "avatars": app_avatar_attrs.get(item.id, []),
                 "owner": organizations.get(item.owner_id, None),
                 "application": applications.get(item.application_id, None),
                 "user_org_ids": user_org_ids,
@@ -125,7 +125,7 @@ class SentryAppSerializer(Serializer):
             allowedOrigins=application.get_allowed_origins(),
             author=obj.author,
             avatars=serialize(
-                objects=attrs.get("avatars"),
+                objects=attrs["avatars"],
                 user=user,
                 serializer=ResponseSentryAppAvatarSerializer(),
             ),

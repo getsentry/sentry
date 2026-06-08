@@ -569,7 +569,11 @@ from sentry.sentry_apps.api.endpoints.installation_external_requests import (
 from sentry.sentry_apps.api.endpoints.installation_service_hook_projects import (
     SentryAppInstallationServiceHookProjectsEndpoint,
 )
+from sentry.sentry_apps.api.endpoints.organization_legacy_webhooks import (
+    OrganizationLegacyWebhooksEndpoint,
+)
 from sentry.sentry_apps.api.endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
+from sentry.sentry_apps.api.endpoints.project_legacy_webhooks import ProjectLegacyWebhooksEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_authorizations import (
     SentryAppAuthorizationsEndpoint,
 )
@@ -799,7 +803,6 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
-from .endpoints.project_legacy_webhooks import ProjectLegacyWebhooksEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -2193,6 +2196,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/configs/$",
         OrganizationPluginsConfigsEndpoint.as_view(),
         name="sentry-api-0-organization-plugins-configs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/legacy-webhooks/$",
+        OrganizationLegacyWebhooksEndpoint.as_view(),
+        name="sentry-api-0-organization-legacy-webhooks",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/releases/$",
