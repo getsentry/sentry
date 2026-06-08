@@ -14,6 +14,8 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
     AiAutofixCodeChangesStartedEvent,
+    AiAutofixIterationCompletedEvent,
+    AiAutofixIterationStartedEvent,
     AiAutofixPhaseEvent,
     AiAutofixPrCreatedStartedEvent,
     AiAutofixRootCauseCompletedEvent,
@@ -32,6 +34,7 @@ from sentry.seer.autofix.artifact_schemas import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.prompts import (
     code_changes_prompt,
+    pr_iteration_prompt,
     root_cause_prompt,
     solution_prompt,
 )
@@ -133,16 +136,29 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
         started_event=AiAutofixCodeChangesStartedEvent,
         completed_event=AiAutofixCodeChangesCompletedEvent,
     ),
+    AutofixStep.PR_ITERATION: StepConfig(
+        artifact_schema=None,  # Iteration changes read from file_patches
+        prompt_fn=pr_iteration_prompt,
+        enable_coding=True,
+        started_event=AiAutofixIterationStartedEvent,
+        completed_event=AiAutofixIterationCompletedEvent,
+    ),
 }
 
 
-def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None = None) -> str:
+def build_step_prompt(
+    step: AutofixStep,
+    group: Group,
+    user_context: str | None = None,
+    run_state: SeerRunState | None = None,
+) -> str:
     """
     Build the prompt for a step using issue details.
 
     Args:
         step: The autofix step to build prompt for
         group: The Sentry group (issue) being analyzed
+        run_state: The current run state, used to surface PR links for iteration
 
     Returns:
         Formatted prompt string
@@ -153,6 +169,7 @@ def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None 
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
+        run_state=run_state,
     )
 
     parts = [prompt]
@@ -187,6 +204,37 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
         },
     }
     return step_to_action_type[step][is_completed]
+
+
+def get_latest_iteration_index(state: SeerRunState) -> int:
+    for block in reversed(state.blocks):
+        metadata = block.message.metadata or {}
+        if metadata.get("step") == AutofixStep.PR_ITERATION.value:
+            return int(metadata["iteration_index"])
+    return 0
+
+
+def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
+    block = state.blocks[insert_index]
+    metadata = block.message.metadata or {}
+    return int(metadata["iteration_index"])
+
+
+def recover_iteration_feedback(state: SeerRunState, insert_index: int) -> str | None:
+    """
+    Recover the user feedback that originally triggered a PR iteration.
+
+    When a PR iteration is retried, the frontend truncates the run at the
+    iteration's first block (``insert_index``). That block carries the original
+    feedback in its metadata, so we reuse it to retry with the same feedback
+    rather than dropping it.
+    """
+    if insert_index < 0 or insert_index >= len(state.blocks):
+        return None
+    metadata = state.blocks[insert_index].message.metadata
+    if metadata is None:
+        return None
+    return metadata.get("feedback")
 
 
 def get_autofix_agent_client(
@@ -297,6 +345,8 @@ def trigger_autofix_agent(
         else reasoning_effort
     )
 
+    pr_iteration_enabled = features.has("organizations:autofix-pr-iteration", group.organization)
+
     client = get_autofix_agent_client(
         group,
         intelligence_level=resolved_intelligence_level,
@@ -304,8 +354,19 @@ def trigger_autofix_agent(
         enable_coding=config.enable_coding,
         code_review_enabled=_code_review_enabled(group.organization, config.enable_coding),
     )
+    run_state: SeerRunState | None = None
     if run_id is not None:
-        _get_group_run_state(client, group, run_id)
+        run_state = _get_group_run_state(client, group, run_id)
+
+    if run_state is not None and run_state.metadata:
+        pr_iteration_enabled = run_state.metadata.get("pr_iteration_enabled", pr_iteration_enabled)
+
+    iteration_index: int | None = None
+    if step == AutofixStep.PR_ITERATION and run_state is not None:
+        if insert_index is not None:
+            iteration_index = get_iteration_for_insert_index(run_state, insert_index)
+        else:
+            iteration_index = get_latest_iteration_index(run_state) + 1
 
     if config.started_event is not None:
         analytics.record(
@@ -314,21 +375,30 @@ def trigger_autofix_agent(
                 project_id=group.project_id,
                 group_id=group.id,
                 referrer=referrer.value,
+                iteration_index=iteration_index,
             )
         )
 
-    prompt = build_step_prompt(step, group, user_context)
+    prompt = build_step_prompt(step, group, user_context, run_state=run_state)
     prompt_metadata = {
         "step": step.value,
         "referrer": referrer.value,
         "has_user_context": "no" if user_context is None else "yes",
         "is_retry": "no" if insert_index is None else "yes",
     }
+    if step == AutofixStep.PR_ITERATION and user_context is not None:
+        prompt_metadata["feedback"] = user_context
+    if iteration_index is not None:
+        prompt_metadata["iteration_index"] = str(iteration_index)
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = {"referrer": referrer.value}
+        metadata: dict[str, Any] = {
+            "group_id": group.id,
+            "referrer": referrer.value,
+            "pr_iteration_enabled": pr_iteration_enabled,  # value of the option since we're creating a new one
+        }
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
@@ -353,10 +423,12 @@ def trigger_autofix_agent(
             insert_index=insert_index,
         )
 
-    payload = {
+    payload: dict[str, Any] = {
         "run_id": run_id,
         "group_id": group.id,
     }
+    if iteration_index is not None:
+        payload["iteration_index"] = iteration_index
 
     webhook_action_type = get_step_webhook_action_type(step, is_completed=False)
     event_name = webhook_action_type.value
@@ -398,7 +470,14 @@ def trigger_autofix_agent(
             },
         )
 
-    metrics.incr("autofix.explorer.trigger", tags={"step": step.value, "referrer": referrer.value})
+    metrics.incr(
+        "autofix.explorer.trigger",
+        tags={
+            "step": step.value,
+            "referrer": referrer.value,
+            "iteration_index": iteration_index,
+        },
+    )
 
     return run_id
 
