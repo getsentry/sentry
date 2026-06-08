@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
@@ -157,13 +156,10 @@ function getAISpanAttributes({
       name: t('Cost'),
       value:
         costValue < 0 ? (
-          <Stack gap="xs">
-            <Flex align="center" gap="xs">
-              <IconWarning legacySize="1em" variant="warning" />
-              <LLMCosts cost={totalCosts.toString()} />
-            </Flex>
-            <TokenReportingWarningText />
-          </Stack>
+          <Flex align="center" gap="xs">
+            <TokenReportingWarningIcon />
+            <LLMCosts cost={totalCosts.toString()} />
+          </Flex>
         ) : (
           <LLMCosts cost={totalCosts.toString()} />
         ),
@@ -405,13 +401,10 @@ function HighlightedTokenAttributes({
 
   if (mismatch) {
     return (
-      <Stack gap="xs">
-        <Flex align="center" gap="xs">
-          <IconWarning legacySize="1em" variant="warning" />
-          {tokenDisplay}
-        </Flex>
-        <TokenReportingWarningText />
-      </Stack>
+      <Flex align="center" gap="xs">
+        <TokenReportingWarningIcon />
+        {tokenDisplay}
+      </Flex>
     );
   }
 
@@ -475,20 +468,22 @@ function HighlightedContextUtilization({
 const TOKEN_TROUBLESHOOTING_URL =
   'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
 
-function TokenReportingWarningText() {
+function TokenReportingWarningIcon() {
   return (
-    <InfoText
-      size="sm"
-      variant="warning"
+    <Tooltip
       title={tct(
-        'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
+        'This may indicate an error in token reporting. [link:Follow this guide] to troubleshoot.',
         {
           link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />,
         }
       )}
+      skipWrapper
+      isHoverable
     >
-      {t('This may indicate an error in token reporting.')}
-    </InfoText>
+      <Flex align="center">
+        <IconWarning legacySize="1em" variant="warning" />
+      </Flex>
+    </Tooltip>
   );
 }
 
