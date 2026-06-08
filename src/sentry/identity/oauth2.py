@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import base64
-import hashlib
 import logging
 import secrets
 from time import time
@@ -43,14 +41,7 @@ from sentry.utils.http import absolute_uri
 
 from .base import Provider
 
-__all__ = [
-    "OAuth2Provider",
-    "OAuth2CallbackView",
-    "OAuth2LoginView",
-    "OAuth2ApiStep",
-    "PkceOAuth2LoginView",
-    "PkceOAuth2CallbackView",
-]
+__all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView", "OAuth2ApiStep"]
 
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
@@ -565,68 +556,3 @@ class OAuth2CallbackView:
         pipeline.bind_state("data", data)
 
         return pipeline.next_step()
-
-
-def generate_pkce_code_verifier() -> str:
-    return secrets.token_urlsafe(96)
-
-
-def generate_pkce_code_challenge(verifier: str) -> str:
-    digest = hashlib.sha256(verifier.encode("ascii")).digest()
-    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
-
-
-class PkceOAuth2LoginView(OAuth2LoginView):
-    """OAuth2LoginView with PKCE (RFC 7636).
-
-    Adds code_challenge and code_challenge_method to the authorize redirect and
-    stores the code_verifier in pipeline state for the callback view.
-    """
-
-    _code_verifier: str | None = None
-
-    def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
-        existing_code_verifier = pipeline.fetch_state("pkce_code_verifier")
-        if existing_code_verifier:
-            self._code_verifier = existing_code_verifier
-        else:
-            self._code_verifier = generate_pkce_code_verifier()
-            pipeline.bind_state("pkce_code_verifier", self._code_verifier)
-
-        return super().dispatch(request, pipeline)
-
-    def get_authorize_params(self, state, redirect_uri):
-        params = super().get_authorize_params(state, redirect_uri)
-        if self._code_verifier:
-            params["code_challenge"] = generate_pkce_code_challenge(self._code_verifier)
-            params["code_challenge_method"] = "S256"
-        return params
-
-
-class PkceOAuth2CallbackView(OAuth2CallbackView):
-    """OAuth2CallbackView with PKCE (RFC 7636).
-
-    Adds code_verifier to the standard token exchange POST body.
-    """
-
-    def exchange_token(
-        self, request: HttpRequest, pipeline: IdentityPipeline, code: str
-    ) -> dict[str, str]:
-        try:
-            return super().exchange_token(request, pipeline, code)
-        except KeyError:
-            return {
-                "error": "pkce_missing",
-                "error_description": "PKCE code_verifier missing from pipeline state",
-            }
-
-    def get_access_token(self, pipeline: IdentityPipeline, code: str) -> Response:
-        data = self.get_token_params(code=code, redirect_uri=absolute_uri(_redirect_url(pipeline)))
-
-        code_verifier = pipeline.fetch_state("pkce_code_verifier")
-        if not code_verifier:
-            raise KeyError("PKCE code_verifier missing from pipeline state")
-        data["code_verifier"] = code_verifier
-
-        verify_ssl = pipeline.config.get("verify_ssl", True)
-        return safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
