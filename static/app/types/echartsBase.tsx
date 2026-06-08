@@ -4,7 +4,7 @@ import type EChartsReact from 'echarts-for-react';
 export type ReactEchartsRef = EChartsReact;
 export type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 export type EChartChartReadyHandler = (instance: ECharts) => void;
-export interface EChartsHighlightEventParam {
+interface EChartsHighlightEventParam {
   type: 'highlight';
   batch?: Array<{
     dataIndex: number;
@@ -18,15 +18,15 @@ export interface EChartsHighlightEventParam {
 }
 export type EChartHighlightHandler = EChartEventHandler<EChartsHighlightEventParam>;
 export type EChartDownplayHandler = EChartEventHandler<EChartsHighlightEventParam>;
-export interface EChartsLegendSelectChangeEventParam {
+interface EChartsLegendSelectChangeEventParam {
   name: string;
   selected: Record<string, boolean>;
   type: 'legendselectchanged';
 }
 export type EChartLegendSelectChangeHandler =
   EChartEventHandler<EChartsLegendSelectChangeEventParam>;
-export type EChartMouseEventData = string | number | Record<string, any>;
-export interface EChartMouseEventParam<T = EChartMouseEventData> {
+type EChartMouseEventData = string | number | Record<string, any>;
+interface EChartMouseEventParam<T = EChartMouseEventData> {
   // subtype of the component to which the clicked glyph belongs
   // i.e. 'scatter', 'line', etc
   componentSubType: string;
@@ -93,7 +93,7 @@ export type EChartDataZoomHandler = EChartEventHandler<{
 export type EChartRestoreHandler = EChartEventHandler<{type: 'restore'}>;
 export type EChartFinishedHandler = EChartEventHandler<Record<string, unknown>>;
 export type EChartRenderedHandler = EChartEventHandler<Record<string, unknown>>;
-export type EchartBrushAreas = Array<{
+type EchartBrushAreas = Array<{
   coordRange: number[] | number[][];
   panelId: string;
   range: number[] | number[][];

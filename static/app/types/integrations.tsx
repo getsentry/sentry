@@ -2,6 +2,24 @@ import type {AlertProps} from '@sentry/scraps/alert';
 
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import type {Field} from 'sentry/components/forms/types';
+import type {
+  BaseIntegrationProvider,
+  ConfigData,
+  IntegrationDialog,
+  IntegrationExternalIssue,
+  IntegrationFeature,
+  PluginNoProject,
+  PullRequest,
+  Repository,
+  RepositoryProjectPathConfig,
+  RepositoryProjectPathConfigWithIntegration,
+  SentryAppAvatarPhotoType,
+  SentryAppSchemaElement,
+  SentryAppSchemaStacktraceLink,
+  SentryAppStatus,
+  StacktraceErrorMessage,
+  WebhookEvent,
+} from 'sentry/types/integrationsBase';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import type {
   DISABLED as DISABLED_STATUS,
@@ -16,12 +34,39 @@ import type {ParsedOwnershipRule} from './ownership';
 import type {PlatformKey} from './platform';
 import type {BaseRelease} from './release';
 import type {User} from './user';
-
-import type {BaseIntegrationProvider, ConfigData, IntegrationDialog, IntegrationExternalIssue, IntegrationFeature, PluginNoProject, PullRequest, Repository, RepositoryProjectPathConfig, RepositoryProjectPathConfigWithIntegration, SentryAppAvatarPhotoType, SentryAppSchemaElement, SentryAppSchemaStacktraceLink, SentryAppStatus, StacktraceErrorMessage, WebhookEvent} from 'sentry/types/integrationsBase';
-export type {IntegrationExternalIssue, IntegrationFeature, PluginNoProject, PullRequest, Repository, RepositoryProjectPathConfig, SentryAppAvatarPhotoType, SentryAppSchemaElement, SentryAppSchemaStacktraceLink, SentryAppStatus, WebhookEvent};
+export type {
+  IntegrationExternalIssue,
+  IntegrationFeature,
+  PluginNoProject,
+  PullRequest,
+  Repository,
+  RepositoryProjectPathConfig,
+  SentryAppAvatarPhotoType,
+  SentryAppSchemaElement,
+  SentryAppSchemaStacktraceLink,
+  SentryAppStatus,
+  WebhookEvent,
+};
 export {RepositoryStatus} from 'sentry/types/integrationsBase';
-export type {CodeownersFile, CommitAuthor, CommitFile, ExternalActorMapping, ExternalActorMappingOrSuggestion, ExternalActorSuggestion, ExternalIssue, ExternalTeam, ExternalUser, FilesByRepository, IntegrationRepository, IntegrationType, PlatformExternalIssue, Plugin, SentryAppInstallation, SentryAppSchemaIssueLink, SentryAppWebhookRequest, ServerlessFunction} from 'sentry/types/integrationsBase';
-
+export type {
+  CodeownersFile,
+  CommitFile,
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
+  ExternalActorSuggestion,
+  ExternalIssue,
+  ExternalTeam,
+  ExternalUser,
+  FilesByRepository,
+  IntegrationRepository,
+  IntegrationType,
+  PlatformExternalIssue,
+  Plugin,
+  SentryAppInstallation,
+  SentryAppSchemaIssueLink,
+  SentryAppWebhookRequest,
+  ServerlessFunction,
+} from 'sentry/types/integrationsBase';
 
 export type {
   PermissionValue,
@@ -317,4 +362,3 @@ export type CodeOwner = {
   ownershipSyntax?: string;
   schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
-

@@ -3,11 +3,42 @@ import type {ReplayOptionFrameEvent as TOptionFrameEvent} from '@sentry/react';
 import invariant from 'invariant';
 
 import type {Event} from 'sentry/types/event';
-
-import type {BreadcrumbFrame, BreadcrumbFrameEvent, ConsoleFrame, ErrorFrame, FeedbackFrame, HydrationErrorFrame, MultiClickFrame, PaintFrame, RecordingFrame, ReplayFrame, SlowClickFrame, SpanFrame, SpanFrameEvent, VideoFrameEvent, WebVitalFrame} from 'sentry/utils/replays/typesBase';
-export type {BreadcrumbFrame, BreadcrumbFrameEvent, ConsoleFrame, ErrorFrame, FeedbackFrame, HydrationErrorFrame, MultiClickFrame, RecordingFrame, ReplayFrame, SlowClickFrame, SpanFrame, SpanFrameEvent, WebVitalFrame};
-export type {ClickFrame, ClipWindow, DeviceBatteryFrame, DeviceConnectivityFrame, DeviceOrientationFrame, Dimensions, MemoryFrame, MutationFrame, NavFrame, NavigationFrame, OptionFrame, OurLogsPseudoFrame, RawBreadcrumbFrame, RawHydrationErrorFrame, RawReplayError, RawSpanFrame, RequestFrame, ResourceFrame, ScrollFrame, SwipeFrame, TapFrame, VideoEvent} from 'sentry/utils/replays/typesBase';
-
+import type {
+  BreadcrumbFrame,
+  BreadcrumbFrameEvent,
+  ConsoleFrame,
+  ErrorFrame,
+  FeedbackFrame,
+  HydrationErrorFrame,
+  MultiClickFrame,
+  PaintFrame,
+  RecordingFrame,
+  ReplayFrame,
+  SlowClickFrame,
+  SpanFrame,
+  SpanFrameEvent,
+  VideoFrameEvent,
+  WebVitalFrame,
+} from 'sentry/utils/replays/typesBase';
+export type {
+  BreadcrumbFrame,
+  ConsoleFrame,
+  ErrorFrame,
+  HydrationErrorFrame,
+  RecordingFrame,
+  ReplayFrame,
+  SlowClickFrame,
+  SpanFrame,
+  WebVitalFrame,
+};
+export type {
+  ClipWindow,
+  MemoryFrame,
+  OptionFrame,
+  RawBreadcrumbFrame,
+  RawReplayError,
+  VideoEvent,
+} from 'sentry/utils/replays/typesBase';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';

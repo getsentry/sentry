@@ -103,12 +103,12 @@ export type SentryAppSchemaStacktraceLink = {
   url: string;
   params?: string[];
 };
-export type SentryAppSchemaAlertRuleAction = {
+type SentryAppSchemaAlertRuleAction = {
   settings: SentryAppSchemaAlertRuleActionSettings;
   title: string;
   type: 'alert-rule-action';
 };
-export type SentryAppSchemaAlertRuleActionSettings = {
+type SentryAppSchemaAlertRuleActionSettings = {
   description: string;
   // a list of FormFields
   required_fields: any[];
@@ -236,8 +236,8 @@ export type CodeownersFile = {
   html_url: string;
   raw: string;
 };
-export type RepoName = string;
-export type FileName = string;
+type RepoName = string;
+type FileName = string;
 export type FilesByRepository = Record<
   RepoName,
   Record<
@@ -248,7 +248,7 @@ export type FilesByRepository = Record<
     }
   >
 >;
-export interface BaseRepositoryProjectPathConfig {
+interface BaseRepositoryProjectPathConfig {
   id: string;
   projectId: string;
   projectSlug: string;

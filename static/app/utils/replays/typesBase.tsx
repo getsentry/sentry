@@ -1,21 +1,27 @@
 import {EventType} from '@sentry-internal/rrweb';
 import type {eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
-import type {ReplayBreadcrumbFrameEvent as TBreadcrumbFrameEvent, ReplayOptionFrameEvent as TOptionFrameEvent, ReplayBreadcrumbFrame as TRawBreadcrumbFrame, ReplaySpanFrame as TRawSpanFrame, ReplaySpanFrameEvent as TSpanFrameEvent} from '@sentry/react';
+import type {
+  ReplayBreadcrumbFrameEvent as TBreadcrumbFrameEvent,
+  ReplayOptionFrameEvent as TOptionFrameEvent,
+  ReplayBreadcrumbFrame as TRawBreadcrumbFrame,
+  ReplaySpanFrame as TRawSpanFrame,
+  ReplaySpanFrameEvent as TSpanFrameEvent,
+} from '@sentry/react';
 
 export type Dimensions = {
   height: number;
   width: number;
 };
-export type ReplayWebVitalFrameOps =
+type ReplayWebVitalFrameOps =
   | 'largest-contentful-paint'
   | 'cumulative-layout-shift'
   | 'first-input-delay'
   | 'interaction-to-next-paint';
-export type ReplayWebVitalFrameSdk = Extract<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>;
-export type DeprecatedReplayWebVitalFrameData = {
+type ReplayWebVitalFrameSdk = Extract<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>;
+type DeprecatedReplayWebVitalFrameData = {
   nodeId?: number;
 };
-export interface CompatibleReplayWebVitalFrame extends ReplayWebVitalFrameSdk {
+interface CompatibleReplayWebVitalFrame extends ReplayWebVitalFrameSdk {
   data: ReplayWebVitalFrameSdk['data'] & DeprecatedReplayWebVitalFrameData;
 }
 export type RawHydrationErrorFrame = {
@@ -27,8 +33,8 @@ export type RawHydrationErrorFrame = {
   };
   message?: string;
 };
-export type StubBreadcrumbTypes = RawHydrationErrorFrame;
-export type MobileBreadcrumbTypes =
+type StubBreadcrumbTypes = RawHydrationErrorFrame;
+type MobileBreadcrumbTypes =
   | {
       category: 'ui.tap';
       data: any;
@@ -71,7 +77,7 @@ export type MobileBreadcrumbTypes =
       type: string;
       message?: string;
     };
-export type ExtraBreadcrumbTypes =
+type ExtraBreadcrumbTypes =
   | StubBreadcrumbTypes
   | MobileBreadcrumbTypes
   | {
@@ -92,8 +98,8 @@ export type RawSpanFrame =
   | Exclude<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>
   | CompatibleReplayWebVitalFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
-export type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
-export type HydratedTimestamp = {
+type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
+type HydratedTimestamp = {
   /**
    * The difference in timestamp and replay.started_at, in millieseconds
    */
@@ -107,11 +113,11 @@ export type HydratedTimestamp = {
    */
   timestampMs: number;
 };
-export type HydratedBreadcrumb<Category extends string> = Overwrite<
+type HydratedBreadcrumb<Category extends string> = Overwrite<
   Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
   HydratedTimestamp
 >;
-export type HydratedStartEndDate = {
+type HydratedStartEndDate = {
   /**
    * The end Date of the span
    */
@@ -137,7 +143,7 @@ export type HydratedStartEndDate = {
    */
   timestampMs: number;
 };
-export type HydratedSpan<Op extends string> = Overwrite<
+type HydratedSpan<Op extends string> = Overwrite<
   Extract<TRawSpanFrame, {op: Op}>,
   HydratedStartEndDate // TODO: do we need `{id:string}` added too?
 >;
@@ -240,7 +246,7 @@ export type ErrorFrame = Overwrite<
   }
 >;
 export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | OurLogsPseudoFrame;
-export interface VideoFrame {
+interface VideoFrame {
   container: string;
   duration: number;
   encoding: string;
