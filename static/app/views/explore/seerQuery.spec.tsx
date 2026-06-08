@@ -1,7 +1,6 @@
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {
-  getSeerAggregateFields,
   getSeerExploreQuery,
   getSeerSort,
   getSeerWritableAggregateFields,
@@ -134,22 +133,5 @@ describe('getSeerWritableAggregateFields', () => {
         visualizes: [],
       })
     ).toEqual([{yAxes: ['count(message)']}]);
-  });
-});
-
-describe('getSeerAggregateFields', () => {
-  it('converts writable visualizes into query param aggregate fields', () => {
-    const fields = getSeerAggregateFields({
-      currentAggregateFields: [],
-      groupBys: ['service.name'],
-      visualizes: [{chartType: ChartType.BAR, yAxes: ['count(message)']}],
-    });
-
-    expect(fields[0]).toEqual({groupBy: 'service.name'});
-    expect(fields[1]).toBeInstanceOf(VisualizeFunction);
-    expect((fields[1] as VisualizeFunction).serialize()).toEqual({
-      chartType: ChartType.BAR,
-      yAxes: ['count(message)'],
-    });
   });
 });

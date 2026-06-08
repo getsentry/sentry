@@ -14,7 +14,6 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   type BaseVisualize,
   isVisualize,
-  Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 
 type SeerVisualization = AskSeerSearchQuery['visualizations'][number];
@@ -151,36 +150,6 @@ export function getSeerWritableAggregateFields({
 
   for (const groupBy of groupByIter) {
     aggregateFields.push({groupBy});
-  }
-
-  return aggregateFields;
-}
-
-export function getSeerAggregateFields({
-  currentAggregateFields,
-  fallbackVisualizes,
-  groupBys,
-  visualizes,
-}: {
-  currentAggregateFields: readonly AggregateField[];
-  groupBys: readonly string[];
-  visualizes: readonly BaseVisualize[];
-  fallbackVisualizes?: readonly BaseVisualize[];
-}): AggregateField[] {
-  const aggregateFields: AggregateField[] = [];
-  const writableFields = getSeerWritableAggregateFields({
-    currentAggregateFields,
-    fallbackVisualizes,
-    groupBys,
-    visualizes,
-  });
-
-  for (const field of writableFields) {
-    if ('groupBy' in field) {
-      aggregateFields.push(field);
-    } else {
-      aggregateFields.push(...Visualize.fromJSON(field));
-    }
   }
 
   return aggregateFields;
