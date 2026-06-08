@@ -170,6 +170,36 @@ class ProjectEnvironmentsTest(APITestCase):
 
         assert EnvironmentProject.objects.get(project=project, environment=env1).is_hidden is None
 
+    def test_bulk_put_org_env_not_in_project_returns_400(self) -> None:
+        project = self.create_project()
+
+        env1 = Environment.objects.create(
+            organization_id=project.organization_id, name="production"
+        )
+        env1.add_project(project)
+
+        Environment.objects.create(organization_id=project.organization_id, name="org-only-env")
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-environments",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.put(
+            url,
+            {"environment_names": ["production", "org-only-env"], "isHidden": True},
+            format="json",
+        )
+        assert response.status_code == 400
+        assert "org-only-env" in response.data["detail"]
+
+        assert EnvironmentProject.objects.get(project=project, environment=env1).is_hidden is None
+
     def test_bulk_put_validation_errors(self) -> None:
         project = self.create_project()
 
@@ -190,4 +220,11 @@ class ProjectEnvironmentsTest(APITestCase):
         assert response.status_code == 400
 
         response = self.client.put(url, {"environment_names": ["production"]}, format="json")
+        assert response.status_code == 400
+
+        response = self.client.put(
+            url,
+            {"environment_names": [f"env-{i}" for i in range(1001)], "isHidden": True},
+            format="json",
+        )
         assert response.status_code == 400

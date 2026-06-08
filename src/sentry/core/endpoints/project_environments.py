@@ -23,7 +23,7 @@ from sentry.apidocs.examples.environment_examples import EnvironmentExamples
 from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.environment import EnvironmentProject
 
 
 @extend_schema(tags=["Environments"])
@@ -126,12 +126,13 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         is_hidden = data["isHidden"]
 
         existing_names = set(
-            Environment.objects.filter(
-                organization_id=project.organization_id,
-                name__in=environment_names,
+            EnvironmentProject.objects.filter(
+                project=project,
+                environment__organization_id=project.organization_id,
+                environment__name__in=environment_names,
             )
-            .exclude(name="")
-            .values_list("name", flat=True)
+            .exclude(environment__name="")
+            .values_list("environment__name", flat=True)
         )
         invalid_names = set(environment_names) - existing_names
         if invalid_names:

@@ -34,7 +34,8 @@ class BulkEnvironmentSerializer(serializers.Serializer):
         child=serializers.CharField(),
         required=True,
         allow_empty=False,
-        help_text="List of environment names to update.",
+        max_length=1000,
+        help_text="List of environment names to update. Maximum 1000.",
     )
     isHidden = serializers.BooleanField(
         help_text="Specify `true` to hide or `false` to show the specified environments.",
