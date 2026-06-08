@@ -11,7 +11,7 @@ import type {UseInfiniteQueryResult} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -28,14 +28,16 @@ const Table = styled((props: HTMLAttributes<HTMLDivElement> & {columns: string})
   return (
     <ColumnContext value={columns}>
       <ScrollableRefContext value={scrollBodyRef}>
-        <Panel {...rest}>{children}</Panel>
+        <Stack flex="1" overflow="hidden" border="muted" radius="md" {...rest}>
+          {children}
+        </Stack>
       </ScrollableRefContext>
     </ColumnContext>
   );
 })`
   margin: 0;
-  width: 100%;
   overflow: hidden;
+  flex: 1;
 `;
 
 const Header = styled(({children, ...rest}: HTMLAttributes<HTMLDivElement>) => (
@@ -69,8 +71,11 @@ const Scrollable = styled(({children, ...rest}: HTMLAttributes<HTMLDivElement>) 
     {children}
   </div>
 ))`
+  contain: size;
   position: relative;
   overflow-y: auto;
+  flex: 1;
+  height: 0;
 `;
 
 const BodyInner = styled('div')`

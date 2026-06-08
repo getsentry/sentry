@@ -75,9 +75,9 @@ export function SeerProjectTableRow({
   return (
     <SimpleTable.Row key={project.id}>
       <SimpleTable.RowCell>
-        <CheckboxClickTarget htmlFor={`replay-table-select-${project.id}`}>
+        <CheckboxClickTarget htmlFor={`autofix-settings-${project.id}`}>
           <Checkbox
-            id={`replay-table-select-${project.id}`}
+            id={`autofix-settings-${project.id}`}
             disabled={isSelected(project.id) === 'all-selected'}
             checked={isSelected(project.id) !== false}
             onChange={() => toggleSelected(project.id)}

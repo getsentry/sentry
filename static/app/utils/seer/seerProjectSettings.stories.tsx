@@ -41,6 +41,7 @@ import {
   seerProjectSettingsSchema,
 } from 'sentry/utils/seer/seerProjectSettings';
 import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
+import type {SeerAgent, SeerAutofixStoppingPoint} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -434,7 +435,10 @@ export default Storybook.story('SeerProjectSettings', story => {
       const projectIds = projectSlugs
         .map(slug => projects.find(p => p.slug === slug)?.id)
         .filter(defined);
-      const [lastValue, setLastValue] = useState('');
+      const [lastAgent, setLastAgent] = useState<SeerAgent | undefined>(undefined);
+      const [lastStoppingPoint, setLastStoppingPoint] = useState<
+        SeerAutofixStoppingPoint | undefined
+      >(undefined);
 
       const organization = useOrganization();
       const queryClient = useQueryClient();
@@ -454,7 +458,7 @@ export default Storybook.story('SeerProjectSettings', story => {
             <PreferredAgentDropdownMenu
               isDisabled={false}
               onChange={value => {
-                setLastValue(`agent: ${value}`);
+                setLastAgent(value);
                 mutate({
                   query: '',
                   projectIds,
@@ -465,7 +469,7 @@ export default Storybook.story('SeerProjectSettings', story => {
             <StoppingPointDropdownMenu
               isDisabled={false}
               onChange={value => {
-                setLastValue(`stoppingPoint: ${value}`);
+                setLastStoppingPoint(value);
                 mutate({
                   query: '',
                   projectIds,
@@ -474,7 +478,9 @@ export default Storybook.story('SeerProjectSettings', story => {
               }}
             />
           </Flex>
-          <pre>{lastValue}</pre>
+          <pre>
+            agent: {lastAgent} | stoppingPoint: {lastStoppingPoint}
+          </pre>
         </Stack>
       );
     }
