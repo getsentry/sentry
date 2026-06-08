@@ -30,7 +30,7 @@ class EnvironmentSerializer(serializers.Serializer):
 
 
 class BulkEnvironmentSerializer(serializers.Serializer):
-    environment_names = serializers.ListField(
+    environmentNames = serializers.ListField(
         child=serializers.CharField(),
         required=True,
         allow_empty=False,

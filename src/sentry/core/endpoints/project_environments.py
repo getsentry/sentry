@@ -122,7 +122,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-        environment_names = data["environment_names"]
+        environment_names = data["environmentNames"]
         is_hidden = data["isHidden"]
 
         base_queryset = EnvironmentProject.objects.filter(

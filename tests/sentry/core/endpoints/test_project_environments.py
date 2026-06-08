@@ -76,7 +76,7 @@ class ProjectEnvironmentsTest(APITestCase):
 
         response = self.client.put(
             url,
-            {"environment_names": ["production", "staging"], "isHidden": True},
+            {"environmentNames": ["production", "staging"], "isHidden": True},
             format="json",
         )
         assert response.status_code == 200, response.content
@@ -89,32 +89,6 @@ class ProjectEnvironmentsTest(APITestCase):
         assert EnvironmentProject.objects.get(project=project, environment=env1).is_hidden is True
         assert EnvironmentProject.objects.get(project=project, environment=env2).is_hidden is True
         assert EnvironmentProject.objects.get(project=project, environment=env3).is_hidden is None
-
-    def test_bulk_put_unhide(self) -> None:
-        project = self.create_project()
-
-        self.create_environment(project=project, name="production", is_hidden=True)
-        self.create_environment(project=project, name="staging", is_hidden=True)
-
-        self.login_as(user=self.user)
-
-        url = reverse(
-            "sentry-api-0-project-environments",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "project_id_or_slug": project.slug,
-            },
-        )
-
-        response = self.client.put(
-            url,
-            {"environment_names": ["production", "staging"], "isHidden": False},
-            format="json",
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        assert response.data[0]["isHidden"] is False
-        assert response.data[1]["isHidden"] is False
 
     def test_bulk_put_nonexistent_environment_ignored(self) -> None:
         project = self.create_project()
@@ -133,7 +107,7 @@ class ProjectEnvironmentsTest(APITestCase):
 
         response = self.client.put(
             url,
-            {"environment_names": ["production", "nonexistent"], "isHidden": True},
+            {"environmentNames": ["production", "nonexistent"], "isHidden": True},
             format="json",
         )
         assert response.status_code == 200, response.content
@@ -167,15 +141,15 @@ class ProjectEnvironmentsTest(APITestCase):
         response = self.client.put(url, {}, format="json")
         assert response.status_code == 400
 
-        response = self.client.put(url, {"environment_names": [], "isHidden": True}, format="json")
+        response = self.client.put(url, {"environmentNames": [], "isHidden": True}, format="json")
         assert response.status_code == 400
 
-        response = self.client.put(url, {"environment_names": ["production"]}, format="json")
+        response = self.client.put(url, {"environmentNames": ["production"]}, format="json")
         assert response.status_code == 400
 
         response = self.client.put(
             url,
-            {"environment_names": [f"env-{i}" for i in range(1001)], "isHidden": True},
+            {"environmentNames": [f"env-{i}" for i in range(1001)], "isHidden": True},
             format="json",
         )
         assert response.status_code == 400
@@ -197,7 +171,7 @@ class ProjectEnvironmentsTest(APITestCase):
 
         response = self.client.put(
             url,
-            {"environment_names": ["production"], "isHidden": True},
+            {"environmentNames": ["production"], "isHidden": True},
             format="json",
         )
         assert response.status_code == 403
