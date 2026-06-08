@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from pydantic import Field
 
@@ -24,6 +24,6 @@ class RpcSentryAppRequest(RpcModel):
     response_body: str | None = None
 
 
-class SentryAppRequestFilterArgs(TypedDict, total=False):
-    event: str | list[str]
-    errors_only: bool
+class SentryAppRequestFilterArgs(TypedDict):
+    event: NotRequired[str | list[str]]
+    errors_only: NotRequired[bool]

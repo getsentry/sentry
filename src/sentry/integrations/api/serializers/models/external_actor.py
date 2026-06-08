@@ -1,5 +1,5 @@
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -10,10 +10,10 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 
-class ExternalActorResponseOptional(TypedDict, total=False):
-    externalId: str
-    userId: str
-    teamId: str
+class ExternalActorResponseOptional(TypedDict):
+    externalId: NotRequired[str]
+    userId: NotRequired[str]
+    teamId: NotRequired[str]
 
 
 class ExternalActorResponse(ExternalActorResponseOptional):

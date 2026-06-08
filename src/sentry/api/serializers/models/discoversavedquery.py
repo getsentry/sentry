@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -12,23 +12,23 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
 
 
-class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
-    environment: list[str]
-    query: str
-    fields: list[str]
-    widths: list[str]
-    conditions: list[str]
-    aggregations: list[str]
-    range: str
-    start: str
-    end: str
-    orderby: str
-    limit: str
-    yAxis: list[str]
-    display: str
-    topEvents: int
-    interval: str
-    exploreQuery: dict
+class DiscoverSavedQueryResponseOptional(TypedDict):
+    environment: NotRequired[list[str]]
+    query: NotRequired[str]
+    fields: NotRequired[list[str]]
+    widths: NotRequired[list[str]]
+    conditions: NotRequired[list[str]]
+    aggregations: NotRequired[list[str]]
+    range: NotRequired[str]
+    start: NotRequired[str]
+    end: NotRequired[str]
+    orderby: NotRequired[str]
+    limit: NotRequired[str]
+    yAxis: NotRequired[list[str]]
+    display: NotRequired[str]
+    topEvents: NotRequired[int]
+    interval: NotRequired[str]
+    exploreQuery: NotRequired[dict]
 
 
 class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):

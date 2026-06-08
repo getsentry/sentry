@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.db.models import OuterRef, Subquery
 from drf_spectacular.utils import extend_schema_serializer
@@ -24,13 +24,13 @@ from sentry.workflow_engine.models import (
 )
 
 
-class DetectorSerializerResponseOptional(TypedDict, total=False):
-    owner: ActorSerializerResponse | None
-    createdBy: str | None
-    alertRuleId: int | None
-    ruleId: int | None
-    latestGroup: dict[str, Any] | None
-    description: str | None
+class DetectorSerializerResponseOptional(TypedDict):
+    owner: NotRequired[ActorSerializerResponse | None]
+    createdBy: NotRequired[str | None]
+    alertRuleId: NotRequired[int | None]
+    ruleId: NotRequired[int | None]
+    latestGroup: NotRequired[dict[str, Any] | None]
+    description: NotRequired[str | None]
 
 
 @extend_schema_serializer(exclude_fields=["alertRuleId", "ruleId"])

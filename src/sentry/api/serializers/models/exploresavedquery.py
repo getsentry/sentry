@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -14,8 +14,8 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 
-class MetricResponseTypeOptional(TypedDict, total=False):
-    unit: str | None
+class MetricResponseTypeOptional(TypedDict):
+    unit: NotRequired[str | None]
 
 
 class MetricResponseType(MetricResponseTypeOptional):
@@ -23,8 +23,8 @@ class MetricResponseType(MetricResponseTypeOptional):
     type: str
 
 
-class CrossEventResponseTypeOptional(TypedDict, total=False):
-    metric: MetricResponseType
+class CrossEventResponseTypeOptional(TypedDict):
+    metric: NotRequired[MetricResponseType]
 
 
 class CrossEventResponseType(CrossEventResponseTypeOptional):
@@ -32,15 +32,15 @@ class CrossEventResponseType(CrossEventResponseTypeOptional):
     type: str
 
 
-class ExploreSavedQueryResponseOptional(TypedDict, total=False):
-    environment: list[str]
-    query: str
-    range: str
-    start: str
-    end: str
-    interval: str
-    mode: str
-    crossEvents: list[CrossEventResponseType]
+class ExploreSavedQueryResponseOptional(TypedDict):
+    environment: NotRequired[list[str]]
+    query: NotRequired[str]
+    range: NotRequired[str]
+    start: NotRequired[str]
+    end: NotRequired[str]
+    interval: NotRequired[str]
+    mode: NotRequired[str]
+    crossEvents: NotRequired[list[CrossEventResponseType]]
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):

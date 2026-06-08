@@ -7,7 +7,7 @@ import datetime
 import hmac
 from collections.abc import MutableMapping
 from hashlib import sha256
-from typing import Any, Protocol, TypedDict
+from typing import Any, NotRequired, Protocol, TypedDict
 from urllib.parse import urljoin
 
 from pydantic.fields import Field
@@ -190,17 +190,17 @@ class RpcSentryAppEventData(RpcModel):
         )
 
 
-class SentryAppInstallationFilterArgs(TypedDict, total=False):
-    installation_ids: list[int]
-    app_ids: list[int]
-    organization_id: int
-    uuids: list[str]
-    status: int
-    api_token_id: int
-    api_installation_token_id: int
+class SentryAppInstallationFilterArgs(TypedDict):
+    installation_ids: NotRequired[list[int]]
+    app_ids: NotRequired[list[int]]
+    organization_id: NotRequired[int]
+    uuids: NotRequired[list[str]]
+    status: NotRequired[int]
+    api_token_id: NotRequired[int]
+    api_installation_token_id: NotRequired[int]
 
 
-class SentryAppUpdateArgs(TypedDict, total=False):
-    events: list[str]
-    name: str
+class SentryAppUpdateArgs(TypedDict):
+    events: NotRequired[list[str]]
+    name: NotRequired[str]
     # TODO add whatever else as needed

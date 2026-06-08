@@ -694,13 +694,13 @@ def bulk_read_preferences_from_sentry_db(
     return result
 
 
-class SeerProjectSettingsUpdate(TypedDict, total=False):
-    agent: AutomationCodingAgent
-    integration_id: int
-    stopping_point: str
-    automation_tuning: str
-    scanner_automation: bool
-    auto_create_pr: bool
+class SeerProjectSettingsUpdate(TypedDict):
+    agent: NotRequired[AutomationCodingAgent]
+    integration_id: NotRequired[int]
+    stopping_point: NotRequired[str]
+    automation_tuning: NotRequired[str]
+    scanner_automation: NotRequired[bool]
+    auto_create_pr: NotRequired[bool]
 
 
 def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettingsUpdate) -> None:

@@ -1,4 +1,4 @@
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry.options
 from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, ai_model_metadata_config
@@ -37,13 +37,13 @@ class SpanOpDefaults(TypedDict):
     rules: list[SpanOpDefaultRule]
 
 
-class GlobalConfig(TypedDict, total=False):
-    measurements: MeasurementsConfig
-    aiModelMetadata: AIModelMetadataConfig | None
-    metricExtraction: MetricExtractionGroups
-    filters: GenericFiltersConfig | None
-    spanOpDefaults: SpanOpDefaults
-    options: dict[str, Any]
+class GlobalConfig(TypedDict):
+    measurements: NotRequired[MeasurementsConfig]
+    aiModelMetadata: NotRequired[AIModelMetadataConfig | None]
+    metricExtraction: NotRequired[MetricExtractionGroups]
+    filters: NotRequired[GenericFiltersConfig | None]
+    spanOpDefaults: NotRequired[SpanOpDefaults]
+    options: NotRequired[dict[str, Any]]
 
 
 def get_global_generic_filters() -> GenericFiltersConfig:

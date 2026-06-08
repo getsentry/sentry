@@ -26,10 +26,10 @@ class SCIMMeta(TypedDict):
     resourceType: str
 
 
-class OrganizationMemberSCIMSerializerOptional(TypedDict, total=False):
+class OrganizationMemberSCIMSerializerOptional(TypedDict):
     """Sentry doesn't use this field but is expected by SCIM"""
 
-    active: bool
+    active: NotRequired[bool]
 
 
 class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerOptional):

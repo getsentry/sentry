@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
@@ -10,19 +10,19 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
-class SessionSerializerResponse(TypedDict, total=False):
+class SessionSerializerResponse(TypedDict):
     # Flags to control the authentication flow on frontend.
     # Keep the keys sorted in order of importance!!
     # Maintaining the hierarchy is good context for future engineers.
-    todoEmailVerification: bool | None
-    todo2faVerification: bool | None
-    todoPasswordReset: bool | None
-    todo2faSetup: bool | None
+    todoEmailVerification: NotRequired[bool | None]
+    todo2faVerification: NotRequired[bool | None]
+    todoPasswordReset: NotRequired[bool | None]
+    todo2faSetup: NotRequired[bool | None]
 
-    userId: str | None
-    sessionCsrfToken: str | None
-    sessionExpiryDate: datetime | None
-    sessionOrgs: list[str] | None
+    userId: NotRequired[str | None]
+    sessionCsrfToken: NotRequired[str | None]
+    sessionExpiryDate: NotRequired[datetime | None]
+    sessionOrgs: NotRequired[list[str] | None]
 
 
 class SessionSerializer(Serializer[SessionSerializerResponse]):

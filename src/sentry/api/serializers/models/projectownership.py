@@ -25,8 +25,8 @@ OwnershipSchemaResponse = TypedDict(
 
 
 # JSON object representing optional part of API response
-class ProjectOwnershipResponseOptional(TypedDict, total=False):
-    schema: OwnershipSchemaResponse | None
+class ProjectOwnershipResponseOptional(TypedDict):
+    schema: NotRequired[OwnershipSchemaResponse | None]
 
 
 # JSON object representing this serializer in API response

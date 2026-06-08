@@ -1,6 +1,6 @@
 import re
 from collections.abc import Mapping, MutableMapping
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.db import router, transaction
 from rest_framework import serializers
@@ -14,24 +14,24 @@ from sentry.models.project import Project
 from sentry_plugins.amazon_sqs.plugin import get_regions
 
 
-class SQSConfig(TypedDict, total=False):
-    queue_url: str
-    region: str
-    access_key: str
-    secret_key: str
-    message_group_id: str | None
-    s3_bucket: str | None
+class SQSConfig(TypedDict):
+    queue_url: NotRequired[str]
+    region: NotRequired[str]
+    access_key: NotRequired[str]
+    secret_key: NotRequired[str]
+    message_group_id: NotRequired[str | None]
+    s3_bucket: NotRequired[str | None]
 
 
-class SegmentConfig(TypedDict, total=False):
-    write_key: str
+class SegmentConfig(TypedDict):
+    write_key: NotRequired[str]
 
 
-class SplunkConfig(TypedDict, total=False):
-    instance_url: str
-    index: str
-    source: str
-    token: str
+class SplunkConfig(TypedDict):
+    instance_url: NotRequired[str]
+    index: NotRequired[str]
+    source: NotRequired[str]
+    token: NotRequired[str]
 
 
 SQS_REQUIRED_KEYS = ["queue_url", "region", "access_key", "secret_key"]
