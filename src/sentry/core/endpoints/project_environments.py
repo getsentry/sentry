@@ -125,37 +125,14 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         environment_names = data["environment_names"]
         is_hidden = data["isHidden"]
 
-        existing_names = set(
-            EnvironmentProject.objects.filter(
-                project=project,
-                environment__organization_id=project.organization_id,
-                environment__name__in=environment_names,
-            )
-            .exclude(environment__name="")
-            .values_list("environment__name", flat=True)
-        )
-        invalid_names = set(environment_names) - existing_names
-        if invalid_names:
-            return Response(
-                {"detail": f"Invalid environments: {sorted(invalid_names)}"},
-                status=400,
-            )
-
-        EnvironmentProject.objects.filter(
+        base_queryset = EnvironmentProject.objects.filter(
             project=project,
             environment__organization_id=project.organization_id,
             environment__name__in=environment_names,
-        ).exclude(environment__name="").update(is_hidden=is_hidden)
+        ).exclude(environment__name="")
 
-        queryset = (
-            EnvironmentProject.objects.filter(
-                project=project,
-                environment__organization_id=project.organization_id,
-                environment__name__in=environment_names,
-            )
-            .exclude(environment__name="")
-            .select_related("environment")
-            .order_by("environment__name")
-        )
+        base_queryset.update(is_hidden=is_hidden)
+
+        queryset = base_queryset.select_related("environment").order_by("environment__name")
 
         return Response(serialize(list(queryset), request.user))

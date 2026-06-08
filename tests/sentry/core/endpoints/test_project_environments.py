@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.environment import EnvironmentProject
 from sentry.testutils.cases import APITestCase
 
 
@@ -8,13 +8,8 @@ class ProjectEnvironmentsTest(APITestCase):
     def test_simple(self) -> None:
         project = self.create_project()
 
-        env1 = Environment.objects.create(
-            organization_id=project.organization_id, name="production"
-        )
-        env1.add_project(project)
-
-        env2 = Environment.objects.create(organization_id=project.organization_id, name="staging")
-        env2.add_project(project)
+        self.create_environment(project=project, name="production")
+        self.create_environment(project=project, name="staging")
 
         self.login_as(user=self.user)
 
@@ -34,15 +29,8 @@ class ProjectEnvironmentsTest(APITestCase):
     def test_visibility_filtering(self) -> None:
         project = self.create_project()
 
-        env1 = Environment.objects.create(
-            organization_id=project.organization_id, name="production"
-        )
-
-        EnvironmentProject.objects.create(project=project, environment=env1, is_hidden=False)
-
-        env2 = Environment.objects.create(organization_id=project.organization_id, name="staging")
-
-        EnvironmentProject.objects.create(project=project, environment=env2, is_hidden=True)
+        self.create_environment(project=project, name="production", is_hidden=False)
+        self.create_environment(project=project, name="staging", is_hidden=True)
 
         self.login_as(user=self.user)
 
@@ -72,18 +60,9 @@ class ProjectEnvironmentsTest(APITestCase):
     def test_bulk_put(self) -> None:
         project = self.create_project()
 
-        env1 = Environment.objects.create(
-            organization_id=project.organization_id, name="production"
-        )
-        env1.add_project(project)
-
-        env2 = Environment.objects.create(organization_id=project.organization_id, name="staging")
-        env2.add_project(project)
-
-        env3 = Environment.objects.create(
-            organization_id=project.organization_id, name="development"
-        )
-        env3.add_project(project)
+        env1 = self.create_environment(project=project, name="production")
+        env2 = self.create_environment(project=project, name="staging")
+        env3 = self.create_environment(project=project, name="development")
 
         self.login_as(user=self.user)
 
@@ -114,13 +93,8 @@ class ProjectEnvironmentsTest(APITestCase):
     def test_bulk_put_unhide(self) -> None:
         project = self.create_project()
 
-        env1 = Environment.objects.create(
-            organization_id=project.organization_id, name="production"
-        )
-        EnvironmentProject.objects.create(project=project, environment=env1, is_hidden=True)
-
-        env2 = Environment.objects.create(organization_id=project.organization_id, name="staging")
-        EnvironmentProject.objects.create(project=project, environment=env2, is_hidden=True)
+        self.create_environment(project=project, name="production", is_hidden=True)
+        self.create_environment(project=project, name="staging", is_hidden=True)
 
         self.login_as(user=self.user)
 
@@ -142,13 +116,10 @@ class ProjectEnvironmentsTest(APITestCase):
         assert response.data[0]["isHidden"] is False
         assert response.data[1]["isHidden"] is False
 
-    def test_bulk_put_nonexistent_environment_returns_400(self) -> None:
+    def test_bulk_put_nonexistent_environment_ignored(self) -> None:
         project = self.create_project()
 
-        env1 = Environment.objects.create(
-            organization_id=project.organization_id, name="production"
-        )
-        env1.add_project(project)
+        self.create_environment(project=project, name="production")
 
         self.login_as(user=self.user)
 
@@ -165,40 +136,20 @@ class ProjectEnvironmentsTest(APITestCase):
             {"environment_names": ["production", "nonexistent"], "isHidden": True},
             format="json",
         )
-        assert response.status_code == 400
-        assert "nonexistent" in response.data["detail"]
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "production"
+        assert response.data[0]["isHidden"] is True
 
-        assert EnvironmentProject.objects.get(project=project, environment=env1).is_hidden is None
-
-    def test_bulk_put_org_env_not_in_project_returns_400(self) -> None:
-        project = self.create_project()
-
-        env1 = Environment.objects.create(
-            organization_id=project.organization_id, name="production"
+        assert (
+            EnvironmentProject.objects.get(
+                project=project, environment__name="production"
+            ).is_hidden
+            is True
         )
-        env1.add_project(project)
-
-        Environment.objects.create(organization_id=project.organization_id, name="org-only-env")
-
-        self.login_as(user=self.user)
-
-        url = reverse(
-            "sentry-api-0-project-environments",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "project_id_or_slug": project.slug,
-            },
-        )
-
-        response = self.client.put(
-            url,
-            {"environment_names": ["production", "org-only-env"], "isHidden": True},
-            format="json",
-        )
-        assert response.status_code == 400
-        assert "org-only-env" in response.data["detail"]
-
-        assert EnvironmentProject.objects.get(project=project, environment=env1).is_hidden is None
+        assert not EnvironmentProject.objects.filter(
+            project=project, environment__name="nonexistent"
+        ).exists()
 
     def test_bulk_put_validation_errors(self) -> None:
         project = self.create_project()
@@ -228,3 +179,25 @@ class ProjectEnvironmentsTest(APITestCase):
             format="json",
         )
         assert response.status_code == 400
+
+    def test_bulk_put_no_project_access(self) -> None:
+        project = self.create_project()
+        self.create_environment(project=project, name="production")
+
+        other_user = self.create_user()
+        self.login_as(user=other_user)
+
+        url = reverse(
+            "sentry-api-0-project-environments",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.put(
+            url,
+            {"environment_names": ["production"], "isHidden": True},
+            format="json",
+        )
+        assert response.status_code == 403
