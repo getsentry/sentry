@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.conf import settings
 from taskbroker_client.task import Task
 
-from sentry import options
 from sentry.db.models import control_silo_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.control_fileblobowner import ControlFileBlobOwner
-from sentry.options.manager import UnknownOption
 from sentry.tasks.files import delete_file_control
 
 
@@ -24,17 +23,15 @@ def control_file_storage_config() -> dict[str, Any] | None:
     backends. We coalesce those options here. None means use the
     global default storage options.
     """
-    try:
-        # If these options exist, use them. Otherwise fallback to default behavior
-        storage_backend = options.get("filestore.control.backend")
-        storage_options = options.get("filestore.control.options")
-        if storage_backend:
-            return {
-                "backend": storage_backend,
-                "options": storage_options,
-            }
-    except UnknownOption:
-        pass
+    # If a control-specific backend is configured, use it. Otherwise fall back
+    # to default behavior.
+    storage_backend = settings.SENTRY_CONTROL_FILE_STORAGE_BACKEND
+    storage_options = settings.SENTRY_CONTROL_FILE_STORAGE_CONFIG
+    if storage_backend:
+        return {
+            "backend": storage_backend,
+            "options": storage_options,
+        }
     return None
 
 
