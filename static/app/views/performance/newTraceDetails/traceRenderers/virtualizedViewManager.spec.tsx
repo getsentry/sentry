@@ -398,6 +398,55 @@ describe('VirtualizedViewManger', () => {
 
       expect(markerLeft).toBeCloseTo(placement + actualGapWidth / 2 - 20);
     });
+
+    it('treats nearby timeline labels as overlapping collapsed gap markers', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.time_compression = TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [0, 1000],
+        physicalWidth: 1000,
+        nodes: [
+          {type: 'span', space: [100, 0]},
+          {type: 'span', space: [900, 0]},
+        ] as any,
+        indicators: [],
+      });
+      manager.recomputeSpanToPXMatrix();
+
+      const gap = manager.time_compression.gaps[0]!;
+      const markerRef = document.createElement('div');
+      Object.defineProperty(markerRef, 'offsetWidth', {value: 40});
+      manager.collapsed_gap_markers[0] = {gap, ref: markerRef};
+      manager.drawCollapsedGapMarkers();
+
+      const indicatorRef = document.createElement('div');
+      const labelRef = document.createElement('div');
+      Object.defineProperty(labelRef, 'offsetWidth', {value: 30});
+      indicatorRef.appendChild(labelRef);
+
+      const markerLeft = Number.parseFloat(
+        markerRef.style.transform.replace('translateX(', '')
+      );
+      const indicatorPlacement = markerLeft + markerRef.offsetWidth + 4;
+
+      expect(
+        manager.timelineIndicatorOverlapsCollapsedGapMarker(
+          indicatorRef,
+          indicatorPlacement
+        )
+      ).toBe(true);
+    });
   });
 
   describe('horizontal scrolling', () => {

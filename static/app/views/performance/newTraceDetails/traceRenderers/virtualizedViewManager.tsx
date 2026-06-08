@@ -29,6 +29,7 @@ import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRend
 import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
+const TIMELINE_COLLAPSED_GAP_CLEARANCE_PX = 8;
 
 type TraceIconEdge = 'start' | 'end' | null;
 
@@ -2002,7 +2003,10 @@ export class VirtualizedViewManager {
         continue;
       }
 
-      if (indicatorLeft < pos.right && indicatorRight > pos.left) {
+      if (
+        indicatorLeft < pos.right + TIMELINE_COLLAPSED_GAP_CLEARANCE_PX &&
+        indicatorRight > pos.left - TIMELINE_COLLAPSED_GAP_CLEARANCE_PX
+      ) {
         return true;
       }
     }
