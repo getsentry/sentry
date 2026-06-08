@@ -40,11 +40,13 @@ export function useScmPlatformDetection(repository: Repository | undefined) {
 
   return {
     detectedPlatforms: query.data?.platforms ?? [],
-    // True whenever a supported repo is in flight, including the optimistic
-    // phase before the real id resolves. Consumers gate UI on this; using
-    // `query.isLoading` alone misses both the skipToken→enabled transition
-    // gap and the optimistic-id window. Unsupported providers or no repo
-    // still report false so the manual-picker fallback can show.
+    // A supported repo without a result yet is loading, including the
+    // optimistic phase before the real id resolves (so the platform step shows
+    // a spinner rather than flashing the manual picker) and the skipToken→
+    // enabled gap before `query.isLoading` flips. Unsupported providers or no
+    // repo report false. State owners drop a stale optimistic repo (empty id)
+    // on load so a refresh mid-resolution can't strand this as a permanent
+    // spinner.
     isPending: !!repository && isSupported && !query.data && !query.isError,
     isError: query.isError,
   };

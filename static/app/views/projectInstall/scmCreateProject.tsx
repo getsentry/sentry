@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -56,6 +56,27 @@ export function ScmCreateProject() {
     },
     setState,
   ] = useSessionStorage('project-creation-wizard', INITIAL_STATE);
+
+  // An optimistic repo (empty id, see useScmRepoSelection) persisted by a
+  // refresh mid-resolution can never fetch detection and would hold the
+  // platform step in a permanent spinner. Drop it once on load, also clearing
+  // the repo-derived platform/features so section 2 doesn't show a platform
+  // with no connected repo (mirrors handleClearDerivedState on a repo change).
+  // Live in-session optimistic selections arrive after mount and keep their
+  // loading state.
+  const hadStaleRepoOnLoad = useRef(!!selectedRepository && !selectedRepository.id);
+  useEffect(() => {
+    if (hadStaleRepoOnLoad.current) {
+      hadStaleRepoOnLoad.current = false;
+      setState(s => ({
+        ...s,
+        selectedRepository: undefined,
+        selectedPlatform: undefined,
+        selectedFeatures: undefined,
+      }));
+    }
+  }, [setState]);
+
   const canUserCreateProject = useCanCreateProject();
   // Subscribe so the parent re-renders when integration state changes inside
   // ScmIntegrationConnect, letting framer-motion's layout="position" siblings
