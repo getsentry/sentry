@@ -153,6 +153,8 @@ class DatadogOAuth2CallbackView(OAuth2CallbackView):
         try:
             return super().exchange_token(request, pipeline, code)
         except MissingPipelineStateError:
+            # The MissingPipelineStateError is already recorded as a lifecycle failure by the
+            # record_event context manager in super().exchange_token before propagating.
             return {
                 "error": "Missing pipeline state",
                 "error_description": "Could not authenticate due to missing pipeline state",
