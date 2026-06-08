@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import logging
 import time
 from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import logger as sentry_logger
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -22,11 +22,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 
-logger = logging.getLogger(__name__)
-
-# Metric namespace for the candidate (tree-based) detector. Kept separate from
-# the live single-platform detector's `.single.*` metrics so the two can be
-# compared and this measurement removed/relocated cleanly at cutover.
+# Metric namespace for the candidate (tree-based) detector.
 _MULTI_METRICS_PREFIX = "onboarding-scm.platform_detection.multi"
 
 
@@ -79,8 +75,7 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
 
         self._measure_tree(client, repo)
 
-        # Measurement-only: no body. A top-level list would trip Sentry's
-        # MissingPaginationError guard, so return 204 No Content instead.
+        # Measurement-only: no body.
         return Response(status=204)
 
     def _measure_tree(self, client: GitHubApiClient, repo: Repository) -> None:
@@ -89,7 +84,7 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
         Uses the ``HEAD`` ref so a single ``git/trees`` call suffices (no branch
         resolution). The client's ``get_tree`` helper drops the ``truncated``
         flag, so we call ``client.get`` directly to keep ``truncated`` and the
-        per-entry ``size``.
+        per-entry ``size`` for now.
         """
         start_time = time.monotonic()
         try:
@@ -98,11 +93,11 @@ class OrganizationRepositoryPlatformsTestEndpoint(OrganizationRepositoryEndpoint
                 params={"recursive": 1},
             )
         except ApiError:
-            # Includes empty repos (409). Mirror the live path: log and bail
+            # Includes empty repos (409), which are expected. Log and bail
             # without emitting a completion, so failures don't skew the metrics.
-            logger.exception(
-                "integrations.github.platform_detection_measurement_failed",
-                extra={"repo_id": repo.id, "repo_name": repo.name},
+            sentry_logger.warning(
+                f"{_MULTI_METRICS_PREFIX}.failed",
+                attributes={"repo_id": repo.id, "repo_name": repo.name},
             )
             return
 
