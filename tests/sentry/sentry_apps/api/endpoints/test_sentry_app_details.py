@@ -14,7 +14,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
-from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
@@ -146,6 +146,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "clientSecret": self.published_app.application.client_secret,
             "overview": self.published_app.overview,
             "allowedOrigins": [],
+            "webhookHeaders": [],
             "schema": {},
             "owner": {"id": self.organization.id, "slug": self.organization.slug},
             "featureData": [
@@ -743,6 +744,62 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=400,
         )
         assert response.data == {"allowedOrigins": ["'*' not allowed in origin"]}
+
+    @override_options({"staff.ga-rollout": True})
+    def test_set_webhook_headers(self) -> None:
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=["X-Example: value", "Another-Header: thing"],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == ["X-Example: value", "Another-Header: thing"]
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_invalid_format(self) -> None:
+        response = self.get_error_response(
+            self.published_app.slug,
+            webhookHeaders=["no-colon-here"],
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_reserved_header_rejected(self) -> None:
+        response = self.get_error_response(
+            self.published_app.slug,
+            webhookHeaders=["Sentry-Hook-Signature: spoofed"],
+            status_code=400,
+        )
+        assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_masked_value_preserved(self) -> None:
+        self.published_app.webhook_headers = ["Authorization: Bearer secret-token"]
+        self.published_app.save()
+
+        # The serializer masks values on read, so the form resubmits the masked
+        # value. Re-saving it must not overwrite the stored secret.
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[f"Authorization: {MASKED_VALUE}"],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == ["Authorization: Bearer secret-token"]
+
+    @override_options({"staff.ga-rollout": True})
+    def test_clear_webhook_headers(self) -> None:
+        self.published_app.webhook_headers = ["X-Example: value"]
+        self.published_app.save()
+
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == []
 
     @override_options({"staff.ga-rollout": True})
     def test_members_cant_update(self) -> None:
