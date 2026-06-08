@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+IMAGE="mcr.microsoft.com/playwright:v1.58.2-noble"
+VOLUME_NAME="sentry-snapshots-node-modules"
+OUTPUT_DIR=".artifacts/snapshots"
+
+mkdir -p "$REPO_ROOT/$OUTPUT_DIR"
+
+echo "Running snapshots in Docker (Ubuntu 24.04, matching CI)..."
+echo "Output: $REPO_ROOT/$OUTPUT_DIR"
+
+if ! docker volume inspect "$VOLUME_NAME" &>/dev/null; then
+  echo "First run — installing node_modules (cached for subsequent runs)."
+fi
+
+docker run --rm \
+  --ipc=host \
+  -v "$REPO_ROOT:/work" \
+  -v "$VOLUME_NAME:/work/node_modules" \
+  -w /work \
+  -e NODE_OPTIONS='--max-old-space-size=4096' \
+  -e SNAPSHOT_OUTPUT_DIR="$OUTPUT_DIR" \
+  "$IMAGE" \
+  bash -c '
+    corepack enable && corepack prepare pnpm@10.30.2 --activate
+    pnpm install --frozen-lockfile --store-dir /work/node_modules/.pnpm-store
+    pnpm run snapshots
+  '
