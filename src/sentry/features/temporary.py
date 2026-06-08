@@ -56,10 +56,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:auto-link-repos-by-name", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enabled for orgs that participated in the code review beta
     manager.add("organizations:code-review-beta", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Record PullRequestAttribution from the seer.pr_created event (PR Merge Live Metrics rollout)
-    manager.add("organizations:pr-metrics-attribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Emit the BigQuery row on a tracked PR's close/merge (PR Merge Live Metrics rollout)
-    manager.add("organizations:pr-metrics-emit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable continuous profiling
     manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the ingestion of profile functions metrics into EAP
@@ -191,6 +187,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-web-vitals-seer-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the warning banner to inform users of pending deprecation of the transactions dataset
     manager.add("organizations:performance-transaction-deprecation-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Write PullRequestActivity rows from GitHub PR lifecycle webhooks
+    manager.add("organizations:pr-metrics-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Record PullRequestAttribution from webhook and seer.pr_created events
+    manager.add("organizations:pr-metrics-attribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Emit the BigQuery row on a tracked PR's close/merge (PR Merge Live Metrics rollout)
+    manager.add("organizations:pr-metrics-emit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod_artifact webhook subscription UI in Sentry App settings
     manager.add("organizations:preprod-artifact-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod PR comments for build distribution
