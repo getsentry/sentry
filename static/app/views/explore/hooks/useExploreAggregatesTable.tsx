@@ -16,6 +16,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {SpanFields} from 'sentry/views/insights/types';
 
 interface UseExploreAggregatesTableOptions {
   enabled: boolean;
@@ -72,7 +73,10 @@ function useExploreAggregatesTableImp({
   const fields = useMemo(() => {
     // When rendering the table, we want the group bys first
     // then the aggregates.
-    const allFields: string[] = [];
+    const allFields: string[] = [
+      `any(${SpanFields.TRACE})`,
+      `any(${SpanFields.TIMESTAMP})`,
+    ];
 
     for (const aggregateField of aggregateFields) {
       if (isGroupBy(aggregateField)) {

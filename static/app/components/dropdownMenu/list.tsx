@@ -59,6 +59,10 @@ export interface DropdownMenuListProps
    */
   closeOnSelect?: boolean;
   /**
+   * Prevent users from highlighting text inside the menu.
+   */
+  disableTextSelection?: boolean;
+  /**
    * To be displayed below the menu items
    */
   menuFooter?: React.ReactNode;
@@ -81,6 +85,7 @@ export function DropdownMenuList({
   size,
   menuTitle,
   menuFooter,
+  disableTextSelection,
   overlayState,
   overlayPositionProps,
   zIndex,
@@ -186,6 +191,7 @@ export function DropdownMenuList({
         trigger={trigger}
         onClose={onClose}
         closeOnSelect={closeOnSelect}
+        disableTextSelection={disableTextSelection}
         menuTitle={node.value.submenuTitle}
         shouldCloseOnBlur={false}
         preventOverflowOptions={{boundary: document.body, altAxis: true}}
@@ -246,6 +252,7 @@ export function DropdownMenuList({
             <DropdownMenuListWrap
               ref={menuRef}
               hasTitle={!!menuTitle}
+              disableTextSelection={disableTextSelection}
               {...mergeProps(modifiedMenuProps, keyboardProps)}
               style={{
                 maxHeight: overlayPositionProps.style?.maxHeight,
@@ -266,12 +273,25 @@ const StyledOverlay = styled(Overlay)`
   flex-direction: column;
 `;
 
-const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
+const DropdownMenuListWrap = styled('ul')<{
+  hasTitle: boolean;
+  disableTextSelection?: boolean;
+}>`
   margin: 0;
   padding: ${p => p.theme.space.xs} 0;
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
+
+  ${p =>
+    p.disableTextSelection &&
+    css`
+      &,
+      * {
+        -webkit-user-select: none;
+        user-select: none;
+      }
+    `}
 
   ${p =>
     p.hasTitle &&
