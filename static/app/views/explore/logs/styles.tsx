@@ -183,6 +183,8 @@ export const LogTableBody = styled(TableBody)<{
   align-content: start;
   overflow-x: hidden;
   overflow-anchor: none;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 
   /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
   min-height: 1px;
