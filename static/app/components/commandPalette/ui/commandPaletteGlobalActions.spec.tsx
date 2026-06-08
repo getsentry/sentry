@@ -336,6 +336,14 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     // (DSN), just like "dsn".
     ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
     ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
+    ['NEXT_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    ['rate limit', /Project Settings.*Client Keys \(DSN\)/],
+    // The auth token env var should surface both token management pages.
+    ['SENTRY_AUTH_TOKEN', /Organization Tokens/, /Personal Tokens/],
+    // The CLI org slug env var maps to the org-level General Settings.
+    ['SENTRY_ORG', /General Settings/],
+    // Renaming a project happens in the project's General Settings.
+    ['project slug', /Project Settings.*General Settings/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 

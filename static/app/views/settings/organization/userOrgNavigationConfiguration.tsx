@@ -76,7 +76,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug')],
+          keywords: [
+            t('slug'),
+            t('org slug'),
+            t('organization slug'),
+            // The CLI environment variable name (case-preserved, not wrapped in
+            // t()) that developers search for — it maps to the org slug.
+            'SENTRY_ORG',
+          ],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -304,6 +311,9 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            // The CLI/SDK environment variable name (case-preserved, not wrapped
+            // in t()) that developers search for.
+            'SENTRY_AUTH_TOKEN',
           ],
           description: t('Manage organization tokens'),
           id: 'auth-tokens',
@@ -319,6 +329,9 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            // The CLI/SDK environment variable name (case-preserved, not wrapped
+            // in t()) that developers search for.
+            'SENTRY_AUTH_TOKEN',
           ],
           description: t(
             "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
