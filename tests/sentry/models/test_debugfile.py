@@ -6,11 +6,13 @@ import time
 import zipfile
 from io import BytesIO
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.models.debugfile import (
     DifMeta,
@@ -234,6 +236,103 @@ class DebugFileTest(TestCase):
         )
 
         assert dif.file_extension == ""
+
+
+class ProjectDebugFileObjectstoreTest(TestCase):
+    """Tests for the objectstore read path on ProjectDebugFile."""
+
+    def _create_dif_with_file(self, **kwargs):
+        return self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75", **kwargs)
+
+    def _create_dif_without_file(self, **kwargs):
+        defaults = {
+            "debug_id": "dfb8e43a-f242-3d73-a453-aeb6a777ef75",
+            "project_id": self.project.id,
+            "object_name": "test.dSYM",
+            "cpu_name": "x86_64",
+            "checksum": "a" * 40,
+            "storage_path": "debugfiles/test-key",
+            "content_type": "application/x-mach-binary",
+            "file_size": 1024,
+            "date_created": timezone.now(),
+        }
+        defaults.update(kwargs)
+        return ProjectDebugFile.objects.create(**defaults)
+
+    def test_metadata_reads_from_columns_when_storage_path_set(self):
+        ts = timezone.now()
+        dif = self._create_dif_without_file(
+            content_type="text/x-proguard+plain",
+            file_size=9999,
+            date_created=ts,
+        )
+
+        assert dif.get_content_type() == "text/x-proguard+plain"
+        assert dif.get_file_size() == 9999
+        assert dif.get_date_created() == ts
+        assert dif.get_headers() == {"Content-Type": "text/x-proguard+plain"}
+        assert dif.file_format == "proguard"
+
+    def test_metadata_coalescing_falls_back_to_file(self):
+        dif = self._create_dif_with_file()
+
+        assert dif.get_content_type() == "application/x-mach-binary"
+        assert dif.get_file_size() == dif.file.size
+        assert dif.get_date_created() == dif.file.timestamp
+        assert dif.get_headers() == {"Content-Type": "application/x-mach-binary"}
+
+    @patch("sentry.objectstore.get_debug_files_session")
+    def test_getfile_with_storage_path(self, mock_get_session):
+        mock_response = MagicMock()
+        mock_response.payload = BytesIO(b"objectstore-content")
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+        mock_get_session.return_value = mock_session
+
+        dif = self._create_dif_without_file()
+
+        assert dif.getfile().read() == b"objectstore-content"
+        mock_session.get.assert_called_once_with("debugfiles/test-key")
+
+    def test_getfile_with_file_fk(self):
+        file = self.create_file(
+            name="test.dSYM",
+            type="project.dif",
+            headers={"Content-Type": "application/x-mach-binary"},
+        )
+        file.putfile(ContentFile(b"file-content"))
+        dif = self._create_dif_with_file(file=file)
+
+        assert dif.getfile().read() == b"file-content"
+
+    @patch("sentry.objectstore.get_debug_files_session")
+    def test_save_to_with_storage_path(self, mock_get_session):
+        mock_response = MagicMock()
+        mock_response.payload = BytesIO(b"objectstore-content")
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response
+        mock_get_session.return_value = mock_session
+
+        dif = self._create_dif_without_file()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "output")
+            dif.save_to(path)
+
+            with open(path, "rb") as f:
+                assert f.read() == b"objectstore-content"
+
+    @patch("sentry.objectstore.get_debug_files_session")
+    def test_delete_with_storage_path(self, mock_get_session):
+        mock_session = MagicMock()
+        mock_get_session.return_value = mock_session
+
+        dif = self._create_dif_without_file()
+        dif_id = dif.id
+        dif.delete()
+
+        assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
+        mock_session.delete.assert_called_once_with("debugfiles/test-key")
 
 
 class CreateDebugFileTest(APITestCase):

@@ -33,3 +33,8 @@ def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]) -> None:
             ).update(date_accessed=now)
             if updated_rows_count > 0:
                 metrics.incr("debug_files_renewal.were_renewed", updated_rows_count)
+
+    # For objectstore-backed files, issue a HEAD to bump the TTI.
+    for dif in debug_files:
+        if dif.storage_path is not None and dif.date_accessed <= threshold_date:
+            dif._get_objectstore_session().head(dif.storage_path)

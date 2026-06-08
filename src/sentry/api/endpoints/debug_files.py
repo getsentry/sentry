@@ -272,11 +272,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
             raise Http404
 
         try:
-            fp = debug_file.file.getfile()
+            fp = debug_file.getfile()
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
-            response["Content-Length"] = debug_file.file.size
+            response["Content-Length"] = debug_file.get_file_size()
             response["Content-Disposition"] = (
                 f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
             )
@@ -337,7 +337,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
             for file_format in file_formats:
                 known_file_format = DIF_MIMETYPES.get(file_format)
                 if known_file_format:
-                    file_format_q |= Q(file__headers__icontains=known_file_format)
+                    file_format_q |= Q(file__headers__icontains=known_file_format) | Q(
+                        content_type__icontains=known_file_format
+                    )
             q &= file_format_q
 
         queryset = None
@@ -368,11 +370,14 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 | Q(code_id__icontains=query)
                 | Q(cpu_name__icontains=query)
                 | Q(file__headers__icontains=query)
+                | Q(content_type__icontains=query)
             )
 
             known_file_format = DIF_MIMETYPES.get(query)
             if known_file_format:
-                query_q |= Q(file__headers__icontains=known_file_format)
+                query_q |= Q(file__headers__icontains=known_file_format) | Q(
+                    content_type__icontains=known_file_format
+                )
 
             q &= query_q
 
@@ -782,6 +787,12 @@ def _build_proguard_clone_source_annotation(checksums: Iterable[str]) -> Case:
             checksum__in=checksums,
             file__type="project.dif",
             file__headers={"Content-Type": DIF_MIMETYPES["proguard"]},
+            then=Value(1),
+        ),
+        When(
+            checksum__in=checksums,
+            file__isnull=True,
+            content_type=DIF_MIMETYPES["proguard"],
             then=Value(1),
         ),
         default=Value(0),

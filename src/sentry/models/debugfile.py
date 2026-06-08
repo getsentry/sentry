@@ -12,6 +12,7 @@ import tempfile
 import uuid
 import zipfile
 from collections.abc import Container, Iterable, Mapping
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar
 
 from django.db import models
@@ -39,6 +40,8 @@ from sentry.utils import json, metrics
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
+    from objectstore_client import Session
+
     from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
@@ -119,7 +122,8 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
 class ProjectDebugFile(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    file = FlexibleForeignKey("sentry.File", on_delete=models.PROTECT)
+    # When the migration to Objectstore is complete, this can be removed.
+    file = FlexibleForeignKey("sentry.File", null=True, on_delete=models.PROTECT)
     checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
@@ -128,6 +132,16 @@ class ProjectDebugFile(Model):
     code_id = models.CharField(max_length=64, null=True)
     data = LegacyTextJSONField(default=dict, null=True)
     date_accessed = models.DateTimeField(default=timezone.now, db_default=Now())
+
+    # The following fields are present if and only if the file is stored in Objectstore.
+    # Key of the file in Objectstore.
+    storage_path = models.TextField(null=True)
+    # Mirrors `file.headers["Content-Type"]` for files stored in Objectstore.
+    content_type = models.TextField(null=True)
+    # Mirrors `file.size` for files stored in Objectstore.
+    file_size = BoundedBigIntegerField(null=True)
+    # Mirrors `file.timestamp` for files stored in Objectstore.
+    date_created = models.DateTimeField(null=True)
 
     objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()
 
@@ -143,9 +157,37 @@ class ProjectDebugFile(Model):
 
     __repr__ = sane_repr("object_name", "cpu_name", "debug_id")
 
+    def get_content_type(self) -> str:
+        if self.storage_path is not None:
+            return self.content_type or "unknown"
+        if self.file is not None:
+            return self.file.headers.get("Content-Type", "unknown")
+        return "unknown"
+
+    def get_file_size(self) -> int | None:
+        if self.storage_path is not None:
+            return self.file_size
+        if self.file is not None:
+            return self.file.size
+        return None
+
+    def get_date_created(self) -> datetime | None:
+        if self.storage_path is not None:
+            return self.date_created
+        if self.file is not None:
+            return self.file.timestamp
+        return None
+
+    def get_headers(self) -> dict[str, str]:
+        if self.storage_path is not None:
+            return {"Content-Type": self.content_type} if self.content_type else {}
+        if self.file is not None:
+            return self.file.headers
+        return {}
+
     @property
     def file_format(self) -> str:
-        ct = self.file.headers.get("Content-Type", "unknown").lower()
+        ct = self.get_content_type().lower()
         return KNOWN_DIF_FORMATS.get(ct, "unknown")
 
     @property
@@ -193,17 +235,72 @@ class ProjectDebugFile(Model):
     def features(self) -> frozenset[str]:
         return frozenset((self.data or {}).get("features", []))
 
+    def _get_objectstore_session(self) -> Session:
+        from sentry.models.project import Project
+        from sentry.objectstore import get_debug_files_session
+
+        org_id = Project.objects.get_from_cache(id=self.project_id).organization_id
+        return get_debug_files_session(org=org_id, project=self.project_id)
+
+    def getfile(self) -> BinaryIO:
+        if self.storage_path is not None:
+            response = self._get_objectstore_session().get(self.storage_path)
+            return response.payload
+        if self.file is not None:
+            return self.file.getfile()
+        raise ValueError("ProjectDebugFile has neither file nor storage_path")
+
+    def save_to(self, path: str) -> None:
+        if self.storage_path is not None:
+            path = os.path.abspath(path)
+            base = os.path.dirname(path)
+            os.makedirs(base, exist_ok=True)
+
+            response = self._get_objectstore_session().get(self.storage_path)
+            f = None
+            try:
+                f = tempfile.NamedTemporaryFile(dir=base, delete=False)
+                shutil.copyfileobj(response.payload, f)
+                f.flush()
+                temp_path = f.name
+                f.close()
+                f = None
+
+                if not os.path.exists(path):
+                    os.rename(temp_path, path)
+                else:
+                    os.remove(temp_path)
+            finally:
+                if f is not None:
+                    f.close()
+                    try:
+                        os.remove(f.name)
+                    except Exception:
+                        pass
+        elif self.file is not None:
+            self.file.save_to(path)
+        else:
+            raise ValueError("ProjectDebugFile has neither file nor storage_path")
+
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         ret = super().delete(*args, **kwargs)
 
-        # If another debug file row still references this File, keep the File.
-        # Concurrent last-reference deletes can still leave an unreferenced File
-        # row behind, but no surviving ProjectDebugFile should point to a deleted
-        # File.
-        try:
-            self.file.delete()
-        except ProtectedError:
-            pass
+        # If another debug file row still references the underlying blob, keep it.
+        # Concurrent last-reference deletes can race past the check, but objectstore
+        # delete is idempotent and File.delete() raises ProtectedError, so no
+        # surviving ProjectDebugFile should point to a deleted blob.
+        if self.storage_path is not None:
+            still_referenced = ProjectDebugFile.objects.filter(
+                storage_path=self.storage_path
+            ).exists()
+            if not still_referenced:
+                self._get_objectstore_session().delete(self.storage_path)
+
+        if self.file is not None:
+            try:
+                self.file.delete()
+            except ProtectedError:
+                pass
 
         return ret
 
@@ -224,7 +321,7 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
     uuidmap_seen = False
     il2cpp_seen = False
     for i, dif in enumerate(difs):
-        mime_type = dif.file.headers.get("Content-Type")
+        mime_type = dif.get_content_type()
         if mime_type == DIF_MIMETYPES["bcsymbolmap"]:
             if not bcsymbolmap_seen:
                 bcsymbolmap_seen = True
@@ -733,7 +830,7 @@ class DIFCache:
             except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
-                dif.file.save_to(dif_path)
+                dif.save_to(dif_path)
             rv[debug_id] = dif_path
 
         return rv
