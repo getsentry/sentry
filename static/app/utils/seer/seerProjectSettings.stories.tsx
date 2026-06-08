@@ -13,6 +13,7 @@ import {Text} from '@sentry/scraps/text';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {
   PreferredAgentDropdownMenu,
   PreferredAgentLabel,
@@ -324,7 +325,12 @@ export default Storybook.story('SeerProjectSettings', story => {
     const queryOptions = infiniteQueryOptions({
       ...getInfiniteSeerProjectsSettingsQueryOptions({
         organization,
-        query: {per_page: 25, query: 'reposCount:>0'},
+        query: {
+          per_page: 25,
+          query: MutableSearch.fromQueryObject({
+            reposCount: '>0',
+          }),
+        },
       }),
       select: ({pages}) => pages.flatMap(page => page.json),
     });

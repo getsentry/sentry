@@ -8,28 +8,29 @@ import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
 import {
-  getUserFacingStoppingPoint,
+  coaleseStoppingPoint,
   useStoppingPointSelectOptions,
 } from 'sentry/utils/seer/stoppingPoint';
 import type {SeerAutofixStoppingPoint} from 'sentry/utils/seer/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-/**
- * Render a user-facing stopping point to its human-readable label.
- */
 export function StoppingPointLabel({
   stoppingPoint,
 }: {
   stoppingPoint: SeerAutofixStoppingPoint;
 }) {
-  const internalStoppingPointOptions = useStoppingPointSelectOptions();
+  const organization = useOrganization();
+  const isLegacySeer = organization.features.includes('seer-added');
+  const stoppingPointOptions = useStoppingPointSelectOptions();
 
-  return (
-    <Fragment>
-      {internalStoppingPointOptions.find(
-        o => o.value === getUserFacingStoppingPoint(stoppingPoint)
-      )?.label ?? getUserFacingStoppingPoint(stoppingPoint)}
-    </Fragment>
-  );
+  const coalesedStoppingPoint = isLegacySeer
+    ? stoppingPoint
+    : coaleseStoppingPoint(stoppingPoint);
+
+  const label =
+    stoppingPointOptions.find(option => option.value === coalesedStoppingPoint)?.label ??
+    coalesedStoppingPoint;
+  return <Fragment>{label}</Fragment>;
 }
 
 export function StoppingPointDropdownMenu({
@@ -41,13 +42,13 @@ export function StoppingPointDropdownMenu({
   onChange: (value: SeerAutofixStoppingPoint) => void;
   size?: DropdownMenuProps['size'];
 }) {
-  const internalStoppingPointOptions = useStoppingPointSelectOptions();
+  const stoppingPointOptions = useStoppingPointSelectOptions();
   return (
     <DropdownMenu
       isDisabled={isDisabled}
       size={size}
       triggerLabel={t('Automation Steps')}
-      items={internalStoppingPointOptions.map(option => ({
+      items={stoppingPointOptions.map(option => ({
         key: option.value,
         label: option.label,
         onAction: () => onChange(option.value),

@@ -49,7 +49,7 @@ export type SeerProjectSettingUpdatePayload = {
   automationTuning?: UserFacingAutomationTuning;
   integrationId?: string;
   scannerAutomation?: boolean;
-  stoppingPoint?: SeerAutofixStoppingPoint;
+  stoppingPoint?: SeerAutofixStoppingPoint; // SeerAutofixStoppingPoint;
 };
 
 // Mirrors python serializer: BulkProjectSettingsUpdateSerializer

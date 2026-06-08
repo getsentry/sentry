@@ -31,31 +31,18 @@ export const PROJECT_STOPPING_POINT_OPTIONS: Array<{
   {value: 'create_pr', label: t('Stop after PR drafted')},
 ];
 
-export const PROJECT_STOPPING_POINT_SORT_ORDER: Record<UserFacingStoppingPoint, number> =
-  {
-    off: 1,
-    root_cause: 2,
-    plan: 3,
-    create_pr: 4,
-  };
-
-// Convert from the server-side values to what the user can pick from.
-// Switching back is handled by ???
-export function getUserFacingStoppingPoint(
-  stoppingPoint: SeerAutofixStoppingPoint
-): UserFacingStoppingPoint {
-  switch (stoppingPoint) {
-    case 'off':
-      return 'off';
-    case 'root_cause':
-      return 'root_cause';
-    case 'solution':
-      return 'plan';
-    case 'code_changes':
-      return 'create_pr';
-    case 'open_pr':
-      return 'create_pr';
-  }
+/**
+ * Combine solution & code_changes into code_changes for seat-based seer.
+ * Fewer steps is easier for users to work with.
+ */
+export function coaleseStoppingPoint(stoppingPoint: SeerAutofixStoppingPoint) {
+  return {
+    off: 'off' as const,
+    root_cause: 'root_cause' as const,
+    solution: 'code_changes' as const,
+    code_changes: 'code_changes' as const,
+    open_pr: 'open_pr' as const,
+  }[stoppingPoint];
 }
 
 /**
@@ -76,17 +63,27 @@ export function useStoppingPointSelectOptions() {
       return [
         {value: 'off', label: t('No Automation')},
         {value: 'root_cause', label: t('Stop after Root Cause')},
-        {value: 'plan', label: t('Stop after Plan')},
-        {value: 'create_pr', label: t('Stop after PR drafted')},
+        {value: 'solution', label: t('Stop after Plan')},
+        {value: 'code_changes', label: t('Stop after Code Changes')},
+        {value: 'open_pr', label: t('Stop after PR drafted')},
       ];
     }
     return [
       {value: 'off', label: t('No Automation')},
       {value: 'root_cause', label: t('Stop after Root Cause')},
-      {value: 'code_changes', label: t('Stop after PR drafted')},
+      {value: 'code_changes', label: t('Stop after Plan')},
+      {value: 'open_pr', label: t('Stop after PR drafted')},
     ];
   }, [organization.features]);
 }
+
+export const PROJECT_STOPPING_POINT_SORT_ORDER: Record<UserFacingStoppingPoint, number> =
+  {
+    off: 1,
+    root_cause: 2,
+    plan: 3,
+    create_pr: 4,
+  };
 
 export function useOrgDefaultStoppingPoint(): UserFacingStoppingPoint {
   const organization = useOrganization();
@@ -94,11 +91,11 @@ export function useOrgDefaultStoppingPoint(): UserFacingStoppingPoint {
   switch (organization.defaultAutomatedRunStoppingPoint) {
     case AutofixStoppingPoint.ROOT_CAUSE:
       return 'root_cause';
-    case AutofixStoppingPoint.OPEN_PR:
-      return 'create_pr';
     case AutofixStoppingPoint.SOLUTION:
       return 'plan';
     case AutofixStoppingPoint.CODE_CHANGES:
+      return 'create_pr';
+    case AutofixStoppingPoint.OPEN_PR:
       return 'create_pr';
   }
 }

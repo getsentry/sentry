@@ -10,6 +10,7 @@ import {
   PROVIDER_TO_HANDOFF_TARGET,
 } from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -56,19 +57,20 @@ export function getInfiniteSeerProjectsSettingsQueryOptions({
 }: {
   organization: Organization;
   query: {
+    agent?: SeerAgent;
     cursor?: string;
     per_page?: number;
-    query?: string;
+    query?: MutableSearch;
     sortBy?: Sort;
   };
 }) {
-  const {per_page = 100, sortBy, ...rest} = query;
+  const {per_page = 100, sortBy, query: mutableSearch, ...rest} = query;
   const sortQuery = sortBy ? encodeSort(sortBy) : undefined;
   return apiOptions.asInfinite<SeerProjectSettingResponse[]>()(
     '/organizations/$organizationIdOrSlug/seer/projects/',
     {
       path: {organizationIdOrSlug: organization.slug},
-      query: {per_page, sortBy: sortQuery, ...rest},
+      query: {per_page, sortBy: sortQuery, query: mutableSearch?.formatString(), ...rest},
       staleTime: 60_000, // 1 minute
     }
   );
@@ -249,7 +251,6 @@ export function getMutateSeerProjectsSettingsOptions({
       }
     ) => {
       const {stoppingPoint, query, projectIds, ...rest} = data;
-      const mutableQuery = projectIds === 'all' ? query : `id:[${projectIds.join(',')}]`;
 
       const integrationId =
         data.agent && data.agent !== 'seer'
@@ -269,7 +270,9 @@ export function getMutateSeerProjectsSettingsOptions({
         url: infiniteUrl,
         data: {
           ...rest,
-          query: mutableQuery,
+          query: MutableSearch.fromQueryObject({
+            id: projectIds === 'all' ? query : projectIds,
+          }).formatString(),
           ...(!isOff &&
             stoppingPoint !== undefined && {
               stoppingPoint,
