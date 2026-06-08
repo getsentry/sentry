@@ -142,7 +142,7 @@ class ProjectEnvironmentsTest(APITestCase):
         assert response.data[0]["isHidden"] is False
         assert response.data[1]["isHidden"] is False
 
-    def test_bulk_put_nonexistent_environment_ignored(self) -> None:
+    def test_bulk_put_nonexistent_environment_returns_400(self) -> None:
         project = self.create_project()
 
         env1 = Environment.objects.create(
@@ -165,10 +165,10 @@ class ProjectEnvironmentsTest(APITestCase):
             {"environment_names": ["production", "nonexistent"], "isHidden": True},
             format="json",
         )
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["name"] == "production"
-        assert response.data[0]["isHidden"] is True
+        assert response.status_code == 400
+        assert "nonexistent" in response.data["detail"]
+
+        assert EnvironmentProject.objects.get(project=project, environment=env1).is_hidden is None
 
     def test_bulk_put_validation_errors(self) -> None:
         project = self.create_project()

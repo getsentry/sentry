@@ -2,6 +2,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -22,15 +23,16 @@ from sentry.apidocs.examples.environment_examples import EnvironmentExamples
 from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models.environment import EnvironmentProject
+from sentry.models.environment import Environment, EnvironmentProject
 
 
 @extend_schema(tags=["Environments"])
 @cell_silo_endpoint
 class ProjectEnvironmentsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUE_DETECTION_BACKEND
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
@@ -122,6 +124,21 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         data = serializer.validated_data
         environment_names = data["environment_names"]
         is_hidden = data["isHidden"]
+
+        existing_names = set(
+            Environment.objects.filter(
+                organization_id=project.organization_id,
+                name__in=environment_names,
+            )
+            .exclude(name="")
+            .values_list("name", flat=True)
+        )
+        invalid_names = set(environment_names) - existing_names
+        if invalid_names:
+            return Response(
+                {"detail": f"Invalid environments: {sorted(invalid_names)}"},
+                status=400,
+            )
 
         EnvironmentProject.objects.filter(
             project=project,
