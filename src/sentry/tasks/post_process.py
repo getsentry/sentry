@@ -70,7 +70,6 @@ class PostProcessJob(TypedDict, total=False):
     has_reappeared: bool
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool
-    # True when a pipeline step intentionally prevents later post-process side effects.
     halt_post_process: bool
 
 
@@ -787,13 +786,7 @@ def process_malicious_issue_detection(job: PostProcessJob) -> None:
     if not job["group_state"]["is_new"]:
         return
 
-    event = job["event"]
-    result = detect_and_archive_malicious_issue(
-        event,
-        is_new=True,
-        is_reprocessed=job["is_reprocessed"],
-    )
-    if result.archived:
+    if detect_and_archive_malicious_issue(job["event"], is_reprocessed=job["is_reprocessed"]):
         job["halt_post_process"] = True
 
 

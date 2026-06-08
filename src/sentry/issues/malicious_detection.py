@@ -1,13 +1,6 @@
-"""Post-process detection for maliciously crafted error issues.
-
-This runs after grouping and durable event storage. Sentry owns rollout gates,
-context extraction, and archival; Seer owns classification.
-"""
-
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from typing import Literal, TypedDict, cast
 
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -49,25 +42,14 @@ class MaliciousIssueClassification(TypedDict):
     reason: str
 
 
-@dataclass(frozen=True)
-class MaliciousIssueDetectionResult:
-    classification: Classification | None
-    archived: bool = False
-    skipped_reason: str | None = None
-
-
 def detect_and_archive_malicious_issue(
     event: GroupEvent,
     *,
-    is_new: bool,
     is_reprocessed: bool,
-) -> MaliciousIssueDetectionResult:
+) -> bool:
     group = event.group
     if group is None:
         return _skip("missing_group")
-
-    if not is_new:
-        return _skip("not_new")
 
     if is_reprocessed:
         return _skip("reprocessed")
@@ -99,7 +81,7 @@ def detect_and_archive_malicious_issue(
     )
 
     if classification["classification"] != "yes":
-        return MaliciousIssueDetectionResult(classification=classification["classification"])
+        return False
 
     archive_group_forever(group)
     logger.info(
@@ -111,50 +93,60 @@ def detect_and_archive_malicious_issue(
         },
     )
     metrics.incr("malicious_issue_detection.archived")
-    return MaliciousIssueDetectionResult(classification="yes", archived=True)
+    return True
 
 
 def build_issue_context(event: GroupEvent) -> str:
     group = event.group
-    parts: list[str] = []
-
-    def append(label: str, value: object | None, *, skip_generic: bool = True) -> None:
-        if value is None:
-            return
-        value_str = str(value).strip()
-        if skip_generic and value_str.lower() in GENERIC_CONTEXT_VALUES:
-            return
-        if value_str:
-            parts.append(f"{label}: {value_str}")
+    context_fields: list[tuple[str, object | None]] = []
 
     if group is not None:
-        append("Issue title", group.title)
-        append("Issue message", group.message)
-        append("Culprit", group.culprit)
+        context_fields += [
+            ("Issue title", group.title),
+            ("Issue message", group.message),
+            ("Culprit", group.culprit),
+        ]
 
-    append("Event title", event.title)
-    append("Event message", event.message)
-    append("Search message", event.search_message)
+    context_fields += [
+        ("Event title", event.title),
+        ("Event message", event.message),
+        ("Search message", event.search_message),
+    ]
 
     metadata = event.get_event_metadata()
     for key in ("type", "value", "title", "filename", "function"):
-        append(f"Metadata {key}", metadata.get(key))
+        context_fields.append((f"Metadata {key}", metadata.get(key)))
 
     occurrence = getattr(event, "occurrence", None)
     if occurrence is not None:
-        append("Occurrence title", occurrence.issue_title)
-        append("Occurrence subtitle", occurrence.subtitle)
+        context_fields += [
+            ("Occurrence title", occurrence.issue_title),
+            ("Occurrence subtitle", occurrence.subtitle),
+        ]
         for key, value in occurrence.evidence_data.items():
-            append(f"Occurrence evidence {key}", value)
+            context_fields.append((f"Occurrence evidence {key}", value))
 
     interface_parts = []
     for interface in event.interfaces.values():
         output = safe_execute(interface.to_string, event)
         if output:
             interface_parts.append(output)
-    append("Event details", "\n\n".join(interface_parts))
+    context_fields.append(("Event details", "\n\n".join(interface_parts)))
 
-    context = "\n".join(dict.fromkeys(parts))
+    parts: list[str] = []
+    seen: set[str] = set()
+    for label, value in context_fields:
+        if value is None:
+            continue
+        value_str = str(value).strip()
+        if not value_str or value_str.lower() in GENERIC_CONTEXT_VALUES:
+            continue
+        line = f"{label}: {value_str}"
+        if line not in seen:
+            parts.append(line)
+            seen.add(line)
+
+    context = "\n".join(parts)
     return context[:MAX_CONTEXT_LENGTH]
 
 
@@ -249,6 +241,6 @@ def _is_in_sample(group: Group) -> bool:
     )
 
 
-def _skip(reason: str) -> MaliciousIssueDetectionResult:
+def _skip(reason: str) -> bool:
     metrics.incr("malicious_issue_detection.skipped", tags={"reason": reason})
-    return MaliciousIssueDetectionResult(classification=None, skipped_reason=reason)
+    return False

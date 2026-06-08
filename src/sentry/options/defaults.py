@@ -3543,8 +3543,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Prototype controls for post-process malicious issue detection. The feature flag gates
-# rollout; these options tune call volume without a deploy.
 register(
     "malicious-issue-detection.sample-rate",
     type=Float,
