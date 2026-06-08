@@ -9,7 +9,7 @@ export const LEGACY_WEBHOOK_PLUGIN: PluginNoProject = {
   canDisable: true,
   contexts: [],
   doc: '',
-  featureDescriptions: [],
+  featureDescriptions: [{featureGate: 'alert-rule', description: '', featureId: 1}],
   features: ['alert-rule'],
   hasConfiguration: true,
   isDeprecated: false,

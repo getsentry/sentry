@@ -22,6 +22,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
   AppOrProviderOrPlugin,
   DocIntegration,
@@ -493,6 +494,7 @@ export default function IntegrationListDirectory() {
             publishStatus="published"
             configurations={integration.projectList.length}
             categories={getCategoriesForIntegration(integration)}
+            customIcon={<PluginIcon pluginId="webhooks" size={36} />}
           />
         );
       }
