@@ -46,7 +46,7 @@ class DatadogOAuth2LoginView(OAuth2LoginView):
 
         return super().dispatch(request, pipeline)
 
-    def get_authorize_params(self, state, redirect_uri):
+    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | None]:
         params = super().get_authorize_params(state, redirect_uri)
 
         # Use the code verifier to generate the code challenge.
