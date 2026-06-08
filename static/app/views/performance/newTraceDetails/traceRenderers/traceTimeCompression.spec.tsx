@@ -5,7 +5,7 @@ function node(type: string, space: [number, number]) {
 }
 
 describe('TraceTimeCompression', () => {
-  it('collapses gaps larger than 10% of the trace duration', () => {
+  it('collapses gaps at least 5% of the trace duration', () => {
     const compression = TraceTimeCompression.FromVisibleItems({
       enabled: true,
       traceSpace: [0, 1000],
