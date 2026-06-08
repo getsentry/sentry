@@ -780,13 +780,22 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                 add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
 
+def _noop_malicious_issue_detection_hook(job: PostProcessJob) -> bool:
+    return False
+
+
+_malicious_issue_detection_hook: Callable[[PostProcessJob], bool] = (
+    _noop_malicious_issue_detection_hook
+)
+
+
+def set_malicious_issue_detection_hook(hook: Callable[[PostProcessJob], bool]) -> None:
+    global _malicious_issue_detection_hook
+    _malicious_issue_detection_hook = hook
+
+
 def process_malicious_issue_detection(job: PostProcessJob) -> None:
-    from sentry.issues.malicious_detection import detect_and_archive_malicious_issue
-
-    if not job["group_state"]["is_new"]:
-        return
-
-    if detect_and_archive_malicious_issue(job["event"], is_reprocessed=job["is_reprocessed"]):
+    if _malicious_issue_detection_hook(job):
         job["halt_post_process"] = True
 
 

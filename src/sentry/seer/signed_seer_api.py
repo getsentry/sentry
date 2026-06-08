@@ -242,12 +242,6 @@ class LlmGenerateRequest(TypedDict):
     reasoning: NotRequired[Literal["off", "low", "med", "high"] | None]
 
 
-class MaliciousIssueDetectionRequest(TypedDict):
-    organization_id: int
-    project_id: int
-    issue_context: str
-
-
 class RepoDetails(TypedDict):
     project_ids: list[int]
     provider: str
@@ -400,22 +394,6 @@ def make_llm_generate_request(
         body=orjson.dumps(body),
         timeout=timeout,
         metric_tags={"referrer": body["referrer"]},
-        viewer_context=viewer_context,
-    )
-
-
-def make_malicious_issue_detection_request(
-    body: MaliciousIssueDetectionRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/automation/malicious-issue-detection/classify",
-        body=orjson.dumps(body),
-        retries=0,
-        timeout=timeout,
-        metric_tags={"feature": "malicious_issue_detection"},
         viewer_context=viewer_context,
     )
 
