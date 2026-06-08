@@ -87,7 +87,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   });
 }
 
-export function getOnboardingTasks({
+function getOnboardingTasks({
   organization,
   projects,
 }: Options): OnboardingTaskDescriptor[] {

@@ -5,6 +5,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types/platform';
 
 import {SpanCode} from './spanCode';
 import type {LowValueSpanEvidenceData} from './types';
@@ -13,20 +14,23 @@ import {
   getPythonSpanFilterSnippet,
   getSpanFilteringDocsUrl,
   getSpanLabel,
-  isJavaScriptSdk,
-  isPythonSdk,
+  isJavaScriptProjectPlatform,
+  isPythonProjectPlatform,
 } from './utils';
 
 interface TroubleshootingSectionProps {
   evidenceData: LowValueSpanEvidenceData;
+  projectPlatform?: PlatformKey | null;
 }
 
 function AutomaticInstrumentationFix({
   evidenceData,
+  projectPlatform,
 }: {
   evidenceData: LowValueSpanEvidenceData;
+  projectPlatform?: PlatformKey | null;
 }) {
-  if (isPythonSdk(evidenceData)) {
+  if (isPythonProjectPlatform(projectPlatform)) {
     return (
       <Stack gap="md">
         <Text>
@@ -42,7 +46,7 @@ function AutomaticInstrumentationFix({
     );
   }
 
-  if (isJavaScriptSdk(evidenceData)) {
+  if (isJavaScriptProjectPlatform(projectPlatform)) {
     return (
       <Stack gap="md">
         <Text>
@@ -101,8 +105,10 @@ function ManualInstrumentationFix({
 
 function AutomaticInstrumentationTroubleshooting({
   evidenceData,
+  projectPlatform,
 }: {
   evidenceData: LowValueSpanEvidenceData;
+  projectPlatform?: PlatformKey | null;
 }) {
   return (
     <Stack gap="md">
@@ -111,10 +117,13 @@ function AutomaticInstrumentationTroubleshooting({
           'This appears to come from SDK automatic instrumentation. Filter the exact operation and description before the span is sent.'
         )}
       </Text>
-      <AutomaticInstrumentationFix evidenceData={evidenceData} />
+      <AutomaticInstrumentationFix
+        evidenceData={evidenceData}
+        projectPlatform={projectPlatform}
+      />
       <Flex align="center" gap="xs">
         <IconDocs size="xs" />
-        <ExternalLink href={getSpanFilteringDocsUrl(evidenceData)}>
+        <ExternalLink href={getSpanFilteringDocsUrl(projectPlatform)}>
           {t('Read the SDK filtering docs')}
         </ExternalLink>
       </Flex>
@@ -122,7 +131,10 @@ function AutomaticInstrumentationTroubleshooting({
   );
 }
 
-export function TroubleshootingSection({evidenceData}: TroubleshootingSectionProps) {
+export function TroubleshootingSection({
+  evidenceData,
+  projectPlatform,
+}: TroubleshootingSectionProps) {
   const isManualInstrumentation = evidenceData.spanOrigin === 'manual';
 
   return (
@@ -131,7 +143,10 @@ export function TroubleshootingSection({evidenceData}: TroubleshootingSectionPro
       {isManualInstrumentation ? (
         <ManualInstrumentationFix evidenceData={evidenceData} />
       ) : (
-        <AutomaticInstrumentationTroubleshooting evidenceData={evidenceData} />
+        <AutomaticInstrumentationTroubleshooting
+          evidenceData={evidenceData}
+          projectPlatform={projectPlatform}
+        />
       )}
     </Stack>
   );

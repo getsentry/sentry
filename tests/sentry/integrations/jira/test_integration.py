@@ -27,7 +27,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
@@ -1628,41 +1628,6 @@ class JiraMigrationIntegrationTest(APITestCase):
 
         with self.tasks():
             self.installation.migrate_issues()
-
-
-@control_silo_test
-class JiraInstallationTest(IntegrationTestCase):
-    provider = JiraIntegrationProvider
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.metadata = {
-            "oauth_client_id": "oauth-client-id",
-            "shared_secret": "a-super-secret-key-from-atlassian",
-            "base_url": "https://example.atlassian.net",
-            "domain_name": "example.atlassian.net",
-        }
-        self.integration = self.create_provider_integration(
-            provider="jira",
-            name="Jira Cloud",
-            external_id="my-external-id",
-            metadata=self.metadata,
-        )
-
-    def assert_setup_flow(self):
-        self.login_as(self.user)
-        signed_data = {"external_id": "my-external-id", "metadata": json.dumps(self.metadata)}
-        params = {"signed_params": sign(salt=SALT, **signed_data)}
-        resp = self.client.get(self.configure_path, params)
-        assert resp.status_code == 302
-        integration = Integration.objects.get(external_id="my-external-id")
-        assert integration.metadata == self.metadata
-        assert OrganizationIntegration.objects.filter(
-            integration=integration, organization_id=self.organization.id
-        ).exists()
-
-    def test_installation(self) -> None:
-        self.assert_setup_flow()
 
 
 @control_silo_test

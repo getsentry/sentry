@@ -60,6 +60,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
+from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
 from sentry.seer.agent.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -222,7 +223,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     """
 
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     authentication_classes = (SeerRpcSignatureAuthentication,)
@@ -956,6 +957,27 @@ def bulk_get_project_preferences(
     return {str(project_id): pref.dict() for project_id, pref in preferences.items()}
 
 
+def deliver_feature_result(
+    *,
+    organization_id: int,
+    feature_id: str,
+    run_uuid: str,
+    status: FeatureRunStatus,
+    result: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> None:
+    """Dispatch a feature result from Seer to the registered handler."""
+    handler = DELIVERY_HANDLERS.get(feature_id)
+    if handler is None:
+        logger.warning(
+            "seer.feature_delivery.unknown_feature_id",
+            extra={"feature_id": feature_id, "run_uuid": run_uuid},
+        )
+        return
+
+    handler(organization_id, run_uuid, status, result, error)
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
@@ -1013,6 +1035,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_repository_definition": get_repository_definition,
     "call_custom_tool": call_custom_tool,
     "call_on_completion_hook": call_on_completion_hook,
+    "deliver_feature_result": deliver_feature_result,
     "get_log_attributes_for_trace": get_log_attributes_for_trace,
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     "get_baseline_tag_distribution": get_baseline_tag_distribution,

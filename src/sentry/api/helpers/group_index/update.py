@@ -24,6 +24,16 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    GroupActionActor,
+    action_context_scope,
+    get_action_context,
+    publish_action,
+    publish_action_from_context,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import MergeFromOtherAction, MergeIntoOtherAction, ResolveAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
@@ -205,63 +215,81 @@ def update_groups(
     if discard:
         return handle_discard(request, groups, projects, acting_user)
 
-    status_details = result.pop("statusDetails", result)
-    status = result.get("status")
-    res_type = None
-    if "priority" in result:
-        if any(not group.issue_type.enable_user_status_and_priority_changes for group in groups):
-            return Response(
-                {"detail": "Cannot manually set priority of one or more issues."},
-                status=HTTPStatus.BAD_REQUEST,
-            )
+    # Defer to an outer context if one is already set (e.g. an inbound Slack/Discord/
+    # MS Teams action handler that wrapped this call), so the integration source is not
+    # overwritten by the request-derived source. Only the outermost boundary attributes.
+    existing_ctx = get_action_context()
+    if existing_ctx is not None:
+        source = existing_ctx.source
+        actor = existing_ctx.actor
+    else:
+        source = resolve_action_source(request)
+        actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
 
-        handle_priority(
-            priority=result["priority"],
-            group_list=groups,
-            acting_user=acting_user,
-            project_lookup=project_lookup,
-        )
-    if status in ("resolved", "resolvedInNextRelease"):
-        if any(not group.issue_type.enable_user_status_and_priority_changes for group in groups):
-            return Response(
-                {"detail": "Cannot manually resolve one or more issues."},
-                status=HTTPStatus.BAD_REQUEST,
-            )
+    with action_context_scope(source=source, actor=actor):
+        status_details = result.pop("statusDetails", result)
+        status = result.get("status")
+        res_type = None
+        if "priority" in result:
+            if any(
+                not group.issue_type.enable_user_status_and_priority_changes for group in groups
+            ):
+                return Response(
+                    {"detail": "Cannot manually set priority of one or more issues."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
 
-        try:
-            result, res_type = handle_resolve_in_release(
-                status,
-                status_details,
+            handle_priority(
+                priority=result["priority"],
+                group_list=groups,
+                acting_user=acting_user,
+                project_lookup=project_lookup,
+            )
+        if status in ("resolved", "resolvedInNextRelease"):
+            if any(
+                not group.issue_type.enable_user_status_and_priority_changes for group in groups
+            ):
+                return Response(
+                    {"detail": "Cannot manually resolve one or more issues."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+
+            try:
+                result, res_type = handle_resolve_in_release(
+                    status,
+                    status_details,
+                    groups,
+                    projects,
+                    project_lookup,
+                    acting_user,
+                    result,
+                )
+            except MultipleProjectsError:
+                return Response(
+                    {"detail": "Cannot set resolved for multiple projects."}, status=400
+                )
+        elif status:
+            result = handle_other_status_updates(
+                result,
                 groups,
                 projects,
                 project_lookup,
+                status_details,
                 acting_user,
-                result,
             )
-        except MultipleProjectsError:
-            return Response({"detail": "Cannot set resolved for multiple projects."}, status=400)
-    elif status:
-        result = handle_other_status_updates(
+
+        return prepare_response(
+            request,
             result,
             groups,
-            projects,
             project_lookup,
-            status_details,
+            projects,
             acting_user,
+            data,
+            res_type,
+            request.META.get("HTTP_REFERER", ""),
+            organization,
         )
-
-    return prepare_response(
-        request,
-        result,
-        groups,
-        project_lookup,
-        projects,
-        acting_user,
-        data,
-        res_type,
-        request.META.get("HTTP_REFERER", ""),
-        organization,
-    )
 
 
 def update_groups_with_search_fn(
@@ -449,6 +477,7 @@ def handle_resolve_in_release(
             group=group,
             project=project_lookup[group.project_id],
             resolution_type=res_type_str,
+            commit_id=commit.id if commit else None,
             sender=update_groups,
         )
 
@@ -628,6 +657,12 @@ def process_group_resolution(
             data=dict(activity_data),
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
+        publish_action_from_context(
+            ResolveAction(),
+            group_id=group.id,
+            organization_id=group.project.organization_id,
+            project_id=group.project_id,
+        )
 
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes
@@ -794,6 +829,31 @@ def prepare_response(
             acting_user,
             urlparse(referer).path,
         )
+        ctx = get_action_context()
+        if ctx is not None and isinstance(result["merge"], dict):
+            merged = result["merge"]
+            primary_id = int(merged["parent"])
+            child_ids = [int(c) for c in merged["children"]]
+            group_by_id = {g.id: g for g in group_list}
+            primary = group_by_id[primary_id]
+            publish_action(
+                MergeFromOtherAction(counterpart_group_ids=child_ids),
+                source=ctx.source,
+                group_id=primary_id,
+                organization_id=primary.project.organization_id,
+                project_id=primary.project_id,
+                actor=ctx.actor,
+            )
+            for child_id in child_ids:
+                child = group_by_id[child_id]
+                publish_action(
+                    MergeIntoOtherAction(counterpart_group_id=primary_id),
+                    source=ctx.source,
+                    group_id=child_id,
+                    organization_id=child.project.organization_id,
+                    project_id=child.project_id,
+                    actor=ctx.actor,
+                )
 
     inbox = result.get("inbox", None)
     if inbox is not None:
@@ -843,22 +903,15 @@ def greatest_semver_release(project: Project) -> Release | None:
 
 
 def get_semver_releases(project: Project) -> QuerySet[Release]:
-    order_by_build_code = features.has(
-        "organizations:semver-ordering-with-build-code", project.organization
-    )
-
-    semver_cols = (
-        Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
-    )
+    semver_cols = Release.SEMVER_COLS_WITH_BUILD_CODE
 
     qs = (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
         .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
+        .annotate_build_code_column()
     )
-    if order_by_build_code:
-        qs = qs.annotate_build_code_column()
     return qs.order_by(*[f"-{col}" for col in semver_cols])
 
 

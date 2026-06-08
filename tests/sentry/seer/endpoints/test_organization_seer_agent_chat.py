@@ -104,7 +104,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 456
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
         mock_client_class.return_value = mock_client
 
         data = {"query": "What is this error about?"}
@@ -136,7 +136,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         ):
             self.organization.update_option("sentry:enable_seer_coding", option_enabled)
             mock_client = MagicMock()
-            mock_client.start_run.return_value = 456
+            mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
             mock_client_class.return_value = mock_client
 
             data = {"query": "What is this error about?"}
@@ -295,7 +295,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         self, mock_client_class: MagicMock
     ) -> None:
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 456
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
         mock_client_class.return_value = mock_client
 
         snapshot = {
@@ -320,7 +320,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_ascii_on_page_context_passed_through(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 456
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
         mock_client_class.return_value = mock_client
 
         ascii_screenshot = "+--------+\n| chart  |\n+--------+"
@@ -347,10 +347,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             self.organization, self.user, is_interactive=True, reasoning_effort="medium"
         )
 
-        with self.feature("organizations:seer-run-mirror-explorer"):
-            run_id = client.start_run(
-                prompt="What happened?",
-            )
+        run_id = client.start_run(
+            prompt="What happened?",
+        ).seer_run_state_id
 
         assert run_id == 99
 
@@ -390,10 +389,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         )
 
         with pytest.raises(SeerApiError, match="Outbox flush failed"):
-            with self.feature("organizations:seer-run-mirror-explorer"):
-                client.start_run(
-                    prompt="What happened?",
-                )
+            client.start_run(
+                prompt="What happened?",
+            )
 
         run = SeerRun.objects.get(organization_id=self.organization.id)
         assert run.mirror_status == SeerRunMirrorStatus.FAILED
@@ -413,7 +411,7 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
         self.login_as(user=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
 
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_false_sets_context_engine_disabled(
@@ -432,9 +430,9 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
 
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
-        assert body["is_context_engine_enabled"] is False
+        assert body["agent_run_options"]["is_context_engine_enabled"] is False
 
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_true_sets_context_engine_enabled(
@@ -453,9 +451,9 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
 
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
-        assert body["is_context_engine_enabled"] is True
+        assert body["agent_run_options"]["is_context_engine_enabled"] is True
 
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_ignored_without_feature_flag(
@@ -473,7 +471,7 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
 
         assert response.status_code == 200
         body = mock_chat_request.call_args[0][0]
-        assert body.get("is_context_engine_enabled") is not False
+        assert body.get("agent_run_options", {}).get("is_context_engine_enabled") is not False
 
 
 class TestCodeModeSerializerField:

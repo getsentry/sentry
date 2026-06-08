@@ -3,7 +3,8 @@ import type {Location, Query} from 'history';
 import type {Category} from 'sentry/components/platformPicker';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
-import type {PlatformIntegration, PlatformKey, Project} from './project';
+import type {PlatformKey} from './platform';
+import type {PlatformIntegration, Project} from './project';
 
 export enum OnboardingTaskGroup {
   GETTING_STARTED = 'getting_started',

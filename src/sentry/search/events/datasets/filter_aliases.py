@@ -61,7 +61,7 @@ def release_filter_converter(
                 for part in parse_release(
                     v,
                     builder.params.project_ids,
-                    builder.params.environments,
+                    [e for e in builder.params.environments if e is not None],
                     builder.params.organization.id if builder.params.organization else None,
                 )
             ]
@@ -90,13 +90,15 @@ def project_slug_converter(
     """
     # Raw value without regex conversion
     value = search_filter.value.raw_value
+    if not isinstance(value, (str, list)):
+        raise InvalidSearchQuery("Invalid value for project filter")
 
     if Op(search_filter.operator) == Op.EQ and value == "":
         raise InvalidSearchQuery(
             'Cannot query for has:project or project:"" as every event will have a project'
         )
 
-    slug_patterns = to_list(value)
+    slug_patterns: list[str] = to_list(value)
 
     project_slugs: Mapping[str, int] = {
         slug: project_id
@@ -138,13 +140,14 @@ def span_is_segment_converter(search_filter: SearchFilter) -> WhereType | None:
     """Convert the search filter from a string to a boolean
     and unalias the filter key.
     """
-    if search_filter.value.raw_value not in ["0", "1"]:
+    raw_value = search_filter.value.raw_value
+    if not isinstance(raw_value, str) or raw_value not in ("0", "1"):
         raise ValueError("is_segment must be 0 or 1")
 
     return Condition(
         Column("is_segment"),
         Op.NEQ if search_filter.operator == "!=" else Op.EQ,
-        int(search_filter.value.raw_value),
+        int(raw_value),
     )
 
 
@@ -165,7 +168,7 @@ def release_stage_filter_converter(
             search_filter.operator,
             search_filter.value.value,
             project_ids=builder.params.project_ids,
-            environments=builder.params.environments,
+            environments=[e.name for e in builder.params.environments if e is not None],
         )
         .values_list("version", flat=True)
         .order_by("date_added")[: constants.MAX_SEARCH_RELEASES]
@@ -206,7 +209,10 @@ def semver_filter_converter(
         raise ValueError("organization is a required param")
     organization_id: int = builder.params.organization.id
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
-    version: str = search_filter.value.raw_value
+    raw_value = search_filter.value.raw_value
+    if not isinstance(raw_value, str):
+        raise InvalidSearchQuery("Invalid value for semver filter")
+    version: str = raw_value
     operator: str = search_filter.operator
 
     # Note that we sort this such that if we end up fetching more than
@@ -268,7 +274,10 @@ def semver_package_filter_converter(
     """
     if builder.params.organization is None:
         raise ValueError("organization is a required param")
-    package: str = search_filter.value.raw_value
+    raw_value = search_filter.value.raw_value
+    if not isinstance(raw_value, str):
+        raise InvalidSearchQuery("Invalid value for semver package filter")
+    package: str = raw_value
 
     versions = list(
         Release.objects.filter_by_semver(
@@ -299,7 +308,10 @@ def semver_build_filter_converter(
     """
     if builder.params.organization is None:
         raise ValueError("organization is a required param")
-    build: str = search_filter.value.raw_value
+    raw_value = search_filter.value.raw_value
+    if not isinstance(raw_value, str):
+        raise InvalidSearchQuery("Invalid value for semver build filter")
+    build: str = raw_value
 
     operator, negated = handle_operator_negation(search_filter.operator)
     try:
@@ -348,18 +360,23 @@ def lowercase_search(builder: BaseQueryBuilder, search_filter: SearchFilter) -> 
     """Convert the search value to lower case"""
     raw_value = search_filter.value.raw_value
     if isinstance(raw_value, list):
-        raw_value = [val.lower() for val in raw_value]
+        lowered: str | list[str] = [str(val).lower() for val in raw_value]
+    elif isinstance(raw_value, str):
+        lowered = raw_value.lower()
     else:
-        raw_value = raw_value.lower()
+        return builder.default_filter_converter(search_filter)
     return builder.default_filter_converter(
-        SearchFilter(search_filter.key, search_filter.operator, SearchValue(raw_value))
+        SearchFilter(search_filter.key, search_filter.operator, SearchValue(lowered))
     )
 
 
 def span_module_filter_converter(
     builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
-    module_value = search_filter.value.raw_value.lower()
+    raw_value = search_filter.value.raw_value
+    if not isinstance(raw_value, str):
+        return builder.default_filter_converter(search_filter)
+    module_value = raw_value.lower()
 
     if module_value != "cache" and module_value in constants.SPAN_MODULE_CATEGORY_VALUES:
         # Creating the condition this way hits the tags index for span_module if using an actual value
@@ -379,11 +396,14 @@ def span_status_filter_converter(
             builder.resolve_field(search_filter.key.name),
             Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
         )
-    internal_value = (
-        [translate_transaction_status(val) for val in search_filter.value.raw_value]
-        if search_filter.is_in_filter
-        else translate_transaction_status(search_filter.value.raw_value)
-    )
+    raw_value = search_filter.value.raw_value
+    internal_value: int | list[int]
+    if search_filter.is_in_filter and isinstance(raw_value, (list, tuple)):
+        internal_value = [translate_transaction_status(str(val)) for val in raw_value]
+    elif isinstance(raw_value, str):
+        internal_value = translate_transaction_status(raw_value)
+    else:
+        raise InvalidSearchQuery("Invalid value for span status filter")
     return Condition(
         builder.resolve_field(search_filter.key.name),
         Op(search_filter.operator),

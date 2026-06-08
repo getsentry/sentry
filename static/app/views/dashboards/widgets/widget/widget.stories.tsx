@@ -15,6 +15,10 @@ import {Widget} from './widget';
 export const documentation =
   import('!!type-loader!sentry/views/dashboards/widgets/widget/widget');
 
+function BrokenVisualization(): React.ReactNode {
+  throw new Error('Cannot read properties of undefined (reading "series")');
+}
+
 export default Storybook.story('Widget', story => {
   story('Getting Started', () => {
     return (
@@ -296,6 +300,25 @@ function InsightsLineChart() {
 
                 `}
         </CodeBlock>
+      </Fragment>
+    );
+  });
+
+  story('Error states', () => {
+    return (
+      <Fragment>
+        <p>
+          If the visualization (or footer) throws while rendering, the Widget's
+          ErrorBoundary hides the raw error from the user and shows a friendly message
+          plus a "Give Feedback" button. The underlying error is still reported to Sentry.
+        </p>
+
+        <SmallStorybookSizingWindow>
+          <Widget
+            Title={<Widget.WidgetTitle title="epm() : /insights/frontend/assets" />}
+            Visualization={<BrokenVisualization />}
+          />
+        </SmallStorybookSizingWindow>
       </Fragment>
     );
   });

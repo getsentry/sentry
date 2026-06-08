@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -46,6 +47,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -73,7 +75,7 @@ from sentry.search.eap.types import (
     SupportedTraceItemType,
 )
 from sentry.search.eap.utils import (
-    can_expose_attribute,
+    can_expose_attribute_to_api,
     get_secondary_aliases,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
@@ -330,6 +332,22 @@ def as_attribute_key(
     return attribute_key
 
 
+def can_expose_trace_item_attribute_to_api(
+    attribute_key: TraceItemAttributeKey,
+    item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+) -> bool:
+    return can_expose_attribute_to_api(
+        attribute_key["key"],
+        item_type,
+        include_internal=include_internal,
+    ) and can_expose_attribute_to_api(
+        attribute_key["name"],
+        item_type,
+        include_internal=include_internal,
+    )
+
+
 @extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
@@ -361,7 +379,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         },
         examples=TraceItemAttributeExamples.LIST_TRACE_ITEM_ATTRIBUTES,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[TraceItemAttributeKey]] | Response[ValidationErrorResponse]:
         """
         List the attribute keys available on a given trace item dataset (spans, logs,
         trace metrics, etc.), with optional substring and structured filtering.
@@ -371,7 +391,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -417,6 +437,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.end = adjusted_end_date
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
+        debug = request.user.is_superuser and request.GET.get("debug", False)
+        debug_infos: list[dict] = []
 
         def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
             futures = []
@@ -437,20 +459,27 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             column_definitions,
                             trace_item_type,
                             include_internal,
+                            debug=debug,
                         )
                     )
             attributes = []
             for future in futures:
-                attributes.extend(future.result())
+                result_attributes, result_debug_info = future.result()
+                attributes.extend(result_attributes)
+                if result_debug_info is not None:
+                    debug_infos.append(result_debug_info)
             return attributes
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             paginator=TraceItemAttributesNamesPaginator(data_fn=data_fn),
             on_results=lambda results: serialize(results, request.user),
             default_per_page=max_attributes,
             max_per_page=max_attributes,
         )
+        if debug:
+            response.data = {"data": response.data, "debug_info": debug_infos}
+        return response
 
     def query_trace_attributes(
         self,
@@ -463,7 +492,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         column_definitions: ColumnDefinitions,
         trace_item_type: SupportedTraceItemType,
         include_internal: bool,
-    ):
+        debug: str | bool = False,
+    ) -> tuple[list[TraceItemAttributeKey], dict | None]:
+        debug_info: dict | None = None
         value_substring_match = translate_escape_sequences(substring_match)
         attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
             attribute_type, AttributeKey.Type.TYPE_STRING
@@ -532,7 +563,13 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 )
 
                 with handle_query_errors():
-                    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+                    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request, debug=debug)
+                    if debug:
+                        debug_info = {
+                            "attribute_type": attribute_type,
+                            "raw_request": MessageToDict(rpc_request),
+                            "raw_response": MessageToDict(rpc_response),
+                        }
             else:
                 rpc_response = TraceItemAttributeNamesResponse()
 
@@ -550,7 +587,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             sentry_sdk.set_context("api_response", {"attributes": attributes})
             span.set_data("attribute_count", len(attributes))
             span.set_data("attribute_type", attribute_type)
-        return attributes
+        return attributes, debug_info
 
     def serialize_trace_attributes(
         self,
@@ -564,7 +601,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
-            if attribute.name and can_expose_attribute(
+            if attribute.name and can_expose_attribute_to_api(
                 attribute.name,
                 trace_item_type,
                 include_internal=include_internal,
@@ -582,6 +619,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     # This can happen when the public alias is different, but that's handled by
                     # aliased_attributes
                     and (substring_match in attr_key["name"] if substring_match else True)
+                    and can_expose_trace_item_attribute_to_api(
+                        attr_key, trace_item_type, include_internal=include_internal
+                    )
                 ):
                     attribute_keys[attr_key["key"]] = attr_key
         # We need to exclude any aliased attributes here since because of pagination they might have already been seen
@@ -596,7 +636,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             if attr_key["name"] in attribute_keys:
                 del attribute_keys[attr_key["name"]]
         for aliased_attr in aliased_attributes:
-            if can_expose_attribute(
+            if can_expose_attribute_to_api(
                 aliased_attr.public_alias,
                 trace_item_type,
                 include_internal=include_internal,
@@ -607,7 +647,14 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     trace_item_type,
                     is_proxy=isinstance(aliased_attr, ProxyResolvedAttribute),
                 )
-                attribute_keys[attr_key["key"]] = attr_key
+                if can_expose_attribute_to_api(
+                    aliased_attr.internal_name,
+                    trace_item_type,
+                    include_internal=include_internal,
+                ) and can_expose_trace_item_attribute_to_api(
+                    attr_key, trace_item_type, include_internal=include_internal
+                ):
+                    attribute_keys[attr_key["key"]] = attr_key
         attributes = list(attribute_keys.values())
         sentry_sdk.set_context("api_response", {"attributes": attributes})
         return attributes
@@ -659,7 +706,12 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
             with handle_query_errors():
                 tag_values = executor.execute()
-            tag_values.sort(key=lambda tag: tag.value or "")
+            tag_values.sort(
+                key=lambda tag: (
+                    -tag.times_seen if tag.times_seen is not None else 0,
+                    tag.value or "",
+                )
+            )
             return tag_values
 
         return self.paginate(
@@ -915,6 +967,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
         rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
 
         values: Sequence[str] = rpc_response.values
+        counts: Sequence[int] = rpc_response.counts
         if self.context_definition:
             context = self.context_definition.constructor(self.snuba_params, self.resolver)
             values = [context.value_map.get(value, value) for value in values]
@@ -923,11 +976,11 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             TagValue(
                 key=self.key,
                 value=value,
-                times_seen=None,
+                times_seen=counts[index] if len(counts) == len(values) else None,
                 first_seen=None,
                 last_seen=None,
             )
-            for value in values
+            for index, value in enumerate(values)
             if value
         ]
 

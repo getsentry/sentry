@@ -2,7 +2,7 @@ from datetime import datetime
 
 from drf_spectacular.utils import OpenApiExample
 
-from sentry.api.serializers.models.event import GroupEventDetailsResponse
+from sentry.api.serializers.models.event import EventSerializerResponse, GroupEventDetailsResponse
 
 SIMPLE_EVENT = {
     "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
@@ -414,6 +414,185 @@ GROUP_EVENT: GroupEventDetailsResponse = {
     "sdkUpdates": [],
 }
 
+# Base event response shape returned by EventSerializer.serialize. Compared to
+# GROUP_EVENT (GroupEventDetailsResponse), this omits fields added by other serializers or for navigation
+EVENT_RESPONSE: EventSerializerResponse = {
+    "id": "9999aaafcc8b46d797c23c6077c6ff01",
+    "groupID": "1341191803",
+    "eventID": "9999aaaaca8b46d797c23c6077c6ff01",
+    "projectID": "5236886",
+    "message": "",
+    "title": "This is an example Python exception",
+    "location": "example.py:123",
+    "user": {
+        "username": None,
+        "name": "Hell Boy",
+        "ip_address": "192.168.1.1",
+        "email": "hell@boy.cat",
+        "data": {"isStaff": False},
+        "id": "550747",
+    },
+    "tags": [
+        {"value": "Chrome 83.0.4103", "key": "browser"},
+        {"value": "Chrome", "key": "browser.name"},
+        {"value": "prod", "key": "environment"},
+        {"value": "yes", "key": "handled"},
+        {"value": "error", "key": "level"},
+        {"value": "generic", "key": "mechanism"},
+    ],
+    "platform": "javascript",
+    "dateReceived": datetime.fromisoformat("2020-06-17T22:26:56.428721Z"),
+    "contexts": {
+        "browser": {"version": "83.0.4103", "type": "browser", "name": "Chrome"},
+        "os": {"version": "10", "type": "os", "name": "Windows"},
+        "trace": {
+            "span_id": "83db1ad17e67dfe7",
+            "type": "trace",
+            "trace_id": "da6caabcd90e45fdb81f6655824a5f88",
+            "op": "navigation",
+        },
+        "organization": {"type": "default", "id": "323938", "slug": "hellboy-meowmeow"},
+    },
+    "size": 107762,
+    "entries": [
+        {
+            "type": "exception",
+            "data": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "ignoreOnError",
+                                    "errors": None,
+                                    "colNo": 23,
+                                    "vars": None,
+                                    "package": None,
+                                    "absPath": "webpack:////usr/src/getsentry/src/sentry/node_modules/@sentry/browser/esm/helpers.js",
+                                    "inApp": False,
+                                    "lineNo": 71,
+                                    "module": "usr/src/getsentry/src/sentry/node_modules/@sentry/browser/esm/helpers",
+                                    "filename": "/usr/src/getsentry/src/sentry/node_modules/@sentry/browser/esm/helpers.js",
+                                    "platform": None,
+                                    "instructionAddr": None,
+                                    "context": [
+                                        [
+                                            70,
+                                            "            //       is expected behavior and NOT indicative of a bug with sentry.javascript.",
+                                        ],
+                                        [
+                                            71,
+                                            "            return fn.apply(this, wrappedArguments);",
+                                        ],
+                                        [72, "            // tslint:enable:no-unsafe-any"],
+                                    ],
+                                    "symbolAddr": None,
+                                    "trust": None,
+                                    "symbol": None,
+                                },
+                            ],
+                            "framesOmitted": None,
+                            "registers": None,
+                            "hasSystemFrames": True,
+                        },
+                        "module": None,
+                        "rawStacktrace": None,
+                        "mechanism": {"type": "generic", "handled": True},
+                        "threadId": None,
+                        "value": "GET /organizations/hellboy-meowmeow/users/ 403",
+                        "type": "ForbiddenError",
+                    }
+                ],
+                "excOmitted": None,
+                "hasSystemFrames": True,
+            },
+        },
+        {
+            "type": "breadcrumbs",
+            "data": {
+                "values": [
+                    {
+                        "category": "xhr",
+                        "level": "info",
+                        "event_id": None,
+                        "timestamp": "2020-06-17T22:26:55.619446Z",
+                        "data": {
+                            "url": "/api/0/internal/health/",
+                            "status_code": 200,
+                            "method": "GET",
+                        },
+                        "message": None,
+                        "type": "http",
+                    },
+                ]
+            },
+        },
+        {
+            "type": "request",
+            "data": {
+                "fragment": None,
+                "cookies": [],
+                "inferredContentType": None,
+                "env": None,
+                "headers": [
+                    [
+                        "User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36",
+                    ]
+                ],
+                "url": "https://sentry.io/organizations/hellboy-meowmeow/issues/",
+                "query": [["project", "5236886"]],
+                "data": None,
+                "method": None,
+            },
+        },
+    ],
+    "dist": None,
+    "sdk": {"version": "5.17.0", "name": "sentry.javascript.browser"},
+    "context": {
+        "resp": {
+            "status": 403,
+            "responseJSON": {"detail": "You do not have permission to perform this action."},
+            "name": "ForbiddenError",
+            "statusText": "Forbidden",
+            "message": "GET /organizations/hellboy-meowmeow/users/ 403",
+        }
+    },
+    "packages": {},
+    "type": "error",
+    "metadata": {
+        "type": "ForbiddenError",
+        "value": "GET /organizations/hellboy-meowmeow/users/ 403",
+    },
+    "errors": [
+        {
+            "data": {
+                "column": 8,
+                "source": "https://s1.sentry-cdn.com/_static/bloopbloop/sentry/dist/app.js.map",
+                "row": 15,
+            },
+            "message": "Invalid location in sourcemap",
+            "type": "js_invalid_sourcemap_location",
+        }
+    ],
+    "occurrence": None,
+    "_meta": {
+        "user": None,
+        "context": None,
+        "entries": {},
+        "contexts": None,
+        "message": None,
+        "packages": None,
+        "tags": {},
+        "sdk": None,
+    },
+    "crashFile": None,
+    "culprit": "/books/new/",
+    "dateCreated": datetime.fromisoformat("2020-06-17T22:26:56.098086Z"),
+    "fingerprints": ["fbe908cc63d63ea9763fd84cb6bad177"],
+    "groupingConfig": {"enhancements": "abc", "id": "2359823092345612392"},
+}
+
 
 class EventExamples:
     PROJECT_EVENTS_SIMPLE = [
@@ -436,6 +615,20 @@ class EventExamples:
         OpenApiExample(
             "Return an issue event",
             value=GROUP_EVENT,
+            response_only=True,
+            status_codes=["200"],
+        )
+    ]
+    GROUP_HASHES = [
+        OpenApiExample(
+            "Return an issue's hashes",
+            value=[
+                {
+                    "id": "53aa54ab27474eaab1fc1d0f7f86d2f1",
+                    "latestEvent": EVENT_RESPONSE,
+                    "mergedBySeer": False,
+                }
+            ],
             response_only=True,
             status_codes=["200"],
         )

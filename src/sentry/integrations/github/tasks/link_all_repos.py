@@ -6,6 +6,7 @@ from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.metrics import (
     LinkAllReposHaltReason,
     SCMIntegrationInteractionEvent,
@@ -90,11 +91,17 @@ def link_all_repos(
                 missing_repos.append(repo)
                 continue
 
-        _created_repos, _reactivated_repos, existing_repos = (
+        created_repos, _reactivated_repos, existing_repos = (
             integration_repo_provider.create_repositories(
                 configs=repo_configs, organization=rpc_org
             )
         )
+
+        if created_repos:
+            repository_service.auto_link_repos_by_name(
+                organization_id=rpc_org.id, repo_ids=[r.id for r in created_repos]
+            )
+
         if existing_repos:
             lifecycle.record_halt(
                 str(LinkAllReposHaltReason.REPOSITORY_NOT_CREATED),

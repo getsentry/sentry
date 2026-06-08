@@ -53,12 +53,14 @@ const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'github',
   'github_enterprise',
   'gitlab',
+  'jira',
   'msteams',
   'opsgenie',
   'pagerduty',
   'perforce',
   'slack',
   'slack_staging',
+  'vercel',
   'vsts',
 ] as const satisfies ReadonlyArray<ProvidersByType['integration']>;
 

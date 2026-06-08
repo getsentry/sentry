@@ -22,7 +22,6 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.safe import get_path
 
@@ -46,10 +45,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self,
         settings: dict[str, Any],
         event: dict[str, Any],
-        organization: Organization | None = None,
         detector_id: int | None = None,
     ) -> None:
-        super().__init__(settings, event, organization, detector_id)
+        super().__init__(settings, event, detector_id)
 
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.spans: list[Span] = []
@@ -74,10 +72,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self._maybe_store_problem()
             self.spans = [span]
 
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return True
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
+    def is_creation_allowed(self) -> bool:
         return self.settings["detection_enabled"]
 
     @classmethod

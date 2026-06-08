@@ -276,8 +276,8 @@ describe('getLogsSeerLocationQuery', () => {
       }),
     }).query;
 
-    expect(absoluteQuery.start).toBe(new Date('2024-06-01T00:00:00').toISOString());
-    expect(absoluteQuery.end).toBe(new Date('2024-06-02T00:00:00').toISOString());
+    expect(absoluteQuery.start).toBe('2024-06-01T00:00:00');
+    expect(absoluteQuery.end).toBe('2024-06-02T00:00:00');
     expect(absoluteQuery.statsPeriod).toBeUndefined();
   });
 

@@ -124,6 +124,7 @@ export function SpansTabSeerComboBox() {
         datetime: seerQuery.datetime,
       };
 
+      // TODO: Include traces mode once we can switch the table in getExploreUrl
       const url = getExploreUrl({
         organization,
         selection,

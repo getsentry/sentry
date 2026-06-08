@@ -19,10 +19,12 @@ import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
 
 // Simple store for active thread ID from the UI with subscription support
 let _activeThreadId: number | undefined;
@@ -141,13 +143,23 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
   return markdownText;
 }
 
-export const issueAndEventToMarkdown = (
-  group: Group,
-  event: Event | null | undefined,
-  groupSummaryData: GroupSummaryData | null | undefined,
-  autofixData: ExplorerAutofixState | null | undefined,
-  activeThreadId: number | undefined
-): string => {
+interface IssueAndEventToMarkdownOptions {
+  group: Group;
+  organization: Organization;
+  activeThreadId?: number;
+  autofixData?: ExplorerAutofixState | null;
+  event?: Event | null;
+  groupSummaryData?: GroupSummaryData | null;
+}
+
+export const issueAndEventToMarkdown = ({
+  group,
+  event,
+  groupSummaryData,
+  autofixData,
+  activeThreadId,
+  organization,
+}: IssueAndEventToMarkdownOptions): string => {
   // Format the basic issue information
   let markdownText = `# ${group.title}\n\n`;
   markdownText += `**Issue ID:** ${group.id}\n`;
@@ -199,6 +211,7 @@ export const issueAndEventToMarkdown = (
   }
 
   if (event) {
+    markdownText += formatSpanEvidenceToMarkdown(event, organization, group);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
@@ -213,14 +226,15 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {
-    return issueAndEventToMarkdown(
+    return issueAndEventToMarkdown({
       group,
       event,
       groupSummaryData,
       autofixData,
-      activeThreadId
-    );
-  }, [group, event, groupSummaryData, autofixData, activeThreadId]);
+      activeThreadId,
+      organization,
+    });
+  }, [group, event, groupSummaryData, autofixData, activeThreadId, organization]);
 
   const {copy} = useCopyToClipboard();
 

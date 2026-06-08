@@ -18,6 +18,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -92,20 +93,22 @@ export function IssueListSeerComboBox() {
       let timeParams: Record<string, string | undefined> = {};
 
       if (resultStart && resultEnd) {
-        const startLocal = resultStart.endsWith('Z')
-          ? resultStart.slice(0, -1)
-          : resultStart;
-        const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
         timeParams = {
-          start: new Date(startLocal).toISOString(),
-          end: new Date(endLocal).toISOString(),
+          start: getUtcDateString(resultStart),
+          end: getUtcDateString(resultEnd),
           statsPeriod: undefined,
+          // Seer returns absolute ranges as UTC, so display them in UTC to match
+          // the suggestion preview the user accepted.
+          utc: 'true',
         };
       } else if (statsPeriod) {
         timeParams = {
           statsPeriod,
           start: undefined,
           end: undefined,
+          // Clear any utc flag left over from a prior absolute range; a relative
+          // window has no UTC display semantics to preserve.
+          utc: undefined,
         };
       }
 

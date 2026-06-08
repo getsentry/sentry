@@ -9,6 +9,7 @@ import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import type {DateString} from 'sentry/types/core';
 import type {PageFilters} from 'sentry/types/core';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {useProjects} from 'sentry/utils/useProjects';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -26,6 +27,7 @@ export function useInitialSeerQuery(): string {
 
   const inputValue = currentInputValueRef.current.trim();
 
+  // Only filter out FREE_TEXT tokens if there's actual input value to filter by
   const filteredCommittedQuery = queryDetails?.parsedQuery
     ?.filter(
       token =>
@@ -37,6 +39,9 @@ export function useInitialSeerQuery(): string {
 
   let initialSeerQuery = '';
 
+  // Use filteredCommittedQuery if it has content.
+  // Only fall back to queryToUse when there's no inputValue to filter by.
+  // This prevents duplication when the entire query is free text matching inputValue.
   if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
     initialSeerQuery = filteredCommittedQuery;
   } else if (!inputValue && queryDetails?.queryToUse) {
@@ -137,10 +142,8 @@ export function buildSeerDateTimeSelection(
   let end: DateString = null;
 
   if (resultStart && resultEnd) {
-    const startLocal = resultStart.endsWith('Z') ? resultStart.slice(0, -1) : resultStart;
-    const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
-    start = new Date(startLocal).toISOString();
-    end = new Date(endLocal).toISOString();
+    start = getUtcDateString(resultStart);
+    end = getUtcDateString(resultEnd);
   } else {
     start = pageFiltersDatetime.start;
     end = pageFiltersDatetime.end;
@@ -149,7 +152,9 @@ export function buildSeerDateTimeSelection(
   return {
     start,
     end,
-    utc: pageFiltersDatetime.utc,
+    // Seer returns absolute ranges as UTC, so display them in UTC to match the
+    // suggestion preview the user accepted.
+    utc: resultStart && resultEnd ? true : pageFiltersDatetime.utc,
     period: resultStart && resultEnd ? null : statsPeriod || pageFiltersDatetime.period,
   };
 }

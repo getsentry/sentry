@@ -6,7 +6,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {fzf} from 'sentry/utils/search/fzf';
 
 import type {SelectProps} from './compactSelect';

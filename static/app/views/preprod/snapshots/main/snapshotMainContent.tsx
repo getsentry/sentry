@@ -12,7 +12,11 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  DiffStatus,
+  getImageName,
+  getSnapshotImageUrl,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
@@ -322,7 +326,7 @@ export function SnapshotMainContent({
       return null;
     }
     const image = currentPair.head_image;
-    const imageUrl = `${imageBaseUrl}${image.key}/`;
+    const imageUrl = getSnapshotImageUrl(imageBaseUrl, image);
     return (
       <SingleViewLayout
         isDark={isDark}
@@ -364,7 +368,7 @@ export function SnapshotMainContent({
   if (!currentImage) {
     return null;
   }
-  const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
+  const imageUrl = getSnapshotImageUrl(imageBaseUrl, currentImage);
   let status: DiffStatus | null;
   switch (selectedItem.type) {
     case 'solo':
