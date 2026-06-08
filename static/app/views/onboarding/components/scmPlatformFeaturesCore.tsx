@@ -99,6 +99,18 @@ export function ScmPlatformFeaturesCore({
   const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
 
   const [showManualPicker, setShowManualPicker] = useState(false);
+  // Guards the auto-detect analytics event below so it fires once per repo.
+  const autoDetectionTrackedRef = useRef(false);
+
+  // Reset repo-derived state when the user changes repositories: surface the
+  // freshly-detected platforms for the new repo instead of leaving the manual
+  // picker visible, and re-arm the auto-detect analytics event so it can fire
+  // for the new repo. Keyed on externalId since it is stable across the
+  // optimistic -> resolved transition for a given selection.
+  useEffect(() => {
+    setShowManualPicker(false);
+    autoDetectionTrackedRef.current = false;
+  }, [selectedRepository?.externalId]);
 
   useEffect(() => {
     trackAnalytics(STEP_VIEWED_EVENT[analyticsFlow], {organization});
@@ -145,11 +157,11 @@ export function ScmPlatformFeaturesCore({
 
   const currentPlatformName = getPlatformName(currentPlatformKey);
 
-  // Fire scm_platform_selected once when detection auto-resolves a platform
-  // and the user hasn't explicitly chosen one. Otherwise a user who accepts
-  // the recommendation and clicks Continue never emits the event, leaving
-  // the funnel without a platform-selected step.
-  const autoDetectionTrackedRef = useRef(false);
+  // Fire scm_platform_selected once per repo when detection auto-resolves a
+  // platform and the user hasn't explicitly chosen one. Otherwise a user who
+  // accepts the recommendation and clicks Continue never emits the event,
+  // leaving the funnel without a platform-selected step. The ref is re-armed
+  // on repo change above so a switch to a new repo fires the event again.
   useEffect(() => {
     if (
       autoDetectionTrackedRef.current ||
