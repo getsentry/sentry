@@ -55,7 +55,7 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
         return bool(category_matches if include else not category_matches)
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         value = condition_data["value"]
         title = CATEGORY_CHOICES.get(value)
         group_category_name = title.title() if title else ""

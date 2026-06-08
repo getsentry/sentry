@@ -3,7 +3,6 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.useremail import UserEmail
 from sentry.utils.signing import sign
@@ -47,12 +46,6 @@ class UserEmailsConfirmTest(APITestCase):
         self.get_error_response(self.user.id, email="", status_code=400)
         assert send_confirm_email.call_count == 0
 
-    @override_options(
-        {
-            "user-settings.signed-url-confirmation-emails": True,
-            "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
-        }
-    )
     def test_confirm_email_signed_url(self) -> None:
         from sentry import options
 
@@ -81,12 +74,6 @@ class UserEmailsConfirmTest(APITestCase):
         assert len(messages) == 1
         assert messages[0].message == "Thanks for confirming your email"
 
-    @override_options(
-        {
-            "user-settings.signed-url-confirmation-emails": True,
-            "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
-        }
-    )
     def test_confirm_email_invalid_signed_url(self) -> None:
         self.login_as(self.user)
 
@@ -115,12 +102,6 @@ class UserEmailsConfirmTest(APITestCase):
             == "There was an error confirming your email. Please try again or visit your Account Settings to resend the verification email."
         )
 
-    @override_options(
-        {
-            "user-settings.signed-url-confirmation-emails": True,
-            "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
-        }
-    )
     def test_confirm_email_already_verified(self) -> None:
         from sentry import options
 
@@ -149,18 +130,12 @@ class UserEmailsConfirmTest(APITestCase):
         assert resp.status_code == 200
         assert resp.redirect_chain == [(reverse("sentry-account-settings-emails"), 302)]
 
+        # Confirmation is idempotent: re-confirming an already-verified email
+        # succeeds rather than surfacing an error.
         messages = list(resp.context["messages"])
         assert len(messages) == 1
-        assert (
-            messages[0].message == "The email you are trying to verify has already been verified."
-        )
+        assert messages[0].message == "Thanks for confirming your email"
 
-    @override_options(
-        {
-            "user-settings.signed-url-confirmation-emails": True,
-            "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
-        }
-    )
     def test_confirm_email_expired_signature(self) -> None:
         from datetime import timedelta
 
@@ -191,31 +166,4 @@ class UserEmailsConfirmTest(APITestCase):
         assert (
             messages[0].message
             == "The confirmation link has expired. Please visit your Account Settings to resend the verification email."
-        )
-
-    @override_options(
-        {
-            "user-settings.signed-url-confirmation-emails": False,
-            "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
-        }
-    )
-    def test_confirm_email_signed_urls_disabled(self) -> None:
-        self.login_as(self.user)
-
-        new_email = "newemailfromsignedurl@example.com"
-        signed_data = sign(
-            user_id=self.user.id,
-            email=new_email,
-            salt="signed-url-confirmation-emails-salt",
-        )
-        resp = self.client.get(
-            reverse("sentry-account-confirm-signed-email", args=[signed_data]), follow=True
-        )
-        assert resp.status_code == 200
-
-        messages = list(resp.context["messages"])
-        assert len(messages) == 1
-        assert (
-            messages[0].message
-            == "There was an error confirming your email. Please try again or visit your Account Settings to resend the verification email."
         )

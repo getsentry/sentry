@@ -43,7 +43,7 @@ export default function LegalAndCompliance() {
               </Text>
             </Stack>
             <Container flexGrow={1}>
-              <Text>{`${regionData.flag ?? ''} ${regionData.displayName}`}</Text>
+              <Text>{regionData.label}</Text>
             </Container>
           </Flex>
         </FieldGroup>

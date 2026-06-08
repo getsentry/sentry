@@ -1,10 +1,15 @@
 import type {ReactElement} from 'react';
 
+import {Tooltip as mockTooltip} from 'sentry-test/snapshots/mocks/tooltip';
+
 // eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {lightTheme} from 'sentry/utils/theme/theme';
 
 import {closeBrowser, takeSnapshot} from './snapshot';
 import type {SnapshotTestMetadata} from './snapshot-image-metadata';
+
+// Tooltip portals to document.body, unavailable under SSR; mock globally.
+jest.mock('@sentry/scraps/tooltip', () => ({Tooltip: mockTooltip}));
 
 const BREAKPOINT_WIDTHS = Object.fromEntries(
   Object.entries(lightTheme.breakpoints).map(([k, v]) => [k, parseInt(v, 10)])
@@ -132,11 +137,12 @@ snapshotTest.each = function snapshotEach<T>(table: T[]) {
 snapshotTest.breakpoints = function snapshotBreakpoints(
   breakpoints: BreakpointName[],
   name: string,
-  renderFn: () => ReactElement,
+  renderFn: (width: number) => ReactElement,
   metadata: SnapshotTestMetadata = {}
 ): void {
   for (const bp of breakpoints) {
-    snapshotTest(name, renderFn, {...metadata, viewport: bp});
+    const width = BREAKPOINT_WIDTHS[bp];
+    snapshotTest(name, () => renderFn(width), {...metadata, viewport: bp});
   }
 };
 
@@ -153,7 +159,7 @@ declare global {
         breakpoints: (
           breakpoints: BreakpointName[],
           name: string,
-          renderFn: () => ReactElement,
+          renderFn: (width: number) => ReactElement,
           metadata?: SnapshotTestMetadata
         ) => void;
         each: <T>(

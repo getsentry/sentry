@@ -5,7 +5,11 @@ from typing import Any, Literal, TypeAlias
 from pydantic import BaseModel, Field, root_validator, validator
 
 from sentry.models.dashboard import Dashboard
-from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
+from sentry.models.dashboard_widget import (
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetTypes,
+    get_max_widget_limit,
+)
 
 GRID_WIDTH = 6
 
@@ -227,6 +231,25 @@ class GeneratedWidget(BaseModel):
         if is_text and widget_type is not None:
             raise ValueError("widget_type is not allowed for text widgets")
 
+        queries = values.get("queries") or []
+        if not is_text and not queries:
+            raise ValueError("Non-text widgets must have at least one query")
+
+        return values
+
+    @root_validator
+    def check_limit_by_display_type(cls, values: dict[str, Any]) -> dict[str, Any]:
+        display_type = values.get("display_type")
+        limit = values.get("limit")
+        if display_type is None or limit is None or display_type == "text":
+            return values
+        max_limit = get_max_widget_limit(
+            DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
+        )
+        if limit > max_limit:
+            raise ValueError(
+                f"limit={limit} exceeds the maximum of {max_limit} for display_type '{display_type}'"
+            )
         return values
 
     @root_validator

@@ -19,6 +19,7 @@ export const POPULARITY_WEIGHT: Record<string, number> = {
   bitbucket: 10,
   discord: 15,
   gitlab: 10,
+  perforce: 10,
   pagerduty: 10,
   vsts: 9,
   jira_server: 9,

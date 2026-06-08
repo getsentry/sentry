@@ -9,3 +9,5 @@ export {
 export {SelectAsync, type SelectAsyncControlProps, type Result} from './async';
 
 export {SelectOption} from './option';
+
+export type {SelectValue} from './types';

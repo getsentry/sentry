@@ -56,6 +56,7 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
     "sentry-api-0-organization-preprod-snapshots-download": 90.0,
+    "sentry-api-0-organization-preprod-snapshots-archive": 90.0,
 }
 
 # stream 0.5 MB at a time
@@ -114,6 +115,14 @@ def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> H
         logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
+    metrics.incr(
+        "apigateway.proxy_request",
+        tags={
+            "url_name": url_name,
+            "kind": "orgslug",
+            "target": cell.name,
+        },
+    )
     return proxy_cell_request(request, cell, url_name)
 
 
@@ -151,7 +160,11 @@ def proxy_error_embed_request(
 def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
 
-    metric_tags = {"destination_cell": cell.name, "url_name": url_name}
+    host = cell.address
+    if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
+        host = cell.api_gateway_address
+
+    metric_tags = {"destination_cell": cell.name, "url_name": url_name, "destination_host": host}
     circuit_breaker: CircuitBreaker | None = None
     use_pooling = in_random_rollout("hybridcloud.apigateway.use_pooling.rate")
 
@@ -178,7 +191,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
                 }
                 return JsonResponse(body, status=503)
 
-    target_url = urljoin(cell.address, request.path)
+    target_url = urljoin(host, request.path)
 
     if settings.APIGW_WARN_REQS:
         logger.warning("apigateway.legacy-sync-request", extra={"endpoint": target_url})

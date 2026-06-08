@@ -44,6 +44,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -65,6 +66,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
 )
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.types import DetectorId
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -236,7 +238,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[WorkflowSerializerResponse]] | Response[DetailResponse]:
         """
         Returns a list of alerts for a given organization
         """
@@ -245,7 +249,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_workflows(request, organization)
 
         # When the `priorityDetector` query param is provided, workflows connected to this detector are sorted first
-        priority_detector_id: int | None = None
+        priority_detector_id: DetectorId | None = None
         if raw_priority := request.GET.get("priorityDetector"):
             priority_detector_id = to_valid_int_id("priorityDetector", raw_priority)
 
@@ -356,7 +360,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         ),
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def put(self, request: Request, organization: Organization) -> Response:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[list[WorkflowSerializerResponse]] | Response[DetailResponse]:
         """
         Bulk enable or disable alerts for a given Organization
         """

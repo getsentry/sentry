@@ -5,7 +5,6 @@ import type {Location, LocationDescriptor, Query} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
@@ -149,26 +148,6 @@ export function generateTraceLink(dateSelection: any, view?: DomainView) {
       dateSelection,
       timestamp: tableRow.timestamp,
       location,
-      source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-      view,
-    });
-  };
-}
-
-export function generateTransactionIdLink(view?: DomainView) {
-  return (
-    organization: Organization,
-    tableRow: TableDataRow,
-    location: Location,
-    spanId?: string
-  ): LocationDescriptor => {
-    return generateLinkToEventInTraceView({
-      eventId: tableRow.id,
-      timestamp: tableRow.timestamp!,
-      traceSlug: tableRow.trace?.toString()!,
-      location,
-      organization,
-      spanId,
       source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
       view,
     });

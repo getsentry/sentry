@@ -1,21 +1,8 @@
-import type {Query} from 'history';
-
-import type {EventTag} from 'sentry/types/event';
-import {
-  ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
-  type FieldKey,
-} from 'sentry/utils/fields';
-import {appendTagCondition} from 'sentry/utils/queryString';
-
 /**
  * Replaces slug special chars with a space
  */
 export function explodeSlug(slug: string): string {
   return slug.replace(/[-_]+/g, ' ').trim();
-}
-
-export function defined<T>(item: T): item is Exclude<T, null | undefined> {
-  return item !== undefined && item !== null;
 }
 
 export function escape(str: string): string {
@@ -97,55 +84,6 @@ export function isWebpackChunkLoadingError(error: Error): boolean {
     typeof error.message === 'string' &&
     error.message.toLowerCase().includes('loading chunk')
   );
-}
-
-/**
- * If a tag conflicts with a reserved keyword, change it to `tags[key]:value`
- */
-export function escapeIssueTagKey(key: string) {
-  if (key === '') {
-    return '""';
-  }
-
-  // Environment and project should be handled by the page filter
-  if (key === 'environment' || key === 'project') {
-    return key;
-  }
-
-  // Reserved keywords that conflict with issue search query
-  if (['project.name', 'project_id'].includes(key)) {
-    return `tags[${key}]`;
-  }
-
-  if (ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS.has(key as FieldKey)) {
-    return `tags[${key}]`;
-  }
-
-  return key;
-}
-
-export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
-  const query = {...prevQuery};
-
-  // some tags are dedicated query strings since other parts of the app consumes this,
-  // for example, the global selection header.
-  switch (tag.key) {
-    case 'environment':
-      query.environment = tag.value;
-      break;
-    case 'project':
-      query.project = tag.value;
-      break;
-    default:
-      query.query = appendTagCondition(query.query, tag.key, tag.value);
-  }
-
-  // Checking for the absence of a tag value.
-  if (tag.value === '') {
-    query.query = `!has:${tag.key}`;
-  }
-
-  return query;
 }
 
 // NOTE: only escapes a " if it's not already escaped

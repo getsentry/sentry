@@ -4,7 +4,7 @@ import {Client} from 'sentry/api';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Organization} from 'sentry/types/organization';
 import {
-  getRegionChoices,
+  getRegionUrlOptions,
   getRegionDataFromOrganization,
   getRegions,
 } from 'sentry/utils/regions';
@@ -65,14 +65,16 @@ class ForkCustomerActionImpl extends Component<Props> {
   render() {
     const {organization} = this.props;
     const currentRegionData = getRegionDataFromOrganization(organization);
-    const regionChoices = getRegionChoices(currentRegionData ? [currentRegionData] : []);
+    const regionOptions = getRegionUrlOptions(
+      currentRegionData ? [currentRegionData] : []
+    );
     return (
       <Fragment>
         <SelectField
           name="regionUrl"
           label="Duplicate into Region"
           help="Choose which region to duplicate this organization's low volume metadata into. This will kick off a SAAS->SAAS relocation job, but the source organization will not be affected."
-          choices={regionChoices}
+          options={regionOptions}
           inline={false}
           stacked
           required

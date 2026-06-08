@@ -6,7 +6,7 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import {useButtonTracking} from 'getsentry/overrides/useButtonTracking';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
