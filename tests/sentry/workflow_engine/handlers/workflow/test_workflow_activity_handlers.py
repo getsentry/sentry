@@ -41,9 +41,9 @@ class WorkflowActivityRegistryTest(TestCase):
         ):
             invoke_workflow_activity_handlers(self.group, self.activity)
 
-        handler_a.assert_called_once_with(self.group, self.activity)
-        handler_b.assert_called_once_with(self.group, self.activity)
-        handler_c.assert_called_once_with(self.group, self.activity)
+        handler_a.assert_called_once_with(self.group, self.activity, None)
+        handler_b.assert_called_once_with(self.group, self.activity, None)
+        handler_c.assert_called_once_with(self.group, self.activity, None)
 
     def test_invoke_handlers_no_registrants(self) -> None:
         with mock.patch.dict(workflow_activity_registry.registrations, {}, clear=True):
