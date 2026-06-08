@@ -150,7 +150,9 @@ function AccountClose() {
         title={t('Close Account')}
         subtitle={
           <Fragment>
-            <strong>{t('Closing your account is permanent and cannot be undone.')}</strong>
+            <strong>
+              {t('Closing your account is permanent and cannot be undone.')}
+            </strong>
             <br />
             {t('This will permanently remove all associated data for your user.')}
             <br />

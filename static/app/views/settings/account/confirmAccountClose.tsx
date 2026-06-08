@@ -21,8 +21,7 @@ export function ConfirmAccountClose({
       </p>
       {organizationSlugs.length > 0 && (
         <p>
-          <strong>{t('Delete Organization(s):')}</strong>{' '}
-          {organizationSlugs.join(', ')}
+          <strong>{t('Delete Organization(s):')}</strong> {organizationSlugs.join(', ')}
         </p>
       )}
       <p>
