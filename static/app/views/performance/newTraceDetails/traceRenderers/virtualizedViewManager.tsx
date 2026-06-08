@@ -297,6 +297,7 @@ export class VirtualizedViewManager {
 
     this.view.trace_physical_space.width =
       span_list * (this.view.trace_container_physical_space.width - this.scrollbar_width);
+    this.recomputeTimeCompression();
 
     this.scheduler.dispatch('set trace view', {
       x: this.view.trace_view.x,

@@ -42,6 +42,36 @@ describe('VirtualizedViewManger', () => {
     expect(manager.view.trace_physical_space.serialize()).toEqual([0, 0, 500, 1]);
   });
 
+  it('recomputes time compression before redrawing during divider resize', () => {
+    const scheduler = new TraceScheduler();
+    const manager = new VirtualizedViewManager(
+      {
+        list: {width: 0.5},
+        span_list: {width: 0.5},
+      },
+      scheduler,
+      new TraceView(),
+      ThemeFixture()
+    );
+
+    manager.view.setTraceSpace([0, 0, 1000, 1]);
+    manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
+    manager.divider = document.createElement('div');
+    manager.dividerStartVec = [0, 0];
+    manager.previousDividerClientVec = [0, 0];
+
+    const recomputeSpy = jest.spyOn(manager, 'recomputeTimeCompression');
+    const dispatchSpy = jest.spyOn(scheduler, 'dispatch');
+
+    manager.onDividerMouseMove(new MouseEvent('mousemove', {clientX: 100, clientY: 0}));
+
+    expect(manager.view.trace_physical_space.width).toBe(400);
+    expect(recomputeSpy).toHaveBeenCalledTimes(1);
+    expect(recomputeSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      dispatchSpy.mock.invocationCallOrder[0]!
+    );
+  });
+
   it('re-dispatches the container content box when scrollbar width changes', () => {
     const scheduler = new TraceScheduler();
     const manager = new VirtualizedViewManager(

@@ -249,9 +249,6 @@ export function Trace({
       manager.draw(view);
     };
     const onDividerResizeEnd: TraceEvents['divider resize end'] = () => {
-      // Recompute time compression after the divider drag settles. Recomputing during
-      // every mousemove changes the compressed mapping mid-drag, which makes markers,
-      // spans, and labels jump around while the user is resizing the waterfall.
       setPhysicalWidth(manager.view.trace_physical_space.width);
     };
 
