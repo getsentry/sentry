@@ -1,10 +1,25 @@
 import type {Confidence} from 'sentry/types/organization';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
-
-import type {CategoricalGroupBy, CategoricalItemCategory, CategoricalItemValue, CategoricalSeriesMeta, IncompleteReason, TabularRow, TimeSeriesGroupBy, TimeSeriesValueType, TimeSeriesValueUnit} from 'sentry/views/dashboards/widgets/common/typesBase';
+import type {
+  CategoricalGroupBy,
+  CategoricalItemCategory,
+  CategoricalItemValue,
+  CategoricalSeriesMeta,
+  IncompleteReason,
+  TabularRow,
+  TimeSeriesGroupBy,
+  TimeSeriesValueType,
+  TimeSeriesValueUnit,
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 export type {CategoricalItemCategory, TabularRow, TimeSeriesGroupBy, TimeSeriesValueUnit};
-export type {ErrorPropWithResponseJSON, HeatMapSeries, HeatMapValueUnit, LegendSelection, Release, StateProps, TabularColumn, TabularData, TabularMeta, TabularValueType, TabularValueUnit} from 'sentry/views/dashboards/widgets/common/typesBase';
-
+export type {
+  LegendSelection,
+  Release,
+  TabularColumn,
+  TabularData,
+  TabularValueType,
+  TabularValueUnit,
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 export type TimeSeriesMeta = {
   /**

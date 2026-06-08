@@ -38,8 +38,8 @@ export enum WidgetType {
   TRACEMETRICS = 'tracemetrics',
   PREPROD_APP_SIZE = 'preprod-app-size',
 }
-export type WidgetWarning = Record<string, OnDemandExtractionState>;
-export type WidgetQueryWarning = null | OnDemandExtractionState;
+type WidgetWarning = Record<string, OnDemandExtractionState>;
+type WidgetQueryWarning = null | OnDemandExtractionState;
 export interface ValidateWidgetResponse {
   warnings: {
     columns: WidgetWarning;

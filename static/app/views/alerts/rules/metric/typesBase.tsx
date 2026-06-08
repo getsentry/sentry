@@ -130,7 +130,7 @@ export enum TargetType {
   SENTRY_APP = 'sentry_app',
 }
 export type Action = UnsavedAction & Partial<SavedActionFields>;
-export type SavedActionFields = {
+type SavedActionFields = {
   /**
    * The id of the alert rule this action belongs to
    */
@@ -161,7 +161,7 @@ export type SavedActionFields = {
    */
   priority?: string;
 };
-export type UnsavedAction = {
+type UnsavedAction = {
   /**
    * An optional Slack channel or user id the user can input to avoid rate limiting issues.
    */

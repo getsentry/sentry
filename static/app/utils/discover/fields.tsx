@@ -6,6 +6,14 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
+import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fieldsBase';
+import type {
+  AggregationRefinement,
+  Alignments,
+  Field,
+  ParsedFunction,
+  PlotType,
+} from 'sentry/utils/discover/fieldsBase';
 import {
   AGGREGATION_FIELDS,
   AggregationKey,
@@ -28,14 +36,10 @@ import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
-
-import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fieldsBase';
-import type {AggregationRefinement, Alignments, Field, ParsedFunction, PlotType} from 'sentry/utils/discover/fieldsBase';
 export {DurationUnit, RateUnit, SizeUnit};
-export type {AggregationRefinement, Field, ParsedFunction, PlotType};
+export type {AggregationRefinement, Field, ParsedFunction};
 export {CurrencyUnit} from 'sentry/utils/discover/fieldsBase';
-export type {CountUnit, DataUnit, PercentChangeUnit, PercentageUnit, Sort, SortKind} from 'sentry/utils/discover/fieldsBase';
-
+export type {DataUnit, Sort, SortKind} from 'sentry/utils/discover/fieldsBase';
 
 // Contains the URL field value & the related table column width.
 // Can be parsed into a Column using explodeField()

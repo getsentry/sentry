@@ -1,6 +1,6 @@
 import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
 
-export type AttributeValueType =
+type AttributeValueType =
   | 'number'
   | 'integer'
   | 'date'
@@ -13,11 +13,11 @@ export type AttributeValueType =
   | 'rate'
   | 'score'
   | 'currency';
-export type AttributeValueUnit = DataUnit | null;
+type AttributeValueUnit = DataUnit | null;
 export type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
 export type IncompleteReason = 'INCOMPLETE_BUCKET';
-export type GroupBy = {
+type GroupBy = {
   key: string;
   value: string | number | boolean | null | Array<string | null> | Array<number | null>;
 };
@@ -29,7 +29,7 @@ export type TabularMeta<TFields extends string = string> = {
   fields: Record<TFields, TabularValueType>;
   units: Record<TFields, TabularValueUnit>;
 };
-export type TabularRowValue = number | string | string[] | boolean | null;
+type TabularRowValue = number | string | string[] | boolean | null;
 export type TabularRow<TFields extends string = string> = Record<
   TFields,
   TabularRowValue
@@ -44,7 +44,7 @@ export type TabularColumn<TFields extends string = string> = {
   type?: TabularValueType;
   width?: number;
 };
-export type ErrorProp = Error | string;
+type ErrorProp = Error | string;
 export interface ErrorPropWithResponseJSON extends Error {
   responseJSON?: {detail: string};
 }
@@ -58,7 +58,7 @@ export type Release = {
   version: string;
 };
 export type LegendSelection = Record<string, boolean>;
-export type CategoricalValueType = AttributeValueType;
+type CategoricalValueType = AttributeValueType;
 export type CategoricalItemCategory = TabularRowValue;
 export type CategoricalItemValue = number | null;
 export interface CategoricalSeriesMeta {
@@ -71,9 +71,9 @@ export interface CategoricalSeriesMeta {
    */
   valueUnit: DataUnit | null;
 }
-export type HeatMapValueType = AttributeValueType;
+type HeatMapValueType = AttributeValueType;
 export type HeatMapValueUnit = AttributeValueUnit;
-export interface HeatMapItem {
+interface HeatMapItem {
   /**
    * The X-axis value
    */
@@ -87,7 +87,7 @@ export interface HeatMapItem {
    */
   zAxis: number | null;
 }
-export interface BoundedMeta {
+interface BoundedMeta {
   /**
    * The largest value of data on the axis
    */
@@ -101,7 +101,7 @@ export interface BoundedMeta {
    */
   start: number;
 }
-export interface BucketedMeta {
+interface BucketedMeta {
   /**
    * The total count of buckets on this axis. Matches what was requested, if were requested
    */
@@ -111,14 +111,14 @@ export interface BucketedMeta {
    */
   bucketSize: number;
 }
-export interface NamedMeta {
+interface NamedMeta {
   /**
    * The name of the series. Corresponds to what it's plotting. Could be `"time"` or something like `"count()"`
    */
   name: string;
 }
-export interface HeatMapSeriesXAxisMeta extends NamedMeta, BoundedMeta, BucketedMeta {}
-export interface HeatMapSeriesYAxisMeta extends NamedMeta, BoundedMeta, BucketedMeta {
+interface HeatMapSeriesXAxisMeta extends NamedMeta, BoundedMeta, BucketedMeta {}
+interface HeatMapSeriesYAxisMeta extends NamedMeta, BoundedMeta, BucketedMeta {
   /**
    * The type of the values (e.g., "duration", "number")
    */
@@ -128,8 +128,8 @@ export interface HeatMapSeriesYAxisMeta extends NamedMeta, BoundedMeta, Bucketed
    */
   valueUnit: DataUnit | null;
 }
-export interface HeatMapSeriesZAxisMeta extends NamedMeta, BoundedMeta {}
-export interface HeatMapSeriesMeta {
+interface HeatMapSeriesZAxisMeta extends NamedMeta, BoundedMeta {}
+interface HeatMapSeriesMeta {
   xAxis: HeatMapSeriesXAxisMeta;
   yAxis: HeatMapSeriesYAxisMeta;
   zAxis: HeatMapSeriesZAxisMeta;

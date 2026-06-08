@@ -1,15 +1,41 @@
 import {t} from 'sentry/locale';
+import {
+  ActionType,
+  AlertRuleSeasonality,
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
+  ExtrapolationMode,
+  TargetType,
+  TimeWindow,
+} from 'sentry/views/alerts/rules/metric/typesBase';
+import type {Trigger} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {Incident} from 'sentry/views/alerts/types';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-
-import {ActionType, AlertRuleSeasonality, AlertRuleSensitivity, AlertRuleThresholdType, Dataset, EventTypes, ExtrapolationMode, TargetType, TimeWindow} from 'sentry/views/alerts/rules/metric/typesBase';
-import type {Trigger} from 'sentry/views/alerts/rules/metric/typesBase';
-export {ActionType, AlertRuleSeasonality, AlertRuleSensitivity, AlertRuleThresholdType, Dataset, EventTypes, ExtrapolationMode, TargetType, TimeWindow};
+export {
+  ActionType,
+  AlertRuleSeasonality,
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
+  ExtrapolationMode,
+  TimeWindow,
+};
 export type {Trigger};
-export {AlertRuleComparisonType, AlertRuleTriggerType, Datasource, SessionsAggregate, TimePeriod} from 'sentry/views/alerts/rules/metric/typesBase';
-export type {Action, SavedTrigger, ThresholdControlValue, UnsavedTrigger} from 'sentry/views/alerts/rules/metric/typesBase';
-
+export {
+  AlertRuleComparisonType,
+  AlertRuleTriggerType,
+  SessionsAggregate,
+  TimePeriod,
+} from 'sentry/views/alerts/rules/metric/typesBase';
+export type {
+  Action,
+  ThresholdControlValue,
+  UnsavedTrigger,
+} from 'sentry/views/alerts/rules/metric/typesBase';
 
 export const EAP_EXTRAPOLATION_MODE_MAP = {
   [ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED]: 'sampleWeighted',
