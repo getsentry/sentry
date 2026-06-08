@@ -7,8 +7,6 @@ import {renderHook, userEvent} from 'sentry-test/reactTestingLibrary';
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import * as explorerAutofixHooks from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {GroupSummaryData} from 'sentry/components/group/groupSummary';
-import * as groupSummaryHooks from 'sentry/components/group/groupSummary';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
@@ -42,14 +40,6 @@ describe('useCopyIssueDetails', () => {
     id: '123456',
     dateCreated: '2023-01-01T00:00:00Z',
   });
-
-  const mockGroupSummaryData: GroupSummaryData = {
-    groupId: group.id,
-    headline: 'Test headline',
-    whatsWrong: 'Something went wrong',
-    trace: 'In function x',
-    possibleCause: 'Missing parameter',
-  };
 
   const mockAutofixData: ExplorerAutofixState = {
     run_id: 123,
@@ -110,23 +100,6 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain(`# ${group.title}`);
       expect(result).toContain(`**Issue ID:** ${group.id}`);
       expect(result).toContain(`**Project:** ${group.project?.slug}`);
-    });
-
-    it('includes group summary data when provided', () => {
-      const result = issueAndEventToMarkdown({
-        group,
-        event,
-        groupSummaryData: mockGroupSummaryData,
-        organization,
-      });
-
-      expect(result).toContain('## Issue Summary');
-      expect(result).toContain(mockGroupSummaryData.headline);
-      expect(result).toContain(`**What's wrong:** ${mockGroupSummaryData.whatsWrong}`);
-      expect(result).toContain(`**In the trace:** ${mockGroupSummaryData.trace}`);
-      expect(result).toContain(
-        `**Possible cause:** ${mockGroupSummaryData.possibleCause}`
-      );
     });
 
     it('includes autofix data when provided', () => {
@@ -735,21 +708,6 @@ LIMIT 21`;
 
       expect(result).not.toContain('## Span Evidence');
     });
-
-    it('prefers autofix rootCause over groupSummary possibleCause', () => {
-      const result = issueAndEventToMarkdown({
-        group,
-        event,
-        groupSummaryData: mockGroupSummaryData,
-        autofixData: mockAutofixData,
-        organization,
-      });
-
-      expect(result).toContain('## Root Cause');
-      expect(result).not.toContain(
-        `**Possible cause:** ${mockGroupSummaryData.possibleCause}`
-      );
-    });
   });
 
   describe('useCopyIssueDetails', () => {
@@ -762,11 +720,6 @@ LIMIT 21`;
 
       jest.mocked(copyToClipboardModule.useCopyToClipboard).mockReturnValue({
         copy: mockCopy,
-      });
-
-      jest.spyOn(groupSummaryHooks, 'useGroupSummaryData').mockReturnValue({
-        data: mockGroupSummaryData,
-        isPending: false,
       });
 
       jest.spyOn(explorerAutofixHooks, 'useExplorerAutofix').mockReturnValue({
@@ -825,7 +778,6 @@ LIMIT 21`;
       expect(capturedText).toContain(`# ${group.title}`);
       expect(capturedText).toContain(`**Issue ID:** ${group.id}`);
       expect(capturedText).toContain(`**Project:** ${group.project?.slug}`);
-      expect(capturedText).toContain('## Issue Summary');
       expect(capturedText).toContain('## Root Cause');
       expect(capturedText).toContain('## Plan');
       expect(capturedText).not.toContain('## Exception');
