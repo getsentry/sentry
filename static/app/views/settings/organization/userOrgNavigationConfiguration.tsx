@@ -282,6 +282,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('internal integration'),
             t('developer settings'),
             t('webhooks'),
+            'SENTRY_AUTH_TOKEN',
           ],
           description: t('Manage custom integrations'),
           id: 'developer-settings',
@@ -303,6 +304,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            'SENTRY_AUTH_TOKEN',
           ],
           description: t('Manage organization tokens'),
           id: 'auth-tokens',
@@ -318,6 +320,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            'SENTRY_AUTH_TOKEN',
           ],
           description: t(
             "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
