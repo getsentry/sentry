@@ -14,7 +14,7 @@ describe('getLocalityUrlOptions', () => {
   });
 
   it('filters out excluded names', () => {
-    ConfigStore.set('regions', [
+    ConfigStore.set('localities', [
       {name: 'us', url: 'https://us.sentry.io'},
       {name: 'de', url: 'https://de.sentry.io'},
       {name: 'ja', url: 'https://ja.sentry.io'},
@@ -39,7 +39,7 @@ describe('getLocalityUrlOptions', () => {
   });
 
   it('limits to only parameter', () => {
-    ConfigStore.set('regions', [
+    ConfigStore.set('localities', [
       {name: 'us', url: 'https://us.sentry.io'},
       {name: 'de', url: 'https://de.sentry.io'},
       {name: 'ja', url: 'https://ja.sentry.io'},
@@ -54,7 +54,7 @@ describe('getLocalityUrlOptions', () => {
   });
 
   it('always excludes US2', () => {
-    ConfigStore.set('regions', [
+    ConfigStore.set('localities', [
       {name: 'us', url: 'https://us.sentry.io'},
       {name: 'us2', url: 'https://us2.sentry.io'},
       {name: 'de', url: 'https://de.sentry.io'},
@@ -78,7 +78,7 @@ describe('getLocalityNameOptions', () => {
     ConfigStore.loadInitialData(configstate);
   });
   it('always excludes US2', () => {
-    ConfigStore.set('regions', [
+    ConfigStore.set('localities', [
       {name: 'us', url: 'https://us.sentry.io'},
       {name: 'us2', url: 'https://us2.sentry.io'},
       {name: 'de', url: 'https://de.sentry.io'},

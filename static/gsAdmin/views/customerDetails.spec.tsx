@@ -2084,7 +2084,7 @@ describe('Customer Details', () => {
 
   describe('fork customer', () => {
     beforeEach(() => {
-      ConfigStore.set('regions', [
+      ConfigStore.set('localities', [
         {
           name: 'foo',
           url: 'https://foo.example.com/api/0/',

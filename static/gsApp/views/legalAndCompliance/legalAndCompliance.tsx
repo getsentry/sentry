@@ -6,7 +6,10 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
+import {
+  getLocalityDataFromOrganization,
+  shouldDisplayLocalities,
+} from 'sentry/utils/regions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -20,8 +23,7 @@ export default function LegalAndCompliance() {
   const organization = useOrganization();
   const subscription = useSubscription();
 
-  const regionCount = getRegions().length;
-  const regionData = getRegionDataFromOrganization(organization);
+  const localityData = getLocalityDataFromOrganization(organization);
 
   if (!subscription) {
     return <LoadingIndicator />;
@@ -31,7 +33,7 @@ export default function LegalAndCompliance() {
     <SubscriptionPageContainer>
       <SentryDocumentTitle title={t('Legal & Compliance')} />
       <SettingsPageHeader title="Legal & Compliance" />
-      {regionCount > 1 && regionData && (
+      {shouldDisplayLocalities() && localityData && (
         <FieldGroup title={t('General')}>
           <Flex direction="row" gap="xl" align="center" justify="between" flexGrow={1}>
             <Stack width="50%" gap="xs">
@@ -43,7 +45,7 @@ export default function LegalAndCompliance() {
               </Text>
             </Stack>
             <Container flexGrow={1}>
-              <Text>{regionData.label}</Text>
+              <Text>{localityData.label}</Text>
             </Container>
           </Flex>
         </FieldGroup>

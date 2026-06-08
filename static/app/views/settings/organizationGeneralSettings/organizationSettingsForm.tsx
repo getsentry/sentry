@@ -27,7 +27,10 @@ import type {MembershipSettingsProps} from 'sentry/types/overrides';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
+import {
+  getLocalityDataFromOrganization,
+  shouldDisplayLocalities,
+} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -415,8 +418,9 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const hasWriteAccess = access.has('org:write');
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
   // TODO(cells) This should be localities
-  const regionData =
-    getRegions().length > 1 ? getRegionDataFromOrganization(organization) : null;
+  const regionData = shouldDisplayLocalities()
+    ? getLocalityDataFromOrganization(organization)
+    : null;
 
   const aiEnabled = hasGenAiFeatureFlag ? (initialData.hideAiFeatures ?? false) : false;
 

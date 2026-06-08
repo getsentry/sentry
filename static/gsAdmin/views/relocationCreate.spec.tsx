@@ -9,10 +9,11 @@ jest.mock('sentry/actionCreators/indicator');
 
 describe('Relocation Create', () => {
   beforeEach(() => {
-    ConfigStore.set('regions', [
+    ConfigStore.set('cells', [
       {
         name: 'test',
-        url: 'https://example.com/api/0/',
+        locality_url: 'https://example.com/api/0/',
+        visible: true,
       },
     ]);
   });

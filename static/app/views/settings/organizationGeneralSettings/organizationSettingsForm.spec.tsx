@@ -21,10 +21,10 @@ describe('OrganizationSettingsForm', () => {
   const onSave = jest.fn();
 
   beforeEach(() => {
-    jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
+    jest.mocked(RegionUtils.getLocalities).mockReturnValue([]);
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(organization, {replace: true});
-    jest.mocked(RegionUtils.getRegions).mockReturnValue([]);
+    jest.mocked(RegionUtils.getLocalities).mockReturnValue([]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
@@ -246,7 +246,7 @@ describe('OrganizationSettingsForm', () => {
 
   it('shows hideAiFeatures toggle for DE region', () => {
     // Mock the region util to return DE region
-    jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
+    jest.mocked(RegionUtils.getLocalityDataFromOrganization).mockImplementation(() => ({
       name: 'de',
       displayName: 'Europe (Frankfurt)',
       url: 'https://sentry.de.example.com',
