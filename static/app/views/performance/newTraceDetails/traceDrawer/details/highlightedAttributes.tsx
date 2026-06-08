@@ -157,7 +157,7 @@ function getAISpanAttributes({
       value:
         costValue < 0 ? (
           <Flex align="center" gap="xs">
-            <TokenReportingWarningIcon />
+            <TokenReportingWarningIcon reason="negative_cost" />
             <LLMCosts cost={totalCosts.toString()} />
           </Flex>
         ) : (
@@ -402,7 +402,7 @@ function HighlightedTokenAttributes({
   if (mismatch) {
     return (
       <Flex align="center" gap="xs">
-        <TokenReportingWarningIcon />
+        <TokenReportingWarningIcon reason="token_mismatch" />
         {tokenDisplay}
       </Flex>
     );
@@ -468,18 +468,24 @@ function HighlightedContextUtilization({
 const TOKEN_TROUBLESHOOTING_URL =
   'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
 
-function TokenReportingWarningIcon() {
+function TokenReportingWarningIcon({
+  reason,
+}: {
+  reason: 'token_mismatch' | 'negative_cost';
+}) {
+  const title =
+    reason === 'token_mismatch'
+      ? tct(
+          'Input and output token counts do not add up to the reported total. This may indicate an error in token reporting. [link:Learn more].',
+          {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
+        )
+      : tct(
+          'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
+          {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
+        );
+
   return (
-    <Tooltip
-      title={tct(
-        'This may indicate an error in token reporting. [link:Follow this guide] to troubleshoot.',
-        {
-          link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />,
-        }
-      )}
-      skipWrapper
-      isHoverable
-    >
+    <Tooltip title={title} skipWrapper isHoverable>
       <Flex align="center">
         <IconWarning legacySize="1em" variant="warning" />
       </Flex>
