@@ -15,6 +15,7 @@ from sentry.constants import DataCategory
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import TeamStatus
@@ -23,6 +24,9 @@ from sentry.notifications.models.notificationsettingoption import NotificationSe
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.referrer import Referrer
+from sentry.tasks.summaries.organization_report_context_factory import (
+    OrganizationReportContextFactory,
+)
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
@@ -1431,3 +1435,104 @@ class WeeklyReportsTest(
             message_params = call_args.kwargs
             context = message_params["context"]
             assert len(context["trends"]["legend"]) == 0
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_enhanced_privacy_hides_key_errors_and_transactions(
+        self, message_builder: mock.MagicMock
+    ) -> None:
+        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "sensitive error message",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=2
+        )
+
+        prepare_organization_report(
+            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        message_params = message_builder.call_args.kwargs
+        ctx = message_params["context"]
+
+        assert ctx["enhanced_privacy"]
+        assert len(ctx["key_errors"]) == 0
+        assert len(ctx["key_transactions"]) == 0
+        assert len(ctx["key_performance_issues"]) == 0
+        assert ctx["trends"]["total_error_count"] == 2
+        assert ctx["issue_summary"] is not None
+
+    def test_enhanced_privacy_context_factory_skips_key_data(self) -> None:
+        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
+        self.organization.refresh_from_db()
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=2
+        )
+
+        factory = OrganizationReportContextFactory(
+            timestamp=self.timestamp,
+            duration=ONE_DAY * 7,
+            organization=self.organization,
+        )
+        ctx = factory.create_context()
+
+        for project_ctx in ctx.projects_context_map.values():
+            assert project_ctx.key_errors_by_group == []
+            assert project_ctx.key_transactions == []
+            assert project_ctx.key_performance_issues == []
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_enhanced_privacy_email_does_not_contain_sensitive_data(self) -> None:
+        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
+
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
+        project = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+            date_added=self.now - timedelta(days=90),
+        )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "sensitive error title xyz123",
+                "timestamp": before_now(days=1).isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_event_outcomes(
+            self.organization.id, project.id, self.three_days_ago, num_times=1
+        )
+
+        with self.tasks():
+            schedule_organizations(timestamp=self.now.timestamp())
+            assert len(mail.outbox) >= 1
+            message = mail.outbox[0]
+            assert isinstance(message, EmailMultiAlternatives)
+            html = message.alternatives[0][0]
+            assert isinstance(html, str)
+
+            assert "sensitive error title xyz123" not in html
+            assert "enhanced privacy" in html.lower()
+            assert "Total Project Errors" in html

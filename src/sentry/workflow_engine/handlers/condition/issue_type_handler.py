@@ -51,7 +51,7 @@ class IssueTypeConditionHandler(DataConditionHandler[WorkflowEventData]):
         return group.issue_type == value if include else group.issue_type != value
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         value = condition_data["value"]
         group_type = grouptype.registry.get_by_slug(value)
         issue_type_name = (getattr(group_type, "description", None) or value) if group_type else ""

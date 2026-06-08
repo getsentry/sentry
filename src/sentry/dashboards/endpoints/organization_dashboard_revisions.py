@@ -5,14 +5,12 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.dashboards.endpoints.organization_dashboard_details import (
-    REVISIONS_FEATURE,
     OrganizationDashboardBase,
 )
 from sentry.models.dashboard import Dashboard, DashboardRevision
@@ -35,9 +33,6 @@ class OrganizationDashboardRevisionsEndpoint(OrganizationDashboardBase):
         """
         Return the revision history for an organization's custom dashboard.
         """
-        if not features.has(REVISIONS_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
         if not isinstance(dashboard, Dashboard):
             return Response(status=404)
 

@@ -476,7 +476,17 @@
 
   </div>
 
-  {% if key_errors|length > 0 %}
+  {% if enhanced_privacy %}
+  <div style="padding: 16px; margin: 16px 0; background-color: #f5f3f7; border-radius: 4px; font-size: 14px;">
+    Details about specific issues and transactions are not shown in this report since enhanced privacy
+    controls are enabled. For more details,
+    {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
+    {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
+    <a href="{% org_url organization issue_list query=query %}">view your issues on Sentry</a>.
+  </div>
+  {% endif %}
+
+  {% if key_errors|length > 0 and not enhanced_privacy %}
   <div id="key-errors">
     <h4>Issues with the most errors</h4>
     {% for a in key_errors %}
@@ -498,7 +508,7 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if key_performance_issues|length > 0 %}
+  {% if key_performance_issues|length > 0 and not enhanced_privacy %}
   <div id="key-performance-issues">
     <h4>Most frequent performance issues</h4>
     {% for a in key_performance_issues %}
@@ -516,7 +526,7 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if key_transactions|length > 0 %}
+  {% if key_transactions|length > 0 and not enhanced_privacy %}
   <div id="key-transactions">
     <h4>Most frequent transactions</h4>
     {% for a in key_transactions %}

@@ -21,13 +21,11 @@ SERIALIZER_FULLNAME = "sentry.api.serializers.base.Serializer"
 # fixes its callers — landing the fix is more valuable than the exemption.
 _AUTODERIVE_DENYLIST: frozenset[str] = frozenset(
     {
-        "sentry.api.serializers.models.actor.ActorSerializer",
         "sentry.api.serializers.models.commit.CommitSerializer",
         "sentry.api.serializers.models.event.EventSerializer",
         "sentry.api.serializers.models.group.GroupSerializerBase",
         "sentry.api.serializers.models.organization_member.base.OrganizationMemberSerializer",
         "sentry.api.serializers.models.project.ProjectSerializer",
-        "sentry.api.serializers.models.release.GroupEventReleaseSerializer",
         "sentry.api.serializers.models.release.ReleaseSerializer",
         "sentry.api.serializers.models.team.BaseTeamSerializer",
         "sentry.users.api.serializers.user.UserSerializer",
