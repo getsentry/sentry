@@ -241,5 +241,8 @@ function getShortSpanOperationDescription(operation?: string) {
 }
 
 export function formatDollars(value: number) {
+  if (value < 0) {
+    return `-$${formatAbbreviatedNumberWithDynamicPrecision(Math.abs(value))}`;
+  }
   return `$${formatAbbreviatedNumberWithDynamicPrecision(value)}`;
 }

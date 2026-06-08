@@ -77,19 +77,22 @@ export function hasTokenMismatch({
     return true;
   }
 
-  const breakdown = getTokenBreakdown({
-    inputTokens,
-    cachedTokens,
-    outputTokens,
-    reasoningTokens,
-    totalTokens,
-  });
+  const cached = isNaN(cachedTokens) ? 0 : cachedTokens;
+  const reasoning = isNaN(reasoningTokens) ? 0 : reasoningTokens;
 
-  const sum = breakdown.netNewInput + breakdown.cached + breakdown.output;
+  const adjustedInput = getAdjustedInput(inputTokens, cached, outputTokens, totalTokens);
+  const adjustedOutput = getAdjustedOutput(
+    adjustedInput,
+    outputTokens,
+    reasoning,
+    totalTokens
+  );
+
+  const sum = adjustedInput + adjustedOutput;
 
   // Allow a small tolerance for rounding
   const tolerance = Math.max(1, totalTokens * 0.01);
-  return Math.abs(sum - breakdown.total) > tolerance;
+  return Math.abs(sum - totalTokens) > tolerance;
 }
 
 /**

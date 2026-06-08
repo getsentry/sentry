@@ -136,7 +136,7 @@ function getAISpanAttributes({
   const reasoningTokens = attributes['gen_ai.usage.output_tokens.reasoning'];
   const totalTokens = attributes['gen_ai.usage.total_tokens'];
 
-  if (inputTokens && outputTokens && totalTokens && Number(totalTokens) > 0) {
+  if (inputTokens && outputTokens && totalTokens && Number(totalTokens) !== 0) {
     highlightedAttributes.push({
       name: t('Tokens'),
       value: (
