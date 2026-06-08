@@ -23,6 +23,8 @@ from sentry.api.utils import to_valid_int_id
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
+from sentry.models.pullrequest import PullRequestAttributionSignalType
+from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
 from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentStatus,
@@ -40,6 +42,9 @@ class CursorWebhookEndpoint(Endpoint):
     }
     authentication_classes = ()
     permission_classes = ()
+
+    # Set per-request in post(); a fresh endpoint instance is created per request.
+    organization_id: int
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
@@ -61,6 +66,7 @@ class CursorWebhookEndpoint(Endpoint):
             logger.warning("cursor_webhook.invalid_signature")
             raise PermissionDenied("Invalid signature")
 
+        self.organization_id = org_id
         with webhook_viewer_context(org_id):
             self._process_webhook(payload)
         logger.info("cursor_webhook.success", extra={"event_type": event_type})
@@ -227,6 +233,22 @@ class CursorWebhookEndpoint(Endpoint):
             agent_url=agent_url,
             result=result,
         )
+
+        if status == CodingAgentStatus.COMPLETED and pr_url:
+            try:
+                attribute_delegated_agent_pull_request(
+                    organization_id=self.organization_id,
+                    signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR,
+                    repo_full_name=repo_full_name,
+                    repo_provider=repo_provider,
+                    pr_url=pr_url,
+                    agent_id=agent_id,
+                )
+            except Exception:
+                logger.exception(
+                    "cursor_webhook.pr_attribution_failed",
+                    extra={"agent_id": agent_id, "pr_url": pr_url},
+                )
 
     def _update_coding_agent_status(
         self,
