@@ -12,11 +12,7 @@ from django.test import Client, RequestFactory
 from requests.exceptions import ConnectionError, SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import (
-    OAuth2ApiStep,
-    OAuth2CallbackView,
-    OAuth2LoginView,
-)
+from sentry.identity.oauth2 import OAuth2ApiStep, OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome

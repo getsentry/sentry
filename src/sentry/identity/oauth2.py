@@ -41,12 +41,7 @@ from sentry.utils.http import absolute_uri
 
 from .base import Provider
 
-__all__ = [
-    "OAuth2Provider",
-    "OAuth2CallbackView",
-    "OAuth2LoginView",
-    "OAuth2ApiStep",
-]
+__all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView", "OAuth2ApiStep"]
 
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
