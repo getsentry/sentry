@@ -7,9 +7,18 @@ from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import json, metrics, redis
+from sentry.utils.dates import floor_to_utc_day, to_datetime
 
 CACHE_TTL = timedelta(days=14)
 KEY_PREFIX = "wr:proj_metrics"
+SATURDAY_ISOWEEKDAY = 6
+
+
+def _floor_to_saturday(timestamp: float) -> float:
+    """Normalize a timestamp to the most recent Saturday at UTC midnight."""
+    dt = floor_to_utc_day(to_datetime(timestamp))
+    days_since_saturday = (dt.isoweekday() - SATURDAY_ISOWEEKDAY) % 7
+    return (dt - timedelta(days=days_since_saturday)).timestamp()
 
 
 def _make_cache_key(org_id: int, project_id: int, timestamp: float) -> str:
@@ -33,6 +42,7 @@ def cache_project_metrics(
     if not project_metrics:
         return
 
+    timestamp = _floor_to_saturday(timestamp)
     client = _get_redis_client()
     pipeline = client.pipeline()
     ttl_seconds = int(CACHE_TTL.total_seconds())
@@ -58,6 +68,8 @@ def read_project_metrics(
     if not project_ids:
         return {}
 
+    current_timestamp = _floor_to_saturday(current_timestamp)
+    previous_timestamp = _floor_to_saturday(previous_timestamp)
     client = _get_redis_client()
     pipeline = client.pipeline()
 
