@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import AsyncGenerator, AsyncIterator
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import httpx
 from asgiref.sync import sync_to_async
@@ -15,7 +15,6 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 
-from sentry import options
 from sentry.api.exceptions import RequestTimeout
 from sentry.objectstore.endpoints.organization import get_raw_body_async
 from sentry.options.rollout import in_random_rollout
@@ -28,7 +27,6 @@ from sentry.silo.util import (
 from sentry.types.cell import (
     Cell,
     CellResolutionError,
-    get_cell_by_name,
     get_cell_for_organization,
 )
 from sentry.utils import metrics
@@ -115,37 +113,6 @@ async def proxy_request(
     return await proxy_cell_request(request, cell, url_name)
 
 
-async def proxy_error_embed_request(
-    request: HttpRequest, dsn: str, url_name: str
-) -> HttpResponseBase | None:
-    try:
-        parsed = urlparse(dsn)
-    except Exception as err:
-        logger.info("apigateway.error_embed.invalid_dsn", extra={"dsn": dsn, "error": err})
-        return None
-    host = parsed.netloc
-    app_host = urlparse(options.get("system.url-prefix")).netloc
-    if not host.endswith(app_host):
-        # Don't further parse URLs that aren't for us.
-        return None
-
-    app_segments = app_host.split(".")
-    host_segments = host.split(".")
-    if len(host_segments) - len(app_segments) < 3:
-        # If we don't have a o123.ingest.{cell}.{app_host} style domain
-        # we forward to the monolith cell
-        cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
-        return await proxy_cell_request(request, cell, url_name)
-    try:
-        cell_offset = len(app_segments) + 1
-        cell_segment = host_segments[cell_offset * -1]
-        cell = get_cell_by_name(cell_segment)
-    except Exception:
-        return None
-
-    return await proxy_cell_request(request, cell, url_name)
-
-
 async def proxy_cell_request(
     request: HttpRequest,
     cell: Cell,
@@ -160,6 +127,7 @@ async def proxy_cell_request(
         "destination_cell": cell.name,
         "url_name": url_name,
         "destination_host": host,
+        "request_method": request.method,
     }
     target_url = urljoin(host, request.path)
 

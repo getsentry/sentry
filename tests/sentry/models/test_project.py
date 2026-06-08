@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from unittest.mock import MagicMock, patch
 
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
@@ -510,10 +511,23 @@ class TestProjectTransfer(TestCase):
         ).exists()
 
     def test_transfer_to_organization_with_workflow_data_condition_groups(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+            to_integration = self.create_integration(
+                organization=self.to_org, external_id="to-slack", provider="slack"
+            )
+
         condition_group = self.create_data_condition_group(organization=self.from_org)
         self.create_workflow_data_condition_group(
             workflow=self.workflow, condition_group=condition_group
         )
+        action = self.create_action(
+            integration_id=from_integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
 
         self.project.transfer_to(organization=self.to_org)
 
@@ -529,6 +543,12 @@ class TestProjectTransfer(TestCase):
         wdcg = condition_group.workflowdataconditiongroup_set.first()
         assert wdcg is not None
         assert wdcg.workflow_id == self.workflow.id
+
+        # The workflow moved in place; the destination org has a matching active Slack integration,
+        # so the same action is remapped to it and stays active.
+        action.refresh_from_db()
+        assert action.integration_id == to_integration.id
+        assert action.status == ObjectStatus.ACTIVE
 
     def test_transfer_to_organization_clones_shared_workflows(self) -> None:
         project_a = self.create_project(teams=[self.team], name="Project A")
@@ -659,6 +679,163 @@ class TestProjectTransfer(TestCase):
         assert DataConditionGroupAction.objects.filter(
             condition_group=shared_dcg, action=action
         ).exists()
+
+    def test_transfer_to_organization_remaps_integration_action_to_destination_integration(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+            to_integration = self.create_integration(
+                organization=self.to_org, external_id="to-slack", provider="slack"
+            )
+
+        project_a = self.create_project(teams=[self.team], name="Project A")
+        project_b = self.create_project(
+            teams=[self.team], organization=self.from_org, name="Project B"
+        )
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=self.from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+        action = self.create_action(
+            integration_id=from_integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=shared_dcg)
+
+        project_a.transfer_to(organization=self.to_org)
+
+        # The destination org has a matching active Slack integration, so the cloned action is
+        # remapped to it and stays active.
+        clone = Workflow.objects.get(organization=self.to_org, name="Shared Workflow")
+        clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
+            workflow=clone
+        ).values_list("condition_group_id", flat=True)
+        clone_action = Action.objects.get(
+            dataconditiongroupaction__condition_group_id__in=clone_condition_group_ids
+        )
+        assert clone_action.id != action.id
+        assert clone_action.integration_id == to_integration.id
+        assert clone_action.status == ObjectStatus.ACTIVE
+
+        # The original action stays behind untouched.
+        action.refresh_from_db()
+        assert action.integration_id == from_integration.id
+        assert action.status == ObjectStatus.ACTIVE
+
+    def test_transfer_to_organization_disables_integration_action_without_destination_integration(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+
+        project_a = self.create_project(teams=[self.team], name="Project A")
+        project_b = self.create_project(
+            teams=[self.team], organization=self.from_org, name="Project B"
+        )
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=self.from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+        action = self.create_action(
+            integration_id=from_integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=shared_dcg)
+
+        project_a.transfer_to(organization=self.to_org)
+
+        # The destination org has no matching integration, so the cloned action keeps the original
+        # integration_id but is disabled.
+        clone = Workflow.objects.get(organization=self.to_org, name="Shared Workflow")
+        clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
+            workflow=clone
+        ).values_list("condition_group_id", flat=True)
+        clone_action = Action.objects.get(
+            dataconditiongroupaction__condition_group_id__in=clone_condition_group_ids
+        )
+        assert clone_action.id != action.id
+        assert clone_action.integration_id == from_integration.id
+        assert clone_action.status == ObjectStatus.DISABLED
+
+        # The original action stays behind untouched.
+        action.refresh_from_db()
+        assert action.status == ObjectStatus.ACTIVE
+
+    def test_transfer_to_organization_disables_integration_action_with_multiple_destination_integrations(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+            self.create_integration(
+                organization=self.to_org, external_id="to-slack-1", provider="slack"
+            )
+            self.create_integration(
+                organization=self.to_org, external_id="to-slack-2", provider="slack"
+            )
+
+        project_a = self.create_project(teams=[self.team], name="Project A")
+        project_b = self.create_project(
+            teams=[self.team], organization=self.from_org, name="Project B"
+        )
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=self.from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+        action = self.create_action(
+            integration_id=from_integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=shared_dcg)
+
+        project_a.transfer_to(organization=self.to_org)
+
+        # The destination org has multiple active Slack integrations, so we can't tell which one
+        # the action meant; the cloned action keeps the original integration_id but is disabled.
+        clone = Workflow.objects.get(organization=self.to_org, name="Shared Workflow")
+        clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
+            workflow=clone
+        ).values_list("condition_group_id", flat=True)
+        clone_action = Action.objects.get(
+            dataconditiongroupaction__condition_group_id__in=clone_condition_group_ids
+        )
+        assert clone_action.id != action.id
+        assert clone_action.integration_id == from_integration.id
+        assert clone_action.status == ObjectStatus.DISABLED
+
+        # The original action stays behind untouched.
+        action.refresh_from_db()
+        assert action.status == ObjectStatus.ACTIVE
 
     def test_transfer_to_organization_clones_shared_workflows_is_idempotent(self) -> None:
         project_a = self.create_project(teams=[self.team], name="Project A")

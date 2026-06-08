@@ -54,7 +54,7 @@ export function submitRules(api: Client, endpoint: string, rules: Rule[]) {
     const ruleId = String(i);
     submitFormatRules[ruleId] = getSubmitFormatRule(rule);
 
-    if (!applications[rule.source]) {
+    if (!Object.hasOwn(applications, rule.source)) {
       applications[rule.source] = [];
     }
 

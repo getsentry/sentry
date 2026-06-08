@@ -54,29 +54,54 @@ class GeneratedWidgetQuery(BaseModel):
     aggregates: list[str] = Field(
         default=[],
         description=(
-            "Aggregate function expressions to compute. For chart widgets these are the Y-axis "
-            "values; for table widgets they become data columns alongside columns[]. Valid "
-            "aggregate function values vary by dataset type. Do not make up functions or use "
-            "unsupported functions.\n\n"
-            "For the 'tracemetrics' widget_type, aggregates use a required 4-argument form: "
-            "`func(attribute, metric_name, metric_type, metric_unit)` where attribute must be "
-            "`value` (the numeric value of the metric; no other attributes are supported at this "
-            "time), metric_name is the metric's name as ingested, metric_type is one of "
-            "'counter', 'gauge', or 'distribution', and metric_unit is the metric's unit as "
-            "ingested (e.g. 'milliseconds', 'bytes'); use 'none' only when the metric has no "
-            "unit. Examples: `sum(value, my.app.requests, counter, none)`, "
-            "`avg(value, my.app.cpu, gauge, percent)`, "
-            "`p95(value, my.app.latency, distribution, milliseconds)`. "
-            "Each metric_type only accepts a specific set of aggregate functions, and using a "
-            "function outside that set will fail:\n"
-            "- counter: sum, per_second, per_minute.\n"
-            "- gauge: avg, min, max, per_second, per_minute.\n"
-            "- distribution: p50, p75, p90, p95, p99, avg, min, max, sum, count, per_second, "
-            "per_minute.\n"
-            "You MUST NOT guess metric_name, metric_type, or metric_unit; look them up first "
-            "using the available tools (e.g. by querying the tracemetrics dataset for distinct "
-            "`metric.name`, `metric.type`, and `metric.unit` values, or fetching trace-item "
-            "attributes)."
+            """
+            Aggregate function or equation expressions to compute. For chart widgets these are
+            the Y-axis values; for table widgets they become data columns alongside columns[].
+            Valid aggregate function values vary by dataset type. Do not make up functions or
+            use unsupported functions.
+
+            For the 'tracemetrics' widget_type, aggregates use a required 4-argument form:
+            `func(attribute, metric_name, metric_type, metric_unit)` where attribute must be
+            `value` (the numeric value of the metric; no other attributes are supported at this
+            time), metric_name is the metric's name as ingested, metric_type is one of
+            'counter', 'gauge', or 'distribution', and metric_unit is the metric's unit as
+            ingested (e.g. 'milliseconds', 'bytes'); use 'none' only when the metric has no
+            unit. Examples: `sum(value, my.app.requests, counter, none)`,
+            `avg(value, my.app.cpu, gauge, percent)`,
+            `p95(value, my.app.latency, distribution, milliseconds)`.
+            Each metric_type only accepts a specific set of aggregate functions, and using a
+            function outside that set will fail:
+
+            - counter: sum, per_second, per_minute.
+            - gauge: avg, min, max, per_second, per_minute.
+            - distribution: p50, p75, p90, p95, p99, avg, min, max, sum, count, per_second,
+            per_minute.
+
+            You MUST NOT guess metric_name, metric_type, or metric_unit; look them up first
+            using the available tools (e.g. by querying the tracemetrics dataset for distinct
+            `metric.name`, `metric.type`, and `metric.unit` values, or fetching trace-item
+            attributes).
+
+            Equations are supported via the `equation|<expr>` prefix in the `aggregates` array.
+            Equations let you combine aggregates with arithmetic (+, -, *, /).
+
+            Strictly only for the 'tracemetrics' widget_type, the following rules about equations apply:
+                - Each aggregate operand in the equation must be a valid 4-argument tracemetric aggregate. Numeric literals are also valid operands.
+                - Equations are arbitrary arithmetic expressions — you can chain any number of operands: `equation|<agg1> <op> <agg2> <op> <agg3> ...`
+                - Operators: `+` (plus), `-` (minus), `*` (multiply), `/` (divide).
+                - Parentheses are supported for grouping and controlling precedence: `equation|(agg1 + agg2) / (agg3 - agg4)`.
+                - Examples:
+                - `equation|sum(value, my.app.requests, counter, none) / sum(value, my.app.errors, counter, none)`
+                - `equation|p95(value, my.app.latency, distribution, milliseconds) - p50(value, my.app.latency, distribution, milliseconds)`
+                - `equation|avg(value, my.app.cpu, gauge, percent) * 100`
+                - `equation|(sum(value, my.app.requests, counter, none) - sum(value, my.app.errors, counter, none)) / sum(value, my.app.requests, counter, none) * 100`
+                - All aggregate functions may also be defined using `_if` to apply a filter condition for that operand and the filter condition
+                  is provided as the first argument within backticks (`), which is then followed by the remaining arguments for the typical
+                  4-argument tracemetric aggregate.
+                    - For example, `equation|sum_if(`environment:prod`,value, my.app.errors, counter, none) / sum_if(`environment:prod`,value, my.app.requests, counter, none)`
+                - `per_second` and `per_minute` are not supported in equations, as well as the `_if` variant of these functions.
+                - An equation for tracemetrics must be the only entry in the `aggregates` array for a query (the frontend does not support rendering equations alongside aggregates).
+            """
         ),
     )
     columns: list[str] = Field(

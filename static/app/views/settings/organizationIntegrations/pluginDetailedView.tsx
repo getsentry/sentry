@@ -23,6 +23,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -373,6 +374,7 @@ const AddButton = styled(Button)`
 function PluginDetailedView() {
   const {integrationSlug} = useParams<{integrationSlug: string}>();
   const organization = useOrganization();
+  const location = useLocation();
 
   if (
     integrationSlug === 'webhooks' &&
@@ -380,7 +382,10 @@ function PluginDetailedView() {
   ) {
     return (
       <Redirect
-        to={normalizeUrl(`/settings/${organization.slug}/integrations/legacy-webhooks/`)}
+        to={
+          normalizeUrl(`/settings/${organization.slug}/integrations/legacy-webhooks/`) +
+          location.search
+        }
       />
     );
   }
