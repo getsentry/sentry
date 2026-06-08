@@ -608,6 +608,7 @@ export type KnownSentryApiUrls =
   | '/sentry-apps/$sentryAppIdOrSlug/webhook-requests/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/all-unresolved-issues/'
+  | '/teams/$organizationIdOrSlug/$teamIdOrSlug/avatar/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/'
   | '/teams/$organizationIdOrSlug/$teamIdOrSlug/issue-breakdown/'
