@@ -18,6 +18,9 @@ class PrCloseMetricsEvent(analytics.Event):
     pull_request_id: int
     # The PR number as stored on ``PullRequest.key`` (e.g. "5131" on GitHub).
     pr_key: str
+    # Group (issue) IDs this PR resolves, from the resolving GroupLink rows
+    # (parsed from the PR title/message). Empty when the PR resolves nothing.
+    group_ids: list[int]
     close_action: Literal["closed", "merged"]
     # Always present on a close/merge webhook — read fail-fast so a malformed
     # payload errors loudly instead of emitting a silent null.

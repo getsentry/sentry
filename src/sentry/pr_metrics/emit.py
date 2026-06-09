@@ -13,6 +13,7 @@ from typing import Any, Final, Literal
 
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
+from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestAttribution, PullRequestMetrics
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
 from sentry.utils import json, metrics
@@ -61,11 +62,26 @@ def _active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
     ]
 
 
+def _resolved_group_ids(pull_request: PullRequest) -> list[int]:
+    """Group IDs this PR resolves, from the resolving GroupLink rows.
+
+    Sorted for a deterministic row; empty when the PR resolves no issues.
+    """
+    return sorted(
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=pull_request.id,
+        ).values_list("group_id", flat=True)
+    )
+
+
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
     close_action: CloseAction,
     attributions: list[dict[str, Any]],
+    group_ids: list[int],
 ) -> PrCloseMetricsEvent:
     """Assemble the provisional close/merge row.
 
@@ -93,6 +109,7 @@ def build_pr_metrics_row(
         repository_id=pull_request.repository_id,
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,
+        group_ids=group_ids,
         close_action=close_action,
         head_commit_sha=head_commit_sha,
         closed_at=closed_at.isoformat(),
@@ -136,6 +153,7 @@ def emit_pr_metrics_row(
         pull_request=pull_request,
         close_action=close_action,
         attributions=attributions,
+        group_ids=_resolved_group_ids(pull_request),
     )
     analytics.record(row)
     metrics.incr("pr_metrics.emit.recorded", tags={"close_action": close_action})
