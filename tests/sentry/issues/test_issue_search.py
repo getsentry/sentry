@@ -13,7 +13,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.issues.issue_search import (
-    ISSUE_PROGRESS_VALUES,
+    IssueProgressState,
     convert_actor_or_none_value,
     convert_category_value,
     convert_device_class_value,
@@ -350,7 +350,7 @@ class ConvertSeerActionabilityValueTest(TestCase):
 
 class ConvertIssueProgressValueTest(TestCase):
     def test_valid(self) -> None:
-        for status in ISSUE_PROGRESS_VALUES:
+        for status in IssueProgressState:
             filters = [
                 SearchFilter(
                     SearchKey("issue.progress"),

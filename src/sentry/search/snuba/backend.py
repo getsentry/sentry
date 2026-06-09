@@ -287,7 +287,7 @@ def issue_progress_filter(progress_values: list[str], projects: Sequence[Project
     survives regressions — an issue that was assigned, progressed, then regressed
     remains triaged as long as it's still assigned.
     """
-    from sentry.issues.issue_search import ISSUE_PROGRESS_TO_ACTIVITY_TYPES
+    from sentry.issues.issue_search import ISSUE_PROGRESS_TO_ACTIVITY_TYPES, IssueProgressState
 
     all_progress_activity_types = [
         t for types in ISSUE_PROGRESS_TO_ACTIVITY_TYPES.values() for t in types
@@ -301,12 +301,13 @@ def issue_progress_filter(progress_values: list[str], projects: Sequence[Project
 
     q = Q()
     for value in progress_values:
-        if value == "identified":
+        progress = IssueProgressState(value)
+        if progress is IssueProgressState.IDENTIFIED:
             q |= ~assigned_q & ~has_progress_q
-        elif value == "triaged":
+        elif progress is IssueProgressState.TRIAGED:
             q |= assigned_q & ~has_progress_q
         else:
-            activity_types = ISSUE_PROGRESS_TO_ACTIVITY_TYPES[value]
+            activity_types = ISSUE_PROGRESS_TO_ACTIVITY_TYPES[progress]
             q |= issue_activity_type_filter(activity_types, projects)
     return q
 

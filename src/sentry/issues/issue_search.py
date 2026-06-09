@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from enum import StrEnum
 from functools import partial
 from typing import overload
 
@@ -263,15 +264,21 @@ def convert_seer_actionability_value(
     return results
 
 
-ISSUE_PROGRESS_VALUES = {"identified", "triaged", "diagnosed", "fix_proposed", "fix_applied"}
+class IssueProgressState(StrEnum):
+    IDENTIFIED = "identified"
+    TRIAGED = "triaged"
+    DIAGNOSED = "diagnosed"
+    FIX_PROPOSED = "fix_proposed"
+    FIX_APPLIED = "fix_applied"
 
-ISSUE_PROGRESS_TO_ACTIVITY_TYPES: dict[str, list[int]] = {
-    "diagnosed": [ActivityType.SEER_RCA_COMPLETED.value],
-    "fix_proposed": [
+
+ISSUE_PROGRESS_TO_ACTIVITY_TYPES: dict[IssueProgressState, list[int]] = {
+    IssueProgressState.DIAGNOSED: [ActivityType.SEER_RCA_COMPLETED.value],
+    IssueProgressState.FIX_PROPOSED: [
         ActivityType.SEER_PR_CREATED.value,
         ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
     ],
-    "fix_applied": [
+    IssueProgressState.FIX_APPLIED: [
         ActivityType.REFERENCED_IN_COMMIT.value,
         ActivityType.SET_RESOLVED_IN_COMMIT.value,
         ActivityType.SET_RESOLVED_IN_RELEASE.value,
@@ -289,7 +296,9 @@ def convert_issue_progress_value(
 ) -> list[str]:
     results: list[str] = []
     for status in value:
-        if status not in ISSUE_PROGRESS_VALUES:
+        try:
+            IssueProgressState(status)
+        except ValueError:
             raise InvalidSearchQuery(f"Invalid issue.progress value of '{status}'")
         results.append(status)
     return results
