@@ -179,7 +179,7 @@ class GroupStatsMixin:
 
 
 class _MaybeStats(TypedDict, total=False):
-    stats: dict[str, dict[int, list[tuple[int, int]]]]
+    stats: dict[str, list[list[int | float]]]
 
 
 class StreamGroupSerializerResponse(BaseGroupSerializerResponse, _MaybeStats):
