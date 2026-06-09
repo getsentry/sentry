@@ -3,7 +3,6 @@ from sentry.issues.derived.fields import (
     AUTOFIX_PRS,
     CLOSING_PRS,
     LAST_OPENED,
-    LAST_SEEN,
     PROGRESS,
     RECENT_VIEWERS,
     STATUS,
@@ -20,12 +19,8 @@ from sentry.issues.groupactionlogentry import GroupActionLogEntry
 RECENT_EXPIRY_SECONDS = 30 * 24 * 60 * 60  # 1 month
 
 
-@aggregator(outputs=(LAST_SEEN, VIEW_COUNT), scope=(GroupActionType.VIEW,))
+@aggregator(outputs=(VIEW_COUNT,), scope=(GroupActionType.VIEW,))
 def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
-    ts = entry.date_added.timestamp()
-    current = state[LAST_SEEN]
-    if current is None or ts > current:
-        return emit(LAST_SEEN.value(ts), VIEW_COUNT.value(state[VIEW_COUNT] + 1))
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
 
 

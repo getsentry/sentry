@@ -127,51 +127,6 @@ class ProcessGroupLogTest(TestCase):
 
         assert GroupDerivedData.objects.get(group_id=group_b.id).cursor_id == cursor_b
 
-    def test_last_seen_tracks_most_recent_view(self) -> None:
-        group = self.create_group()
-        user = self.user
-        now = timezone.now()
-
-        GroupActionLogEntry.objects.create(
-            group_id=group.id,
-            project_id=group.project_id,
-            type=0,
-            actor_type=GroupActorType.USER,
-            actor_id=user.id,
-            source=SOURCE,
-            data={},
-            date_added=now - timedelta(hours=1),
-        )
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        latest_entry = GroupActionLogEntry.objects.filter(group_id=group.id).order_by("-id")[0]
-
-        GroupDerivedData.objects.filter(group_id=group.id).delete()
-        derived = process_group_log(group.id)
-        assert derived.last_seen == latest_entry.date_added.timestamp()
-
-    def test_last_seen_ignores_non_view_actions(self) -> None:
-        group = self.create_group()
-        user = self.user
-
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
-
-        derived = process_group_log(group.id)
-        assert derived.last_seen is None
-
-    def test_last_seen_incremental(self) -> None:
-        group = self.create_group()
-        user = self.user
-
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
-        assert derived.last_seen is not None
-        first_seen = derived.last_seen
-
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
-        assert derived.last_seen is not None
-        assert derived.last_seen > first_seen
-
     def test_batched_processing(self) -> None:
         group = self.create_group()
         user = self.user
@@ -582,7 +537,7 @@ class GroupDerivedDataStoreTest(TestCase):
         super().tearDown()
 
     def test_load_returns_defaults_for_empty_data(self) -> None:
-        from sentry.issues.derived.fields import LAST_SEEN, STATUS, VIEW_COUNT
+        from sentry.issues.derived.fields import STATUS, VIEW_COUNT
 
         group = self.create_group()
         derived = GroupDerivedData.objects.create(
@@ -590,7 +545,6 @@ class GroupDerivedDataStoreTest(TestCase):
             data={},
         )
         state = GroupDerivedDataStore.load(pipeline, derived)
-        assert state[LAST_SEEN] is None
         assert state[VIEW_COUNT] == 0
         assert state[STATUS] == "open"
 
@@ -606,7 +560,6 @@ class GroupDerivedDataStoreTest(TestCase):
         update = GroupDerivedDataStore.build_update(pipeline, state)
 
         assert update["data"] == derived.data
-        assert update["last_seen"] == derived.last_seen
         assert update["view_count"] == derived.view_count
 
     def test_round_trip_with_rich_types(self) -> None:

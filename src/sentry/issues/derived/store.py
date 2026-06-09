@@ -9,7 +9,7 @@ and Features don't have to.
 
 from typing import Any
 
-from sentry.issues.derived.fields import LAST_SEEN, PROGRESS, VIEW_COUNT
+from sentry.issues.derived.fields import PROGRESS, VIEW_COUNT
 from sentry.issues.derived.lib import Feature, Pipeline, State
 from sentry.models.groupderiveddata import GroupDerivedData
 
@@ -17,7 +17,6 @@ from sentry.models.groupderiveddata import GroupDerivedData
 # the JSON blob. Keyed by Feature object, value is the column name on
 # GroupDerivedData. Features not listed here live in the `data` JSON field.
 COLUMN_MAP: dict[Feature[Any], str] = {
-    LAST_SEEN: "last_seen",
     VIEW_COUNT: "view_count",
     PROGRESS: "progress",
 }
