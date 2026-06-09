@@ -194,6 +194,18 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.recentSearches).toBeDefined();
   });
 
+  it('passes disabled through to search query builder provider props', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        disabled: true,
+      },
+      organization,
+    });
+
+    expect(result.current.disabled).toBe(true);
+  });
+
   it('getTagKeys fetches keys across string, number, and boolean attributes', async () => {
     const traceItemAttributesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
@@ -278,6 +290,30 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     await waitFor(() => {
       expect(validateMock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('uses a custom placeholder when provided', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        placeholder: 'Custom placeholder text',
+      },
+      organization,
+    });
+
+    expect(result.current.placeholder).toBe('Custom placeholder text');
+  });
+
+  it('falls back to the default placeholder for logs when no placeholder is provided', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        itemType: TraceItemDataset.LOGS,
+      },
+      organization,
+    });
+
+    expect(result.current.placeholder).toBe('Search for logs, users, tags, and more');
   });
 
   it('calls validateQuery when a new filter key is added', async () => {

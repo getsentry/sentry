@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import type {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
 import {getEventSearchFromIssueQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';

@@ -15,7 +15,7 @@ class TimeSeriesValueResponse(TypedDict):
     count: int
 
 
-class TimeSeriesValueSerializer(Serializer):
+class TimeSeriesValueSerializer(Serializer[TimeSeriesValueResponse]):
     def serialize(
         self, obj: TimeSeriesValue, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
     ) -> TimeSeriesValueResponse:

@@ -14,7 +14,7 @@ import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/typ
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,
   isAggregateField,

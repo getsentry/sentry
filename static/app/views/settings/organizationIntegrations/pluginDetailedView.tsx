@@ -11,6 +11,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
@@ -22,6 +23,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -54,7 +56,7 @@ function makePluginQueryKey({
   ];
 }
 
-function PluginDetailedView() {
+function DefaultView() {
   const {openModal} = useModal();
 
   const tabs: IntegrationTab[] = ['overview', 'configurations'];
@@ -368,5 +370,27 @@ function PluginDetailedView() {
 const AddButton = styled(Button)`
   margin-bottom: ${p => p.theme.space.md};
 `;
+
+function PluginDetailedView() {
+  const {integrationSlug} = useParams<{integrationSlug: string}>();
+  const organization = useOrganization();
+  const location = useLocation();
+
+  if (
+    integrationSlug === 'webhooks' &&
+    organization.features.includes('legacy-webhook-ui')
+  ) {
+    return (
+      <Redirect
+        to={
+          normalizeUrl(`/settings/${organization.slug}/integrations/legacy-webhooks/`) +
+          location.search
+        }
+      />
+    );
+  }
+
+  return <DefaultView />;
+}
 
 export default PluginDetailedView;

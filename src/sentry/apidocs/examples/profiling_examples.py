@@ -169,6 +169,38 @@ PROFILE_DETAILS_RESPONSE = {
 }
 
 
+PROFILE_CHUNKS_RESPONSE = {
+    "chunk": {
+        "chunk_id": "0123456789abcdef0123456789abcdef",
+        "profiler_id": "fedcba9876543210fedcba9876543210",
+        "project_id": 1,
+        "organization_id": 1,
+        "environment": "production",
+        "platform": "python",
+        "release": "1.0.0",
+        "received": 1_779_957_840.0,
+        "retention_days": 30,
+        "version": "2",
+        "profile": {
+            "samples": [
+                {
+                    "stack_id": 0,
+                    "thread_id": "1",
+                    "timestamp": 1_779_957_840.0,
+                },
+            ],
+            "stacks": [[0, 1]],
+            "frames": [
+                {"function": "main", "module": "app.main", "in_app": True, "lineno": 10},
+                {"function": "do_work", "module": "app.worker", "in_app": True, "lineno": 42},
+            ],
+            "thread_metadata": {"1": {"name": "MainThread"}},
+        },
+    },
+    "debug_chunk_ids": ["0123456789abcdef0123456789abcdef"],
+}
+
+
 class ProfilingExamples:
     FLAMEGRAPH = [
         OpenApiExample(
@@ -182,6 +214,14 @@ class ProfilingExamples:
         OpenApiExample(
             "Return a single profile by ID",
             value=PROFILE_DETAILS_RESPONSE,
+            response_only=True,
+            status_codes=["200"],
+        )
+    ]
+    PROFILE_CHUNKS = [
+        OpenApiExample(
+            "Return continuous-profile chunks for a profiler",
+            value=PROFILE_CHUNKS_RESPONSE,
             response_only=True,
             status_codes=["200"],
         )

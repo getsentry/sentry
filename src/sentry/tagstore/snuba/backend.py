@@ -240,7 +240,7 @@ class _KeyCallable[T, U](Protocol):
 
 class _ValueCallable[U](Protocol):
     def __call__(
-        self, *, key: str, value: object, times_seen: int, first_seen: datetime, last_seen: datetime
+        self, *, key: str, value: str, times_seen: int, first_seen: datetime, last_seen: datetime
     ) -> U: ...
 
 
@@ -804,7 +804,7 @@ class SnubaTagStorage(TagStorage):
         key,
         tenant_ids=None,
         **kwargs,
-    ):
+    ) -> GroupTagKey | TagKey:
         return self.__get_tag_key_and_top_values(
             group.project_id,
             group,
@@ -2038,10 +2038,16 @@ class SnubaTagStorage(TagStorage):
         # time:         This is a column computed from timestamp so it suffers the same issues
         if snuba_key in {"group_id"}:
             snuba_key = f"tags[{snuba_key}]"
+        # tags.key/tags.value are array meta-columns (the list of all tag keys/values on an
+        # event). They have no arrayjoin (see snuba.get_arrayjoin), so grouping by them returns
+        # an array per row which is unhashable in snuba.nest_groups. They are not real tags and
+        # have no meaningful values to suggest, so we disable them here.
         if snuba_key in {"event_id", "timestamp", "time", "profile_id", "replay_id"} or key in {
             "trace",
             "trace.span",
             "trace.parent_span",
+            "tags.key",
+            "tags.value",
         }:
             return SequencePaginator([])
 

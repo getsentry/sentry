@@ -17,12 +17,6 @@ const DEFAULT_FILTERS = {
   f_e_project: [],
 } as Record<ErrorSelectOption['qs'], string[]>;
 
-export type FilterFields = {
-  f_e_level: string[];
-  f_e_project: string[];
-  f_e_search: string;
-};
-
 type Options = {
   errorFrames: ErrorFrame[];
 };
@@ -51,7 +45,7 @@ const FILTERS = {
 };
 
 export function useErrorFilters({errorFrames}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const {setFilter, query} = useFiltersInLocationQuery();
 
   const level = useMemo(() => decodeList(query.f_e_level), [query.f_e_level]);
   const project = useMemo(() => decodeList(query.f_e_project), [query.f_e_project]);

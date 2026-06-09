@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
 import {SourceSuggestionType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
@@ -15,6 +15,10 @@ import {
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import {SourceSuggestionExamples} from './sourceSuggestionExamples';
+
+// The suggestion list is capped when rendered, so keyboard navigation and
+// scrolling must stay within this many items to match what's in the DOM.
+const MAX_RENDERED_SUGGESTIONS = 50;
 
 type FieldProps = {
   'aria-describedby': string;
@@ -37,7 +41,6 @@ type State = {
   activeSuggestion: number;
   fieldValues: Array<SourceSuggestion | SourceSuggestion[]>;
   help: string;
-  hideCaret: boolean;
   showSuggestions: boolean;
   suggestions: SourceSuggestion[];
 };
@@ -48,7 +51,6 @@ export class SourceField extends Component<Props, State> {
     fieldValues: [],
     activeSuggestion: 0,
     showSuggestions: false,
-    hideCaret: false,
     help: '',
   };
 
@@ -70,9 +72,6 @@ export class SourceField extends Component<Props, State> {
       this.checkPossiblyRegExMatchExpression(this.props.value);
     }
   }
-
-  selectorField = createRef<HTMLDivElement>();
-  suggestionList = createRef<HTMLUListElement>();
 
   getAllSuggestions() {
     return [...this.getValueSuggestions(), ...unarySuggestions, ...binarySuggestions];
@@ -225,22 +224,6 @@ export class SourceField extends Component<Props, State> {
     });
   }
 
-  scrollToSuggestion() {
-    const {activeSuggestion, hideCaret} = this.state;
-
-    this.suggestionList?.current?.children[activeSuggestion]!.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'start',
-    });
-
-    if (!hideCaret) {
-      this.setState({
-        hideCaret: true,
-      });
-    }
-  }
-
   changeParentValue() {
     const {onChange} = this.props;
     const {fieldValues} = this.state;
@@ -331,7 +314,6 @@ export class SourceField extends Component<Props, State> {
   handleClickOutside = () => {
     this.setState({
       showSuggestions: false,
-      hideCaret: false,
     });
   };
 
@@ -342,15 +324,12 @@ export class SourceField extends Component<Props, State> {
         fieldValues,
         activeSuggestion: 0,
         showSuggestions: false,
-        hideCaret: false,
       },
       this.changeParentValue
     );
   };
 
-  handleKeyDown = (_value: string, event: React.KeyboardEvent<HTMLInputElement>) => {
-    event.persist();
-
+  handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const {key} = event;
     const {activeSuggestion, suggestions, showSuggestions} = this.state;
 
@@ -371,19 +350,17 @@ export class SourceField extends Component<Props, State> {
       if (activeSuggestion === 0) {
         return;
       }
-      this.setState({activeSuggestion: activeSuggestion - 1}, () => {
-        this.scrollToSuggestion();
-      });
+      this.setState({activeSuggestion: activeSuggestion - 1});
       return;
     }
 
     if (key === 'ArrowDown') {
-      if (activeSuggestion === suggestions.length - 1) {
+      const lastRenderedIndex =
+        Math.min(suggestions.length, MAX_RENDERED_SUGGESTIONS) - 1;
+      if (activeSuggestion >= lastRenderedIndex) {
         return;
       }
-      this.setState({activeSuggestion: activeSuggestion + 1}, () => {
-        this.scrollToSuggestion();
-      });
+      this.setState({activeSuggestion: activeSuggestion + 1});
       return;
     }
   };
@@ -392,12 +369,20 @@ export class SourceField extends Component<Props, State> {
     this.toggleSuggestions(true);
   };
 
+  scrollActiveSuggestionIntoView = (node: HTMLLIElement | null) => {
+    node?.scrollIntoView?.({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'start',
+    });
+  };
+
   render() {
     const {value, fieldProps} = this.props;
-    const {showSuggestions, suggestions, activeSuggestion, hideCaret, help} = this.state;
+    const {showSuggestions, suggestions, activeSuggestion, help} = this.state;
 
     return (
-      <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
+      <Wrapper>
         <StyledInput
           {...fieldProps}
           data-test-id="source-field"
@@ -406,7 +391,7 @@ export class SourceField extends Component<Props, State> {
           onChange={e => this.handleChange(e.target.value)}
           autoComplete="off"
           value={value}
-          onKeyDown={e => this.handleKeyDown(value, e)}
+          onKeyDown={this.handleKeyDown}
           onBlur={fieldProps.onBlur}
           onFocus={this.handleFocus}
         />
@@ -417,10 +402,15 @@ export class SourceField extends Component<Props, State> {
         )}
         {showSuggestions && suggestions.length > 0 && (
           <Fragment>
-            <Suggestions ref={this.suggestionList} data-test-id="source-suggestions">
-              {suggestions.slice(0, 50).map((suggestion, index) => (
+            <Suggestions data-test-id="source-suggestions">
+              {suggestions.slice(0, MAX_RENDERED_SUGGESTIONS).map((suggestion, index) => (
                 <Suggestion
                   key={suggestion.value}
+                  ref={
+                    index === activeSuggestion
+                      ? this.scrollActiveSuggestionIntoView
+                      : undefined
+                  }
                   onClick={event => {
                     event.preventDefault();
                     this.handleClickSuggestionItem(suggestion);
@@ -451,10 +441,9 @@ export class SourceField extends Component<Props, State> {
   }
 }
 
-const Wrapper = styled('div')<{hideCaret?: boolean}>`
+const Wrapper = styled('div')`
   position: relative;
   width: 100%;
-  ${p => p.hideCaret && 'caret-color: transparent;'}
 `;
 
 const StyledInput = styled(Input)`

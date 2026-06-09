@@ -9,11 +9,6 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 
-type FilterFields = {
-  f_b_search: string;
-  f_b_type: string[];
-};
-
 type Options = {
   frames: ReplayFrame[];
 };
@@ -105,7 +100,7 @@ const FILTERS = {
 };
 
 export function useBreadcrumbFilters({frames}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const {setFilter, query} = useFiltersInLocationQuery();
 
   // Keep a reference of object paths that are expanded (via <StructuredEventData>)
   // by log row, so they they can be restored as the Console pane is scrolling.

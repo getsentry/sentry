@@ -18,6 +18,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.models import ReplayDeletionJobModel
@@ -109,7 +110,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         },
         examples=ReplayExamples.GET_REPLAY_DELETION_JOBS,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[ReplayDeletionJobListResponse]:
         """
         Retrieve a collection of replay delete jobs.
         """
@@ -146,7 +147,9 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         },
         examples=ReplayExamples.CREATE_REPLAY_DELETION_JOB,
     )
-    def post(self, request: Request, project) -> Response:
+    def post(
+        self, request: Request, project
+    ) -> Response[ReplayDeletionJobDetailResponse] | Response[ValidationErrorResponse]:
         """
         Create a new replay deletion job.
         """
@@ -155,7 +158,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
 
         serializer = ReplayDeletionJobCreateSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data["data"]
 
@@ -186,7 +189,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         )
 
         response_data = serialize(job, request.user, ReplayDeletionJobSerializer())
-        response = {"data": response_data}
+        response: ReplayDeletionJobDetailResponse = {"data": response_data}
 
         return Response(response, status=201)
 
@@ -215,7 +218,9 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
         },
         examples=ReplayExamples.GET_REPLAY_DELETION_JOB,
     )
-    def get(self, request: Request, project, job_id: int) -> Response:
+    def get(
+        self, request: Request, project, job_id: int
+    ) -> Response[ReplayDeletionJobDetailResponse]:
         """
         Fetch a replay delete job instance.
         """

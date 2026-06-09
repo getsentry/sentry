@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {ConfigStore} from 'sentry/stores/configStore';
+import {getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -29,7 +29,8 @@ function RelocationForm() {
   const promoCodeApi = useApi({
     api: new Client({baseUrl: ''}),
   });
-  const regions = ConfigStore.get('regions');
+  // TODO(cells) Will cells with their locality
+  const regions = getRegions();
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File>();
   const [region, setRegion] = useState(regions[0]!);
@@ -124,7 +125,7 @@ function RelocationForm() {
             value: r.url,
           }))}
           onChange={opt => {
-            const reg = ConfigStore.get('regions').find((r: any) => r.url === opt.value);
+            const reg = regions.find((r: any) => r.url === opt.value);
             if (reg === undefined) {
               return;
             }

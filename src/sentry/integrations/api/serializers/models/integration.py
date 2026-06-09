@@ -212,7 +212,7 @@ class IntegrationProviderResponse(TypedDict):
     setupDialog: dict[str, Any]
 
 
-class IntegrationProviderSerializer(Serializer):
+class IntegrationProviderSerializer(Serializer[IntegrationProviderResponse]):
     def serialize(
         self,
         obj: IntegrationProvider,

@@ -1,7 +1,7 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
@@ -17,8 +17,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getRegions} from 'sentry/utils/regions';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
 
@@ -42,12 +44,16 @@ type Summary = {
   platform_total_cents: number;
   queried_at: string;
   row_count: number;
+  rows_page: number;
+  rows_page_size: number;
+  rows_total_pages: number;
   start: string;
-  truncated: boolean;
   unmatched_invoice_count: number;
   unmatched_invoice_pct: number;
   unmatched_org_count: number;
-  unmatched_truncated: boolean;
+  unmatched_page: number;
+  unmatched_page_size: number;
+  unmatched_total_pages: number;
 };
 
 type UnmatchedSide = 'legacy_only' | 'platform_only';
@@ -115,35 +121,198 @@ function localInputToUtcIso(value: string): string {
   return new Date(value).toISOString();
 }
 
-export function InvoiceComparison() {
-  const regions = ConfigStore.get('regions');
-  const [region, setRegion] = useState(regions[0] ?? null);
-  const [startInput, setStartInput] = useState(hoursAgoLocal(24));
-  const [endInput, setEndInput] = useState(nowLocal());
-  const [submitted, setSubmitted] = useState<{end: string; start: string} | null>(null);
+const PAGE_SIZE_OPTIONS: readonly number[] = [25, 50, 100, 250];
+const DEFAULT_PAGE_SIZE = 50;
 
-  const enabled = Boolean(submitted && region);
-  const {data, isPending, isError, error} = useQuery({
+function firstQueryValue(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return typeof value === 'string' ? value : undefined;
+}
+
+function parsePageParam(value: unknown): number {
+  const n = Number(firstQueryValue(value));
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
+function parsePageSizeParam(value: unknown): number {
+  const n = Number(firstQueryValue(value));
+  return PAGE_SIZE_OPTIONS.includes(n) ? n : DEFAULT_PAGE_SIZE;
+}
+
+// A UTC ISO string from a `datetime-local` input that's already in UTC.
+// Used to convert the URL-persisted absolute time back into a value the
+// input control will accept (which is local-tz, no offset).
+function utcIsoToDatetimeLocalValue(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '';
+  }
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+export function InvoiceComparison() {
+  // TODO(cells) This needs to be a list of cells
+  const regions = getRegions();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [region, setRegion] = useState(regions[0] ?? null);
+
+  // URL is the source of truth for everything that affects the query and
+  // the displayed paginator state, so refresh / share-link reproduces the
+  // exact view. Local state only tracks what the user is typing in the
+  // date inputs before they click Run.
+  const queryStart = firstQueryValue(location.query.start);
+  const queryEnd = firstQueryValue(location.query.end);
+  const rowsPage = parsePageParam(location.query.rows_page);
+  const unmatchedPage = parsePageParam(location.query.unmatched_page);
+  const pageSize = parsePageSizeParam(location.query.page_size);
+
+  const [startInput, setStartInput] = useState(() =>
+    queryStart ? utcIsoToDatetimeLocalValue(queryStart) : hoursAgoLocal(24)
+  );
+  const [endInput, setEndInput] = useState(() =>
+    queryEnd ? utcIsoToDatetimeLocalValue(queryEnd) : nowLocal()
+  );
+
+  // Keep the date inputs in sync with the URL on back/forward and in-app
+  // navigation that changes start/end (e.g. opening a shared link). When the
+  // URL has no window yet we leave the inputs alone so the user's in-progress
+  // typing isn't clobbered.
+  useEffect(() => {
+    if (queryStart) {
+      setStartInput(utcIsoToDatetimeLocalValue(queryStart));
+    }
+    if (queryEnd) {
+      setEndInput(utcIsoToDatetimeLocalValue(queryEnd));
+    }
+  }, [queryStart, queryEnd]);
+
+  const enabled = Boolean(queryStart && queryEnd && region);
+  const {data, isPending, isError, error, isPlaceholderData} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
       path: enabled && region ? {region: region.name} : skipToken,
       host: region?.url,
-      query: submitted ?? undefined,
+      query: enabled
+        ? {
+            start: queryStart,
+            end: queryEnd,
+            rows_page: rowsPage,
+            unmatched_page: unmatchedPage,
+            rows_page_size: pageSize,
+            unmatched_page_size: pageSize,
+          }
+        : undefined,
       staleTime: 0,
     }),
+    // Keep the previously-rendered page visible while paginating or
+    // changing page size, so the tables and summary don't unmount and
+    // collapse the layout to a spinner between requests.
+    placeholderData: keepPreviousData,
   });
+
+  // If the URL has an unsupported `page_size` (e.g. `?page_size=200`),
+  // rewrite it to the resolved value so the address bar matches what the
+  // API and UI actually use — and refresh / share-links reproduce the
+  // intended view. Done eagerly (not gated on `data`) since the validity
+  // check is purely client-side.
+  const rawPageSize = firstQueryValue(location.query.page_size);
+  useEffect(() => {
+    if (rawPageSize !== undefined && rawPageSize !== String(pageSize)) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, page_size: String(pageSize)},
+        },
+        {replace: true}
+      );
+    }
+  }, [rawPageSize, pageSize, navigate, location.pathname, location.query]);
+
+  // If the backend clamped our requested page (e.g. user landed on
+  // ?rows_page=99 against a 2-page result), rewrite the URL to the
+  // clamped value so refresh + share-links converge on the real page.
+  //
+  // Skip while `data` is the placeholder from the previous page — its
+  // summary describes the prior request, not the one we just kicked
+  // off, so honoring it would rewrite the URL back to where we just
+  // were and break Prev/Next.
+  useEffect(() => {
+    if (!data || isPlaceholderData) {
+      return;
+    }
+    const fixes: Record<string, string> = {};
+    if (data.summary.rows_page !== rowsPage) {
+      fixes.rows_page = String(data.summary.rows_page);
+    }
+    if (data.summary.unmatched_page !== unmatchedPage) {
+      fixes.unmatched_page = String(data.summary.unmatched_page);
+    }
+    if (Object.keys(fixes).length > 0) {
+      navigate(
+        {pathname: location.pathname, query: {...location.query, ...fixes}},
+        {replace: true}
+      );
+    }
+  }, [
+    data,
+    isPlaceholderData,
+    rowsPage,
+    unmatchedPage,
+    navigate,
+    location.pathname,
+    location.query,
+  ]);
 
   // The endpoint returns rows pre-sorted by |delta_pct| desc; this component
   // does not re-sort. See AdminInvoiceComparisonEndpoint and its test_sort_*
   // tests for the contract.
   const rows = data?.rows ?? [];
 
+  const setPage = (key: 'rows_page' | 'unmatched_page', page: number) => {
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, [key]: String(page)},
+    });
+  };
+
+  const setPageSize = (size: number) => {
+    // Changing page size with a non-1 page is almost never what the user
+    // wants — the offset they were viewing maps to a different position in
+    // the resized list. Reset both paginators.
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        page_size: String(size),
+        rows_page: '1',
+        unmatched_page: '1',
+      },
+    });
+  };
+
   const onSubmit = () => {
     if (!startInput || !endInput) {
       return;
     }
-    setSubmitted({
-      start: localInputToUtcIso(startInput),
-      end: localInputToUtcIso(endInput),
+    // Re-running the comparison persists the chosen window to the URL and
+    // resets both paginators — the new window's result set is unrelated
+    // to the previous one's page numbers.
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        start: localInputToUtcIso(startInput),
+        end: localInputToUtcIso(endInput),
+        rows_page: '1',
+        unmatched_page: '1',
+        page_size: String(pageSize),
+      },
     });
   };
 
@@ -196,6 +365,20 @@ export function InvoiceComparison() {
                 onChange={e => setEndInput(e.target.value)}
               />
             </Flex>
+            <Flex direction="column" gap="xs">
+              <FieldLabel>Results per page</FieldLabel>
+              <CompactSelect
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} prefix="Per page" />
+                )}
+                value={String(pageSize)}
+                options={PAGE_SIZE_OPTIONS.map(n => ({
+                  label: String(n),
+                  value: String(n),
+                }))}
+                onChange={opt => setPageSize(Number(opt.value))}
+              />
+            </Flex>
             <Button variant="primary" onClick={onSubmit} disabled={!region}>
               Run comparison
             </Button>
@@ -203,7 +386,7 @@ export function InvoiceComparison() {
         </PanelBody>
       </Panel>
 
-      {submitted && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
+      {enabled && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
 
       {isError && (
         <Alert.Container>
@@ -279,11 +462,6 @@ export function InvoiceComparison() {
                   </Text>
                   <Text size="lg" bold>
                     {data.summary.row_count}
-                    {data.summary.truncated && (
-                      <TruncatedNote size="sm" variant="muted">
-                        (showing top {data.rows.length})
-                      </TruncatedNote>
-                    )}
                   </Text>
                 </Flex>
                 <Flex direction="column">
@@ -307,6 +485,13 @@ export function InvoiceComparison() {
               Rows (sorted by |delta|, biggest first) — queried {data.summary.queried_at}
             </PanelHeader>
             <PanelBody>
+              <Paginator
+                page={data.summary.rows_page}
+                totalPages={data.summary.rows_total_pages}
+                total={data.summary.row_count}
+                pageSize={data.summary.rows_page_size}
+                onChange={p => setPage('rows_page', p)}
+              />
               <Table>
                 <thead>
                   <tr>
@@ -362,16 +547,15 @@ export function InvoiceComparison() {
           </Panel>
 
           <Panel>
-            <PanelHeader>
-              Unmatched orgs (one side only, sorted by |amount|)
-              {data.summary.unmatched_truncated && (
-                <TruncatedNote size="sm" variant="muted">
-                  showing top {data.unmatched.length} of{' '}
-                  {data.summary.unmatched_org_count} orgs
-                </TruncatedNote>
-              )}
-            </PanelHeader>
+            <PanelHeader>Unmatched orgs (one side only, sorted by |amount|)</PanelHeader>
             <PanelBody>
+              <Paginator
+                page={data.summary.unmatched_page}
+                totalPages={data.summary.unmatched_total_pages}
+                total={data.summary.unmatched_org_count}
+                pageSize={data.summary.unmatched_page_size}
+                onChange={p => setPage('unmatched_page', p)}
+              />
               <Table>
                 <thead>
                   <tr>
@@ -414,6 +598,54 @@ export function InvoiceComparison() {
         </Fragment>
       )}
     </Fragment>
+  );
+}
+
+function Paginator({
+  page,
+  totalPages,
+  total,
+  pageSize,
+  onChange,
+}: {
+  onChange: (page: number) => void;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}) {
+  // Empty result set: nothing to page through. Render the row count anyway
+  // so the table doesn't look like it's missing its header.
+  if (totalPages <= 1) {
+    return (
+      <Flex justify="between" align="center" padding="md lg" borderBottom="primary">
+        <Text size="sm" variant="muted">
+          {total === 0 ? 'No rows' : `${total} row${total === 1 ? '' : 's'}`}
+        </Text>
+      </Flex>
+    );
+  }
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+  return (
+    <Flex justify="between" align="center" padding="md lg" borderBottom="primary">
+      <Text size="sm" variant="muted">
+        {start.toLocaleString()}–{end.toLocaleString()} of {total.toLocaleString()} · page{' '}
+        {page} of {totalPages}
+      </Text>
+      <Flex gap="xs">
+        <Button size="xs" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+          Prev
+        </Button>
+        <Button
+          size="xs"
+          disabled={page >= totalPages}
+          onClick={() => onChange(page + 1)}
+        >
+          Next
+        </Button>
+      </Flex>
+    </Flex>
   );
 }
 

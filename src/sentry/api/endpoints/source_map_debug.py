@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.source_map_debug_examples import SourceMapDebugExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.debug_files.release_files import maybe_renew_releasefiles
@@ -128,7 +129,7 @@ class SourceMapDebugResponse(TypedDict):
 @extend_schema(tags=["Events"])
 class SourceMapDebugEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     owner = ApiOwner.WEB_FRONTEND_SDKS
@@ -147,8 +148,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=SourceMapDebugExamples.GET_SOURCE_MAP_DEBUG,
     )
-    def get(self, request: Request, project: Project, event_id: str) -> Response:
+    def get(
+        self, request: Request, project: Project, event_id: str
+    ) -> Response[SourceMapDebugResponse]:
         """
         Return a list of source map errors for a given event.
         """
@@ -238,11 +242,11 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         scraping_attempt_map = get_scraping_attempt_map(event_data)
 
         # build information about individual exceptions and their stack traces
-        processed_exceptions = []
+        processed_exceptions: list[SourceMapDebugException] = []
         exception_values = get_path(event_data, "exception", "values")
         if exception_values is not None:
             for exception_value in exception_values:
-                processed_frames = []
+                processed_frames: list[SourceMapDebugFrame] = []
                 frames = get_path(exception_value, "raw_stacktrace", "frames")
                 stacktrace_frames = get_path(exception_value, "stacktrace", "frames")
                 if frames is not None:

@@ -16,7 +16,7 @@ import {
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import {FileSize} from 'sentry/components/fileSize';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {
   TraceDrawerComponents,

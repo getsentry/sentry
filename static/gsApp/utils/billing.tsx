@@ -5,7 +5,7 @@ import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 

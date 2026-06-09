@@ -8,6 +8,7 @@ import {slot, withSlots} from '@sentry/scraps/slot';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
@@ -85,6 +86,7 @@ function TopBarContent() {
             {props => <Flex {...props} align="center" gap="sm" />}
           </Slot.Outlet>
 
+          <SearchButton />
           {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
 
           <Slot.Outlet name="feedback">

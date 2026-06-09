@@ -344,7 +344,7 @@ describe('useInfiniteLogsQuery', () => {
   describe('high fidelity', () => {
     function makeLinkHeader(cursor: string, hasNext = true) {
       const url =
-        'https://sentry.io/api/0/organizations/org-slug/events/?caseInsensitive=&dataset=ourlogs&field=id&field=project.id&field=trace&field=severity_number&field=severity&field=timestamp&field=timestamp_precise&field=observed_timestamp&field=message.template&field=message&orderby=-timestamp&per_page=1000&query=&referrer=api.explore.logs-table&sampling=HIGHEST_ACCURACY_FLEX_TIME&sort=-timestamp&statsPeriod=1h&highFidelity=true';
+        'https://sentry.io/api/0/organizations/org-slug/events/?caseInsensitive=&dataset=ourlogs&field=id&field=project.id&field=trace&field=severity_number&field=severity&field=timestamp&field=timestamp_precise&field=message.template&field=message&orderby=-timestamp&per_page=1000&query=&referrer=api.explore.logs-table&sampling=HIGHEST_ACCURACY_FLEX_TIME&sort=-timestamp&statsPeriod=1h&highFidelity=true';
       return [
         [
           `<${url}&cursor=:0:1>`,

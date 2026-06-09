@@ -17,7 +17,7 @@ class IncidentActivitySerializerResponse(TypedDict):
     user: EventUserApiContext
     type: int
     value: str
-    previousValue: str
+    previousValue: str | None
     comment: str
     dateCreated: datetime
 

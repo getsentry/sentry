@@ -2,7 +2,7 @@ import logging
 import random
 import string
 from email.headerregistry import Address
-from typing import Any, TypeIs
+from typing import Any, TypedDict, TypeIs
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
@@ -38,7 +38,13 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.examples.project_examples import ProjectExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.core.endpoints.team_projects import (
@@ -60,6 +66,13 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 ERR_INVALID_STATS_PERIOD = (
     "Invalid stats_period. Valid choices are '', '1h', '24h', '7d', '14d', '30d', and '90d'"
 )
+
+
+class _LegacyParamErrorResponse(TypedDict):
+    # Legacy nested error envelope used by this endpoint's stats_period / id
+    # validation; kept as-is for wire compatibility.
+    error: dict[str, dict[str, dict[str, str]]]
+
 
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
@@ -110,7 +123,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Projects",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
+            VisibilityParams.PER_PAGE,
+            OrganizationParams.PROJECT_QUERY,
+        ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -122,7 +140,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.LIST_PROJECTS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[list[OrganizationProjectResponse]]
+        | Response[DetailResponse]
+        | Response[_LegacyParamErrorResponse]
+    ):
         """
         Return a list of projects bound to a organization.
         """

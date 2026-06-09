@@ -1,10 +1,13 @@
 import hashlib
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.urls import reverse
 
+from sentry.integrations.perforce.client import InvalidP4Port, validate_p4port_transport
 from sentry.integrations.perforce.integration import (
+    PerforceInstallationSerializer,
     PerforceIntegration,
     PerforceIntegrationProvider,
 )
@@ -193,6 +196,44 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert url == "p4://myproject/app/services/processor.cpp"
 
+    @patch("sentry.integrations.perforce.client.PerforceClient.get_depots")
+    def test_get_repositories_derives_external_id_from_depot_path(self, mock_get_depots) -> None:
+        """
+        get_repositories() must return a depot-path external_id (not empty) so
+        periodic repo sync can diff against stored repos. The external_id must
+        match what the manual-add path stores (the depot path).
+        """
+        mock_get_depots.return_value = [
+            {"name": "depot", "type": "local", "description": ""},
+            {"name": "shared", "type": "local", "description": ""},
+        ]
+
+        repos = self.installation.get_repositories()
+
+        assert repos == [
+            {
+                "name": "depot",
+                "identifier": "//depot",
+                "external_id": "//depot",
+                "default_branch": None,
+            },
+            {
+                "name": "shared",
+                "identifier": "//shared",
+                "external_id": "//shared",
+                "default_branch": None,
+            },
+        ]
+
+    def test_get_repo_external_id_matches_manual_add(self) -> None:
+        """
+        The external_id derived during sync must equal the depot path the
+        manual-add path stores (PerforceRepositoryProvider.get_repository_data
+        sets external_id to the depot path), so the two don't create duplicate
+        Repository rows.
+        """
+        assert self.installation.get_repo_external_id({"name": "depot"}) == "//depot"
+
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_check_file_absolute_depot_path(self, mock_check_file):
         """Test check_file with absolute depot path (//depot/...)"""
@@ -264,6 +305,90 @@ class PerforceIntegrationTest(IntegrationTestCase):
     def test_integration_provider(self) -> None:
         """Test integration has correct provider"""
         assert self.installation.model.provider == "perforce"
+
+
+class PerforceP4PortValidationTest(IntegrationTestCase):
+    provider = PerforceIntegrationProvider
+
+    def _base_payload(self) -> dict[str, str]:
+        return {
+            "p4port": "ssl:perforce.example.com:1666",
+            "user": "testuser",
+            "password": "testpass",
+            "auth_type": "password",
+            "ssl_fingerprint": "AB:CD",
+        }
+
+    def test_validate_p4port_transport_rejects_invalid(self) -> None:
+        for value in (
+            "abc:host:1666",
+            "1666",
+            ":1666",
+            "tcp:123.123.123.123",
+            "ssl:perforce.example.com",
+            "2001:db8::1:1666",
+            "ssl:[2001:db8::1]:1666",
+        ):
+            with pytest.raises(InvalidP4Port):
+                validate_p4port_transport(value)
+
+    def test_validate_p4port_transport_allows_host_port(self) -> None:
+        for value in (
+            "perforce.example.com:1666",
+            "test-host.example.com:1666",
+            "123.123.123.123:1666",
+            "tcp:123.123.123.123:1666",
+            "SSL:perforce.example.com:1666",
+        ):
+            validate_p4port_transport(value)
+
+    def test_validate_p4port_transport_allows_every_transport(self) -> None:
+        for transport in (
+            "tcp",
+            "tcp4",
+            "tcp6",
+            "tcp46",
+            "tcp64",
+            "ssl",
+            "ssl4",
+            "ssl6",
+            "ssl46",
+            "ssl64",
+        ):
+            validate_p4port_transport(f"{transport}:perforce.example.com:1666")
+
+    def test_validate_p4port_transport_rejects_disallowed_transport(self) -> None:
+        for transport in (
+            "http",
+            "https",
+            "file",
+            "udp",
+            "tcp5",
+            "sslx",
+            "abc",
+        ):
+            with pytest.raises(InvalidP4Port):
+                validate_p4port_transport(f"{transport}:perforce.example.com:1666")
+
+    def test_serializer_accepts_valid_p4port(self) -> None:
+        serializer = PerforceInstallationSerializer(data=self._base_payload())
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["p4port"] == "ssl:perforce.example.com:1666"
+
+    def test_client_connect_rejects_invalid_p4port_metadata(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="perforce",
+                name="Perforce",
+                external_id="perforce-test",
+                metadata={"p4port": "abc:1234", "user": "u", "password": "p"},
+            )
+        installation = integration.get_installation(self.organization.id)
+        client = installation.get_client()
+        with pytest.raises(ApiError):
+            with client._connect():
+                pass
 
 
 class PerforceIntegrationCodeMappingTest(IntegrationTestCase):

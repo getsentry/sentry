@@ -20,12 +20,12 @@ import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {
   AggregateProfileSource,
   ProfileSource,
 } from 'sentry/utils/analytics/profilingAnalyticsEvents';
+import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import type {
   FlamegraphColorCodings,

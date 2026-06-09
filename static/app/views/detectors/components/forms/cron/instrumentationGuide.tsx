@@ -19,7 +19,7 @@ import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEn
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useCronDetectorFormField} from 'sentry/views/detectors/components/forms/cron/fields';
 import {

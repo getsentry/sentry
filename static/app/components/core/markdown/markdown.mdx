@@ -14,7 +14,7 @@ import {Markdown} from '@sentry/scraps/markdown';
 
 import * as Storybook from 'sentry/stories';
 
-import {CustomComponentsDemo, StreamingDemo} from './__stories__/components';
+import {CustomComponentsDemo, StreamingDemo, TagDemo} from './__stories__/components';
 
 export const documentation = import('!!type-loader!@sentry/scraps/markdown/markdown');
 
@@ -180,6 +180,55 @@ function StreamingExample() {
 }
 ```
 
+## Tags
+
+Tags are a minimal Markdown syntax extension for custom embedded components. Inspired by [Markdoc](https://markdoc.dev/) tag syntax, they let consumers wire up their own integration surface — for example, Seer uses tags to embed entity refs and generated artifacts inline in streamed markdown.
+
+Two syntax forms are supported:
+
+**Self-closing** — inline within text, no body:
+
+```
+The crash is caused by {% ref type="issue" id="PROJ-ABC" /%} in the auth middleware.
+```
+
+**Block** — with a JSON body between opening and closing tags:
+
+```
+{% artifact type="root-cause" %}
+{"description":"Race condition in session refresh","severity":"high"}
+{% /artifact %}
+```
+
+The `Tag` component receives four props:
+
+- **`name`** — the tag name (e.g. `"ref"`, `"artifact"`, or domain-specific conventions)
+- **`level`** — `"block"` or `"inline"`, reflecting where the parser encountered the tag (not the syntax form)
+- **`attrs`** — `key="value"` pairs from the opening tag, parsed as `Record<string, string>`
+- **`data`** — the parsed JSON body (`undefined` for self-closing tags)
+
+By default, `Tag` renders nothing. Provide a `Tag` component override to handle tags:
+
+<Storybook.Demo>
+  <TagDemo />
+</Storybook.Demo>
+
+```jsx
+<Markdown
+  raw={seerOutput}
+  components={{
+    Tag: ({name, attrs, data}) => {
+      if (name === 'ref' && attrs.type === 'issue') {
+        return <IssueBadge shortId={attrs.id} snapshot={data} />;
+      }
+      return null;
+    },
+  }}
+>
+```
+
+During streaming, partial tag syntax (e.g. `{% ref type="issue"` before the closing `/%}` arrives) is automatically suppressed to avoid flashing raw source text.
+
 ## Security
 
 The component applies the same security model as the existing `MarkedText`:
@@ -193,25 +242,26 @@ The component applies the same security model as the existing `MarkedText`:
 
 Every override receives a `Default` prop in addition to the props listed below (except `Image`, which has no built-in default).
 
-| Key              | Default                        | Props                        |
-| ---------------- | ------------------------------ | ---------------------------- |
-| `Paragraph`      | `<Text as="p">`                | `children`                   |
-| `Heading`        | `<Heading as="h1-h6">`         | `children`, `level` (1-6)    |
-| `CodeBlock`      | `<CodeBlock>`                  | `children` (string), `lang`  |
-| `InlineCode`     | `<InlineCode>`                 | `children` (string)          |
-| `Link`           | `<Link>` / `<ExternalLink>`    | `children`, `href`, `title`  |
-| `Blockquote`     | `<Quote>`                      | `children`                   |
-| `Strong`         | `<strong>`                     | `children`                   |
-| `Emphasis`       | `<em>`                         | `children`                   |
-| `Strikethrough`  | `<Text strikethrough>`         | `children`                   |
-| `Image`          | stripped                       | `src`, `alt`, `title`        |
-| `Text`           | passthrough                    | `children` (string)          |
-| `OrderedList`    | `<Stack as="ol">`              | `children`                   |
-| `UnorderedList`  | `<Stack as="ul">`              | `children`                   |
-| `ListItem`       | `<Container as="li">`          | `children`                   |
-| `TaskList`       | `<Stack as="ul">` (no bullets) | `children`                   |
-| `TaskListItem`   | `<Container as="li">`          | `children`, `checked` (bool) |
-| `Table`          | styled `<table>`               | `children`                   |
-| `HorizontalRule` | `<Separator>`                  | -                            |
-| `LineBreak`      | `<br>`                         | -                            |
-| `Html`           | DOMPurify sanitized            | `html` (string)              |
+| Key              | Default                        | Props                            |
+| ---------------- | ------------------------------ | -------------------------------- |
+| `Paragraph`      | `<Text as="p">`                | `children`                       |
+| `Heading`        | `<Heading as="h1-h6">`         | `children`, `level` (1-6)        |
+| `CodeBlock`      | `<CodeBlock>`                  | `children` (string), `lang`      |
+| `InlineCode`     | `<InlineCode>`                 | `children` (string)              |
+| `Link`           | `<Link>` / `<ExternalLink>`    | `children`, `href`, `title`      |
+| `Blockquote`     | `<Quote>`                      | `children`                       |
+| `Strong`         | `<strong>`                     | `children`                       |
+| `Emphasis`       | `<em>`                         | `children`                       |
+| `Strikethrough`  | `<Text strikethrough>`         | `children`                       |
+| `Image`          | stripped                       | `src`, `alt`, `title`            |
+| `Text`           | passthrough                    | `children` (string)              |
+| `OrderedList`    | `<Stack as="ol">`              | `children`                       |
+| `UnorderedList`  | `<Stack as="ul">`              | `children`                       |
+| `ListItem`       | `<Container as="li">`          | `children`                       |
+| `TaskList`       | `<Stack as="ul">` (no bullets) | `children`                       |
+| `TaskListItem`   | `<Container as="li">`          | `children`, `checked` (bool)     |
+| `Table`          | styled `<table>`               | `children`                       |
+| `Tag`            | `null` (silent)                | `name`, `level`, `attrs`, `data` |
+| `HorizontalRule` | `<Separator>`                  | -                                |
+| `LineBreak`      | `<br>`                         | -                                |
+| `Html`           | DOMPurify sanitized            | `html` (string)                  |

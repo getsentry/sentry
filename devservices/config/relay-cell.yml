@@ -1,0 +1,35 @@
+---
+# Processing Relay terminus for the `cell-routing` dev mode. This is the
+# cell-routing replacement for the default `relay` service: same role (the
+# processing relay next to Sentry, writing to Kafka) plus an advertised upstream.
+#
+# Chain: event -> relay-edge -> relay-cell -> Kafka -> Sentry
+#
+# `advertised_upstream` is the upstream relay-cell tells the downstream relay-edge
+# to forward each project's envelopes/metrics to. In single-cell dev the only
+# cell is relay-cell itself, so it points back here via the host-published port
+# (a distinct address from relay-edge's default upstream), which keeps ingestion
+# working end-to-end while making the advertised-upstream override observable in
+# relay-edge's logs.
+#
+# This file is only mounted by the `cell-routing` mode, so `advertised_upstream`
+# never affects default dev.
+relay:
+  upstream: 'http://host.docker.internal:8001/'
+  advertised_upstream: 'http://host.docker.internal:7900/'
+  host: 0.0.0.0
+  port: 7900
+logging:
+  # Verbose so you can see the forwarded envelope arrive and get produced to Kafka.
+  # Drop back to INFO once routing is validated.
+  level: trace
+  enable_backtraces: false
+limits:
+  shutdown_timeout: 0
+processing:
+  enabled: true
+  kafka_config:
+    - {name: 'bootstrap.servers', value: 'kafka:9093'}
+    # Align with Relay's default `max_envelope_size` (200 MiB -> 209,715,200 bytes).
+    - {name: 'message.max.bytes', value: 209715200}
+  redis: redis://redis:6379

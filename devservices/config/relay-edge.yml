@@ -1,0 +1,24 @@
+---
+# Downstream "edge" Relay for the `cell-routing` dev mode. It forwards traffic
+# rather than processing it (no Kafka/Redis needed). Send test events here.
+#
+# Register + project config: relay-edge -> synapse-ingest-router -> relay-cell (+ Sentry)
+# Envelopes (once advertised): relay-edge -> relay-cell directly (bypasses synapse)
+#
+# relay-edge registers and fetches project configs through the synapse
+# ingest-router (its `upstream`). The ingest-router passes relay-cell's config
+# through unchanged, including the top-level `upstream` field relay-cell injects
+# from its `advertised_upstream`. relay-edge then sends envelopes/metrics
+# directly to that advertised upstream (relay-cell), bypassing synapse and
+# reusing its existing relay credentials.
+relay:
+  upstream: 'http://synapse-ingest-router:3000/'
+  host: 0.0.0.0
+  port: 7901
+logging:
+  # Verbose so the upstream forwarding (to the advertised upstream) is visible.
+  # Drop back to INFO once routing is validated.
+  level: trace
+  enable_backtraces: false
+limits:
+  shutdown_timeout: 0

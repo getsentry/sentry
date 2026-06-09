@@ -83,7 +83,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert summary_data == {"detail": "Could not find an event for the issue"}
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") is None
 
-    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_get_issue_summary_without_existing_summary(
@@ -477,7 +477,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_get_issue_summary_with_web_vitals_issue(
@@ -557,7 +557,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_trigger_autofix_task.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary.run_automation")
-    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_get_issue_summary_continues_when_automation_fails(
@@ -598,7 +598,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_run_automation.assert_called_once()
         mock_call_seer.assert_called_once()
 
-    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     def test_get_issue_summary_handles_trace_tree_errors(
         self,
         mock_get_trace_tree,
@@ -633,7 +633,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
 
     @patch("sentry.seer.autofix.issue_summary.run_automation")
-    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_get_issue_summary_with_should_run_automation_false(
@@ -689,7 +689,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert cached_summary == expected_response_summary
 
     @patch("sentry.seer.autofix.issue_summary.run_automation")
-    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_experiment_flag_calls_seer_twice(
@@ -743,7 +743,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert experimental_call[1]["experiment_variant"] == "experimental"
 
     @patch("sentry.seer.autofix.issue_summary.run_automation")
-    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_experiment_flag_off_calls_seer_once(
@@ -784,7 +784,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
 
     @patch("sentry.seer.autofix.issue_summary.run_automation")
-    @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
+    @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_experiment_failure_does_not_affect_regular_flow(

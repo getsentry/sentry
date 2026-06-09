@@ -5,7 +5,7 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -14,13 +14,23 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {IconAdd, IconJson, IconPin, IconSubtract, IconWarning} from 'sentry/icons';
+import {
+  IconAdd,
+  IconJson,
+  IconPin,
+  IconSubtract,
+  IconTerminal,
+  IconWarning,
+} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined, escapeDoubleQuotes} from 'sentry/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
@@ -30,6 +40,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import {
   Actions,
   ActionTriggerType,
@@ -319,17 +330,22 @@ export const LogRowContent = memo(function LogRowContent({
   const logTimestampSeconds = isRegularLogResponseItem(dataRow)
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
-  const {hoverProps, traceItemMeta} = usePrefetchTraceItemDetailsOnHover({
-    traceItemId: rowId,
-    projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
-    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
-    traceItemType: TraceItemDataset.LOGS,
-    referrer: 'api.explore.log-item-details',
-    timestamp: logTimestampSeconds,
-    sharedHoverTimeoutRef,
-    timeout: prefetchTimeout,
-  });
+  const {hoverProps, traceItemMeta, traceItemAttributes} =
+    usePrefetchTraceItemDetailsOnHover({
+      traceItemId: rowId,
+      projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
+      traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
+      traceItemType: TraceItemDataset.LOGS,
+      referrer: 'api.explore.log-item-details',
+      timestamp: logTimestampSeconds,
+      sharedHoverTimeoutRef,
+      timeout: prefetchTimeout,
+    });
   const [caseInsensitivity] = useCaseInsensitivity();
+
+  const observedTimestamp = traceItemAttributes?.find(
+    a => a.name === 'sentry.observed_timestamp_nanos'
+  );
 
   const rendererExtra: RendererExtra = {
     highlightTerms,
@@ -339,7 +355,12 @@ export const LogRowContent = memo(function LogRowContent({
     location,
     navigate,
     organization,
-    attributes: dataRow as OurLogsResponseItem,
+    attributes: {
+      ...dataRow,
+      ...(observedTimestamp && {
+        [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: String(observedTimestamp.value),
+      }),
+    } as OurLogsResponseItem,
     attributeTypes: meta?.fields ?? {},
     theme,
     projectSlug,
@@ -478,7 +499,7 @@ export const LogRowContent = memo(function LogRowContent({
 
           if (!defined(value)) {
             return (
-              <LogTableBodyCell key={field}>
+              <LogTableBodyCell key={field} reservePinGutter={!!pin}>
                 {shouldRenderActions ? (
                   <Flex position="relative" height="100%" width="100%" justify="end">
                     {pin}
@@ -512,7 +533,11 @@ export const LogRowContent = memo(function LogRowContent({
           };
 
           return (
-            <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
+            <LogTableBodyCell
+              key={field}
+              data-test-id={'log-table-cell-' + field}
+              reservePinGutter={!!pin}
+            >
               {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}
@@ -738,6 +763,7 @@ function LogRowDetails({
         >
           <LogRowDetailsActions
             fullLogDataResult={fullLogDataResult}
+            projectSlug={projectSlug}
             tableDataRow={dataRow}
           />
         </LogDetailTableActionsCell>
@@ -783,14 +809,17 @@ function LogRowDetailsFilterActions({message}: {message: string}) {
 
 function LogRowDetailsActions({
   fullLogDataResult,
+  projectSlug,
   tableDataRow,
 }: {
   fullLogDataResult: UseQueryResult<TraceItemDetailsResponse>;
+  projectSlug: string;
   tableDataRow: LogTableRowItem;
 }) {
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
+  const user = useUser();
   const showFilterButtons = !isFrozen;
   const message = String(
     data?.attributes?.find(attr => attr.name === OurLogKnownFieldKey.MESSAGE)?.value ??
@@ -802,6 +831,34 @@ function LogRowDetailsActions({
 
   // Memoize in case we are attempting to copy large JSON objects.
   const json = useMemo(() => ourlogToJson(data), [data]);
+  let logDebugEndpoint: string | undefined;
+
+  if (user.isSuperuser && projectSlug && isRegularLogResponseItem(tableDataRow)) {
+    const logId = tableDataRow[OurLogKnownFieldKey.ID] ?? '';
+    const traceId = tableDataRow[OurLogKnownFieldKey.TRACE_ID] ?? '';
+
+    if (logId && traceId) {
+      const query = new URLSearchParams({
+        item_type: TraceItemDataset.LOGS,
+        trace_id: traceId,
+        debug: 'true',
+        timestamp: String(
+          normalizeTimestampToSeconds(getLogRowTimestampMillis(tableDataRow))
+        ),
+      });
+
+      logDebugEndpoint = `/api/0${getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/trace-items/$itemId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            itemId: logId,
+          },
+        }
+      )}?${query}`;
+    }
+  }
 
   const betterCopyToClipboard = () => {
     if (!json) {
@@ -831,6 +888,16 @@ function LogRowDetailsActions({
         >
           {t('Copy as JSON')}
         </Button>
+        {logDebugEndpoint ? (
+          <LinkButton
+            variant="transparent"
+            size="sm"
+            href={logDebugEndpoint}
+            icon={<IconTerminal />}
+          >
+            {t('Debug JSON')}
+          </LinkButton>
+        ) : null}
       </LogDetailTableActionsButtonBar>
     </Fragment>
   );

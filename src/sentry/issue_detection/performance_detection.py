@@ -333,14 +333,20 @@ def get_merged_settings(
     assert project is not None
 
     # Get WFE-specific settings (analogous to project_option_settings)
-    wfe_option_settings, wfe_managed_keys = _build_wfe_settings(project)
+    wfe_option_settings, wfe_managed_keys = _build_wfe_settings(project.id)
 
     # Build complete WFE settings by merging in order
     wfe_settings = {**system_settings, **default_project_settings, **wfe_option_settings}
 
     if settings_mode == SettingsMode.COMPARE:
         # Compare and log differences, but return legacy settings
-        _log_settings_diff(project, wfe_managed_keys, legacy=legacy_settings, wfe=wfe_settings)
+        _log_settings_diff(
+            project.id,
+            project.organization_id,
+            wfe_managed_keys,
+            legacy=legacy_settings,
+            wfe=wfe_settings,
+        )
         return legacy_settings
     elif settings_mode == SettingsMode.WFE:
         # Build hybrid settings with clear priority:
@@ -363,9 +369,7 @@ def get_merged_settings(
     raise ValueError(f"Unknown settings_mode: {settings_mode}")
 
 
-def _build_wfe_settings(
-    project: Project,
-) -> tuple[dict[str, Any], set[str]]:
+def _build_wfe_settings(project_id: int) -> tuple[dict[str, Any], set[str]]:
     """
     Build WFE-specific settings (Detector.config-derived version of sentry:performance_issue_settings).
     The returned settings dict will only contain keys that are managed by WFE Detectors.
@@ -376,7 +380,7 @@ def _build_wfe_settings(
     """
     wfe_option_settings: dict[str, Any] = {}
     wfe_managed_keys: set[str] = set()
-    wfe_configs = _get_wfe_detector_configs(project)
+    wfe_configs = _get_wfe_detector_configs(project_id)
 
     # Generate settings only for detectors that have WFE Detector objects
     for detector_type, wfe_config in wfe_configs.items():
@@ -398,7 +402,8 @@ def _build_wfe_settings(
 
 
 def _log_settings_diff(
-    project: Project,
+    project_id: int,
+    organization_id: int,
     wfe_managed_keys: set[str],
     *,
     legacy: dict[str, Any],
@@ -431,15 +436,15 @@ def _log_settings_diff(
         logger.info(
             "performance_detector.settings_diff",
             extra={
-                "project_id": project.id,
-                "organization_id": project.organization_id,
+                "project_id": project_id,
+                "organization_id": organization_id,
                 "differences": differences,
                 "diff_count": len(differences),
             },
         )
 
 
-def _get_wfe_detector_configs(project: Project) -> dict[DetectorType, dict[str, Any]]:
+def _get_wfe_detector_configs(project_id: int) -> dict[DetectorType, dict[str, Any]]:
     """
     Fetch WFE Detector configs for performance detectors.
 
@@ -457,7 +462,7 @@ def _get_wfe_detector_configs(project: Project) -> dict[DetectorType, dict[str, 
     # Per DetectorType configs
     wfe_configs: dict[DetectorType, dict[str, Any]] = {}
     for detector in Detector.objects.filter(
-        project=project,
+        project_id=project_id,
         type__in=wfe_types,
     ):
         # Map WFE detector type to our DetectorType enum
@@ -474,16 +479,18 @@ def _get_wfe_detector_configs(project: Project) -> dict[DetectorType, dict[str, 
     return wfe_configs
 
 
-def _get_wfe_detectors_by_type(project: Project) -> dict[str, Detector]:
+def _get_wfe_detectors_by_type(project_id: int) -> dict[str, Detector]:
     """Fetch all performance WFE detectors for a project, keyed by detector type."""
     return {
         d.type: d
-        for d in Detector.objects.filter(project=project, type__in=PERFORMANCE_WFE_DETECTOR_TYPES)
+        for d in Detector.objects.filter(
+            project_id=project_id, type__in=PERFORMANCE_WFE_DETECTOR_TYPES
+        )
     }
 
 
 def sync_project_options_to_wfe_detectors(
-    project: Project, settings_data: dict[str, Any]
+    project_id: int, settings_data: dict[str, Any]
 ) -> dict[DetectorType, bool]:
     """
     Sync ProjectOption settings to WFE Detector configs.
@@ -495,7 +502,7 @@ def sync_project_options_to_wfe_detectors(
     Returns dict of DetectorType -> bool indicating which detectors were updated.
     """
     updated: dict[DetectorType, bool] = {}
-    existing_detectors = _get_wfe_detectors_by_type(project)
+    existing_detectors = _get_wfe_detectors_by_type(project_id)
 
     for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
         detector = existing_detectors.get(mapping.wfe_detector_type)
@@ -529,7 +536,7 @@ def sync_project_options_to_wfe_detectors(
     return updated
 
 
-def reset_wfe_detector_configs(project: Project) -> dict[DetectorType, bool]:
+def reset_wfe_detector_configs(project_id: int) -> dict[DetectorType, bool]:
     """
     Reset WFE Detector configs to defaults by clearing config on enabled detectors.
 
@@ -540,7 +547,7 @@ def reset_wfe_detector_configs(project: Project) -> dict[DetectorType, bool]:
     Returns dict of DetectorType -> bool indicating which detectors were updated.
     """
     updated: dict[DetectorType, bool] = {}
-    existing_detectors = _get_wfe_detectors_by_type(project)
+    existing_detectors = _get_wfe_detectors_by_type(project_id)
 
     for detector_type, mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.items():
         detector = existing_detectors.get(mapping.wfe_detector_type)
@@ -581,7 +588,7 @@ def update_performance_settings(
     project.update_option(SETTINGS_PROJECT_OPTION_KEY, settings)
 
     if sync_detectors:
-        return sync_project_options_to_wfe_detectors(project, settings)
+        return sync_project_options_to_wfe_detectors(project.id, settings)
 
     return {}
 
@@ -607,7 +614,7 @@ def reset_performance_settings(
     project.update_option(SETTINGS_PROJECT_OPTION_KEY, unchanged_options)
 
     if sync_detectors:
-        return reset_wfe_detector_configs(project)
+        return reset_wfe_detector_configs(project.id)
 
     return {}
 
@@ -750,7 +757,7 @@ def _detect_performance_problems(
 
     with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
-            detector_class(detection_settings[detector_class.settings_key], data, organization)
+            detector_class(detection_settings[detector_class.settings_key], data)
             for detector_class in DETECTOR_CLASSES
             if detector_class.is_detection_allowed_for_system()
         ]
@@ -776,12 +783,7 @@ def _detect_performance_problems(
     problems: list[PerformanceProblem] = []
     with sentry_sdk.start_span(op="performance_detection", name="is_creation_allowed"):
         for detector in detectors:
-            if all(
-                [
-                    detector.is_creation_allowed_for_organization(organization),
-                    detector.is_creation_allowed_for_project(project),
-                ]
-            ):
+            if detector.is_creation_allowed():
                 problems.extend(detector.stored_problems.values())
             else:
                 continue
@@ -964,12 +966,7 @@ def report_metrics_for_detectors(
 
         op_tags = {
             "is_standalone_spans": standalone,
-            "is_creation_allowed": all(
-                [
-                    detector.is_creation_allowed_for_organization(organization),
-                    detector.is_creation_allowed_for_project(project),
-                ]
-            ),
+            "is_creation_allowed": detector.is_creation_allowed(),
         }
         for problem in detected_problems.values():
             op = problem.op

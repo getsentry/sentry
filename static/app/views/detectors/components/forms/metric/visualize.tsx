@@ -6,11 +6,11 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {

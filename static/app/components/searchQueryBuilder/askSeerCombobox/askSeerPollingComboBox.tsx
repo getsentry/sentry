@@ -281,6 +281,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             start={item?.start}
             end={item?.end}
             visualizations={item?.visualizations}
+            expandedProjectIds={item?.expandedProjectIds}
           />
         </Item>
       );

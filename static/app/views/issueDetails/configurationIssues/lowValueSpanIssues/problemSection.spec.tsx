@@ -10,7 +10,6 @@ const evidenceData: LowValueSpanEvidenceData = {
   extrapolatedCount: 60_000,
   avgDurationMs: 0.4,
   estimatedCostUsd: 12.34,
-  sdkName: 'sentry.javascript.nextjs',
   spanOrigin: 'auto',
 };
 
@@ -18,15 +17,15 @@ describe('LowValueSpanIssues ProblemSection', () => {
   it('renders low-value span evidence from the occurrence', () => {
     render(<ProblemSection evidenceData={evidenceData} />);
 
-    expect(screen.getByText('Problem')).toBeInTheDocument();
+    expect(screen.getByText(/frequently created span/)).toBeInTheDocument();
+    expect(screen.getByText('Affected span')).toBeInTheDocument();
     expect(screen.getByText('function - compute_checksum')).toBeInTheDocument();
     expect(screen.getByText('Span count')).toBeInTheDocument();
-    expect(screen.getByText('60,000')).toBeInTheDocument();
+    expect(screen.getByText('60K')).toBeInTheDocument();
     expect(screen.getAllByLabelText('More information')).toHaveLength(2);
     expect(screen.getByText('Estimated cost')).toBeInTheDocument();
     expect(screen.getByText('$12.34')).toBeInTheDocument();
     expect(screen.getByText('<1ms')).toBeInTheDocument();
-    expect(screen.queryByText('sentry.javascript.nextjs')).not.toBeInTheDocument();
   });
 
   it('falls back to the sampled span count when extrapolated count is unavailable', () => {
@@ -39,7 +38,7 @@ describe('LowValueSpanIssues ProblemSection', () => {
       />
     );
 
-    expect(screen.getByText('1,234')).toBeInTheDocument();
+    expect(screen.getByText('1.2K')).toBeInTheDocument();
     expect(screen.getAllByLabelText('More information')).toHaveLength(1);
   });
 

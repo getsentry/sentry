@@ -86,10 +86,16 @@ def get_kafka_producer_cluster_options(cluster_name: str) -> dict[str, Any]:
 
 
 def get_kafka_consumer_cluster_options(
-    cluster_name: str, override_params: MutableMapping[str, Any] | None = None
+    cluster_name: str,
+    override_params: MutableMapping[str, Any] | None = None,
+    topic: Topic | None = None,
 ) -> dict[str, Any]:
+    # Per-topic consumer config (keyed by the region-stable Topic enum value) layers on
+    # top of the cluster's consumer config but below any explicit override_params.
+    topic_config = settings.KAFKA_TOPIC_CONSUMER_CONFIG.get(topic.value, {}) if topic else {}
+    merged = {**topic_config, **(override_params or {})}
     return _get_kafka_cluster_options(
-        cluster_name, CONSUMERS_SECTION, only_bootstrap=True, override_params=override_params
+        cluster_name, CONSUMERS_SECTION, only_bootstrap=True, override_params=merged or None
     )
 
 

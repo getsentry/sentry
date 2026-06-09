@@ -3,6 +3,8 @@ from typing import Any
 
 from sentry.models.activity import Activity
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
@@ -34,6 +36,7 @@ Maps the DataCondition's expected stages to their ActivityType (from the Activit
 """
 
 
+@condition_handler_registry.register(Condition.SEER_ACTIVITY_TRIGGER)
 class SeerActivityTriggerHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.WORKFLOW_TRIGGER
     comparison_json_schema = {

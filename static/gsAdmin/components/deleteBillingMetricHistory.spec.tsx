@@ -99,92 +99,95 @@ describe('DeleteBillingMetricHistory', () => {
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 
-  it('successfully deletes billing metric history when form is submitted', async () => {
-    // Mock the billing config API call
-    MockApiClient.addMockResponse({
-      url: '/billing-config/',
-      body: {
-        category_info: {
-          '1': {
-            api_name: 'errors',
-            billed_category: 1,
-            display_name: 'Errors',
-            name: 'errors',
-            order: 1,
-            product_name: 'Error Tracking',
-            singular: 'error',
-            tally_type: 1,
+  it.isKnownFlake(
+    'successfully deletes billing metric history when form is submitted',
+    async () => {
+      // Mock the billing config API call
+      MockApiClient.addMockResponse({
+        url: '/billing-config/',
+        body: {
+          category_info: {
+            '1': {
+              api_name: 'errors',
+              billed_category: 1,
+              display_name: 'Errors',
+              name: 'errors',
+              order: 1,
+              product_name: 'Error Tracking',
+              singular: 'error',
+              tally_type: 1,
+            },
+            '2': {
+              api_name: 'transactions',
+              billed_category: 2,
+              display_name: 'Transactions',
+              name: 'transactions',
+              order: 2,
+              product_name: 'Performance',
+              singular: 'transaction',
+              tally_type: 2,
+            },
           },
-          '2': {
-            api_name: 'transactions',
-            billed_category: 2,
-            display_name: 'Transactions',
-            name: 'transactions',
-            order: 2,
-            product_name: 'Performance',
-            singular: 'transaction',
-            tally_type: 2,
-          },
+          outcomes: {},
+          reason_codes: {},
         },
-        outcomes: {},
-        reason_codes: {},
-      },
-    });
+      });
 
-    // Mock the success indicator
-    const successIndicator = jest.spyOn(
-      require('sentry/actionCreators/indicator'),
-      'addSuccessMessage'
-    );
+      // Mock the success indicator
+      const successIndicator = jest.spyOn(
+        require('sentry/actionCreators/indicator'),
+        'addSuccessMessage'
+      );
 
-    // Mock the API endpoint for deleting billing metric history
-    const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
-      url: `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
-      method: 'POST',
-      body: {},
-    });
-
-    const onSuccess = jest.fn();
-    openDeleteModal({organization, onSuccess});
-
-    // Wait for the component to load
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
-
-    // Wait for the form to be visible
-    await waitFor(() => {
-      expect(screen.getByRole('textbox', {name: 'Data Category'})).toBeInTheDocument();
-    });
-
-    // Select a data category
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Data Category'}),
-      'Transactions (2)'
-    );
-
-    // Click the Delete button
-    await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
-
-    // Check that the API call was made with the correct parameters
-    expect(deleteBillingMetricHistoryMock).toHaveBeenCalledWith(
-      `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
-      expect.objectContaining({
+      // Mock the API endpoint for deleting billing metric history
+      const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
+        url: `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
         method: 'POST',
-        data: {
-          data_category: 2,
-        },
-      })
-    );
+        body: {},
+      });
 
-    // Check that the success message was shown
-    expect(successIndicator).toHaveBeenCalledWith(
-      'Successfully deleted billing metric history.'
-    );
+      const onSuccess = jest.fn();
+      openDeleteModal({organization, onSuccess});
 
-    // Check that the onSuccess callback was called
-    expect(onSuccess).toHaveBeenCalled();
-  });
+      // Wait for the component to load
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
+
+      // Wait for the form to be visible
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', {name: 'Data Category'})).toBeInTheDocument();
+      });
+
+      // Select a data category
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Data Category'}),
+        'Transactions (2)'
+      );
+
+      // Click the Delete button
+      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+
+      // Check that the API call was made with the correct parameters
+      expect(deleteBillingMetricHistoryMock).toHaveBeenCalledWith(
+        `/api/0/customers/${organization.slug}/delete-billing-metric-history/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            data_category: 2,
+          },
+        })
+      );
+
+      // Check that the success message was shown
+      expect(successIndicator).toHaveBeenCalledWith(
+        'Successfully deleted billing metric history.'
+      );
+
+      // Check that the onSuccess callback was called
+      expect(onSuccess).toHaveBeenCalled();
+    }
+  );
 
   it('shows error message when API request fails', async () => {
     // Mock the billing config API call

@@ -161,4 +161,58 @@ describe('SentryAppExternalFormNew', () => {
       )
     );
   });
+
+  it('omits optional fields the user never filled from the submitted payload', async () => {
+    const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
+    const submitRequest = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: submitUrl,
+      body: {},
+    });
+
+    const config: ComponentProps<typeof SentryAppExternalFormNew>['config'] = {
+      uri: '/integrations/sentry/issues/create',
+      required_fields: [{type: 'text', name: 'title', label: 'Title'}],
+      optional_fields: [
+        {
+          type: 'select',
+          name: 'priority_id',
+          label: 'Priority',
+          choices: [
+            ['p1', 'High'],
+            ['p2', 'Low'],
+          ],
+        },
+      ],
+    };
+
+    render(
+      <SentryAppExternalFormNew
+        sentryAppInstallationUuid={sentryAppInstallation.uuid}
+        appName={sentryApp.name}
+        config={config}
+        action="create"
+        element="issue-link"
+        onSubmitSuccess={jest.fn()}
+      />
+    );
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'It broke');
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    // The untouched optional select must be dropped, not sent as
+    // `priority_id: null`. Matching `data` exactly asserts its absence.
+    await waitFor(() =>
+      expect(submitRequest).toHaveBeenCalledWith(
+        submitUrl,
+        expect.objectContaining({
+          data: {
+            title: 'It broke',
+            action: 'create',
+            uri: '/integrations/sentry/issues/create',
+          },
+        })
+      )
+    );
+  });
 });

@@ -572,10 +572,6 @@ describe('ProjectSeer', () => {
   });
 
   it('can enable automation handoff to Claude when Claude integration is available', async () => {
-    const orgWithClaudeFeature = OrganizationFixture({
-      features: ['integrations-claude-code'],
-    });
-
     const initialProject: DetailedProject = {
       ...project,
       autofixAutomationTuning: 'medium',
@@ -583,7 +579,7 @@ describe('ProjectSeer', () => {
     };
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithClaudeFeature.slug}/seer/setup-check/`,
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
       method: 'GET',
       body: {
         billing: {
@@ -594,20 +590,20 @@ describe('ProjectSeer', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithClaudeFeature.slug}/repos/`,
+      url: `/organizations/${organization.slug}/repos/`,
       query: {status: 'active'},
       method: 'GET',
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'GET',
       body: initialProject,
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/seer/preferences/`,
+      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'GET',
       body: {
         code_mapping_repos: [],
@@ -617,7 +613,7 @@ describe('ProjectSeer', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithClaudeFeature.slug}/integrations/coding-agents/`,
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
       body: {
         integrations: [
@@ -631,18 +627,18 @@ describe('ProjectSeer', () => {
     });
 
     const projectPutRequest = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
       body: {},
     });
 
     const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/seer/preferences/`,
+      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'POST',
     });
 
     render(<ProjectSeer />, {
-      organization: orgWithClaudeFeature,
+      organization,
       outletContext: {project: initialProject},
     });
 
@@ -1127,10 +1123,6 @@ describe('ProjectSeer', () => {
     it('only shows same-provider integrations in selector when both cursor and claude exist', async () => {
       MockApiClient.clearMockResponses();
 
-      const orgWithBothFeatures = OrganizationFixture({
-        features: ['integrations-claude-code'],
-      });
-
       const initialProject: DetailedProject = {
         ...project,
         autofixAutomationTuning: 'medium',
@@ -1142,7 +1134,7 @@ describe('ProjectSeer', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithBothFeatures.slug}/seer/setup-check/`,
+        url: `/organizations/${organization.slug}/seer/setup-check/`,
         method: 'GET',
         body: {
           billing: {hasAutofixQuota: true, hasScannerQuota: true},
@@ -1150,14 +1142,14 @@ describe('ProjectSeer', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithBothFeatures.slug}/repos/`,
+        url: `/organizations/${organization.slug}/repos/`,
         query: {status: 'active'},
         method: 'GET',
         body: [],
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithBothFeatures.slug}/integrations/coding-agents/`,
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         method: 'GET',
         body: {
           integrations: [
@@ -1176,7 +1168,7 @@ describe('ProjectSeer', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/projects/${orgWithBothFeatures.slug}/${project.slug}/seer/preferences/`,
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
         method: 'GET',
         body: {
           preference: {
@@ -1194,7 +1186,7 @@ describe('ProjectSeer', () => {
       });
 
       render(<ProjectSeer />, {
-        organization: orgWithBothFeatures,
+        organization,
         outletContext: {project: initialProject},
       });
 

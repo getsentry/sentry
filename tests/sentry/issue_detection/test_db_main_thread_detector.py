@@ -57,7 +57,7 @@ class DBMainThreadDetectorTest(TestCase):
         settings = get_detection_settings(project)
         detector = DBMainThreadDetector(settings[DBMainThreadDetector.settings_key], event)
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -68,7 +68,7 @@ class DBMainThreadDetectorTest(TestCase):
         settings = get_detection_settings(project)
         detector = DBMainThreadDetector(settings[DBMainThreadDetector.settings_key], event)
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()
 
     def test_does_not_detect_db_main_thread(self) -> None:
         event = get_event("db-on-main-thread/db-on-main-thread")

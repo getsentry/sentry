@@ -1,6 +1,7 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
 
 export function ServiceField() {

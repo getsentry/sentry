@@ -4149,3 +4149,119 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
 
         scores = {gid: score for gid, score in results}
         assert scores[profile_group.id] > scores[error_group.id]
+
+    def _recommended_scores(self, group_ids: list[int]) -> dict[int, float]:
+        results = self.backend._get_query_executor().snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=group_ids,
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        return {gid: score for gid, score in results}
+
+    def test_recommended_message_penalty(self) -> None:
+        ts = before_now(hours=1).isoformat()
+        exception_event = self.store_event(
+            data={
+                "fingerprint": ["exception-group"],
+                "event_id": "a" * 32,
+                "timestamp": ts,
+                "message": "exception-group",
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "something broke",
+                            "stacktrace": {"frames": [{"module": "app.main"}]},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        message_event = self.store_event(
+            data={
+                "fingerprint": ["message-group"],
+                "event_id": "b" * 32,
+                "timestamp": ts,
+                "message": "message-group",
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        with self.options({"snuba.search.recommended.message-penalty-weight": 0.10}):
+            scores = self._recommended_scores([exception_event.group.id, message_event.group.id])
+
+        assert scores[exception_event.group.id] > scores[message_event.group.id]
+
+    def test_recommended_zero_weight_factor_excluded(self) -> None:
+        ts = before_now(hours=1).isoformat()
+        for i in range(5):
+            self.store_event(
+                data={
+                    "fingerprint": ["high-vol"],
+                    "event_id": f"{'a' * 31}{i}",
+                    "message": "high-vol",
+                    "level": "info",
+                    "timestamp": ts,
+                },
+                project_id=self.project.id,
+            )
+        self.store_event(
+            data={
+                "fingerprint": ["low-vol"],
+                "event_id": "b" * 32,
+                "message": "low-vol",
+                "level": "fatal",
+                "timestamp": ts,
+            },
+            project_id=self.project.id,
+        )
+        high = Group.objects.get(project=self.project, message="high-vol")
+        low = Group.objects.get(project=self.project, message="low-vol")
+
+        options = {
+            "snuba.search.recommended.recency-weight": 0.0,
+            "snuba.search.recommended.spike-weight": 0.0,
+            "snuba.search.recommended.severity-weight": 0.0,
+            "snuba.search.recommended.user-impact-weight": 0.0,
+            "snuba.search.recommended.event-volume-weight": 0.2,
+            "snuba.search.recommended.group-type-boost": {},
+        }
+        with self.options(options):
+            scores = self._recommended_scores([high.id, low.id])
+
+        assert scores[high.id] > scores[low.id]
+
+    def test_recommended_all_factors_zero_with_boost(self) -> None:
+        # All factor weights are dropped, leaving only the group type boost. The
+        # boost can be a non-aggregate expression, so the query must still be a
+        # valid aggregation and succeed.
+        event = self.store_event(
+            data={
+                "fingerprint": ["boost-only"],
+                "event_id": "a" * 32,
+                "level": "error",
+                "timestamp": before_now(hours=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        options = {
+            "snuba.search.recommended.recency-weight": 0.0,
+            "snuba.search.recommended.spike-weight": 0.0,
+            "snuba.search.recommended.severity-weight": 0.0,
+            "snuba.search.recommended.user-impact-weight": 0.0,
+            "snuba.search.recommended.event-volume-weight": 0.0,
+            "snuba.search.recommended.group-type-boost": {1: 0.5},
+        }
+        with self.options(options):
+            scores = self._recommended_scores([event.group.id])
+
+        assert event.group.id in scores

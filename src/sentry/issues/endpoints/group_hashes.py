@@ -80,7 +80,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         examples=EventExamples.GROUP_HASHES,
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-hashes"])
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group) -> Response[list[GroupHashesResult]]:
         """
         List the hashes that make up an issue. Each hash represents a grouping
         signature used to aggregate individual events into this issue.

@@ -37,7 +37,6 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, Autof
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
-    SeerApiError,
     SeerAutomationHandoffConfiguration,
     SeerPermissionError,
     SeerProjectPreference,
@@ -68,6 +67,19 @@ class AutofixStoppingPoint(StrEnum):
     OPEN_PR = "open_pr"
 
 
+SEAT_BASED_STOPPING_POINTS: frozenset[AutofixStoppingPoint] = frozenset(
+    {
+        AutofixStoppingPoint.CODE_CHANGES,
+        AutofixStoppingPoint.OPEN_PR,
+        AutofixStoppingPoint.ROOT_CAUSE,
+    }
+)
+
+USAGE_BASED_STOPPING_POINTS: frozenset[AutofixStoppingPoint] = SEAT_BASED_STOPPING_POINTS | {
+    AutofixStoppingPoint.SOLUTION,
+}
+
+
 def extract_api_error_message(response: Any) -> str | None:
     # Anthropic returns {"error": {"type": "...", "message": "..."}}; others
     # (OpenAI, GitHub, Stripe) use one of "error.message" or top-level "message".
@@ -92,12 +104,11 @@ def extract_api_error_message(response: Any) -> str | None:
 
 def get_valid_automated_run_stopping_points(
     organization: Organization,
-) -> set[AutofixStoppingPoint]:
-    """Return the set of stopping points valid for the given organization."""
-    valid = {AutofixStoppingPoint.CODE_CHANGES, AutofixStoppingPoint.OPEN_PR}
-    if features.has("organizations:root-cause-stopping-point", organization):
-        valid.add(AutofixStoppingPoint.ROOT_CAUSE)
-    return valid
+) -> frozenset[AutofixStoppingPoint]:
+    """Return the set of stopping points valid for an org's billing tier."""
+    if is_seer_seat_based_tier_enabled(organization):
+        return SEAT_BASED_STOPPING_POINTS
+    return USAGE_BASED_STOPPING_POINTS
 
 
 class AutofixRequest(BaseModel):
@@ -130,11 +141,6 @@ class CodingAgentStatus(StrEnum):
         }
 
         return status_mapping.get(cursor_status.upper(), None)
-
-
-class AutofixTriggerSource(StrEnum):
-    ROOT_CAUSE = "root_cause"
-    SOLUTION = "solution"
 
 
 class CodingAgentResult(BaseModel):
@@ -217,12 +223,6 @@ class GetAutofixStatePrRequest(TypedDict):
     pr_id: int
 
 
-class GetAutofixPromptRequest(TypedDict):
-    run_id: int
-    include_root_cause: bool
-    include_solution: bool
-
-
 class StoreCodingAgentStatesRequest(TypedDict):
     run_id: int
     coding_agent_states: list[dict[str, Any]]
@@ -241,34 +241,6 @@ def make_get_autofix_state_request(
     )
 
 
-def make_get_autofix_state_pr_request(
-    body: GetAutofixStatePrRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/state/pr",
-        body=orjson.dumps(body),
-        viewer_context=viewer_context,
-    )
-
-
-def make_get_autofix_prompt_request(
-    body: GetAutofixPromptRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/prompt",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
 def make_update_coding_agent_state_request(
     body: CodingAgentStateUpdateRequest,
     connection_pool: HTTPConnectionPool | None = None,
@@ -280,32 +252,6 @@ def make_update_coding_agent_state_request(
         "/v1/automation/autofix/coding-agent/state/update",
         body=orjson.dumps(body.dict(exclude_none=True)),
         timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_autofix_start_request(
-    body: bytes,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/start",
-        body=body,
-        viewer_context=viewer_context,
-    )
-
-
-def make_autofix_update_request(
-    body: bytes,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/update",
-        body=body,
         viewer_context=viewer_context,
     )
 
@@ -365,12 +311,12 @@ def default_seer_project_preference(project: Project) -> SeerProjectPreference:
 def get_org_default_seer_automation_handoff(
     organization: Organization,
 ) -> tuple[str, SeerAutomationHandoffConfiguration | None]:
-    """Get the default stopping point and automation handoff for an organization."""
+    """Get the default stopping point and automation handoff for a seat-based organization."""
     stopping_point = organization.get_option(
         "sentry:default_automated_run_stopping_point", SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
     )
     # Guard against stored stopping points that are no longer valid.
-    if stopping_point not in get_valid_automated_run_stopping_points(organization):
+    if stopping_point not in SEAT_BASED_STOPPING_POINTS:
         stopping_point = SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
 
     auto_open_prs = organization.get_option("sentry:auto_open_prs", AUTO_OPEN_PRS_DEFAULT)
@@ -974,24 +920,6 @@ def get_autofix_state(
     return None
 
 
-def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | None:
-    body = GetAutofixStatePrRequest(provider=provider, pr_id=pr_id)
-    response = make_get_autofix_state_pr_request(body)
-
-    if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
-    result = response.json()
-
-    if not result:
-        return None
-
-    state = result.get("state", None)
-    if state is None:
-        return None
-
-    return AutofixState.validate(state)
-
-
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:
     """
     Check if Seer Scanner automation is rate limited for a given project and organization.
@@ -1158,50 +1086,6 @@ def is_seer_autotriggered_autofix_rate_limited_and_increment(
             category=DataCategory.SEER_AUTOFIX,
         )
     return is_rate_limited
-
-
-def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: bool) -> str:
-    """Get the autofix prompt from Seer API."""
-
-    body = GetAutofixPromptRequest(
-        run_id=run_id,
-        include_root_cause=include_root_cause,
-        include_solution=include_solution,
-    )
-    response = make_get_autofix_prompt_request(body, timeout=15)
-
-    if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
-
-    response_data = orjson.loads(response.data)
-
-    return response_data.get("prompt")
-
-
-def get_coding_agent_prompt(
-    run_id: int,
-    trigger_source: AutofixTriggerSource,
-    instruction: str | None = None,
-    short_id: str | None = None,
-) -> str:
-    """Get the coding agent prompt with prefix from Seer API."""
-    include_root_cause = trigger_source in [
-        AutofixTriggerSource.ROOT_CAUSE,
-        AutofixTriggerSource.SOLUTION,
-    ]
-    include_solution = trigger_source == AutofixTriggerSource.SOLUTION
-
-    autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
-
-    base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
-
-    if short_id:
-        base_prompt = f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the commit message."
-
-    if instruction and instruction.strip():
-        base_prompt = f"{base_prompt}\n\n{instruction.strip()}"
-
-    return f"{base_prompt}\n\n{autofix_prompt}"
 
 
 def update_coding_agent_state(

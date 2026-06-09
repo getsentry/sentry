@@ -11,7 +11,6 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
-from sentry import features
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -274,9 +273,8 @@ def _common_codegen_request_payload(
         },
     }
 
-    # Add experiment_enabled flag ONLY for pr-review requests (not for pr-closed / pr-reopened)
     if add_experiment_enabled:
-        data["experiment_enabled"] = is_org_enabled_for_code_review_experiments(organization)
+        data["experiment_enabled"] = True
 
     return {
         "external_owner_id": repo.external_id,
@@ -624,16 +622,3 @@ def delete_existing_reactions_and_add_reaction(
             CodeReviewErrorType.REACTION_FAILED,
         )
         logger.warning(Log.REACTION_FAILED.value, exc_info=True)
-
-
-def is_org_enabled_for_code_review_experiments(organization: Organization) -> bool:
-    """
-    Checks if an org is eligible to code review experiments via Flagpole.
-
-    If True the exact experiment is decided by Seer.
-    If False no experiment will be applied to the PR, and it'll use the default behavior.
-    """
-    return features.has(
-        "organizations:code-review-experiments-enabled",
-        organization,
-    )

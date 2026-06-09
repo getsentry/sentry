@@ -27,10 +27,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
@@ -162,7 +162,7 @@ function IssueListOverviewInner({
     () => selection.projects.map(String),
     [selection.projects]
   );
-  const {data: memberList = {}} = useQuery({
+  const {data: memberList} = useQuery({
     ...useProjectMembersQueryOptions(organizationUsersProjectIds),
     select: resp => indexMembersByProject(resp.json),
   });

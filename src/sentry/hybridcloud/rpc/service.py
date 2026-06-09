@@ -618,11 +618,17 @@ class _RemoteSiloCall:
             "meta": meta,
             "args": self.serial_arguments,
         }
+
+        origin = settings.SENTRY_LOCAL_CELL
+        if not origin:
+            origin = SiloMode.get_current_mode().name
+
         data = json.dumps(request_body).encode(_RPC_CONTENT_CHARSET)
         signature = generate_request_signature(self.path, data)
         headers = {
             "Content-Type": f"application/json; charset={_RPC_CONTENT_CHARSET}",
             "Authorization": f"Rpcsignature {signature}",
+            "User-Agent": f"sentry-rpc/from-{origin}",
         }
 
         with self._open_request_context():

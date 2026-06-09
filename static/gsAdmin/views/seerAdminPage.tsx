@@ -10,9 +10,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {getRegions} from 'sentry/utils/regions';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
@@ -20,7 +20,8 @@ export function SeerAdminPage() {
   const [organizationId, setOrganizationId] = useState('');
   const [dryRun, setDryRun] = useState(false);
   const [maxCandidates, setMaxCandidates] = useState('');
-  const regions = ConfigStore.get('regions');
+  // TODO(cells) Need cell + locality here
+  const regions = getRegions();
   const [region, setRegion] = useState(regions[0] ?? null);
 
   const {mutate: triggerNightShift, isPending: isNightShiftPending} = useMutation({

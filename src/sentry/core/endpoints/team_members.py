@@ -28,7 +28,7 @@ class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
 
 
 @register(OrganizationMemberTeam)
-class DetailedOrganizationMemberTeamSerializer(Serializer):
+class DetailedOrganizationMemberTeamSerializer(Serializer[OrganizationMemberOnTeamResponse]):
     def __init__(self, *args, **kwargs):
         self.team = kwargs.pop("team", None)
         super().__init__(*args, **kwargs)

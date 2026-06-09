@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 export enum LogsAnalyticsPageSource {
   EXPLORE_LOGS = 'explore',

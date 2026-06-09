@@ -26,7 +26,8 @@ import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tn} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 

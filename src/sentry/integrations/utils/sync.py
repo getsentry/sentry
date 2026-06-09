@@ -19,6 +19,7 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
+from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
@@ -82,10 +83,11 @@ def _handle_deassign(
         if not should_sync_assignee_inbound(group.organization, integration.provider):
             continue
 
-        GroupAssignee.objects.deassign(
-            group,
-            assignment_source=AssignmentSource.from_integration(integration),
-        )
+        with action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR):
+            GroupAssignee.objects.deassign(
+                group,
+                assignment_source=AssignmentSource.from_integration(integration),
+            )
         groups_deassigned.append(group)
     return groups_deassigned
 
@@ -116,11 +118,12 @@ def _handle_assign(
                     "user_id": user.id,
                 },
             )
-            GroupAssignee.objects.assign(
-                group,
-                user,
-                assignment_source=AssignmentSource.from_integration(integration),
-            )
+            with action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR):
+                GroupAssignee.objects.assign(
+                    group,
+                    user,
+                    assignment_source=AssignmentSource.from_integration(integration),
+                )
             groups_assigned.append(group)
         else:
             logger.info(

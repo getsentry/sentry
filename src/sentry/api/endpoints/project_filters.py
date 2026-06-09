@@ -42,12 +42,12 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.GET_PROJECT_FILTERS,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[ProjectFilterResponse]]:
         """
         Retrieve a list of filters for a given project.
         `active` will be either a boolean or a list for the legacy browser filters.
         """
-        results = []
+        results: list[ProjectFilterResponse] = []
         for flt in inbound_filters.get_all_filter_specs():
             results.append(
                 {

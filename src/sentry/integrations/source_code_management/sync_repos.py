@@ -52,7 +52,9 @@ logger = logging.getLogger(__name__)
 # Providers to include in the periodic sync. Each must implement
 # get_repositories() returning RepositoryInfo with all fields needed
 # by their build_repository_config.
-# Perforce is excluded because it cannot derive external_id from its API.
+# Perforce syncs at depot granularity: get_repositories() enumerates depots
+# (p4 depots) and derives a stable external_id from the depot path, matching
+# what the manual-add path stores.
 SCM_SYNC_PROVIDERS = [
     "github",
     "github_enterprise",
@@ -60,6 +62,7 @@ SCM_SYNC_PROVIDERS = [
     "bitbucket",
     "bitbucket_server",
     "vsts",
+    "perforce",
 ]
 
 SYNC_BATCH_SIZE = 100

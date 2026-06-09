@@ -17,23 +17,28 @@ from fixtures.github import (
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
+    push_event_with_author,
+    push_event_with_commit_authors,
 )
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook import (
+    CheckSuiteWebhook,
     GitHubIntegrationsWebhookEndpoint,
     InstallationRepositoriesEventWebhook,
 )
 from sentry.integrations.github.webhook_types import InstallationRepositoriesEvent
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalActorSource, ExternalProviders
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
@@ -125,6 +130,52 @@ class WebhookTest(APITestCase):
         )
 
         assert response.status_code == 400
+
+
+class SCMOnlyWebhookTest(APITestCase):
+    """Tests for webhook event types that have no legacy processors and only
+    publish to the SCM event stream."""
+
+    def setUp(self) -> None:
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+    def create_github_integration_and_repo(self) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="12345",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        self.create_repo(
+            self.project,
+            external_id="35129377",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+    @patch("sentry.integrations.github.webhook.produce_event_to_scm_stream")
+    @patch.object(CheckSuiteWebhook, "_handle", autospec=True)
+    def test_check_suite_handler_is_noop_and_publishes_to_scm_stream(
+        self, mock_handle: MagicMock, mock_produce: MagicMock
+    ) -> None:
+        self.create_github_integration_and_repo()
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="check_suite",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+        assert CheckSuiteWebhook.WEBHOOK_EVENT_PROCESSORS == ()
+        mock_handle.assert_called_once()
+        mock_produce.assert_called_once()
 
 
 @control_silo_test
@@ -352,7 +403,7 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         )
         sha1, sha256 = self._compute_signatures(body)
 
-        with self.feature("organizations:github-repo-auto-sync-webhook"), self.tasks():
+        with self.tasks():
             response = self.client.post(
                 path=self.url,
                 data=body,
@@ -399,7 +450,7 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         )
         sha1, sha256 = self._compute_signatures(body)
 
-        with self.feature("organizations:github-repo-auto-sync-webhook"), self.tasks():
+        with self.tasks():
             response = self.client.post(
                 path=self.url,
                 data=body,
@@ -604,6 +655,186 @@ class PushEventWebhookTest(APITestCase):
         )
 
         assert response.status_code == 204
+
+    def _send_push_event(self, body: str):
+        sig1 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha1", body.encode("utf-8"), self.secret
+        )
+        sig256 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha256", body.encode("utf-8"), self.secret
+        )
+        return self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE=f"sha1={sig1}",
+            HTTP_X_HUB_SIGNATURE_256=f"sha256={sig256}",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+    def _setup_github_integration_and_repo(self):
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.organization.id, self.user)
+        return integration
+
+    @responses.activate
+    def test_creates_external_actor_for_new_commit_author(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        integration = self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        )
+        assert response.status_code == 204
+
+        external_actors = list(ExternalActor.objects.filter(organization_id=self.organization.id))
+        assert len(external_actors) == 1
+        external_actor = external_actors[0]
+        assert external_actor.user_id == member.id
+        assert external_actor.external_name == "@newdev"
+        assert external_actor.provider == ExternalProviders.GITHUB.value
+        assert external_actor.integration_id == integration.id
+        assert external_actor.source == ExternalActorSource.COMMIT_AUTHOR.value
+
+    @responses.activate
+    def test_skips_external_actor_for_noreply_email(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            push_event_with_author(
+                name="New Dev",
+                email="newdev@users.noreply.github.com",
+                username="newdev",
+            )
+        )
+        assert response.status_code == 204
+
+        assert not ExternalActor.objects.filter(organization_id=self.organization.id).exists()
+
+    @responses.activate
+    def test_skips_external_actor_when_email_does_not_match_user(self) -> None:
+        self._setup_github_integration_and_repo()
+
+        response = self._send_push_event(
+            push_event_with_author(
+                name="Stranger", email="stranger@example.com", username="stranger"
+            )
+        )
+        assert response.status_code == 204
+
+        assert not ExternalActor.objects.filter(organization_id=self.organization.id).exists()
+
+    @responses.activate
+    def test_external_actor_creation_is_idempotent(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        body = push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        assert self._send_push_event(body).status_code == 204
+        # Re-sending creates a new CommitAuthor lookup but must not duplicate the mapping.
+        assert self._send_push_event(body).status_code == 204
+
+        assert (
+            ExternalActor.objects.filter(
+                organization_id=self.organization.id, user_id=member.id
+            ).count()
+            == 1
+        )
+
+    @responses.activate
+    def test_creates_external_actor_when_username_arrives_in_later_push(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        # GitHub omits the username when the commit email isn't tied to a GitHub
+        # account, so the first push creates the author without one.
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com")
+        )
+        assert response.status_code == 204
+        assert not ExternalActor.objects.filter(organization_id=self.organization.id).exists()
+
+        # A later push for the same email carries the username; the reused author
+        # must still gain its ExternalActor mapping.
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        )
+        assert response.status_code == 204
+
+        external_actors = list(ExternalActor.objects.filter(organization_id=self.organization.id))
+        assert len(external_actors) == 1
+        assert external_actors[0].user_id == member.id
+        assert external_actors[0].external_name == "@newdev"
+
+    @responses.activate
+    def test_creates_external_actor_when_username_arrives_in_later_commit(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        self._setup_github_integration_and_repo()
+
+        # Within a single push, the first commit lacks the username but a later
+        # commit for the same email includes it.
+        response = self._send_push_event(
+            push_event_with_commit_authors(
+                [
+                    {"name": "New Dev", "email": "newdev@example.com", "username": None},
+                    {"name": "New Dev", "email": "newdev@example.com", "username": "newdev"},
+                ]
+            )
+        )
+        assert response.status_code == 204
+
+        external_actors = list(ExternalActor.objects.filter(organization_id=self.organization.id))
+        assert len(external_actors) == 1
+        assert external_actors[0].user_id == member.id
+        assert external_actors[0].external_name == "@newdev"
+
+    @responses.activate
+    def test_does_not_duplicate_external_actor_for_casing_variant(self) -> None:
+        member = self.create_user(email="newdev@example.com")
+        self.create_member(user=member, organization=self.organization)
+        integration = self._setup_github_integration_and_repo()
+
+        # Pre-existing mapping uses a different casing than the webhook payload.
+        existing = ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            user_id=member.id,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@NewDev",
+        )
+
+        response = self._send_push_event(
+            push_event_with_author(name="New Dev", email="newdev@example.com", username="newdev")
+        )
+        assert response.status_code == 204
+
+        external_actors = list(
+            ExternalActor.objects.filter(organization_id=self.organization.id, user_id=member.id)
+        )
+        assert len(external_actors) == 1
+        # The original casing is preserved; no casing-variant duplicate is created.
+        assert external_actors[0].id == existing.id
+        assert external_actors[0].external_name == "@NewDev"
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -961,6 +1192,18 @@ class PullRequestEventWebhookTest(APITestCase):
         sig = GitHubIntegrationsWebhookEndpoint.compute_signature("sha256", body, self.secret)
         return f"sha256={sig}"
 
+    def _post_pull_request_event(self, body: bytes) -> None:
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(body),
+            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(body),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
     def _create_integration_and_send_pull_request_opened_event(self):
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1124,6 +1367,15 @@ class PullRequestEventWebhookTest(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
+        # Emit-sourced facts persisted for the PR metrics pipeline.
+        assert pr.head_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+        assert pr.state == PullRequestLifecycleState.OPEN
+        assert pr.opened_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
+        assert pr.closed_at is None
+        assert pr.merged_at is None
+        # The opened fixture omits the draft flag.
+        assert pr.draft is None
+
         self.assert_group_link(group, pr)
 
         assert_success_metric(mock_record)
@@ -1286,6 +1538,55 @@ class PullRequestEventWebhookTest(APITestCase):
 
         self.assert_group_link(group, pr)
 
+    def test_ready_for_review_updates_draft_on_existing_row(self) -> None:
+        # A PR opened as a draft and later marked ready: the second webhook must
+        # refresh draft on the existing row (update_or_create updates defaults,
+        # it doesn't only create), not leave the stale draft=True or fork a row.
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.project.organization.id, self.user)
+
+        repo = Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        opened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        opened["pull_request"]["draft"] = True
+        self._post_pull_request_event(json.dumps(opened).encode())
+
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.draft is True
+        assert pr.state == PullRequestLifecycleState.OPEN
+
+        ready = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        ready["action"] = "ready_for_review"
+        ready["pull_request"]["draft"] = False
+        self._post_pull_request_event(json.dumps(ready).encode())
+
+        # Re-fetch (not refresh_from_db) so the row is read fresh.
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.draft is False
+        # Same row updated, not a duplicate.
+        assert (
+            PullRequest.objects.filter(
+                repository_id=repo.id, organization_id=self.project.organization.id
+            ).count()
+            == 1
+        )
+
     @patch("sentry.integrations.github.webhook.metrics")
     def test_closed(self, mock_metrics: MagicMock) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -1332,6 +1633,15 @@ class PullRequestEventWebhookTest(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+
+        # Emit-sourced facts persisted for the PR metrics pipeline. The payload's
+        # merged flag wins over its (open) state, so the PR is "merged".
+        assert pr.head_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+        assert pr.state == PullRequestLifecycleState.MERGED
+        assert pr.opened_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
+        assert pr.closed_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
+        assert pr.merged_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
+        assert pr.draft is None
 
         assert mock_metrics.incr.call_count == 1
 

@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {FieldValueKind} from 'sentry/views/discover/table/types';

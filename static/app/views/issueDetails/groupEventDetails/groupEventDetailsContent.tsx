@@ -59,7 +59,7 @@ import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {
   isJavascriptPlatform,
@@ -115,10 +115,7 @@ export function EventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hangProfileData =
-    mechanism === 'mx_hang_diagnostic' &&
-    organization.features.includes('metrickit-flamegraph')
-      ? getHangProfileData(event)
-      : null;
+    mechanism === 'mx_hang_diagnostic' ? getHangProfileData(event) : null;
   const isMetricKitHang = hangProfileData !== null;
   const groupingCurrentLevel = group?.metadata?.current_level;
   const isSampleError = useIsSampleEvent();

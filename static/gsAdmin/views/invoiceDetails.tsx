@@ -8,9 +8,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {getRegions} from 'sentry/utils/regions';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -32,7 +32,8 @@ export function InvoiceDetails() {
     orgId: string;
     region: string;
   }>();
-  const regionInfo = ConfigStore.get('regions').find(
+  // TODO(cells) this needs a list of cells (and their localities)
+  const regionInfo = getRegions().find(
     (r: any) => r.name.toLowerCase() === region.toLowerCase()
   );
   const api = useApi({persistInFlight: true});

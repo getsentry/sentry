@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {Truncate} from 'sentry/components/truncate';
-import {ConfigStore} from 'sentry/stores/configStore';
+import {getRegions} from 'sentry/utils/regions';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {DebounceSearch} from 'admin/components/debounceSearch';
@@ -16,7 +16,8 @@ import {Overview} from 'admin/views/overview';
 
 export function HomePage() {
   const navigate = useNavigate();
-  const regions = ConfigStore.get('regions');
+  // TODO(cells) This needs to be a list of cells
+  const regions = getRegions();
   const [oldSplash, setOldSplash] = useState(false);
   const [regionUrl, setRegionUrl] = useState(regions[0]!.url);
   const selectedRegion = regions.find((region: any) => region.url === regionUrl);

@@ -6,7 +6,16 @@ from sentry.deletions import get_manager
 from sentry.deletions.defaults.pullrequest import PullRequestDeletionTask
 from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestActivity,
+    PullRequestActivityType,
+    PullRequestAttribution,
+    PullRequestAttributionSignalType,
+    PullRequestComment,
+    PullRequestCommit,
+    PullRequestMetrics,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -133,16 +142,16 @@ class PullRequestDeletionTaskTest(TestCase):
         assert len(filtered) == 1
         assert filtered[0].id == pr_invalid_group.id
 
-    def test_get_child_relations_includes_comments_and_commits(self) -> None:
+    def test_get_child_relations_includes_all_child_models(self) -> None:
         pr = self.create_pr("pr_children", self.old_date)
-        self.create_pull_request_comment(pr)
-        commit = self.create_old_commit()
-        self.create_pull_request_commit(pr, commit)
 
         relations = self.task.get_child_relations(pr)
 
-        assert len(relations) == 2
+        assert len(relations) == 5
         relation_models = {r.params["model"] for r in relations}
+        assert PullRequestActivity in relation_models
+        assert PullRequestAttribution in relation_models
+        assert PullRequestMetrics in relation_models
         assert PullRequestComment in relation_models
         assert PullRequestCommit in relation_models
 
@@ -160,6 +169,27 @@ class PullRequestDeletionTaskTest(TestCase):
         assert not PullRequestComment.objects.filter(id=comment.id).exists()
         assert not PullRequestCommit.objects.filter(id=pr_commit.id).exists()
         assert Commit.objects.filter(id=commit.id).exists()
+
+    def test_deletion_cascades_to_new_child_models(self) -> None:
+        pr = self.create_pr("pr_new_cascade", self.old_date)
+        activity = PullRequestActivity.objects.create(
+            pull_request=pr,
+            event_type=PullRequestActivityType.OPENED,
+            webhook_id="11111111-1111-1111-1111-111111111111",
+        )
+        attribution = PullRequestAttribution.objects.create(
+            pull_request=pr,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source="webhook_data",
+        )
+        metrics = PullRequestMetrics.objects.create(pull_request=pr)
+
+        self.task.chunk(apply_filter=True)
+
+        assert not PullRequestActivity.objects.filter(id=activity.id).exists()
+        assert not PullRequestAttribution.objects.filter(id=attribution.id).exists()
+        assert not PullRequestMetrics.objects.filter(id=metrics.id).exists()
+        assert not PullRequest.objects.filter(id=pr.id).exists()
 
     def test_query_filter_with_no_prs(self) -> None:
         filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))

@@ -184,7 +184,7 @@ def createissueflag(
                 conditions=[
                     InCondition(
                         "organization_slug",
-                        ["sentry", "codecov", "sentry", "sentry-eu", "sentry-sdks", "sentry-st"],
+                        ["sentry", "sentry-eu", "sentry-sdks", "sentry-st"],
                         operator=ConditionOperatorKind.IN.value,
                     )
                 ],

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Polarity} from 'sentry/components/percentChange';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';

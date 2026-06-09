@@ -24,6 +24,7 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
+    DetectorId,
     WorkflowEventData,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
@@ -281,7 +282,7 @@ def process_detectors[T](
 
 
 # TODO - move to another file / location
-def associate_new_group_with_detector(group: Group, detector_id: int | None = None) -> bool:
+def associate_new_group_with_detector(group: Group, detector_id: DetectorId | None = None) -> bool:
     """
     Associate a new Group with it's Detector in the database.
     If the Group is an error, it can be associated without a detector ID.
@@ -359,7 +360,7 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
 
 
 # TODO - move to another file / location
-def ensure_association_with_detector(group: Group, detector_id: int | None = None) -> bool:
+def ensure_association_with_detector(group: Group, detector_id: DetectorId | None = None) -> bool:
     """
     Ensure a Group has a DetectorGroup association, creating it if missing.
     Backdates date_added to group.first_seen for gradual backfill of existing groups.

@@ -16,7 +16,12 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.team_examples import TeamExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, TeamParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    TeamParams,
+    VisibilityParams,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.integrations.models.external_actor import ExternalActor
@@ -85,6 +90,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             TeamParams.DETAILED,
             CursorQueryParam,
+            VisibilityParams.PER_PAGE,
+            TeamParams.QUERY,
         ],
         request=None,
         responses={

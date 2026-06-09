@@ -2,6 +2,7 @@ import type {Scope, TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
+import type {PlatformKey} from './platform';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
 
@@ -100,10 +101,15 @@ export interface ProjectSummaryWithOptions extends ProjectSummary {
  */
 export interface DetailedProject extends ProjectSummary {
   allowedDomains: string[];
+  dataScrubber: boolean;
+  dataScrubberDefaults: boolean;
+  derivedGroupingEnhancements: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
+  fingerprintingRules: string;
   groupingConfig: string;
+  groupingEnhancements: string;
   isInternal: boolean;
   organization: Pick<Organization, 'id' | 'slug'>;
   plugins: Plugin[];
@@ -218,164 +224,6 @@ export type Environment = {
 export interface TeamWithProjects extends Team {
   projects: Project[];
 }
-
-/**
- * The type of all platform keys.
- * Also includes platforms that cannot be created in the UI anymore.
- */
-export type PlatformKey =
-  | 'android'
-  | 'apple'
-  | 'apple-ios'
-  | 'apple-macos'
-  | 'bun'
-  | 'c'
-  | 'capacitor'
-  | 'cfml'
-  | 'clojure'
-  | 'cocoa'
-  | 'cocoa-objc'
-  | 'cocoa-swift'
-  | 'cordova'
-  | 'csharp'
-  | 'csharp-aspnetcore'
-  | 'dart'
-  | 'dart-flutter'
-  | 'deno'
-  | 'django'
-  | 'dotnet'
-  | 'dotnet-aspnet'
-  | 'dotnet-aspnetcore'
-  | 'dotnet-awslambda'
-  | 'dotnet-gcpfunctions'
-  | 'dotnet-google-cloud-functions'
-  | 'dotnet-maui'
-  | 'dotnet-uwp'
-  | 'dotnet-winforms'
-  | 'dotnet-wpf'
-  | 'dotnet-xamarin'
-  | 'electron'
-  | 'elixir'
-  | 'flutter'
-  | 'go'
-  | 'go-echo'
-  | 'go-fasthttp'
-  | 'go-fiber'
-  | 'go-gin'
-  | 'go-http'
-  | 'go-iris'
-  | 'go-martini'
-  | 'go-negroni'
-  | 'godot'
-  | 'groovy'
-  | 'ionic'
-  | 'java'
-  | 'java-android'
-  | 'java-appengine'
-  | 'java-log4j'
-  | 'java-log4j2'
-  | 'java-logback'
-  | 'java-logging'
-  | 'java-spring'
-  | 'java-spring-boot'
-  | 'javascript'
-  | 'javascript-angular'
-  | 'javascript-angularjs'
-  | 'javascript-astro'
-  | 'javascript-backbone'
-  | 'javascript-browser'
-  | 'javascript-capacitor'
-  | 'javascript-cordova'
-  | 'javascript-electron'
-  | 'javascript-ember'
-  | 'javascript-gatsby'
-  | 'javascript-nextjs'
-  | 'javascript-nuxt'
-  | 'javascript-react'
-  | 'javascript-react-router'
-  | 'javascript-remix'
-  | 'javascript-solid'
-  | 'javascript-solidstart'
-  | 'javascript-svelte'
-  | 'javascript-sveltekit'
-  | 'javascript-tanstackstart-react'
-  | 'javascript-vue'
-  | 'kotlin'
-  | 'minidump'
-  | 'native'
-  | 'native-crashpad'
-  | 'native-breakpad'
-  | 'native-minidump'
-  | 'native-qt'
-  | 'nintendo-switch'
-  | 'node'
-  | 'node-awslambda'
-  | 'node-azurefunctions'
-  | 'node-cloudflare-pages'
-  | 'node-cloudflare-workers'
-  | 'node-connect'
-  | 'node-express'
-  | 'node-fastify'
-  | 'node-gcpfunctions'
-  | 'node-hapi'
-  | 'node-hono'
-  | 'node-koa'
-  | 'node-nestjs'
-  | 'node-nodeawslambda'
-  | 'node-nodegcpfunctions'
-  | 'objc'
-  | 'other'
-  | 'perl'
-  | 'php'
-  | 'PHP'
-  | 'php-laravel'
-  | 'php-monolog'
-  | 'php-symfony'
-  | 'php-symfony2'
-  | 'playstation'
-  | 'powershell'
-  | 'python'
-  | 'python-aiohttp'
-  | 'python-asgi'
-  | 'python-awslambda'
-  | 'python-azurefunctions'
-  | 'python-bottle'
-  | 'python-celery'
-  | 'python-chalice'
-  | 'python-django'
-  | 'python-falcon'
-  | 'python-fastapi'
-  | 'python-flask'
-  | 'python-gcpfunctions'
-  | 'python-litestar'
-  | 'python-pylons'
-  | 'python-pymongo'
-  | 'python-pyramid'
-  | 'python-pythonawslambda'
-  | 'python-pythonazurefunctions'
-  | 'python-pythongcpfunctions'
-  | 'python-pythonserverless'
-  | 'python-quart'
-  | 'python-rq'
-  | 'python-sanic'
-  | 'python-serverless'
-  | 'python-starlette'
-  | 'python-tornado'
-  | 'python-tryton'
-  | 'python-wsgi'
-  | 'rails'
-  | 'react'
-  | 'react-native'
-  | 'ruby'
-  | 'ruby-rack'
-  | 'ruby-rails'
-  | 'rust'
-  | 'scala'
-  | 'swift'
-  | 'switt'
-  | 'unity'
-  | 'unreal'
-  | 'xbox';
 
 export type PlatformIntegration = {
   id: PlatformKey;

@@ -5,6 +5,10 @@ import {
   getTraceIssueSeverityClassName,
   type TraceIssueSeverityClassName,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {
+  getDirectErrors,
+  getDirectOccurrences,
+} from 'sentry/views/performance/newTraceDetails/traceIssueUtils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
@@ -36,31 +40,35 @@ function getMaxIssueSeverity(
 interface BackgroundPatternsProps {
   errors: BaseNode['errors'];
   manager: VirtualizedViewManager;
+  node: BaseNode;
   node_space: [number, number] | null;
   occurrences: BaseNode['occurrences'];
 }
 
 export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
+  const directOccurrences = useMemo(() => getDirectOccurrences(props.node), [props.node]);
+  const directErrors = useMemo(() => getDirectErrors(props.node), [props.node]);
+
   const occurrences = useMemo(() => {
     if (!props.occurrences.size) {
       return [];
     }
 
-    return [...props.occurrences];
-  }, [props.occurrences]);
+    return [...props.occurrences].filter(occurrence => directOccurrences.has(occurrence));
+  }, [props.occurrences, directOccurrences]);
 
   const errors = useMemo(() => {
     if (!props.errors.size) {
       return [];
     }
-    return [...props.errors];
-  }, [props.errors]);
+    return [...props.errors].filter(error => directErrors.has(error));
+  }, [props.errors, directErrors]);
 
   const severity = useMemo(() => {
     return getMaxIssueSeverity(errors, occurrences);
   }, [errors, occurrences]);
 
-  if (!props.occurrences.size && !props.errors.size) {
+  if (!occurrences.length && !errors.length) {
     return null;
   }
 
@@ -72,6 +80,7 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
     <Fragment>
       {errors.length > 0 ? (
         <div
+          data-test-id="trace-issue-pattern"
           className="TracePatternContainer"
           style={{
             left: 0,
@@ -100,6 +109,7 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
             return (
               <div
                 key={i}
+                data-test-id="trace-issue-pattern"
                 className="TracePatternContainer"
                 style={{
                   left: left * 100 + '%',

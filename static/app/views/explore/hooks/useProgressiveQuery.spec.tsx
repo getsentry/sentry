@@ -4,7 +4,7 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useApi} from 'sentry/utils/useApi';
 import {
   SAMPLING_MODE,

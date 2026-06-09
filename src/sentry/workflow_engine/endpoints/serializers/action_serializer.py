@@ -16,7 +16,7 @@ class ActionSerializerResponse(TypedDict):
 
 
 @register(Action)
-class ActionSerializer(Serializer):
+class ActionSerializer(Serializer[ActionSerializerResponse]):
     def serialize(self, obj: Action, *args: Any, **kwargs: Any) -> ActionSerializerResponse:
         # Get the action handler and config transformer if available
         action_handler = action_handler_registry.get(obj.type)

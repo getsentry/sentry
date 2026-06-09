@@ -15,7 +15,7 @@ import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {withApi} from 'sentry/utils/withApi';

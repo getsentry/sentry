@@ -9,15 +9,16 @@ import {Input} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {getFormat} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {getRegions} from 'sentry/utils/regions';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
 export function GenerateSpikeProjectionsForBatch() {
   const [batchId, setBatchId] = useState<number | null>(null);
-  const regions = ConfigStore.get('regions');
+  // TODO(cells) Needs to be a list of cells
+  const regions = getRegions();
   const [region, setRegion] = useState(regions[0] ?? null);
 
   const {mutate} = useMutation({

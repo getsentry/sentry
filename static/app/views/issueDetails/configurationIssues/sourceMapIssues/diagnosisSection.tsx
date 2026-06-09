@@ -6,7 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {
-  SourceMapDebugBlueThunderResponse,
+  SourceMapDebugResponse,
   SourceMapDebugQueryResult,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -14,9 +14,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-function getDiagnosisMessage(
-  data: SourceMapDebugBlueThunderResponse | undefined
-): ReactNode | null {
+function getDiagnosisMessage(data: SourceMapDebugResponse | undefined): ReactNode | null {
   if (!data) {
     return (
       <Text>{t('Unable to load source map diagnostic information for this event.')}</Text>

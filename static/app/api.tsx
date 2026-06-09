@@ -11,6 +11,7 @@ import {
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
 import {controlsiloUrlPatterns} from 'sentry/data/controlsiloUrlPatterns';
+import type {ApiResult, ResponseMeta} from 'sentry/types/api';
 import {metric} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
@@ -59,35 +60,6 @@ export class Request {
     metric('app.api.request-abort', 1);
   }
 }
-
-export type ApiResult<Data = any> = [
-  data: Data,
-  statusText: string | undefined,
-  resp: ResponseMeta | undefined,
-];
-
-export type ResponseMeta<R = any> = {
-  /**
-   * Get a header value from the response
-   */
-  getResponseHeader: (header: string) => string | null;
-  /**
-   * The response body decoded from json
-   */
-  responseJSON: R;
-  /**
-   * The string value of the response
-   */
-  responseText: string;
-  /**
-   * The response status code
-   */
-  status: Response['status'];
-  /**
-   * The response status code text
-   */
-  statusText: Response['statusText'];
-};
 
 /**
  * Check if the requested method does not require CSRF tokens

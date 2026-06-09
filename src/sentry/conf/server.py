@@ -861,6 +861,11 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
+# If true, taskbroker-client's TaskProducer will be used to produce messages to Kafka
+# from within tasks.
+# Set to True in the worker child entrypoint in taskworker/bootstrap.py.
+TASKWORKER_USE_TASK_PRODUCER: bool = False
+
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
@@ -888,6 +893,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.data_forwarding.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.github.tasks.query_commit_author_public_emails",
     "sentry.integrations.github.tasks.sync_repos",
     "sentry.integrations.github.tasks.sync_repos_on_install_change",
     "sentry.integrations.source_code_management.sync_repos",
@@ -918,6 +924,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
     "sentry.preprod.snapshots.tasks",
+    "sentry.preprod.snapshots.zip_tasks",
     "sentry.preprod.tasks",
     "sentry.preprod.vcs.pr_comments.snapshot_tasks",
     "sentry.preprod.vcs.pr_comments.tasks",
@@ -945,7 +952,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
-    "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
@@ -1123,10 +1129,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "performance:sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         "schedule": crontab("17", "*", "*", "*", "*"),
     },
-    "auto-enable-codecov": {
-        "task": "integrations:sentry.tasks.auto_enable_codecov.enable_for_org",
-        "schedule": crontab("30", "0", "*", "*", "*"),
-    },
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
         "schedule": crontab("*/10", "*", "*", "*", "*"),
@@ -1204,7 +1206,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
-        "schedule": crontab("0", "*", "*", "*", "*"),
+        "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
     "web-vitals-issue-detection": {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
@@ -1338,6 +1340,8 @@ LOGGING: LoggingConfig = {
         },
         "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
         "taskbroker_client": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        # Configure grpc explicitly so its errors aren't dropped by disable_existing_loggers.
+        "grpc": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
         "django.request": {
             "level": "WARNING",
@@ -1662,6 +1666,10 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE = (
     "sentry.relay.projectconfig_debounce_cache.base.ProjectConfigDebounceCache"
 )
 SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS: dict[str, str] = {}
+
+# Glob patterns for the custom-error inbound filter (Relay generic filters).
+# Each entry is (exception_type, message); either may be None.
+SENTRY_INBOUND_FILTER_CUSTOM_VALUES: list[tuple[str | None, str | None]] = []
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
@@ -2230,7 +2238,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.5.1"
+SELF_HOSTED_STABLE_VERSION = "26.5.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2638,6 +2646,12 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
 
+# Per-topic Kafka consumer client config, keyed by Topic enum value (region-stable,
+# unlike cluster names). Merged onto the consumer config after the cluster config and
+# before any explicit override_params, so explicit params still win.
+KAFKA_TOPIC_CONSUMER_CONFIG: dict[str, dict[str, Any]] = {}
+
+
 # Mapping of default Kafka topic name to cluster name
 # as per KAFKA_CLUSTERS.
 # This must be the default name that matches the topic
@@ -2697,6 +2711,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
+    "taskworker-push": "default",
     "taskworker-billing": "default",
     "taskworker-billing-dlq": "default",
     "taskworker-buffer": "default",
@@ -2711,6 +2726,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-example": "default",
     "taskworker-ingest": "default",
     "taskworker-ingest-dlq": "default",
+    "taskworker-ingest-push": "default",
     "taskworker-ingest-errors": "default",
     "taskworker-ingest-errors-dlq": "default",
     "taskworker-ingest-errors-postprocess": "default",
@@ -2798,6 +2814,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.sentry_apps.api.endpoints",
     "sentry.preprod.api.endpoints",
     "sentry.workflow_engine.endpoints",
+    "sentry.feedback.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3234,11 +3251,6 @@ MARKETO_BASE_URL = os.getenv("MARKETO_BASE_URL")
 MARKETO_CLIENT_ID = os.getenv("MARKETO_CLIENT_ID")
 MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
 MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
-
-# Base URL for Codecov API. Override if developing against a local instance
-# of Codecov.
-# Stage: "https://stage-api.codecov.dev/"
-CODECOV_API_BASE_URL = "https://api.codecov.io"
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

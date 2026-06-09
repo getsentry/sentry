@@ -407,7 +407,7 @@ class NPlusOneDbSettingTest(TestCase):
         settings = get_detection_settings(project)
         detector = NPlusOneDBSpanDetector(settings[NPlusOneDBSpanDetector.settings_key], event)
 
-        assert detector.is_creation_allowed_for_project(project)
+        assert detector.is_creation_allowed()
 
         ProjectOption.objects.set_value(
             project=project,
@@ -418,4 +418,4 @@ class NPlusOneDbSettingTest(TestCase):
         settings = get_detection_settings(project)
         detector = NPlusOneDBSpanDetector(settings[NPlusOneDBSpanDetector.settings_key], event)
 
-        assert not detector.is_creation_allowed_for_project(project)
+        assert not detector.is_creation_allowed()

@@ -250,6 +250,7 @@ describe('OrganizationSettingsForm', () => {
       name: 'de',
       displayName: 'Europe (Frankfurt)',
       url: 'https://sentry.de.example.com',
+      label: '🇪🇺 Europe (Frankfurt)',
     }));
 
     render(

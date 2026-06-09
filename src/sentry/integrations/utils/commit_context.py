@@ -46,7 +46,7 @@ def find_commit_context_for_event_all_frames(
     project_id: int,
     platform: str,
     sdk_name: str | None,
-    group_first_seen: datetime,
+    commit_date_max: datetime,
     extra: dict[str, Any],
 ) -> tuple[FileBlameInfo | None, IntegrationInstallation | None]:
     """
@@ -88,8 +88,8 @@ def find_commit_context_for_event_all_frames(
         has_too_old_blames = False
         has_too_recent_blames = False
     else:
-        # We want the most recent commit that is within MAX_COMMIT_AGE_DAYS of group_first_seen
-        earliest_valid_date = group_first_seen - timedelta(days=MAX_COMMIT_AGE_DAYS)
+        # We want the most recent commit within MAX_COMMIT_AGE_DAYS before commit_date_max
+        earliest_valid_date = commit_date_max - timedelta(days=MAX_COMMIT_AGE_DAYS)
         selected_blame = None
         selected_date = earliest_valid_date
         has_too_old_blames = False
@@ -99,10 +99,10 @@ def find_commit_context_for_event_all_frames(
             # Track outside-of-window commits for analytics
             if commit_date < earliest_valid_date:
                 has_too_old_blames = True
-            elif commit_date > group_first_seen:
+            elif commit_date > commit_date_max:
                 has_too_recent_blames = True
-            # Select best valid commit
-            if selected_date < commit_date < group_first_seen:
+            # Select the most recent valid commit in the window
+            if selected_date < commit_date < commit_date_max:
                 selected_blame = blame
                 selected_date = commit_date
 

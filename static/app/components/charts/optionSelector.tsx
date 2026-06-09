@@ -13,7 +13,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Truncate} from 'sentry/components/truncate';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type BaseProps = {
   title: string;

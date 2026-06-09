@@ -18,6 +18,7 @@ from rest_framework.response import Response
 import sentry.api.urls as api_urls
 from sentry.api.base import Endpoint, cell_silo_endpoint, control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
+from sentry.feedback.endpoints.error_page_embed import ErrorEmbedResolver
 from sentry.testutils.cases import APITestCase
 from sentry.types.cell import Cell, RegionCategory
 from sentry.utils import json
@@ -50,6 +51,15 @@ class NoOrgRegionEndpoint(Endpoint):
         return Response({"proxy": False})
 
 
+@cell_silo_endpoint(cell_resolver=ErrorEmbedResolver())
+class MockErrorEmbedEndpoint(Endpoint):
+    # Mock embed endpoint to e2e test the resolver logic in apigateway tests
+    permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
+
+    def get(self, request: Request) -> Response:
+        return Response({"proxy": False, "name": "error-embed"})
+
+
 urlpatterns = [
     re_path(
         r"^organizations/(?P<organization_slug>[^/]+)/control/$",
@@ -73,7 +83,7 @@ urlpatterns = [
     ),
     re_path(
         r"^api/embed/error-page/$",
-        RegionEndpoint.as_view(),
+        MockErrorEmbedEndpoint.as_view(),
         name="sentry-error-page-embed",
     ),
 ] + api_urls.urlpatterns

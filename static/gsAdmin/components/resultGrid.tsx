@@ -16,8 +16,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
+import {getRegions} from 'sentry/utils/regions';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -253,6 +253,8 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     const {cursor, query, sortBy, regionUrl} = queryParams;
 
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
+    // TODO(cells) We need cells here
+    const regions = getRegions();
 
     this.state = {
       rows: [],
@@ -263,8 +265,8 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       query: extractQuery(query),
       region: needsRegion
         ? regionUrl
-          ? ConfigStore.get('regions').find((r: any) => r.url === extractQuery(regionUrl))
-          : ConfigStore.get('regions')[0]
+          ? regions.find((r: any) => r.url === extractQuery(regionUrl))
+          : regions[0]
         : undefined,
       sortBy: extractQuery(sortBy, this.props.defaultSort),
       filters: Object.assign({}, queryParams),
@@ -483,6 +485,8 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       resultTable
     );
 
+    // TODO(cells) We need cells here.
+    const regions = getRegions();
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
 
     return (
@@ -494,14 +498,12 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
                 <OverlayTrigger.Button {...triggerProps} prefix="Region" />
               )}
               value={this.state.region ? this.state.region.url : undefined}
-              options={ConfigStore.get('regions').map((r: any) => ({
+              options={regions.map((r: any) => ({
                 label: r.name,
                 value: r.url,
               }))}
               onChange={opt => {
-                const region = ConfigStore.get('regions').find(
-                  (r: any) => r.url === opt.value
-                );
+                const region = regions.find((r: any) => r.url === opt.value);
                 if (region === undefined) {
                   return;
                 }

@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.utils import timezone
@@ -16,18 +15,16 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
-    AutofixStatus,
     SeerAutomationSource,
 )
 from sentry.seer.autofix.utils import (
+    SEAT_BASED_STOPPING_POINTS,
     AutofixStoppingPoint,
     AutomationCodingAgent,
     SeerProjectSettingsUpdate,
     bulk_read_preferences_from_sentry_db,
-    get_autofix_state,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
-    get_valid_automated_run_stopping_points,
     update_seer_project_settings,
 )
 from sentry.tasks.base import instrumented_task
@@ -45,25 +42,6 @@ def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
     except Group.DoesNotExist:
         logger.warning("%s.group_not_found", task_name, extra={"group_id": group_id})
         return None
-
-
-@instrumented_task(
-    name="sentry.tasks.autofix.check_autofix_status",
-    namespace=issues_tasks,
-    retry=Retry(times=1),
-)
-def check_autofix_status(run_id: int, organization_id: int) -> None:
-    state = get_autofix_state(run_id=run_id, organization_id=organization_id)
-
-    if (
-        state
-        and state.status == AutofixStatus.PROCESSING
-        and state.updated_at < datetime.now() - timedelta(minutes=5)
-    ):
-        # This should log to sentry
-        logger.error(
-            "Autofix run has been processing for more than 5 minutes", extra={"run_id": run_id}
-        )
 
 
 @instrumented_task(
@@ -243,8 +221,6 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             )
 
     default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
-    valid_stopping_points = get_valid_automated_run_stopping_points(organization)
-
     preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
 
     # Determine which projects need updates
@@ -260,12 +236,12 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
             # Skip projects that a) already have an acceptable stopping point configured
             # AND b) already have a handoff configured or no org default handoff.
-            if existing_stopping_point in valid_stopping_points and (
+            if existing_stopping_point in SEAT_BASED_STOPPING_POINTS and (
                 existing_handoff or default_handoff is None
             ):
                 continue
 
-            if existing_stopping_point in valid_stopping_points:
+            if existing_stopping_point in SEAT_BASED_STOPPING_POINTS:
                 stopping_point = existing_stopping_point
             if existing_handoff:
                 handoff = existing_handoff

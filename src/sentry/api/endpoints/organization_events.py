@@ -154,6 +154,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
+            VisibilityParams.ALLOW_AGGREGATE_CONDITIONS,
             CursorQueryParam,
         ],
         responses={
@@ -229,13 +230,20 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
+            if (
+                referrer is not None
+                and is_valid_referrer(referrer)
+                and referrer.startswith("seer.")
+            ):
+                sentry_sdk.set_tag("query.from_seer", True)
+            else:
+                referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
         elif not is_valid_referrer(referrer):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
-        use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
+        use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") in ("1", "true")
 
         max_string_length: int | None = None
         truncate_str = request.GET.get("truncate")
