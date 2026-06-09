@@ -97,7 +97,8 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
     permission_classes = (ReplayDeletionJobPermission,)
 
     @extend_schema(
-        operation_id="List Replay Batch-Deletion Jobs",
+        operation_id="listProjectReplaysJobsDelete",
+        summary="List Replay Batch-Deletion Jobs",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -132,7 +133,8 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create Replay Batch Deletion Job",
+        operation_id="createProjectReplaysJobsDelete",
+        summary="Create Replay Batch Deletion Job",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -203,7 +205,8 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
     permission_classes = (ReplayDeletionJobPermission,)
 
     @extend_schema(
-        operation_id="Retrieve a Replay Batch-Deletion Job",
+        operation_id="getProjectReplaysJobsDelete",
+        summary="Retrieve a Replay Batch-Deletion Job",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

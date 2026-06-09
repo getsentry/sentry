@@ -30,7 +30,8 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
         super().__init__(**options)
 
     @extend_schema(
-        operation_id="List Recording Segments",
+        operation_id="listProjectReplayRecordingSegments",
+        summary="List Recording Segments",
         parameters=[
             CursorQueryParam,
             GlobalParams.ORG_ID_OR_SLUG,

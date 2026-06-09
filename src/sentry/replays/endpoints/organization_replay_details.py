@@ -233,7 +233,8 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Replay Instance",
+        operation_id="getOrganizationReplay",
+        summary="Retrieve a Replay Instance",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],
         responses={
             200: inline_sentry_response_serializer("GetReplay", GetReplayResponse),
