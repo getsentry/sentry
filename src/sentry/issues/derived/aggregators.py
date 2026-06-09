@@ -13,7 +13,13 @@ from sentry.issues.derived.fields import (
     Progress,
     WorkingOnEntry,
 )
-from sentry.issues.derived.lib import Aggregator, AggregatorResult, StateView, aggregator, emit
+from sentry.issues.derived.framework import (
+    Aggregator,
+    AggregatorResult,
+    StateView,
+    aggregator,
+    emit,
+)
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 
 RECENT_EXPIRY_SECONDS = 30 * 24 * 60 * 60  # 1 month

@@ -19,14 +19,14 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived import processing
 from sentry.issues.derived.aggregators import AGGREGATORS
-from sentry.issues.derived.groupderiveddata import GroupDerivedData
-from sentry.issues.derived.lib import (
+from sentry.issues.derived.framework import (
     AggregatorResult,
     Feature,
     Pipeline,
     StateView,
     aggregator,
 )
+from sentry.issues.derived.groupderiveddata import GroupDerivedData
 from sentry.issues.derived.processing import pipeline, process_group_log
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.groupactionlogentry import GroupActionLogEntry

@@ -2,7 +2,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel
 
-from sentry.issues.derived.lib import Feature, FrozenSetCodec, PydanticDictCodec
+from sentry.issues.derived.framework import Feature, FrozenSetCodec, PydanticDictCodec
 
 
 class IssueStatus(StrEnum):
