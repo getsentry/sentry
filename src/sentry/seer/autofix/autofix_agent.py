@@ -214,6 +214,10 @@ def get_latest_iteration_index(state: SeerRunState) -> int:
     return 0
 
 
+def is_pr_iteration_enabled(state: SeerRunState) -> bool:
+    return bool(state.metadata.get("pr_iteration_enabled") if state.metadata else False)
+
+
 def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
     block = state.blocks[insert_index]
     metadata = block.message.metadata or {}
@@ -376,6 +380,7 @@ def trigger_autofix_agent(
                 group_id=group.id,
                 referrer=referrer.value,
                 iteration_index=iteration_index,
+                pr_iteration_enabled=pr_iteration_enabled,
             )
         )
 
@@ -467,6 +472,8 @@ def trigger_autofix_agent(
                 "step": step.value,
                 "run_id": run_id,
                 "group_id": group.id,
+                "iteration_index": iteration_index,
+                "pr_iteration_enabled": pr_iteration_enabled,
             },
         )
 
@@ -476,6 +483,7 @@ def trigger_autofix_agent(
             "step": step.value,
             "referrer": referrer.value,
             "iteration_index": iteration_index,
+            "pr_iteration_enabled": pr_iteration_enabled,
         },
     )
 
