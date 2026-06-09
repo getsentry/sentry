@@ -22,7 +22,11 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.perforce.client import PerforceClient
+from sentry.integrations.perforce.client import (
+    InvalidP4Port,
+    PerforceClient,
+    validate_p4port_transport,
+)
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
@@ -123,7 +127,12 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
     charset = ChoiceField(choices=Charset.choices, default=Charset.NONE)
 
     def validate_p4port(self, value: str) -> str:
-        return value.strip().rstrip("/")
+        value = value.strip().rstrip("/")
+        try:
+            validate_p4port_transport(value)
+        except InvalidP4Port as e:
+            raise serializers.ValidationError(str(e))
+        return value
 
     def validate_web_url(self, value: str) -> str:
         return value.rstrip("/")
