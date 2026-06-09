@@ -354,6 +354,22 @@ class TestFallbackBehavior(PostgresSortTestBase):
             list(self.make_query("date"))
         assert snuba_spy.called
 
+    def test_overflow_with_postgres_only_key_falls_back_to_date(self):
+        # "inbox" is in sort_strategies but maps to "" (a Postgres-only sort with no Snuba
+        # aggregation). On overflow the fallback must rewrite it to `date` rather than flow
+        # the empty sort_field into the Snuba aggregation lookup (which would KeyError).
+        with (
+            _patch_pg_strategies({"inbox": _ts_strategy()}),
+            override_options({"snuba.search.max-pre-snuba-candidates": 0}),
+            mock.patch.object(
+                PostgresSnubaQueryExecutor,
+                "snuba_search",
+                return_value=([(g.id, 1) for g in self.groups], len(self.groups)),
+            ) as snuba_spy,
+        ):
+            list(self.make_query("inbox"))
+        assert snuba_spy.call_args.kwargs["sort_field"] == "last_seen"
+
     def test_unregistered_sort_uses_snuba_path(self):
         # `date` isn't a Postgres strategy, so it takes the existing Snuba path unchanged.
         results = list(self.make_query("date"))

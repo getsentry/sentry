@@ -1175,7 +1175,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # `date` shortcut below. If this sort has no Snuba-only equivalent, fall back
             # to `date`.
             pg_overflow_fallback = True
-            if sort_by not in self.sort_strategies:
+            # Keep the original sort only if it maps to a real Snuba aggregation for the
+            # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
+            # sorts like "inbox"), have no aggregation and must fall back to `date` instead
+            # of flowing an empty sort_field into the aggregation lookup.
+            if not self.sort_strategies.get(sort_by):
                 sort_by = "date"
 
         # If the requested sort is `date` (`last_seen`) and there
