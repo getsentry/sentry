@@ -7,12 +7,8 @@ from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.group import GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
-from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
-    STATUS_CHANGE_VIA_ACTIVITY_FLAG,
-)
 from tests.sentry.issues.test_status_change_consumer import get_test_message_status_change
 
 
@@ -88,18 +84,7 @@ class IssuePlatformIntegrationTests(TestCase):
         )
 
     @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay")
-    def test_single_dispatch__flag_off(self, mock_delay: mock.MagicMock) -> None:
-        """
-        With the flag off, only the legacy group_status_update_registry path dispatches
-        the task. The generic activity_handler bails at the flag check, so we get exactly
-        one dispatch (no double-processing).
-        """
-        update_status(self.group, self._resolved_message())
-        assert mock_delay.call_count == 1
-
-    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
-    @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay")
-    def test_single_dispatch__flag_on(self, mock_delay: mock.MagicMock) -> None:
+    def test_activity_dispatch(self, mock_delay: mock.MagicMock) -> None:
         """
         With the flag on, the generic activity_handler (via create_group_activity) owns
         the dispatch and the legacy handler bails for SET_RESOLVED, so we still get
