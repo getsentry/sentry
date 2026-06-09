@@ -163,6 +163,7 @@ export default function TeamSettings() {
       </form.AppForm>
 
       <AvatarChooser
+        key={team.id}
         type="team"
         supportedTypes={['upload', 'letter_avatar']}
         endpoint={`/teams/${organization.slug}/${team.slug}/avatar/`}
