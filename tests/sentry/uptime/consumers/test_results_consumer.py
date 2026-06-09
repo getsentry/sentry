@@ -43,9 +43,18 @@ from sentry.uptime.autodetect.result_handler import (
 )
 from sentry.uptime.autodetect.tasks import is_failed_url
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
-from sentry.uptime.consumers.results_consumer import UptimeResultsStrategyFactory
+from sentry.uptime.consumers.results_consumer import (
+    UptimeResultsStrategyFactory,
+    create_backfill_misses,
+    process_result_internal,
+)
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import (
+    UptimeResponseCapture,
+    UptimeSubscription,
+    UptimeSubscriptionRegion,
+    load_regions_for_uptime_subscription,
+)
 from sentry.uptime.subscriptions.subscriptions import (
     UptimeMonitorNoSeatAvailable,
     disable_uptime_detector,
@@ -84,6 +93,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             recovery_threshold=2,
             owner=self.user,
         )
+        patcher = mock.patch("sentry.uptime.consumers.tasks.process_uptime_backlog")
+        self.mock_backlog_task = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def send_result(
         self, result: CheckResult, consumer: ProcessingStrategy[KafkaPayload] | None = None
@@ -115,6 +127,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def test(self) -> None:
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")
         hashed_fingerprint = md5(fingerprint).hexdigest()
+        base_time = datetime.now() - timedelta(minutes=20)
         with (
             self.feature("organizations:uptime"),
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
@@ -124,7 +137,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.send_result(
                 self.create_uptime_result(
                     self.subscription.subscription_id,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=5),
+                    scheduled_check_time=base_time,
                 )
             )
             metrics.incr.assert_has_calls(
@@ -146,11 +159,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             metrics.incr.reset_mock()
 
             # Second processed result DOES create an occurrence since we met
-            # the threshold
+            # the threshold (5 min = 300s interval)
             self.send_result(
                 self.create_uptime_result(
                     self.subscription.subscription_id,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=4),
+                    scheduled_check_time=base_time + timedelta(minutes=5),
                 )
             )
             metrics.incr.assert_has_calls(
@@ -187,7 +200,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 self.create_uptime_result(
                     self.subscription.subscription_id,
                     status=CHECKSTATUS_SUCCESS,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=3),
+                    scheduled_check_time=base_time + timedelta(minutes=10),
                 )
             )
             assert not Group.objects.filter(
@@ -199,7 +212,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 self.create_uptime_result(
                     self.subscription.subscription_id,
                     status=CHECKSTATUS_SUCCESS,
-                    scheduled_check_time=datetime.now() - timedelta(minutes=2),
+                    scheduled_check_time=base_time + timedelta(minutes=15),
                 )
             )
             assert Group.objects.filter(
@@ -319,23 +332,24 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # has an interval of 300 seconds. The interval was changed AFTER the last check,
         # so this gap should be skipped (it's the interval transition).
         last_update_ms = int(result["scheduled_check_time_ms"]) - (3500 * 1000)
-        get_cluster().set(
+        cluster = get_cluster()
+        cluster.set(
             build_last_update_key(self.detector),
             last_update_ms,
         )
 
         # Set interval change timestamp to be AFTER the last update (between last check and now)
         interval_change_ms = last_update_ms + (1000 * 1000)  # 1000 seconds after last check
-        get_cluster().set(
+        cluster.set(
             build_last_interval_change_timestamp_key(self.detector),
             interval_change_ms,
         )
 
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
-            self.feature("organizations:uptime"),
-        ):
-            self.send_result(result)
+        metric_tags = {"status": result["status"], "uptime_region": result["region"]}
+        with mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger:
+            create_backfill_misses(
+                self.detector, self.subscription, result, last_update_ms, metric_tags, cluster
+            )
             logger.info.assert_any_call(
                 "uptime.result_processor.skipping_backfill_interval_changed",
                 extra={
@@ -352,23 +366,24 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # has an interval of 300 seconds. The interval was changed AFTER the last check,
         # so this gap should be skipped (it's the interval transition).
         last_update_ms = int(result["scheduled_check_time_ms"]) - (3500 * 1000)
-        get_cluster().set(
+        cluster = get_cluster()
+        cluster.set(
             build_last_update_key(self.detector),
             last_update_ms,
         )
 
         # Set interval change timestamp to be AFTER the last update
         interval_change_ms = last_update_ms + (1000 * 1000)
-        get_cluster().set(
+        cluster.set(
             build_last_interval_change_timestamp_key(self.detector),
             interval_change_ms,
         )
 
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
-            self.feature("organizations:uptime"),
-        ):
-            self.send_result(result)
+        metric_tags = {"status": result["status"], "uptime_region": result["region"]}
+        with mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger:
+            create_backfill_misses(
+                self.detector, self.subscription, result, last_update_ms, metric_tags, cluster
+            )
             logger.info.assert_any_call(
                 "uptime.result_processor.skipping_backfill_interval_changed",
                 extra={
@@ -380,14 +395,15 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         # Send another check that should now be classified as a miss because the last
         # update is now AFTER the interval change timestamp
+        last_update_ms = int(result["scheduled_check_time_ms"])
+        cluster.set(build_last_update_key(self.detector), last_update_ms)
         result = self.create_uptime_result(self.subscription.subscription_id)
         result["scheduled_check_time_ms"] = int(result["scheduled_check_time_ms"]) + (600 * 1000)
         result["actual_check_time_ms"] = result["scheduled_check_time_ms"]
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
-            self.feature("organizations:uptime"),
-        ):
-            self.send_result(result)
+        with mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger:
+            create_backfill_misses(
+                self.detector, self.subscription, result, last_update_ms, metric_tags, cluster
+            )
             logger.info.assert_any_call(
                 "uptime.result_processor.num_missing_check",
                 extra={"num_missed_checks": 1, **result},
@@ -429,16 +445,21 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # has an interval of 300 seconds.  We've missed two checks.
         # No interval change timestamp is set, so backfill should run.
         last_update_time = int(result["scheduled_check_time_ms"]) - (900 * 1000)
-        get_cluster().set(
+        cluster = get_cluster()
+        cluster.set(
             build_last_update_key(self.detector),
             last_update_time,
         )
 
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
-            self.feature("organizations:uptime"),
-        ):
-            self.send_result(result)
+        metric_tags = {"status": result["status"], "uptime_region": result["region"]}
+        subscription_regions = load_regions_for_uptime_subscription(self.subscription.id)
+        with mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger:
+            create_backfill_misses(
+                self.detector, self.subscription, result, last_update_time, metric_tags, cluster
+            )
+            process_result_internal(
+                self.detector, self.subscription, result, metric_tags, cluster, subscription_regions
+            )
 
             assert mock_produce.call_count == 3
 
@@ -631,10 +652,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             }
         )
 
+        base_time = datetime.now() - timedelta(minutes=10)
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             status=CHECKSTATUS_FAILURE,
-            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+            scheduled_check_time=base_time,
         )
         redis = get_cluster()
         key = build_onboarding_failure_key(self.detector)
@@ -669,7 +691,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             status=CHECKSTATUS_FAILURE,
-            scheduled_check_time=datetime.now() - timedelta(minutes=4),
+            scheduled_check_time=base_time + timedelta(minutes=5),
         )
         with (
             mock.patch("sentry.quotas.backend.remove_seat") as mock_remove_seat,
@@ -1190,7 +1212,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             override_settings(UPTIME_REGIONS=region_configs),
             override_options({"uptime.checker-regions-mode-override": region_overrides}),
             self.tasks(),
-            freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=current_minute)),
+            freeze_time(
+                (datetime.now() - timedelta(hours=1)).replace(
+                    minute=current_minute, second=0, microsecond=0
+                )
+            ),
             mock.patch("random.random", return_value=1),
         ):
             result = self.create_uptime_result(
