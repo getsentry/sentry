@@ -21,7 +21,11 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.environment_examples import EnvironmentExamples
 from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
-from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.environment import EnvironmentProject
 
@@ -113,13 +117,15 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         },
         examples=EnvironmentExamples.GET_PROJECT_ENVIRONMENTS,
     )
-    def put(self, request: Request, project) -> Response:
+    def put(
+        self, request: Request, project
+    ) -> Response[list[EnvironmentProjectSerializerResponse]] | Response[ValidationErrorResponse]:
         """
         Bulk update the visibility for a project's environments.
         """
         serializer = BulkEnvironmentSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
         environment_names = data["environmentNames"]
@@ -135,4 +141,5 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
 
         queryset = base_queryset.select_related("environment").order_by("environment__name")
 
-        return Response(serialize(list(queryset), request.user))
+        items: list[EnvironmentProject] = list(queryset)
+        return Response(serialize(items, request.user, EnvironmentProjectSerializer()))

@@ -50,6 +50,7 @@ import {MetricsHeatMap} from 'sentry/views/explore/metrics/metricsHeatMap';
 import {
   useMetricVisualize,
   useMetricVisualizes,
+  useSetMetricAggregateFields,
   useSetMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
@@ -60,11 +61,9 @@ import {
 } from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
-  useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSortBys,
-  useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
@@ -121,12 +120,11 @@ export function MetricPanel({
   const mode = useQueryParamsMode();
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const groupBys = useQueryParamsGroupBys();
-  const setGroupBys = useSetQueryParamsGroupBys();
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const setVisualizes = useSetMetricVisualizes();
+  const setAggregateFields = useSetMetricAggregateFields();
   // use the biggest interval for the heat map as this produces better patterns
   const [interval, setInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy:
@@ -212,7 +210,7 @@ export function MetricPanel({
   function handleChartTypeChange(newChartType: ChartType) {
     if (newChartType === ChartType.HEATMAP) {
       // Heatmap always uses count() with no group by
-      setVisualizes(
+      setAggregateFields(
         visualizes.map(v =>
           isVisualizeFunction(v)
             ? updateVisualizeYAxis(v, 'count', traceMetric).replace({
@@ -221,9 +219,6 @@ export function MetricPanel({
             : v.replace({chartType: ChartType.HEATMAP})
         )
       );
-      if (groupBys.length > 0) {
-        setGroupBys([]);
-      }
     } else if (isHeatmap) {
       // Switching away from heatmap — restore the default aggregate
       const defaultAggregate = DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'count';
