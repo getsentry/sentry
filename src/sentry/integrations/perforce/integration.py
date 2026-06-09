@@ -344,8 +344,9 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         Extract file path from URL, removing revision specifiers.
 
         Handles URLs with revisions like:
-        - p4://depot/path/file.cpp#42
-        - https://swarm/files//depot/path/file.cpp?v=42
+        - p4://depot/path/file.cpp#42      (file revision)
+        - p4://depot/path/file.cpp@2998    (changelist)
+        - https://swarm/files//depot/path/file.cpp?v=@2998
 
         Returns just the file path without revision info.
         """
@@ -365,13 +366,18 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         if url.startswith("p4://"):
             url = url[5:]
 
-        # Remove revision specifier (#revision)
-        if "#" in url:
-            url = url.split("#")[0]
-
-        # Remove query parameters (for web viewers)
+        # Remove query parameters first (Swarm carries the revision as `?v=@<cl>`,
+        # so this also strips the changelist for web-viewer URLs).
         if "?" in url:
             url = url.split("?")[0]
+
+        # Remove revision specifiers: `#<file-revision>` or `@<changelist>`.
+        # Perforce reserves `#` and `@` in file names (they must be %-encoded in
+        # depot paths), so splitting on them only ever strips a revision suffix.
+        if "#" in url:
+            url = url.split("#")[0]
+        if "@" in url:
+            url = url.split("@")[0]
 
         # Normalize both paths by stripping leading slashes for comparison
         # depot_path is typically "//depot" from config

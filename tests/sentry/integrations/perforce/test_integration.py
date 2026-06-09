@@ -402,6 +402,58 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert url == "p4://depot/app/services/processor.cpp#1"
         assert "#1" in url
 
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_link_changelist_not_url_encoded(self, mock_check_file):
+        """
+        A changelist arriving as `version` renders as Perforce '@<changelist>' syntax in
+        the p4:// fallback. `@` is a valid path character and must survive the encode_url
+        step in get_stacktrace_link -- if it becomes %40 the p4:// link breaks.
+        """
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
+
+        url = self.installation.get_stacktrace_link(
+            self.repo, "app/services/processor.cpp", "", "2998"
+        )
+        assert url == "p4://depot/app/services/processor.cpp@2998"
+        assert "%40" not in url
+
+    def test_extract_source_path_strips_p4_changelist(self) -> None:
+        """A p4:// URL with an @<changelist> suffix yields the bare file path."""
+        path = self.installation.extract_source_path_from_source_url(
+            self.repo, "p4://depot/app/services/processor.cpp@2998"
+        )
+        assert path == "app/services/processor.cpp"
+
+    def test_extract_source_path_strips_p4_file_revision(self) -> None:
+        """A p4:// URL with a #<file-revision> suffix yields the bare file path."""
+        path = self.installation.extract_source_path_from_source_url(
+            self.repo, "p4://depot/app/services/processor.cpp#42"
+        )
+        assert path == "app/services/processor.cpp"
+
+    def test_extract_source_path_strips_swarm_changelist_query(self) -> None:
+        """A Swarm URL carrying the changelist as ?v=@<cl> yields the bare file path."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce",
+            external_id="perforce-test-extract-swarm",
+            metadata={
+                "web_url": "https://swarm.example.com",
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+            },
+        )
+        installation = integration.get_installation(self.organization.id)
+        assert isinstance(installation, PerforceIntegration)
+
+        path = installation.extract_source_path_from_source_url(
+            self.repo,
+            "https://swarm.example.com/files//depot/app/services/processor.cpp?v=@2998",
+        )
+        assert path == "app/services/processor.cpp"
+
     def test_integration_name(self) -> None:
         """Test integration has correct name"""
         assert self.installation.model.name == "Perforce"
