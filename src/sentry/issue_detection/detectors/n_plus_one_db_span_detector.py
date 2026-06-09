@@ -88,9 +88,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 self.potential_parents[span_id] = span
             return
 
-        # Cached queries (e.g. ActiveRecord QueryCache hits) never touch the
-        # database, so they shouldn't count toward an N+1. Ignore them without
-        # disrupting any sequence we're currently tracking.
+        # Cached queries never touch the database, so they shouldn't count toward an N+1.
         if is_cached_span(span):
             return
 
@@ -268,9 +266,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 def is_cached_span(span: Span) -> bool:
     """
     Returns True if the span was served from a query cache rather than hitting
-    the database. SDKs (e.g. sentry-rails for ActiveRecord QueryCache) mark
-    these with a `cached` flag, which lands in span tags on transaction events
-    and in span data on the span-first pipeline.
+    the database.
     """
     for source in (span.get("data"), span.get("tags")):
         if not source:
