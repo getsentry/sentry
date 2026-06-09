@@ -5,11 +5,6 @@ import {
 } from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {
-  CodingAgentProvider,
-  PROVIDER_TO_HANDOFF_TARGET,
-} from 'sentry/components/events/autofix/types';
-import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
@@ -19,19 +14,30 @@ import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {
+  isPreferredAgentProvider,
+  parseAgentOption,
+} from 'sentry/utils/seer/preferredAgent';
 import type {
-  SeerAgent,
+  PreferredAgentProvider,
   SeerProjectSettingResponse,
   SeerProjectSettingUpdatePayload,
   SeerBulkProjectSettingUpdatePayload,
+  AutofixAgentSelectOption,
+  AgentIntegration,
 } from 'sentry/utils/seer/types';
 
 export const seerProjectSettingsSchema = z.object({
-  agent: z.enum([
-    'seer',
-    CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-    CodingAgentProvider.CLAUDE_CODE_AGENT,
-  ]),
+  agentOption: z.custom<AutofixAgentSelectOption>(value => {
+    if (typeof value !== 'string') {
+      return false;
+    }
+    if (value === 'seer') {
+      return true;
+    }
+    const [provider] = value.split('::');
+    return isPreferredAgentProvider(provider);
+  }),
   stoppingPoint: z.enum(['off', 'root_cause', 'solution', 'code_changes', 'open_pr']),
 });
 
@@ -57,7 +63,7 @@ export function getInfiniteSeerProjectsSettingsQueryOptions({
 }: {
   organization: Organization;
   query: {
-    agent?: SeerAgent;
+    agent?: PreferredAgentProvider;
     cursor?: string;
     per_page?: number;
     query?: MutableSearch;
@@ -76,19 +82,6 @@ export function getInfiniteSeerProjectsSettingsQueryOptions({
   );
 }
 
-function resolveIntegrationId(
-  agent: SeerAgent,
-  knownAgents: CodingAgentIntegration[] | undefined
-) {
-  if (!knownAgents || agent === 'seer') {
-    return;
-  }
-  return (
-    knownAgents.find(i => PROVIDER_TO_HANDOFF_TARGET[i.provider] === agent)?.id ??
-    undefined
-  );
-}
-
 export function getMutateSeerProjectSettingsOptions({
   organization,
   project,
@@ -98,27 +91,26 @@ export function getMutateSeerProjectSettingsOptions({
   organization: Organization;
   project: AvatarProject;
   queryClient: QueryClient;
-  knownAgents?: CodingAgentIntegration[];
+  knownAgents?: AgentIntegration[];
 }) {
   const queryKey = getSeerProjectSettingsQueryOptions({organization, project}).queryKey;
   const [url] = queryKey;
 
   return mutationOptions({
     mutationFn: (data: SeerProjectSettingUpdatePayload) => {
-      const integrationId =
-        data.agent && data.agent !== 'seer'
-          ? resolveIntegrationId(data.agent, knownAgents)
-          : undefined;
+      const {stoppingPoint, agentOption, ...rest} = data;
 
-      const isOff = data.stoppingPoint === 'off';
+      const agentObj = agentOption
+        ? parseAgentOption(agentOption ?? 'seer', knownAgents)
+        : {};
+
+      const isOff = stoppingPoint === 'off';
       const tuning =
-        data.stoppingPoint === undefined
+        stoppingPoint === undefined
           ? undefined
           : isOff
             ? ('off' as const)
             : ('medium' as const);
-
-      const {stoppingPoint, ...rest} = data;
 
       return fetchMutation<SeerProjectSettingResponse>({
         method: 'PUT',
@@ -129,7 +121,7 @@ export function getMutateSeerProjectSettingsOptions({
             stoppingPoint !== undefined && {
               stoppingPoint,
             }),
-          ...(integrationId !== undefined && {integrationId}),
+          ...agentObj,
           ...(tuning !== undefined && {automationTuning: tuning}),
         },
       });
@@ -150,9 +142,10 @@ export function getMutateSeerProjectSettingsOptions({
       const previousData = queryClient.getQueryData(queryKey);
 
       const jsonUpdates: Partial<SeerProjectSettingResponse> = {};
-      if (data.agent !== undefined) {
-        jsonUpdates.agent = data.agent;
-        jsonUpdates.integrationId = resolveIntegrationId(data.agent, knownAgents) ?? null;
+      if (data.agentOption !== undefined) {
+        const {agent, integrationId} = parseAgentOption(data.agentOption, knownAgents);
+        jsonUpdates.agent = agent;
+        jsonUpdates.integrationId = integrationId;
       }
       if (data.stoppingPoint !== undefined) {
         if (data.stoppingPoint === 'off') {
@@ -224,7 +217,7 @@ export function getMutateSeerProjectsSettingsOptions({
   organization: Organization;
   projectsById: Map<string, AvatarProject>;
   queryClient: QueryClient;
-  knownAgents?: CodingAgentIntegration[];
+  knownAgents?: AgentIntegration[];
 }) {
   const infiniteQueryKey = getInfiniteSeerProjectsSettingsQueryOptions({
     organization,
@@ -249,16 +242,15 @@ export function getMutateSeerProjectsSettingsOptions({
         selectedIds: ListItemCheckboxState['selectedIds'];
       }
     ) => {
-      const {stoppingPoint, query, selectedIds, ...rest} = data;
+      const {stoppingPoint, agentOption, query, selectedIds, ...rest} = data;
 
-      const integrationId =
-        data.agent && data.agent !== 'seer'
-          ? resolveIntegrationId(data.agent, knownAgents)
-          : undefined;
+      const agentObj = agentOption
+        ? parseAgentOption(agentOption ?? 'seer', knownAgents)
+        : {};
 
-      const isOff = data.stoppingPoint === 'off';
+      const isOff = stoppingPoint === 'off';
       const tuning =
-        data.stoppingPoint === undefined
+        stoppingPoint === undefined
           ? undefined
           : isOff
             ? ('off' as const)
@@ -274,7 +266,7 @@ export function getMutateSeerProjectsSettingsOptions({
             stoppingPoint !== undefined && {
               stoppingPoint,
             }),
-          ...(integrationId !== undefined && {integrationId}),
+          ...agentObj,
           ...(tuning !== undefined && {automationTuning: tuning}),
         } satisfies SeerBulkProjectSettingUpdatePayload,
       });
@@ -286,9 +278,10 @@ export function getMutateSeerProjectsSettingsOptions({
       });
 
       const jsonUpdates: Partial<SeerProjectSettingResponse> = {};
-      if (data.agent !== undefined) {
-        jsonUpdates.agent = data.agent;
-        jsonUpdates.integrationId = resolveIntegrationId(data.agent, knownAgents) ?? null;
+      if (data.agentOption !== undefined) {
+        const {agent, integrationId} = parseAgentOption(data.agentOption, knownAgents);
+        jsonUpdates.agent = agent;
+        jsonUpdates.integrationId = integrationId;
       }
       if (data.stoppingPoint !== undefined) {
         if (data.stoppingPoint === 'off') {

@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {InfoTip} from '@sentry/scraps/info';
@@ -9,8 +9,8 @@ import {Link} from '@sentry/scraps/link';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgent';
-import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPoint';
+import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
+import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -18,7 +18,7 @@ import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {ListSelectAllCheckbox} from 'sentry/utils/list/listSelectAllCheckbox';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
-import {useKnownAgents} from 'sentry/utils/seer/preferredAgent';
+import {knownAgentIntegrationsQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {getMutateSeerProjectsSettingsOptions} from 'sentry/utils/seer/seerProjectSettings';
 import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -96,7 +96,9 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
   );
 
   const projectsById = useProjectsById();
-  const knownAgents = useKnownAgents();
+  const {data: knownAgents} = useQuery(
+    knownAgentIntegrationsQueryOptions({organization})
+  );
 
   const {mutate} = useMutation(
     getMutateSeerProjectsSettingsOptions({
@@ -158,7 +160,7 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
                   {
                     query: mutableSearch.formatString(),
                     selectedIds,
-                    agent: value,
+                    agentOption: value,
                   },
                   {
                     onError: () =>

@@ -14,8 +14,8 @@ import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgent';
-import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPoint';
+import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
+import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
@@ -27,7 +27,8 @@ import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxSta
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {
   useSeerAgentSelectOptions,
-  useKnownAgents,
+  knownAgentIntegrationsQueryOptions,
+  coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
 import {
   getMutateSeerProjectSettingsOptions,
@@ -41,8 +42,8 @@ import {
   useStoppingPointSelectOptions,
 } from 'sentry/utils/seer/stoppingPoint';
 import type {
+  AutofixAgentSelectOption,
   InternalAutomationTuning,
-  SeerAgent,
   SeerAutofixStoppingPoint,
   SeerProjectSettingResponse,
 } from 'sentry/utils/seer/types';
@@ -217,7 +218,9 @@ export default Storybook.story('SeerProjectSettings', story => {
     function Example({projectSlug}: {projectSlug: string}) {
       const organization = useOrganization();
       const queryClient = useQueryClient();
-      const knownAgents = useKnownAgents();
+      const {data: knownAgents} = useQuery(
+        knownAgentIntegrationsQueryOptions({organization})
+      );
 
       const agentSelectOptions = useSeerAgentSelectOptions();
       const stoppingPointOptions = useStoppingPointSelectOptions();
@@ -258,9 +261,9 @@ export default Storybook.story('SeerProjectSettings', story => {
         <Stack gap="lg">
           <FieldGroup>
             <AutoSaveForm
-              name="agent"
+              name="agentOption"
               schema={seerProjectSettingsSchema}
-              initialValue={data.agent}
+              initialValue={coalesePreferredAgent(data.agent, data.integrationId)}
               mutationOptions={getMutateSeerProjectSettingsOptions({
                 organization,
                 project: {slug: projectSlug},
@@ -450,7 +453,9 @@ export default Storybook.story('SeerProjectSettings', story => {
       const selectedIds = projectSlugs
         .map(slug => projects.find(p => p.slug === slug)?.id)
         .filter(defined);
-      const [lastAgent, setLastAgent] = useState<SeerAgent | undefined>(undefined);
+      const [lastAgent, setLastAgent] = useState<AutofixAgentSelectOption | undefined>(
+        undefined
+      );
       const [lastStoppingPoint, setLastStoppingPoint] = useState<
         SeerAutofixStoppingPoint | undefined
       >(undefined);
@@ -458,7 +463,9 @@ export default Storybook.story('SeerProjectSettings', story => {
       const organization = useOrganization();
       const queryClient = useQueryClient();
       const projectsById = useProjectsById();
-      const knownAgents = useKnownAgents();
+      const {data: knownAgents} = useQuery(
+        knownAgentIntegrationsQueryOptions({organization})
+      );
 
       const {mutate} = useMutation(
         getMutateSeerProjectsSettingsOptions({
@@ -479,7 +486,7 @@ export default Storybook.story('SeerProjectSettings', story => {
                 mutate({
                   query: '',
                   selectedIds,
-                  agent: value,
+                  agentOption: value,
                 });
               }}
             />
@@ -511,12 +518,15 @@ export default Storybook.story('SeerProjectSettings', story => {
 });
 
 function PreferredAgentLabel({settings}: {settings: SeerProjectSettingResponse}) {
-  const integrations = useKnownAgents();
+  const organization = useOrganization();
+  const {data: knownAgents} = useQuery(
+    knownAgentIntegrationsQueryOptions({organization})
+  );
   return (
     <Fragment>
       {settings.agent === 'seer'
         ? t('Seer Agent')
-        : (integrations.find(i => i.id === settings.integrationId)?.name ??
+        : (knownAgents?.find(i => i.id === settings.integrationId)?.name ??
           `${settings.agent} - ${settings.integrationId}`)}
     </Fragment>
   );

@@ -14,7 +14,8 @@ import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {
   useSeerAgentSelectOptions,
-  useKnownAgents,
+  knownAgentIntegrationsQueryOptions,
+  coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
 import {
   getMutateSeerProjectSettingsOptions,
@@ -55,7 +56,9 @@ interface Props {
 export function AutofixAgent({canWrite, project}: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const knownAgents = useKnownAgents();
+  const {data: knownAgents} = useQuery(
+    knownAgentIntegrationsQueryOptions({organization})
+  );
 
   const agentSelectOptions = useSeerAgentSelectOptions();
   const stoppingPointOptions = useStoppingPointSelectOptions();
@@ -100,9 +103,9 @@ export function AutofixAgent({canWrite, project}: Props) {
   return (
     <FieldGroup>
       <AutoSaveForm
-        name="agent"
+        name="agentOption"
         schema={seerProjectSettingsSchema}
-        initialValue={data.agent}
+        initialValue={coalesePreferredAgent(data.agent, data.integrationId)}
         mutationOptions={getMutateSeerProjectSettingsOptions({
           organization,
           project: {slug: project.slug},

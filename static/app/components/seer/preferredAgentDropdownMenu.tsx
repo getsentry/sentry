@@ -4,7 +4,7 @@ import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMe
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {t} from 'sentry/locale';
 import {useSeerAgentSelectOptions} from 'sentry/utils/seer/preferredAgent';
-import type {SeerAgent} from 'sentry/utils/seer/types';
+import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function PreferredAgentDropdownMenu({
@@ -13,7 +13,7 @@ export function PreferredAgentDropdownMenu({
   onChange,
 }: {
   isDisabled: boolean;
-  onChange: (value: SeerAgent) => void;
+  onChange: (value: AutofixAgentSelectOption) => void;
   size?: DropdownMenuProps['size'];
 }) {
   const organization = useOrganization();

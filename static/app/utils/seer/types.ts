@@ -19,33 +19,25 @@ export type SeerAutofixStoppingPoint =
 
 export type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
 
+export type AgentIntegration = {
+  id: string | null;
+  name: string;
+  provider: CodingAgentProvider;
+  has_identity?: boolean;
+  requires_identity?: boolean;
+};
+
 // Mirrors python enum: AutomationCodingAgent
-export type SeerAgent =
+export type PreferredAgentProvider =
   | 'seer'
   | CodingAgentProvider.CURSOR_BACKGROUND_AGENT
   | CodingAgentProvider.CLAUDE_CODE_AGENT;
 
-// type SeerAutomationHandoffConfiguration = {
-//   auto_create_pr: boolean;
-//   handoff_point: 'root_cause';
-//   integration_id: string;
-//   target:
-//     | CodingAgentProvider.CURSOR_BACKGROUND_AGENT
-//     | CodingAgentProvider.CLAUDE_CODE_AGENT;
-// };
-
-// type SeerProjectSetting = {
-//   agent: SeerAgent;
-//   automation_tuning: InternalAutomationTuning;
-//   handoff: SeerAutomationHandoffConfiguration | null;
-//   repos_count: number;
-//   scanner_automation: boolean;
-//   stopping_point: UserFacingStoppingPoint;
-// };
+export type AutofixAgentSelectOption = 'seer' | `${CodingAgentProvider}::${string}`;
 
 // Mirrors python serializer: ProjectSettingsUpdateSerializer
 export type SeerProjectSettingUpdatePayload = {
-  agent?: SeerAgent;
+  agentOption?: AutofixAgentSelectOption;
   automationTuning?: UserFacingAutomationTuning;
   integrationId?: string;
   scannerAutomation?: boolean;
@@ -58,7 +50,7 @@ export type SeerBulkProjectSettingUpdatePayload = {
 } & SeerProjectSettingUpdatePayload;
 
 export type SeerProjectSettingResponse = {
-  agent: SeerAgent;
+  agent: PreferredAgentProvider;
   autoCreatePr: boolean | null;
   automationTuning: InternalAutomationTuning;
   integrationId: string | null;

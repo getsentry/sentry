@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {queryOptions} from '@tanstack/react-query';
+import invariant from 'invariant';
 
 import {
   CodingAgentProvider,
@@ -11,27 +12,80 @@ import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useA
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {SeerAgent} from 'sentry/utils/seer/types';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {
+  AutofixAgentSelectOption,
+  AgentIntegration,
+  PreferredAgentProvider,
+} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type PreferredAgentIntegration = 'seer' | CodingAgentIntegration;
+export function coalesePreferredAgent(
+  agent: 'seer' | CodingAgentProvider,
+  integrationId: string | null
+): AutofixAgentSelectOption {
+  if (agent === 'seer') {
+    return 'seer';
+  }
+  return `${agent}::${integrationId ?? ''}` as const;
+}
+
+export function isPreferredAgentProvider(
+  provider: string | undefined
+): provider is PreferredAgentProvider {
+  return [
+    'seer',
+    CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+    CodingAgentProvider.CLAUDE_CODE_AGENT,
+  ].includes(provider ?? '');
+}
+
+export function parseAgentOption(
+  agentOption: AutofixAgentSelectOption,
+  knownAgents: AgentIntegration[] | undefined
+) {
+  if (agentOption === 'seer' || !knownAgents || !agentOption.includes('::')) {
+    return {agent: 'seer'} as const;
+  }
+
+  const [provider, integrationId] = agentOption.split('::');
+  invariant(isPreferredAgentProvider(provider), 'Invalid agent option');
+  invariant(integrationId, 'Invalid agent option');
+  return {agent: provider, integrationId} as const;
+}
 
 /**
  * Fetch the list of existing coding agent integrations.
  */
-export function useKnownAgents() {
-  const organization = useOrganization();
-  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
+export function knownAgentIntegrationsQueryOptions({
+  organization,
+}: {
+  organization: Organization;
+}) {
+  const mapProvider = {
+    cursor: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+    claude_code: CodingAgentProvider.CLAUDE_CODE_AGENT,
+    github_copilot: CodingAgentProvider.GITHUB_COPILOT_AGENT,
+  } as const;
 
-  return useMemo(
-    () =>
-      (agentOptions.data ?? [])
-        .filter(
-          (o): o is {label: string; value: CodingAgentIntegration} => o.value !== 'seer'
-        )
-        .map(o => o.value),
-    [agentOptions.data]
-  );
+  return queryOptions({
+    ...apiOptions.as<{
+      integrations: CodingAgentIntegration[];
+    }>()('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 5 * 60 * 1000,
+    }),
+    select: (data): AgentIntegration[] => [
+      ...(data.json.integrations ?? [])
+        .filter(integration => integration.id)
+        .map(integration => {
+          return {
+            ...integration,
+            provider: mapProvider[integration.provider],
+          };
+        }),
+    ],
+  });
 }
 
 /**
@@ -41,30 +95,31 @@ export function useKnownAgents() {
  * set to true; those are the ones that we Seer can use in the background.
  */
 export function useSeerAgentSelectOptions() {
-  const integrations = useKnownAgents();
+  const organization = useOrganization();
+  const {data: knownAgents} = useQuery(
+    knownAgentIntegrationsQueryOptions({organization})
+  );
 
-  return useMemo((): Array<{label: string; value: SeerAgent}> => {
+  return useMemo(() => {
     return [
       {value: 'seer' as const, label: t('Seer')},
-      {
-        value: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-        label: integrations.find(i => i.provider === 'cursor')?.name ?? t('Cursor'),
-      },
-      {
-        value: CodingAgentProvider.CLAUDE_CODE_AGENT,
-        label: integrations.find(i => i.provider === 'claude_code')?.name ?? t('Claude'),
-      },
+      ...(knownAgents ?? []).map(i => ({
+        value: `${i.provider}::${i.id}` as AutofixAgentSelectOption,
+        label: i.name,
+      })),
     ];
-  }, [integrations]);
+  }, [knownAgents]);
 }
 
 export function useOrgDefaultAgent() {
   const organization = useOrganization();
-  const integrations = useKnownAgents();
+  const {data: knownAgents} = useQuery(
+    knownAgentIntegrationsQueryOptions({organization})
+  );
 
-  return useMemo((): PreferredAgentIntegration => {
+  return useMemo((): 'seer' | AgentIntegration => {
     if (organization.defaultCodingAgentIntegrationId) {
-      const match = integrations.find(
+      const match = knownAgents?.find(
         i => i.id === String(organization.defaultCodingAgentIntegrationId)
       );
       if (match) {
@@ -72,7 +127,7 @@ export function useOrgDefaultAgent() {
       }
     }
     return 'seer';
-  }, [organization.defaultCodingAgentIntegrationId, integrations]);
+  }, [organization.defaultCodingAgentIntegrationId, knownAgents]);
 }
 
 /**
@@ -80,7 +135,7 @@ export function useOrgDefaultAgent() {
  * Returns undefined for Seer (no external handoff needed).
  */
 export function buildHandoffPayload(
-  agent: PreferredAgentIntegration,
+  agent: 'seer' | AgentIntegration,
   autoCreatePr: boolean
 ): ProjectSeerPreferences['automation_handoff'] {
   if (agent === 'seer') {
@@ -108,7 +163,7 @@ export function getCodingAgentSelectQueryOptions({
 }) {
   return queryOptions({
     ...organizationIntegrationsCodingAgents(organization),
-    select: (data): Array<{label: string; value: PreferredAgentIntegration}> => [
+    select: (data): Array<{label: string; value: 'seer' | CodingAgentIntegration}> => [
       {value: 'seer', label: t('Seer Agent')},
       ...(data.json.integrations ?? [])
         .filter(integration => integration.id)

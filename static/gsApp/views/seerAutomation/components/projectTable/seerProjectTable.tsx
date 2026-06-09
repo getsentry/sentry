@@ -3,9 +3,10 @@ import {css} from '@emotion/react';
 import {
   infiniteQueryOptions,
   useInfiniteQuery,
+  useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import {debounce, parseAsString, parseAsStringEnum, useQueryState} from 'nuqs';
+import {createParser, debounce, parseAsString, useQueryState} from 'nuqs';
 
 import SeerConfigConnect2 from 'sentry-images/spot/seer-config-connect-2.svg';
 
@@ -36,7 +37,8 @@ import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxSta
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {
   useSeerAgentSelectOptions,
-  useKnownAgents,
+  knownAgentIntegrationsQueryOptions,
+  coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
 import {
   getMutateSeerProjectSettingsOptions,
@@ -47,6 +49,7 @@ import {
   coaleseStoppingPoint,
   useStoppingPointSelectOptions,
 } from 'sentry/utils/seer/stoppingPoint';
+import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -55,6 +58,24 @@ import {ProjectTableHeader} from 'getsentry/views/seerAutomation/components/proj
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 const estimateSize = () => 41;
+
+const parseAsAgentFilter = createParser<'all' | AutofixAgentSelectOption>({
+  parse: value => {
+    if (value === 'all' || value === 'seer') {
+      return value;
+    }
+    if (
+      [
+        CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+        CodingAgentProvider.CLAUDE_CODE_AGENT,
+      ].some(prefix => value.startsWith(`${prefix}::`))
+    ) {
+      return value as AutofixAgentSelectOption;
+    }
+    return null;
+  },
+  serialize: String,
+});
 
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
@@ -65,9 +86,7 @@ export function SeerProjectTable() {
   // Query Values
   const [agentFilter, setAgentFilter] = useQueryState(
     'agent',
-    parseAsStringEnum(['all', 'seer', ...Object.values(CodingAgentProvider)]).withDefault(
-      'all'
-    )
+    parseAsAgentFilter.withDefault('all')
   );
   const [searchTerm, setSearchTerm] = useQueryState(
     'name',
@@ -80,7 +99,9 @@ export function SeerProjectTable() {
 
   // Supporting fetch calls
   const projectsById = useProjectsById();
-  const knownAgents = useKnownAgents();
+  const {data: knownAgents} = useQuery(
+    knownAgentIntegrationsQueryOptions({organization})
+  );
   const agentSelectOptions = useSeerAgentSelectOptions();
   const stoppingPointOptions = useStoppingPointSelectOptions();
 
@@ -144,7 +165,7 @@ export function SeerProjectTable() {
       <Stack>
         <Flex gap="md" wrap="wrap">
           {agentSelectOptions.length ? (
-            <CompactSelect<'all' | 'seer' | CodingAgentProvider>
+            <CompactSelect<'all' | AutofixAgentSelectOption>
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} size="md" prefix={t('Agent')}>
                   {triggerProps.children}
@@ -246,9 +267,12 @@ export function SeerProjectTable() {
                       </InfiniteTable.RowCell>
                       <InfiniteTable.RowCell overflow="visible">
                         <AutoSaveForm
-                          name="agent"
+                          name="agentOption"
                           schema={seerProjectSettingsSchema}
-                          initialValue={item.agent}
+                          initialValue={coalesePreferredAgent(
+                            item.agent,
+                            item.integrationId
+                          )}
                           mutationOptions={getMutateSeerProjectSettingsOptions({
                             organization,
                             project: {slug: item.projectSlug},

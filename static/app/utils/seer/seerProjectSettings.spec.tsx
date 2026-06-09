@@ -6,21 +6,20 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
-import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   getInfiniteSeerProjectsSettingsQueryOptions,
   getMutateSeerProjectSettingsOptions,
   getMutateSeerProjectsSettingsOptions,
   getSeerProjectSettingsQueryOptions,
 } from 'sentry/utils/seer/seerProjectSettings';
-import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
+import type {AgentIntegration, SeerProjectSettingResponse} from 'sentry/utils/seer/types';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 const project = {slug: 'project-slug'};
 
-const knownAgents: CodingAgentIntegration[] = [
-  {id: '123', name: 'Cursor', provider: 'cursor'},
-  {id: '456', name: 'Claude Code', provider: 'claude_code'},
+const knownAgents: AgentIntegration[] = [
+  {id: '123', name: 'Cursor', provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT},
+  {id: '456', name: 'Claude Code', provider: CodingAgentProvider.CLAUDE_CODE_AGENT},
 ];
 
 function makeResponseFixture(
@@ -47,7 +46,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
     MockApiClient.clearMockResponses();
   });
 
-  function renderMutationHook({agents}: {agents?: CodingAgentIntegration[]} = {}) {
+  function renderMutationHook({agents}: {agents?: AgentIntegration[]} = {}) {
     const queryClient = makeTestQueryClient();
 
     const queryKey = getSeerProjectSettingsQueryOptions({
@@ -92,14 +91,14 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook({agents: knownAgents});
 
       await act(async () => {
-        await result.current.mutateAsync({agent: 'seer'});
+        await result.current.mutateAsync({agentOption: 'seer'});
       });
 
       expect(mock).toHaveBeenCalledWith(
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {agent: 'seer'},
+          data: {agent: 'seer', integrationId: undefined},
         })
       );
     });
@@ -118,7 +117,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::123`,
         });
       });
 
@@ -147,7 +146,9 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook({agents: knownAgents});
 
       await act(async () => {
-        await result.current.mutateAsync({agent: CodingAgentProvider.CLAUDE_CODE_AGENT});
+        await result.current.mutateAsync({
+          agentOption: `${CodingAgentProvider.CLAUDE_CODE_AGENT}::456`,
+        });
       });
 
       expect(mock).toHaveBeenCalledWith(
@@ -170,7 +171,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::123`,
         });
       });
 
@@ -178,7 +179,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT},
+          data: {agent: 'seer', integrationId: undefined},
         })
       );
     });
@@ -283,14 +284,14 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       const {result} = renderMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({agent: 'seer'});
+        await result.current.mutateAsync({agentOption: 'seer'});
       });
 
       expect(mock).toHaveBeenCalledWith(
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {agent: 'seer'},
+          data: {agent: 'seer', integrationId: undefined},
         })
       );
     });
@@ -313,7 +314,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::123`,
         });
       });
 
@@ -366,14 +367,14 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       );
 
       await act(async () => {
-        await result.current.mutateAsync({agent: 'seer'});
+        await result.current.mutateAsync({agentOption: 'seer'});
       });
 
       await waitFor(() => {
         const cached = queryClient.getQueryData(queryKey);
         expect(cached?.json).toMatchObject({
           agent: 'seer',
-          integrationId: null,
+          integrationId: undefined,
         });
       });
     });
@@ -415,7 +416,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       await act(async () => {
         try {
           await result.current.mutateAsync({
-            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::123`,
           });
         } catch {
           // expected
@@ -458,7 +459,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
     items,
     projectsById = defaultProjectsById,
   }: {
-    agents?: CodingAgentIntegration[];
+    agents?: AgentIntegration[];
     items?: SeerProjectSettingResponse[];
     projectsById?: Map<string, any>;
   } = {}) {
@@ -510,7 +511,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          agent: 'seer',
+          agentOption: 'seer',
           selectedIds: ['1', '2'],
         });
       });
@@ -519,7 +520,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
         bulkUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {agent: 'seer', query: 'id:[1,2]'},
+          data: {agent: 'seer', integrationId: undefined, query: 'id:[1,2]'},
         })
       );
     });
@@ -535,7 +536,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          agent: 'seer',
+          agentOption: 'seer',
           selectedIds: 'all',
           query: 'is:enabled',
         });
@@ -545,7 +546,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
         bulkUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {agent: 'seer', query: 'is:enabled'},
+          data: {agent: 'seer', integrationId: undefined, query: 'is:enabled'},
         })
       );
     });
@@ -561,7 +562,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::123`,
           selectedIds: ['1'],
         });
       });
@@ -648,7 +649,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+          agentOption: `${CodingAgentProvider.CLAUDE_CODE_AGENT}::456`,
           selectedIds: ['1', '3'],
         });
       });
@@ -752,7 +753,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
 
       await act(async () => {
         await result.current.mutateAsync({
-          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::123`,
           selectedIds: ['1'],
         });
       });
@@ -808,7 +809,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       await act(async () => {
         try {
           await result.current.mutateAsync({
-            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::123`,
             selectedIds: ['1'],
           });
         } catch {
