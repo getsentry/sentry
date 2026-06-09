@@ -68,10 +68,19 @@ class DatadogDCRView:
             },
         )
         resp.raise_for_status()
-        data = orjson.loads(safe_urlread(resp))
 
-        pipeline.bind_state("dcr_client_id", data["client_id"])
-        pipeline.bind_state("dcr_client_secret", data["client_secret"])
+        try:
+            data = orjson.loads(safe_urlread(resp))
+        except orjson.JSONDecodeError:
+            return pipeline.error("Could not parse DCR response")
+
+        client_id = data.get("client_id")
+        client_secret = data.get("client_secret")
+        if not client_id or not client_secret:
+            return pipeline.error("DCR response missing client credentials")
+
+        pipeline.bind_state("dcr_client_id", client_id)
+        pipeline.bind_state("dcr_client_secret", client_secret)
 
         return pipeline.next_step()
 
