@@ -382,7 +382,7 @@ function HighlightedTokenAttributes({
   if (mismatch) {
     return (
       <Flex align="center" gap="xs">
-        <IconWarning legacySize="1em" variant="warning" />
+        <IconWarning size="xs" variant="warning" />
         <InfoText
           variant="warning"
           title={tct(
