@@ -17,11 +17,15 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import serializers
+from rest_framework.fields import BooleanField, CharField, URLField
 
 from sentry import features
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -36,9 +40,14 @@ from sentry.integrations.models.integration_external_project import IntegrationE
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
-from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -308,6 +317,151 @@ class OAuthCallbackView:
         except ApiError as error:
             logger.info("identity.jira-server.access-token", extra={"error": error})
             return pipeline.error("Could not fetch an access token from Jira")
+
+
+class InstallationConfigData(TypedDict):
+    url: str
+    consumer_key: str
+    private_key: str
+    verify_ssl: bool
+
+
+class InstallationConfigSerializer(CamelSnakeSerializer[InstallationConfigData]):
+    url = URLField(required=True)
+    consumer_key = CharField(required=True, max_length=200)
+    private_key = CharField(required=True)
+    verify_ssl = BooleanField(required=False, default=True)
+
+    def validate_private_key(self, value: str) -> str:
+        try:
+            load_pem_private_key(value.encode("utf-8"), None, default_backend())
+        except Exception:
+            raise serializers.ValidationError(
+                "Private key must be a valid SSH private key encoded in a PEM format."
+            )
+        return value
+
+
+class InstallationConfigApiStep:
+    """
+    Collect the Jira Server consumer credentials and verify them by fetching an
+    OAuth 1.0a request token. The token is stored on pipeline state so the next
+    step can build an authorize URL and exchange it for an access token.
+    """
+
+    step_name = "installation_config"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
+
+    def get_serializer_cls(self) -> type:
+        return InstallationConfigSerializer
+
+    def handle_post(
+        self,
+        validated_data: InstallationConfigData,
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        validated_data["url"] = validated_data["url"].rstrip("/")
+
+        client = JiraServerSetupClient(
+            validated_data["url"],
+            validated_data["consumer_key"],
+            validated_data["private_key"],
+            validated_data["verify_ssl"],
+        )
+
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.OAUTH_LOGIN,
+            IntegrationDomain.PROJECT_MANAGEMENT,
+            JiraServerIntegrationProvider.key,
+        ).capture() as lifecycle:
+            try:
+                request_token = client.get_request_token()
+            except ApiError as error:
+                lifecycle.record_failure(str(error), extra={"url": validated_data["url"]})
+                return PipelineStepResult.error(
+                    f"Could not fetch a request token from Jira. {error}"
+                )
+
+            if not request_token.get("oauth_token") or not request_token.get("oauth_token_secret"):
+                lifecycle.record_failure(
+                    "missing oauth_token", extra={"url": validated_data["url"]}
+                )
+                return PipelineStepResult.error("Missing oauth_token")
+
+        pipeline.bind_state("installation_data", validated_data)
+        pipeline.bind_state("request_token", request_token)
+        return PipelineStepResult.advance()
+
+
+class OAuthCallbackData(TypedDict):
+    oauth_token: str
+
+
+class OAuthCallbackSerializer(CamelSnakeSerializer[OAuthCallbackData]):
+    oauth_token = CharField(required=True)
+
+
+class OAuthStepData(TypedDict):
+    oauthUrl: str
+
+
+class OAuthApiStep:
+    """
+    Build the Jira Server authorize URL from the previously-fetched request
+    token, then exchange the callback's oauth_token (which Jira Server uses as
+    the verifier) for an access token.
+    """
+
+    step_name = "oauth_callback"
+
+    def _client(self, pipeline: IntegrationPipeline) -> JiraServerSetupClient:
+        installation = pipeline.fetch_state("installation_data")
+        if installation is None:
+            raise AssertionError("pipeline called out of order")
+        return JiraServerSetupClient(
+            installation["url"],
+            installation["consumer_key"],
+            installation["private_key"],
+            installation["verify_ssl"],
+        )
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> OAuthStepData:
+        request_token = pipeline.fetch_state("request_token")
+        if request_token is None:
+            raise AssertionError("pipeline called out of order")
+        return {"oauthUrl": self._client(pipeline).get_authorize_url(request_token)}
+
+    def get_serializer_cls(self) -> type:
+        return OAuthCallbackSerializer
+
+    def handle_post(
+        self,
+        validated_data: OAuthCallbackData,
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        request_token = pipeline.fetch_state("request_token")
+        if request_token is None:
+            raise AssertionError("pipeline called out of order")
+
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.OAUTH_CALLBACK,
+            IntegrationDomain.PROJECT_MANAGEMENT,
+            JiraServerIntegrationProvider.key,
+        ).capture() as lifecycle:
+            try:
+                access_token = self._client(pipeline).get_access_token(
+                    request_token, validated_data["oauth_token"]
+                )
+            except ApiError as error:
+                lifecycle.record_failure(str(error))
+                return PipelineStepResult.error("Could not fetch an access token from Jira")
+
+        pipeline.bind_state("access_token", access_token)
+        return PipelineStepResult.advance()
 
 
 # Hide linked issues fields because we don't have the necessary UI for fully specifying
@@ -1402,6 +1556,9 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [InstallationConfigApiStep(), OAuthApiStep()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         install = state["installation_data"]
