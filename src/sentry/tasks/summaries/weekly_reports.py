@@ -19,7 +19,7 @@ from sentry_sdk import set_tag
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -496,16 +496,19 @@ group_status_to_color = {
 }
 
 
-def _pct_change(current: int, previous: int) -> dict[str, Any] | None:
+def _pct_change(current: int, previous: int) -> float | None:
     if previous == 0:
         return None
-    change = ((current - previous) / previous) * 100
-    if round(change) == 0:
+    change = (current - previous) / previous
+    if round(change * 100) == 0:
         return None
-    return {
-        "value": f"{abs(round(change))}%",
-        "is_increase": change > 0,
-    }
+    return change
+
+
+def _format_pct(value: float | None) -> str:
+    if value is None:
+        return ""
+    return f"{abs(round(value * 100))}%"
 
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
@@ -695,7 +698,11 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             "total_transaction_count": total_transaction,
             "total_replay_count": total_replays,
             "error_pct_change": _pct_change(total_error, prev_week_error),
+            "error_pct_change_display": _format_pct(_pct_change(total_error, prev_week_error)),
             "transaction_pct_change": _pct_change(total_transaction, prev_week_transaction),
+            "transaction_pct_change_display": _format_pct(
+                _pct_change(total_transaction, prev_week_transaction)
+            ),
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
@@ -804,6 +811,9 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
+        "show_week_over_week_metric": features.has(
+            "organizations:weekly-report-week-over-week-metric", ctx.organization
+        ),
     }
 
 

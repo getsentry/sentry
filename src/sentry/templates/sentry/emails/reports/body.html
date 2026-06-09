@@ -233,8 +233,8 @@
     <h4 class="total-count-title">Total Project Errors</h4>
     <h1 style="margin: 0;" class="total-count">
       {{ trends.total_error_count|small_count:1 }}
-      {% if trends.error_pct_change %}
-      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #80708F;">{% if trends.error_pct_change.is_increase %}&#9650;{% else %}&#9660;{% endif %} {{ trends.error_pct_change.value }}</span>
+      {% if show_week_over_week_metric and trends.error_pct_change is not None %}
+      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #80708F;">{% if trends.error_pct_change > 0 %}&#9650;{% else %}&#9660;{% endif %} {{ trends.error_pct_change_display }}</span>
       <span style="font-size: 12px; font-weight: normal; color: #80708F; margin-left: 4px; vertical-align: middle;">(vs. last week)</span>
       {% endif %}
     </h1>
@@ -281,8 +281,8 @@
       <h4 class="total-count-title">Total Project Transactions</h4>
       <h1 style="margin: 0;" class="total-count">
         {{ trends.total_transaction_count|small_count:1 }}
-        {% if trends.transaction_pct_change %}
-        <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #80708F;">{% if trends.transaction_pct_change.is_increase %}&#9650;{% else %}&#9660;{% endif %} {{ trends.transaction_pct_change.value }}</span>
+        {% if show_week_over_week_metric and trends.transaction_pct_change is not None %}
+        <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #80708F;">{% if trends.transaction_pct_change > 0 %}&#9650;{% else %}&#9660;{% endif %} {{ trends.transaction_pct_change_display }}</span>
         <span style="font-size: 12px; font-weight: normal; color: #80708F; margin-left: 4px; vertical-align: middle;">(vs. last week)</span>
         {% endif %}
       </h1>

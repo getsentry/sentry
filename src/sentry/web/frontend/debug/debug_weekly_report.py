@@ -131,7 +131,12 @@ class DebugWeeklyReportView(MailPreviewView):
 
         user_id = request.user.id
         ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
-        return render_template_context(ctx, user_id)
+        context = render_template_context(ctx, user_id)
+        if context is not None:
+            context["show_week_over_week_metric"] = (
+                request.GET.get("show_week_over_week_metric", "1") != "0"
+            )
+        return context
 
     @property
     def html_template(self) -> str:

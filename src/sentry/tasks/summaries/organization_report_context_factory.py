@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import sentry_sdk
 
+from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -203,7 +204,8 @@ class OrganizationReportContextFactory:
         with metrics.timer("weekly_report.create_context.duration"):
             self._append_user_project_ownership(ctx)
             self._append_project_event_counts(ctx)
-            self._append_project_event_counts_previous_week(ctx)
+            if features.has("organizations:weekly-report-week-over-week-metric", self.organization):
+                self._append_project_event_counts_previous_week(ctx)
             self._append_organization_project_issue_substatus_summaries(ctx)
 
             # Enhanced privacy flag hides issue titles, transaction names, and source details
