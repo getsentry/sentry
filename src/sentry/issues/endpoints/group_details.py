@@ -2,7 +2,7 @@ import functools
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -37,6 +37,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.issue_examples import IssueExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
@@ -277,7 +278,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     ),
                 )
                 integration_issues = serialize(
-                    external_issues,
+                    list(external_issues),
                     request.user,
                     serializer=ExternalIssueSerializer(),
                 )
@@ -392,7 +393,9 @@ class GroupDetailsEndpoint(GroupEndpoint):
         },
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def put(self, request: Request, group: Group) -> Response:
+    def put(
+        self, request: Request, group: Group
+    ) -> Response[BaseGroupSerializerResponse] | Response[DetailResponse]:
         """
         Update an individual issue's attributes. Only the attributes submitted
         are modified.
@@ -418,7 +421,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # for mutation.
             group = Group.objects.get(id=group.id)
 
-            serialized = serialize(
+            serialized: BaseGroupSerializerResponse = serialize(
                 group,
                 request.user,
                 GroupSerializer(
@@ -440,7 +443,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
             logger.exception(
                 "group_details:put client.ApiError",
             )
-            return Response(e.body, status=e.status_code)
+            # client.ApiError.body is opaque (proxied from another service);
+            # cast is sanctioned for this opaque-body cohort per the spec.
+            body = cast(BaseGroupSerializerResponse, e.body)
+            return Response(body, status=e.status_code)
 
     @extend_schema(
         operation_id="Remove an Issue",
