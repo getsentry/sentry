@@ -1239,6 +1239,7 @@ class HandlePushAttributionTest(TestCase):
         self._call(commits=[{"message": f"Fixes {url2}"}], forced=False)
 
         attr = self._attr()
+        assert attr.signal_details is not None
         assert set(attr.signal_details["push"]) == {group1.id, group2.id}
 
     def test_non_force_push_with_no_refs_preserves_existing(self) -> None:
@@ -1327,6 +1328,7 @@ class HandlePushAttributionTest(TestCase):
         )
 
         attr = self._attr()
+        assert attr.signal_details is not None
         assert set(attr.signal_details["push"]) == {group1.id, group2.id}
 
     def test_multiple_prs_on_same_branch_logs_warning_and_skips(self) -> None:
