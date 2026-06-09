@@ -69,12 +69,10 @@ def build_pr_metrics_row(
 ) -> PrCloseMetricsEvent:
     """Assemble the provisional close/merge row.
 
-    Every fact is read from the ``PullRequest`` row — the webhook keeps it
-    current, and it's the only source on the judge path (Seer RPC callback),
-    which has no webhook payload. ``attributions`` is the active-attribution
-    snapshot, passed in so the tracking gate and the emitted row read the same
-    query. Nullable stored fields are coalesced, since a null means Sentry never
-    saw that fact (late install, missed webhook, non-webhook creation).
+    Every fact is read from the ``PullRequest`` row, so the judge path (Seer RPC
+    callback, which has no webhook payload) can reuse this. ``attributions`` is
+    passed in so the tracking gate and the emitted row read the same query.
+    Nullable stored fields are coalesced to their defaults.
     """
     head_commit_sha = pull_request.head_commit_sha
     closed_at = pull_request.closed_at

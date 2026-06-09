@@ -969,7 +969,6 @@ def _pull_request_lifecycle_state(pull_request: Mapping[str, Any]) -> str:
 def _pull_request_metrics(pull_request: Mapping[str, Any]) -> dict[str, Any]:
     """Snapshot the webhook-sourced activity counters into the ``metrics`` JSONB.
 
-    Stored on the ``PullRequest`` row so the emit path is fully stored-sourced.
     Counts are kept raw (may be absent on partial payloads); emit coalesces them.
     ``is_assigned`` is derived here since the payload carries assignees, not a flag.
     """

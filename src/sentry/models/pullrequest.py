@@ -106,15 +106,14 @@ class PullRequest(Model):
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
 
-    # Source-of-truth facts for the PR metrics pipeline, kept current by the
-    # GitHub webhook so the emit path can read them straight off the row (no
-    # payload, which the judge/Seer path doesn't have). All nullable because we
-    # only know them for PRs whose events Sentry actually saw: a late-installed
-    # integration, a missed/dropped webhook, or a non-webhook creation path
-    # (e.g. attribution get_or_create) leaves them unset, and null is the honest
-    # "Sentry never saw this fact" — emit coalesces. date_added is deliberately
-    # NOT a substitute for opened_at: it defaults to row-creation time and would
-    # silently skew open-time metrics for exactly those PRs.
+    # Facts for the PR metrics pipeline, kept current by the GitHub webhook so
+    # the emit path can read them off the row (the judge/Seer path has no
+    # payload). All nullable: we only have them for PRs whose events Sentry
+    # actually saw — a late-installed integration, a missed/dropped webhook, or
+    # a non-webhook creation path (e.g. attribution get_or_create) leaves them
+    # unset. date_added is deliberately NOT a substitute for opened_at: it
+    # defaults to row-creation time and would skew open-time metrics for exactly
+    # those PRs.
     opened_at = models.DateTimeField(null=True)
     closed_at = models.DateTimeField(null=True)
     merged_at = models.DateTimeField(null=True)
