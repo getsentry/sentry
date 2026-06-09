@@ -67,7 +67,8 @@ export function NewTraceView({replay}: {replay: undefined | HydratedReplayRecord
     () =>
       getInitialTracePreferences(
         REPLAY_TRACE_WATERFALL_PREFERENCES_KEY,
-        DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES
+        DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
+        'replay'
       ),
     []
   );

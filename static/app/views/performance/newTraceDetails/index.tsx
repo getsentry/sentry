@@ -79,7 +79,8 @@ export default function TraceView() {
     () =>
       getInitialTracePreferences(
         TRACE_VIEW_PREFERENCES_KEY,
-        DEFAULT_TRACE_VIEW_PREFERENCES
+        DEFAULT_TRACE_VIEW_PREFERENCES,
+        'trace_view'
       ),
     []
   );

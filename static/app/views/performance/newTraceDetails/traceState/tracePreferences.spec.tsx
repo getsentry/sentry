@@ -122,6 +122,38 @@ describe('tracePreferences', () => {
     ).toBe(false);
   });
 
+  it('keeps compressed timeline disabled for issue and replay traces', () => {
+    localStorage.setItem(
+      'trace-waterfall-preferences',
+      JSON.stringify({
+        drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
+        missing_instrumentation: false,
+        autogroup: {parent: true, sibling: true},
+        compressed_timeline: true,
+      })
+    );
+
+    expect(
+      getInitialTracePreferences(
+        'trace-waterfall-preferences',
+        {
+          ...DEFAULT_TRACE_VIEW_PREFERENCES,
+        },
+        'issues'
+      ).compressedTimeline
+    ).toBe(false);
+
+    expect(
+      getInitialTracePreferences(
+        'trace-waterfall-preferences',
+        {
+          ...DEFAULT_TRACE_VIEW_PREFERENCES,
+        },
+        'replay'
+      ).compressedTimeline
+    ).toBe(false);
+  });
+
   it('updates compressed timeline preference', () => {
     expect(
       tracePreferencesReducer(DEFAULT_TRACE_VIEW_PREFERENCES, {

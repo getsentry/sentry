@@ -56,7 +56,8 @@ export function SpanEvidenceTraceView(props: SpanEvidenceTraceViewProps) {
     () =>
       getInitialTracePreferences(
         TRACE_WATERFALL_PREFERENCES_KEY,
-        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES
+        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+        'issues'
       ),
     []
   );

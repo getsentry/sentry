@@ -160,7 +160,8 @@ function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
 
 export function getInitialTracePreferences(
   key: string,
-  default_state: TracePreferencesState
+  default_state: TracePreferencesState,
+  source: 'issues' | 'replay' | 'trace_view'
 ): TracePreferencesState {
   const stored = loadTraceViewPreferences(key);
   const preferences = {...default_state};
@@ -169,8 +170,13 @@ export function getInitialTracePreferences(
     preferences.autogroup = stored.autogroup;
     preferences.missing_instrumentation = stored.missing_instrumentation;
     preferences.layout = stored.drawer_layout;
-    preferences.compressedTimeline =
-      stored.compressed_timeline ?? default_state.compressedTimeline;
+
+    if (source === 'issues' || source === 'replay') {
+      preferences.compressedTimeline = false;
+    } else {
+      preferences.compressedTimeline =
+        stored.compressed_timeline ?? default_state.compressedTimeline;
+    }
   }
 
   return preferences;
