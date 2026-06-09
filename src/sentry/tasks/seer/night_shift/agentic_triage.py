@@ -290,6 +290,36 @@ def _build_triage_prompt(
         a batch of candidate issues and decide which ones are worth running automated
         root-cause analysis and code fixes on.
 
+        For each candidate issue choose one the following verdicts:
+        - `autofix`
+        - `root_cause_only`
+        - `skip`
+
+        Use the following criteria:
+
+        Clearly fixable in code (-> `autofix`):
+        - The bug is a clear mistake in application logic (wrong key, off-by-one,
+          missing None check on app data)
+        - Root cause is visible in application code within a connected repository
+        - Straightforward change to business logic
+
+        `autofix` causes an LLM generated PR to be opened on the connected repository attempting to fix the issue.
+
+        Worth investigating but not safe to `autofix` (-> `root_cause_only`):
+        - You cannot identify any safe fix without product or domain knowledge
+          you don't have, OR every plausible fix could materially change intended
+          behavior.
+        - The fix requires non-trivial investigation, a redesign, or cross-cutting
+          changes across many files or systems.
+        - It touches a high-blast-radius area and the fix is not trivially correct.
+        - Error originates in third-party libraries, vendor code, or framework internals.
+
+        Not worth processing (-> skip):
+        - The issue is vague with no actionable stacktrace
+        - Duplicate of another issue in this batch
+        - The code is correct but the environment is broken (infra down, DNS failure,
+          config not provisioned, data corruption)
+
         Use your tools to investigate each issue — look at all relevant telemetry: the stacktraces,
         event logs, event details, breadcrumbs, metrics, and the relevant code in the repository.
 
@@ -304,73 +334,57 @@ def _build_triage_prompt(
         `get_event_details_agentic_triage` for that.
 
         Before recording any verdict, you MUST read the relevant application code.
-        Surface reading of the error message and stacktrace is not enough — many
+        Reading the error message and stacktrace is not enough — many
         errors that look environmental (e.g. "file is not a database", "permission
         denied") are actually code bugs once you inspect how the failing code is
         called and what assumptions it makes about its inputs/environment.
+        You should use the `code_search` tool on every issue.
 
         When evaluating each issue, consider whether an AI coding agent with full
         codebase access could fix the ROOT CAUSE of the issue — not just add try/except or defensive
         checks around it.
-
-        The verdicts form a ladder of increasing caution. Default to the LEAST
-        aggressive verdict that fits, and only step up to `autofix` when you have
-        cleared a high bar. When you are torn between two verdicts, always pick
-        the more conservative one (`root_cause_only` over `autofix`, `skip` over
-        `root_cause_only`).
-
-        Autofix actually opens a code change with no human in the loop before it
-        is written, so reserve it for issues you are CONVINCED can be fixed
-        correctly and automatically. Choose `autofix` ONLY when ALL of the
-        following hold:
-        - You have pinpointed the exact root cause in application code (specific
-          file and function), confirmed by reading the code — not a hypothesis.
-        - There is exactly ONE clearly-correct fix. If several plausible fixes
-          exist and choosing between them depends on product intent or domain
-          knowledge you don't have, it is NOT an autofix.
-        - The fix is small and localized. It does not require a redesign, a new
-          API or abstraction, a schema/data migration, or coordinated changes
-          across many files or systems.
-        - Applying the fix cannot plausibly change intended behavior or make
-          things worse, and needs no human judgment to confirm it is correct.
-        - The change is not in a high-blast-radius area — authentication,
-          permissions/access control, billing or payments, security, money
-          math, concurrency/locking, or data deletion/migration — unless the fix
-          is truly trivial and obviously correct.
-        - You would be comfortable shipping this fix without a human reviewing
-          the approach first.
-        If you cannot honestly check every box, do NOT autofix.
-
-        Worth investigating but not safe to auto-fix (-> root_cause_only):
-        - Likely fixable, but you are not fully confident the fix is correct, or
-          it needs human judgment, or it touches a high-blast-radius area.
-        - The fix requires non-trivial investigation, design decisions, or
-          cross-cutting changes.
-        - Error originates in third-party libraries, vendor code, or framework internals.
-        - Root cause is outside the code (filesystem, external services, environment).
-        This is the default home for anything fixable that doesn't clear the
-        autofix bar — investigating the root cause is still valuable, and a human
-        decides what to do with it.
-
-        Not worth processing (-> skip):
-        - The issue is vague with no actionable stacktrace
-        - Duplicate of another issue in this batch
-        - The code is correct but the environment is broken (infra down, DNS failure,
-          config not provisioned, data corruption)
 
         The "fixability" score in the candidate data is a prior estimate of how likely
         the issue is to be fixable (0.0 = not fixable, 1.0 = very fixable). Issues
         marked "not scored" have not been evaluated yet — treat them neutrally rather
         than assuming they are unfixable. Use the score as a signal but verify with
         your own investigation. A high fixability score is NOT on its own a reason
-        to autofix — it only means investigation is likely worthwhile.
+        to `autofix` — it only means investigation is likely worthwhile.
 
-        For each verdict, fill the `reason` field. For `autofix` and `root_cause_only`
-        verdicts, the `reason` is handed off as context to the downstream autofix agent
-        — write it like a debugging note to the next agent. Include the suspected file
+        For each verdict, fill the `reason` field. For `root_cause_only` and `autofix`
+        verdicts, the `reason` is handed off as context to the agent investigating or fixing the issue
+        — write it like a debugging note. Include the suspected file
         and function, the bug mechanism in one or two sentences, and a sketch of the
         fix direction so the next agent can resume your investigation instead of
         starting over. For `skip` verdicts, a brief justification is sufficient.
+
+        Remember: `autofix` opens a code change before any human reviews the approach, so it
+        must target a REAL, confirmed bug — not a hypothesis. Choose `autofix`
+        when ALL of the following hold:
+        - You have pinpointed the root cause in application code (specific file
+          and function), confirmed by reading the code — not a guess from the
+          error message alone.
+        - A reasonable, safe fix exists that addresses the root cause. There does
+          not have to be only one possible fix. When several reasonable
+          approaches exist, it is still an `autofix` as long as there is a sensible
+          default that is clearly safe and addresses the bug — pick that default
+          and describe it in your reason. Only drop to `root_cause_only` when the
+          choice between approaches would materially change product behavior in a
+          way you cannot responsibly guess.
+        - The fix is small and localized. It does not require a redesign, a new
+          API or abstraction, a schema/data migration, or coordinated changes
+          across several files.
+        - The fix corrects the bug without plausibly making things worse. A
+          narrowly-scoped change — handling a missing/None/undefined value,
+          correcting a wrong argument, fixing a faulty non-null assertion or type
+          assumption — qualifies even if the "ideal" long-term design is
+          debatable. A small contract choice (return None vs. raise, guard the
+          caller vs. fix the lookup) is fine as long as any of the reasonable
+          choices is safe; pick the least surprising one.
+        - The change is not in a high-blast-radius area — authentication,
+          permissions/access control, billing or payments, security, money
+          math, concurrency/locking, or data deletion/migration — unless the fix
+          is truly trivial and obviously correct.
 
         Candidates:
         {candidates_block}{extras_block}
