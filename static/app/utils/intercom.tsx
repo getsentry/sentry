@@ -74,36 +74,12 @@ async function initIntercom(orgSlug: string): Promise<void> {
       // hard navigation between org subdomains, so a plain boot resumes the
       // previous org's session. Load the SDK, drop the stale session cookie,
       // then boot clean with this org's identity.
-      const {
-        boot,
-        default: Intercom,
-        show,
-        onShow,
-        shutdown,
-      } = await import('@intercom/messenger-js-sdk');
-      Intercom(intercomSettings);
+      const {boot, shutdown} = await import('@intercom/messenger-js-sdk');
       shutdown();
       boot(intercomSettings);
 
       const nextIntercomState = {orgSlug, settings: intercomSettings};
       intercomState = nextIntercomState;
-      let hasRebootedAfterShow = false;
-
-      // After Intercom is opened, reboot with the same settings. Intercom needs
-      // the cookie to be cleared again after showing so the company updates
-      // correctly after switching orgs.
-      onShow(() => {
-        if (intercomState !== nextIntercomState || hasRebootedAfterShow) {
-          return;
-        }
-
-        hasRebootedAfterShow = true;
-        setTimeout(() => {
-          shutdown();
-          boot(intercomSettings);
-          show();
-        }, 2000);
-      });
     } catch (error) {
       // Reset so user can retry on next click
       bootPromise = null;
