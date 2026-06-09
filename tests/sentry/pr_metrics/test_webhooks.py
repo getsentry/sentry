@@ -14,12 +14,14 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestLifecycleState,
 )
 from sentry.pr_metrics.webhooks import (
     handle_activity,
     handle_attribution,
     handle_comment,
     handle_emission,
+    handle_push_attribution,
     handle_review,
     handle_review_comment,
     handle_review_thread,
@@ -1176,3 +1178,175 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
             extra={"repository_id": self.repo.id, "pr_number": 9999},
         )
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+
+@with_feature("organizations:pr-metrics-attribution")
+@cell_silo_test
+class HandlePushAttributionTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pr = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+            title="Fix the bug",
+        )
+        self.pr.update(head_branch="feature-branch")
+
+    def _call(
+        self,
+        commits: list[dict[str, Any]] | None = None,
+        forced: bool = False,
+        branch: str = "feature-branch",
+    ) -> None:
+        event: dict[str, Any] = {
+            "ref": f"refs/heads/{branch}",
+            "forced": forced,
+            "commits": commits or [],
+        }
+        handle_push_attribution(
+            github_event=GithubWebhookType.PUSH,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+        )
+
+    def _attr(self) -> PullRequestAttribution:
+        return PullRequestAttribution.objects.get(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
+        )
+
+    def test_commit_message_with_issue_ref_creates_attribution(self) -> None:
+        group = self.create_group(project=self.project)
+        url = f"http://testserver/issues/{group.id}"
+
+        self._call(commits=[{"message": f"Fixes {url}"}])
+
+        attr = self._attr()
+        assert attr.signal_details == {"push": [group.id]}
+        assert attr.is_valid is True
+
+    def test_non_force_push_accumulates_refs_from_earlier_commits(self) -> None:
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        url1 = f"http://testserver/issues/{group1.id}"
+        url2 = f"http://testserver/issues/{group2.id}"
+
+        self._call(commits=[{"message": f"Fixes {url1}"}], forced=False)
+        # Second non-force push: earlier commit still on branch — refs must survive.
+        self._call(commits=[{"message": f"Fixes {url2}"}], forced=False)
+
+        attr = self._attr()
+        assert set(attr.signal_details["push"]) == {group1.id, group2.id}
+
+    def test_non_force_push_with_no_refs_preserves_existing(self) -> None:
+        group = self.create_group(project=self.project)
+        url = f"http://testserver/issues/{group.id}"
+
+        self._call(commits=[{"message": f"Fixes {url}"}], forced=False)
+        self._call(commits=[{"message": "Add tests, no issue ref"}], forced=False)
+
+        attr = self._attr()
+        assert attr.signal_details == {"push": [group.id]}
+        assert attr.is_valid is True
+
+    def test_force_push_replaces_slot(self) -> None:
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        url1 = f"http://testserver/issues/{group1.id}"
+        url2 = f"http://testserver/issues/{group2.id}"
+
+        self._call(commits=[{"message": f"Fixes {url1}"}], forced=False)
+        # Force push rewrites history — only new commits' refs survive.
+        self._call(commits=[{"message": f"Fixes {url2}"}], forced=True)
+
+        attr = self._attr()
+        assert attr.signal_details == {"push": [group2.id]}
+
+    def test_force_push_with_no_refs_clears_slot(self) -> None:
+        group = self.create_group(project=self.project)
+        url = f"http://testserver/issues/{group.id}"
+
+        self._call(commits=[{"message": f"Fixes {url}"}], forced=False)
+        self._call(commits=[{"message": "Rewritten history, no refs"}], forced=True)
+
+        attr = self._attr()
+        assert attr.is_valid is False
+
+    def test_tag_push_ignored(self) -> None:
+        event: dict[str, Any] = {
+            "ref": "refs/tags/v1.0.0",
+            "forced": False,
+            "commits": [{"message": "Release v1.0.0"}],
+        }
+        handle_push_attribution(
+            github_event=GithubWebhookType.PUSH,
+            event=event,
+            organization=self.organization,
+            repo=self.repo,
+        )
+
+        assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
+
+    def test_no_matching_pr_silently_returns(self) -> None:
+        self._call(branch="no-such-branch", commits=[{"message": "something"}])
+
+        assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
+
+    def test_merged_pr_skipped(self) -> None:
+        group = self.create_group(project=self.project)
+        url = f"http://testserver/issues/{group.id}"
+        self.pr.update(state=PullRequestLifecycleState.MERGED)
+
+        self._call(commits=[{"message": f"Fixes {url}"}])
+
+        assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
+
+    def test_feature_flag_off_skips_attribution(self) -> None:
+        group = self.create_group(project=self.project)
+        url = f"http://testserver/issues/{group.id}"
+
+        with self.feature({"organizations:pr-metrics-attribution": False}):
+            self._call(commits=[{"message": f"Fixes {url}"}])
+
+        assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
+
+    def test_multiple_commits_unioned(self) -> None:
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        url1 = f"http://testserver/issues/{group1.id}"
+        url2 = f"http://testserver/issues/{group2.id}"
+
+        self._call(
+            commits=[
+                {"message": f"Fixes {url1}"},
+                {"message": f"Also fixes {url2}"},
+            ]
+        )
+
+        attr = self._attr()
+        assert set(attr.signal_details["push"]) == {group1.id, group2.id}
+
+    def test_multiple_prs_on_same_branch_logs_warning_and_skips(self) -> None:
+        # Create a second PR on the same branch — ambiguous match should warn and bail.
+        pr2 = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="99",
+        )
+        pr2.update(head_branch="feature-branch")
+
+        group = self.create_group(project=self.project)
+        url = f"http://testserver/issues/{group.id}"
+
+        with patch(f"{MODULE}.logger") as mock_logger:
+            self._call(commits=[{"message": f"Fixes {url}"}])
+
+        mock_logger.warning.assert_called_once_with(
+            "github.pr_metrics.push.multiple_prs",
+            extra={"repository_id": self.repo.id, "branch": "feature-branch"},
+        )
+        assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
+        assert not PullRequestAttribution.objects.filter(pull_request=pr2).exists()

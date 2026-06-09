@@ -100,13 +100,22 @@ def _merge_webhook_key(
     details: dict[str, Any],
     webhook_key: ReferencedIssueWebhookKey,
     group_ids: list[int],
+    replace: bool = True,
 ) -> dict[str, Any]:
     """Apply one webhook source's group_ids into ``details`` and return the pruned result.
+
+    When ``replace=True`` (default) the key's value is set to ``group_ids``.
+    When ``replace=False`` the new IDs are unioned into the existing value —
+    use this for non-force pushes where earlier commits are still on the branch.
 
     Empty lists are removed from the returned dict so the stored JSON doesn't
     accumulate stale sentinel keys over time.
     """
-    details[webhook_key] = group_ids
+    if replace:
+        details[webhook_key] = group_ids
+    else:
+        existing = details.get(webhook_key) or []
+        details[webhook_key] = sorted(set(existing) | set(group_ids))
     return {k: v for k, v in details.items() if v}
 
 
@@ -139,6 +148,7 @@ def record_referenced_issue_signal(
     pull_request: PullRequest,
     webhook_key: ReferencedIssueWebhookKey,
     group_ids: list[int],
+    replace: bool = True,
 ) -> PullRequestAttribution | None:
     """Atomically update one webhook source's contribution to the REFERENCED_ISSUE signal.
 
@@ -146,6 +156,10 @@ def record_referenced_issue_signal(
     ``group_ids=[]`` clears that key's contribution. ``is_valid`` is recomputed
     after every write from whether any key still has at least one referenced
     group. ``select_for_update`` serialises concurrent deliveries on the same row.
+
+    When ``replace=False`` new IDs are unioned into the existing slot rather than
+    replacing it — used for non-force pushes where earlier commits are still on
+    the branch.
 
     Returns ``None`` when the call is a no-op: a first write that would produce
     no valid references.
@@ -162,7 +176,7 @@ def record_referenced_issue_signal(
             attr = None
             details = {}
 
-        details = _merge_webhook_key(details, webhook_key, group_ids)
+        details = _merge_webhook_key(details, webhook_key, group_ids, replace=replace)
         is_valid = is_referenced_issue_valid(details)
 
         if attr is None:
@@ -189,7 +203,10 @@ def record_referenced_issue_signal(
             if attr is None:
                 return None
             details = _merge_webhook_key(
-                normalize_signal_details(attr.signal_details), webhook_key, group_ids
+                normalize_signal_details(attr.signal_details),
+                webhook_key,
+                group_ids,
+                replace=replace,
             )
             is_valid = is_referenced_issue_valid(details)
 

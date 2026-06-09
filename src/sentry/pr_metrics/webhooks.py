@@ -230,9 +230,12 @@ def handle_push_attribution(
     """Record referenced-issue attribution from push event commit messages.
 
     Scans every commit message in the push for Sentry issue references and
-    writes them to the ``push`` slot in the PR's ``REFERENCED_ISSUE``
-    signal. Each push replaces the previous result for that slot — the
-    most recent push's commit messages are the authoritative signal.
+    writes them to the ``push`` slot in the PR's ``REFERENCED_ISSUE`` signal.
+
+    For non-force pushes the new IDs are unioned into the existing slot —
+    earlier commits are still on the branch and their references remain valid.
+    For force pushes the slot is replaced entirely, since history was rewritten
+    and old commits may no longer exist.
     """
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
@@ -271,6 +274,7 @@ def handle_push_attribution(
         pull_request=pr,
         webhook_key=ReferencedIssueWebhookKey.PUSH,
         group_ids=sorted(all_group_ids),
+        replace=bool(event.get("forced")),
     )
 
 

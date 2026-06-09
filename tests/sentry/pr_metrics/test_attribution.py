@@ -322,6 +322,52 @@ class RecordReferencedIssueSignalTest(TestCase):
         attr = self._get_attr()
         assert attr.signal_details == {"pr_body": [3, 4]}
 
+    def test_replace_false_on_first_write_creates_row_from_new_ids(self) -> None:
+        # No existing row — replace=False should still create the row using the new IDs.
+        result = record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PUSH,
+            group_ids=[1, 2],
+            replace=False,
+        )
+
+        assert result is not None
+        attr = self._get_attr()
+        assert attr.signal_details == {"push": [1, 2]}
+
+    def test_replace_false_unions_ids_with_existing(self) -> None:
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PUSH,
+            group_ids=[1, 2],
+        )
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PUSH,
+            group_ids=[3],
+            replace=False,
+        )
+
+        attr = self._get_attr()
+        assert attr.signal_details == {"push": [1, 2, 3]}
+
+    def test_replace_false_with_empty_ids_preserves_existing(self) -> None:
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PUSH,
+            group_ids=[1],
+        )
+        record_referenced_issue_signal(
+            pull_request=self.pull_request,
+            webhook_key=ReferencedIssueWebhookKey.PUSH,
+            group_ids=[],
+            replace=False,
+        )
+
+        attr = self._get_attr()
+        assert attr.signal_details == {"push": [1]}
+        assert attr.is_valid is True
+
     def test_flat_key_clearing_last_key_sets_is_valid_false(self) -> None:
         record_referenced_issue_signal(
             pull_request=self.pull_request,
