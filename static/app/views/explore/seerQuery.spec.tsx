@@ -46,6 +46,31 @@ describe('getSeerExploreQuery', () => {
       visualizes: [{chartType: ChartType.BAR, yAxes: ['count()']}],
     });
   });
+
+  it('extracts the interval from the first visualization that provides one', () => {
+    const result = getSeerExploreQuery({
+      pageDatetime,
+      result: seerResult({
+        visualizations: [
+          {yAxes: ['count()']},
+          {yAxes: ['p75(span.duration)'], interval: '1h'},
+        ],
+      }),
+    });
+
+    expect(result.interval).toBe('1h');
+  });
+
+  it('leaves interval undefined when no visualization provides one', () => {
+    const result = getSeerExploreQuery({
+      pageDatetime,
+      result: seerResult({
+        visualizations: [{yAxes: ['count()']}],
+      }),
+    });
+
+    expect(result.interval).toBeUndefined();
+  });
 });
 
 describe('getSeerSort', () => {

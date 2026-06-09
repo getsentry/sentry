@@ -56,6 +56,25 @@ export function QueryTokens({
     );
   }
 
+  // The chart uses a single interval shared across all y-axes, so display the
+  // first interval Seer provided.
+  const interval = visualizations?.find(({interval: i}) => Boolean(i))?.interval;
+  if (interval) {
+    tokens.push(
+      <Flex
+        as="span"
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        overflow="hidden"
+        key="interval"
+      >
+        <ExploreParamTitle>{t('Interval')}</ExploreParamTitle>
+        <ExploreGroupBys>{interval}</ExploreGroupBys>
+      </Flex>
+    );
+  }
+
   if (groupBys && groupBys.length > 0) {
     tokens.push(
       <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="groupBy">
