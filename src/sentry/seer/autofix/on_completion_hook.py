@@ -186,6 +186,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         elif current_step == AutofixStep.PR_ITERATION:
             # PR iteration only runs against an existing PR, so there must be pr states.
             assert state.repo_pr_states, "PR iteration completed without any repo PR states"
+            # The iteration agent produces new file patches that still need to be
+            # pushed to the existing PR. The first hook fire (right after the agent
+            # finishes) has unsynced changes; _maybe_continue_pipeline triggers the
+            # push, which re-fires this hook once the PR is updated. Only emit the
+            # completion webhook on that synced pass so the payload reflects the
+            # updated PR and we don't double-fire.
+            _, is_synced = state.has_code_changes()
+            if not is_synced:
+                return
             webhook_action_type = SeerActionType.ITERATION_COMPLETED
             iteration_index = get_latest_iteration_index(state)
             webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
@@ -409,6 +418,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         "pr_iteration_enabled": pr_iteration_enabled,
                     },
                 )
+
+        # PR iteration runs against an existing PR rather than the automated
+        # pipeline. Once the agent finishes iterating, push the new changes to
+        # update that PR. _push_changes is a no-op once the repos are synced, so
+        # the hook re-fire after the push doesn't loop.
+        if current_step == AutofixStep.PR_ITERATION:
+            cls._push_changes(group, run_id, state)
+            return
 
         if stopping_point is None or reached_stopping_point:
             # We've reached the stopping point
