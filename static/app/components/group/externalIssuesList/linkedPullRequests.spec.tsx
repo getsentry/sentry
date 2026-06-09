@@ -21,10 +21,6 @@ describe('LinkedPullRequests', () => {
     provider: {id: 'integrations:github', name: 'GitHub'},
   });
 
-  beforeEach(() => {
-    MockApiClient.clearMockResponses();
-  });
-
   it('renders linked pull requests when the feature is enabled', async () => {
     const pullRequestsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organizationWithFeature.slug}/issues/${group.id}/pull-requests/`,
