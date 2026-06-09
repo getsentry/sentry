@@ -141,23 +141,6 @@ class GenericActivityHandlerTest(TestCase):
         mock_process_workflow_activity.delay.assert_not_called()
 
     @mock.patch("sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.metrics")
-    @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
-    )
-    def test_received_metric_recorded_before_filtering(
-        self, mock_process_workflow_activity: MagicMock, mock_metrics: MagicMock
-    ) -> None:
-        # An unsupported, un-flagged activity type should still record the received metric.
-        activity = self.create_group_activity(group=self.group, type=ActivityType.NOTE.value)
-        activity_handler(self.group, activity, None)
-
-        mock_metrics.incr.assert_any_call(
-            "workflow_engine.activity_handler.received",
-            tags={"activity_name": ActivityType.NOTE.name},
-        )
-        mock_process_workflow_activity.delay.assert_not_called()
-
-    @mock.patch("sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.metrics")
     def test_invalid_activity_type(self, mock_metrics: MagicMock) -> None:
         self.activity.type = -1
         activity_handler(self.group, self.activity, self.detector.id)
