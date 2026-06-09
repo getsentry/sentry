@@ -10,6 +10,7 @@ import type {
 
 import {areWildcardOperatorsAllowed} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
+  TermOperator,
   WildcardOperators,
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
@@ -120,7 +121,8 @@ function getInitialValueType(fieldDefinition: FieldDefinition | null) {
 
 export function getInitialFilterText(
   key: string,
-  fieldDefinition: FieldDefinition | null
+  fieldDefinition: FieldDefinition | null,
+  operator: TermOperator = TermOperator.GREATER_THAN
 ) {
   const defaultValue = getDefaultFilterValue({fieldDefinition});
 
@@ -134,7 +136,7 @@ export function getInitialFilterText(
     case FieldValueType.DURATION:
     case FieldValueType.SIZE:
     case FieldValueType.PERCENTAGE:
-      return `${keyText}:>${defaultValue}`;
+      return `${keyText}:${operator}${defaultValue}`;
     case FieldValueType.STRING: {
       return areWildcardOperatorsAllowed(fieldDefinition, valueType)
         ? `${keyText}:${WildcardOperators.CONTAINS}${defaultValue}`
