@@ -16,13 +16,6 @@ import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-export type {
-  /**
-   * @deprecated Use `import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';` directly instead.
-   */
-  ApiQueryKey,
-};
-
 // Overrides to the default react-query options.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
 export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
