@@ -91,6 +91,22 @@ export function useSelectedProjectIdsForMutation(): Array<number | string> {
   }, [pageFilters.selection.projects, projects]);
 }
 
+function mapResponsesWithExpansion<T extends QueryTokensProps>(
+  responses: SeerRawResponseItem[],
+  projectIds: number[] | null | undefined,
+  selectedProjectIds: number[] | undefined,
+  mapItem: (item: SeerRawResponseItem) => T
+): T[] {
+  const expandedProjectIds = selectedProjectIds
+    ? getExpandedProjectIds(projectIds, selectedProjectIds)
+    : undefined;
+
+  return responses.map(item => ({
+    ...mapItem(item),
+    ...(expandedProjectIds ? {expandedProjectIds} : {}),
+  }));
+}
+
 export function transformSeerResponse<T extends QueryTokensProps>(
   response: T,
   mapItem: (item: SeerRawResponseItem) => T,
@@ -105,16 +121,29 @@ export function transformSeerResponse<T extends QueryTokensProps>(
     return [response];
   }
 
-  // Surface the scope Seer broadened to (a superset of the user's selection)
-  // on each suggestion, so the "Projects" chip and apply-on-accept can use it.
-  const expandedProjectIds = selectedProjectIds
-    ? getExpandedProjectIds(envelope.project_ids, selectedProjectIds)
-    : undefined;
+  return mapResponsesWithExpansion(
+    envelope.responses,
+    envelope.project_ids,
+    selectedProjectIds,
+    mapItem
+  );
+}
 
-  return envelope.responses.map(item => ({
-    ...mapItem(item),
-    ...(expandedProjectIds ? {expandedProjectIds} : {}),
-  }));
+export function buildSeerMutationResult<T extends QueryTokensProps>(
+  data: SeerRawResponse,
+  selectedProjectIds: number[],
+  mapItem: (item: SeerRawResponseItem) => T
+): {queries: T[]; status: string; unsupported_reason: string | null} {
+  return {
+    status: 'ok',
+    unsupported_reason: data.unsupported_reason,
+    queries: mapResponsesWithExpansion(
+      data.responses,
+      data.project_ids,
+      selectedProjectIds,
+      mapItem
+    ),
+  };
 }
 
 export function mapSeerResponseItem(

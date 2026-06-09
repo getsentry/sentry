@@ -103,9 +103,6 @@ export function QueryTokens({
     );
   }
 
-  // When the agent broadened the query beyond the user's selected projects,
-  // surface the scope it will run against. Chosen alongside the other tokens,
-  // so the user sees (and consents to) the expansion before applying.
   if (expandedProjectIds && expandedProjectIds.length > 0) {
     const shownSlugs = expandedProjectIds
       .slice(0, MAX_PROJECT_CHIPS)

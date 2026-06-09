@@ -11,13 +11,13 @@ import type {
   SeerRawResponse,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
+  buildSeerMutationResult,
   mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
-import {getExpandedProjectIds} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -71,19 +71,9 @@ export function SpansTabSeerComboBox() {
           },
         });
 
-        const expandedProjectIds = getExpandedProjectIds(
-          data.project_ids,
-          selectedProjectIds
+        return buildSeerMutationResult(data, selectedProjectIds, response =>
+          mapSeerResponseItem(response, 'spans')
         );
-
-        return {
-          status: 'ok',
-          unsupported_reason: data.unsupported_reason,
-          queries: data.responses.map(response => ({
-            ...mapSeerResponseItem(response, 'spans'),
-            ...(expandedProjectIds ? {expandedProjectIds} : {}),
-          })),
-        };
       }
 
       const data = await fetchMutation<TraceAskSeerSearchResponse>({
@@ -130,7 +120,6 @@ export function SpansTabSeerComboBox() {
 
       const selection = {
         ...pageFilters.selection,
-        // Widen to the agent's expanded scope when it broadened the query.
         ...(result.expandedProjectIds?.length
           ? {projects: result.expandedProjectIds}
           : {}),

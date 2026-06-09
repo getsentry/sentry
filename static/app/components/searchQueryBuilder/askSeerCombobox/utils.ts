@@ -242,8 +242,6 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     parts.push(`sort is '${sortText}'`);
   }
 
-  // Announce when the agent broadened the query to projects beyond the user's
-  // selection, so screen reader users hear the widened scope the chip shows.
   if (args?.expandedProjectIds && args.expandedProjectIds.length > 0) {
     const count = args.expandedProjectIds.length;
     parts.push(`search expanded to ${count} ${count === 1 ? 'project' : 'projects'}`);

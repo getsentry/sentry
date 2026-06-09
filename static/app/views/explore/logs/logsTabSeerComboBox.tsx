@@ -8,12 +8,12 @@ import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSe
 import type {SeerRawResponse} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   buildSeerDateTimeSelection,
+  buildSeerMutationResult,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
-import {getExpandedProjectIds} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -70,25 +70,15 @@ export function LogsTabSeerComboBox() {
         },
       });
 
-      const expandedProjectIds = getExpandedProjectIds(
-        data.project_ids,
-        selectedProjectIds
-      );
-
-      return {
-        status: 'ok',
-        unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-          mode: r?.mode ?? 'samples',
-          ...(expandedProjectIds ? {expandedProjectIds} : {}),
-        })),
-      };
+      return buildSeerMutationResult(data, selectedProjectIds, r => ({
+        query: r?.query ?? '',
+        sort: r?.sort ?? '',
+        groupBys: r?.group_by ?? [],
+        statsPeriod: r?.stats_period ?? '',
+        start: r?.start ?? null,
+        end: r?.end ?? null,
+        mode: r?.mode ?? 'samples',
+      }));
     },
   });
 
@@ -168,7 +158,6 @@ export function LogsTabSeerComboBox() {
 
       const newQuery = {
         ...location.query,
-        // Widen to the agent's expanded scope when it broadened the query.
         ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
         [LOGS_QUERY_KEY]: queryToUse,
         mode,
