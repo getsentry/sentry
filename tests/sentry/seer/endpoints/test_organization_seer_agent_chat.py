@@ -1,3 +1,4 @@
+import uuid
 from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, patch
 
@@ -103,15 +104,16 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
+        run_uuid = uuid.uuid4()
         mock_client = MagicMock()
-        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=run_uuid)
         mock_client_class.return_value = mock_client
 
         data = {"query": "What is this error about?"}
         response = self.client.post(self.url, data, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 456}
+        assert response.data == {"run_id": 456, "sentry_run_id": str(run_uuid)}
         mock_client_class.assert_called_once_with(
             self.organization,
             ANY,
@@ -190,6 +192,78 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             ui_tools=None,
             request=ANY,
         )
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_with_uuid_resolves_to_seer_run_state_id(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        from sentry.seer.agent.client_models import SeerRunState
+
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = SeerRunState(
+            run_id=555,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}{run.uuid}/")
+
+        assert response.status_code == 200
+        mock_client.get_run.assert_called_once_with(run_id=555)
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_with_unknown_uuid_returns_null_session(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}{uuid.uuid4()}/")
+
+        assert response.status_code == 404
+        assert response.data == {"session": None}
+        mock_client.get_run.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_with_uuid_from_other_org_is_not_resolved(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        other_org = self.create_organization()
+        run = self.create_seer_run(organization=other_org, seer_run_state_id=555)
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}{run.uuid}/")
+
+        assert response.status_code == 404
+        assert response.data == {"session": None}
+        mock_client.get_run.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_continue_with_uuid_resolves(self, mock_client_class: MagicMock) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        mock_client = MagicMock()
+        mock_client.continue_run.return_value = 555
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(f"{self.url}{run.uuid}/", {"query": "More"}, format="json")
+
+        assert response.status_code == 200
+        assert response.data == {"run_id": 555}
+        assert mock_client.continue_run.call_args.kwargs["run_id"] == 555
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_continue_with_unknown_uuid_returns_400(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(f"{self.url}{uuid.uuid4()}/", {"query": "More"}, format="json")
+
+        assert response.status_code == 400
+        mock_client.continue_run.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_conversation_enable_coding(self, mock_client_class: MagicMock) -> None:
