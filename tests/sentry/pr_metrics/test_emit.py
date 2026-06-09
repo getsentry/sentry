@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
+from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
@@ -12,6 +13,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.pr_metrics.emit import (
     _active_attributions,
+    _resolved_group_ids,
     build_pr_metrics_row,
     emit_pr_metrics_row,
     needs_judge,
@@ -82,6 +84,21 @@ class PrMetricsEmissionTest(TestCase):
             is_valid=is_valid,
         )
 
+    def _link_group(
+        self,
+        *,
+        relationship: int = GroupLink.Relationship.resolves,
+    ) -> int:
+        group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=relationship,
+            linked_id=self.pull_request.id,
+        )
+        return group.id
+
     def test_needs_judge_is_false_in_m1(self) -> None:
         assert needs_judge(self.pull_request) is False
 
@@ -91,6 +108,7 @@ class PrMetricsEmissionTest(TestCase):
             close_action="merged",
             payload=self._payload(),
             attributions=[SENTRY_APP_ATTRIBUTION],
+            group_ids=[],
         )
         assert row.close_action == "merged"
         assert row.head_commit_sha == HEAD_SHA
@@ -105,6 +123,7 @@ class PrMetricsEmissionTest(TestCase):
             close_action="merged",
             payload=self._payload(),
             attributions=[],
+            group_ids=[],
         )
         assert row.opened_at == OPENED_AT
         assert row.draft is False
@@ -122,6 +141,7 @@ class PrMetricsEmissionTest(TestCase):
             close_action="closed",
             payload={"number": 42, "created_at": OPENED_AT},
             attributions=[],
+            group_ids=[],
         )
         assert row.additions == 0
         assert row.commits_count == 0
@@ -136,6 +156,7 @@ class PrMetricsEmissionTest(TestCase):
                 close_action="closed",
                 payload={"number": 42},
                 attributions=[],
+                group_ids=[],
             )
 
     def test_build_row_raises_when_stored_lifecycle_missing(self) -> None:
@@ -148,6 +169,7 @@ class PrMetricsEmissionTest(TestCase):
                 close_action="merged",
                 payload=self._payload(),
                 attributions=[],
+                group_ids=[],
             )
 
     def test_build_row_for_close_omits_merge_commit_sha(self) -> None:
@@ -159,6 +181,7 @@ class PrMetricsEmissionTest(TestCase):
             close_action="closed",
             payload=self._payload(),
             attributions=[],
+            group_ids=[],
         )
         assert row.merge_commit_sha is None
         assert row.merged_at is None
@@ -179,6 +202,7 @@ class PrMetricsEmissionTest(TestCase):
                 "merge_commit_sha": "d" * 40,
             },
             attributions=[],
+            group_ids=[],
         )
         assert row.head_commit_sha == HEAD_SHA
         assert row.merge_commit_sha == MERGE_SHA
@@ -211,6 +235,39 @@ class PrMetricsEmissionTest(TestCase):
             },
         ]
 
+    def test_resolved_group_ids_returns_sorted_resolving_links(self) -> None:
+        ids = sorted([self._link_group(), self._link_group()])
+        assert _resolved_group_ids(self.pull_request) == ids
+
+    def test_resolved_group_ids_excludes_non_resolving_links(self) -> None:
+        # Only resolving links count; a "references" link is not a resolution.
+        self._link_group(relationship=GroupLink.Relationship.references)
+        assert _resolved_group_ids(self.pull_request) == []
+
+    def test_resolved_group_ids_empty_when_pr_resolves_nothing(self) -> None:
+        assert _resolved_group_ids(self.pull_request) == []
+
+    def test_build_row_carries_group_ids(self) -> None:
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            payload=self._payload(),
+            attributions=[],
+            group_ids=[7, 9],
+        )
+        assert row.group_ids == [7, 9]
+
+    @patch("sentry.analytics.record")
+    def test_emit_carries_resolved_group_ids(self, mock_record: Any) -> None:
+        self._track()
+        group_ids = sorted([self._link_group(), self._link_group()])
+        emit_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            payload=self._payload(),
+        )
+        assert mock_record.call_args[0][0].group_ids == group_ids
+
     @patch("sentry.analytics.record")
     def test_emit_records_for_tracked_pr(self, mock_record: Any) -> None:
         self._track()
@@ -227,6 +284,7 @@ class PrMetricsEmissionTest(TestCase):
                 repository_id=self.repo.id,
                 pull_request_id=self.pull_request.id,
                 pr_key="42",
+                group_ids=[],
                 close_action="merged",
                 head_commit_sha=HEAD_SHA,
                 merge_commit_sha=MERGE_SHA,
