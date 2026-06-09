@@ -26,6 +26,7 @@ class NotificationCategory(StrEnum):
     ISSUE = "issue"
     METRIC_ALERT = "metric-alert"
     SENTRY_APP = "sentry-app"
+    WORKFLOW_ENGINE = "workflow-engine"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -72,6 +73,9 @@ class NotificationSource(StrEnum):
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
 
+    # WORKFLOW_ENGINE
+    WORKFLOW_ENGINE_ACTIVITY_ACTION = "workflow-engine-activity-action"
+
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
     NotificationCategory.DEBUG: [
@@ -108,6 +112,9 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     ],
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
+    ],
+    NotificationCategory.WORKFLOW_ENGINE: [
+        NotificationSource.WORKFLOW_ENGINE_ACTIVITY_ACTION,
     ],
 }
 
