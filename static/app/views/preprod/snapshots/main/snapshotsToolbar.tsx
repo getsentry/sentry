@@ -268,7 +268,8 @@ const ColorTrigger = styled('button')<{color: string}>`
   height: 24px;
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid ${p => p.theme.tokens.border.primary};
+  border: 1px solid
+    ${p => p.theme.tokens.border.onVibrant[p.theme.type === 'dark' ? 'light' : 'dark']};
   background-color: ${p => (p.color === TRANSPARENT_COLOR ? 'transparent' : p.color)};
   padding: 0;
   ${p =>
