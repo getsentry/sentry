@@ -248,11 +248,35 @@ class PerforceIntegrationTest(IntegrationTestCase):
         serializer = PerforceInstallationSerializer()
         assert serializer.validate_web_url("swarm.example.com") == "https://swarm.example.com"
         assert serializer.validate_web_url("swarm.example.com/") == "https://swarm.example.com"
+        # A scheme-relative URL keeps a single "//" (not "https:////...").
+        assert serializer.validate_web_url("//swarm.example.com") == "https://swarm.example.com"
         # An existing scheme is preserved.
         assert (
             serializer.validate_web_url("https://swarm.example.com") == "https://swarm.example.com"
         )
         assert serializer.validate_web_url("http://swarm.example.com") == "http://swarm.example.com"
+
+    def test_serializer_normalizes_schemeless_web_url_end_to_end(self) -> None:
+        """
+        Exercise the full serializer, not just validate_web_url directly. With a URLField
+        the field-level URLValidator rejected schemeless input before validate_web_url ran,
+        so the normalization was dead code; CharField makes it actually reachable.
+        """
+        base = {
+            "p4port": "ssl:perforce.example.com:1666",
+            "user": "testuser",
+            "password": "testpass",
+            "auth_type": "password",
+            "ssl_fingerprint": "AB:CD",
+        }
+        serializer = PerforceInstallationSerializer(data={**base, "web_url": "swarm.example.com"})
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["web_url"] == "https://swarm.example.com"
+
+        # Garbage is still rejected after normalization.
+        bad = PerforceInstallationSerializer(data={**base, "web_url": "not a url"})
+        assert not bad.is_valid()
+        assert "web_url" in bad.errors
 
     def test_format_source_url_strips_leading_slash_from_relative_path(self) -> None:
         """Test that leading slash is stripped from relative paths"""

@@ -6,11 +6,12 @@ from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Any, TypedDict, cast
 
+from django.core.validators import URLValidator
 from django.db import models
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-from rest_framework.fields import CharField, ChoiceField, URLField
+from rest_framework.fields import CharField, ChoiceField
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
@@ -119,7 +120,10 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
     password = CharField(required=True, write_only=True)
     client = CharField(required=False, allow_blank=True, default="")
     ssl_fingerprint = CharField(required=False, allow_blank=True, default="")
-    web_url = URLField(required=False, allow_blank=True, default="")
+    # CharField (not URLField) on purpose: a URLField's URLValidator runs
+    # *before* validate_web_url and rejects schemeless input, making the
+    # scheme normalization below unreachable. We validate explicitly instead.
+    web_url = CharField(required=False, allow_blank=True, default="")
     charset = ChoiceField(choices=Charset.choices, default=Charset.NONE)
 
     def validate_p4port(self, value: str) -> str:
@@ -127,10 +131,17 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
 
     def validate_web_url(self, value: str) -> str:
         value = value.strip().rstrip("/")
+        if not value:
+            return value
         # The Swarm web URL is used verbatim as the base of stacktrace links, so it
         # must carry a scheme; otherwise links render as schemeless/relative URLs.
-        if value and not value.startswith(("http://", "https://")):
+        # Normalize scheme-relative ("//host") and schemeless ("host") inputs to
+        # https:// before validating, then reject anything that still isn't a URL.
+        if value.startswith("//"):
+            value = f"https:{value}"
+        elif not value.startswith(("http://", "https://")):
             value = f"https://{value}"
+        URLValidator(schemes=["http", "https"])(value)
         return value
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
