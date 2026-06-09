@@ -20,7 +20,7 @@ const ScrollableRefContext = createContext<React.RefObject<HTMLDivElement | null
   current: null,
 });
 
-const Table = styled((props: HTMLAttributes<HTMLDivElement> & {columns: string}) => {
+function Table(props: HTMLAttributes<HTMLDivElement> & {columns: string}) {
   const {children, columns, ...rest} = props;
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   return (
@@ -32,11 +32,7 @@ const Table = styled((props: HTMLAttributes<HTMLDivElement> & {columns: string})
       </ScrollableRefContext>
     </ColumnContext>
   );
-})`
-  margin: 0;
-  overflow: hidden;
-  flex: 1;
-`;
+}
 
 const Header = styled(({children, ...rest}: HTMLAttributes<HTMLDivElement>) => (
   <SimpleTable.Header
