@@ -25,24 +25,27 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import IdentityProvider
 
+REGISTER_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/register"
+AUTHORIZE_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/authorize"
+TOKEN_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/token"
+RESOURCE = "https://mcp.datadoghq.com"
+
 
 @control_silo_test
 class DatadogDCRViewTest(TestCase):
-    REGISTER_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/register"
-
     def setUp(self) -> None:
         super().setUp()
         self.request = RequestFactory().get("/")
         self.pipeline = MagicMock()
         self.pipeline.config = {}
         self.pipeline.fetch_state.return_value = None
-        self.view = DatadogDCRView(register_url=self.REGISTER_URL)
+        self.view = DatadogDCRView(register_url=REGISTER_URL)
 
     @responses.activate
     def test_binds_client_credentials(self) -> None:
         responses.add(
             responses.POST,
-            self.REGISTER_URL,
+            REGISTER_URL,
             json={"client_id": "new-client-id", "client_secret": "new-client-secret"},
         )
 
@@ -77,11 +80,7 @@ class DatadogOAuth2LoginViewTest(TestCase):
 
     @cached_property
     def view(self):
-        return DatadogOAuth2LoginView(
-            authorize_url="https://example.org/oauth2/authorize",
-            scope="read",
-            resource="https://mcp.datadoghq.com",
-        )
+        return DatadogOAuth2LoginView(authorize_url=AUTHORIZE_URL, scope="read", resource=RESOURCE)
 
     def _make_pipeline(self, dcr_client_id: str = "dcr-client-123") -> IdentityPipeline:
         pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
@@ -105,7 +104,7 @@ class DatadogOAuth2LoginViewTest(TestCase):
         response = self.view.dispatch(self.request, pipeline)
 
         query = parse_qs(urlparse(response["Location"]).query)
-        assert query["resource"] == ["https://mcp.datadoghq.com"]
+        assert query["resource"] == [RESOURCE]
 
     def test_reads_client_id_from_pipeline_state(self) -> None:
         pipeline = self._make_pipeline(dcr_client_id="my-dcr-id")
@@ -160,9 +159,7 @@ class DatadogOAuth2CallbackViewTest(TestCase):
 
     @cached_property
     def view(self):
-        return DatadogOAuth2CallbackView(
-            access_token_url="https://example.org/oauth/token",
-        )
+        return DatadogOAuth2CallbackView(access_token_url=TOKEN_URL)
 
     def _make_pipeline(
         self,
@@ -180,11 +177,7 @@ class DatadogOAuth2CallbackViewTest(TestCase):
 
     @responses.activate
     def test_exchange_token_success(self, mock_record: MagicMock) -> None:
-        responses.add(
-            responses.POST,
-            "https://example.org/oauth/token",
-            json={"access_token": "pkce-token"},
-        )
+        responses.add(responses.POST, TOKEN_URL, json={"access_token": "pkce-token"})
         pipeline = self._make_pipeline("test-verifier-abc")
 
         result = self.view.exchange_token(self.request, pipeline, "auth-code")
@@ -228,18 +221,11 @@ class DatadogTestProvider(DummyProvider):
     name = "Datadog Test"
     key = "datadog-test"
 
-    REGISTER_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/register"
-    AUTHORIZE_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/authorize"
-    TOKEN_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/token"
-    RESOURCE = "https://mcp.datadoghq.com"
-
     def get_pipeline_views(self):
         return [
-            DatadogDCRView(register_url=self.REGISTER_URL),
-            DatadogOAuth2LoginView(
-                authorize_url=self.AUTHORIZE_URL, scope="read", resource=self.RESOURCE
-            ),
-            DatadogOAuth2CallbackView(access_token_url=self.TOKEN_URL),
+            DatadogDCRView(register_url=REGISTER_URL),
+            DatadogOAuth2LoginView(authorize_url=AUTHORIZE_URL, scope="read", resource=RESOURCE),
+            DatadogOAuth2CallbackView(access_token_url=TOKEN_URL),
         ]
 
     def build_identity(self, state):
@@ -273,12 +259,12 @@ class DatadogOAuthPipelineIntegrationTest(TestCase):
     def test_pipeline_views(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
-            DatadogTestProvider.REGISTER_URL,
+            REGISTER_URL,
             json={"client_id": "dcr-client-id", "client_secret": "dcr-client-secret"},
         )
         responses.add(
             responses.POST,
-            DatadogTestProvider.TOKEN_URL,
+            TOKEN_URL,
             json={"access_token": "final-token", "token_type": "Bearer"},
         )
 
@@ -296,7 +282,7 @@ class DatadogOAuthPipelineIntegrationTest(TestCase):
 
         query = parse_qs(urlparse(response_redirect["Location"]).query)
         assert query["client_id"] == ["dcr-client-id"]
-        assert query["resource"] == [DatadogTestProvider.RESOURCE]
+        assert query["resource"] == [RESOURCE]
         assert "code_challenge" in query
         code_challenge = query["code_challenge"][0]
         assert query["code_challenge_method"] == ["S256"]
