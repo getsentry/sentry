@@ -298,7 +298,7 @@ class BaseTeamSerializer(Serializer):
             avatar: SerializedAvatarFields = {
                 "avatarType": avatar_obj.get_avatar_type_display(),
                 "avatarUuid": avatar_obj.ident if avatar_obj.file_id else None,
-                "avatarUrl": avatar_obj.absolute_url(),
+                "avatarUrl": avatar_obj.absolute_url() if avatar_obj.file_id else None,
             }
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None}
