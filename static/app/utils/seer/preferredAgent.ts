@@ -103,10 +103,12 @@ export function useSeerAgentSelectOptions() {
   return useMemo(() => {
     return [
       {value: 'seer' as const, label: t('Seer')},
-      ...(knownAgents ?? []).map(i => ({
-        value: `${i.provider}::${i.id}` as AutofixAgentSelectOption,
-        label: i.name,
-      })),
+      ...(knownAgents ?? [])
+        .filter(i => isPreferredAgentProvider(i.provider))
+        .map(i => ({
+          value: `${i.provider}::${i.id}` as AutofixAgentSelectOption,
+          label: i.name,
+        })),
     ];
   }, [knownAgents]);
 }
