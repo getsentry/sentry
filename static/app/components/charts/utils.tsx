@@ -462,10 +462,10 @@ export function isChartHovered(chartRef: ReactEchartsRef | null) {
 }
 
 /**
+ * Chart event when *any* rendering+animation finishes.
+ *
  * Auto-activates the toolbox area-zoom cursor so users can drag-to-select a range
- * without first clicking the (hidden) toolbox icon. Reaches into echarts internals:
- * in echarts 6.1 `ToolboxView._features` became a HashMap, so the dataZoom feature
- * must be read via `.get('dataZoom')` rather than as a plain property.
+ * without first clicking the (hidden) toolbox icon.
  */
 export function activateZoomAreaSelect(chart: ECharts) {
   const toolboxView = (chart as any)._componentsViews?.find((view: any) =>
@@ -473,7 +473,7 @@ export function activateZoomAreaSelect(chart: ECharts) {
   );
   const dataZoomFeature = toolboxView?._features.get('dataZoom');
   if (dataZoomFeature && !dataZoomFeature._isZoomActive) {
-    // dispatchAction re-triggers `finished`; the _isZoomActive guard prevents a loop
+    // Calling dispatchAction will re-trigger handleChartFinished
     chart.dispatchAction({
       type: 'takeGlobalCursor',
       key: 'dataZoomSelect',
