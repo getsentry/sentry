@@ -16,9 +16,12 @@ from mypy.types import AnyType, CallableType, Instance, Type, UnboundType, get_p
 SERIALIZER_FULLNAME = "sentry.api.serializers.base.Serializer"
 
 
-# Serializers exempt from autoderive: each has caller-side drift the typed
-# return shape would surface. Remove an entry only as part of the PR that
-# fixes its callers — landing the fix is more valuable than the exemption.
+# Serializers exempt from autoderive. Each entry is a known caller-side
+# drift case the typed return shape would surface. The escape valve is to
+# migrate the drifting *callers* to `serialize_untyped()` (which returns
+# `Any` and documents the per-callsite opt-out), then remove the
+# serializer's class-level entry here. The denylist is a transition
+# artifact — its end state is empty.
 _AUTODERIVE_DENYLIST: frozenset[str] = frozenset(
     {
         "sentry.api.serializers.models.commit.CommitSerializer",

@@ -142,6 +142,26 @@ def serialize(
             return [serializer(o, attrs=attrs.get(o, {}), user=user, **kwargs) for o in objects]
 
 
+def serialize_untyped(
+    objects: Any | Sequence[Any],
+    user: _User = None,
+    serializer: Any | None = None,
+    **kwargs: Any,
+) -> Any:
+    """Same runtime behavior as `serialize()`, but the static return is `Any`.
+
+    Use at call sites that depend on field shapes the typed serializer
+    response doesn't yet declare — these are the cases that would otherwise
+    require the serializer's class to live in `_AUTODERIVE_DENYLIST`. Each
+    `serialize_untyped()` call is a localized, grep-able opt-out that
+    documents the specific drift.
+
+    The goal state is for every caller to use `serialize()` directly and
+    `serialize_untyped()` to fall to zero usages.
+    """
+    return serialize(objects, user, serializer, **kwargs)
+
+
 class Serializer(Generic[T]):
     """A Serializer class contains the logic to serialize a specific type of object.
 

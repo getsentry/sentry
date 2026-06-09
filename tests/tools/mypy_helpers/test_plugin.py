@@ -815,15 +815,13 @@ reveal_type(serialize(object(), None, FooSerializer()))
 
 
 def test_serializer_autoderive_denylist_entries_are_fully_qualified() -> None:
-    """Sanity check on `_AUTODERIVE_DENYLIST`: every entry is a dotted module
-    path (no bare class names, no typos like leading/trailing dots). End-to-end
-    denylist behavior is exercised by the full mypy run on `src/` — each
-    denylisted class corresponds to a known caller-drift case the plugin would
-    otherwise surface as a CI failure.
+    """Sanity check on `_AUTODERIVE_DENYLIST`: when non-empty, every entry must
+    be a dotted module path (no bare class names, no typos like leading/trailing
+    dots). The denylist is allowed to be empty — that is the post-drain steady
+    state in which every Sentry serializer participates in autoderive.
     """
     from tools.mypy_helpers.serializer_autoderive import _AUTODERIVE_DENYLIST
 
-    assert _AUTODERIVE_DENYLIST, "denylist should not be empty"
     for fullname in _AUTODERIVE_DENYLIST:
         assert "." in fullname, fullname
         assert not fullname.startswith("."), fullname
