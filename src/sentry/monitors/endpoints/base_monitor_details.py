@@ -11,6 +11,7 @@ from sentry import audit_log, quotas
 from sentry.api.base import BaseEndpointMixin
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -18,7 +19,7 @@ from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
-from sentry.monitors.serializers import MonitorSerializer
+from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import ensure_cron_detector_deletion
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -27,7 +28,9 @@ from sentry.workflow_engine.models import Detector
 
 
 class MonitorDetailsMixin(BaseEndpointMixin):
-    def get_monitor(self, request: Request, project: Project, monitor: Monitor) -> Response:
+    def get_monitor(
+        self, request: Request, project: Project, monitor: Monitor
+    ) -> Response[MonitorSerializerResponse]:
         """
         Retrieves details for a monitor.
         """
@@ -43,7 +46,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
 
     def update_monitor(
         self, request: AuthenticatedHttpRequest, project: Project, monitor: Monitor
-    ) -> Response:
+    ) -> Response[MonitorSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update a monitor.
         """
@@ -59,14 +62,18 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             },
         )
         if not validator.is_valid():
-            return self.respond(validator.errors, status=400)
+            return self.respond(as_validation_errors(validator), status=400)
 
         try:
             updated_monitor = validator.save()
         except serializers.ValidationError as e:
-            return self.respond(e.detail, status=400)
+            errors: ValidationErrorResponse = (
+                dict(e.detail) if isinstance(e.detail, dict) else {"non_field_errors": e.detail}
+            )
+            return self.respond(errors, status=400)
 
-        return self.respond(serialize(updated_monitor, request.user))
+        body: MonitorSerializerResponse = serialize(updated_monitor, request.user)
+        return self.respond(body)
 
     def delete_monitor(
         self, request: Request, project: Project, monitor: Monitor
