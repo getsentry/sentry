@@ -32,13 +32,15 @@ export function coaleseStoppingPoint(
   if (automationTuning === 'off') {
     return 'off';
   }
-  return {
-    off: 'off' as const,
-    root_cause: 'root_cause' as const,
-    solution: 'code_changes' as const,
-    code_changes: 'code_changes' as const,
-    open_pr: 'open_pr' as const,
-  }[stoppingPoint];
+  return (
+    {
+      off: 'off' as const,
+      root_cause: 'root_cause' as const,
+      solution: 'code_changes' as const,
+      code_changes: 'code_changes' as const,
+      open_pr: 'open_pr' as const,
+    }[stoppingPoint] ?? ('off' as const)
+  );
 }
 
 /**
