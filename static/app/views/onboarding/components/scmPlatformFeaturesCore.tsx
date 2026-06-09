@@ -94,6 +94,12 @@ export function ScmPlatformFeaturesCore({
 }: ScmPlatformFeaturesCoreProps) {
   const {openModal} = useModal();
   const organization = useOrganization();
+  // Trial/billing framing (the "unlimited volume" banner and per-feature volume
+  // limits) only makes sense during new-org onboarding, where a fresh trial is
+  // always active. In SCM-first project creation the viewer is an existing org
+  // on an unknown plan, so we hide that framing rather than show numbers that
+  // may not apply.
+  const isOnboarding = analyticsFlow === 'onboarding';
   // Fetch feature meta at step entry so billing-config is in flight (or cached)
   // before the user reaches the feature cards below.
   const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
@@ -498,27 +504,29 @@ export function ScmPlatformFeaturesCore({
       {featureMode !== 'none' && (
         <MotionStack layout="position" width="100%">
           <Stack gap="2xl" paddingTop="xs">
-            <Flex
-              padding="lg"
-              background="secondary"
-              border="secondary"
-              radius="md"
-              gap="lg"
-            >
-              <IconBusiness size="lg" variant="accent" />
-              <Text size="md" density="comfortable">
-                {tct(
-                  'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
-                  {
-                    bold: (
-                      <Text as="span" bold variant="accent">
-                        {null}
-                      </Text>
-                    ),
-                  }
-                )}
-              </Text>
-            </Flex>
+            {isOnboarding && (
+              <Flex
+                padding="lg"
+                background="secondary"
+                border="secondary"
+                radius="md"
+                gap="lg"
+              >
+                <IconBusiness size="lg" variant="accent" />
+                <Text size="md" density="comfortable">
+                  {tct(
+                    'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
+                    {
+                      bold: (
+                        <Text as="span" bold variant="accent">
+                          {null}
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Text>
+              </Flex>
+            )}
             {featureMode === 'toggleable' ? (
               <ScmFeatureSelectionCards
                 availableFeatures={availableFeatures}
@@ -527,6 +535,7 @@ export function ScmPlatformFeaturesCore({
                 onToggleFeature={handleToggleFeature}
                 featureMeta={featureMeta}
                 isVolumeLoading={isFeatureMetaLoading}
+                showVolume={isOnboarding}
               />
             ) : (
               <ScmFeatureInfoCards
@@ -535,6 +544,7 @@ export function ScmPlatformFeaturesCore({
                 featureMeta={featureMeta}
                 platformName={currentPlatformName}
                 isVolumeLoading={isFeatureMetaLoading}
+                showVolume={isOnboarding}
               />
             )}
           </Stack>
