@@ -277,6 +277,12 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  electron: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   native: [ProductSolution.LOGS],
   node: [
     ProductSolution.PERFORMANCE_MONITORING,
