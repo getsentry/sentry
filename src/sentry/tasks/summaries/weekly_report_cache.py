@@ -3,52 +3,54 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
+from sentry.tasks.summaries.utils import OrganizationReportContext
 from sentry.utils import json, metrics, redis
-from sentry.utils.dates import floor_to_utc_day, to_datetime
 
-CACHE_TTL = timedelta(days=14)
+CACHE_TTL = timedelta(days=10)
 KEY_PREFIX = "wr:proj_metrics"
-SATURDAY_ISOWEEKDAY = 6
 
 
-def _floor_to_saturday(timestamp: float) -> float:
-    """Normalize a timestamp to the most recent Saturday at UTC midnight."""
-    dt = floor_to_utc_day(to_datetime(timestamp))
-    days_since_saturday = (dt.isoweekday() - SATURDAY_ISOWEEKDAY) % 7
-    return (dt - timedelta(days=days_since_saturday)).timestamp()
-
-
-def _make_cache_key(org_id: int, project_id: int, timestamp: float) -> str:
-    return f"{KEY_PREFIX}:{org_id}:{project_id}:{timestamp}"
+def _make_cache_key(org_id: int, project_id: int) -> str:
+    return f"{KEY_PREFIX}:{org_id}:{project_id}"
 
 
 def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     return redis.redis_clusters.get(settings.SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER)
 
 
-def cache_project_metrics(
-    org_id: int,
-    timestamp: float,
-    project_metrics: dict[int, dict[str, int]],
-) -> None:
-    """
-    Cache per-project weekly report metrics in Redis.
+def cache_project_metrics(ctx: OrganizationReportContext, organization_id: int) -> None:
+    project_metrics: dict[int, dict[str, int]] = {}
+    for project_id, project_ctx in ctx.projects_context_map.items():
+        if not project_ctx.check_if_project_is_empty():
+            project_metrics[project_id] = {
+                "e": project_ctx.accepted_error_count,
+                "t": project_ctx.accepted_transaction_count,
+            }
 
-    project_metrics maps project_id -> {"e": <total_errors>, "t": <total_transactions>}
-    """
     if not project_metrics:
         return
 
-    timestamp = _floor_to_saturday(timestamp)
+    with sentry_sdk.start_span(op="weekly_reports.cache_project_metrics"):
+        try:
+            _write_project_metrics(organization_id, project_metrics)
+        except Exception:
+            sentry_sdk.capture_exception()
+
+
+def _write_project_metrics(
+    org_id: int,
+    project_metrics: dict[int, dict[str, int]],
+) -> None:
     client = _get_redis_client()
     pipeline = client.pipeline()
     ttl_seconds = int(CACHE_TTL.total_seconds())
 
     for project_id, values in project_metrics.items():
-        key = _make_cache_key(org_id, project_id, timestamp)
+        key = _make_cache_key(org_id, project_id)
         pipeline.set(key, json.dumps(values), ex=ttl_seconds)
 
     pipeline.execute()
@@ -57,47 +59,24 @@ def cache_project_metrics(
 def read_project_metrics(
     org_id: int,
     project_ids: list[int],
-    current_timestamp: float,
-    previous_timestamp: float,
-) -> dict[int, dict[str, Any]]:
-    """
-    Read cached metrics for the current and previous week for each project.
-
-    Returns {project_id: {"current": {...} | None, "previous": {...} | None}}
-    """
+) -> dict[int, dict[str, Any] | None]:
     if not project_ids:
         return {}
 
-    current_timestamp = _floor_to_saturday(current_timestamp)
-    previous_timestamp = _floor_to_saturday(previous_timestamp)
     client = _get_redis_client()
     pipeline = client.pipeline()
 
     for project_id in project_ids:
-        pipeline.get(_make_cache_key(org_id, project_id, current_timestamp))
-    for project_id in project_ids:
-        pipeline.get(_make_cache_key(org_id, project_id, previous_timestamp))
+        pipeline.get(_make_cache_key(org_id, project_id))
 
     results = pipeline.execute()
-    n = len(project_ids)
 
-    result_map: dict[int, dict[str, Any]] = {}
+    result_map: dict[int, dict[str, Any] | None] = {}
     for i, project_id in enumerate(project_ids):
-        current_raw = results[i]
-        previous_raw = results[n + i]
-
-        current = json.loads(current_raw) if current_raw else None
-        previous = json.loads(previous_raw) if previous_raw else None
-
-        if current is None:
-            metrics.incr("weekly_report.cache.miss", tags={"week": "current"})
-        if previous is None:
-            metrics.incr("weekly_report.cache.miss", tags={"week": "previous"})
-
-        if current is not None or previous is not None:
-            result_map[project_id] = {
-                "current": current,
-                "previous": previous,
-            }
+        raw = results[i]
+        if raw is None:
+            metrics.incr("weekly_report.cache.miss")
+        else:
+            result_map[project_id] = json.loads(raw)
 
     return result_map
