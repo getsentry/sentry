@@ -16,6 +16,7 @@ import {Overview} from 'admin/views/overview';
 
 export function HomePage() {
   const navigate = useNavigate();
+  // TODO(cells) This needs to be a list of cells
   const regions = getRegions();
   const [oldSplash, setOldSplash] = useState(false);
   const [regionUrl, setRegionUrl] = useState(regions[0]!.url);

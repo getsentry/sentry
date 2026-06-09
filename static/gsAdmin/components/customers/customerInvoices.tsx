@@ -7,6 +7,7 @@ import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
+  // TODO(cells) region here is actually a cell
   region: string;
 };
 

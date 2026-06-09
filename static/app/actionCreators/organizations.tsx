@@ -221,6 +221,18 @@ export async function fetchOrganizationDetails(
  * from /organizations can vary based on query parameters
  */
 export async function fetchOrganizations(api: Client, query?: Record<string, any>) {
+  // TODO(cells): Once this rollout completes, this becomes the only path and the
+  // cell fan-out below (plus the `memberRegions` plumbing) can be deleted.
+  if (ConfigStore.get('features').has('organizations:use-control-org-listing')) {
+    // The control silo endpoint returns the full cross-cell list in one call,
+    // so there's no fan-out to merge.
+    const controlUrl = ConfigStore.get('links').sentryUrl;
+    return api.requestPromise('/organizations/', {
+      host: controlUrl,
+      query,
+    });
+  }
+
   const regions = ConfigStore.get('memberRegions');
   const results = await Promise.all(
     regions.map(region =>

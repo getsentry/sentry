@@ -29,6 +29,7 @@ function RelocationForm() {
   const promoCodeApi = useApi({
     api: new Client({baseUrl: ''}),
   });
+  // TODO(cells) Will cells with their locality
   const regions = getRegions();
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File>();
