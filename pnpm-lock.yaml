@@ -567,8 +567,8 @@ importers:
         specifier: ^0.7.3
         version: 0.7.3
       '@sentry-internal/rrweb-types':
-        specifier: 2.41.0
-        version: 2.41.0
+        specifier: 2.43.0
+        version: 2.43.0
       '@sentry/jest-environment':
         specifier: 6.1.0
         version: 6.1.0(@sentry/node@10.57.0)(@sentry/profiling-node@10.57.0)(jest@30.4.2(@types/node@22.15.21)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.33)(@types/node@22.15.21)(typescript@6.0.3)))
@@ -2873,8 +2873,14 @@ packages:
   '@sentry-internal/rrweb-snapshot@2.41.0':
     resolution: {integrity: sha512-2NPQmwfbVONnyLOOwQ4WP+PIJx+qB5mEIFUq2bpgWglDSPSkr6yxnMB2kT+lE8P3OC/N3I/IrV0vEyFEReVgBA==}
 
+  '@sentry-internal/rrweb-snapshot@2.43.0':
+    resolution: {integrity: sha512-DF6HOwkOTpxCYZWCLZ32Sl27f6iXi4jSyonhjkie44Wr9nMe6Zvey/V0glm8xI1XkGqZaFGUVzVRReezwwkeHg==}
+
   '@sentry-internal/rrweb-types@2.41.0':
     resolution: {integrity: sha512-9+sfBcblve5i6uZpeu9s/tCUhhwg3wb8Ywe4RjVI4jNywVYsCJscpswbM8mdNUNvJpaaZud0QLS50HwQycCEZA==}
+
+  '@sentry-internal/rrweb-types@2.43.0':
+    resolution: {integrity: sha512-T98inxcRWi+GhZIPBOdAE0xaKxnm6am3h+9mbkN+rDqdFz/TsGF+bTvjTHuZ/nE7dzCGCxGnwQCNnJk9Z14x4A==}
 
   '@sentry-internal/rrweb@2.41.0':
     resolution: {integrity: sha512-Pq5Ng/NhXza40lIXAjBCclvuC+QFwAktWwl2Sa/oMH//GxtDc/mcWV7CIHdsiSbTkd3jFQZcuutByFq2hlCSug==}
@@ -11322,9 +11328,16 @@ snapshots:
 
   '@sentry-internal/rrweb-snapshot@2.41.0': {}
 
+  '@sentry-internal/rrweb-snapshot@2.43.0': {}
+
   '@sentry-internal/rrweb-types@2.41.0':
     dependencies:
       '@sentry-internal/rrweb-snapshot': 2.41.0
+      '@types/css-font-loading-module': 0.0.7
+
+  '@sentry-internal/rrweb-types@2.43.0':
+    dependencies:
+      '@sentry-internal/rrweb-snapshot': 2.43.0
       '@types/css-font-loading-module': 0.0.7
 
   '@sentry-internal/rrweb@2.41.0':
