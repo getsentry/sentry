@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import Literal
 
-import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -144,56 +143,6 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             on_results=lambda results: serialize(results, request.user),
             default_per_page=max_span_tags,
             max_per_page=max_span_tags,
-        )
-
-
-@cell_silo_endpoint
-class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
-    def get(self, request: Request, organization: Organization, key: str) -> Response:
-        logger.info("a request to span-fields was made")
-        if features.has(
-            "organizations:explore-span-fields-removal", organization, actor=request.user
-        ):
-            return Response(status=404)
-
-        if not features.has(
-            "organizations:visibility-explore-view", organization, actor=request.user
-        ):
-            return Response(status=404)
-
-        try:
-            snuba_params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return self.paginate(
-                request=request,
-                paginator=ChainPaginator([]),
-            )
-
-        sentry_sdk.set_tag("query.tag_key", key)
-
-        max_span_tag_values = options.get("performance.spans-tags-values.max")
-
-        executor = EAPSpanFieldValuesAutocompletionExecutor(
-            organization=organization,
-            snuba_params=snuba_params,
-            key=key,
-            query=request.GET.get("query"),
-            max_span_tag_values=max_span_tag_values,
-        )
-
-        with handle_query_errors():
-            tag_values = executor.execute()
-
-        tag_values.sort(key=lambda tag: tag.value or "")
-
-        paginator = ChainPaginator([tag_values], max_limit=max_span_tag_values)
-
-        return self.paginate(
-            request=request,
-            paginator=paginator,
-            on_results=lambda results: serialize(results, request.user),
-            default_per_page=max_span_tag_values,
-            max_per_page=max_span_tag_values,
         )
 
 
