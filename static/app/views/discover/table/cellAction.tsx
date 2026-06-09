@@ -410,6 +410,7 @@ export function CellAction({
         {cellActions?.length ? (
           <DropdownMenu
             usePortal={usePortalOnDropdown}
+            disableTextSelection
             items={cellActions}
             strategy="fixed"
             size="sm"
@@ -478,6 +479,7 @@ export function CellAction({
         <DropdownMenu
           items={cellActions}
           usePortal
+          disableTextSelection
           size="sm"
           offset={4}
           position="bottom"
@@ -516,6 +518,11 @@ const Container = styled('div')`
 `;
 
 const ActionMenuTrigger = styled(Button)`
+  &,
+  * {
+    -webkit-user-select: none;
+    user-select: none;
+  }
   position: absolute;
   top: 50%;
   right: -1px;
@@ -535,6 +542,12 @@ const ActionMenuTrigger = styled(Button)`
 `;
 
 const ActionMenuTriggerV2 = styled('div')<{hasLinks?: boolean}>`
+  &,
+  * {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
   a,
   span {
     color: ${p =>

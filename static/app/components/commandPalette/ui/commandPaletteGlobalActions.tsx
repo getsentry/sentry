@@ -93,8 +93,21 @@ import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerC
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
-import type {NavigationGroupProps} from 'sentry/views/settings/types';
+import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
 
+/**
+ * Returns true if a settings navigation item should be shown in cmd+k.
+ * Items with `show: false` or a `show` function returning `false` are hidden.
+ */
+export function isNavItemVisible(
+  item: Pick<NavigationItem, 'show'>,
+  context: NavigationGroupProps
+): boolean {
+  if (item.show === undefined) {
+    return true;
+  }
+  return typeof item.show === 'function' ? item.show(context) : item.show;
+}
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 import {useCommandPaletteState} from './commandPaletteStateContext';
@@ -283,17 +296,28 @@ export function GlobalCommandPaletteActions() {
       organization,
     })
       .flatMap(section =>
-        section.items.filter(navItem => {
-          if (navItem.show === undefined) {
-            return true;
-          }
-          return typeof navItem.show === 'function'
-            ? navItem.show({...context, ...section})
-            : navItem.show;
-        })
+        section.items.filter(navItem =>
+          isNavItemVisible(navItem, {...context, ...section})
+        )
       )
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [organization]);
+
+  const visibleOrgSettingsNavItems = useMemo(() => {
+    const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
+      access: new Set(organization.access),
+      features: new Set(organization.features),
+      isSelfHosted: sentryConfig.isSelfHosted,
+      organization,
+    };
+    return getUserOrgNavigationConfiguration()
+      .flatMap(section =>
+        section.items.filter(navItem =>
+          isNavItemVisible(navItem, {...context, ...section})
+        )
+      )
+      .sort((a, b) => a.title.localeCompare(b.title));
+  }, [organization, sentryConfig.isSelfHosted]);
 
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
@@ -570,17 +594,14 @@ export function GlobalCommandPaletteActions() {
         )}
 
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
-          {getUserOrgNavigationConfiguration()
-            .flatMap(section => section.items)
-            .sort((a, b) => a.title.localeCompare(b.title))
-            .map(item => (
-              <CMDKAction
-                key={item.path}
-                display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
-                keywords={item.keywords}
-                to={item.path}
-              />
-            ))}
+          {visibleOrgSettingsNavItems.map(item => (
+            <CMDKAction
+              key={item.path}
+              display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+              keywords={item.keywords}
+              to={item.path}
+            />
+          ))}
           <Override name="cmdk:global-settings-actions" />
         </CMDKAction>
 

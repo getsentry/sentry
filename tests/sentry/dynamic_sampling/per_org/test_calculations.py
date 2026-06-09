@@ -101,6 +101,7 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "eap_sample_rate": 0.25,
                 "relative_deviation": pytest.approx(0.2),
                 "is_equal": False,
+                "total_volume_eap": 100,
             },
             {
                 "org_id": org.id,
@@ -109,6 +110,7 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "eap_sample_rate": 1.0,
                 "relative_deviation": pytest.approx(0.04),
                 "is_equal": True,
+                "total_volume_eap": 0,
             },
         ]
 

@@ -142,12 +142,14 @@ export function TransactionsTable(props: Props) {
       let rendered = fieldRenderer(row, {navigate, organization, location, theme});
 
       const target = generateLink?.[field]?.(organization, row, location);
+      const isEmptyTarget =
+        typeof target === 'object' && target !== null && isEmptyObject(target);
 
       if (fields[index] === 'profile.id') {
         rendered = (
           <LinkButton
             data-test-id={`view-${fields[index]}`}
-            disabled={!target || isEmptyObject(target)}
+            disabled={!target || isEmptyTarget}
             to={target || {}}
             onClick={getProfileAnalyticsHandler(organization, referrer)}
             size="xs"
@@ -155,7 +157,7 @@ export function TransactionsTable(props: Props) {
             <IconProfiling size="xs" />
           </LinkButton>
         );
-      } else if (target && !isEmptyObject(target)) {
+      } else if (target && !isEmptyTarget) {
         if (fields[index] === 'replayId') {
           rendered = (
             <ViewReplayLink replayId={row.replayId!} to={target}>

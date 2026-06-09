@@ -25,6 +25,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.models.commitcomparison import CommitComparison
@@ -214,7 +215,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         request=None,
         responses={204: None, 403: RESPONSE_FORBIDDEN, 404: RESPONSE_NOT_FOUND},
     )
-    def delete(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, snapshot_id: str
+    ) -> Response[None] | Response[DetailResponse]:
         """
         Delete a snapshot and all associated data (images, comparisons, metrics).
 
@@ -634,7 +637,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         },
         examples=PreprodExamples.CREATE_SNAPSHOT,
     )
-    def post(self, request: Request, project: Project) -> Response:
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[SnapshotCreateResponseDict] | Response[DetailResponse]:
         """
         Upload a new snapshot with image metadata.
 

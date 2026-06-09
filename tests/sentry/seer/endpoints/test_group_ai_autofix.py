@@ -1,5 +1,6 @@
 from unittest.mock import Mock, patch
 
+from sentry.issues.action_log.types import TriggerAutofixAction
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -102,6 +103,60 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             user_context=None,
             insert_index=3,
         )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.publish_action", autospec=True)
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_kickoff_emits_trigger_autofix_action(self, mock_trigger, mock_publish):
+        # A kickoff (no run_id) records the action.
+        group = self.create_group()
+        mock_trigger.return_value = 123
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_publish.assert_called_once()
+        assert isinstance(mock_publish.call_args.args[0], TriggerAutofixAction)
+        assert mock_publish.call_args.kwargs["group_id"] == group.id
+        assert mock_publish.call_args.kwargs["actor"].actor_id == self.user.id
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.publish_action", autospec=True)
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_advancing_existing_run_skips_action(self, mock_trigger, mock_publish):
+        # Advancing an existing run (run_id provided) is steering, not a new trigger.
+        group = self.create_group()
+        mock_trigger.return_value = 42
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "solution", "run_id": 42},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_publish.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.publish_action", autospec=True)
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_coding_agent_handoff")
+    def test_coding_agent_handoff_skips_action(self, mock_handoff, mock_publish):
+        # The handoff path returns before the built-in-step branch, so it must not log.
+        mock_handoff.return_value = {"successes": [], "failures": []}
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "coding_agent_handoff", "run_id": 123, "integration_id": 456},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_publish.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer):

@@ -45,7 +45,7 @@ class ReplayExamples:
     GET_REPLAYS = [
         OpenApiExample(
             "Get list of replays",
-            value=[replay_example],
+            value={"data": [replay_example]},
             status_codes=["200"],
             response_only=True,
         )

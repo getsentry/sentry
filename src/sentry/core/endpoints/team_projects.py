@@ -42,6 +42,12 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 
 
+class _StatsPeriodErrorResponse(TypedDict):
+    # Legacy nested error envelope used only by this endpoint's stats_period
+    # validation; kept as-is for wire compatibility.
+    error: dict[str, dict[str, dict[str, str]]]
+
+
 def apply_default_project_settings(organization: Organization, project: Project) -> None:
     if project.platform and project.platform.startswith("javascript"):
         set_default_inbound_filters(project, organization)
@@ -157,7 +163,9 @@ class TeamProjectsEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.LIST_TEAM_PROJECTS,
     )
-    def get(self, request: Request, team) -> Response:
+    def get(
+        self, request: Request, team
+    ) -> Response[list[OrganizationProjectResponse]] | Response[_StatsPeriodErrorResponse]:
         """
         Return a list of projects bound to a team.
         """

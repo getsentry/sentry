@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import MutableMapping
+from functools import partial
 from typing import Any, cast
 
 from arroyo import Topic as ArroyoTopic
@@ -9,12 +10,15 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
+from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.options.rollout import in_random_rollout
+from sentry.taskworker.adapters import SentryMetricsBackend
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
@@ -34,9 +38,9 @@ class PayloadType(ValueEqualityEnum):
     STATUS_CHANGE = "status_change"
 
 
-def _get_occurrence_producer() -> KafkaProducer:
+def _get_occurrence_producer(name: str = "sentry.issues.producer") -> KafkaProducer:
     return get_arroyo_producer(
-        "sentry.issues.producer",
+        name,
         Topic.INGEST_OCCURRENCES,
         exclude_config_keys=["compression.type", "message.max.bytes"],
     )
@@ -44,6 +48,12 @@ def _get_occurrence_producer() -> KafkaProducer:
 
 _occurrence_producer = SingletonProducer(
     _get_occurrence_producer, max_futures=settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT
+)
+
+_occurrence_task_producer = TaskProducer(
+    name="sentry.issues.tasks.producer",
+    producer_factory=partial(_get_occurrence_producer, name="sentry.issues.tasks.producer"),
+    metrics_backend=SentryMetricsBackend(),
 )
 
 
@@ -78,7 +88,12 @@ def produce_occurrence_to_kafka(
 
     try:
         topic = get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
-        _occurrence_producer.produce(ArroyoTopic(topic), payload)
+        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
+            "tasks.producer.occurrences.rollout"
+        ):
+            _occurrence_task_producer.produce(ArroyoTopic(topic), payload)
+        else:
+            _occurrence_producer.produce(ArroyoTopic(topic), payload)
     except KafkaException:
         logger.exception(
             "Failed to send occurrence to issue platform",

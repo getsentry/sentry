@@ -73,6 +73,24 @@ export function isNoneOfTheseItem(
   return item.key === 'none-of-these';
 }
 
+/**
+ * Returns the agent's expanded project scope to apply when it broadened beyond
+ * the user's selection (Seer always returns a superset). Returns `undefined`
+ * when there's no expansion, so the "Projects" chip stays hidden and the user's
+ * selection is left untouched.
+ */
+export function getExpandedProjectIds(
+  returnedProjectIds: number[] | null | undefined,
+  selectedProjectIds: number[]
+): number[] | undefined {
+  if (!returnedProjectIds || returnedProjectIds.length === 0) {
+    return undefined;
+  }
+  const selectedSet = new Set(selectedProjectIds);
+  const hasExtraProjects = returnedProjectIds.some(id => !selectedSet.has(id));
+  return hasExtraProjects ? returnedProjectIds : undefined;
+}
+
 function formatToken(token: string): string {
   const isNegated = token.startsWith('!') && token.includes(':');
   const actualToken = isNegated ? token.slice(1) : token;
@@ -152,14 +170,9 @@ export function formatQueryToNaturalLanguage(query: string): string {
 }
 
 /**
- * Formats a date range for display.
- *
- * The endpoint returns times in UTC format, but the values represent what the user
- * intended in their local context. E.g., if user asks for "9pm", endpoint returns
- * "T21:00:00Z" - we want to display "9:00 PM", not convert to local timezone.
+ * Formats a UTC date range for display.
  */
 export function formatDateRange(start: string, end: string, separator = ' to '): string {
-  // Parse as UTC but display the UTC values directly (without timezone conversion)
   const startMoment = moment.utc(start);
   const endMoment = moment.utc(end);
 
@@ -222,6 +235,11 @@ export function generateQueryTokensString(args: QueryTokensProps): string {
     const sortText =
       args?.sort[0] === '-' ? `${args?.sort.slice(1)} Desc` : `${args?.sort} Asc`;
     parts.push(`sort is '${sortText}'`);
+  }
+
+  if (args?.expandedProjectIds && args.expandedProjectIds.length > 0) {
+    const count = args.expandedProjectIds.length;
+    parts.push(`search expanded to ${count} ${count === 1 ? 'project' : 'projects'}`);
   }
 
   return parts.length > 0 ? parts.join(', ') : 'No query parameters set';
