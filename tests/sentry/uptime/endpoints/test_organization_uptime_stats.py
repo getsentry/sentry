@@ -237,7 +237,13 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
             recovery_threshold=2,
         )
 
-        base_time = datetime(2025, 10, 29, 13, 30, 0, tzinfo=timezone.utc)
+        # Use a recent, minute-aligned time so the stored EAP results stay within
+        # Snuba's retention window. A hardcoded calendar date drifts out of retention
+        # as it ages, after which the query returns no rows and the detector is missing
+        # from the response (KeyError on `data[str(detector.id)]`).
+        base_time = (datetime.now(timezone.utc) - timedelta(days=1)).replace(
+            second=0, microsecond=0
+        )
 
         test_scenarios = [
             # 2 OK checks before incident
