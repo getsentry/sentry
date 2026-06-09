@@ -69,7 +69,15 @@ class HybridCloudTestMixin:
 
 
 class SimulatedTransactionWatermarks(threading.local):
-    state: dict[str, int] = {}
+    def __init__(self) -> None:
+        # NOTE: ``state`` must be initialized per-instance here rather than as a
+        # class attribute. ``threading.local`` only isolates *instance*
+        # attributes between threads -- a class-level ``state = {}`` would be a
+        # single dict shared across every thread, so a background thread (e.g.
+        # the span flusher or a synchronous task) calling
+        # ``django_test_transaction_water_mark`` would mutate the same dict the
+        # main test thread reads from, leaking watermark state between threads.
+        self.state: dict[str, int] = {}
 
     @staticmethod
     def get_transaction_depth(connection: BaseDatabaseWrapper) -> int:
@@ -233,13 +241,27 @@ def simulate_on_commit(request: Any):
         maybe_flush_commit_hooks(transaction.get_connection(using))
 
     for conn in connections.all():
-        # This value happens to match the number of outer transactions in
-        # a django test case.  Unfortunately, the timing of when setup is called
-        # vs when that final outer transaction is added makes it impossible to
-        # sample the value directly -- we just have to specify it here.
-        # That said, there are tests that would fail if this number were wrong.
+        # A django test case wraps every connection in two outer transactions
+        # (a class-level atomic from setUpClass plus a per-test atomic from
+        # _pre_setup), so the steady-state watermark is 2. Unfortunately, the
+        # timing of when this setup runs vs. when that final outer transaction
+        # is added makes it impossible to sample the value directly -- at this
+        # point only the class-level atomic is open (depth 1) and the per-test
+        # atomic is added afterwards, hence the historical hardcoded 2.
+        #
+        # We derive that 2 from the live depth (+1 for the not-yet-opened
+        # per-test atomic) rather than hardcoding it. In the normal case the
+        # live depth is 1 so this is identical to 2. But if an earlier test in
+        # the same (x)dist worker leaked an open transaction/savepoint onto this
+        # shared connection object, the live depth is higher, and absorbing that
+        # leak into the baseline prevents it from producing a spurious
+        # CrossTransactionAssertionError in this otherwise-unrelated test. The
+        # shift is uniform, so genuine cross-database transactions opened by
+        # *this* test are still detected relative to the baseline.
         if is_django_test_case:
-            simulated_transaction_watermarks.state[conn.alias] = 2
+            simulated_transaction_watermarks.state[conn.alias] = max(
+                2, simulated_transaction_watermarks.get_transaction_depth(conn) + 1
+            )
         else:
             simulated_transaction_watermarks.state[conn.alias] = (
                 simulated_transaction_watermarks.get_transaction_depth(conn)
