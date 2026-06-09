@@ -5,7 +5,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 export type CodingAgentIntegration = {
   id: string | null;
   name: string;
-  provider: string;
+  provider: 'claude_code' | 'cursor' | 'github_copilot';
   has_identity?: boolean;
   requires_identity?: boolean;
 };

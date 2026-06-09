@@ -18,6 +18,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
+from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -27,7 +28,10 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+)
 from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
@@ -125,20 +129,19 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         request: Request,
         organization: Organization,
         member: OrganizationMember,
-    ) -> Response:
+    ) -> Response[OrganizationMemberResponse]:
         """
         Retrieve an organization member's details.
 
         Response will be a pending invite if it has been approved by organization owners or managers but is waiting to be accepted by the invitee.
         """
         allowed_roles = get_allowed_org_roles(request, organization, member)
-        return Response(
-            serialize(
-                member,
-                request.user,
-                OrganizationMemberWithRolesSerializer(allowed_roles),
-            )
+        body: OrganizationMemberResponse = serialize(
+            member,
+            request.user,
+            OrganizationMemberWithRolesSerializer(allowed_roles),
         )
+        return Response(body)
 
     @extend_schema(
         operation_id="Update an Organization Member's Roles",
@@ -176,7 +179,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         request: Request,
         organization: Organization,
         member: OrganizationMember,
-    ) -> Response:
+    ) -> (
+        Response[OrganizationMemberResponse]
+        | Response[None]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update a member's [organization-level](https://docs.sentry.io/organization/membership/#organization-level-roles) and [team-level](https://docs.sentry.io/organization/membership/#team-level-roles) roles.
 
@@ -277,15 +285,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 data=member.get_audit_log_data(),
             )
 
-            return Response(
-                serialize(
-                    member,
-                    request.user,
-                    OrganizationMemberWithRolesSerializer(
-                        allowed_roles=allowed_roles,
-                    ),
-                )
+            reinvite_body: OrganizationMemberResponse = serialize(
+                member,
+                request.user,
+                OrganizationMemberWithRolesSerializer(allowed_roles=allowed_roles),
             )
+            return Response(reinvite_body)
 
         assigned_org_role = result.get("orgRole") or result.get("role")
 
@@ -389,15 +394,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             data=member.get_audit_log_data(),
         )
 
-        return Response(
-            serialize(
-                member,
-                request.user,
-                OrganizationMemberWithRolesSerializer(
-                    allowed_roles=allowed_roles,
-                ),
-            )
+        body: OrganizationMemberResponse = serialize(
+            member,
+            request.user,
+            OrganizationMemberWithRolesSerializer(allowed_roles=allowed_roles),
         )
+        return Response(body)
 
     @staticmethod
     def _change_org_role(member: OrganizationMember, role: str) -> None:

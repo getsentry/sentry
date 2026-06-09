@@ -261,17 +261,19 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         },
         examples=SCIMExamples.QUERY_ORG_MEMBER,
     )
-    def get(self, request: Request, organization, member) -> Response:
+    def get(
+        self, request: Request, organization, member
+    ) -> Response[OrganizationMemberSCIMSerializerResponse]:
         """
         Query an individual organization member with a SCIM User GET Request.
         - The `name` object will contain fields `firstName` and `lastName` with the values of `N/A`.
         Sentry's SCIM API does not currently support these fields but returns them for compatibility purposes.
         """
-        context = serialize(
+        body: OrganizationMemberSCIMSerializerResponse = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
         )
-        return Response(context)
+        return Response(body)
 
     @extend_schema(
         operation_id="Update an Organization Member's Attributes",
@@ -288,7 +290,13 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         },
         examples=SCIMExamples.UPDATE_ORG_MEMBER_ATTRIBUTES,
     )
-    def patch(self, request: Request, organization, member):
+    def patch(
+        self, request: Request, organization, member
+    ) -> (
+        Response[OrganizationMemberSCIMSerializerResponse]
+        | Response[None]
+        | Response[DetailResponse]
+    ):
         """
         Update an organization member's attributes with a SCIM PATCH Request.
         """
@@ -319,11 +327,11 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             else:
                 raise SCIMApiError(detail=SCIM_400_INVALID_PATCH)
 
-        context = serialize(
+        body: OrganizationMemberSCIMSerializerResponse = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
         )
-        return Response(context)
+        return Response(body)
 
     @extend_schema(
         operation_id="Delete an Organization Member via SCIM",
@@ -561,7 +569,9 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         },
         examples=SCIMExamples.PROVISION_NEW_MEMBER,
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(
+        self, request: Request, organization
+    ) -> Response[OrganizationMemberSCIMSerializerResponse]:
         """
         Create a new Organization Member via a SCIM Users POST Request.
 
@@ -669,8 +679,8 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         if update_role:
             metrics.incr("sentry.scim.member.update_role", tags={"organization": organization})
 
-        context = serialize(
+        body: OrganizationMemberSCIMSerializerResponse = serialize(
             member,
             serializer=_scim_member_serializer_with_expansion(organization),
         )
-        return Response(context, status=201)
+        return Response(body, status=201)
