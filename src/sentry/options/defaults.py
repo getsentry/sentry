@@ -3471,13 +3471,13 @@ register(
 
 # Database field encryption method
 # Supported values:
-# - 'plaintext': No encryption (default)
-# - 'fernet': Fernet symmetric encryption
+# - 'plaintext': No encryption
+# - 'fernet': Fernet symmetric encryption (default)
 # - 'keysets': (Future) Google Tink keysets for key rotation
 register(
     "database.encryption.method",
     type=String,
-    default="plaintext",
+    default="fernet",
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
