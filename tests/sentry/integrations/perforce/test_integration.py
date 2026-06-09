@@ -187,7 +187,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
                 "password": "testpass",
             },
         )
-        return integration.get_installation(self.organization.id)  # type: ignore[assignment]
+        installation = integration.get_installation(self.organization.id)
+        assert isinstance(installation, PerforceIntegration)
+        return installation
 
     def test_format_source_url_swarm_viewer_changelist_branch(self) -> None:
         """
