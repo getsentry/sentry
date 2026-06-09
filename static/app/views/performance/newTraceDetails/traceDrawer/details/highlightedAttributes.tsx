@@ -17,7 +17,10 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
-import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
+import {
+  NegativeCostInfo,
+  TOKEN_TROUBLESHOOTING_URL,
+} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
@@ -435,9 +438,6 @@ function HighlightedContextUtilization({
 
   return <InfoText title={tooltipContent}>{inlineText}</InfoText>;
 }
-
-const TOKEN_TROUBLESHOOTING_URL =
-  'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
 
 const TokensTooltipTitle = styled('div')`
   display: grid;

@@ -6,7 +6,7 @@ import {IconWarning} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 
-const TOKEN_TROUBLESHOOTING_URL =
+export const TOKEN_TROUBLESHOOTING_URL =
   'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
 
 interface NegativeCostInfoProps {
@@ -19,7 +19,7 @@ interface NegativeCostInfoProps {
  */
 export function NegativeCostInfo({cost}: NegativeCostInfoProps) {
   return (
-    <Flex align="center" gap="xs">
+    <Flex display="inline-flex" align="center" gap="xs">
       <IconWarning legacySize="1em" variant="warning" />
       <InfoText
         variant="warning"
