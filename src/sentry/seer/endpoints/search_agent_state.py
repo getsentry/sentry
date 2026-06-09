@@ -15,7 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
-from sentry.seer.endpoints.utils import SeerRunResolutionStatus, resolve_seer_run
+from sentry.seer.endpoints.utils import resolve_seer_run_state_id
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
@@ -106,16 +106,9 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        resolution = resolve_seer_run(run_id, organization)
-        if resolution.status is SeerRunResolutionStatus.INVALID:
-            return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
-        if resolution.status is SeerRunResolutionStatus.NOT_FOUND:
-            return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
-        if resolution.status is SeerRunResolutionStatus.FAILED:
-            return Response({"session": {"status": "error"}})
-        if resolution.status is SeerRunResolutionStatus.PENDING:
-            return Response({"session": {"status": "processing"}})
-        seer_run_id = resolution.seer_run_state_id
+        seer_run_id, error_response = resolve_seer_run_state_id(run_id, organization)
+        if error_response is not None:
+            return error_response
 
         try:
             viewer_context = SeerViewerContext(
