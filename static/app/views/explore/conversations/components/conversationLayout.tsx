@@ -1,12 +1,12 @@
 import type React from 'react';
 import {useRef} from 'react';
-import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
@@ -14,45 +14,6 @@ const LEFT_PANEL_MIN = 400;
 const RIGHT_PANEL_MIN = 400;
 const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
-
-/**
- * Minimal resize divider matching the trace drawer style:
- * a 1px border line with an invisible wider hit area for dragging.
- */
-const BorderDivider = styled(
-  ({
-    icon: _icon,
-    ...props
-  }: {
-    'data-is-held': boolean;
-    'data-slide-direction': 'leftright' | 'updown';
-    onDoubleClick: React.MouseEventHandler<HTMLElement>;
-    onMouseDown: React.MouseEventHandler<HTMLElement>;
-    icon?: React.ReactNode;
-  }) => <div {...props} />
-)`
-  width: ${DIVIDER_WIDTH}px;
-  height: 100%;
-  position: relative;
-  user-select: none;
-  background: ${p => p.theme.tokens.border.primary};
-
-  /* Invisible wider hit area for dragging */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -5px;
-    width: 11px;
-    cursor: ew-resize;
-    z-index: 1;
-  }
-
-  &[data-is-held='true'] {
-    background: ${p => p.theme.tokens.border.accent.moderate};
-  }
-`;
 
 /**
  * Resizable two-column layout for conversation views.
@@ -71,30 +32,46 @@ export function ConversationSplitLayout({
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
-  const hasSize = width > 0;
-  const maxLeft = Math.max(LEFT_PANEL_MIN, width - RIGHT_PANEL_MIN - DIVIDER_WIDTH);
-  const defaultLeft = Math.min(
-    maxLeft,
-    Math.max(LEFT_PANEL_MIN, (width - DIVIDER_WIDTH) * 0.5)
-  );
-
+  // Wait for the container to be measured before mounting the SplitPanel.
+  // useLocalStorageState captures its default on first mount, so we need
+  // width > 0 to compute a sensible half-width default for fresh visits.
   return (
     <Flex ref={measureRef} flex="1" minHeight="0" overflow="hidden">
-      {hasSize ? (
-        <SplitPanel
-          availableSize={width}
-          sizeStorageKey={sizeStorageKey}
-          SplitDivider={BorderDivider}
-          left={{
-            content: left,
-            default: defaultLeft,
-            min: LEFT_PANEL_MIN,
-            max: maxLeft,
-          }}
-          right={right}
-        />
+      {width > 0 ? (
+        <MeasuredSplitPanel width={width} sizeStorageKey={sizeStorageKey}>
+          {{left, right}}
+        </MeasuredSplitPanel>
       ) : null}
     </Flex>
+  );
+}
+
+function MeasuredSplitPanel({
+  children: {left, right},
+  sizeStorageKey,
+  width,
+}: {
+  children: {left: React.ReactNode; right: React.ReactNode};
+  sizeStorageKey: string;
+  width: number;
+}) {
+  // The sized pane's max is derived inside SplitPanel from `fillMinSize`, so we
+  // only need a sensible half-width default here.
+  const defaultLeft = Math.max(LEFT_PANEL_MIN, (width - DIVIDER_WIDTH) * 0.5);
+
+  const [storedSize, setStoredSize] = useLocalStorageState(sizeStorageKey, defaultLeft);
+
+  return (
+    <SplitPanel
+      orientation="horizontal"
+      defaultSize={defaultLeft}
+      initialSize={storedSize}
+      minSize={LEFT_PANEL_MIN}
+      fillMinSize={RIGHT_PANEL_MIN}
+      onResizeEnd={({endSize}) => setStoredSize(endSize)}
+      sized={left}
+      fill={right}
+    />
   );
 }
 
