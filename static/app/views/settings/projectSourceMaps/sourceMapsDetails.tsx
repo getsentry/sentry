@@ -230,6 +230,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
   return (
     <Fragment>
       <SettingsPageHeader
+        marginBottom="xl"
         title={isDebugIdBundle ? bundleId : t('Release Bundle')}
         subtitle={!isDebugIdBundle && <VersionAndDetails>{bundleId}</VersionAndDetails>}
         action={

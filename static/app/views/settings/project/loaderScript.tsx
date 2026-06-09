@@ -54,6 +54,7 @@ export default function ProjectLoaderScript() {
   return (
     <Fragment>
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Loader Script')}
         subtitle={tct(
           'The Loader Script is the easiest way to initialize the Sentry SDK. The Loader Script automatically keeps your Sentry SDK up to date and offers configuration for different Sentry features. [docsLink:Learn more about the Loader Script]. Note: The Loader Script is bound to a Client Key (DSN), to create a new Script, go to the [clientKeysLink:Client Keys page].',

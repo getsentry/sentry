@@ -150,6 +150,7 @@ function OrganizationDeveloperSettings() {
     <div>
       <SentryDocumentTitle title={t('Custom Integrations')} orgSlug={organization.slug} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Custom Integrations')}
         subtitle={
           <Fragment>

@@ -79,6 +79,7 @@ export default function ProjectUserFeedback() {
     <FormSearch route="/settings/:orgId/projects/:projectId/user-feedback/">
       <SentryDocumentTitle title={t('User Feedback')} projectSlug={project.slug}>
         <SettingsPageHeader
+          marginBottom="xl"
           title={t('User Feedback')}
           action={
             <Button variant="primary" size="md" onClick={handleClick}>

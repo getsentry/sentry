@@ -169,6 +169,7 @@ function OrganizationAuthTokensIndex() {
             orgSlug={organization.slug}
           />
           <SettingsPageHeader
+            marginBottom="xl"
             title={t('Organization Tokens')}
             action={createNewToken}
             subtitle={

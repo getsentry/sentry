@@ -95,6 +95,7 @@ export default function ProjectTags() {
         title={routeTitleGen(t('Tags & Context'), project.slug, false)}
       />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Tags & Context')}
         subtitle={t(
           'Setup Highlights to promote your event data to the top of the issue page for quicker debugging.'

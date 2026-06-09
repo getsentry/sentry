@@ -128,6 +128,7 @@ export default function ProjectDebugSymbols() {
   return (
     <SentryDocumentTitle title={routeTitleGen(t('Debug Files'), project.slug, false)}>
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Debug Information Files')}
         subtitle={t(`
           Debug information files are used to convert addresses and minified

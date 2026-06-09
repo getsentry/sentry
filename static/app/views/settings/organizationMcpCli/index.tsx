@@ -17,6 +17,7 @@ export default function OrganizationMcpCli() {
     <Fragment>
       <SentryDocumentTitle title={t('MCP & CLI')} orgSlug={organization.slug} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('MCP & CLI')}
         subtitle={t(
           'Connect to Sentry from AI-powered development tools and your terminal.'

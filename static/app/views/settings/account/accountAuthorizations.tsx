@@ -69,6 +69,7 @@ function AccountAuthorizations() {
   return (
     <SentryDocumentTitle title={t('Approved Applications')}>
       <SettingsPageHeader
+        marginBottom="xl"
         title="Authorized Applications"
         subtitle={tct(
           'You can manage your own applications via the [link:API dashboard].',

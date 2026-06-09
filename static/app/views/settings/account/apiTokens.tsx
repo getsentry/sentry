@@ -111,6 +111,7 @@ function ApiTokens() {
   return (
     <SentryDocumentTitle title={PAGE_TITLE}>
       <SettingsPageHeader
+        marginBottom="xl"
         title={PAGE_TITLE}
         action={action}
         subtitle={

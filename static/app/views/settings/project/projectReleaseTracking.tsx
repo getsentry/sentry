@@ -132,6 +132,7 @@ export default function ProjectReleaseTracking() {
   return (
     <SentryDocumentTitle title={t('Releases')} projectSlug={project.slug}>
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Release Tracking')}
         subtitle={t(
           'Configure release tracking for this project to automatically record new releases of your application.'

@@ -255,6 +255,7 @@ export default function ProjectIssueGrouping() {
   return (
     <SentryDocumentTitle title={routeTitleGen(t('Issue Grouping'), project.slug, false)}>
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Issue Grouping')}
         subtitle={tct(
           'All events have a fingerprint. Events with the same fingerprint are grouped together into an issue. To learn more about issue grouping, [link: read the docs].',

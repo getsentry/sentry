@@ -39,6 +39,7 @@ export default function SeerAutomation() {
     <Fragment>
       <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Seer Automation')}
         subtitle={t(
           "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the standard rates for Seer's Issue Scan and Issue Fix."

@@ -150,6 +150,7 @@ export default function AccountSecurityDetails() {
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
+        marginBottom="xl"
         title={
           <AuthenticatorHeader
             name={authenticator.name}

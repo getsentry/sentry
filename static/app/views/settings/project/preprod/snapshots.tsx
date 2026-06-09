@@ -25,6 +25,7 @@ export default function SnapshotSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Snapshots')} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Snapshots')}
         subtitle={t('Configure status checks and PR comments for snapshot testing.')}
       />

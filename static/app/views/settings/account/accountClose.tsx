@@ -147,6 +147,7 @@ function AccountClose() {
     <div>
       <SentryDocumentTitle title={t('Close Account')} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Close Account')}
         subtitle={
           <Fragment>

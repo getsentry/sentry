@@ -439,6 +439,7 @@ export default function AccountSecurityEnroll() {
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
+        marginBottom="xl"
         title={<AuthenticatorHeader name={authenticator.name} isActive={isActive} />}
         action={
           authenticator.isEnrolled &&

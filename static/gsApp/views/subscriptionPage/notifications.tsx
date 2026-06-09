@@ -79,6 +79,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
         orgSlug={organization.slug}
       />
       <SettingsPageHeader
+        marginBottom="xl"
         title={t('Manage Spend Notifications')}
         subtitle={t(
           "Receive notifications when your organization's usage exceeds a threshold"

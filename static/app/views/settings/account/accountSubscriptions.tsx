@@ -70,6 +70,7 @@ function AccountSubscriptions() {
     <div>
       <SentryDocumentTitle title={subscriptionText} />
       <SettingsPageHeader
+        marginBottom="xl"
         title={subscriptionText}
         subtitle={
           <Stack gap="md">

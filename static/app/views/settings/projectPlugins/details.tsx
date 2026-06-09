@@ -200,7 +200,11 @@ function PluginDetails() {
   return (
     <div>
       <SentryDocumentTitle title={pluginDetails.name} projectSlug={project.slug} />
-      <SettingsPageHeader title={pluginDetails.name} action={renderActions()} />
+      <SettingsPageHeader
+        marginBottom="xl"
+        title={pluginDetails.name}
+        action={renderActions()}
+      />
       <div className="row">
         <div className="col-md-7">
           <PluginConfig
