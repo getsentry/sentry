@@ -109,9 +109,6 @@
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/": {
       "$ref": "paths/events/project-issues.json"
     },
-    "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/tags/{key}/values/": {
-      "$ref": "paths/events/tag-values.json"
-    },
     "/api/0/organizations/{organization_id_or_slug}/releases/": {
       "$ref": "paths/releases/organization-releases.json"
     },
