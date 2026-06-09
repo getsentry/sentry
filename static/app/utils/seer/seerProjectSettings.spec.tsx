@@ -229,7 +229,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       );
     });
 
-    it('sends automation_tuning=medium when stopping_point=plan', async () => {
+    it('sends automation_tuning=medium when stopping_point=solution', async () => {
       const mock = MockApiClient.addMockResponse({
         url: settingsUrl,
         method: 'PUT',
@@ -246,12 +246,12 @@ describe('getMutateSeerProjectSettingsOptions', () => {
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {stoppingPoint: 'plan', automationTuning: 'medium'},
+          data: {stoppingPoint: 'solution', automationTuning: 'medium'},
         })
       );
     });
 
-    it('sends automation_tuning=medium when stopping_point=create_pr', async () => {
+    it('sends automation_tuning=medium when stopping_point=code_changes', async () => {
       const mock = MockApiClient.addMockResponse({
         url: settingsUrl,
         method: 'PUT',
@@ -268,7 +268,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
         settingsUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {stoppingPoint: 'create_pr', automationTuning: 'medium'},
+          data: {stoppingPoint: 'code_changes', automationTuning: 'medium'},
         })
       );
     });
@@ -519,7 +519,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
         bulkUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {agent: 'seer', query: 'id:[1,2]'},
+          data: {agent: 'seer', query: 'id:1 id:2'},
         })
       );
     });
@@ -573,7 +573,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
           data: {
             agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
             integrationId: '123',
-            query: 'id:[1]',
+            query: 'id:1',
           },
         })
       );
@@ -599,7 +599,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
         bulkUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {automationTuning: 'off', query: 'id:[1]'},
+          data: {automationTuning: 'off', query: 'id:1'},
         })
       );
     });
@@ -627,7 +627,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
           data: {
             stoppingPoint: 'open_pr',
             automationTuning: 'medium',
-            query: 'id:[1]',
+            query: 'id:1',
           },
         })
       );

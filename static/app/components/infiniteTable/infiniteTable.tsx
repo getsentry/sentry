@@ -101,6 +101,8 @@ function Body<TData = unknown, TSelect = unknown>({
     virtualizer.measure();
   }, [virtualizer]);
 
+  const columns = useContext(ColumnContext);
+
   return (
     <BodyInner style={{height: virtualizer.getTotalSize()}}>
       {virtualizer.getVirtualItems().map((virtualItem, index, arr) => {
@@ -111,7 +113,7 @@ function Body<TData = unknown, TSelect = unknown>({
             key={virtualItem.index}
             data-index={virtualItem.index}
             ref={virtualizer.measureElement}
-            columns="max-content 2fr max-content repeat(2, 1fr)"
+            columns={columns}
             align="center"
             style={{transform: `translateY(${virtualItem.start}px)`}}
             role="row"
