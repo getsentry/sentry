@@ -26,13 +26,13 @@ from sentry.issues.groupactionlogentry import GroupActionLogEntry
 RECENT_EXPIRY_SECONDS = 30 * 24 * 60 * 60  # 1 month
 
 
-@aggregator(outputs=(VIEW_COUNT,), scope=(GroupActionType.VIEW,))
+@aggregator((VIEW_COUNT,), scope=(GroupActionType.VIEW,))
 def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
 
 
 @aggregator(
-    outputs=(STATUS, CLOSING_PRS),
+    (STATUS, CLOSING_PRS),
     scope=(
         GroupActionType.RESOLVE,
         GroupActionType.UNRESOLVE,
@@ -55,8 +55,8 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 
 
 @aggregator(
+    (LAST_OPENED,),
     deps=(STATUS,),
-    outputs=(LAST_OPENED,),
     scope=(GroupActionType.UNRESOLVE,),
 )
 def track_last_opened(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
@@ -68,7 +68,7 @@ def track_last_opened(state: StateView, entry: GroupActionLogEntry) -> Aggregato
     return emit(LAST_OPENED.value(entry.date_added.timestamp()))
 
 
-@aggregator(outputs=(RECENT_VIEWERS,), scope=(GroupActionType.VIEW,))
+@aggregator((RECENT_VIEWERS,), scope=(GroupActionType.VIEW,))
 def track_recent_viewers(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     if entry.actor_type != GroupActorType.USER:
         return None
@@ -84,8 +84,8 @@ def track_recent_viewers(state: StateView, entry: GroupActionLogEntry) -> Aggreg
 
 
 @aggregator(
+    (WORKING_ON,),
     deps=(STATUS, LAST_OPENED, RECENT_VIEWERS),
-    outputs=(WORKING_ON,),
 )
 def compute_working_on(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current = state[WORKING_ON]
@@ -116,7 +116,7 @@ def compute_working_on(state: StateView, entry: GroupActionLogEntry) -> Aggregat
 
 
 @aggregator(
-    outputs=(AUTOFIX_PRS,),
+    (AUTOFIX_PRS,),
     scope=(GroupActionType.AUTOFIX_PR_CREATED,),
 )
 def track_autofix_prs(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
@@ -138,8 +138,8 @@ def track_autofix_prs(state: StateView, entry: GroupActionLogEntry) -> Aggregato
 
 
 @aggregator(
+    (WAS_AUTOFIXED,),
     deps=(CLOSING_PRS, AUTOFIX_PRS),
-    outputs=(WAS_AUTOFIXED,),
 )
 def compute_was_autofixed(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     if state[WAS_AUTOFIXED]:
@@ -206,8 +206,8 @@ _ACTION_TO_MIN_PROGRESS: dict[int, Progress] = {
 
 
 @aggregator(
+    (PROGRESS, LAST_PROGRESSED_AT),
     deps=(STATUS,),
-    outputs=(PROGRESS, LAST_PROGRESSED_AT),
 )
 def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current = state[PROGRESS]

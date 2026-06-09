@@ -217,11 +217,14 @@ class Aggregator:
 
 
 def aggregator(
+    outputs: tuple[Feature[Any], ...],
+    *,
     deps: tuple[Feature[Any], ...] = (),
-    outputs: tuple[Feature[Any], ...] = (),
     scope: tuple[Enum, ...] | None = None,
 ) -> Callable[[AggregatorFn], Aggregator]:
     """Decorator to create an Aggregator. `scope` accepts enum members directly."""
+    if not outputs:
+        raise ValueError("aggregator must declare at least one output")
     raw_scope = tuple(s.value for s in scope) if scope is not None else None
 
     def decorator(fn: AggregatorFn) -> Aggregator:

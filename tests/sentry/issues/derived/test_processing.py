@@ -500,7 +500,7 @@ class ProcessGroupLogTest(TestCase):
 def test_mutation_checking_catches_in_place_mutation() -> None:
     ITEMS = Feature[list[str]]("items", default_factory=list)
 
-    @aggregator(outputs=(ITEMS,))
+    @aggregator((ITEMS,))
     def bad_mutator(state: StateView, entry: object) -> AggregatorResult:
         state[ITEMS].append("oops")
         return None
