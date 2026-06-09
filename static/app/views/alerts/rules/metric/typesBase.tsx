@@ -60,6 +60,11 @@ export enum AlertRuleSensitivity {
 export enum AlertRuleSeasonality {
   AUTO = 'auto',
 }
+/**
+ * This is not a real aggregate as crash-free sessions/users can be only calculated on frontend by comparing the count of sessions broken down by status
+ * It is here nevertheless to shoehorn sessions dataset into existing alerts codebase
+ * This will most likely be revised as we introduce the metrics dataset
+ */
 export enum SessionsAggregate {
   CRASH_FREE_SESSIONS = 'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
   CRASH_FREE_USERS = 'percentage(users_crashed, users) AS _crash_rate_alert_aggregate',
@@ -129,6 +134,9 @@ export enum TargetType {
   // A Sentry App instead of any of the above.
   SENTRY_APP = 'sentry_app',
 }
+/**
+ * This is the user's configured action
+ */
 export type Action = UnsavedAction & Partial<SavedActionFields>;
 type SavedActionFields = {
   /**

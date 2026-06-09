@@ -3,6 +3,8 @@ export type Sort = {
   field: string;
   kind: SortKind;
 };
+// Contains the URL field value & the related table column width.
+// Can be parsed into a Column using explodeField()
 export type Field = {
   field: string;
   // When an alias is defined for a field, it will be shown as a column name in the table visualization.

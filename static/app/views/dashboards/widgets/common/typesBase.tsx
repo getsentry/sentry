@@ -16,11 +16,20 @@ type AttributeValueType =
 type AttributeValueUnit = DataUnit | null;
 export type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
+/**
+ * Right now the only kind of incompleteness reason from the backend is ingestion delay, but others are planned or possible (e.g., falling out of retention)
+ */
 export type IncompleteReason = 'INCOMPLETE_BUCKET';
+/**
+ * Shared base type for grouping information.
+ * The `value` can sometimes be an array, because some datasets support array values.
+ * e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
+ */
 type GroupBy = {
   key: string;
   value: string | number | boolean | null | Array<string | null> | Array<number | null>;
 };
+// Aliases - allows divergence later if unique cases arise
 export type TimeSeriesGroupBy = GroupBy;
 export type CategoricalGroupBy = GroupBy;
 export type TabularValueType = AttributeValueType | null;
@@ -58,9 +67,22 @@ export type Release = {
   version: string;
 };
 export type LegendSelection = Record<string, boolean>;
+/**
+ * The type of values in a categorical series.
+ * This is the broadest set of types supported - any value type that can come
+ * from the API. The plottable layer constrains this to plottable types.
+ */
 type CategoricalValueType = AttributeValueType;
+/**
+ * The type of a category in a categorical series.
+ * Matches the possible values in a TabularRow, since the source data is from
+ * the same endpoint
+ */
 export type CategoricalItemCategory = TabularRowValue;
 export type CategoricalItemValue = number | null;
+/**
+ * Metadata for a categorical series.
+ */
 export interface CategoricalSeriesMeta {
   /**
    * The type of the values (e.g., "duration", "number")
@@ -71,8 +93,16 @@ export interface CategoricalSeriesMeta {
    */
   valueUnit: DataUnit | null;
 }
+/**
+ * The type of values in a heatmap series.
+ * This is the broadest set of types supported - any value type that can come
+ * from the API. The plottable layer constrains this to plottable types.
+ */
 type HeatMapValueType = AttributeValueType;
 export type HeatMapValueUnit = AttributeValueUnit;
+/**
+ * A single item in a heat map series.
+ */
 interface HeatMapItem {
   /**
    * The X-axis value
@@ -117,7 +147,13 @@ interface NamedMeta {
    */
   name: string;
 }
+/**
+ * Metadata for a heat map series X-axis. Right now this axis is always time.
+ */
 interface HeatMapSeriesXAxisMeta extends NamedMeta, BoundedMeta, BucketedMeta {}
+/**
+ * Metadata for a heat map series Y axis. Right now this is the only axis that is configurable by the user, so it returns the value type and unit.
+ */
 interface HeatMapSeriesYAxisMeta extends NamedMeta, BoundedMeta, BucketedMeta {
   /**
    * The type of the values (e.g., "duration", "number")
@@ -128,12 +164,21 @@ interface HeatMapSeriesYAxisMeta extends NamedMeta, BoundedMeta, BucketedMeta {
    */
   valueUnit: DataUnit | null;
 }
+/**
+ * Metadata for a heat map series Z axis. Right now this is always a count.
+ */
 interface HeatMapSeriesZAxisMeta extends NamedMeta, BoundedMeta {}
+/**
+ * Metadata for a heat map series.
+ */
 interface HeatMapSeriesMeta {
   xAxis: HeatMapSeriesXAxisMeta;
   yAxis: HeatMapSeriesYAxisMeta;
   zAxis: HeatMapSeriesZAxisMeta;
 }
+/**
+ * A heat map data series for heat map visualizations.
+ */
 export interface HeatMapSeries {
   /**
    * Metadata about the series.

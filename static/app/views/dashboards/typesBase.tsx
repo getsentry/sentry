@@ -38,6 +38,8 @@ export enum WidgetType {
   TRACEMETRICS = 'tracemetrics',
   PREPROD_APP_SIZE = 'preprod-app-size',
 }
+// These only pertain to on-demand warnings at this point in time
+// Since they are the only soft-validation we do.
 type WidgetWarning = Record<string, OnDemandExtractionState>;
 type WidgetQueryWarning = null | OnDemandExtractionState;
 export interface ValidateWidgetResponse {
@@ -71,6 +73,7 @@ export type WidgetChangedReason = {
   }> | null;
   selected_columns: string[];
 };
+// We store an explicit set of keys in the backend now
 export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
   minH: number;
 };
@@ -95,6 +98,7 @@ export enum DashboardState {
   PREVIEW = 'preview',
   EMBEDDED = 'embedded',
 }
+// where we launch the dashboard widget from
 export enum DashboardWidgetSource {
   DISCOVERV2 = 'discoverv2',
   DASHBOARDS = 'dashboards',

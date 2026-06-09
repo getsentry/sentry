@@ -22,11 +22,6 @@ export const EAP_EXTRAPOLATION_MODE_MAP = {
   [ExtrapolationMode.UNKNOWN]: 'sampleWeighted',
 };
 
-/**
- * This is not a real aggregate as crash-free sessions/users can be only calculated on frontend by comparing the count of sessions broken down by status
- * It is here nevertheless to shoehorn sessions dataset into existing alerts codebase
- * This will most likely be revised as we introduce the metrics dataset
- */
 // Form values for creating a new metric alert rule
 export type UnsavedMetricRule = {
   aggregate: string;
@@ -150,7 +145,3 @@ export type MetricActionTemplate = {
    */
   status?: 'unpublished' | 'published' | 'internal';
 };
-
-/**
- * This is the user's configured action
- */

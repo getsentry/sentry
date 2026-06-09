@@ -58,15 +58,6 @@ export type TimeSeriesItem = {
 };
 
 /**
- * Right now the only kind of incompleteness reason from the backend is ingestion delay, but others are planned or possible (e.g., falling out of retention)
- */
-/**
- * Shared base type for grouping information.
- * The `value` can sometimes be an array, because some datasets support array values.
- * e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
- */
-// Aliases - allows divergence later if unique cases arise
-/**
  * Time series data. Unlike other time series abstractions, this is tightly supported by both the backend and the frontend. The `/events-timeseries/` endpoint uses this as the respone data, and `TimeSeriesWidgetVisualization` plottable objects accept this as the backing data.
  */
 export type TimeSeries = {
@@ -85,16 +76,6 @@ export type TimeSeries = {
 export type Thresholds = ThresholdsConfig;
 
 /**
- * The type of values in a categorical series.
- * This is the broadest set of types supported - any value type that can come
- * from the API. The plottable layer constrains this to plottable types.
- */
-/**
- * The type of a category in a categorical series.
- * Matches the possible values in a TabularRow, since the source data is from
- * the same endpoint
- */
-/**
  * A single item in a categorical bar chart series.
  */
 export interface CategoricalItem {
@@ -108,9 +89,6 @@ export interface CategoricalItem {
   value: CategoricalItemValue;
 }
 
-/**
- * Metadata for a categorical series.
- */
 /**
  * A categorical data series for bar charts. Unlike time series,
  * categorical series have discrete labels on the X axis rather than timestamps.
@@ -133,27 +111,3 @@ export interface CategoricalSeries {
    */
   groupBy?: CategoricalGroupBy[] | null;
 }
-
-/**
- * The type of values in a heatmap series.
- * This is the broadest set of types supported - any value type that can come
- * from the API. The plottable layer constrains this to plottable types.
- */
-/**
- * A single item in a heat map series.
- */
-/**
- * Metadata for a heat map series X-axis. Right now this axis is always time.
- */
-/**
- * Metadata for a heat map series Y axis. Right now this is the only axis that is configurable by the user, so it returns the value type and unit.
- */
-/**
- * Metadata for a heat map series Z axis. Right now this is always a count.
- */
-/**
- * Metadata for a heat map series.
- */
-/**
- * A heat map data series for heat map visualizations.
- */

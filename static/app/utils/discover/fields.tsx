@@ -38,8 +38,6 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from './types';
 import {DiscoverDatasets} from './typesBase';
 
-// Contains the URL field value & the related table column width.
-// Can be parsed into a Column using explodeField()
 // ColumnType is kept as a string literal union instead of an enum due to the countless uses of it and refactoring would take huge effort.
 export type ColumnType = `${Exclude<FieldValueType, FieldValueType.NEVER>}`;
 
