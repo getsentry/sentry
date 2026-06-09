@@ -22,8 +22,8 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getShortEventId} from 'sentry/utils/events';
-import {type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {
   type ReplayBulkDeletePayload,
