@@ -361,9 +361,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         },
         examples=SCIMExamples.QUERY_INDIVIDUAL_TEAM,
     )
-    def get(
+    def get(  # type: ignore[override]  # convert_args changed shape from baseclass
         self, request: Request, organization: Organization, team: Team
-    ) -> Response[OrganizationTeamSCIMSerializerResponse]:  # type: ignore[override]  # convert_args changed shape from baseclass
+    ) -> Response[OrganizationTeamSCIMSerializerResponse]:
         """
         Query an individual team with a SCIM Group GET Request.
         - Note that the members field will only contain up to 10000 members.
