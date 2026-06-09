@@ -39,10 +39,10 @@ export type TracePreferencesState = {
 
 export type StoredTracePreferences = {
   autogroup: TracePreferencesState['autogroup'];
-  compressed_timeline: boolean;
   drawer_layout: TraceLayoutPreferences;
   missing_instrumentation: boolean;
   compressedTimeline?: boolean;
+  compressed_timeline?: boolean;
 };
 
 export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
@@ -144,8 +144,9 @@ function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
         }
         if (!isValidCompressedTimeline(parsed)) {
           parsed.compressed_timeline =
-            parsed.compressedTimeline ??
-            DEFAULT_TRACE_VIEW_PREFERENCES.compressedTimeline;
+            typeof parsed.compressedTimeline === 'boolean'
+              ? parsed.compressedTimeline
+              : undefined;
         }
         return parsed;
       }
@@ -162,13 +163,14 @@ export function getInitialTracePreferences(
   default_state: TracePreferencesState
 ): TracePreferencesState {
   const stored = loadTraceViewPreferences(key);
-  const preferences = default_state;
+  const preferences = {...default_state};
 
   if (stored) {
     preferences.autogroup = stored.autogroup;
     preferences.missing_instrumentation = stored.missing_instrumentation;
-    preferences.compressedTimeline = stored.compressed_timeline;
     preferences.layout = stored.drawer_layout;
+    preferences.compressedTimeline =
+      stored.compressed_timeline ?? default_state.compressedTimeline;
   }
 
   return preferences;

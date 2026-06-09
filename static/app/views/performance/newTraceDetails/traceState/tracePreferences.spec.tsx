@@ -13,7 +13,7 @@ describe('tracePreferences', () => {
     expect(DEFAULT_TRACE_VIEW_PREFERENCES.compressedTimeline).toBe(true);
   });
 
-  it('backfills compressed timeline for stored preferences', () => {
+  it('uses the main trace compressed timeline default when stored preferences omit it', () => {
     localStorage.setItem(
       'trace-waterfall-preferences',
       JSON.stringify({
@@ -28,6 +28,24 @@ describe('tracePreferences', () => {
         ...DEFAULT_TRACE_VIEW_PREFERENCES,
       }).compressedTimeline
     ).toBe(true);
+  });
+
+  it('uses the provided compressed timeline default when stored preferences omit it', () => {
+    localStorage.setItem(
+      'trace-waterfall-preferences',
+      JSON.stringify({
+        drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
+        missing_instrumentation: false,
+        autogroup: {parent: true, sibling: true},
+      })
+    );
+
+    expect(
+      getInitialTracePreferences('trace-waterfall-preferences', {
+        ...DEFAULT_TRACE_VIEW_PREFERENCES,
+        compressedTimeline: false,
+      }).compressedTimeline
+    ).toBe(false);
   });
 
   it('loads stored compressed timeline preferences', () => {
@@ -48,6 +66,25 @@ describe('tracePreferences', () => {
     ).toBe(false);
   });
 
+  it('uses the stored snake_case compressed timeline value over the provided default', () => {
+    localStorage.setItem(
+      'trace-waterfall-preferences',
+      JSON.stringify({
+        drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
+        missing_instrumentation: false,
+        autogroup: {parent: true, sibling: true},
+        compressed_timeline: true,
+      })
+    );
+
+    expect(
+      getInitialTracePreferences('trace-waterfall-preferences', {
+        ...DEFAULT_TRACE_VIEW_PREFERENCES,
+        compressedTimeline: false,
+      }).compressedTimeline
+    ).toBe(true);
+  });
+
   it('loads legacy camelCase compressed timeline preferences', () => {
     localStorage.setItem(
       'trace-waterfall-preferences',
@@ -66,6 +103,25 @@ describe('tracePreferences', () => {
     ).toBe(false);
   });
 
+  it('uses the provided compressed timeline default when the stored value is invalid', () => {
+    localStorage.setItem(
+      'trace-waterfall-preferences',
+      JSON.stringify({
+        drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
+        missing_instrumentation: false,
+        autogroup: {parent: true, sibling: true},
+        compressed_timeline: 'true',
+      })
+    );
+
+    expect(
+      getInitialTracePreferences('trace-waterfall-preferences', {
+        ...DEFAULT_TRACE_VIEW_PREFERENCES,
+        compressedTimeline: false,
+      }).compressedTimeline
+    ).toBe(false);
+  });
+
   it('updates compressed timeline preference', () => {
     expect(
       tracePreferencesReducer(DEFAULT_TRACE_VIEW_PREFERENCES, {
@@ -73,5 +129,32 @@ describe('tracePreferences', () => {
         payload: false,
       }).compressedTimeline
     ).toBe(false);
+  });
+
+  it('does not mutate the provided default state when stored preferences load', () => {
+    const defaultState = {
+      ...DEFAULT_TRACE_VIEW_PREFERENCES,
+      compressedTimeline: false,
+    };
+
+    localStorage.setItem(
+      'trace-waterfall-preferences',
+      JSON.stringify({
+        drawer_layout: 'drawer bottom',
+        missing_instrumentation: true,
+        autogroup: {parent: false, sibling: false},
+        compressed_timeline: true,
+      })
+    );
+
+    const preferences = getInitialTracePreferences(
+      'trace-waterfall-preferences',
+      defaultState
+    );
+
+    expect(preferences.compressedTimeline).toBe(true);
+    expect(preferences.layout).toBe('drawer bottom');
+    expect(defaultState.compressedTimeline).toBe(false);
+    expect(defaultState.layout).toBe(DEFAULT_TRACE_VIEW_PREFERENCES.layout);
   });
 });
