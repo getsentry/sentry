@@ -29,6 +29,7 @@ from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.registry import invoke_workflow_activity_handlers
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -85,6 +86,7 @@ class ActivityManager(BaseManager["Activity"]):
         data: Mapping[str, Any] | None = None,
         send_notification: bool = True,
         datetime: datetime | None = None,
+        detector_id: int | None = None,
     ) -> Activity:
         if user:
             user_id = user.id
@@ -102,6 +104,8 @@ class ActivityManager(BaseManager["Activity"]):
 
         if send_notification:
             activity.send_notification()
+
+        invoke_workflow_activity_handlers(group, activity, detector_id)
 
         return activity
 
