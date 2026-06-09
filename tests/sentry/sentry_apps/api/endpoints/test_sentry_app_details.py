@@ -821,6 +821,72 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert self.published_app.webhook_headers == []
 
     @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_reject_newline_injection(self) -> None:
+        # CR/LF in a header would let a caller smuggle extra headers / split the
+        # request when these are written to the outgoing webhook. The validator must
+        # reject them regardless of which line terminator is used.
+        for malicious in [
+            "X-Evil: value\r\nInjected: gotcha",
+            "X-Evil: value\nInjected: gotcha",
+            "X-Evil: value\rInjected: gotcha",
+        ]:
+            response = self.get_error_response(
+                self.published_app.slug,
+                webhookHeaders=[malicious],
+                status_code=400,
+            )
+            assert "webhookHeaders" in response.data
+            self.published_app.refresh_from_db()
+            assert self.published_app.webhook_headers == []
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_reserved_check_is_case_insensitive(self) -> None:
+        # The reserved-name guard normalizes with .lower(), so non-canonical casing
+        # must not slip a reserved header through.
+        for reserved in ["content-TYPE: text/plain", "HOST: evil.test", "SENTRY-HOOK-foo: x"]:
+            response = self.get_error_response(
+                self.published_app.slug,
+                webhookHeaders=[reserved],
+                status_code=400,
+            )
+            assert "webhookHeaders" in response.data
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_unmatched_masked_entry_dropped(self) -> None:
+        # A masked entry whose name matches no stored header can't be re-paired to a
+        # real value. It must be dropped rather than persisting the literal mask as a
+        # header value (which would then be sent on every outgoing webhook).
+        self.published_app.webhook_headers = ["Authorization: Bearer secret-token"]
+        self.published_app.save()
+
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[
+                f"Authorization: {MASKED_VALUE}",
+                f"X-Ghost: {MASKED_VALUE}",
+            ],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == ["Authorization: Bearer secret-token"]
+
+    @override_options({"staff.ga-rollout": True})
+    def test_webhook_headers_rename_while_masked_drops_entry(self) -> None:
+        # Documented limitation: renaming a header while leaving its value masked
+        # can't be matched by the new name, so the entry is dropped. This pins that
+        # behavior so any future change to it is a deliberate decision.
+        self.published_app.webhook_headers = ["Authorization: Bearer secret-token"]
+        self.published_app.save()
+
+        self.get_success_response(
+            self.published_app.slug,
+            webhookHeaders=[f"X-Renamed: {MASKED_VALUE}"],
+            status_code=200,
+        )
+        self.published_app.refresh_from_db()
+        assert self.published_app.webhook_headers == []
+
+    @override_options({"staff.ga-rollout": True})
     def test_members_cant_update(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             # create extra owner because we are demoting one
