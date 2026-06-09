@@ -198,6 +198,30 @@ describe('mapSeerResponseItem', () => {
     });
   });
 
+  it('maps the visualization interval when present', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'aggregates',
+        visualization: [{chart_type: ChartType.BAR, y_axes: ['count()'], interval: '1h'}],
+      })
+    ).toEqual({
+      query: 'span.op:db',
+      sort: '',
+      groupBys: [],
+      statsPeriod: '24h',
+      start: null,
+      end: null,
+      mode: 'aggregates',
+      visualizations: [{chartType: ChartType.BAR, yAxes: ['count()'], interval: '1h'}],
+    });
+  });
+
   it('leaves missing or invalid chart types undefined', () => {
     expect(
       mapSeerResponseItem(

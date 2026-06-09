@@ -17,6 +17,7 @@ interface SeerExploreQuery {
   query: string;
   sort: string;
   visualizes: BaseVisualize[];
+  interval?: string;
 }
 
 function getSeerExploreMode(result: AskSeerSearchQuery): Mode {
@@ -34,6 +35,15 @@ function getSeerVisualizes(
     chartType,
     yAxes,
   }));
+}
+
+// The chart uses a single interval (the `interval` URL param) shared across all
+// y-axes, but Seer returns it per visualization. Use the first interval Seer
+// provided.
+function getSeerInterval(
+  visualizations: readonly SeerVisualization[]
+): string | undefined {
+  return visualizations.find(({interval}) => Boolean(interval))?.interval ?? undefined;
 }
 
 export function getSeerExploreQuery({
@@ -57,6 +67,7 @@ export function getSeerExploreQuery({
     query: result.query,
     sort: result.sort,
     visualizes: getSeerVisualizes(result.visualizations),
+    interval: getSeerInterval(result.visualizations),
   };
 }
 

@@ -158,6 +158,7 @@ export function mapSeerResponseItem(
           ...(isChartType(visualization.chart_type)
             ? {chartType: visualization.chart_type}
             : {}),
+          ...(visualization.interval ? {interval: visualization.interval} : {}),
           yAxes: visualization.y_axes ?? [],
         }))
         .filter(visualization => visualization.yAxes.length > 0) ?? [],
