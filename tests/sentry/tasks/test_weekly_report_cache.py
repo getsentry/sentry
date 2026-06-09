@@ -1,6 +1,6 @@
 from sentry.tasks.summaries.weekly_report_cache import (
     _make_cache_key,
-    _write_project_metrics,
+    cache_project_metrics,
     read_project_metrics,
 )
 from sentry.testutils.cases import TestCase
@@ -15,7 +15,7 @@ class WeeklyReportCacheTest(TestCase):
         org_id = self.organization.id
         project = self.create_project(organization=self.organization)
 
-        _write_project_metrics(org_id, {project.id: {"e": 500, "t": 3000}})
+        cache_project_metrics(org_id, {project.id: {"e": 500, "t": 3000}})
 
         result = read_project_metrics(org_id=org_id, project_ids=[project.id])
 
@@ -32,14 +32,14 @@ class WeeklyReportCacheTest(TestCase):
         assert result == {}
 
     def test_write_empty_metrics_is_noop(self) -> None:
-        _write_project_metrics(self.organization.id, {})
+        cache_project_metrics(self.organization.id, {})
 
     def test_multiple_projects(self) -> None:
         org_id = self.organization.id
         p1 = self.create_project(organization=self.organization)
         p2 = self.create_project(organization=self.organization)
 
-        _write_project_metrics(
+        cache_project_metrics(
             org_id,
             {
                 p1.id: {"e": 100, "t": 200},
