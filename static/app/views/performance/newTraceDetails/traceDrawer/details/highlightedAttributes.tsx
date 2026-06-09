@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {StructuredData} from 'sentry/components/structuredEventData';
-import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -381,18 +380,15 @@ function HighlightedTokenAttributes({
 
   if (mismatch) {
     return (
-      <Flex align="center" gap="xs">
-        <IconWarning size="xs" variant="warning" />
-        <InfoText
-          variant="warning"
-          title={tct(
-            'Input and output token counts do not add up to the reported total. This may indicate an error in token reporting. [link:Learn more].',
-            {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
-          )}
-        >
-          {tokenSummary}
-        </InfoText>
-      </Flex>
+      <InfoText
+        variant="warning"
+        title={tct(
+          'Input and output token counts do not add up to the reported total. This may indicate an error in token reporting. [link:Learn more].',
+          {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
+        )}
+      >
+        {tokenSummary}
+      </InfoText>
     );
   }
 
