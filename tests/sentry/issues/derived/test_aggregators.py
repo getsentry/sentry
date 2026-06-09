@@ -23,6 +23,7 @@ from sentry.issues.derived.fields import (
     AUTOFIX_PRS,
     CLOSING_PRS,
     LAST_OPENED,
+    LAST_PROGRESSED_AT,
     PROGRESS,
     RECENT_VIEWERS,
     STATUS,
@@ -557,6 +558,65 @@ def test_progress_full_lifecycle() -> None:
     # New investigation
     state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
     assert state[PROGRESS] == Progress.TRIAGED
+
+
+# ---------------------------------------------------------------------------
+# last_progressed_at
+# ---------------------------------------------------------------------------
+
+
+def test_last_progressed_at_starts_none() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    assert state[LAST_PROGRESSED_AT] is None
+
+
+def test_last_progressed_at_set_on_assign() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    t = _ts(hour=1)
+    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN, date_added=t))
+    assert state[LAST_PROGRESSED_AT] == t
+
+
+def test_last_progressed_at_advances_with_progress() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    t1 = _ts(hour=1)
+    t2 = _ts(hour=2)
+    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN, date_added=t1))
+    assert state[LAST_PROGRESSED_AT] == t1
+    state = p.step(state, FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED, date_added=t2))
+    assert state[LAST_PROGRESSED_AT] == t2
+
+
+def test_last_progressed_at_unchanged_when_progress_unchanged() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    t1 = _ts(hour=1)
+    t2 = _ts(hour=2)
+    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN, date_added=t1))
+    # VIEW doesn't change progress
+    state = p.step(state, FakeEntry(type=GroupActionType.VIEW, date_added=t2))
+    assert state[LAST_PROGRESSED_AT] == t1
+
+
+def test_last_progressed_at_set_on_close() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    t = _ts(hour=1)
+    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE, date_added=t))
+    assert state[LAST_PROGRESSED_AT] == t
+
+
+def test_last_progressed_at_set_on_reopen() -> None:
+    p = Pipeline(resolve([PROGRESS], AGGREGATORS), version=1)
+    state = p.initial_state()
+    t1 = _ts(hour=1)
+    t2 = _ts(hour=2)
+    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE, date_added=t1))
+    state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE, date_added=t2))
+    assert state[LAST_PROGRESSED_AT] == t2
 
 
 # ---------------------------------------------------------------------------

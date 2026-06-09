@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import StrEnum
 
 from pydantic import BaseModel
@@ -58,3 +59,4 @@ CLOSING_PRS = Feature[frozenset[str]](
 WAS_AUTOFIXED = Feature[bool]("was_autofixed", default=False)
 
 PROGRESS = Feature[str | None]("progress", default=Progress.IDENTIFIED)
+LAST_PROGRESSED_AT = Feature[datetime | None]("last_progressed_at", default=None)

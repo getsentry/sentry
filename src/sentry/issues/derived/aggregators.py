@@ -3,6 +3,7 @@ from sentry.issues.derived.fields import (
     AUTOFIX_PRS,
     CLOSING_PRS,
     LAST_OPENED,
+    LAST_PROGRESSED_AT,
     PROGRESS,
     RECENT_VIEWERS,
     STATUS,
@@ -206,20 +207,21 @@ _ACTION_TO_MIN_PROGRESS: dict[int, Progress] = {
 
 @aggregator(
     deps=(STATUS,),
-    outputs=(PROGRESS,),
+    outputs=(PROGRESS, LAST_PROGRESSED_AT),
 )
 def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current = state[PROGRESS]
+    ts = entry.date_added
 
     # Closed issues have no progress.
     if state[STATUS] != IssueStatus.OPEN:
         if current is not None:
-            return emit(PROGRESS.value(None))
+            return emit(PROGRESS.value(None), LAST_PROGRESSED_AT.value(ts))
         return None
 
     # Reopened: if progress was None (just transitioned from closed), mark regressed.
     if current is None:
-        return emit(PROGRESS.value(Progress.REGRESSED))
+        return emit(PROGRESS.value(Progress.REGRESSED), LAST_PROGRESSED_AT.value(ts))
 
     # Check if this action advances progress forward.
     min_progress = _ACTION_TO_MIN_PROGRESS.get(entry.type)
@@ -229,7 +231,7 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
     current_rank = _PROGRESS_RANK.get(Progress(current), 0)
     target_rank = _PROGRESS_RANK[min_progress]
     if target_rank > current_rank:
-        return emit(PROGRESS.value(min_progress))
+        return emit(PROGRESS.value(min_progress), LAST_PROGRESSED_AT.value(ts))
 
     return None
 
