@@ -417,8 +417,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const access = useMemo(() => new Set(organization.access), [organization]);
   const hasWriteAccess = access.has('org:write');
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
-  // TODO(cells) This should be localities
-  const regionData = shouldDisplayLocalities()
+  const localityData = shouldDisplayLocalities()
     ? getLocalityDataFromOrganization(organization)
     : null;
 
@@ -548,7 +547,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
           </AutoSaveForm>
 
           {/* Data Storage Region — read-only, only shown when multiple regions exist */}
-          {regionData && (
+          {localityData && (
             <Flex direction="row" gap="xl" align="center" justify="between" flexGrow={1}>
               <Stack width="50%" gap="xs">
                 <Text>{t('Data Storage Region')}</Text>
@@ -559,7 +558,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 </Text>
               </Stack>
               <Container flexGrow={1}>
-                <Text>{regionData.label}</Text>
+                <Text>{localityData.label}</Text>
               </Container>
             </Flex>
           )}
