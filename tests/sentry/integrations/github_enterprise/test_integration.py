@@ -27,10 +27,12 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -1240,6 +1242,121 @@ class GitHubEnterpriseApiPipelineTest(APITestCase):
         ).exists()
 
     @responses.activate
+    @mock.patch(
+        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token"
+    )
+    @override_options({"github-enterprise.disallow-domain-mismatch": True})
+    def test_pipeline_fails_if_domain_mismatch_is_detected(self, mock_jwt: MagicMock) -> None:
+        original_host = "original-ghe.example.com"
+        original_installation_id = int(self.installation_id)
+        original_external_id = f"{original_host}:{original_installation_id}"
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            original_org = self.create_organization(name="original-org")
+
+        original_integration = self.create_provider_integration(
+            provider="github_enterprise",
+            external_id=original_external_id,
+            name="original-org",
+            metadata={
+                "domain_name": f"{original_host}/original-org",
+                "account_type": "Organization",
+                "installation_id": original_installation_id,
+                "installation": {
+                    "url": original_host,
+                    "id": "1",
+                    "name": "original-sentry-app",
+                    "private_key": "original_private_key",
+                    "webhook_secret": "original_webhook_secret",
+                    "client_id": "original-client-id",
+                    "client_secret": "original-client-secret",
+                    "verify_ssl": True,
+                    "public_link": None,
+                },
+            },
+        )
+        self.create_organization_integration(
+            organization_id=original_org.id,
+            integration=original_integration,
+        )
+
+        overriding_host = "overriding.example.com"
+        overriding_url = f"https://{overriding_host}"
+
+        responses.add(
+            responses.POST,
+            f"{overriding_url}/login/oauth/access_token",
+            json={"access_token": "overriding-controlled-token", "token_type": "bearer"},
+        )
+        responses.add(
+            responses.GET,
+            f"{overriding_url}/api/v3/user",
+            json={"id": 9999, "login": "overriding"},
+        )
+
+        spoofed_installation = {
+            "id": original_installation_id,
+            "app_id": 1,
+            "account": {
+                "login": "original-org",
+                "avatar_url": f"https://{original_host}/avatar.png",
+                "html_url": f"https://{original_host}/original-org",
+                "type": "Organization",
+            },
+        }
+        responses.add(
+            responses.GET,
+            f"{overriding_url}/api/v3/app/installations/{self.installation_id}",
+            json=spoofed_installation,
+        )
+        responses.add(
+            responses.GET,
+            f"{overriding_url}/api/v3/user/installations",
+            json={"installations": [spoofed_installation]},
+        )
+
+        self._initialize_pipeline()
+        self._submit_config(
+            url=overriding_url,
+            privateKey="overriding_private_key",
+            webhookSecret="overriding_webhook_secret",
+            clientId="overriding-client-id",
+            clientSecret="overriding-client-secret",
+            name="overriding-sentry-app",
+        )
+        resp = self._advance_step({"installationId": self.installation_id})
+        pipeline_signature = self._get_pipeline_signature(resp)
+        resp = self._advance_step({"code": "auth-code", "state": pipeline_signature})
+
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert (
+            resp.data["data"]["detail"]
+            == "The GitHub Enterprise domain does not match the expected domain. Please check the domain and port combination."
+        )
+
+        integrations = Integration.objects.filter(
+            provider="github_enterprise", external_id=original_external_id
+        )
+        assert integrations.count() == 1
+        overriding_integration = integrations.get()
+        assert overriding_integration.id == original_integration.id
+
+        installation_meta = overriding_integration.metadata["installation"]
+        assert installation_meta["private_key"] == "original_private_key"
+        assert installation_meta["webhook_secret"] == "original_webhook_secret"
+        assert installation_meta["client_id"] == "original-client-id"
+        assert installation_meta["client_secret"] == "original-client-secret"
+        assert installation_meta["url"] == original_host
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=original_org.id, integration=overriding_integration
+        ).exists()
+        assert not OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=overriding_integration
+        ).exists()
+
+    @responses.activate
     def test_config_step_allows_github_com(self) -> None:
         self._initialize_pipeline()
         resp = self._submit_config(url="https://github.com")
@@ -1255,3 +1372,65 @@ class GitHubEnterpriseApiPipelineTest(APITestCase):
         resp = self._advance_step({})
         assert resp.status_code == 200
         assert resp.data["data"]["appInstallUrl"] == "https://github.com/apps/sentry-app"
+
+    def test_ensure_matching_domain_method_with_same_netloc(self) -> None:
+        state = {
+            "installation_data": {
+                "url": "github.com",
+            },
+        }
+        installation = {
+            "account": {
+                "html_url": "https://github.com/test-org",
+            },
+        }
+        GitHubEnterpriseIntegrationProvider.ensure_matching_domain(state, installation)
+
+    def test_ensure_matching_domain_method_with_same_ports(self) -> None:
+        state = {
+            "installation_data": {
+                "url": "github.com:443",
+            },
+        }
+        installation = {
+            "account": {
+                "html_url": "https://github.com:443/test-org",
+            }
+        }
+        GitHubEnterpriseIntegrationProvider.ensure_matching_domain(state, installation)
+
+    def test_ensure_matching_domain_method_with_different_ports(self) -> None:
+        state = {
+            "installation_data": {
+                "url": "github.com:443",
+            },
+        }
+        installation = {
+            "account": {
+                "html_url": "https://github.com:80/test-org",
+            }
+        }
+        with pytest.raises(IntegrationError) as ie:
+            GitHubEnterpriseIntegrationProvider.ensure_matching_domain(state, installation)
+        assert (
+            str(ie.value.message)
+            == "The GitHub Enterprise domain does not match the expected domain. Please check the domain and port combination."
+        )
+
+    def test_ensure_matching_domain_method_with_different_netloc(self) -> None:
+        state = {
+            "installation_data": {
+                "url": "github.com",
+            },
+        }
+        installation = {
+            "account": {
+                "html_url": "https://example.com/test-org",
+            },
+        }
+        with pytest.raises(IntegrationError) as ie:
+            GitHubEnterpriseIntegrationProvider.ensure_matching_domain(state, installation)
+        assert (
+            str(ie.value.message)
+            == "The GitHub Enterprise domain does not match the expected domain. Please check the domain and port combination."
+        )
