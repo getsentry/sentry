@@ -114,7 +114,7 @@ export function transformSeerResponse<T extends QueryTokensProps>(
 ): T[] {
   // The polling `final_response` is a serialized `SeerRawResponse` envelope at
   // runtime, even though the combobox types it as a single item. We reconcile
-  // that narrowing here once, rather than casting in every ComboBox.
+  // that narrowing here once, rather than asserting in every ComboBox.
   const envelope = response as unknown as SeerRawResponse;
 
   if (!Array.isArray(envelope.responses)) {
