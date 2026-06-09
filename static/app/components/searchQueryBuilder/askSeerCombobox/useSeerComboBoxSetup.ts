@@ -12,7 +12,13 @@ import type {PageFilters} from 'sentry/types/core';
 import {useProjects} from 'sentry/utils/useProjects';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 
-import type {AskSeerSearchQuery, SeerRawResponseItem} from './types';
+import type {
+  AskSeerSearchQuery,
+  QueryTokensProps,
+  SeerRawResponse,
+  SeerRawResponseItem,
+} from './types';
+import {getExpandedProjectIds} from './utils';
 
 export function useInitialSeerQuery(): string {
   const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
@@ -85,19 +91,30 @@ export function useSelectedProjectIdsForMutation(): Array<number | string> {
   }, [pageFilters.selection.projects, projects]);
 }
 
-export function transformSeerResponse<T>(
+export function transformSeerResponse<T extends QueryTokensProps>(
   response: T,
-  mapItem: (item: SeerRawResponseItem) => T
+  mapItem: (item: SeerRawResponseItem) => T,
+  selectedProjectIds?: number[]
 ): T[] {
-  const seerResponse = response as unknown as {
-    responses?: SeerRawResponseItem[];
-  };
+  // The polling `final_response` is a serialized `SeerRawResponse` envelope at
+  // runtime, even though the combobox types it as a single item. We reconcile
+  // that narrowing here once, rather than casting in every ComboBox.
+  const envelope = response as unknown as SeerRawResponse;
 
-  if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
-    return seerResponse.responses.map(mapItem);
+  if (!Array.isArray(envelope.responses)) {
+    return [response];
   }
 
-  return [response];
+  // Surface the scope Seer broadened to (a superset of the user's selection)
+  // on each suggestion, so the "Projects" chip and apply-on-accept can use it.
+  const expandedProjectIds = selectedProjectIds
+    ? getExpandedProjectIds(envelope.project_ids, selectedProjectIds)
+    : undefined;
+
+  return envelope.responses.map(item => ({
+    ...mapItem(item),
+    ...(expandedProjectIds ? {expandedProjectIds} : {}),
+  }));
 }
 
 export function mapSeerResponseItem(

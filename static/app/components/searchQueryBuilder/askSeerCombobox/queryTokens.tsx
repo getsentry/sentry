@@ -107,11 +107,10 @@ export function QueryTokens({
   // surface the scope it will run against. Chosen alongside the other tokens,
   // so the user sees (and consents to) the expansion before applying.
   if (expandedProjectIds && expandedProjectIds.length > 0) {
-    const slugs = expandedProjectIds.map(
-      id => projects.find(project => project.id === String(id))?.slug ?? String(id)
-    );
-    const shownSlugs = slugs.slice(0, MAX_PROJECT_CHIPS);
-    const overflowCount = slugs.length - shownSlugs.length;
+    const shownSlugs = expandedProjectIds
+      .slice(0, MAX_PROJECT_CHIPS)
+      .map(id => projects.find(project => project.id === String(id))?.slug ?? String(id));
+    const overflowCount = expandedProjectIds.length - shownSlugs.length;
     tokens.push(
       <Flex
         as="span"

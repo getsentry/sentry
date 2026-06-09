@@ -336,16 +336,12 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     organization.features.includes('gen-ai-explore-metrics-search');
 
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
-      const expandedProjectIds = getExpandedProjectIds(
-        (response as unknown as SeerRawResponse).project_ids,
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
+      transformSeerResponse(
+        response,
+        responseItem => mapSeerResponseItem(responseItem),
         selectedProjectIds
-      );
-      return transformSeerResponse(response, responseItem => ({
-        ...mapSeerResponseItem(responseItem),
-        ...(expandedProjectIds ? {expandedProjectIds} : {}),
-      }));
-    },
+      ),
     [selectedProjectIds]
   );
 

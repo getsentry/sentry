@@ -183,16 +183,12 @@ export function SpansTabSeerComboBox() {
   });
 
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
-      const expandedProjectIds = getExpandedProjectIds(
-        (response as unknown as SeerRawResponse).project_ids,
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
+      transformSeerResponse(
+        response,
+        responseItem => mapSeerResponseItem(responseItem, 'spans'),
         selectedProjectIds
-      );
-      return transformSeerResponse(response, responseItem => ({
-        ...mapSeerResponseItem(responseItem, 'spans'),
-        ...(expandedProjectIds ? {expandedProjectIds} : {}),
-      }));
-    },
+      ),
     [selectedProjectIds]
   );
 

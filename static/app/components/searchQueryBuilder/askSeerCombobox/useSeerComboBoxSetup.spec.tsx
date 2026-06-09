@@ -129,6 +129,48 @@ describe('transformSeerResponse', () => {
       },
     ]);
   });
+
+  it('attaches expandedProjectIds when Seer broadened beyond the selection', () => {
+    const rawResponse = {
+      project_ids: [1, 2, 3],
+      responses: [
+        {
+          query: 'is:unresolved',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+        },
+      ],
+    };
+
+    const result = transformSeerResponse(rawResponse as any, mapItem, [1, 2]);
+
+    expect(result[0]).toEqual(expect.objectContaining({expandedProjectIds: [1, 2, 3]}));
+  });
+
+  it('omits expandedProjectIds when the scope matches the selection', () => {
+    const rawResponse = {
+      project_ids: [1, 2],
+      responses: [
+        {
+          query: 'is:unresolved',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+        },
+      ],
+    };
+
+    const result = transformSeerResponse(rawResponse as any, mapItem, [1, 2]);
+
+    expect(result[0]).not.toHaveProperty('expandedProjectIds');
+  });
 });
 
 describe('mapSeerResponseItem', () => {

@@ -212,22 +212,20 @@ export function LogsTabSeerComboBox() {
   );
 
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
-      const expandedProjectIds = getExpandedProjectIds(
-        (response as unknown as SeerRawResponse).project_ids,
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
+      transformSeerResponse(
+        response,
+        r => ({
+          query: r?.query ?? '',
+          sort: r?.sort ?? '',
+          groupBys: r?.group_by ?? [],
+          statsPeriod: r?.stats_period ?? '',
+          start: r?.start ?? null,
+          end: r?.end ?? null,
+          mode: r?.mode ?? 'samples',
+        }),
         selectedProjectIds
-      );
-      return transformSeerResponse(response, r => ({
-        query: r?.query ?? '',
-        sort: r?.sort ?? '',
-        groupBys: r?.group_by ?? [],
-        statsPeriod: r?.stats_period ?? '',
-        start: r?.start ?? null,
-        end: r?.end ?? null,
-        mode: r?.mode ?? 'samples',
-        ...(expandedProjectIds ? {expandedProjectIds} : {}),
-      }));
-    },
+      ),
     [selectedProjectIds]
   );
 
