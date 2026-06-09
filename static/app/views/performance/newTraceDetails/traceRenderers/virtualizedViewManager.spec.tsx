@@ -1256,5 +1256,85 @@ describe('VirtualizedViewManger', () => {
       expect(inside).toBe(0);
       expect(textTransform).toBe(manager.transformXFromTimestamp(100) + 3);
     });
+
+    it('keeps duration text clear of the right side of collapsed gap markers', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+
+      const gap = {
+        start: 500,
+        end: 600,
+        duration: 100,
+        retainedDuration: 28,
+        compressedStart: 500,
+        compressedEnd: 528,
+      };
+      const removedDuration = gap.duration - gap.retainedDuration;
+      manager.time_compression = {
+        enabled: true,
+        gaps: [gap],
+        start: 0,
+        duration: 1000,
+        compressedDuration: 1000 - removedDuration,
+        toCompressedOffset(timestamp: number) {
+          if (timestamp < gap.start) {
+            return timestamp;
+          }
+          if (timestamp <= gap.end) {
+            const progress = (timestamp - gap.start) / gap.duration;
+            return gap.compressedStart + progress * gap.retainedDuration;
+          }
+          return timestamp - removedDuration;
+        },
+        toRealTimestamp(compressedOffset: number) {
+          if (compressedOffset < gap.compressedStart) {
+            return compressedOffset;
+          }
+          if (compressedOffset <= gap.compressedEnd) {
+            const progress =
+              (compressedOffset - gap.compressedStart) / gap.retainedDuration;
+            return gap.start + progress * gap.duration;
+          }
+          return compressedOffset + removedDuration;
+        },
+      } as TraceTimeCompression;
+      manager.recomputeSpanToPXMatrix();
+
+      const markerRef = document.createElement('div');
+      Object.defineProperty(markerRef, 'offsetWidth', {value: 40});
+      manager.collapsed_gap_markers[0] = {gap, ref: markerRef};
+      manager.drawCollapsedGapMarkers();
+
+      const measuredWidth = 6;
+      jest.spyOn(manager.text_measurer, 'measure').mockReturnValue(measuredWidth);
+
+      const node = {errors: new Set(), occurrences: new Set()} as any;
+      const spanSpace: [number, number] = [617, 5];
+      const leftOutsideTransform =
+        manager.transformXFromTimestamp(spanSpace[0]) - 3 - measuredWidth;
+
+      expect(
+        manager.spanTextOverlapsCollapsedGap(leftOutsideTransform, measuredWidth)
+      ).toBe(true);
+
+      const [inside, textTransform] = manager.computeSpanTextPlacement(
+        node,
+        spanSpace,
+        '5ms'
+      );
+
+      expect(inside).toBe(0);
+      expect(textTransform).toBe(manager.transformXFromTimestamp(622) + 3);
+    });
   });
 });
