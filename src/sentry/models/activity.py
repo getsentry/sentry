@@ -29,7 +29,7 @@ from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.registry import invoke_workflow_activity_handlers
+from sentry.workflow_engine.handlers.registry import invoke_workflow_activity_handlers
 from sentry.workflow_engine.types import DetectorId
 
 if TYPE_CHECKING:
