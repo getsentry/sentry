@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Any, TypedDict, cast
@@ -331,6 +332,24 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
             url = f"{url}@{changelist}"
         return url
 
+    def get_stacktrace_link(
+        self, repo: Repository, filepath: str, default: str, version: str | None
+    ) -> str | None:
+        """
+        Restore the Perforce changelist specifier after base URL-encoding.
+
+        The base implementation percent-encodes the URL path, which turns the
+        ``@<changelist>`` suffix that ``format_source_url`` appends to ``p4://``
+        links into ``%40<changelist>``. ``@`` is Perforce's changelist operator
+        and must stay literal for the link to resolve, so restore just that
+        trailing suffix. Any other ``%40`` (e.g. an ``@`` inside a file name,
+        which Perforce stores percent-encoded) is left untouched.
+        """
+        url = super().get_stacktrace_link(repo, filepath, default, version)
+        if url is not None:
+            url = re.sub(r"%40(\d+)$", r"@\1", url)
+        return url
+
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
         """
         Extract branch/stream from URL.
@@ -371,13 +390,14 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         if "?" in url:
             url = url.split("?")[0]
 
-        # Remove revision specifiers: `#<file-revision>` or `@<changelist>`.
-        # Perforce reserves `#` and `@` in file names (they must be %-encoded in
-        # depot paths), so splitting on them only ever strips a revision suffix.
+        # Remove a `#<file-revision>` specifier.
         if "#" in url:
             url = url.split("#")[0]
-        if "@" in url:
-            url = url.split("@")[0]
+
+        # Remove a trailing `@<changelist>` specifier only. Splitting on any `@`
+        # would truncate a path that legitimately contains one (e.g. a scoped dir
+        # like `@babel`), so anchor to a numeric changelist at the very end.
+        url = re.sub(r"@\d+$", "", url)
 
         # Normalize both paths by stripping leading slashes for comparison
         # depot_path is typically "//depot" from config

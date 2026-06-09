@@ -431,6 +431,26 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert path == "app/services/processor.cpp"
 
+    def test_extract_source_path_preserves_in_path_at_sign(self) -> None:
+        """
+        An `@` inside the path (e.g. a scoped dir like `@babel`) must NOT be treated as
+        a changelist specifier -- only a trailing `@<digits>` is stripped.
+        """
+        # No changelist: the `@babel` segment is preserved verbatim.
+        assert (
+            self.installation.extract_source_path_from_source_url(
+                self.repo, "p4://depot/node_modules/@babel/core.js"
+            )
+            == "node_modules/@babel/core.js"
+        )
+        # With a trailing changelist: only the `@2998` suffix is removed.
+        assert (
+            self.installation.extract_source_path_from_source_url(
+                self.repo, "p4://depot/node_modules/@babel/core.js@2998"
+            )
+            == "node_modules/@babel/core.js"
+        )
+
     def test_extract_source_path_strips_swarm_changelist_query(self) -> None:
         """A Swarm URL carrying the changelist as ?v=@<cl> yields the bare file path."""
         integration = self.create_integration(

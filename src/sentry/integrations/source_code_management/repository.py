@@ -344,11 +344,8 @@ class RepositoryIntegration(
                 parsed = urlparse(url)
                 # Decode the path first to avoid double-encoding
                 decoded_path = unquote(parsed.path)
-                # Encode only unencoded elements. `@` is a valid path character
-                # (RFC 3986 pchar) and is kept literal: Perforce changelist links
-                # use `…/file@<changelist>` syntax and `@scope` dirs appear in JS
-                # paths, both of which break if `@` is percent-encoded to %40.
-                encoded_path = urlquote(decoded_path, safe="/@")
+                # Encode only unencoded elements
+                encoded_path = urlquote(decoded_path, safe="/")
                 # Encode elements of the filepath like square brackets
                 # Preserve path separators and query params etc.
                 return urlunparse(parsed._replace(path=encoded_path))
