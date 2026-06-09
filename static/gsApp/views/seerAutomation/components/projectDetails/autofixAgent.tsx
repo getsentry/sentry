@@ -21,7 +21,10 @@ import {
   getSeerProjectSettingsQueryOptions,
   seerProjectSettingsSchema,
 } from 'sentry/utils/seer/seerProjectSettings';
-import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
+import {
+  coaleseStoppingPoint,
+  useStoppingPointSelectOptions,
+} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type NightShiftValue = 'on' | 'off' | 'default';
@@ -138,7 +141,7 @@ export function AutofixAgent({canWrite, project}: Props) {
       <AutoSaveForm
         name="stoppingPoint"
         schema={seerProjectSettingsSchema}
-        initialValue={data.stoppingPoint}
+        initialValue={coaleseStoppingPoint(data.stoppingPoint)}
         mutationOptions={getMutateSeerProjectSettingsOptions({
           organization,
           project: {slug: project.slug},
