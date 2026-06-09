@@ -19,7 +19,7 @@ from sentry_sdk import set_tag
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -218,16 +218,19 @@ def prepare_organization_report(
             lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
             return
 
-    if not dry_run and features.has("organizations:weekly-report-metrics-cache", ctx.organization):
-        project_metrics: dict[int, dict[str, int]] = {}
-        for project_id, project_ctx in ctx.projects_context_map.items():
-            if not project_ctx.check_if_project_is_empty():
-                project_metrics[project_id] = {
-                    "e": project_ctx.accepted_error_count,
-                    "t": project_ctx.accepted_transaction_count,
-                }
-        if project_metrics:
-            cache_project_metrics(organization_id, project_metrics)
+    if not dry_run:
+        try:
+            project_metrics: dict[int, dict[str, int]] = {}
+            for project_id, project_ctx in ctx.projects_context_map.items():
+                if not project_ctx.check_if_project_is_empty():
+                    project_metrics[project_id] = {
+                        "e": project_ctx.accepted_error_count,
+                        "t": project_ctx.accepted_transaction_count,
+                    }
+            if project_metrics:
+                cache_project_metrics(organization_id, project_metrics)
+        except Exception:
+            sentry_sdk.capture_exception()
 
     # Finally, deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
