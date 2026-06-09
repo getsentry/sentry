@@ -7,15 +7,17 @@ import secrets
 import orjson
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
-from requests import Response
+from requests import HTTPError, Response
 
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import (
     OAuth2CallbackView,
     OAuth2LoginView,
     _redirect_url,
+    record_event,
 )
 from sentry.identity.pipeline import IdentityPipeline
+from sentry.integrations.utils.metrics import IntegrationPipelineViewType
 from sentry.utils.http import absolute_uri
 
 
@@ -52,33 +54,42 @@ class DatadogDCRView:
         if pipeline.fetch_state("dcr_client_id") and pipeline.fetch_state("dcr_client_secret"):
             return pipeline.next_step()
 
-        redirect_uri = absolute_uri(_redirect_url(pipeline))
+        with record_event(
+            IntegrationPipelineViewType.DCR_REGISTRATION, pipeline.provider.key
+        ).capture() as lifecycle:
+            redirect_uri = absolute_uri(_redirect_url(pipeline))
 
-        resp = safe_urlopen(
-            self.register_url,
-            json={
-                "client_name": "sentry",
-                "redirect_uris": [redirect_uri],
-                "grant_types": ["authorization_code", "refresh_token"],
-                "token_endpoint_auth_method": "client_secret_basic",
-            },
-        )
-        resp.raise_for_status()
+            try:
+                resp = safe_urlopen(
+                    self.register_url,
+                    json={
+                        "client_name": "sentry",
+                        "redirect_uris": [redirect_uri],
+                        "grant_types": ["authorization_code", "refresh_token"],
+                        "token_endpoint_auth_method": "client_secret_basic",
+                    },
+                )
+                resp.raise_for_status()
+            except HTTPError as e:
+                lifecycle.record_failure(e)
+                return pipeline.error("DCR registration failed")
 
-        try:
-            data = orjson.loads(safe_urlread(resp))
-        except orjson.JSONDecodeError:
-            return pipeline.error("Could not parse DCR response")
+            try:
+                data = orjson.loads(safe_urlread(resp))
+            except orjson.JSONDecodeError:
+                lifecycle.record_failure("json_error")
+                return pipeline.error("Could not parse DCR response")
 
-        client_id = data.get("client_id")
-        client_secret = data.get("client_secret")
-        if not client_id or not client_secret:
-            return pipeline.error("DCR response missing client credentials")
+            client_id = data.get("client_id")
+            client_secret = data.get("client_secret")
+            if not client_id or not client_secret:
+                lifecycle.record_failure("missing_credentials")
+                return pipeline.error("DCR response missing client credentials")
 
-        pipeline.bind_state("dcr_client_id", client_id)
-        pipeline.bind_state("dcr_client_secret", client_secret)
+            pipeline.bind_state("dcr_client_id", client_id)
+            pipeline.bind_state("dcr_client_secret", client_secret)
 
-        return pipeline.next_step()
+            return pipeline.next_step()
 
 
 class DatadogOAuth2LoginView(OAuth2LoginView):

@@ -10,6 +10,7 @@ import responses
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
 from django.test import Client, RequestFactory
+from requests import HTTPError
 
 import sentry.identity
 from sentry.identity.datadog.provider import (
@@ -32,17 +33,19 @@ RESOURCE = "https://mcp.datadoghq.com"
 
 
 @control_silo_test
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class DatadogDCRViewTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.request = RequestFactory().get("/")
         self.pipeline = MagicMock()
         self.pipeline.config = {}
+        self.pipeline.provider.key = "datadog"
         self.pipeline.fetch_state.return_value = None
         self.view = DatadogDCRView(register_url=REGISTER_URL)
 
     @responses.activate
-    def test_binds_client_credentials(self) -> None:
+    def test_binds_client_credentials(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.POST,
             REGISTER_URL,
@@ -55,13 +58,43 @@ class DatadogDCRViewTest(TestCase):
         self.pipeline.bind_state.assert_any_call("dcr_client_secret", "new-client-secret")
 
     @responses.activate
-    def test_skips_registration_when_client_credentials_exist(self) -> None:
+    def test_skips_registration_when_client_credentials_exist(self, mock_record: MagicMock) -> None:
         self.pipeline.fetch_state.return_value = "existing"
 
         self.view.dispatch(self.request, self.pipeline)
 
         assert len(responses.calls) == 0
         self.pipeline.next_step.assert_called_once()
+
+    @responses.activate
+    def test_returns_error_on_http_failure(self, mock_record: MagicMock) -> None:
+        responses.add(responses.POST, REGISTER_URL, status=429)
+
+        self.view.dispatch(self.request, self.pipeline)
+
+        self.pipeline.error.assert_called_once_with("DCR registration failed")
+        self.pipeline.bind_state.assert_not_called()
+        assert_failure_metric(mock_record, HTTPError())
+
+    @responses.activate
+    def test_returns_error_on_invalid_json(self, mock_record: MagicMock) -> None:
+        responses.add(responses.POST, REGISTER_URL, body="not json", status=200)
+
+        self.view.dispatch(self.request, self.pipeline)
+
+        self.pipeline.error.assert_called_once_with("Could not parse DCR response")
+        self.pipeline.bind_state.assert_not_called()
+        assert_failure_metric(mock_record, "json_error")
+
+    @responses.activate
+    def test_returns_error_on_missing_credentials(self, mock_record: MagicMock) -> None:
+        responses.add(responses.POST, REGISTER_URL, json={"client_id": "id-only"})
+
+        self.view.dispatch(self.request, self.pipeline)
+
+        self.pipeline.error.assert_called_once_with("DCR response missing client credentials")
+        self.pipeline.bind_state.assert_not_called()
+        assert_failure_metric(mock_record, "missing_credentials")
 
 
 @control_silo_test
