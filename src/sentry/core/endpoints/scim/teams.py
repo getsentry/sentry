@@ -662,7 +662,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         metrics.incr("sentry.scim.team.delete")
         return super().delete(request, team)
 
-    def put(self, request: Request, organization: Organization, team: Team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
+    def put(self, request: Request, organization: Organization, team: Team) -> HttpResponseBase:  # type: ignore[override]  # convert_args changed shape from baseclass
         # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)
