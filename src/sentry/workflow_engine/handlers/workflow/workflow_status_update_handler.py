@@ -8,6 +8,9 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
+    STATUS_CHANGE_VIA_ACTIVITY_FLAG,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +67,7 @@ def workflow_status_update_handler(
     organization = Organization.objects.get_from_cache(pk=activity.project.organization_id)
 
     if activity.type == ActivityType.SET_RESOLVED.value and features.has(
-        "organizations:workflow-engine-status-change-via-activity", organization
+        STATUS_CHANGE_VIA_ACTIVITY_FLAG, organization
     ):
         # The generic activity_handler (invoked via create_group_activity) now owns
         # status change activities. Skip here to avoid queuing the task twice.

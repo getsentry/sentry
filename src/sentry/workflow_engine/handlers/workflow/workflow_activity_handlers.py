@@ -26,9 +26,11 @@ SEER_WORKFLOW_ACTIVITIES = [
 # Activity types handled by the generic activity_handler. This replaces the
 # group_status_update_registry path (see workflow_status_update_handler) once the
 # organizations:workflow-engine-status-change-via-activity flag is fully rolled out.
-STATUS_CHANGE_WORKFLOW_ACTIVITIES = [
+SUPPORTED_ACTIVITIES = [
     ActivityType.SET_RESOLVED,
 ]
+
+STATUS_CHANGE_VIA_ACTIVITY_FLAG = "organizations:workflow-engine-status-change-via-activity"
 
 
 @workflow_activity_registry.register("seer_activity")
@@ -97,10 +99,11 @@ def activity_handler(
     """
     Generic handler for group status change activities.
 
-    This handler replaces the ``group_status_update_registry`` path. Because it is
-    invoked from ``create_group_activity``, it processes the relevant status change
-    activities regardless of where they originate (issue platform, integration sync,
-    direct API resolves, etc.) rather than only the issue platform consumer.
+    To add a new activity, add it to SUPPORTED_ACTIVITIES.
+    Then, add a roll out flag after the supported activity filter.
+
+    If there's a need for greater flexibility, create a new handler in the registry.
+    But, these custom handlers will not have the platform metrics or logging.
     """
     logging_ctx = {
         "activity_type": activity.type,
@@ -112,24 +115,27 @@ def activity_handler(
         activity_type = ActivityType(activity.type)
     except ValueError:
         logger.exception(
-            "workflow_engine.activity_handler.invalid_activity_type", extra=logging_ctx
+            "workflow_engine.activity_handler.invalid_activity_type",
+            extra=logging_ctx,
         )
         return
+
     logging_ctx["activity_name"] = activity_type.name
 
-    # Record every activity that reaches this handler (before any filtering) so we
-    # can measure the full volume and distribution of activity types flowing through
-    # create_group_activity.
+    # Record every activity that reaches this handler, before any filtering.
+    # This allows us to track all of the registered activities that could be
+    # supported by the platform.
     metrics.incr(
         "workflow_engine.activity_handler.received",
         tags={"activity_name": activity_type.name},
     )
 
-    if activity_type not in STATUS_CHANGE_WORKFLOW_ACTIVITIES:
+    if activity_type not in SUPPORTED_ACTIVITIES:
         return
 
     if not features.has(
-        "organizations:workflow-engine-status-change-via-activity", group.organization
+        STATUS_CHANGE_VIA_ACTIVITY_FLAG,
+        group.organization,
     ):
         return
 
@@ -141,7 +147,10 @@ def activity_handler(
         else:
             detector = get_preferred_detector(event_data=event_data)
     except Detector.DoesNotExist:
-        logger.exception("workflow_engine.activity_handler.missing_detector", extra=logging_ctx)
+        logger.exception(
+            "workflow_engine.activity_handler.missing_detector",
+            extra=logging_ctx,
+        )
         return
 
     logging_ctx["detector_id"] = detector.id
@@ -152,8 +161,12 @@ def activity_handler(
         group_id=group.id,
         detector_id=detector.id,
     )
+
     metrics.incr(
         "workflow_engine.activity_handler.complete",
         tags={"activity_name": activity_type.name},
     )
-    logger.info("workflow_engine.activity_handler.complete", extra=logging_ctx)
+    logger.info(
+        "workflow_engine.activity_handler.complete",
+        extra=logging_ctx,
+    )
