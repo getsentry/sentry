@@ -833,6 +833,52 @@ describe('useStreamingTimeseriesResult', () => {
       ]);
     });
 
+    it('handles group values that match Object prototype properties', async () => {
+      const mockTimeseriesData = getMockMultiGroupTimeseries();
+
+      const {result, rerender} = renderHook(
+        (tableData: UseInfiniteLogsQueryResult) =>
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+        {
+          initialProps: createMockTableData([]),
+          wrapper: createWrapper({
+            autoRefresh: 'enabled',
+            groupBy: [OurLogKnownFieldKey.SEVERITY],
+          }),
+        }
+      );
+
+      rerender(
+        createMockTableData([
+          LogFixture({
+            [OurLogKnownFieldKey.ID]: 'prototype-key',
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
+            [OurLogKnownFieldKey.SEVERITY]: 'constructor',
+          }),
+        ])
+      );
+
+      await waitFor(() => {
+        expect(
+          result.current.data['count(message)']?.some(
+            series => series.yAxis === 'constructor'
+          )
+        ).toBe(true);
+      });
+
+      const prototypeKeySeries = result.current.data['count(message)']?.find(
+        series => series.yAxis === 'constructor'
+      );
+
+      expect(prototypeKeySeries?.values.at(-1)).toEqual({
+        timestamp: 9000,
+        value: 1,
+        incomplete: true,
+      });
+    });
+
     it('should only update last bucket when ingest delay is at end of timeseries data', async () => {
       const mockTimeseriesData = getMockMultiGroupTimeseries();
       const ingestDelayMs = 8500n * 1_000_000n; // Set delay to match last bucket timestamp

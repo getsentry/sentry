@@ -265,14 +265,14 @@ function createBufferFromTableData(
       continue;
     }
 
-    if (!groupBuffers[groupValue]) {
+    if (!Object.hasOwn(groupBuffers, groupValue)) {
       groupBuffers[groupValue] = {
         stableIndex: getStableIndex(groupValue, groupBuffers, originalTimeseries),
         values: [],
       };
     }
 
-    const buffer = groupBuffers[groupValue];
+    const buffer = groupBuffers[groupValue]!;
     const existingEntry = buffer.values.find(
       entry => entry.bucketIndex === rowBucketIndex
     );
@@ -486,8 +486,8 @@ function getStableIndex(
     }
   }
 
-  if (groupBuffers[groupValue]) {
-    return groupBuffers[groupValue].stableIndex;
+  if (Object.hasOwn(groupBuffers, groupValue)) {
+    return groupBuffers[groupValue]!.stableIndex;
   }
 
   const allYAxisValues = new Set([
