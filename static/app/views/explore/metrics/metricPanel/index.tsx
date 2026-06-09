@@ -51,6 +51,7 @@ import {MetricsHeatMap} from 'sentry/views/explore/metrics/metricsHeatMap';
 import {
   useMetricVisualize,
   useMetricVisualizes,
+  useSetMetricAggregateFields,
   useSetMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
@@ -61,11 +62,9 @@ import {
 } from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
-  useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSortBys,
-  useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
@@ -77,11 +76,11 @@ const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
 const PIXELS_PER_X_BUCKET = 15;
 
-const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'scatter'> = {
+const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
   [ChartType.LINE]: 'line',
   [ChartType.AREA]: 'area',
   [ChartType.BAR]: 'bar',
-  [ChartType.HEATMAP]: 'scatter',
+  [ChartType.HEATMAP]: 'heatmap',
 };
 
 interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -123,12 +122,11 @@ export function MetricPanel({
   const mode = useQueryParamsMode();
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const groupBys = useQueryParamsGroupBys();
-  const setGroupBys = useSetQueryParamsGroupBys();
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const setVisualizes = useSetMetricVisualizes();
+  const setAggregateFields = useSetMetricAggregateFields();
 
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
 
@@ -222,7 +220,7 @@ export function MetricPanel({
   function handleChartTypeChange(newChartType: ChartType) {
     if (newChartType === ChartType.HEATMAP) {
       // Heatmap always uses count() with no group by
-      setVisualizes(
+      setAggregateFields(
         visualizes.map(v =>
           isVisualizeFunction(v)
             ? updateVisualizeYAxis(v, 'count', traceMetric).replace({
@@ -231,9 +229,6 @@ export function MetricPanel({
             : v.replace({chartType: ChartType.HEATMAP})
         )
       );
-      if (groupBys.length > 0) {
-        setGroupBys([]);
-      }
     } else if (isHeatmap) {
       // Switching away from heatmap — restore the default aggregate
       const defaultAggregate = DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'count';

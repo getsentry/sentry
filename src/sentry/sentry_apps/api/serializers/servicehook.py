@@ -15,7 +15,7 @@ class ServiceHookSerializerResponse(TypedDict):
 
 
 @register(ServiceHook)
-class ServiceHookSerializer(Serializer):
+class ServiceHookSerializer(Serializer[ServiceHookSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> ServiceHookSerializerResponse:
         return {
             "id": obj.guid,

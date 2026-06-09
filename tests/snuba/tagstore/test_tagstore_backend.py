@@ -759,6 +759,33 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             )
         ]
 
+    def test_get_tag_value_paginator_array_meta_columns(self) -> None:
+        # tags.key/tags.value are array meta-columns that previously crashed with
+        # "TypeError: unhashable type: 'list'" in nest_groups (SENTRY-5PD7). They should
+        # short-circuit to an empty result instead.
+        assert (
+            list(
+                self.ts.get_tag_value_paginator(
+                    self.proj1.id,
+                    self.proj1env1.id,
+                    "tags.key",
+                    tenant_ids={"referrer": "r", "organization_id": 1234},
+                ).get_result(10)
+            )
+            == []
+        )
+        assert (
+            list(
+                self.ts.get_tag_value_paginator(
+                    self.proj1.id,
+                    self.proj1env1.id,
+                    "tags.value",
+                    tenant_ids={"referrer": "r", "organization_id": 1234},
+                ).get_result(10)
+            )
+            == []
+        )
+
     def test_get_tag_value_paginator_with_dates(self) -> None:
         from sentry.tagstore.types import TagValue
 

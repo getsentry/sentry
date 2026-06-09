@@ -1,5 +1,5 @@
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,8 +12,13 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.repository import RepositorySerializer
-from sentry.apidocs.parameters import CursorQueryParam
+from sentry.api.serializers.models.repository import (
+    RepositorySerializer,
+    RepositorySerializerResponse,
+)
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -21,11 +26,12 @@ from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 
 
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
@@ -35,20 +41,67 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Repositories",
-        parameters=[CursorQueryParam],
+        description="Return a list of version control repositories for a given organization.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                description="Filter repositories by name.",
+            ),
+            OpenApiParameter(
+                name="status",
+                location="query",
+                required=False,
+                type=str,
+                enum=["active", "deleted"],
+                description="Filter repositories by status. Defaults to `active`.",
+            ),
+            OpenApiParameter(
+                name="integration_id",
+                location="query",
+                required=False,
+                type=str,
+                description="Filter repositories by integration ID.",
+            ),
+            OpenApiParameter(
+                name="expand",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description="Optional repository fields to expand, such as `settings`.",
+            ),
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationRepositoriesResponse", list[RepositorySerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=[
+            OpenApiExample(
+                "Organization Repositories",
+                value=[
+                    {
+                        "dateCreated": "2018-11-06T21:19:58.536Z",
+                        "id": "3",
+                        "name": "sentry/sentry",
+                    }
+                ],
+                status_codes=["200"],
+                response_only=True,
+            ),
+        ],
     )
-    def get(self, request: Request, organization: Organization) -> Response:
-        """
-        List an Organization's Repositories
-        ```````````````````````````````````
-
-        Return a list of version control repositories for a given organization.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization
-        :qparam string query: optional filter by repository name
-        :qparam string expand: optional expand parameter to include related data (e.g., "settings")
-        :auth: required
-        """
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[RepositorySerializerResponse]]:
         queryset = Repository.objects.filter(organization_id=organization.id)
 
         integration_id = request.GET.get("integration_id", None)

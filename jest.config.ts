@@ -38,6 +38,7 @@ const {
   GITHUB_PR_REF,
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
+  SENTRY_DSN,
 } = process.env;
 
 const JEST_TEST_FILES_PATH = path.resolve(import.meta.dirname, 'jest-test-files.json');
@@ -47,10 +48,15 @@ const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const optionalTags: {
-  balancer?: boolean;
+  total_tests?: number | 'all';
+  node_index?: number;
+  node_total?: number;
   balancer_strategy?: string;
 } = {
-  balancer: false,
+  total_tests: undefined,
+  node_index: undefined,
+  node_total: undefined,
+  balancer_strategy: undefined,
 };
 
 /**
@@ -209,11 +215,13 @@ if (
   );
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
+  optionalTags.total_tests = JEST_TESTS.length;
+  optionalTags.node_total = nodeTotal;
+  optionalTags.node_index = nodeIndex;
 
   if (balance) {
-    optionalTags.balancer = true;
-    optionalTags.balancer_strategy = 'by_path';
     testMatch = getTestsForGroup(nodeIndex, nodeTotal, envTestList, balance);
+    optionalTags.balancer_strategy = 'by_duration';
   } else {
     const tests = envTestList.sort((a, b) => b.localeCompare(a));
 
@@ -224,6 +232,7 @@ if (
     const chunk = size + (nodeIndex < remainder ? 1 : 0);
 
     testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
+    optionalTags.balancer_strategy = 'by_name';
   }
 }
 
@@ -321,10 +330,7 @@ const config: Config.InitialOptions = {
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
-        dsn:
-          CI && Boolean(GITHUB_PR_REF)
-            ? 'https://3fe1dce93e3a4267979ebad67f3de327@o1.ingest.us.sentry.io/4857230'
-            : false,
+        dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
         tracesSampleRate: CI ? 0.75 : 0,

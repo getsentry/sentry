@@ -7,6 +7,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/components/pageFilters/usePageFilters');
 
@@ -76,6 +77,59 @@ describe('useExploreAggregatesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
+          query: 'test value',
+        }),
+      })
+    );
+  });
+
+  it('includes trace and timestamp aggregates for sample trace links', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+        meta: {
+          fields: {},
+        },
+      },
+      method: 'GET',
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useExploreAggregatesTable({
+          query: 'test value',
+          enabled: true,
+          limit: 100,
+        }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              groupBy: 'span.op',
+              visualize: JSON.stringify({yAxes: ['count()']}),
+            },
+          },
+        },
+      }
+    );
+
+    const traceField = `any(${SpanFields.TRACE})`;
+    const timestampField = `any(${SpanFields.TIMESTAMP})`;
+
+    expect(result.current.fields).toEqual([
+      traceField,
+      timestampField,
+      'span.op',
+      'count()',
+    ]);
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: [traceField, timestampField, 'span.op', 'count()'],
           query: 'test value',
         }),
       })

@@ -19,7 +19,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
 import type {CodeOwner} from 'sentry/types/integrations';
 import type {ParsedOwnershipRule} from 'sentry/types/ownership';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';

@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import memoize from 'lodash/memoize';
 import {duration, type Duration} from 'moment-timezone';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';

@@ -3,10 +3,10 @@ import {useRef, type Ref} from 'react';
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import type {Props as ReactSelectProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import type {SelectValue} from 'sentry/types/core';
 
 import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
 

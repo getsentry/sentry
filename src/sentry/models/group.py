@@ -37,6 +37,13 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues.action_log import publish_action_from_context
+from sentry.issues.action_log.types import (
+    ArchiveAction,
+    GroupAction,
+    ResolveAction,
+    UnresolveAction,
+)
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
@@ -234,6 +241,17 @@ STATUS_UPDATE_CHOICES = {
     "resolvedInNextRelease": GroupStatus.UNRESOLVED,
     # TODO(dcramer): remove in 9.0
     "muted": GroupStatus.IGNORED,
+}
+
+# Maps the Activity type driving a status change to the action we record, mirroring
+# ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS. Substatus-only transitions (e.g.
+# AUTO_SET_ONGOING, SET_ESCALATING) have no entry and are intentionally not recorded.
+ACTIVITY_TYPE_TO_GROUP_ACTION: dict[int, type[GroupAction]] = {
+    ActivityType.SET_RESOLVED.value: ResolveAction,
+    ActivityType.SET_RESOLVED_IN_COMMIT.value: ResolveAction,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value: ResolveAction,
+    ActivityType.SET_IGNORED.value: ArchiveAction,
+    ActivityType.SET_UNRESOLVED.value: UnresolveAction,
 }
 
 
@@ -546,6 +564,15 @@ class GroupManager(BaseManager["Group"]):
                 datetime=update_date,
             )
             record_group_history_from_activity_type(group, activity_type.value)
+
+            action_cls = ACTIVITY_TYPE_TO_GROUP_ACTION.get(activity_type.value)
+            if action_cls is not None:
+                publish_action_from_context(
+                    action_cls(),
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                )
 
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]

@@ -1,6 +1,7 @@
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Region} from 'sentry/types/system';
 
@@ -63,7 +64,7 @@ export function getRegions(): Region[] {
 }
 
 /**
- * Get a list of choice tuples with (url, display name)
+ * Get a list of option objects {label: displayName, value: url}
  */
 export function getRegionUrlOptions(
   exclude: RegionData[] = [],
@@ -96,7 +97,7 @@ export function getRegionUrlOptions(
 const CUSTOMER_HIDDEN_REGIONS = new Set(['us2']);
 
 /**
- * Create a list of Choice tuples with (name, display name)
+ * Create a list of option objects with {label: displayName, value: name}
  */
 export function getRegionNameOptions(): Array<SelectValue<string>> {
   const regions = getRegions();

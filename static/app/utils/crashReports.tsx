@@ -1,5 +1,5 @@
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 export function formatStoreCrashReports(
   value: number | null | '',

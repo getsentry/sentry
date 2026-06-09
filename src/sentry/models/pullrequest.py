@@ -35,7 +35,6 @@ class PullRequestLifecycleState(models.TextChoices):
 
 
 class PullRequestAttributionSignalType(models.TextChoices):
-    SEER_APP = "seer_app"
     SENTRY_APP = "sentry_app"
     SEER_DELEGATED_CURSOR = "seer_delegated:cursor"
     SEER_DELEGATED_GITHUB_COPILOT = "seer_delegated:github_copilot"
@@ -262,21 +261,27 @@ class PullRequestComment(Model):
 
 
 class PullRequestActivityType(models.TextChoices):
-    OPENED = "opened"
+    ASSIGNED = "assigned"
     CLOSED = "closed"
-    MERGED = "merged"
-    REOPENED = "reopened"
-    SYNCHRONIZED = "synchronized"
+    COMMENT_CREATED = "comment_created"
+    COMMENT_DELETED = "comment_deleted"
+    COMMENT_EDITED = "comment_edited"
+    CONVERTED_TO_DRAFT = "converted_to_draft"
     EDITED = "edited"
+    LABELED = "labeled"
+    LOCKED = "locked"
+    MERGED = "merged"
+    OPENED = "opened"
+    READY_FOR_REVIEW = "ready_for_review"
+    REOPENED = "reopened"
     REVIEW_REQUESTED = "review_requested"
     REVIEW_REQUEST_REMOVED = "review_request_removed"
     REVIEW_SUBMITTED = "review_submitted"
-    COMMENT_CREATED = "comment_created"
-    COMMENT_EDITED = "comment_edited"
-    COMMENT_DELETED = "comment_deleted"
-    LABELED = "labeled"
+    REVIEW_THREAD_RESOLVED = "review_thread_resolved"
+    REVIEW_THREAD_UNRESOLVED = "review_thread_unresolved"
+    SYNCHRONIZED = "synchronized"
+    UNASSIGNED = "unassigned"
     UNLABELED = "unlabeled"
-    LOCKED = "locked"
     UNLOCKED = "unlocked"
 
 

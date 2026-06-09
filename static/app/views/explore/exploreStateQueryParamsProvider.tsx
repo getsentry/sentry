@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';

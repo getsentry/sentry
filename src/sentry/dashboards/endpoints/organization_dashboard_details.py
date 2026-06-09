@@ -36,7 +36,6 @@ from sentry.models.organization import Organization
 
 EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
-REVISIONS_FEATURE = "organizations:dashboards-revisions"
 
 logger = logging.getLogger(__name__)
 
@@ -201,9 +200,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
                     {"detail": "Cannot change the title of prebuilt Dashboards."}, status=409
                 )
 
-        snapshot = None
-        if features.has(REVISIONS_FEATURE, organization, actor=request.user):
-            snapshot = _take_dashboard_snapshot(dashboard, request.user)
+        snapshot = _take_dashboard_snapshot(dashboard, request.user)
 
         revision_source = request.data.get("revisionSource", "edit")
         if revision_source not in ("edit", "edit-with-agent"):

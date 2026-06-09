@@ -99,6 +99,9 @@ class Cell:
     # TODO(cells): drop once category is fully moved to Locality
     category: RegionCategory
 
+    api_gateway_address: str | None = None
+    """optional address for API gateway traffic."""
+
     visible: bool = True
     """Whether the cell is visible in API responses"""
 
@@ -121,6 +124,13 @@ class Cell:
         """
 
         return self.name == settings.SENTRY_MONOLITH_REGION
+
+    def api_serialize(self) -> dict[str, Any]:
+        """Serialize a Cell into a JSON compatible dict"""
+        locality_name = get_locality_name_for_cell(self.name)
+        locality = get_locality_by_name(locality_name)
+
+        return {"name": self.name, "locality_url": locality.to_url(""), "visible": self.visible}
 
 
 class CellResolutionError(Exception):
@@ -227,6 +237,7 @@ def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
             snowflake_id=config_value["snowflake_id"],
             category=RegionCategory(config_value["category"]),
             address=config_value["address"],
+            api_gateway_address=config_value.get("api_gateway_address", None),
             visible=config_value.get("visible", True),
         )
 

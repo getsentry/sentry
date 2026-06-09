@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {StarredGroupSearchView} from 'sentry/views/issueList/types';

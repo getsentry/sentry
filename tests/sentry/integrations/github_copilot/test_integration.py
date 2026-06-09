@@ -10,11 +10,8 @@ class GithubCopilotIntegrationProviderTest(TestCase):
     def test_key(self):
         assert self.provider.key == "github_copilot"
 
-    def test_requires_feature_flag_true(self):
-        assert self.provider.requires_feature_flag is True
-
-    def test_feature_flag_name(self):
-        assert self.provider.feature_flag_name == "organizations:integrations-github-copilot-agent"
+    def test_requires_feature_flag_false(self):
+        assert self.provider.requires_feature_flag is False
 
     def test_no_pipeline_views(self):
         assert self.provider.get_pipeline_views() == []

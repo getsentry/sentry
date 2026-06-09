@@ -21,7 +21,7 @@ import {t} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 /**

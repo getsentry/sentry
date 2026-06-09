@@ -9,7 +9,7 @@ import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {StacktraceOrder, type AvatarUser} from 'sentry/types/user';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 /**
  * Attempts to escape a string from any bash double quote special characters.

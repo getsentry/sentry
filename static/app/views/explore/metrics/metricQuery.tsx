@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX, type Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SORTABLE_SAMPLE_COLUMNS} from 'sentry/views/explore/metrics/types';

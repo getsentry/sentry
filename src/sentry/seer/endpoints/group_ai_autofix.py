@@ -24,6 +24,13 @@ from sentry.apidocs.examples.autofix_examples import AutofixExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    GroupActionActor,
+    publish_action,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import TriggerAutofixAction
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
@@ -240,7 +247,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 return Response(status=status.HTTP_404_NOT_FOUND)
             return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
 
-        # Handle all built-in Seer steps
+        # Handle all built-in Seer steps. A missing run_id means this call starts a new
+        # autofix run (the kickoff); a provided run_id is advancing an existing run.
+        is_autofix_kickoff = run_id is None
         try:
             run_id = trigger_autofix_agent(
                 group=group,
@@ -248,10 +257,24 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 referrer=_parse_autofix_referrer(data.get("referrer")),
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=run_id,
-                intelligence_level="medium",
                 user_context=data.get("user_context"),
                 insert_index=data.get("insert_index"),
             )
+            # Only record the action when autofix is actually kicked off, not on each
+            # subsequent step advancement within the same run.
+            if is_autofix_kickoff:
+                publish_action(
+                    TriggerAutofixAction(),
+                    source=resolve_action_source(request),
+                    group_id=group.id,
+                    organization_id=group.project.organization_id,
+                    project_id=group.project_id,
+                    actor=(
+                        GroupActionActor.user(request.user.id)
+                        if request.user and request.user.is_authenticated
+                        else SYSTEM_ACTOR
+                    ),
+                )
             return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
         except NoSeerQuotaException:
             return Response("No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED)
@@ -276,7 +299,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         examples=AutofixExamples.AUTOFIX_GET_RESPONSE,
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-autofix"])
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group) -> Response[AutofixStateResponse]:
         """
         Retrieve the current detailed state of an issue fix process for a specific issue including:
 

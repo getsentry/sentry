@@ -305,6 +305,7 @@ class ControlSiloOrganizationSerializerResponse(TypedDict):
     name: str
 
 
+@register(RpcOrganizationSummary)
 class ControlSiloOrganizationSerializer(Serializer[ControlSiloOrganizationSerializerResponse]):
     def serialize(
         self,
@@ -340,6 +341,7 @@ class ControlSiloOrganizationMappingSerializerResponse(TypedDict):
     hasAuthProvider: bool
 
 
+@register(OrganizationMapping)
 class ControlSiloOrganizationMappingSerializer(
     Serializer[ControlSiloOrganizationMappingSerializerResponse]
 ):

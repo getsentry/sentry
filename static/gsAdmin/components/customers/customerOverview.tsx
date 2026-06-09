@@ -12,8 +12,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegions} from 'sentry/utils/regions';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -475,6 +475,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     orgUrl = `${organization.links.organizationUrl}/issues/`;
   }
 
+  // TODO(cells) this needs the full list of cells
   const regionMap = getRegions().reduce<Record<string, string>>((acc, region) => {
     acc[region.url] = region.name;
     return acc;

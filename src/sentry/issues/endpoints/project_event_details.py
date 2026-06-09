@@ -15,7 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
 from sentry.api.serializers.models.event import GroupEventDetailsResponse
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
@@ -149,7 +149,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             raise ParseError(detail="Invalid date range")
 
         group_id_s = request.GET.get("group_id")
-        group_id = int(group_id_s) if group_id_s else None
+        group_id = to_valid_int_id("group_id", group_id_s) if group_id_s else None
 
         event = eventstore.backend.get_event_by_id(project.id, event_id, group_id=group_id)
 

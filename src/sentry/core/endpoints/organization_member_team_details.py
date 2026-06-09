@@ -61,7 +61,7 @@ class OrganizationMemberTeamSerializer(serializers.Serializer[dict[str, Any]]):
     )
 
 
-class OrganizationMemberTeamDetailsSerializer(Serializer):
+class OrganizationMemberTeamDetailsSerializer(Serializer[OrganizationMemberTeamSerializerResponse]):
     def serialize(
         self, obj: OrganizationMemberTeam, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
     ) -> OrganizationMemberTeamSerializerResponse:

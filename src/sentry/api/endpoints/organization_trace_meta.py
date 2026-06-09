@@ -1,7 +1,7 @@
 import logging
 
 import sentry_sdk
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -122,7 +122,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
 
     def get_projects(
         self,
-        request: HttpRequest,
+        request: Request,
         organization: Organization | RpcOrganization,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,

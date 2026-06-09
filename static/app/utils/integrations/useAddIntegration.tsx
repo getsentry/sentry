@@ -60,6 +60,7 @@ const UNCONDITIONAL_API_PIPELINE_PROVIDERS = [
   'perforce',
   'slack',
   'slack_staging',
+  'vercel',
   'vsts',
 ] as const satisfies ReadonlyArray<ProvidersByType['integration']>;
 

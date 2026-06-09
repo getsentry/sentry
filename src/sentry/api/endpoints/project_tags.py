@@ -71,7 +71,7 @@ class ProjectTagsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[ProjectTagKeyResponse]]:
         """
         Return a list of the tag keys that have been seen within a project.
         """
@@ -118,15 +118,15 @@ class ProjectTagsEndpoint(ProjectEndpoint):
                 key=lambda x: x.key,
             )
 
-        data = []
+        data: list[ProjectTagKeyResponse] = []
         for tag_key in tag_keys:
-            data.append(
-                {
-                    "key": tagstore.backend.get_standardized_key(tag_key.key),
-                    "name": tagstore.backend.get_tag_key_label(tag_key.key),
-                    **({"uniqueValues": tag_key.values_seen} if include_values_seen else {}),
-                    "canDelete": tag_key.key not in PROTECTED_TAG_KEYS and not use_flag_backend,
-                }
-            )
+            entry: ProjectTagKeyResponse = {
+                "key": tagstore.backend.get_standardized_key(tag_key.key),
+                "name": tagstore.backend.get_tag_key_label(tag_key.key),
+                "canDelete": tag_key.key not in PROTECTED_TAG_KEYS and not use_flag_backend,
+            }
+            if include_values_seen:
+                entry["uniqueValues"] = tag_key.values_seen
+            data.append(entry)
 
         return Response(data)

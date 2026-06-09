@@ -55,7 +55,9 @@ class UserOrganizationsEndpoint(RegionSiloUserEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, user: RpcUser) -> Response:
+    def get(
+        self, request: Request, user: RpcUser
+    ) -> Response[list[OrganizationSummarySerializerResponse]]:
         """
         Return a list of organizations that the given user is a member of.
         """

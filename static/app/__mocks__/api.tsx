@@ -1,6 +1,7 @@
 import isEqual from 'lodash/isEqual';
 
 import type * as ApiNamespace from 'sentry/api';
+import type {ResponseMeta} from 'sentry/types/api';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const RealApi = jest.requireActual<typeof ApiNamespace>('sentry/api');
@@ -33,7 +34,7 @@ type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 type MatchCallable = (url: string, options: ApiNamespace.RequestOptions) => boolean;
 
 type AsyncDelay = undefined | number;
-interface ResponseType extends ApiNamespace.ResponseMeta {
+interface ResponseType extends ResponseMeta {
   body: any;
   callCount: 0;
   headers: Record<string, string>;

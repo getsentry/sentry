@@ -158,7 +158,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   ),
 
   /**
-   * Augment the global help search modal with a contat support button
+   * Augment the global help search modal with a contact support button
    */
   'help-modal:footer': ({closeModal}) => (
     <HelpSearchFooter key="help-search-footer" closeModal={closeModal} />

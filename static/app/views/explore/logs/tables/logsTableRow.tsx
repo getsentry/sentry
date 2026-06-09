@@ -26,10 +26,11 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined, escapeDoubleQuotes} from 'sentry/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
@@ -498,7 +499,7 @@ export const LogRowContent = memo(function LogRowContent({
 
           if (!defined(value)) {
             return (
-              <LogTableBodyCell key={field}>
+              <LogTableBodyCell key={field} reservePinGutter={!!pin}>
                 {shouldRenderActions ? (
                   <Flex position="relative" height="100%" width="100%" justify="end">
                     {pin}
@@ -532,7 +533,11 @@ export const LogRowContent = memo(function LogRowContent({
           };
 
           return (
-            <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
+            <LogTableBodyCell
+              key={field}
+              data-test-id={'log-table-cell-' + field}
+              reservePinGutter={!!pin}
+            >
               {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}

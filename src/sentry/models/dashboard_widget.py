@@ -204,6 +204,17 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
+DEFAULT_MAX_WIDGET_LIMIT = 10
+MAX_WIDGET_LIMIT_BY_DISPLAY_TYPE: dict[int, int] = {
+    DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART: 25,
+    DashboardWidgetDisplayTypes.TABLE: 20,
+}
+
+
+def get_max_widget_limit(display_type_id: int) -> int:
+    return MAX_WIDGET_LIMIT_BY_DISPLAY_TYPE.get(display_type_id, DEFAULT_MAX_WIDGET_LIMIT)
+
+
 @cell_silo_model
 class DashboardWidgetQuery(Model):
     """

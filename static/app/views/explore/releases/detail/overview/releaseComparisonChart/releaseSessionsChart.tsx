@@ -18,7 +18,7 @@ import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organizatio
 import type {PlatformKey} from 'sentry/types/platform';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   getCountSeries,
   getCrashFreeRateSeries,

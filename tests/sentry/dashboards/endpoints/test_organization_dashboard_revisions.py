@@ -37,22 +37,15 @@ class OrganizationDashboardRevisionsTestCase(APITestCase):
 
 
 class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCase):
-    def test_returns_404_without_feature_flag(self) -> None:
-        self._create_revision()
-        response = self.client.get(self.url)
-        assert response.status_code == 404
-
     def test_returns_empty_list_when_no_revisions(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert response.data == []
 
     def test_returns_revisions_with_expected_fields(self) -> None:
         revision = self._create_revision()
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -72,8 +65,7 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
     def test_returns_gravatar_avatar_type(self) -> None:
         self.create_user_avatar(user=self.user, avatar_type=UserAvatarType.GRAVATAR)
         self._create_revision()
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         created_by = response.data[0]["createdBy"]
@@ -83,8 +75,7 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
     def test_returns_upload_avatar_type(self) -> None:
         self.create_user_avatar(user=self.user, avatar_type=UserAvatarType.UPLOAD)
         self._create_revision()
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert response.data[0]["createdBy"]["avatarType"] == "upload"
@@ -93,8 +84,7 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
         first = self._create_revision(title="First")
         second = self._create_revision(title="Second")
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert len(response.data) == 2
@@ -109,8 +99,7 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
                 "dashboard_id": "default-overview",
             },
         )
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(prebuilt_url)
+        response = self.client.get(prebuilt_url)
 
         assert response.status_code == 404
 
@@ -130,8 +119,7 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
         )
         revision = self._create_revision()
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -147,8 +135,7 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
             snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
         )
 
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.client.get(self.url)
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert len(response.data) == 1

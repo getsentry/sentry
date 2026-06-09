@@ -182,6 +182,11 @@ export function getNavigationConfiguration({
           description: t("View and manage the project's client keys (DSN)"),
           keywords: [
             t('dsn'),
+            // The SDK environment variable name (and its spaced form) that
+            // developers search for. Not wrapped in t() — these are fixed
+            // config/product tokens, not translatable prose.
+            'SENTRY_DSN',
+            'Sentry DSN',
             t('auth'),
             t('token'),
             t('client key'),

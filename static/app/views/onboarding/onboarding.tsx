@@ -21,8 +21,8 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useExperiment} from 'sentry/utils/useExperiment';
@@ -45,6 +45,11 @@ import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 import {TargetedOnboardingWelcome} from './welcome';
+
+// Genuine new-org onboarding happens shortly after org creation. Existing orgs
+// only reach /onboarding via stale links + login replay and are far older than
+// this window, so gating exposure on org age keeps them out of the experiment.
+const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
@@ -263,16 +268,26 @@ export function OnboardingWithoutContext() {
     onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
 
   const hasNewWelcomeUI = useHasNewWelcomeUI();
+
+  // Only report experiment exposure for genuine new-org onboarding. Existing
+  // orgs can land on /onboarding via stale links, which would
+  // otherwise contaminate the experiment population. reportExposure does not
+  // affect the returned `inExperiment` assignment, so step selection below still
+  // works for everyone.
+  const isNewOrgOnboarding =
+    Date.now() - new Date(organization.dateCreated).getTime() <
+    NEW_ORG_ONBOARDING_WINDOW_MS;
+
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
-    reportExposure: true,
+    reportExposure: isNewOrgOnboarding,
   });
 
   // Only report exposure for users who are actually in SCM onboarding —
   // the assignment is irrelevant for legacy onboarding.
   const {inExperiment: hasProjectDetailsStep} = useExperiment({
     feature: 'onboarding-scm-project-details-experiment',
-    reportExposure: hasScmOnboarding,
+    reportExposure: hasScmOnboarding && isNewOrgOnboarding,
   });
 
   const scmSteps = hasProjectDetailsStep

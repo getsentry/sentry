@@ -13,7 +13,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0028_add_org_ci_scope
+hybridcloud: 0030_remove_orgslugreservationreplica_delete
 
 insights: 0002_backfill_team_starred
 
@@ -23,7 +23,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0012_drop_metric_alert_cols_notificationmessage
 
-preprod: 0028_add_images_skipped_to_snapshot_comparison
+preprod: 0029_add_snapshot_comparison_chunks_columns
 
 releases: 0004_cleanup_failed_safe_deletes
 
@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0017_drop_old_fk_columns
 
-sentry: 1108_drop_organizationmapping_codecov_access_pending
+sentry: 1110_add_team_avatar
 
 social_auth: 0003_social_auth_json_field
 

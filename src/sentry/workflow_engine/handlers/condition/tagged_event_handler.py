@@ -110,7 +110,7 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
         return result
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         data = {
             "key": condition_data["key"],
             "value": condition_data["value"],

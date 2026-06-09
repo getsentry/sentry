@@ -383,7 +383,7 @@ def get_team_memberships(team_ids: list[int]) -> list[TeamMembership]:
     return list(members.values())
 
 
-class TeamSCIMSerializer(Serializer):
+class TeamSCIMSerializer(Serializer[OrganizationTeamSCIMSerializerResponse]):
     def __init__(
         self,
         expand: Sequence[str] | None = None,

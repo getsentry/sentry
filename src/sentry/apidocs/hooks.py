@@ -35,8 +35,6 @@ EXCLUSION_PATH_PREFIXES = [
     "/api/0/monitors/",
     # Issue URLS have an expression of group|issue that resolves to `var`
     "/api/0/{var}/{issue_id}/",
-    # Legacy alias of source-map-debug/; documented only at the canonical path.
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/{event_id}/source-map-debug-blue-thunder-edition/",
 ]
 
 

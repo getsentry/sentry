@@ -18,6 +18,7 @@ jobs:
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          SENTRY_DSN: ${{ secrets.SENTRY_JEST_DSN }}
         run: pnpm run test-ci --testResultsProcessor ./tests/js/test-balancer/index.js
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2

@@ -17,6 +17,7 @@ from sentry.tasks.summaries.utils import (
     project_key_transactions_last_week,
     project_key_transactions_this_week,
 )
+from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
 
@@ -31,6 +32,7 @@ class OrganizationReportContextFactory:
         self.duration = duration
         self.organization = organization
 
+    @metrics.wraps("weekly_report.create_context.user_project_ownership")
     def _append_user_project_ownership(self, ctx: OrganizationReportContext) -> None:
         """Find the projects associated with each user.
         Populates context.project_ownership which is { user_id: set<project_id> }
@@ -44,6 +46,7 @@ class OrganizationReportContextFactory:
                 if user_id is not None:
                     ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
+    @metrics.wraps("weekly_report.create_context.project_event_counts")
     def _append_project_event_counts(self, ctx: OrganizationReportContext) -> None:
         with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
             event_counts = project_event_counts_for_organization(
@@ -94,6 +97,7 @@ class OrganizationReportContextFactory:
                             project_ctx.error_count_by_day.get(timestamp, 0) + total
                         )
 
+    @metrics.wraps("weekly_report.create_context.issue_substatus_summaries")
     def _append_organization_project_issue_substatus_summaries(
         self, ctx: OrganizationReportContext
     ) -> None:
@@ -102,6 +106,7 @@ class OrganizationReportContextFactory:
         ):
             organization_project_issue_substatus_summaries(ctx)
 
+    @metrics.wraps("weekly_report.create_context.project_key_errors")
     def _append_project_key_errors(self, ctx: OrganizationReportContext) -> None:
         with sentry_sdk.start_span(op="weekly_reports.project_passes"):
             organization = ctx.organization
@@ -151,20 +156,33 @@ class OrganizationReportContextFactory:
                         project.id
                     ].key_performance_issues = key_performance_issues
 
+    @metrics.wraps("weekly_report.create_context.hydrate_key_error_groups")
     def _hydrate_key_error_groups(self, ctx: OrganizationReportContext) -> None:
         with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):
             fetch_key_error_groups(ctx)
 
+    @metrics.wraps("weekly_report.create_context.hydrate_key_performance_issues")
     def _hydrate_key_performance_issue_groups(self, ctx: OrganizationReportContext) -> None:
         with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
             fetch_key_performance_issue_groups(ctx)
 
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)
-        self._append_user_project_ownership(ctx)
-        self._append_project_event_counts(ctx)
-        self._append_organization_project_issue_substatus_summaries(ctx)
-        self._append_project_key_errors(ctx)
-        self._hydrate_key_error_groups(ctx)
-        self._hydrate_key_performance_issue_groups(ctx)
+
+        metrics.distribution(
+            "weekly_report.create_context.project_count",
+            len(ctx.projects_context_map),
+        )
+
+        with metrics.timer("weekly_report.create_context.duration"):
+            self._append_user_project_ownership(ctx)
+            self._append_project_event_counts(ctx)
+            self._append_organization_project_issue_substatus_summaries(ctx)
+
+            # Enhanced privacy flag hides issue titles, transaction names, and source details
+            if not self.organization.flags.enhanced_privacy:
+                self._append_project_key_errors(ctx)
+                self._hydrate_key_error_groups(ctx)
+                self._hydrate_key_performance_issue_groups(ctx)
+
         return ctx

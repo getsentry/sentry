@@ -1,24 +1,27 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {RequestOptions, ResponseMeta} from 'sentry/api';
+import type {RequestOptions} from 'sentry/api';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
 import type {ExternalIssueAction} from 'sentry/components/externalIssues/utils';
 import {getConfigName} from 'sentry/components/externalIssues/utils';
+import type {FieldValue} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {Choice, Choices, SelectValue} from 'sentry/types/core';
+import type {ResponseMeta} from 'sentry/types/api';
+import type {Choice, Choices} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,
@@ -128,6 +131,18 @@ export function ExternalIssueForm({
   const [loadSpan, setLoadSpan] = useState<Span | null>(null);
   const [action, setAction] = useState<ExternalIssueAction>('create');
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
+  // Stable fields don't depend on other fields. We keep the values the user typed
+  // so they survive the remounts that dynamic-field refetches cause.
+  const [stableFieldValues, setStableFieldValues] = useState<Record<string, FieldValue>>(
+    {}
+  );
+  // The dynamic field that last triggered a refetch, kept so its value survives
+  // the remount.
+  const [lastChangedField, setLastChangedField] = useState<Record<string, FieldValue>>(
+    {}
+  );
+  // Set of dynamic field names, derived from formFields below.
+  const dynamicFieldNamesRef = useRef(new Set<string>());
 
   const {
     data: integrationDetails,
@@ -266,6 +281,10 @@ export function ExternalIssueForm({
 
   const handleClick = (newAction: ExternalIssueAction) => {
     setAction(newAction);
+    // Reset preserved field values when switching tabs — create and link forms
+    // are independent, and stale values from one should not bleed into the other.
+    setStableFieldValues({});
+    setLastChangedField({});
     refetch();
   };
 
@@ -306,9 +325,15 @@ export function ExternalIssueForm({
     ]
   );
 
-  // Track the field that triggered the last dynamic refetch so we can
-  // preserve its value when the form remounts with new config.
-  const [lastChangedField, setLastChangedField] = useState<Record<string, unknown>>({});
+  const handleValueChange = useCallback(
+    (fieldName: string, value: unknown) => {
+      // If the changed field isn't dynamic, save its value.
+      if (!dynamicFieldNamesRef.current.has(fieldName)) {
+        setStableFieldValues(prev => ({...prev, [fieldName]: value}));
+      }
+    },
+    [] // dynamicFieldNamesRef.current is kept current via useMemo below
+  );
 
   const onFieldChange = useCallback(
     (fieldName: string, value: unknown) => {
@@ -346,6 +371,12 @@ export function ExternalIssueForm({
       return field;
     }) as JsonFormAdapterFieldConfig[];
   }, [integrationDetails, action, asyncOptionsCache]);
+
+  // Build the set of dynamic field names from the current config.
+  dynamicFieldNamesRef.current = useMemo(
+    () => new Set(formFields.filter(f => f.updatesForm).map(f => f.name)),
+    [formFields]
+  );
 
   const hasFormErrors = formFields.some(
     field => field.name === 'error' && field.type === 'blank'
@@ -406,13 +437,14 @@ export function ExternalIssueForm({
         <BackendJsonSubmitForm
           key={formKey}
           fields={formFields}
-          initialValues={lastChangedField}
+          initialValues={{...stableFieldValues, ...lastChangedField}}
           onSubmit={handleSubmit}
           submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
           isLoading={isDynamicallyRefetching}
           dynamicFieldValues={dynamicFieldValues}
           onAsyncOptionsFetched={handleAsyncOptionsFetched}
           onFieldChange={onFieldChange}
+          onValueChange={handleValueChange}
           submitDisabled={hasFormErrors}
           footer={({SubmitButton, disabled}) => (
             <Footer>

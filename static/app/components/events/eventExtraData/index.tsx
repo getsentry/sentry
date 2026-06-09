@@ -9,7 +9,7 @@ import {
 } from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';

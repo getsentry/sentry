@@ -100,7 +100,6 @@ def trigger_action(
     occurrence_id: str | None,
     group_state: GroupState,
     has_escalated: bool,
-    detector_id: int | None = None,  # TODO: remove
     notification_uuid: str | None = None,
     **kwargs: dict[str, object],
 ) -> None:

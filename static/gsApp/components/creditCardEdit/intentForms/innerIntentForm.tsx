@@ -11,7 +11,7 @@ import {Text} from '@sentry/scraps/text';
 import {Form} from 'sentry/components/forms/form';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import type {InnerIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 

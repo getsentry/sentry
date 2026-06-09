@@ -13,7 +13,7 @@ class DataConditionHandlerResponse(TypedDict):
 
 
 @register(DataConditionHandler)
-class DataConditionHandlerSerializer(Serializer):
+class DataConditionHandlerSerializer(Serializer[DataConditionHandlerResponse]):
     def serialize(
         self,
         obj: DataConditionHandler[Any],
