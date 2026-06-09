@@ -8,6 +8,8 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
     SEER_WORKFLOW_ACTIVITIES,
+    STATUS_CHANGE_VIA_ACTIVITY_FLAG,
+    activity_handler,
     seer_activity_handler,
 )
 from sentry.workflow_engine.models import Detector
@@ -18,7 +20,8 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 class WorkflowActivityRegistryTest(TestCase):
     def test_registrants(self) -> None:
         assert "seer_activity" in workflow_activity_registry.registrations
-        assert len(workflow_activity_registry.registrations) == 1
+        assert "generic_activity" in workflow_activity_registry.registrations
+        assert len(workflow_activity_registry.registrations) == 2
 
 
 class SeerActivityHandlerTest(TestCase):
@@ -120,3 +123,83 @@ class SeerActivityHandlerTest(TestCase):
             group_id=self.group.id,
             detector_id=issue_stream_detector.id,
         )
+
+
+class GenericActivityHandlerTest(TestCase):
+    def setUp(self) -> None:
+        self.group = self.create_group()
+        self.activity = self.create_group_activity(
+            group=self.group, type=ActivityType.SET_RESOLVED.value
+        )
+        self.detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
+
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_feature_flag_disabled(self, mock_process_workflow_activity: MagicMock) -> None:
+        activity_handler(self.group, self.activity, self.detector.id)
+        mock_process_workflow_activity.delay.assert_not_called()
+
+    @mock.patch("sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.metrics")
+    def test_invalid_activity_type(self, mock_metrics: MagicMock) -> None:
+        self.activity.type = -1
+        activity_handler(self.group, self.activity, self.detector.id)
+        mock_metrics.incr.assert_not_called()
+
+    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_skips_unsupported_activity_type(
+        self, mock_process_workflow_activity: MagicMock
+    ) -> None:
+        activity = self.create_group_activity(group=self.group, type=ActivityType.NOTE.value)
+        activity_handler(self.group, activity, self.detector.id)
+
+        mock_process_workflow_activity.delay.assert_not_called()
+
+    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_dispatches_with_provided_detector_id(
+        self, mock_process_workflow_activity: MagicMock
+    ) -> None:
+        activity_handler(self.group, self.activity, self.detector.id)
+
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+        )
+
+    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_falls_back_to_preferred_detector(
+        self, mock_process_workflow_activity: MagicMock
+    ) -> None:
+        # No detector_id provided (e.g. a non-issue-platform resolve) -> resolve from the group.
+        activity_handler(self.group, self.activity, None)
+
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+        )
+
+    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.get_preferred_detector",
+        side_effect=Detector.DoesNotExist,
+    )
+    def test_skips_when_no_detector(
+        self, mock_get_detector: MagicMock, mock_process_workflow_activity: MagicMock
+    ) -> None:
+        activity_handler(self.group, self.activity, None)
+
+        mock_process_workflow_activity.delay.assert_not_called()
