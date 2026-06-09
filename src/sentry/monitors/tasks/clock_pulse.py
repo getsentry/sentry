@@ -41,7 +41,7 @@ def _get_producer():
 
 _checkin_producer = SingletonProducer(_get_producer)
 _checkin_task_producer = get_task_producer(
-    name="sentry.monitors.tasks.clock_pulse",
+    producer_name="sentry.monitors.tasks.clock_pulse",
     producer_factory=_get_producer,
 )
 
