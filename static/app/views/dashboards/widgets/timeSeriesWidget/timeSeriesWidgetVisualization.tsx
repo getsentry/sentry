@@ -2,12 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
-import type {
-  ECharts,
-  SeriesOption,
-  XAXisComponentOption,
-  YAXisComponentOption,
-} from 'echarts';
+import type {SeriesOption, XAXisComponentOption, YAXisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
