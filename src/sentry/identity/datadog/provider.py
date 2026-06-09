@@ -7,7 +7,8 @@ import secrets
 import orjson
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
-from requests import HTTPError, Response
+from requests import ConnectionError, HTTPError, Response
+from requests.exceptions import SSLError
 
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import (
@@ -73,6 +74,12 @@ class DatadogDCRView:
             except HTTPError as e:
                 lifecycle.record_failure(e)
                 return pipeline.error("DCR registration failed")
+            except SSLError:
+                lifecycle.record_failure("ssl_error")
+                return pipeline.error("Could not verify SSL certificate")
+            except ConnectionError:
+                lifecycle.record_failure("connection_error")
+                return pipeline.error("Could not connect to host or service")
 
             try:
                 data = orjson.loads(safe_urlread(resp))

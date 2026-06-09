@@ -10,7 +10,8 @@ import responses
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
 from django.test import Client, RequestFactory
-from requests import HTTPError
+from requests import ConnectionError, HTTPError
+from requests.exceptions import SSLError
 
 import sentry.identity
 from sentry.identity.datadog.provider import (
@@ -67,7 +68,7 @@ class DatadogDCRViewTest(TestCase):
         self.pipeline.next_step.assert_called_once()
 
     @responses.activate
-    def test_returns_error_on_http_failure(self, mock_record: MagicMock) -> None:
+    def test_http_error(self, mock_record: MagicMock) -> None:
         responses.add(responses.POST, REGISTER_URL, status=429)
 
         self.view.dispatch(self.request, self.pipeline)
@@ -76,8 +77,24 @@ class DatadogDCRViewTest(TestCase):
         self.pipeline.bind_state.assert_not_called()
         assert_failure_metric(mock_record, HTTPError())
 
+    @patch("sentry.identity.datadog.provider.safe_urlopen", side_effect=SSLError())
+    def test_ssl_error(self, mock_urlopen: MagicMock, mock_record: MagicMock) -> None:
+        self.view.dispatch(self.request, self.pipeline)
+
+        self.pipeline.error.assert_called_once_with("Could not verify SSL certificate")
+        self.pipeline.bind_state.assert_not_called()
+        assert_failure_metric(mock_record, "ssl_error")
+
+    @patch("sentry.identity.datadog.provider.safe_urlopen", side_effect=ConnectionError())
+    def test_connection_error(self, mock_urlopen: MagicMock, mock_record: MagicMock) -> None:
+        self.view.dispatch(self.request, self.pipeline)
+
+        self.pipeline.error.assert_called_once_with("Could not connect to host or service")
+        self.pipeline.bind_state.assert_not_called()
+        assert_failure_metric(mock_record, "connection_error")
+
     @responses.activate
-    def test_returns_error_on_invalid_json(self, mock_record: MagicMock) -> None:
+    def test_invalid_json(self, mock_record: MagicMock) -> None:
         responses.add(responses.POST, REGISTER_URL, body="not json", status=200)
 
         self.view.dispatch(self.request, self.pipeline)
@@ -87,7 +104,7 @@ class DatadogDCRViewTest(TestCase):
         assert_failure_metric(mock_record, "json_error")
 
     @responses.activate
-    def test_returns_error_on_missing_credentials(self, mock_record: MagicMock) -> None:
+    def test_missing_credentials(self, mock_record: MagicMock) -> None:
         responses.add(responses.POST, REGISTER_URL, json={"client_id": "id-only"})
 
         self.view.dispatch(self.request, self.pipeline)
