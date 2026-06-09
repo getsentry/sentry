@@ -18,7 +18,7 @@ import {DashboardChatPanel, type WidgetError} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import type {Widget} from './types';
-import {DashboardState} from './types';
+import {DashboardState} from './typesBase';
 import {useSeerDashboardSession} from './useSeerDashboardSession';
 
 export default function CreateFromSeer() {

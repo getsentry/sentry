@@ -12,7 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {ProjectStats} from 'sentry/types/project';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {useProjectStats} from 'sentry/views/projectsDashboard/useProjectStats';
 
 describe('useProjectStats', () => {

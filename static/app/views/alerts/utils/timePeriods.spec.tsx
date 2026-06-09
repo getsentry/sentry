@@ -1,4 +1,8 @@
-import {Dataset, TimePeriod, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
+import {
+  Dataset,
+  TimePeriod,
+  TimeWindow,
+} from 'sentry/views/alerts/rules/metric/typesBase';
 
 import {getTimePeriodOptions} from './timePeriods';
 

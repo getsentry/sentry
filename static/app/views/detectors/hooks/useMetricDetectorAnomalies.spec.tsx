@@ -5,7 +5,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
 import {useMetricDetectorAnomalies} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalies';
 

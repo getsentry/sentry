@@ -6,6 +6,14 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
+import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fieldsBase';
+import type {
+  AggregationRefinement,
+  Alignments,
+  Field,
+  ParsedFunction,
+  PlotType,
+} from 'sentry/utils/discover/fieldsBase';
 import {
   AGGREGATION_FIELDS,
   AggregationKey,
@@ -27,33 +35,13 @@ import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 
-import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
-
-export type SortKind = 'asc' | 'desc';
-
-export type Sort = {
-  field: string;
-  kind: SortKind;
-};
-
-// Contains the URL field value & the related table column width.
-// Can be parsed into a Column using explodeField()
-export type Field = {
-  field: string;
-  // When an alias is defined for a field, it will be shown as a column name in the table visualization.
-  alias?: string;
-  width?: number;
-};
+import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from './types';
+import {DiscoverDatasets} from './typesBase';
 
 // ColumnType is kept as a string literal union instead of an enum due to the countless uses of it and refactoring would take huge effort.
 export type ColumnType = `${Exclude<FieldValueType, FieldValueType.NEVER>}`;
 
 export type ColumnValueType = ColumnType | `${FieldValueType.NEVER}`;
-
-export type ParsedFunction = {
-  arguments: string[];
-  name: string;
-};
 
 type ValidateColumnValueFunction = (data: {
   dataType: ColumnType;
@@ -85,8 +73,6 @@ export type AggregateParameter =
       placeholder?: string;
     };
 
-export type AggregationRefinement = string | undefined;
-
 // The parsed result of a Field.
 // Functions and Fields are handled as subtypes to enable other
 // code to work more simply.
@@ -117,31 +103,6 @@ export type QueryFieldValue =
 // Column is just an alias of a Query value
 export type Column = QueryFieldValue;
 
-type Alignments = 'left' | 'right';
-
-export type CountUnit = 'count';
-
-export type PercentageUnit = 'percentage';
-
-export type PercentChangeUnit = 'percent_change';
-
-export enum CurrencyUnit {
-  USD = 'usd',
-}
-
-export enum DurationUnit {
-  NANOSECOND = 'nanosecond',
-  MICROSECOND = 'microsecond',
-  MILLISECOND = 'millisecond',
-  SECOND = 'second',
-  MINUTE = 'minute',
-  HOUR = 'hour',
-  DAY = 'day',
-  WEEK = 'week',
-  MONTH = 'month',
-  YEAR = 'year',
-}
-
 // Durations normalized to millisecond unit
 export const DURATION_UNIT_MULTIPLIERS: Record<DurationUnit, number> = {
   nanosecond: 1 / 1000 ** 2,
@@ -168,23 +129,6 @@ export const DURATION_UNIT_LABELS: Record<DurationUnit, string> = {
   month: 'mo',
   year: 'yr',
 };
-
-export enum SizeUnit {
-  BIT = 'bit',
-  BYTE = 'byte',
-  KIBIBYTE = 'kibibyte',
-  KILOBYTE = 'kilobyte',
-  MEBIBYTE = 'mebibyte',
-  MEGABYTE = 'megabyte',
-  GIBIBYTE = 'gibibyte',
-  GIGABYTE = 'gigabyte',
-  TEBIBYTE = 'tebibyte',
-  TERABYTE = 'terabyte',
-  PEBIBYTE = 'pebibyte',
-  PETABYTE = 'petabyte',
-  EXBIBYTE = 'exbibyte',
-  EXABYTE = 'exabyte',
-}
 
 // NOTE: These units are treated as base 10 (SI) vs. base 2 (IEC). That
 // intuitively makes sense for units like "kilobyte" (vs. kibibyte) where the
@@ -221,12 +165,6 @@ export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
   exabyte: 1000 ** 6,
 };
 
-export enum RateUnit {
-  PER_SECOND = '1/second',
-  PER_MINUTE = '1/minute',
-  PER_HOUR = '1/hour',
-}
-
 // Rates normalized to /second unit
 export const RATE_UNIT_MULTIPLIERS: Record<RateUnit, number> = {
   [RateUnit.PER_SECOND]: 1,
@@ -245,8 +183,6 @@ export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_MINUTE]: 'Per Minute',
   [RateUnit.PER_HOUR]: 'Per Hour',
 };
-
-export type DataUnit = DurationUnit | SizeUnit | RateUnit | null;
 
 const getDocsAndOutputType = (key: AggregationKey) => {
   return {
@@ -666,8 +602,6 @@ export type AggregationOutputType = Extract<
   | 'rate'
   | 'score'
 >;
-
-export type PlotType = 'bar' | 'line' | 'area';
 
 type DefaultValueInputs = {
   parameter: AggregateParameter;

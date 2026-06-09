@@ -1,4 +1,4 @@
-import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {DetectorSpansConfig} from 'sentry/views/detectors/datasetConfig/spans';
 
 describe('spans.separateEventTypesFromQuery', () => {

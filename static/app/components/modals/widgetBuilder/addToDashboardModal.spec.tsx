@@ -17,7 +17,7 @@ import {
   DashboardWidgetSource,
   DisplayType,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 

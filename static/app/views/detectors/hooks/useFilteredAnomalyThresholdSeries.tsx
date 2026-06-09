@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
+import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/typesBase';
 
 interface UseFilteredAnomalyThresholdSeriesProps {
   anomalyThresholdSeries: any[];

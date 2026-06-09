@@ -14,7 +14,7 @@ import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';

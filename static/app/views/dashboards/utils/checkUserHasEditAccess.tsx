@@ -1,7 +1,7 @@
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import type {DashboardPermissions} from 'sentry/views/dashboards/types';
+import type {DashboardPermissions} from 'sentry/views/dashboards/typesBase';
 
 /**
  *  Checks if current user has permissions to edit dashboard

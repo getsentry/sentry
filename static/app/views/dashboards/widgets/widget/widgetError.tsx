@@ -8,7 +8,7 @@ import {DEEMPHASIS_VARIANT} from 'sentry/views/dashboards/widgets/bigNumberWidge
 import type {
   ErrorPropWithResponseJSON,
   StateProps,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 interface WidgetErrorProps {
   error: StateProps['error'];

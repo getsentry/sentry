@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {CategoricalItemCategory} from 'sentry/views/dashboards/widgets/common/types';
+import type {CategoricalItemCategory} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 /**
  * Format a category value for display on the X axis of a categorical chart.

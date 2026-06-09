@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Storybook from 'sentry/stories';
-import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fieldsBase';
 
 import {BigNumberWidgetVisualization} from './bigNumberWidgetVisualization';
 

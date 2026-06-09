@@ -13,10 +13,10 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {
   Aggregation,
   AggregationOutputType,
-  DataUnit,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {SizeUnit} from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
+import {SizeUnit} from 'sentry/utils/discover/fieldsBase';
 import {AggregationKey} from 'sentry/utils/fields';
 import type {
   DatasetConfig,
@@ -27,7 +27,7 @@ import type {
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/base';
 import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {
   isEventsStats,
   isMultiSeriesEventsStats,

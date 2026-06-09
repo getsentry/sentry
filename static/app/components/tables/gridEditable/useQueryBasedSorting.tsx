@@ -3,7 +3,7 @@ import type {Location} from 'history';
 
 import {queryBasedSortLinkGenerator} from 'sentry/components/replays/queryBasedSortLinkGenerator';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {decodeSorts} from 'sentry/utils/queryString';
 
 interface Props {

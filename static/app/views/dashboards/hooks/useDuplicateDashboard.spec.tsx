@@ -9,7 +9,7 @@ import {
   useDuplicatePrebuiltDashboard,
 } from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 describe('useDuplicateDashboard', () => {

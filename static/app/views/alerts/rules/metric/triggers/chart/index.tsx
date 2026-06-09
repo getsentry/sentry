@@ -38,8 +38,9 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
@@ -51,16 +52,18 @@ import {withApi} from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {
+  EAP_EXTRAPOLATION_MODE_MAP,
+  type MetricRule,
+} from 'sentry/views/alerts/rules/metric/types';
+import {
   AlertRuleComparisonType,
   Dataset,
-  EAP_EXTRAPOLATION_MODE_MAP,
   ExtrapolationMode,
   SessionsAggregate,
   TimePeriod,
   TimeWindow,
-  type MetricRule,
   type Trigger,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {SeriesSamplingInfo} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';

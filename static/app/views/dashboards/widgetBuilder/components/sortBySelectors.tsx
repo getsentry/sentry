@@ -21,7 +21,7 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
 import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {SortDirection, sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';

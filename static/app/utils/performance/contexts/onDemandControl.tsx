@@ -7,7 +7,7 @@ import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 
 export interface OnDemandControlContext {
   setForceOnDemand: (value: boolean) => void;

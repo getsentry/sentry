@@ -12,7 +12,7 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import {EAPField} from 'sentry/views/alerts/rules/metric/eapField';
 import {EAPMetricsField} from 'sentry/views/alerts/rules/metric/eapMetricsField';
-import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {

@@ -1,5 +1,5 @@
-import type {Sort} from 'sentry/utils/discover/fields';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 
 export function defaultSortBys(fields: string[]): Sort[] {
   if (fields.includes('timestamp')) {

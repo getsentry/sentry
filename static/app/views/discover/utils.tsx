@@ -21,7 +21,6 @@ import type {
   Column,
   ColumnType,
   ColumnValueType,
-  Field,
 } from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
@@ -39,19 +38,23 @@ import {
   PROFILING_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
+import type {Field} from 'sentry/utils/discover/fieldsBase';
+import {TOP_N} from 'sentry/utils/discover/types';
+import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   DEFAULT_WIDGET_NAME,
-  DisplayType,
-  WidgetType,
-  type DashboardWidgetSource,
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  WidgetType,
+  type DashboardWidgetSource,
+} from 'sentry/views/dashboards/typesBase';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {
   getAllViews,

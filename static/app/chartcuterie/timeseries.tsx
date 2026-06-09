@@ -4,7 +4,7 @@ import {Grid} from 'sentry/components/charts/components/grid';
 import {Legend} from 'sentry/components/charts/components/legend';
 import {XAxis} from 'sentry/components/charts/components/xAxis';
 import {YAxis} from 'sentry/components/charts/components/yAxis';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {assignPlottablesToYAxes} from 'sentry/views/dashboards/widgets/timeSeriesWidget/assignPlottablesToYAxes';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';

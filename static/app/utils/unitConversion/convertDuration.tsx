@@ -1,4 +1,5 @@
-import {DURATION_UNIT_MULTIPLIERS, type DurationUnit} from 'sentry/utils/discover/fields';
+import {DURATION_UNIT_MULTIPLIERS} from 'sentry/utils/discover/fields';
+import {type DurationUnit} from 'sentry/utils/discover/fieldsBase';
 
 export function convertDuration(
   value: number,

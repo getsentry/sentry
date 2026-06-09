@@ -1,5 +1,9 @@
 import {t} from 'sentry/locale';
-import {Dataset, TimePeriod, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
+import {
+  Dataset,
+  TimePeriod,
+  TimeWindow,
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 
 export const TIME_WINDOW_MAP: Record<TimeWindow, string> = {

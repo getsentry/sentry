@@ -4,7 +4,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {TermOperator} from 'sentry/components/searchSyntax/parser';
+import {TermOperator} from 'sentry/components/searchSyntax/types';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';

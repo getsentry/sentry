@@ -7,7 +7,7 @@ import {
   type IssueAlertRule,
 } from 'sentry/types/alerts';
 import type {Member, Team} from 'sentry/types/organization';
-import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
+import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/typesBase';
 import {CHANGE_ALERT_PLACEHOLDERS_LABELS} from 'sentry/views/alerts/utils/constants';
 
 /**

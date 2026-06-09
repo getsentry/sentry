@@ -3,9 +3,9 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
-import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {EventsSearchBar} from 'sentry/views/detectors/datasetConfig/components/eventSearchBar';
 import {
   getDiscoverSeriesQueryOptions,

@@ -1,6 +1,6 @@
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 
 /**
  * Replace internal \uf00d-delimited wildcard operators with readable labels

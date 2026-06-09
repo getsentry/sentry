@@ -6,7 +6,8 @@ import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {widgetCanUseTimeSeriesVisualization} from './utils/widgetCanUseTimeSeriesVisualization';
-import {DisplayType, type DashboardDetails, type Widget} from './types';
+import {type DashboardDetails, type Widget} from './types';
+import {DisplayType} from './typesBase';
 
 type Props = {
   dashboard: DashboardDetails | null;

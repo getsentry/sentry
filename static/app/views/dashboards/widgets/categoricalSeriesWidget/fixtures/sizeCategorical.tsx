@@ -1,4 +1,4 @@
-import {SizeUnit} from 'sentry/utils/discover/fields';
+import {SizeUnit} from 'sentry/utils/discover/fieldsBase';
 import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleSizeData: CategoricalSeries = {

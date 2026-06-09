@@ -1,12 +1,10 @@
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {
-  EAP_EXTRAPOLATION_MODE_MAP,
-  ExtrapolationMode,
-} from 'sentry/views/alerts/rules/metric/types';
+import {EAP_EXTRAPOLATION_MODE_MAP} from 'sentry/views/alerts/rules/metric/types';
+import {ExtrapolationMode} from 'sentry/views/alerts/rules/metric/typesBase';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 /**

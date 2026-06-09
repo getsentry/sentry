@@ -13,10 +13,8 @@ import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
-import type {
-  LegendSelection,
-  TimeSeries,
-} from 'sentry/views/dashboards/widgets/common/types';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';

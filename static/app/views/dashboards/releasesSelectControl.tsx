@@ -18,7 +18,7 @@ import {defined} from 'sentry/utils/defined';
 
 import {useReleases} from './hooks/useReleases';
 import type {DashboardFilters} from './types';
-import {DashboardFilterKeys} from './types';
+import {DashboardFilterKeys} from './typesBase';
 
 interface ReleasesSelectControlProps {
   selectedReleases: string[];

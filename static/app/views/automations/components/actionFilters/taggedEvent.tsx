@@ -9,7 +9,7 @@ import {t, tct} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import {
   MATCH_CHOICES,
   MatchType,

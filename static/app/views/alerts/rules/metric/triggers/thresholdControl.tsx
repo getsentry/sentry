@@ -6,11 +6,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import type {ThresholdControlValue} from 'sentry/views/alerts/rules/metric/types';
+import type {ThresholdControlValue} from 'sentry/views/alerts/rules/metric/typesBase';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 
 interface Props extends ThresholdControlValue {
   comparisonType: AlertRuleComparisonType;

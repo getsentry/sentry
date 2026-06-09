@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import {defined} from 'sentry/utils/defined';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
   useProgressiveQuery,

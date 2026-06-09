@@ -1,6 +1,6 @@
 import zipWith from 'lodash/zipWith';
 
-import type {TimeSeriesGroupBy} from 'sentry/views/dashboards/widgets/common/types';
+import type {TimeSeriesGroupBy} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 export function parseGroupBy(
   groupName: string,

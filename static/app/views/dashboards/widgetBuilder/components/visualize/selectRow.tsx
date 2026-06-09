@@ -13,13 +13,13 @@ import {
   parseFunction,
   type AggregateParameter,
   type AggregationKeyWithAlias,
-  type AggregationRefinement,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {type AggregationRefinement} from 'sentry/utils/discover/fieldsBase';
 import {AggregationKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   AggregateCompactSelect,

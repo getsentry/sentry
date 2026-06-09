@@ -13,10 +13,8 @@ import {
   NEGATIVE_POLARITY_COLOR_ORDER,
   POSITIVE_POLARITY_COLOR_ORDER,
 } from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/constants';
-import type {
-  Thresholds as ThresholdsConfig,
-  TimeSeriesValueUnit,
-} from 'sentry/views/dashboards/widgets/common/types';
+import type {Thresholds as ThresholdsConfig} from 'sentry/views/dashboards/widgets/common/types';
+import type {TimeSeriesValueUnit} from 'sentry/views/dashboards/widgets/common/typesBase';
 import type {
   Plottable,
   PlottableTimeSeriesValueType,

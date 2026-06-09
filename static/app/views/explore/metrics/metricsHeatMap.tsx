@@ -4,7 +4,7 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';

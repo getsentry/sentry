@@ -10,12 +10,12 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import type {Organization} from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DisplayModes} from 'sentry/utils/discover/typesBase';
 import {
   DashboardWidgetSource,
   DisplayType,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 import {
   constructAddQueryToDashboardLink,
   decodeColumnOrder,

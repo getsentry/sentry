@@ -1,8 +1,8 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {EventView} from 'sentry/utils/discover/eventView';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {ExtrapolationMode} from 'sentry/views/insights/common/queries/types';

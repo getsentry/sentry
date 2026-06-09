@@ -8,12 +8,12 @@ import {
   TIME_WINDOWS,
   type TimePeriodType,
 } from 'sentry/views/alerts/rules/metric/details/constants';
+import {type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   Dataset,
   ExtrapolationMode,
   TimePeriod,
-  type MetricRule,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Incident} from 'sentry/views/alerts/types';

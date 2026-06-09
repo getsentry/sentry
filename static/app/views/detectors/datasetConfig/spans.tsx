@@ -5,10 +5,10 @@ import type {TagCollection} from 'sentry/types/group';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {AggregationKey, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
 import {

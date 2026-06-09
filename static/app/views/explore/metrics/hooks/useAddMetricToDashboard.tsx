@@ -3,15 +3,12 @@ import {useCallback} from 'react';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  DashboardWidgetSource,
-  DEFAULT_WIDGET_NAME,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
+import {DEFAULT_WIDGET_NAME} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {
   handleAddMultipleQueriesToDashboard,
   handleAddQueryToDashboard,

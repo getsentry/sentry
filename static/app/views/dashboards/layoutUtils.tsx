@@ -11,8 +11,9 @@ import {uniqueId} from 'sentry/utils/guid';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 
 import {clampWidgetLayout} from './clampWidgetLayout';
-import type {Widget, WidgetLayout} from './types';
-import {DisplayType} from './types';
+import type {Widget} from './types';
+import type {WidgetLayout} from './typesBase';
+import {DisplayType} from './typesBase';
 
 export const DEFAULT_WIDGET_WIDTH = 2;
 

@@ -25,7 +25,8 @@ import {
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
-import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {type GlobalFilter} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
 export const DATASET_CHOICES = new Map<WidgetType, string>([

@@ -4,7 +4,7 @@ import type {
   Column,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';

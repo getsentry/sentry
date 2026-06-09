@@ -15,7 +15,7 @@ import type {
   FieldDefinitionGetter,
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import {InvalidReason} from 'sentry/components/searchSyntax/parser';
+import {InvalidReason} from 'sentry/components/searchSyntax/types';
 import * as Storybook from 'sentry/stories';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {

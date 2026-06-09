@@ -14,7 +14,7 @@ import {
   Datasource,
   EventTypes,
   SessionsAggregate,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {CombinedAlerts, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus, CombinedAlertType} from 'sentry/views/alerts/types';
 

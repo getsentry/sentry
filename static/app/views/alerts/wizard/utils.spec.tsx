@@ -1,4 +1,4 @@
-import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/typesBase';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 describe('Wizard utils', () => {

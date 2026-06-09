@@ -28,7 +28,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -36,7 +36,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
-import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource} from 'sentry/views/dashboards/typesBase';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 import {

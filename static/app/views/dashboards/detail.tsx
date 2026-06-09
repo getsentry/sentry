@@ -96,13 +96,10 @@ import {
   getDashboardLayout,
 } from './layoutUtils';
 import {DashboardTitle} from './title';
-import type {
-  DashboardDetails,
-  DashboardFilters,
-  DashboardPermissions,
-  Widget,
-} from './types';
-import {DashboardFilterKeys, DashboardState, MAX_WIDGETS, WidgetType} from './types';
+import type {DashboardDetails, DashboardFilters, Widget} from './types';
+import {MAX_WIDGETS} from './types';
+import type {DashboardPermissions} from './typesBase';
+import {DashboardFilterKeys, DashboardState, WidgetType} from './typesBase';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 

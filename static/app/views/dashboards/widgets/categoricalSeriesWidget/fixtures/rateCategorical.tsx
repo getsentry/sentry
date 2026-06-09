@@ -1,4 +1,4 @@
-import {RateUnit} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fieldsBase';
 import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleRateData: CategoricalSeries = {

@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {SavedQueryDatasets} from 'sentry/utils/discover/typesBase';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';

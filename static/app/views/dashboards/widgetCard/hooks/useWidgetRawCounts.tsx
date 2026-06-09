@@ -3,8 +3,9 @@ import {useMemo} from 'react';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 import {explodeFieldString, isEquation} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
+import {type Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {
   createTraceMetricEventsFilter,

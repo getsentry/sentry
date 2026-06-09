@@ -3,7 +3,7 @@ import * as qs from 'query-string';
 
 import type {EventTag} from 'sentry/types/event';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {
   ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
   type FieldKey,

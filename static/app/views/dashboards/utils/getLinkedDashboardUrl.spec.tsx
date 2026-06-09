@@ -4,7 +4,7 @@ import type {
   GlobalFilter,
   LinkedDashboard,
 } from 'sentry/views/dashboards/types';
-import {DashboardFilterKeys, WidgetType} from 'sentry/views/dashboards/types';
+import {DashboardFilterKeys, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {getLinkedDashboardUrl} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 
 describe('getLinkedDashboardUrl', () => {

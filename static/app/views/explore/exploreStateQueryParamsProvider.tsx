@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 
 import {defined} from 'sentry/utils/defined';
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
 import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';

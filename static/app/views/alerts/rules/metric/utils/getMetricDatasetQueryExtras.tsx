@@ -1,14 +1,11 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {
-  Dataset,
-  ExtrapolationMode,
-  type MetricRule,
-} from 'sentry/views/alerts/rules/metric/types';
+import {type MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, ExtrapolationMode} from 'sentry/views/alerts/rules/metric/typesBase';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import {getDiscoverDataset} from 'sentry/views/alerts/wizard/options';
 import {TraceItemDataset} from 'sentry/views/explore/types';

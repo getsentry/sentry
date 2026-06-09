@@ -5,9 +5,9 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/typesBase';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
 

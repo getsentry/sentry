@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {MetricsDetectorSearchBar} from 'sentry/views/detectors/datasetConfig/components/metricsSearchBar';
 import {createEapDetectorConfig} from 'sentry/views/detectors/datasetConfig/eapBase';

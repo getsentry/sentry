@@ -16,14 +16,14 @@ import {AggregationKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields
 import {decodeBoolean, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {
   applyDashboardFilters,
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
+import type {TabularRow} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';

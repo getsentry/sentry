@@ -26,7 +26,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import {MetricRulesCreate} from 'sentry/views/alerts/rules/metric/create';
 import {MetricRuleDuplicate} from 'sentry/views/alerts/rules/metric/duplicate';
-import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {

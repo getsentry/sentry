@@ -3,18 +3,18 @@ import {useCallback} from 'react';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {DEFAULT_WIDGET_NAME} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
-  DEFAULT_WIDGET_NAME,
   DisplayType,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';

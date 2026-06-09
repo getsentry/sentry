@@ -29,7 +29,7 @@ import CreateDashboard from 'sentry/views/dashboards/create';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
-import {DashboardState} from 'sentry/views/dashboards/types';
+import {DashboardState, DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -317,7 +317,7 @@ describe('Dashboards > Detail', () => {
           ],
           title: 'Errors',
           interval: '1d',
-          widgetType: types.WidgetType.DISCOVER,
+          widgetType: WidgetType.DISCOVER,
           id: '1',
         }),
         WidgetFixture({
@@ -333,7 +333,7 @@ describe('Dashboards > Detail', () => {
           ],
           title: 'Transactions',
           interval: '1d',
-          widgetType: types.WidgetType.DISCOVER,
+          widgetType: WidgetType.DISCOVER,
           id: '2',
         }),
         WidgetFixture({
@@ -1740,7 +1740,7 @@ describe('Dashboards > Detail', () => {
 
     it('disables widget edit, duplicate, and delete button when user does not have edit perms', async () => {
       const widget = {
-        displayType: types.DisplayType.TABLE,
+        displayType: DisplayType.TABLE,
         interval: '1d',
         queries: [
           {
@@ -1754,7 +1754,7 @@ describe('Dashboards > Detail', () => {
         ],
         title: 'Transactions',
         id: '1',
-        widgetType: types.WidgetType.DISCOVER,
+        widgetType: WidgetType.DISCOVER,
       };
       const mockDashboard = DashboardFixture([widget], {
         id: '1',

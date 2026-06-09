@@ -1,10 +1,10 @@
+import {type AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   DurationUnit,
   RateUnit,
   SizeUnit,
-  type AggregationOutputType,
   type DataUnit,
-} from 'sentry/utils/discover/fields';
+} from 'sentry/utils/discover/fieldsBase';
 
 export const Y_AXIS_INTEGER_TOLERANCE = 0.000001;
 export const FALLBACK_TYPE = 'number';

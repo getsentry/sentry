@@ -33,7 +33,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
-import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
   ABYTE_UNITS,
   AGGREGATIONS,
@@ -46,6 +45,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
+import type {RateUnit} from 'sentry/utils/discover/fieldsBase';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';

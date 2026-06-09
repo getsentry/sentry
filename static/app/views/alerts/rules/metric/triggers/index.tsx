@@ -11,14 +11,16 @@ import {AnomalyDetectionFormField} from 'sentry/views/alerts/rules/metric/trigge
 import {DynamicAlertsFeedbackButton} from 'sentry/views/alerts/rules/metric/triggers/dynamicAlertsFeedbackButton';
 import {TriggerFormContainer as TriggerForm} from 'sentry/views/alerts/rules/metric/triggers/form';
 import {
+  type MetricActionTemplate,
+  type UnsavedMetricRule,
+} from 'sentry/views/alerts/rules/metric/types';
+import {
   AlertRuleComparisonType,
   type Action,
   type AlertRuleSensitivity,
   type AlertRuleThresholdType,
-  type MetricActionTemplate,
   type Trigger,
-  type UnsavedMetricRule,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 
 type Props = {
   aggregate: UnsavedMetricRule['aggregate'];

@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';

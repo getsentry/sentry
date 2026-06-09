@@ -8,8 +8,8 @@ import {MINUTE} from 'sentry/utils/formatters';
 import type {
   AlertRuleThresholdType,
   Trigger,
-} from 'sentry/views/alerts/rules/metric/types';
-import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
+import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/typesBase';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 
 export const getComparisonMarkLines = (

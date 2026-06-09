@@ -5,7 +5,7 @@ import * as Storybook from 'sentry/stories';
 
 import {RevisionDiffBody, RevisionListItem} from './revisionListItem';
 import type {DashboardDetails} from './types';
-import {DisplayType} from './types';
+import {DisplayType} from './typesBase';
 
 const ALICE = {id: '1', name: 'Alice', email: 'alice@example.com'};
 const BOB = {id: '2', name: 'Bob', email: 'bob@example.com'};

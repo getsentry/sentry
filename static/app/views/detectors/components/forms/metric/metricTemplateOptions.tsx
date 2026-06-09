@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import {SessionsAggregate} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 

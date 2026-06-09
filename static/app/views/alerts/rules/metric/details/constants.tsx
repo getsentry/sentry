@@ -1,7 +1,7 @@
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import {TimePeriod, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
+import {TimePeriod, TimeWindow} from 'sentry/views/alerts/rules/metric/typesBase';
 
 export const SELECTOR_RELATIVE_PERIODS = {
   [TimePeriod.SIX_HOURS]: t('Last 6 hours'),

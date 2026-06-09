@@ -5,7 +5,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import type {Anomaly} from 'sentry/views/alerts/types';
 
 const ANOMALY_DETECTION_THRESHOLD_TYPE_MAP = {

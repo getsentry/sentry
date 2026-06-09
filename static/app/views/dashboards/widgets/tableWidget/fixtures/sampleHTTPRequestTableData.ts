@@ -1,4 +1,4 @@
-import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 export const sampleHTTPRequestTableData: TabularData = {
   data: [

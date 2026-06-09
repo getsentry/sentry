@@ -6,7 +6,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {t} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import {hasLogAlerts, hasTraceMetricsAlerts} from 'sentry/views/alerts/wizard/utils';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';

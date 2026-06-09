@@ -12,7 +12,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 

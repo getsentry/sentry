@@ -4,7 +4,7 @@ import {
   parseSearch,
   Token,
 } from 'sentry/components/searchSyntax/parser';
-import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import type {EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 
 // TODO: It is possible this creates a invalid query if they've used event.type inside parenthesis
 // eg - (something AND event.type:error)

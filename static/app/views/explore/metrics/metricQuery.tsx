@@ -1,7 +1,8 @@
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils/defined';
-import {EQUATION_PREFIX, type Sort} from 'sentry/utils/discover/fields';
+import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
+import {type Sort} from 'sentry/utils/discover/fieldsBase';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SORTABLE_SAMPLE_COLUMNS} from 'sentry/views/explore/metrics/types';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';

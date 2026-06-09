@@ -4,7 +4,7 @@ import {
   type SeerDateTimeSelection,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import type {PageFilters} from 'sentry/types/core';
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
 

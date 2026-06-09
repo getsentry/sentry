@@ -13,22 +13,15 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {
-  AggregationOutputType,
-  DataUnit,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
+import type {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {
-  DashboardFilters,
-  DisplayType,
-  Widget,
-  WidgetQuery,
-} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {DisplayType} from 'sentry/views/dashboards/typesBase';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';

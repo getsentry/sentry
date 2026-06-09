@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
 import {createEapDetectorConfig} from 'sentry/views/detectors/datasetConfig/eapBase';
 

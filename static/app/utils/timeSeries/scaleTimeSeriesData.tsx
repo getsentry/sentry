@@ -1,6 +1,7 @@
 import partialRight from 'lodash/partialRight';
 
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertRate} from 'sentry/utils/unitConversion/convertRate';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';

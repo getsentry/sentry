@@ -3,7 +3,8 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ValidateWidgetResponse, Widget} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import type {ValidateWidgetResponse} from 'sentry/views/dashboards/typesBase';
 import {cleanWidgetForRequest} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 
 export function useValidateWidgetQuery(_widget: Widget) {

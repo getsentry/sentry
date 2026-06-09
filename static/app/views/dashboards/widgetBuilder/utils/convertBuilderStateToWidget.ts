@@ -5,12 +5,8 @@ import {
   isEquation,
 } from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  DisplayType,
-  WidgetType,
-  type Widget,
-  type WidgetQuery,
-} from 'sentry/views/dashboards/types';
+import {type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {
   serializeSorts,

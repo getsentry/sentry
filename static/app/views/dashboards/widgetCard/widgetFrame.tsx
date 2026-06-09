@@ -9,7 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconCopy, IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
+import type {StateProps} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetDescriptionProps} from 'sentry/views/dashboards/widgets/widget/widgetDescription';
 

@@ -25,7 +25,7 @@ import {
   AlertRuleThresholdType,
   Dataset,
   EventTypes,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {
   MonitorStatus,
   ScheduleType,

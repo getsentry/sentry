@@ -12,7 +12,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {EMPTY_DASHBOARD} from './data';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardState} from './types';
+import {DashboardState} from './typesBase';
 import {cloneDashboard} from './utils';
 
 export default function CreateDashboard() {

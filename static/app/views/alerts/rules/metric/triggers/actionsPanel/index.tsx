@@ -27,15 +27,17 @@ import {ActionTargetSelector} from 'sentry/views/alerts/rules/metric/triggers/ac
 import {DeleteActionButton} from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
 import {
   ActionLabel,
-  AlertRuleComparisonType,
   DefaultPriorities,
   PriorityOptions,
   TargetLabel,
+  type MetricActionTemplate,
+} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
   type Action,
   type ActionType,
-  type MetricActionTemplate,
   type Trigger,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;

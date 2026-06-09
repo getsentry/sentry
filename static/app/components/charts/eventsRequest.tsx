@@ -22,9 +22,10 @@ import type {
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
+import type {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 type TimeSeriesData = {

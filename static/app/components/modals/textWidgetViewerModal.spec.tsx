@@ -11,8 +11,9 @@ import TextWidgetViewerModal from 'sentry/components/modals/textWidgetViewerModa
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {DisplayType} from 'sentry/views/dashboards/types';
-import type {DashboardPermissions, Widget} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import type {DashboardPermissions} from 'sentry/views/dashboards/typesBase';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.mock('sentry/utils/analytics');

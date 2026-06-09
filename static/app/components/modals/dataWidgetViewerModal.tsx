@@ -34,7 +34,6 @@ import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {
   getAggregateAlias,
   isAggregateField,
@@ -43,6 +42,7 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {
   createOnDemandFilterWarning,
   shouldDisplayOnDemandWidgetWarning,
@@ -66,16 +66,10 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import type {
-  DashboardFilters,
-  DashboardPermissions,
-  Widget,
-} from 'sentry/views/dashboards/types';
-import {
-  DisplayType,
-  PREBUILT_DASHBOARD_LABEL,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import type {DashboardPermissions} from 'sentry/views/dashboards/typesBase';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,

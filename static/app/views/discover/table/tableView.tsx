@@ -34,12 +34,12 @@ import {
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {
   DisplayModes,
   SavedQueryDatasets,
-  TOP_N,
   type DiscoverDatasets,
-} from 'sentry/utils/discover/types';
+} from 'sentry/utils/discover/typesBase';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';

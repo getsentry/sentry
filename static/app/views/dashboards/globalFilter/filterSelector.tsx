@@ -36,7 +36,7 @@ import {
   prepareInputValueForSaving,
   tokenSupportsMultipleValues,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
-import {TermOperator} from 'sentry/components/searchSyntax/parser';
+import {TermOperator} from 'sentry/components/searchSyntax/types';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
@@ -50,7 +50,8 @@ import {
   getFilterToken,
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
-import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {type GlobalFilter} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {
   SpanFields,
   subregionCodeToName,

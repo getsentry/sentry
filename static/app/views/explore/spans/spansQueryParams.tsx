@@ -1,8 +1,8 @@
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils/defined';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';

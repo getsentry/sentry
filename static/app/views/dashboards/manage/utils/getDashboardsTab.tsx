@@ -1,5 +1,5 @@
 import {DashboardsTab} from 'sentry/views/dashboards/manage/types';
-import {DashboardFilter} from 'sentry/views/dashboards/types';
+import {DashboardFilter} from 'sentry/views/dashboards/typesBase';
 
 export function getDashboardsTab(
   hasPrebuiltDashboards: boolean,

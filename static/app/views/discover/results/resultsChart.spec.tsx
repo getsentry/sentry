@@ -4,7 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DISPLAY_MODE_OPTIONS, DisplayModes} from 'sentry/utils/discover/types';
+import {DISPLAY_MODE_OPTIONS} from 'sentry/utils/discover/types';
+import {DisplayModes} from 'sentry/utils/discover/typesBase';
 import ResultsChart from 'sentry/views/discover/results/resultsChart';
 
 describe('Discover > ResultsChart', () => {

@@ -20,13 +20,16 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
-import {aggregateOutputType, RateUnit} from 'sentry/utils/discover/fields';
-import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
+import {RateUnit} from 'sentry/utils/discover/fieldsBase';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {Trigger} from 'sentry/views/alerts/rules/metric/typesBase';
 import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {alertAxisFormatter, isSessionAggregate} from 'sentry/views/alerts/utils';

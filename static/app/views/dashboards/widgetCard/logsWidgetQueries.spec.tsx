@@ -3,7 +3,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 
 import {LogsWidgetQueries} from './logsWidgetQueries';
 

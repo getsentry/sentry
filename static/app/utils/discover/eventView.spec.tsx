@@ -14,13 +14,12 @@ import {
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
 import type {Column} from 'sentry/utils/discover/fields';
+import {CHART_AXIS_OPTIONS, DISPLAY_MODE_OPTIONS} from 'sentry/utils/discover/types';
 import {
-  CHART_AXIS_OPTIONS,
   DiscoverDatasets,
-  DISPLAY_MODE_OPTIONS,
   DisplayModes,
   SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
+} from 'sentry/utils/discover/typesBase';
 import {AggregationKey, WebVital} from 'sentry/utils/fields';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';

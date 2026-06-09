@@ -14,8 +14,9 @@ import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarr
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardsTab} from 'sentry/views/dashboards/manage/types';
 import {getDashboardsTab} from 'sentry/views/dashboards/manage/utils/getDashboardsTab';
-import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import {DashboardFilter} from 'sentry/views/dashboards/typesBase';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 

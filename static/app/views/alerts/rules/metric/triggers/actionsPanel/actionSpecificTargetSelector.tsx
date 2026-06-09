@@ -1,8 +1,8 @@
 import {Input} from '@sentry/scraps/input';
 
 import {t} from 'sentry/locale';
-import type {Action} from 'sentry/views/alerts/rules/metric/types';
-import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';
+import type {Action} from 'sentry/views/alerts/rules/metric/typesBase';
+import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/typesBase';
 
 type Props = {
   action: Action;

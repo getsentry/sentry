@@ -7,14 +7,13 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import {stripEquationPrefix, type ColumnType} from 'sentry/utils/discover/fields';
 import {
   DurationUnit,
   RateUnit,
   SizeUnit,
-  stripEquationPrefix,
-  type ColumnType,
   type Sort,
-} from 'sentry/utils/discover/fields';
+} from 'sentry/utils/discover/fieldsBase';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {

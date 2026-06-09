@@ -22,7 +22,7 @@ import {
   DashboardFilterKeys,
   DisplayType,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';

@@ -6,7 +6,7 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Heading} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
-import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
+import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 import {sampleCommonAffixData} from './fixtures/commonAffixCategorical';
 import {sampleCountCategoricalData} from './fixtures/countCategorical';

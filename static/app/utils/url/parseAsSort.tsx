@@ -1,7 +1,7 @@
 import {createParser} from 'nuqs';
 
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {decodeSorts} from 'sentry/utils/queryString';
 
 export const parseAsSort = createParser({

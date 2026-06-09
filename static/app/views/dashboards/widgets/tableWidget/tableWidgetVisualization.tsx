@@ -12,12 +12,13 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Column, ColumnValueType, Sort, SortKind} from 'sentry/utils/discover/fields';
+import type {Column, ColumnValueType} from 'sentry/utils/discover/fields';
 import {
   fieldAlignment,
   isEquation,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
+import type {Sort, SortKind} from 'sentry/utils/discover/fieldsBase';
 import {FieldValueType} from 'sentry/utils/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,7 +31,7 @@ import type {
   TabularData,
   TabularMeta,
   TabularRow,
-} from 'sentry/views/dashboards/widgets/common/types';
+} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {
   Actions,
   CellAction,

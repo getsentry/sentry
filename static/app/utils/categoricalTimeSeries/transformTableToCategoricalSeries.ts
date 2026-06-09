@@ -1,9 +1,7 @@
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/settings';
-import type {
-  CategoricalSeries,
-  TabularData,
-} from 'sentry/views/dashboards/widgets/common/types';
+import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 /**
  * Transforms table data from the /events/ endpoint into `CategoricalSeries` format

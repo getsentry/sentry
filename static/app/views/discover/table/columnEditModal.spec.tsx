@@ -14,7 +14,7 @@ import {makeCloseButton} from '@sentry/scraps/modal';
 
 import {TagStore} from 'sentry/stores/tagStore';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
 import {ColumnEditModal} from 'sentry/views/discover/table/columnEditModal';
 
 const stubEl = styled((p: any) => p.children);

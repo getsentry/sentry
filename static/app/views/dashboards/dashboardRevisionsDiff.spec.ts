@@ -1,6 +1,6 @@
 import {diffFilters, diffWidgets, formatProjectIds} from './dashboardRevisionsDiff';
-import {DisplayType} from './types';
 import type {DashboardDetails, Widget} from './types';
+import {DisplayType} from './typesBase';
 
 function makeWidget(overrides: Partial<Widget> = {}): Widget {
   return {

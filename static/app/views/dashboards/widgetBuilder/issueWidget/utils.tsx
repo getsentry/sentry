@@ -1,7 +1,7 @@
 import type {SelectValue} from '@sentry/scraps/select';
 
 import type {Organization} from 'sentry/types/organization';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';

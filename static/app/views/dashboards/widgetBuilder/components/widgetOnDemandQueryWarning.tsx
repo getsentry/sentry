@@ -5,11 +5,11 @@ import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/featu
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {type WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   OnDemandExtractionState,
   type ValidateWidgetResponse,
-  type WidgetQuery,
-} from 'sentry/views/dashboards/types';
+} from 'sentry/views/dashboards/typesBase';
 
 export function WidgetOnDemandQueryWarning(props: {
   query: WidgetQuery;

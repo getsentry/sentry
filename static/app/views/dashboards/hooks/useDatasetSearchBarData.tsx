@@ -4,7 +4,7 @@ import {
   type SearchBarData,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {useGlobalFilterTraceMetricsSearchBarDataProvider} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 
 export function useDatasetSearchBarData(): (widgetType: WidgetType) => SearchBarData {
   const {selection} = usePageFilters();

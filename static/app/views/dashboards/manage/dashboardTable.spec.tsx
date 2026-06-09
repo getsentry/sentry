@@ -13,7 +13,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import {DisplayType, type DashboardListItem} from 'sentry/views/dashboards/types';
+import {type DashboardListItem} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 
 describe('Dashboards - DashboardTable', () => {
   let dashboards: DashboardListItem[];

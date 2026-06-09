@@ -1,51 +1,15 @@
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/typesBase';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 
 export const TOP_N = 5;
-
-export enum DisplayModes {
-  DEFAULT = 'default',
-  PREVIOUS = 'previous',
-  TOP5 = 'top5',
-  DAILY = 'daily',
-  DAILYTOP5 = 'dailytop5',
-  BAR = 'bar',
-}
-
-export enum DiscoverDatasets {
-  DISCOVER = 'discover',
-  ERRORS = 'errors',
-  METRICS = 'metrics',
-  METRICS_ENHANCED = 'metricsEnhanced',
-  ISSUE_PLATFORM = 'issuePlatform',
-  OURLOGS = 'ourlogs',
-  PREPROD_SIZE = 'preprodSize',
-  SPANS = 'spans',
-  TRANSACTIONS = 'transactions',
-  TRACEMETRICS = 'tracemetrics',
-}
 
 export const DiscoverDatasetsToDatasetMap = {
   [DiscoverDatasets.ERRORS]: Dataset.ERRORS,
   [DiscoverDatasets.TRANSACTIONS]: Dataset.TRANSACTIONS,
 };
-
-export enum SavedQueryDatasets {
-  DISCOVER = 'discover',
-  ERRORS = 'error-events',
-  TRANSACTIONS = 'transaction-like',
-}
-
-export enum DatasetSource {
-  USER = 'user',
-  UNKNOWN = 'unknown',
-  INFERRED = 'inferred',
-  FORCED = 'forced',
-  SPAN_MIGRATION = 'span_migration_version_1',
-  SPAN_MIGRATION_V2 = 'span_migration_version_2',
-}
 
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];
 

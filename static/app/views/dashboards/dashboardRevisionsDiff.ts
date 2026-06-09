@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';
 
 import type {DashboardDetails, Widget, WidgetQuery} from './types';
-import {DashboardFilterKeys, DisplayType} from './types';
+import {DashboardFilterKeys, DisplayType} from './typesBase';
 
 const DESCRIPTION_PREVIEW_MAX_LENGTH = 150;
 

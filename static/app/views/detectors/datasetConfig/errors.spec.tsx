@@ -1,5 +1,5 @@
 import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {DetectorErrorsConfig} from 'sentry/views/detectors/datasetConfig/errors';
 
 describe('DetectorErrorsConfig.toSnubaQueryString', () => {

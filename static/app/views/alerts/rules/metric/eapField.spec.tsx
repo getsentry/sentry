@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EAPField} from 'sentry/views/alerts/rules/metric/eapField';
-import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 
 describe('EAPField', () => {
   const organization = OrganizationFixture({features: ['visibility-explore-view']});

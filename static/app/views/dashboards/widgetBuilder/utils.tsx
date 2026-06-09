@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
+import {type Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 // Used in the widget builder to limit the number of lines plotted in the chart

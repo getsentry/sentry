@@ -2,6 +2,18 @@ import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 import type {LocationRange} from 'peggy';
 
+import {
+  BooleanOperator,
+  FilterType,
+  InvalidReason,
+  TermOperator,
+  Token,
+} from 'sentry/components/searchSyntax/types';
+import type {
+  InvalidFilter,
+  LocationFn,
+  TextFn,
+} from 'sentry/components/searchSyntax/types';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {
@@ -12,9 +24,8 @@ import {
 
 import {parse} from './grammar.pegjs';
 import {getKeyName} from './utils';
-
-type TextFn = () => string;
-type LocationFn = () => LocationRange;
+export {BooleanOperator, FilterType, InvalidReason, TermOperator, Token};
+export {WildcardOperators} from 'sentry/components/searchSyntax/types';
 
 type ListItem<V> = [
   space: ReturnType<TokenConverter['tokenSpaces']>,
@@ -34,91 +45,16 @@ const listJoiner = <K,>([s1, comma, s2, value]: ListItem<K>) => {
  * A token represents a node in the syntax tree. These are all extrapolated
  * from the grammar and may not be named exactly the same.
  */
-export enum Token {
-  SPACES = 'spaces',
-  FILTER = 'filter',
-  FREE_TEXT = 'freeText',
-  LOGIC_GROUP = 'logicGroup',
-  LOGIC_BOOLEAN = 'logicBoolean',
-  KEY_SIMPLE = 'keySimple',
-  KEY_EXPLICIT_FLAG = 'keyExplicitFlag',
-  KEY_EXPLICIT_NUMBER_FLAG = 'keyExplicitNumberFlag',
-  KEY_EXPLICIT_STRING_FLAG = 'keyExplicitStringFlag',
-  KEY_EXPLICIT_TAG = 'keyExplicitTag',
-  KEY_EXPLICIT_BOOLEAN_TAG = 'keyExplicitBooleanTag',
-  KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
-  KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
-  KEY_AGGREGATE = 'keyAggregate',
-  KEY_AGGREGATE_ARGS = 'keyAggregateArgs',
-  KEY_AGGREGATE_PARAMS = 'keyAggregateParam',
-  L_PAREN = 'lParen',
-  R_PAREN = 'rParen',
-  VALUE_ISO_8601_DATE = 'valueIso8601Date',
-  VALUE_RELATIVE_DATE = 'valueRelativeDate',
-  VALUE_DURATION = 'valueDuration',
-  VALUE_SIZE = 'valueSize',
-  VALUE_PERCENTAGE = 'valuePercentage',
-  VALUE_BOOLEAN = 'valueBoolean',
-  VALUE_NUMBER = 'valueNumber',
-  VALUE_TEXT = 'valueText',
-  VALUE_NUMBER_LIST = 'valueNumberList',
-  VALUE_TEXT_LIST = 'valueTextList',
-}
-
 /**
  * An operator in a key value term
  */
-export enum TermOperator {
-  DEFAULT = '',
-  GREATER_THAN_EQUAL = '>=',
-  LESS_THAN_EQUAL = '<=',
-  GREATER_THAN = '>',
-  LESS_THAN = '<',
-  EQUAL = '=',
-  NOT_EQUAL = '!=',
-  // NOTE: These wildcard operators are internal implementation details and
-  // should not be included in product docs. Users should use `*` instead.
-  CONTAINS = '\uF00DContains\uF00D',
-  DOES_NOT_CONTAIN = '\uF00DDoesNotContain\uF00D',
-  STARTS_WITH = '\uF00DStartsWith\uF00D',
-  DOES_NOT_START_WITH = '\uF00DDoesNotStartWith\uF00D',
-  ENDS_WITH = '\uF00DEndsWith\uF00D',
-  DOES_NOT_END_WITH = '\uF00DDoesNotEndWith\uF00D',
-}
-
 /**
  * Logic operators
  */
-export enum BooleanOperator {
-  AND = 'AND',
-  OR = 'OR',
-}
-
 /**
  * The Token.Filter may be one of many types of filters. This enum declares the
  * each variant filter type.
  */
-export enum FilterType {
-  TEXT = 'text',
-  TEXT_IN = 'textIn',
-  DATE = 'date',
-  SPECIFIC_DATE = 'specificDate',
-  RELATIVE_DATE = 'relativeDate',
-  DURATION = 'duration',
-  SIZE = 'size',
-  NUMERIC = 'numeric',
-  NUMERIC_IN = 'numericIn',
-  BOOLEAN = 'boolean',
-  AGGREGATE_DURATION = 'aggregateDuration',
-  AGGREGATE_SIZE = 'aggregateSize',
-  AGGREGATE_PERCENTAGE = 'aggregatePercentage',
-  AGGREGATE_NUMERIC = 'aggregateNumeric',
-  AGGREGATE_DATE = 'aggregateDate',
-  AGGREGATE_RELATIVE_DATE = 'aggregateRelativeDate',
-  HAS = 'has',
-  IS = 'is',
-}
-
 /**
  * These are the wildcard operators that can be used in the search query. We use the
  * \uf00d unicode character to isolate the wildcard operator from the rest of the string,
@@ -126,12 +62,6 @@ export enum FilterType {
  *
  * Unicode Character: `\uf00d`
  */
-export enum WildcardOperators {
-  CONTAINS = '\uF00DContains\uF00D',
-  STARTS_WITH = '\uF00DStartsWith\uF00D',
-  ENDS_WITH = '\uF00DEndsWith\uF00D',
-}
-
 const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
 
 export const comparisonOperators = [
@@ -304,47 +234,9 @@ type FilterTypeConfig = typeof filterTypeConfig;
  * used to determine why the field was invalid. This is primarily use for the
  * invalidMessages option
  */
-export enum InvalidReason {
-  FREE_TEXT_NOT_ALLOWED = 'free-text-not-allowed',
-  WILDCARD_NOT_ALLOWED = 'wildcard-not-allowed',
-  LOGICAL_OR_NOT_ALLOWED = 'logic-or-not-allowed',
-  LOGICAL_AND_NOT_ALLOWED = 'logic-and-not-allowed',
-  NEGATION_NOT_ALLOWED = 'negation-not-allowed',
-  MUST_BE_QUOTED = 'must-be-quoted',
-  FILTER_MUST_HAVE_VALUE = 'filter-must-have-value',
-  INVALID_BOOLEAN = 'invalid-boolean',
-  INVALID_FILE_SIZE = 'invalid-file-size',
-  INVALID_NUMBER = 'invalid-number',
-  EMPTY_VALUE_IN_LIST_NOT_ALLOWED = 'empty-value-in-list-not-allowed',
-  EMPTY_PARAMETER_NOT_ALLOWED = 'empty-parameter-not-allowed',
-  INVALID_KEY = 'invalid-key',
-  INVALID_DURATION = 'invalid-duration',
-  INVALID_DATE_FORMAT = 'invalid-date-format',
-  PARENS_NOT_ALLOWED = 'parens-not-allowed',
-}
-
 /**
  * Object representing an invalid filter state
  */
-type InvalidFilter = {
-  /**
-   * The message indicating why the filter is invalid
-   */
-  reason: string;
-  /**
-   * The invalid reason type
-   */
-  type: InvalidReason;
-  /**
-   * In the case where a filter is invalid, we may be expecting a different
-   * type for this filter based on the key. This can be useful to hint to the
-   * user what values they should be providing.
-   *
-   * This may be multiple filter types.
-   */
-  expectedType?: FilterType[];
-};
-
 type FilterMap = {
   [F in keyof FilterTypeConfig]: {
     /**

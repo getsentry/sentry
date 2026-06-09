@@ -8,7 +8,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-import {DisplayType} from './types';
+import {DisplayType} from './typesBase';
 import {WidgetWrapper} from './widgetWrapper';
 
 export const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';

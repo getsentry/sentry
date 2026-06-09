@@ -4,7 +4,7 @@ import {defined} from 'sentry/utils/defined';
 import {explodeFieldString, isEquation} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';

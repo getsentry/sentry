@@ -4,7 +4,7 @@ import {
   statusIsTerminal,
 } from 'sentry/views/dashboards/createFromSeerUtils';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
 function makeWidget(overrides: Partial<Widget> = {}): Widget {

@@ -10,11 +10,8 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
 import {FiltersBar, type FiltersBarProps} from 'sentry/views/dashboards/filtersBar';
-import {
-  DashboardFilterKeys,
-  WidgetType,
-  type GlobalFilter,
-} from 'sentry/views/dashboards/types';
+import {type GlobalFilter} from 'sentry/views/dashboards/types';
+import {DashboardFilterKeys, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 describe('FiltersBar', () => {

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {TermOperator} from 'sentry/components/searchSyntax/parser';
+import {TermOperator} from 'sentry/components/searchSyntax/types';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {getOperatorLabel} from 'sentry/views/dashboards/globalFilter/numericFilterSelector';

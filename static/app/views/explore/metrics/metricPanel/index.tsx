@@ -16,7 +16,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {DataUnit} from 'sentry/utils/discover/fields';
+import type {DataUnit} from 'sentry/utils/discover/fieldsBase';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {
   ChartIntervalUnspecifiedStrategy,
@@ -24,7 +24,7 @@ import {
 } from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';

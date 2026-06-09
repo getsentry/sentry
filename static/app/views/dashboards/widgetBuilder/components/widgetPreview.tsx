@@ -3,17 +3,16 @@ import {useState} from 'react';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {type Sort} from 'sentry/utils/discover/fields';
+import {type Sort} from 'sentry/utils/discover/fieldsBase';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {
-  DisplayType,
-  WidgetType,
   type DashboardDetails,
   type DashboardFilters,
 } from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/typesBase';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -23,7 +22,7 @@ import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/typesBase';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 

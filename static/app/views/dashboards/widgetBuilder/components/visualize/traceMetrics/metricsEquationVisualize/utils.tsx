@@ -1,5 +1,5 @@
 import {explodeFieldString, type Column} from 'sentry/utils/discover/fields';
-import type {DisplayType} from 'sentry/views/dashboards/types';
+import type {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {getTraceMetricAggregateActionType} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';

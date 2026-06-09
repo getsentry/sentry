@@ -6,12 +6,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
   fieldAlignment,
   parseFunction,
 } from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 

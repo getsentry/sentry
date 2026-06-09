@@ -1,7 +1,7 @@
 import {useLayoutEffect} from 'react';
 import type {Location} from 'history';
 
-import type {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fieldsBase';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';

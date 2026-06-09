@@ -1,6 +1,6 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
 
 describe('shouldForceQueryToSpans', () => {

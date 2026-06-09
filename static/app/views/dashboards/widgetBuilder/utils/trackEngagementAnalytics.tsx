@@ -1,6 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import {type Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/typesBase';
 
 export function trackEngagementAnalytics(
   widgets: Widget[],

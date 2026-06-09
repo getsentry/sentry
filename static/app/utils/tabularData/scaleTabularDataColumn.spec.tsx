@@ -1,5 +1,5 @@
-import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
+import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fieldsBase';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/typesBase';
 
 import {scaleTabularDataColumn} from './scaleTabularDataColumn';
 

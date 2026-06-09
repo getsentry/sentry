@@ -3,7 +3,7 @@ import type {AnomalyDetectionComparison} from 'sentry/types/workflowEngine/detec
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
-} from 'sentry/views/alerts/rules/metric/types';
+} from 'sentry/views/alerts/rules/metric/typesBase';
 
 /**
  * Type guard to check if a condition comparison is an anomaly detection comparison

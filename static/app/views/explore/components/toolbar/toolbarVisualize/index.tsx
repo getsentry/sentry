@@ -12,7 +12,7 @@ import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
-import type {ParsedFunction} from 'sentry/utils/discover/fields';
+import type {ParsedFunction} from 'sentry/utils/discover/fieldsBase';
 import {getFieldDefinition, type GetFieldDefinitionType} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,

@@ -1,6 +1,6 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import {DurationUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit} from 'sentry/utils/discover/fieldsBase';
 
 import {markDelayedData} from './markDelayedData';
 import {segmentTimeSeriesByIncompleteData} from './segmentTimeSeriesByIncompleteData';

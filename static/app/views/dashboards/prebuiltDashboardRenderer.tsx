@@ -20,11 +20,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {
-  DashboardState,
   type DashboardDetails,
   type DashboardFilters,
   type GlobalFilter,
 } from 'sentry/views/dashboards/types';
+import {DashboardState} from 'sentry/views/dashboards/typesBase';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
 import {mergeGlobalFilters} from './globalFilter/utils';

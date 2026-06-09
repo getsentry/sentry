@@ -7,8 +7,8 @@ import type {
   AggregationKeyWithAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/typesBase';
+import type {EventTypes} from 'sentry/views/alerts/rules/metric/typesBase';
 import {ReleaseSearchBar} from 'sentry/views/detectors/datasetConfig/components/releaseSearchBar';
 import {
   getReleasesSeriesQueryOptions,

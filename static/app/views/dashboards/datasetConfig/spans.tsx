@@ -19,9 +19,9 @@ import {
   stripEquationPrefix,
   type Aggregation,
   type AggregationOutputType,
-  type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {type DataUnit} from 'sentry/utils/discover/fieldsBase';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
@@ -46,11 +46,11 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {
-  DisplayType,
   type DashboardFilters,
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/typesBase';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   isEventsStats,

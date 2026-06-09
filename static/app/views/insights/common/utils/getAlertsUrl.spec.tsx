@@ -3,7 +3,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/typesBase';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 describe('getAlertsUrl', () => {
