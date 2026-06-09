@@ -8,6 +8,7 @@ import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSe
 import type {SeerRawResponse} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   buildSeerDateTimeSelection,
+  buildSeerMutationResult,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
@@ -36,6 +37,7 @@ interface AskSeerSearchQuery {
   sort: string;
   start: string | null;
   statsPeriod: string;
+  expandedProjectIds?: number[];
 }
 
 export function LogsTabSeerComboBox() {
@@ -68,19 +70,15 @@ export function LogsTabSeerComboBox() {
         },
       });
 
-      return {
-        status: 'ok',
-        unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-          mode: r?.mode ?? 'samples',
-        })),
-      };
+      return buildSeerMutationResult(data, selectedProjectIds, r => ({
+        query: r?.query ?? '',
+        sort: r?.sort ?? '',
+        groupBys: r?.group_by ?? [],
+        statsPeriod: r?.stats_period ?? '',
+        start: r?.start ?? null,
+        end: r?.end ?? null,
+        mode: r?.mode ?? 'samples',
+      }));
     },
   });
 
@@ -95,6 +93,7 @@ export function LogsTabSeerComboBox() {
         statsPeriod,
         start: resultStart,
         end: resultEnd,
+        expandedProjectIds,
       } = result;
 
       const dt = buildSeerDateTimeSelection(
@@ -159,6 +158,7 @@ export function LogsTabSeerComboBox() {
 
       const newQuery = {
         ...location.query,
+        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
         [LOGS_QUERY_KEY]: queryToUse,
         mode,
         [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields.map(field => JSON.stringify(field)),
@@ -202,16 +202,20 @@ export function LogsTabSeerComboBox() {
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, r => ({
-        query: r?.query ?? '',
-        sort: r?.sort ?? '',
-        groupBys: r?.group_by ?? [],
-        statsPeriod: r?.stats_period ?? '',
-        start: r?.start ?? null,
-        end: r?.end ?? null,
-        mode: r?.mode ?? 'samples',
-      })),
-    []
+      transformSeerResponse(
+        response,
+        r => ({
+          query: r?.query ?? '',
+          sort: r?.sort ?? '',
+          groupBys: r?.group_by ?? [],
+          statsPeriod: r?.stats_period ?? '',
+          start: r?.start ?? null,
+          end: r?.end ?? null,
+          mode: r?.mode ?? 'samples',
+        }),
+        selectedProjectIds
+      ),
+    [selectedProjectIds]
   );
 
   if (!enableAISearch) {

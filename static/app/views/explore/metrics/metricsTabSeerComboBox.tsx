@@ -11,6 +11,7 @@ import type {
   SeerRawResponse,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
+  buildSeerMutationResult,
   mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
@@ -87,11 +88,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         },
       });
 
-      return {
-        status: 'ok',
-        unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(response => mapSeerResponseItem(response)),
-      };
+      return buildSeerMutationResult(data, selectedProjectIds, response =>
+        mapSeerResponseItem(response)
+      );
     },
   });
 
@@ -294,6 +293,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           ...location,
           query: {
             ...location.query,
+            ...(result.expandedProjectIds?.length
+              ? {project: result.expandedProjectIds.map(String)}
+              : {}),
             metric: newEncodedMetrics,
             start: seerQuery.datetime.start,
             end: seerQuery.datetime.end,
@@ -324,8 +326,12 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
-    []
+      transformSeerResponse(
+        response,
+        responseItem => mapSeerResponseItem(responseItem),
+        selectedProjectIds
+      ),
+    [selectedProjectIds]
   );
 
   if (!enableAISearch) {
