@@ -16,6 +16,7 @@ import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonForm
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
 import type {ExternalIssueAction} from 'sentry/components/externalIssues/utils';
 import {getConfigName} from 'sentry/components/externalIssues/utils';
+import type {FieldValue} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -130,16 +131,18 @@ export function ExternalIssueForm({
   const [loadSpan, setLoadSpan] = useState<Span | null>(null);
   const [action, setAction] = useState<ExternalIssueAction>('create');
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
-  // Stable (non-dynamic) field values the user has typed, preserved across
-  // form remounts caused by dynamic-field refetches. Reset on tab switch.
-  const [stableFieldValues, setStableFieldValues] = useState<Record<string, unknown>>({});
-  // The dynamic field that last triggered a refetch, preserved so its value
-  // survives the subsequent form remount. Reset on tab switch.
-  const [lastChangedField, setLastChangedField] = useState<Record<string, unknown>>({});
-  // Ref holding the set of dynamic field names derived from formFields.
-  // Updated synchronously during render (useMemo) so handleValueChange always
-  // sees the current set without a useEffect timing gap.
-  const dynamicFieldNamesRef = useRef(new Set());
+  // Stable fields don't depend on other fields. We keep the values the user typed
+  // so they survive the remounts that dynamic-field refetches cause.
+  const [stableFieldValues, setStableFieldValues] = useState<Record<string, FieldValue>>(
+    {}
+  );
+  // The dynamic field that last triggered a refetch, kept so its value survives
+  // the remount.
+  const [lastChangedField, setLastChangedField] = useState<Record<string, FieldValue>>(
+    {}
+  );
+  // Set of dynamic field names, derived from formFields below.
+  const dynamicFieldNamesRef = useRef(new Set<string>());
 
   const {
     data: integrationDetails,
@@ -324,13 +327,12 @@ export function ExternalIssueForm({
 
   const handleValueChange = useCallback(
     (fieldName: string, value: unknown) => {
-      // Read from ref rather than dynamicFieldValues so we always use the
-      // synchronously-computed field list, not the one-render-stale useEffect value.
+      // If the changed field isn't dynamic, save its value.
       if (!dynamicFieldNamesRef.current.has(fieldName)) {
         setStableFieldValues(prev => ({...prev, [fieldName]: value}));
       }
     },
-    [] // stable — dynamicFieldNamesRef.current is kept up-to-date via useMemo below
+    [] // dynamicFieldNamesRef.current is kept current via useMemo below
   );
 
   const onFieldChange = useCallback(
@@ -370,8 +372,7 @@ export function ExternalIssueForm({
     }) as JsonFormAdapterFieldConfig[];
   }, [integrationDetails, action, asyncOptionsCache]);
 
-  // Update synchronously during render so handleValueChange never reads a
-  // stale set caused by the useEffect delay in useDynamicFields.
+  // Build the set of dynamic field names from the current config.
   dynamicFieldNamesRef.current = useMemo(
     () => new Set(formFields.filter(f => f.updatesForm).map(f => f.name)),
     [formFields]
