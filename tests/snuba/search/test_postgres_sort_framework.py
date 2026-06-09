@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 from unittest import mock
 
+import pytest
 from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
@@ -12,6 +13,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.search.snuba.executors import (
     DEFAULT_TRENDS_WEIGHTS,
+    InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
     PostgresSortStrategy,
 )
@@ -243,6 +245,14 @@ class TestExecutePostgresSort(PostgresSortTestBase):
                     referrer=Referrer.TESTING_TEST,
                 )
         assert snuba_spy.call_args.kwargs["aggregate_kwargs"] == weights
+
+    def test_invalid_snuba_aggregation_raises(self):
+        # A strategy whose snuba_aggregations name isn't a known aggregation must fail
+        # loudly rather than with an opaque KeyError during query construction.
+        strategy = _ts_strategy(snuba_aggregations=["not_a_real_aggregation"])
+        with _patch_pg_strategies({"test_sort": strategy}):
+            with pytest.raises(InvalidQueryForExecutor):
+                list(self.make_query("test_sort"))
 
     def test_signal_resolver_influences_score(self):
         boosted = self.groups[0].id

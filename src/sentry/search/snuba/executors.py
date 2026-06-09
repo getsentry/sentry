@@ -1004,6 +1004,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             sort_field = (
                 strategy.snuba_aggregations[0] if strategy.snuba_aggregations else "last_seen"
             )
+            # sort_field is used directly as a key into aggregation_defs downstream; a
+            # misconfigured strategy should fail loudly here rather than with an opaque
+            # KeyError deep in query construction.
+            if sort_field not in self.aggregation_defs:
+                raise InvalidQueryForExecutor(
+                    f"Unknown snuba aggregation {sort_field!r} in Postgres sort strategy"
+                )
             snuba_groups, _ = self.snuba_search(
                 start=start,
                 end=end,
