@@ -75,11 +75,11 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
 
-const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'scatter'> = {
+const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
   [ChartType.LINE]: 'line',
   [ChartType.AREA]: 'area',
   [ChartType.BAR]: 'bar',
-  [ChartType.HEATMAP]: 'scatter',
+  [ChartType.HEATMAP]: 'heatmap',
 };
 
 interface MetricPanelProps extends React.HTMLAttributes<HTMLDivElement> {
