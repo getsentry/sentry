@@ -401,7 +401,7 @@ export default Storybook.story('SeerProjectSettings', story => {
                         <InfiniteTable.RowCell>
                           <ListItemSelectCheckbox
                             htmlPrefix="seer-project-settings"
-                            value={item.projectSlug}
+                            value={item.projectId}
                           />
                         </InfiniteTable.RowCell>
                         <InfiniteTable.RowCell>
