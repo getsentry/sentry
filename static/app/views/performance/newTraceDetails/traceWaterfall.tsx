@@ -664,14 +664,14 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   ]);
 
   const onCompressedTimelineChange = useCallback(() => {
-    const value = !traceState.preferences.compressedTimeline;
+    const value = !traceState.preferences.compressed_timeline;
 
     traceAnalytics.trackCompressedTimelinePreferenceChange(props.organization, value);
     traceDispatch({
       type: 'set compressed timeline',
       payload: value,
     });
-  }, [traceDispatch, traceState.preferences.compressedTimeline, props.organization]);
+  }, [traceDispatch, traceState.preferences.compressed_timeline, props.organization]);
 
   if (props.tree.type === 'empty' && props.hideIfNoData) {
     return null;
@@ -706,7 +706,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
             traceState.preferences.autogroup.parent &&
             traceState.preferences.autogroup.sibling
           }
-          compressedTimeline={traceState.preferences.compressedTimeline}
+          compressedTimeline={traceState.preferences.compressed_timeline}
           missingInstrumentation={traceState.preferences.missing_instrumentation}
           onAutogroupChange={onAutogroupChange}
           onCompressedTimelineChange={onCompressedTimelineChange}

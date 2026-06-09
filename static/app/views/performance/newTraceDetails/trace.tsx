@@ -183,7 +183,7 @@ export function Trace({
   const timeCompressionOptions = useMemo(() => {
     const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
     return {
-      enabled: traceState.preferences.compressedTimeline && trace.type === 'trace',
+      enabled: traceState.preferences.compressed_timeline && trace.type === 'trace',
       traceSpace,
       nodes: visibleTraceItems,
       indicators: trace.indicators,
@@ -193,7 +193,7 @@ export function Trace({
     traceDuration,
     traceStart,
     trace.type,
-    traceState.preferences.compressedTimeline,
+    traceState.preferences.compressed_timeline,
     visibleTraceItems,
   ]);
 

@@ -28,7 +28,7 @@ export type TracePreferencesState = {
     parent: boolean;
     sibling: boolean;
   };
-  compressedTimeline: boolean;
+  compressed_timeline: boolean;
   drawer: TraceDrawerPreferences;
   layout: TraceLayoutPreferences;
   list: {
@@ -41,7 +41,6 @@ export type StoredTracePreferences = {
   autogroup: TracePreferencesState['autogroup'];
   drawer_layout: TraceLayoutPreferences;
   missing_instrumentation: boolean;
-  compressedTimeline?: boolean;
   compressed_timeline?: boolean;
 };
 
@@ -62,7 +61,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     sibling: true,
   },
   missing_instrumentation: false,
-  compressedTimeline: true,
+  compressed_timeline: true,
   layout: 'drawer right',
   list: {
     width: 0.5,
@@ -77,7 +76,7 @@ export function storeTraceViewPreferences(
     drawer_layout: state.layout,
     missing_instrumentation: state.missing_instrumentation,
     autogroup: state.autogroup,
-    compressed_timeline: state.compressedTimeline,
+    compressed_timeline: state.compressed_timeline,
   };
 
   // Make sure we dont fire this during a render phase
@@ -143,10 +142,7 @@ function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
             DEFAULT_TRACE_VIEW_PREFERENCES.missing_instrumentation;
         }
         if (!isValidCompressedTimeline(parsed)) {
-          parsed.compressed_timeline =
-            typeof parsed.compressedTimeline === 'boolean'
-              ? parsed.compressedTimeline
-              : undefined;
+          parsed.compressed_timeline = undefined;
         }
         return parsed;
       }
@@ -172,10 +168,10 @@ export function getInitialTracePreferences(
     preferences.layout = stored.drawer_layout;
 
     if (source === 'issues' || source === 'replay') {
-      preferences.compressedTimeline = false;
+      preferences.compressed_timeline = false;
     } else {
-      preferences.compressedTimeline =
-        stored.compressed_timeline ?? default_state.compressedTimeline;
+      preferences.compressed_timeline =
+        stored.compressed_timeline ?? default_state.compressed_timeline;
     }
   }
 
@@ -220,7 +216,7 @@ export function tracePreferencesReducer(
     case 'set compressed timeline':
       return {
         ...state,
-        compressedTimeline: action.payload,
+        compressed_timeline: action.payload,
       };
     case 'set list width':
       return {
