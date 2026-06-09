@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -7,31 +5,8 @@ import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMe
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
-import {
-  coaleseStoppingPoint,
-  useStoppingPointSelectOptions,
-} from 'sentry/utils/seer/stoppingPoint';
+import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
 import type {SeerAutofixStoppingPoint} from 'sentry/utils/seer/types';
-import {useOrganization} from 'sentry/utils/useOrganization';
-
-export function StoppingPointLabel({
-  stoppingPoint,
-}: {
-  stoppingPoint: SeerAutofixStoppingPoint;
-}) {
-  const organization = useOrganization();
-  const isLegacySeer = organization.features.includes('seer-added');
-  const stoppingPointOptions = useStoppingPointSelectOptions();
-
-  const coalesedStoppingPoint = isLegacySeer
-    ? stoppingPoint
-    : coaleseStoppingPoint(stoppingPoint);
-
-  const label =
-    stoppingPointOptions.find(option => option.value === coalesedStoppingPoint)?.label ??
-    coalesedStoppingPoint;
-  return <Fragment>{label}</Fragment>;
-}
 
 export function StoppingPointDropdownMenu({
   isDisabled,

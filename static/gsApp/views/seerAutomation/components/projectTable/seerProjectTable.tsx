@@ -38,7 +38,6 @@ import {
   useSeerAgentSelectOptions,
   useKnownAgents,
 } from 'sentry/utils/seer/preferredAgent';
-import {type PreferredAgentProvider} from 'sentry/utils/seer/preferredAgentFilter';
 import {
   getMutateSeerProjectSettingsOptions,
   getInfiniteSeerProjectsSettingsQueryOptions,
@@ -144,7 +143,7 @@ export function SeerProjectTable() {
       <Stack>
         <Flex gap="md" wrap="wrap">
           {agentSelectOptions.length ? (
-            <CompactSelect<'all' | PreferredAgentProvider>
+            <CompactSelect<'all' | 'seer' | CodingAgentProvider>
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} size="md" prefix={t('Agent')}>
                   {triggerProps.children}

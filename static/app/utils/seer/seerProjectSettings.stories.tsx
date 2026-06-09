@@ -14,14 +14,8 @@ import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {
-  PreferredAgentDropdownMenu,
-  PreferredAgentLabel,
-} from 'sentry/components/seer/preferredAgent';
-import {
-  StoppingPointDropdownMenu,
-  StoppingPointLabel,
-} from 'sentry/components/seer/stoppingPoint';
+import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgent';
+import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPoint';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
@@ -41,8 +35,15 @@ import {
   getMutateSeerProjectsSettingsOptions,
   seerProjectSettingsSchema,
 } from 'sentry/utils/seer/seerProjectSettings';
-import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
-import type {SeerAgent, SeerAutofixStoppingPoint} from 'sentry/utils/seer/types';
+import {
+  coaleseStoppingPoint,
+  useStoppingPointSelectOptions,
+} from 'sentry/utils/seer/stoppingPoint';
+import type {
+  SeerAgent,
+  SeerAutofixStoppingPoint,
+  SeerProjectSettingResponse,
+} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -498,3 +499,30 @@ export default Storybook.story('SeerProjectSettings', story => {
     );
   });
 });
+
+function PreferredAgentLabel({settings}: {settings: SeerProjectSettingResponse}) {
+  const integrations = useKnownAgents();
+  return (
+    <Fragment>
+      {settings.agent === 'seer'
+        ? t('Seer Agent')
+        : (integrations.find(i => i.id === settings.integrationId)?.name ??
+          `${settings.agent} - ${settings.integrationId}`)}
+    </Fragment>
+  );
+}
+
+function StoppingPointLabel({stoppingPoint}: {stoppingPoint: SeerAutofixStoppingPoint}) {
+  const organization = useOrganization();
+  const isLegacySeer = organization.features.includes('seer-added');
+  const stoppingPointOptions = useStoppingPointSelectOptions();
+
+  const coalesedStoppingPoint = isLegacySeer
+    ? stoppingPoint
+    : coaleseStoppingPoint(stoppingPoint);
+
+  const label =
+    stoppingPointOptions.find(option => option.value === coalesedStoppingPoint)?.label ??
+    coalesedStoppingPoint;
+  return <Fragment>{label}</Fragment>;
+}
