@@ -13,7 +13,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.issues.issue_search import (
-    ISSUE_AGENT_TO_ACTIVITY_TYPES,
+    ISSUE_PROGRESS_VALUES,
     convert_actor_or_none_value,
     convert_category_value,
     convert_device_class_value,
@@ -348,21 +348,21 @@ class ConvertSeerActionabilityValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
-class ConvertIssueAgentValueTest(TestCase):
+class ConvertIssueProgressValueTest(TestCase):
     def test_valid(self) -> None:
-        for status, activity_types in ISSUE_AGENT_TO_ACTIVITY_TYPES.items():
+        for status in ISSUE_PROGRESS_VALUES:
             filters = [
                 SearchFilter(
-                    SearchKey("issue.agent"),
+                    SearchKey("issue.progress"),
                     "=",
                     SearchValue([status]),
                 )
             ]
             result = convert_query_values(filters, [self.project], self.user, None)
-            assert result[0].value.raw_value == activity_types
+            assert result[0].value.raw_value == [status]
 
     def test_invalid(self) -> None:
-        filters = [SearchFilter(SearchKey("issue.agent"), "=", SearchValue("wrong"))]
+        filters = [SearchFilter(SearchKey("issue.progress"), "=", SearchValue("wrong"))]
         with pytest.raises(InvalidSearchQuery):
             convert_query_values(filters, [self.project], self.user, None)
 
