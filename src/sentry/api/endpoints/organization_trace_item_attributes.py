@@ -51,7 +51,6 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -991,21 +990,6 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
     return start_date, end_date
 
 
-class OrganizationTraceItemAttributeValidateQuerySerializer(serializers.Serializer):
-    itemType = serializers.ChoiceField(
-        [e.value for e in SupportedTraceItemType], required=True, source="item_type"
-    )
-
-
-class OrganizationTraceItemAttributeValidateBodySerializer(serializers.Serializer):
-    attributes = serializers.ListField(
-        child=serializers.CharField(max_length=300),
-        min_length=1,
-        max_length=100,
-        required=True,
-    )
-
-
 def serialize_type(search_type: constants.SearchType) -> str:
     proto_type = constants.TYPE_MAP.get(search_type)
     if proto_type == constants.STRING:
@@ -1080,87 +1064,3 @@ def _check_attributes_exist(
             found.update(future.result())
 
     return found
-
-
-@cell_silo_endpoint
-class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttributesEndpointBase):
-    publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
-    }
-    owner = ApiOwner.DATA_BROWSING
-
-    def post(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
-        query_serializer = OrganizationTraceItemAttributeValidateQuerySerializer(data=request.GET)
-        if not query_serializer.is_valid():
-            return Response(query_serializer.errors, status=400)
-
-        serializer = OrganizationTraceItemAttributeValidateBodySerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        item_type = SupportedTraceItemType(query_serializer.validated_data["item_type"])
-        attribute_names: list[str] = serializer.validated_data["attributes"]
-
-        try:
-            snuba_params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response({"attributes": {}})
-
-        try:
-            definitions = get_column_definitions(item_type)
-        except ValueError:
-            return Response({"detail": f"Unsupported item type: {item_type.value}"}, status=400)
-        resolver = SearchResolver(
-            params=snuba_params,
-            config=SearchResolverConfig(),
-            definitions=definitions,
-        )
-
-        results: dict[str, dict[str, Any]] = {}
-        # Collect unknown (user tag) attributes that need storage validation
-        unknown_attrs: list[tuple[str, Any]] = []
-
-        for attr_name in attribute_names:
-            try:
-                resolved, _context = resolver.resolve_attribute(attr_name)
-                if attr_name in definitions.contexts or attr_name in definitions.columns:
-                    # Known column or virtual context — always valid
-                    results[attr_name] = {
-                        "valid": True,
-                        "type": serialize_type(resolved.search_type),
-                    }
-                else:
-                    # User tag — need to verify it exists in storage
-                    unknown_attrs.append((attr_name, resolved))
-            except InvalidSearchQuery as e:
-                results[attr_name] = {
-                    "valid": False,
-                    "error": str(e),
-                }
-
-        if unknown_attrs:
-            # Group by proto type because the storage check is keyed on
-            # (proto_type, internal_name) — the same display name can exist
-            # as both a string and a number attribute simultaneously.
-            attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]] = {}
-            for _, resolved in unknown_attrs:
-                attrs_by_type.setdefault(resolved.proto_type, []).append(resolved.internal_name)
-            with handle_query_errors():
-                existing = _check_attributes_exist(resolver, item_type, attrs_by_type)
-
-            for attr_name, resolved in unknown_attrs:
-                if (resolved.proto_type, resolved.internal_name) in existing:
-                    results[attr_name] = {
-                        "valid": True,
-                        "type": serialize_type(resolved.search_type),
-                    }
-                else:
-                    results[attr_name] = {
-                        "valid": False,
-                        "error": f"Unknown attribute: {attr_name}",
-                    }
-
-        return Response({"attributes": results})
