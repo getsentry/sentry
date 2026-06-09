@@ -3117,7 +3117,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
     "workflow_engine.ensure_detector_association",
     type=Bool,
