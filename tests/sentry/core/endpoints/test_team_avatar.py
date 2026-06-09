@@ -30,11 +30,15 @@ class TeamAvatarPutTest(TeamAvatarTestBase):
             "avatar_type": "upload",
             "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
         }
-        self.get_success_response(self.organization.slug, self.team.slug, **data)
+        response = self.get_success_response(self.organization.slug, self.team.slug, **data)
 
         avatar = TeamAvatar.objects.get(team=self.team)
         assert avatar.get_avatar_type_display() == "upload"
         assert avatar.file_id
+
+        assert response.data["avatar"]["avatarType"] == "upload"
+        assert response.data["avatar"]["avatarUuid"] is not None
+        assert response.data["avatar"]["avatarUrl"] is not None
 
     def test_put_bad(self) -> None:
         TeamAvatar.objects.create(team=self.team)
@@ -51,6 +55,11 @@ class TeamAvatarPutTest(TeamAvatarTestBase):
         )
 
         assert avatar.get_avatar_type_display() == "letter_avatar"
+
+    def test_put_gravatar(self) -> None:
+        self.get_error_response(
+            self.organization.slug, self.team.slug, avatar_type="gravatar", status_code=400
+        )
 
     def test_put_forbidden(self) -> None:
         org = self.create_organization()
