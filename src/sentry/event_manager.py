@@ -806,8 +806,10 @@ def _partition_jobs_by_tag_deriver_flag(
 def _derive_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     new_jobs, legacy_jobs = _partition_jobs_by_tag_deriver_flag(jobs, projects)
     if new_jobs:
+        metrics.incr("event_manager.derive_tags.new_path", amount=len(new_jobs))
         _derive_tags_many_new(new_jobs, projects)
     if legacy_jobs:
+        metrics.incr("event_manager.derive_tags.legacy_path", amount=len(legacy_jobs))
         _derive_tags_many_legacy(legacy_jobs, projects)
 
 
