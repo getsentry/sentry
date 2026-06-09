@@ -21,6 +21,7 @@ export function RelocationArtifactDetails() {
     regionName: string;
     relocationUuid: string;
   }>();
+  // TODO(cells) Need locality here for host.
   const region = getRegions().find((r: any) => r.name === regionName);
 
   const {data, isPending, isError} = useApiQuery<RelocationData>(

@@ -8,14 +8,13 @@ production). A PR is "tracked" once it has at least one valid
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Final, Literal
 
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest, PullRequestAttribution
+from sentry.models.pullrequest import PullRequest, PullRequestAttribution, PullRequestMetrics
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
 from sentry.utils import json, metrics
 
@@ -81,18 +80,16 @@ def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
     close_action: CloseAction,
-    payload: Mapping[str, Any],
     attributions: list[dict[str, Any]],
     group_ids: list[int],
 ) -> PrCloseMetricsEvent:
     """Assemble the provisional close/merge row.
 
-    Lifecycle facts are read from the ``PullRequest`` row (the webhook keeps it
-    current; it's also the only source on the judge path, which has no payload).
-    ``payload`` supplies the fields with no persisted column — ``opened_at`` and
-    the activity counters. ``attributions`` is the active-attribution snapshot,
-    passed in so the tracking gate and the emitted row read the same query.
-    ``group_ids`` is the set of issues this PR resolves.
+    Every fact is read from the stored ``PullRequest`` / ``PullRequestMetrics``
+    rows, so the judge path (Seer RPC callback, which has no webhook payload) can
+    reuse this. ``attributions`` is passed in so the tracking gate and the
+    emitted row read the same query. A missing metrics row (a PR Sentry never saw
+    active) coalesces every counter to its default.
     """
     head_commit_sha = pull_request.head_commit_sha
     closed_at = pull_request.closed_at
@@ -100,6 +97,12 @@ def build_pr_metrics_row(
         # The webhook always persists both on a close/merge; a null here means
         # emit ran on a PR that never reached a terminal state. Fail loud.
         raise ValueError("PR metrics row requires a persisted head_commit_sha and closed_at")
+
+    # A bare instance carries the model's zero/false field defaults, so a PR with
+    # no stored metrics row emits zeroed counters rather than erroring.
+    metrics = (
+        PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
+    )
 
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
@@ -112,15 +115,15 @@ def build_pr_metrics_row(
         closed_at=closed_at.isoformat(),
         merge_commit_sha=pull_request.merge_commit_sha,
         merged_at=_iso(pull_request.merged_at),
-        opened_at=payload["created_at"],
-        draft=bool(payload.get("draft")),
-        additions=payload.get("additions") or 0,
-        deletions=payload.get("deletions") or 0,
-        files_changed=payload.get("changed_files") or 0,
-        commits_count=payload.get("commits") or 0,
-        comments_count=payload.get("comments") or 0,
-        review_comments_count=payload.get("review_comments") or 0,
-        is_assigned=bool(payload.get("assignees") or payload.get("assignee")),
+        opened_at=_iso(pull_request.opened_at),
+        draft=bool(pull_request.draft),
+        additions=metrics.additions,
+        deletions=metrics.deletions,
+        files_changed=metrics.files_changed,
+        commits_count=metrics.commits_count,
+        comments_count=metrics.comments_count,
+        review_comments_count=metrics.review_comments_count,
+        is_assigned=metrics.is_assigned,
         attributions=json.dumps(attributions),
     )
 
@@ -129,7 +132,6 @@ def emit_pr_metrics_row(
     *,
     pull_request: PullRequest,
     close_action: CloseAction,
-    payload: Mapping[str, Any],
 ) -> bool:
     """Emit one BigQuery row for a tracked PR's terminal event.
 
@@ -137,8 +139,8 @@ def emit_pr_metrics_row(
     are skipped — we don't pay to record PRs that no Sentry feature can be
     attributed to. Returns whether a row was emitted, for callers/tests.
 
-    This is the seam the judge path can also call once it has the canonical
-    ``PullRequest`` and the close action.
+    Takes only the canonical ``PullRequest`` and close action (no payload), so
+    the judge path's Seer RPC callback can call it directly.
     """
     # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
     # and rides along on the emitted row, so the two can't diverge.
@@ -150,7 +152,6 @@ def emit_pr_metrics_row(
     row = build_pr_metrics_row(
         pull_request=pull_request,
         close_action=close_action,
-        payload=payload,
         attributions=attributions,
         group_ids=_resolved_group_ids(pull_request),
     )

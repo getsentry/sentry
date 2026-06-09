@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlparse
 
+import orjson
 import pytest
 import responses
 from django.http import HttpRequest
@@ -339,6 +340,17 @@ class VstsIntegrationApiPipelineTest(VstsIntegrationTestCase):
             format="json",
         )
 
+    def _initialize_with_initial_data(self, initial_data: dict[str, Any]) -> Any:
+        # Nested initialData must be sent as real JSON; the Django test client
+        # ignores format="json" and would form-encode it.
+        return self.client.post(
+            self._get_pipeline_url(),
+            data=orjson.dumps(
+                {"action": "initialize", "provider": "vsts", "initialData": initial_data}
+            ),
+            content_type="application/json",
+        )
+
     def _advance_step(self, data: dict[str, Any]) -> Any:
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
@@ -428,6 +440,54 @@ class VstsIntegrationApiPipelineTest(VstsIntegrationTestCase):
             organization_id=self.organization.id,
             integration=integration,
         ).exists()
+
+    def test_marketplace_install_auto_advances_account_selection(self) -> None:
+        # Marketplace installs supply the account up front as initialData. Since
+        # the user is a member of it, the account-selection step signals
+        # auto-advance with the pre-selected account.
+        resp = self._initialize_with_initial_data({"targetId": self.vsts_account_id})
+        assert resp.status_code == 200, resp.content
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200, resp.content
+        assert resp.data["step"] == "account_selection"
+        # The pre-selected account is surfaced so the frontend can advance
+        # without prompting; its presence is the auto-advance signal.
+        assert resp.data["data"]["account"] == self.vsts_account_id
+
+        # The pre-selected account still goes through the normal verification.
+        resp = self._advance_step({"account": self.vsts_account_id})
+        assert resp.status_code == 200, resp.content
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="vsts")
+        assert integration.external_id == self.vsts_account_id
+        assert integration.name == self.vsts_account_name
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+
+    def test_marketplace_install_does_not_trust_unverified_account(self) -> None:
+        # A targetId the user is not a member of must not auto-advance, and must
+        # be rejected if submitted -- the supplied account is only a hint, never
+        # trusted without membership verification.
+        resp = self._initialize_with_initial_data(
+            {"targetId": "00000000-0000-0000-0000-000000000000"}
+        )
+        assert resp.status_code == 200, resp.content
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
+        assert resp.status_code == 200, resp.content
+        assert resp.data["step"] == "account_selection"
+        # No pre-selected account is surfaced, so the frontend shows the picker.
+        assert "account" not in resp.data["data"]
+
+        resp = self._advance_step({"account": "00000000-0000-0000-0000-000000000000"})
+        assert resp.status_code == 400, resp.content
+        assert resp.data["data"]["detail"] == "Invalid Azure DevOps account"
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_account_selection_get_with_no_accounts(self, mock_record: MagicMock) -> None:

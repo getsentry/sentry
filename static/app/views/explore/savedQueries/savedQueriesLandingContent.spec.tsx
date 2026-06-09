@@ -73,9 +73,11 @@ describe('SavedQueriesTable', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/organizations/org-slug/explore/saved-queries/',
-        query: {
+        query: expect.objectContaining({
           query: 'Query Name',
-        },
+          ownedCursor: undefined,
+          sharedCursor: undefined,
+        }),
       })
     );
 
@@ -103,6 +105,31 @@ describe('SavedQueriesTable', () => {
         query: expect.objectContaining({
           query: 'Query Name',
           exclude: 'owned',
+        }),
+      })
+    );
+  });
+
+  it('resets cursors when searching from a paginated page', async () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+    mockUseLocation.mockReturnValue(
+      LocationFixture({
+        pathname: '/organizations/org-slug/explore/saved-queries/',
+        query: {ownedCursor: 'abc123', sharedCursor: 'def456'},
+      })
+    );
+    render(<SavedQueriesLandingContent />);
+    await screen.findByText('Created by Me');
+    await userEvent.type(screen.getByPlaceholderText('Search for a query'), 'My Query');
+    await userEvent.keyboard('{enter}');
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'My Query',
+          ownedCursor: undefined,
+          sharedCursor: undefined,
         }),
       })
     );

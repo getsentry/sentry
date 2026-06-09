@@ -20,6 +20,7 @@ export function SeerAdminPage() {
   const [organizationId, setOrganizationId] = useState('');
   const [dryRun, setDryRun] = useState(false);
   const [maxCandidates, setMaxCandidates] = useState('');
+  // TODO(cells) Need cell + locality here
   const regions = getRegions();
   const [region, setRegion] = useState(regions[0] ?? null);
 

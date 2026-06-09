@@ -159,7 +159,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, query) -> Response:
+    def delete(self, request: Request, organization, query) -> Response[None]:
         """
         Delete a saved query.
         """
