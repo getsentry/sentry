@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import hashlib
 from functools import cached_property
-from unittest import TestCase
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
@@ -16,7 +15,7 @@ from sentry.identity.datadog.provider import DatadogOAuth2CallbackView, DatadogO
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils.asserts import assert_failure_metric
-from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -27,6 +26,7 @@ class DatadogOAuth2LoginViewTest(TestCase):
         super().setUp()
         self.request = RequestFactory().get("/")
         self.request.session = Client().session
+        self.request.user = self.user
         self.request.subdomain = None
 
     def tearDown(self) -> None:
@@ -36,11 +36,19 @@ class DatadogOAuth2LoginViewTest(TestCase):
     @cached_property
     def view(self):
         return DatadogOAuth2LoginView(
-            authorize_url="https://example.org/oauth2/authorize", client_id=123456, scope="read"
+            authorize_url="https://example.org/oauth2/authorize",
+            scope="read",
+            resource="https://mcp.datadoghq.com",
         )
 
-    def test_includes_pkce_params(self) -> None:
+    def _make_pipeline(self, dcr_client_id: str = "dcr-client-123") -> IdentityPipeline:
         pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+        pipeline.initialize()
+        pipeline.bind_state("dcr_client_id", dcr_client_id)
+        return pipeline
+
+    def test_includes_pkce_params(self) -> None:
+        pipeline = self._make_pipeline()
         response = self.view.dispatch(self.request, pipeline)
 
         assert response.status_code == 302
@@ -50,12 +58,44 @@ class DatadogOAuth2LoginViewTest(TestCase):
         assert "code_challenge" in query
         assert len(query["code_challenge"][0]) > 0
 
-    def test_preserves_standard_oauth_params(self) -> None:
-        pipeline = IdentityPipeline(request=self.request, provider_key="dummy")
+    def test_includes_resource(self) -> None:
+        pipeline = self._make_pipeline()
         response = self.view.dispatch(self.request, pipeline)
 
         query = parse_qs(urlparse(response["Location"]).query)
-        assert query["client_id"] == ["123456"]
+        assert query["resource"] == ["https://mcp.datadoghq.com"]
+
+    def test_reads_client_id_from_pipeline_state(self) -> None:
+        pipeline = self._make_pipeline(dcr_client_id="my-dcr-id")
+        response = self.view.dispatch(self.request, pipeline)
+
+        query = parse_qs(urlparse(response["Location"]).query)
+        assert query["client_id"] == ["my-dcr-id"]
+
+    def test_binds_code_verifier_to_pipeline(self) -> None:
+        pipeline = self._make_pipeline()
+        assert pipeline.fetch_state("pkce_code_verifier") is None
+
+        self.view.dispatch(self.request, pipeline)
+
+        verifier = pipeline.fetch_state("pkce_code_verifier")
+        assert verifier is not None
+        assert len(verifier) > 0
+
+    def test_preserves_existing_code_verifier(self) -> None:
+        pipeline = self._make_pipeline()
+        pipeline.bind_state("pkce_code_verifier", "existing-verifier")
+
+        self.view.dispatch(self.request, pipeline)
+
+        assert pipeline.fetch_state("pkce_code_verifier") == "existing-verifier"
+
+    def test_preserves_standard_oauth_params(self) -> None:
+        pipeline = self._make_pipeline()
+        response = self.view.dispatch(self.request, pipeline)
+
+        query = parse_qs(urlparse(response["Location"]).query)
+        assert query["client_id"] == ["dcr-client-123"]
         assert query["response_type"] == ["code"]
         assert query["scope"] == ["read"]
         assert "state" in query
@@ -63,7 +103,7 @@ class DatadogOAuth2LoginViewTest(TestCase):
 
 @control_silo_test
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-class DatadogOAuth2CallbackViewTest(SentryTestCase):
+class DatadogOAuth2CallbackViewTest(TestCase):
     def setUp(self) -> None:
         sentry.identity.register(DummyProvider)
         super().setUp()
