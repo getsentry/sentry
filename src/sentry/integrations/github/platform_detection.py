@@ -1281,6 +1281,7 @@ def detect_platforms(
         1,
         attributes={
             "confidence": results[0]["confidence"] if results else "none",
+            "detected_platforms_count": len(results),
             "languages_count": _bucket_languages_count(languages),
             "content_reads": _bucket_content_reads(needed_paths),
         },
