@@ -83,12 +83,12 @@ export function buildHandoffPayload(
   agent: PreferredAgentIntegration,
   autoCreatePr: boolean
 ): ProjectSeerPreferences['automation_handoff'] {
-  if (agent === 'seer') {
+  if (agent === 'seer' || !PROVIDER_TO_HANDOFF_TARGET[agent.provider]) {
     return undefined;
   }
   return {
     handoff_point: 'root_cause',
-    target: PROVIDER_TO_HANDOFF_TARGET[agent.provider]!,
+    target: PROVIDER_TO_HANDOFF_TARGET[agent.provider],
     integration_id: Number(agent.id),
     auto_create_pr: autoCreatePr,
   };

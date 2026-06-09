@@ -4,6 +4,7 @@ import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import type {
+  InternalAutomationTuning,
   SeerAutofixStoppingPoint,
   UserFacingStoppingPoint,
 } from 'sentry/utils/seer/types';
@@ -24,7 +25,13 @@ export const PROJECT_STOPPING_POINT_OPTIONS: Array<{
  * Combine solution & code_changes into code_changes for seat-based seer.
  * Fewer steps is easier for users to work with.
  */
-export function coaleseStoppingPoint(stoppingPoint: SeerAutofixStoppingPoint) {
+export function coaleseStoppingPoint(
+  stoppingPoint: SeerAutofixStoppingPoint,
+  automationTuning: InternalAutomationTuning
+) {
+  if (automationTuning === 'off') {
+    return 'off';
+  }
   return {
     off: 'off' as const,
     root_cause: 'root_cause' as const,

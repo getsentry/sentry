@@ -141,7 +141,7 @@ export function AutofixAgent({canWrite, project}: Props) {
       <AutoSaveForm
         name="stoppingPoint"
         schema={seerProjectSettingsSchema}
-        initialValue={coaleseStoppingPoint(data.stoppingPoint)}
+        initialValue={coaleseStoppingPoint(data.stoppingPoint, data.automationTuning)}
         mutationOptions={getMutateSeerProjectSettingsOptions({
           organization,
           project: {slug: project.slug},

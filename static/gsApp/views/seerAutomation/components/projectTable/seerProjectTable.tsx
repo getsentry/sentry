@@ -275,7 +275,10 @@ export function SeerProjectTable() {
                           <AutoSaveForm
                             name="stoppingPoint"
                             schema={seerProjectSettingsSchema}
-                            initialValue={coaleseStoppingPoint(item.stoppingPoint)}
+                            initialValue={coaleseStoppingPoint(
+                              item.stoppingPoint,
+                              item.automationTuning
+                            )}
                             mutationOptions={getMutateSeerProjectSettingsOptions({
                               organization,
                               project: {slug: item.projectSlug},

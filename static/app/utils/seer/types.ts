@@ -1,6 +1,6 @@
 import type {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 
-type InternalAutomationTuning =
+export type InternalAutomationTuning =
   | 'off'
   | 'super_low'
   | 'low'

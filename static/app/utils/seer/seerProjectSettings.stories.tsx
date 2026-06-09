@@ -41,6 +41,7 @@ import {
   useStoppingPointSelectOptions,
 } from 'sentry/utils/seer/stoppingPoint';
 import type {
+  InternalAutomationTuning,
   SeerAgent,
   SeerAutofixStoppingPoint,
   SeerProjectSettingResponse,
@@ -190,7 +191,10 @@ export default Storybook.story('SeerProjectSettings', story => {
               <SimpleTable.RowCell>
                 <Text>
                   {showFormatted ? (
-                    <StoppingPointLabel stoppingPoint={data.stoppingPoint} />
+                    <StoppingPointLabel
+                      stoppingPoint={data.stoppingPoint}
+                      automationTuning={data.automationTuning}
+                    />
                   ) : (
                     data.stoppingPoint
                   )}
@@ -418,7 +422,10 @@ export default Storybook.story('SeerProjectSettings', story => {
                         <InfiniteTable.RowCell>
                           <Text>
                             {showFormatted ? (
-                              <StoppingPointLabel stoppingPoint={item.stoppingPoint} />
+                              <StoppingPointLabel
+                                stoppingPoint={item.stoppingPoint}
+                                automationTuning={item.automationTuning}
+                              />
                             ) : (
                               item.stoppingPoint
                             )}
@@ -515,14 +522,20 @@ function PreferredAgentLabel({settings}: {settings: SeerProjectSettingResponse})
   );
 }
 
-function StoppingPointLabel({stoppingPoint}: {stoppingPoint: SeerAutofixStoppingPoint}) {
+function StoppingPointLabel({
+  stoppingPoint,
+  automationTuning,
+}: {
+  automationTuning: InternalAutomationTuning;
+  stoppingPoint: SeerAutofixStoppingPoint;
+}) {
   const organization = useOrganization();
   const isLegacySeer = organization.features.includes('seer-added');
   const stoppingPointOptions = useStoppingPointSelectOptions();
 
   const coalesedStoppingPoint = isLegacySeer
     ? stoppingPoint
-    : coaleseStoppingPoint(stoppingPoint);
+    : coaleseStoppingPoint(stoppingPoint, automationTuning);
 
   const label =
     stoppingPointOptions.find(option => option.value === coalesedStoppingPoint)?.label ??
