@@ -1326,17 +1326,8 @@ class PullRequestEventWebhookTest(APITestCase):
         assert pr.opened_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
         assert pr.closed_at is None
         assert pr.merged_at is None
-        # The opened fixture omits the draft flag; counters come straight off it.
+        # The opened fixture omits the draft flag.
         assert pr.draft is None
-        assert pr.metrics == {
-            "additions": 1,
-            "deletions": 1,
-            "files_changed": 1,
-            "commits_count": 1,
-            "comments_count": 0,
-            "review_comments_count": 0,
-            "is_assigned": False,
-        }
 
         self.assert_group_link(group, pr)
 
@@ -1601,15 +1592,6 @@ class PullRequestEventWebhookTest(APITestCase):
         assert pr.closed_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
         assert pr.merged_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
         assert pr.draft is None
-        assert pr.metrics == {
-            "additions": 1,
-            "deletions": 1,
-            "files_changed": 1,
-            "commits_count": 1,
-            "comments_count": 0,
-            "review_comments_count": 0,
-            "is_assigned": False,
-        }
 
         assert mock_metrics.incr.call_count == 1
 

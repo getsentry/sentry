@@ -13,7 +13,7 @@ from typing import Any, Final, Literal
 
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
-from sentry.models.pullrequest import PullRequest, PullRequestAttribution
+from sentry.models.pullrequest import PullRequest, PullRequestAttribution, PullRequestMetrics
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
 from sentry.utils import json, metrics
 
@@ -69,10 +69,11 @@ def build_pr_metrics_row(
 ) -> PrCloseMetricsEvent:
     """Assemble the provisional close/merge row.
 
-    Every fact is read from the ``PullRequest`` row, so the judge path (Seer RPC
-    callback, which has no webhook payload) can reuse this. ``attributions`` is
-    passed in so the tracking gate and the emitted row read the same query.
-    Nullable stored fields are coalesced to their defaults.
+    Every fact is read from the stored ``PullRequest`` / ``PullRequestMetrics``
+    rows, so the judge path (Seer RPC callback, which has no webhook payload) can
+    reuse this. ``attributions`` is passed in so the tracking gate and the
+    emitted row read the same query. A missing metrics row (a PR Sentry never saw
+    active) coalesces every counter to its default.
     """
     head_commit_sha = pull_request.head_commit_sha
     closed_at = pull_request.closed_at
@@ -81,7 +82,11 @@ def build_pr_metrics_row(
         # emit ran on a PR that never reached a terminal state. Fail loud.
         raise ValueError("PR metrics row requires a persisted head_commit_sha and closed_at")
 
-    metrics = pull_request.metrics or {}
+    # A bare instance carries the model's zero/false field defaults, so a PR with
+    # no stored metrics row emits zeroed counters rather than erroring.
+    metrics = (
+        PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
+    )
 
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
@@ -95,13 +100,13 @@ def build_pr_metrics_row(
         merged_at=_iso(pull_request.merged_at),
         opened_at=_iso(pull_request.opened_at),
         draft=bool(pull_request.draft),
-        additions=metrics.get("additions") or 0,
-        deletions=metrics.get("deletions") or 0,
-        files_changed=metrics.get("files_changed") or 0,
-        commits_count=metrics.get("commits_count") or 0,
-        comments_count=metrics.get("comments_count") or 0,
-        review_comments_count=metrics.get("review_comments_count") or 0,
-        is_assigned=bool(metrics.get("is_assigned")),
+        additions=metrics.additions,
+        deletions=metrics.deletions,
+        files_changed=metrics.files_changed,
+        commits_count=metrics.commits_count,
+        comments_count=metrics.comments_count,
+        review_comments_count=metrics.review_comments_count,
+        is_assigned=metrics.is_assigned,
         attributions=json.dumps(attributions),
     )
 

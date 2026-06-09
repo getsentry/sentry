@@ -116,10 +116,6 @@ class PullRequest(Model):
     state = models.CharField(max_length=32, null=True, choices=PullRequestLifecycleState.choices)
     head_commit_sha = models.CharField(max_length=64, null=True)
     draft = models.BooleanField(null=True)
-    # Webhook-sourced activity counters - a single JSONB column rather than one
-    # column per counter: the metric set is provisional and expected to grow,
-    # so this avoids migrations each time. Also, there're no queries on these.
-    metrics = models.JSONField(null=True)
 
     objects: ClassVar[PullRequestManager] = PullRequestManager()
 
@@ -339,18 +335,19 @@ class PullRequestAttribution(DefaultFieldsModel):
 
 @cell_silo_model
 class PullRequestMetrics(DefaultFieldsModel):
-    """Deprecated: never written or read. Superseded by ``PullRequest.metrics``
-    (the webhook-sourced counters) and, later, by CORE-217's Seer-derived
-    summary. The empty table is dropped in a separate follow-up migration; the
-    model is kept until then so the table stays managed (and cascade-deleted).
+    """One row per PR holding the webhook-sourced activity counters.
+
+    Kept current by the metrics pipeline on each ``pull_request`` webhook and read
+    by the emit/judge path (which, on the Seer callback, has no payload — hence
+    the counts are stored rather than re-derived). ``verdict`` and the Seer-only
+    counters (``participants_count``, ``reviews_count``) are populated later by
+    the judge path, not the webhook.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    # related_name="+" (no reverse accessor): the "metrics" reverse name now
-    # belongs to PullRequest.metrics, the JSONB column that replaces this model.
     pull_request = models.OneToOneField(
-        "sentry.PullRequest", on_delete=models.CASCADE, related_name="+"
+        "sentry.PullRequest", on_delete=models.CASCADE, related_name="metrics"
     )
     verdict = models.CharField(max_length=64, null=True, choices=PullRequestVerdict.choices)
     additions = BoundedPositiveIntegerField(default=0)
@@ -358,6 +355,7 @@ class PullRequestMetrics(DefaultFieldsModel):
     files_changed = BoundedPositiveIntegerField(default=0)
     commits_count = BoundedPositiveIntegerField(default=0)
     comments_count = BoundedPositiveIntegerField(default=0)
+    review_comments_count = BoundedPositiveIntegerField(default=0, db_default=0)
     participants_count = BoundedPositiveIntegerField(default=0)
     reviews_count = BoundedPositiveIntegerField(default=0)
     is_assigned = models.BooleanField(default=False)

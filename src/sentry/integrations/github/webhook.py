@@ -66,6 +66,7 @@ from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_acti
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
 from sentry.pr_metrics.webhooks import handle_comment as pr_metrics_handle_comment
 from sentry.pr_metrics.webhooks import handle_emission as pr_metrics_handle_emission
+from sentry.pr_metrics.webhooks import handle_metrics as pr_metrics_handle_metrics
 from sentry.pr_metrics.webhooks import handle_review as pr_metrics_handle_review
 from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handle_review_comment
 from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
@@ -966,19 +967,6 @@ def _pull_request_lifecycle_state(pull_request: Mapping[str, Any]) -> str:
     return PullRequestLifecycleState.OPEN
 
 
-def _pull_request_metrics(pull_request: Mapping[str, Any]) -> dict[str, Any]:
-    """Snapshot the webhook-sourced activity counters into the ``metrics`` JSONB."""
-    return {
-        "additions": pull_request.get("additions"),
-        "deletions": pull_request.get("deletions"),
-        "files_changed": pull_request.get("changed_files"),
-        "commits_count": pull_request.get("commits"),
-        "comments_count": pull_request.get("comments"),
-        "review_comments_count": pull_request.get("review_comments"),
-        "is_assigned": bool(pull_request.get("assignees") or pull_request.get("assignee")),
-    }
-
-
 class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
@@ -987,6 +975,8 @@ class PullRequestEventWebhook(GitHubWebhook):
         _handle_pr_webhook_for_autofix_processor,
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
+        # Persist counters before emission reads them off the PullRequestMetrics row.
+        pr_metrics_handle_metrics,
         pr_metrics_handle_emission,
         pr_metrics_handle_activity,
     )
@@ -1029,7 +1019,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         merged_at = _parse_github_timestamp(pull_request.get("merged_at"))
         state = _pull_request_lifecycle_state(pull_request)
         draft = pull_request.get("draft")
-        metrics_snapshot = _pull_request_metrics(pull_request)
 
         author_email = "{}@localhost".format(user["login"][:65])
 
@@ -1099,7 +1088,6 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "merged_at": merged_at,
                     "state": state,
                     "draft": draft,
-                    "metrics": metrics_snapshot,
                 },
             )
 

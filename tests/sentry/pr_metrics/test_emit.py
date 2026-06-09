@@ -9,6 +9,7 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestMetrics,
 )
 from sentry.pr_metrics.emit import (
     _active_attributions,
@@ -29,11 +30,12 @@ SENTRY_APP_ATTRIBUTION = {
 
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
-# Every fact — open time, draft, and the activity counters — lives on the
-# PullRequest row; build_pr_metrics_row takes no payload. Past year avoids S015.
+# Lifecycle facts and draft live on the PullRequest row; the activity counters
+# live on PullRequestMetrics. build_pr_metrics_row reads both, no payload. Past
+# year avoids S015.
 OPENED_AT = datetime(2020, 6, 4, 9, 0, 0, tzinfo=timezone.utc)
 CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
-# Mirrors the webhook-sourced ``PullRequest.metrics`` JSONB shape.
+# The webhook-sourced counters persisted on PullRequestMetrics.
 METRICS = {
     "additions": 12,
     "deletions": 3,
@@ -62,7 +64,7 @@ class PrMetricsEmissionTest(TestCase):
         self.pull_request.closed_at = CLOSED_AT
         self.pull_request.merged_at = CLOSED_AT
         self.pull_request.draft = False
-        self.pull_request.metrics = dict(METRICS)
+        PullRequestMetrics.objects.create(pull_request=self.pull_request, **METRICS)
 
     def _track(
         self,
@@ -112,10 +114,10 @@ class PrMetricsEmissionTest(TestCase):
         assert row.review_comments_count == 6
         assert row.is_assigned is True
 
-    def test_build_row_counters_default_to_zero_when_metrics_null(self) -> None:
-        # A PR Sentry never saw active (no webhook counters) has a null metrics
-        # JSONB; emit coalesces every counter to its zero/false default.
-        self.pull_request.metrics = None
+    def test_build_row_counters_default_to_zero_when_metrics_row_absent(self) -> None:
+        # A PR Sentry never saw active has no PullRequestMetrics row; emit
+        # coalesces every counter to its zero/false default.
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
         self.pull_request.draft = None
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
