@@ -227,14 +227,14 @@ class CursorWebhookEndpoint(Endpoint):
             pr_url=pr_url if status == CodingAgentStatus.COMPLETED else None,
         )
 
-        self._update_coding_agent_status(
+        known_to_seer = self._update_coding_agent_status(
             agent_id=agent_id,
             status=status,
             agent_url=agent_url,
             result=result,
         )
 
-        if status == CodingAgentStatus.COMPLETED and pr_url:
+        if known_to_seer and status == CodingAgentStatus.COMPLETED and pr_url:
             try:
                 attribute_delegated_agent_pull_request(
                     organization_id=self.organization_id,
@@ -256,8 +256,8 @@ class CursorWebhookEndpoint(Endpoint):
         status: CodingAgentStatus,
         agent_url: str | None = None,
         result: CodingAgentResult | None = None,
-    ):
-        update_coding_agent_state(
+    ) -> bool:
+        known_to_seer = update_coding_agent_state(
             agent_id=agent_id,
             status=status,
             agent_url=agent_url,
@@ -271,3 +271,4 @@ class CursorWebhookEndpoint(Endpoint):
                 "has_result": result is not None,
             },
         )
+        return known_to_seer

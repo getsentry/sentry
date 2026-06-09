@@ -73,6 +73,7 @@ class TestCursorWebhook(APITestCase):
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_happy_path_finished(self, mock_update_state):
+        mock_update_state.return_value = True
         payload = self._build_status_payload(status="FINISHED")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
@@ -93,6 +94,7 @@ class TestCursorWebhook(APITestCase):
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_finished_records_pr_attribution(self, mock_update_state):
+        mock_update_state.return_value = True
         repo = self.create_repo(
             self.project, name="testorg/testrepo", provider="integrations:github"
         )
@@ -108,6 +110,21 @@ class TestCursorWebhook(APITestCase):
         assert attribution.source == PullRequestAttributionSource.SEER_DATA
         assert attribution.pull_request.repository_id == repo.id
         assert attribution.pull_request.key == "1"
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_unknown_agent_records_no_attribution(self, mock_update_state):
+        # Seer returns False (e.g. 404) for agent_ids it doesn't know about —
+        # these are Cursor sessions not delegated by Seer, and must not be attributed.
+        mock_update_state.return_value = False
+        self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
+        body = orjson.dumps(self._build_status_payload(status="FINISHED"))
+        headers = self._signed_headers(body)
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        assert not PullRequestAttribution.objects.exists()
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_error_status_records_no_attribution(self, mock_update_state):
