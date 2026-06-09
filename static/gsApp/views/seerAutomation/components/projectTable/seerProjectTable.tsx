@@ -196,19 +196,19 @@ export function SeerProjectTable() {
             ) : data.length === 0 ? (
               <InfiniteTable.Empty>
                 {searchTerm
-                  ? agentFilter
-                    ? tct('No projects found matching [searchTerm] with [agentFilter]', {
+                  ? agentFilter === 'all'
+                    ? tct('No projects found matching [searchTerm]', {
+                        searchTerm: <code>{searchTerm}</code>,
+                      })
+                    : tct('No projects found matching [searchTerm] with [agentFilter]', {
                         searchTerm: <code>{searchTerm}</code>,
                         agentFilter: <code>{agentFilter}</code>,
                       })
-                    : tct('No projects found matching [searchTerm]', {
-                        searchTerm: <code>{searchTerm}</code>,
-                      })
-                  : agentFilter
-                    ? tct('No projects found with [agentFilter]', {
+                  : agentFilter === 'all'
+                    ? t('No projects found')
+                    : tct('No projects found with [agentFilter]', {
                         agentFilter: <code>{agentFilter}</code>,
-                      })
-                    : t('No projects found')}
+                      })}
               </InfiniteTable.Empty>
             ) : (
               <Fragment>
