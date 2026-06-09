@@ -63,6 +63,7 @@ jobs:
           if_no_artifact_found: warn
 
       - name: jest balancer (shard ${{ matrix.index }}/${{ matrix.total }})
+        continue-on-error: true
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_JEST_DSN }}
 
