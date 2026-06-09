@@ -1527,7 +1527,10 @@ class PullRequestEventWebhookTest(APITestCase):
         ready["pull_request"]["draft"] = False
         self._post_pull_request_event(json.dumps(ready).encode())
 
-        pr.refresh_from_db()
+        # Re-fetch (not refresh_from_db) so the row is read fresh.
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
         assert pr.draft is False
         # Same row updated, not a duplicate.
         assert (
