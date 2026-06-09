@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {WebhookDetailedView} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
+import WebhookDetailedView from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
 
 describe('WebhookDetailedView', () => {
   const organization = OrganizationFixture({features: ['legacy-webhook-ui']});

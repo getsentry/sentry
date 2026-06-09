@@ -28,6 +28,7 @@ from sentry.api.helpers.group_index.update import (
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.issues.issue_search import parse_search_query
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -139,6 +140,28 @@ class UpdateGroupsTest(TestCase):
         assert resolved_group.substatus == GroupSubStatus.ONGOING
         assert not send_robust.called
         assert send_unresolved.called
+
+    def test_outer_action_context_overrides_request_source(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolved", "substatus": None})
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            with action_context_scope(
+                source=ActionSource.SLACK, actor=GroupActionActor.user(self.user.id)
+            ):
+                update_groups(request, group_list)
+
+        resolve_records = [
+            r
+            for r in logs.records
+            if r.message == "group.action_log" and getattr(r, "action") == "resolve"
+        ]
+        assert len(resolve_records) == 1
+        assert getattr(resolve_records[0], "source") == ActionSource.SLACK
+        assert getattr(resolve_records[0], "actor_id") == str(self.user.id)
 
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
