@@ -1231,7 +1231,7 @@ urlpatterns += [
         name="sentry-organization-avatar-url-deprecated",
     ),
     re_path(
-        r"^team-avatar/(?P<avatar_id>[^/]+)/$",
+        r"^team-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",
         TeamAvatarPhotoView.as_view(),
         name="sentry-team-avatar-url",
     ),
