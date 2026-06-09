@@ -18,10 +18,6 @@ from sentry.identity.oauth2 import (
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.utils.http import absolute_uri
 
-MCP_REGISTER_PATH = "/api/unstable/mcp-server/register"
-MCP_AUTHORIZE_PATH = "/api/unstable/mcp-server/authorize"
-MCP_TOKEN_PATH = "/api/unstable/mcp-server/token"
-
 
 def _basic_auth_header(client_id: str, client_secret: str) -> str:
     return "Basic " + base64.b64encode(f"{client_id}:{client_secret}".encode()).decode("ascii")
@@ -31,8 +27,8 @@ def generate_pkce_code_verifier() -> str:
     return secrets.token_urlsafe(96)
 
 
-def generate_pkce_code_challenge(verifier: str) -> str:
-    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+def generate_pkce_code_challenge(code_verifier: str) -> str:
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
 
 
