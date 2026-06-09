@@ -48,26 +48,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     expect(screen.queryByText('before_send_transaction')).not.toBeInTheDocument();
   });
 
-  it('links to platform custom instrumentation docs for manual spans', () => {
-    render(
-      <TroubleshootingSection
-        evidenceData={{
-          ...baseEvidenceData,
-          spanOrigin: 'manual',
-        }}
-        projectPlatform="python-django"
-      />
-    );
-
-    expect(
-      screen.getByRole('link', {name: 'Read the custom instrumentation docs'})
-    ).toHaveAttribute(
-      'href',
-      'https://docs.sentry.io/platforms/python/guides/django/tracing/instrumentation/custom-instrumentation/'
-    );
-  });
-
-  it('omits the custom instrumentation link when the platform is unknown', () => {
+  it('links to the platform-redirect custom instrumentation docs for manual spans', () => {
     render(
       <TroubleshootingSection
         evidenceData={{
@@ -79,11 +60,14 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     );
 
     expect(
-      screen.queryByRole('link', {name: 'Read the custom instrumentation docs'})
-    ).not.toBeInTheDocument();
+      screen.getByRole('link', {name: 'Read the custom instrumentation docs'})
+    ).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platform-redirect/?next=/tracing/instrumentation/custom-instrumentation/'
+    );
   });
 
-  it('links to the platform-specific filtering docs for non-JS/Python platforms', () => {
+  it('uses the platform-redirect filtering docs as a fallback', () => {
     render(
       <TroubleshootingSection
         evidenceData={baseEvidenceData}
@@ -95,7 +79,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
       screen.getByRole('link', {name: 'Read the SDK filtering docs'})
     ).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/ruby/guides/rails/configuration/filtering/'
+      'https://docs.sentry.io/platform-redirect/?next=/configuration/filtering/'
     );
   });
 

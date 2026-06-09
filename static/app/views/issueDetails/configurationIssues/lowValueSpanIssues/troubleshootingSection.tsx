@@ -78,13 +78,9 @@ function AutomaticInstrumentationFix({
 
 function ManualInstrumentationFix({
   evidenceData,
-  projectPlatform,
 }: {
   evidenceData: LowValueSpanEvidenceData;
-  projectPlatform?: PlatformKey | null;
 }) {
-  const customInstrumentationDocsUrl = getCustomInstrumentationDocsUrl(projectPlatform);
-
   return (
     <Stack gap="md">
       <Text>{t('This appears to come from custom instrumentation in your code.')}</Text>
@@ -104,14 +100,12 @@ function ManualInstrumentationFix({
           )}
         </Text>
       </Stack>
-      {customInstrumentationDocsUrl && (
-        <Flex align="center" gap="xs">
-          <IconDocs size="xs" />
-          <ExternalLink href={customInstrumentationDocsUrl}>
-            {t('Read the custom instrumentation docs')}
-          </ExternalLink>
-        </Flex>
-      )}
+      <Flex align="center" gap="xs">
+        <IconDocs size="xs" />
+        <ExternalLink href={getCustomInstrumentationDocsUrl()}>
+          {t('Read the custom instrumentation docs')}
+        </ExternalLink>
+      </Flex>
     </Stack>
   );
 }
@@ -154,10 +148,7 @@ export function TroubleshootingSection({
     <Stack gap="lg" padding="lg">
       <Heading as="h3">{t('Troubleshooting')}</Heading>
       {isManualInstrumentation ? (
-        <ManualInstrumentationFix
-          evidenceData={evidenceData}
-          projectPlatform={projectPlatform}
-        />
+        <ManualInstrumentationFix evidenceData={evidenceData} />
       ) : (
         <AutomaticInstrumentationTroubleshooting
           evidenceData={evidenceData}
