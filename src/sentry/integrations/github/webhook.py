@@ -66,6 +66,7 @@ from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_acti
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
 from sentry.pr_metrics.webhooks import handle_comment as pr_metrics_handle_comment
 from sentry.pr_metrics.webhooks import handle_emission as pr_metrics_handle_emission
+from sentry.pr_metrics.webhooks import handle_metrics as pr_metrics_handle_metrics
 from sentry.pr_metrics.webhooks import handle_review as pr_metrics_handle_review
 from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handle_review_comment
 from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
@@ -974,6 +975,8 @@ class PullRequestEventWebhook(GitHubWebhook):
         _handle_pr_webhook_for_autofix_processor,
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
+        # Persist counters before emission reads them off the PullRequestMetrics row.
+        pr_metrics_handle_metrics,
         pr_metrics_handle_emission,
         pr_metrics_handle_activity,
     )
@@ -1011,9 +1014,11 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         # Lifecycle facts kept current for the PR metrics pipeline.
         head_commit_sha = pull_request["head"]["sha"]
+        opened_at = _parse_github_timestamp(pull_request.get("created_at"))
         closed_at = _parse_github_timestamp(pull_request.get("closed_at"))
         merged_at = _parse_github_timestamp(pull_request.get("merged_at"))
         state = _pull_request_lifecycle_state(pull_request)
+        draft = pull_request.get("draft")
 
         author_email = "{}@localhost".format(user["login"][:65])
 
@@ -1078,9 +1083,11 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "message": body,
                     "merge_commit_sha": merge_commit_sha,
                     "head_commit_sha": head_commit_sha,
+                    "opened_at": opened_at,
                     "closed_at": closed_at,
                     "merged_at": merged_at,
                     "state": state,
+                    "draft": draft,
                 },
             )
 

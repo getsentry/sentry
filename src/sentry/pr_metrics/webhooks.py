@@ -1,8 +1,8 @@
 """GitHub webhook handling for the PR Merge Live Metrics pipeline.
 
 Multiple independent processors serve several webhook event types:
-- ``PullRequestEventWebhook``: ``handle_attribution``, ``handle_emission``,
-  ``handle_activity``
+- ``PullRequestEventWebhook``: ``handle_attribution``, ``handle_metrics``,
+  ``handle_emission``, ``handle_activity``
 - ``IssueCommentEventWebhook``: ``handle_comment``
 - ``PullRequestReviewEventWebhook``: ``handle_review``
 - ``PullRequestReviewCommentEventWebhook``: ``handle_review_comment``
@@ -34,6 +34,7 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestMetrics,
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.activity_types import (
@@ -187,7 +188,42 @@ def handle_emission(
             extra={"organization_id": organization.id, "pull_request_id": pr.id},
         )
 
-    emit_pr_metrics_row(pull_request=pr, close_action=close_action, payload=pull_request)
+    emit_pr_metrics_row(pull_request=pr, close_action=close_action)
+
+
+def handle_metrics(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Persist the webhook-sourced activity counters onto ``PullRequestMetrics``.
+
+    Kept current on every ``pull_request`` event so the emit path can read the
+    counts off the row — the judge path (Seer RPC callback) has no payload to
+    derive them from. Registered before ``handle_emission`` so a close/merge
+    reflects the final counts. Gated by the emit flag, the sole consumer; only
+    the webhook-sourced columns are written, leaving the Seer-derived ones
+    (verdict, participants_count, reviews_count) untouched.
+    """
+    pull_request = event.get("pull_request")
+    if not pull_request:
+        return
+
+    if not features.has("organizations:pr-metrics-emit", organization):
+        return
+
+    pr = _get_pull_request(organization, repo, pull_request)
+    if pr is None:
+        return
+
+    PullRequestMetrics.objects.update_or_create(
+        pull_request=pr,
+        defaults=_metrics_counters(pull_request),
+    )
 
 
 def handle_activity(
@@ -435,6 +471,23 @@ def _get_pull_request(
             extra={"repository_id": repo.id, "pr_number": pull_request["number"]},
         )
         return None
+
+
+def _metrics_counters(pull_request: Mapping[str, Any]) -> dict[str, Any]:
+    """Map a GitHub PR payload to the ``PullRequestMetrics`` counter columns.
+
+    Counts are coalesced to 0 (the columns are non-null); ``is_assigned`` is
+    derived here since the payload carries assignees, not a flag.
+    """
+    return {
+        "additions": pull_request.get("additions") or 0,
+        "deletions": pull_request.get("deletions") or 0,
+        "files_changed": pull_request.get("changed_files") or 0,
+        "commits_count": pull_request.get("commits") or 0,
+        "comments_count": pull_request.get("comments") or 0,
+        "review_comments_count": pull_request.get("review_comments") or 0,
+        "is_assigned": bool(pull_request.get("assignees") or pull_request.get("assignee")),
+    }
 
 
 def _description_changed(event: Mapping[str, Any]) -> bool:

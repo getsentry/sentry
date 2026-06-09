@@ -1192,6 +1192,18 @@ class PullRequestEventWebhookTest(APITestCase):
         sig = GitHubIntegrationsWebhookEndpoint.compute_signature("sha256", body, self.secret)
         return f"sha256={sig}"
 
+    def _post_pull_request_event(self, body: bytes) -> None:
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE=self._get_signature_sha1(body),
+            HTTP_X_HUB_SIGNATURE_256=self._get_signature_sha256(body),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
     def _create_integration_and_send_pull_request_opened_event(self):
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1355,11 +1367,14 @@ class PullRequestEventWebhookTest(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
-        # Lifecycle fallback fields persisted for the PR metrics pipeline.
+        # Emit-sourced facts persisted for the PR metrics pipeline.
         assert pr.head_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert pr.state == PullRequestLifecycleState.OPEN
+        assert pr.opened_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
         assert pr.closed_at is None
         assert pr.merged_at is None
+        # The opened fixture omits the draft flag.
+        assert pr.draft is None
 
         self.assert_group_link(group, pr)
 
@@ -1523,6 +1538,55 @@ class PullRequestEventWebhookTest(APITestCase):
 
         self.assert_group_link(group, pr)
 
+    def test_ready_for_review_updates_draft_on_existing_row(self) -> None:
+        # A PR opened as a draft and later marked ready: the second webhook must
+        # refresh draft on the existing row (update_or_create updates defaults,
+        # it doesn't only create), not leave the stale draft=True or fork a row.
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.project.organization.id, self.user)
+
+        repo = Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+
+        opened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        opened["pull_request"]["draft"] = True
+        self._post_pull_request_event(json.dumps(opened).encode())
+
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.draft is True
+        assert pr.state == PullRequestLifecycleState.OPEN
+
+        ready = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        ready["action"] = "ready_for_review"
+        ready["pull_request"]["draft"] = False
+        self._post_pull_request_event(json.dumps(ready).encode())
+
+        # Re-fetch (not refresh_from_db) so the row is read fresh.
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.draft is False
+        # Same row updated, not a duplicate.
+        assert (
+            PullRequest.objects.filter(
+                repository_id=repo.id, organization_id=self.project.organization.id
+            ).count()
+            == 1
+        )
+
     @patch("sentry.integrations.github.webhook.metrics")
     def test_closed(self, mock_metrics: MagicMock) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -1570,12 +1634,14 @@ class PullRequestEventWebhookTest(APITestCase):
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
 
-        # Lifecycle fallback fields persisted for the PR metrics pipeline. The
-        # payload's merged flag wins over its (open) state, so the PR is "merged".
+        # Emit-sourced facts persisted for the PR metrics pipeline. The payload's
+        # merged flag wins over its (open) state, so the PR is "merged".
         assert pr.head_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert pr.state == PullRequestLifecycleState.MERGED
+        assert pr.opened_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
         assert pr.closed_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
         assert pr.merged_at == datetime(2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc)
+        assert pr.draft is None
 
         assert mock_metrics.incr.call_count == 1
 
