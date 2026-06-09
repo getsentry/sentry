@@ -8,10 +8,16 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
 
+type SelectionIntentKind = 'all' | 'my' | 'custom' | 'none';
+
 interface ProjectPageFilterTriggerProps extends Omit<TriggerProps, 'value'> {
   memberProjects: Project[];
   nonMemberProjects: Project[];
   ready: boolean;
+  /**
+   * The kind of selection intent - determines whether to show "All Projects", "My Projects", or project names
+   */
+  selectionIntentKind: SelectionIntentKind;
   value: number[];
 }
 
@@ -20,29 +26,19 @@ export function ProjectPageFilterTrigger({
   memberProjects,
   nonMemberProjects,
   ready,
+  selectionIntentKind,
   ...props
 }: ProjectPageFilterTriggerProps) {
-  const isMemberProjectsSelected = memberProjects.every(p =>
-    value.includes(parseInt(p.id, 10))
-  );
-
   // "My Projects" / "All Projects" labels only apply when there are multiple projects.
   // With a single-project org, always show the project name.
   const totalProjects = memberProjects.length + nonMemberProjects.length;
-  const allProjects = [...memberProjects, ...nonMemberProjects];
-  const allProjectIds = allProjects.map(p => parseInt(p.id, 10));
-
-  // Check if value contains all project IDs (order-independent comparison)
-  const containsAllProjects =
-    allProjectIds.length > 0 &&
-    value.length === allProjectIds.length &&
-    allProjectIds.every(id => value.includes(id));
 
   const isMyProjectsSelected =
-    isMemberProjectsSelected && memberProjects.length > 0 && totalProjects > 1;
+    selectionIntentKind === 'my' && memberProjects.length > 0 && totalProjects > 1;
 
   const isAllProjectsSelected =
-    value.length === 0 || (totalProjects > 1 && containsAllProjects);
+    totalProjects > 1 &&
+    (selectionIntentKind === 'all' || selectionIntentKind === 'none');
 
   const selectedProjects = value
     .slice(0, 2) // we only need to know about the first two projects
