@@ -18,7 +18,6 @@ class Progress(StrEnum):
     DIAGNOSED = "diagnosed"
     FIX_PROPOSED = "fix_proposed"
     FIX_APPLIED = "fix_applied"
-    FIX_DEPLOYED = "fix_deployed"
     REGRESSED = "regressed"
 
 
