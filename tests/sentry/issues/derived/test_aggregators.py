@@ -33,7 +33,7 @@ from sentry.issues.derived.fields import (
     Progress,
     WorkingOnEntry,
 )
-from sentry.issues.derived.lib import Pipeline, resolve
+from sentry.issues.derived.framework import Pipeline, resolve
 
 
 @dataclass(frozen=True)
