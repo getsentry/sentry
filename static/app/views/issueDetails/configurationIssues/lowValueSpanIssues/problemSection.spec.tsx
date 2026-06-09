@@ -21,7 +21,7 @@ describe('LowValueSpanIssues ProblemSection', () => {
     expect(screen.getByText('Affected span')).toBeInTheDocument();
     expect(screen.getByText('function - compute_checksum')).toBeInTheDocument();
     expect(screen.getByText('Span count')).toBeInTheDocument();
-    expect(screen.getByText('60,000')).toBeInTheDocument();
+    expect(screen.getByText('60K')).toBeInTheDocument();
     expect(screen.getAllByLabelText('More information')).toHaveLength(2);
     expect(screen.getByText('Estimated cost')).toBeInTheDocument();
     expect(screen.getByText('$12.34')).toBeInTheDocument();
@@ -38,7 +38,7 @@ describe('LowValueSpanIssues ProblemSection', () => {
       />
     );
 
-    expect(screen.getByText('1,234')).toBeInTheDocument();
+    expect(screen.getByText('1.2K')).toBeInTheDocument();
     expect(screen.getAllByLabelText('More information')).toHaveLength(1);
   });
 

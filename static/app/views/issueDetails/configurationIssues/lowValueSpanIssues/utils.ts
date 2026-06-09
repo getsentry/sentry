@@ -37,10 +37,6 @@ export function getSpanLabel(evidenceData: LowValueSpanEvidenceData): string {
   return t('Unknown span');
 }
 
-export function formatCount(count: number | null): string {
-  return count === null ? t('Unknown') : count.toLocaleString();
-}
-
 export function formatDurationMs(duration: number | null): string {
   if (duration === null) {
     return t('Unknown');

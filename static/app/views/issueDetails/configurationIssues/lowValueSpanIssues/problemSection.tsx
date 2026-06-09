@@ -69,7 +69,9 @@ export function ProblemSection({evidenceData}: ProblemSectionProps) {
         subject: t('Span count'),
         value: (
           <Flex align="center" gap="xs">
-            <Text monospace>{formatAbbreviatedNumber(spanCount)}</Text>
+            <Text monospace>
+              {spanCount === null ? t('Unknown') : formatAbbreviatedNumber(spanCount)}
+            </Text>
             {evidenceData.extrapolatedCount !== null && (
               <InfoTip
                 size="xs"
