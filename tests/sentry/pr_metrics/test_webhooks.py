@@ -341,13 +341,10 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             pull_request=self.pull_request, additions=1, deletions=2, is_assigned=True
         )
 
-    def _payload(self, *, merged: bool = True) -> dict[str, Any]:
-        # Lifecycle is read from the stored PR row; the payload supplies only the
-        # PR number and the merged flag.
-        return {
-            "number": 42,
-            "merged": merged,
-        }
+    def _payload(self) -> dict[str, Any]:
+        # Emission reads every fact off the stored PR row; the payload is only
+        # used to resolve the PR by number.
+        return {"number": 42}
 
     def _call(self, *, action: str = "closed", merged: bool = True) -> None:
         if action == "closed":
@@ -363,7 +360,7 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             )
         handle_emission(
             github_event=GithubWebhookType.PULL_REQUEST,
-            event={"action": action, "pull_request": self._payload(merged=merged)},
+            event={"action": action, "pull_request": self._payload()},
             organization=self.organization,
             repo=self.repo,
         )
