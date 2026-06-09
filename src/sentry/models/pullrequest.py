@@ -106,10 +106,16 @@ class PullRequest(Model):
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
 
+    # Facts for the PR metrics pipeline, kept current by the GitHub webhook.
+    # All nullable: we only have them for PRs whose events Sentry actually saw.
+    # A late-installed integration, a missed/dropped webhook, or a non-webhook
+    # creation path (e.g. attribution get_or_create) leaves them unset.
+    opened_at = models.DateTimeField(null=True)
     closed_at = models.DateTimeField(null=True)
     merged_at = models.DateTimeField(null=True)
     state = models.CharField(max_length=32, null=True, choices=PullRequestLifecycleState.choices)
     head_commit_sha = models.CharField(max_length=64, null=True)
+    draft = models.BooleanField(null=True)
 
     objects: ClassVar[PullRequestManager] = PullRequestManager()
 
@@ -261,21 +267,27 @@ class PullRequestComment(Model):
 
 
 class PullRequestActivityType(models.TextChoices):
-    OPENED = "opened"
+    ASSIGNED = "assigned"
     CLOSED = "closed"
-    MERGED = "merged"
-    REOPENED = "reopened"
-    SYNCHRONIZED = "synchronized"
+    COMMENT_CREATED = "comment_created"
+    COMMENT_DELETED = "comment_deleted"
+    COMMENT_EDITED = "comment_edited"
+    CONVERTED_TO_DRAFT = "converted_to_draft"
     EDITED = "edited"
+    LABELED = "labeled"
+    LOCKED = "locked"
+    MERGED = "merged"
+    OPENED = "opened"
+    READY_FOR_REVIEW = "ready_for_review"
+    REOPENED = "reopened"
     REVIEW_REQUESTED = "review_requested"
     REVIEW_REQUEST_REMOVED = "review_request_removed"
     REVIEW_SUBMITTED = "review_submitted"
-    COMMENT_CREATED = "comment_created"
-    COMMENT_EDITED = "comment_edited"
-    COMMENT_DELETED = "comment_deleted"
-    LABELED = "labeled"
+    REVIEW_THREAD_RESOLVED = "review_thread_resolved"
+    REVIEW_THREAD_UNRESOLVED = "review_thread_unresolved"
+    SYNCHRONIZED = "synchronized"
+    UNASSIGNED = "unassigned"
     UNLABELED = "unlabeled"
-    LOCKED = "locked"
     UNLOCKED = "unlocked"
 
 
@@ -323,6 +335,15 @@ class PullRequestAttribution(DefaultFieldsModel):
 
 @cell_silo_model
 class PullRequestMetrics(DefaultFieldsModel):
+    """One row per PR holding the webhook-sourced activity counters.
+
+    Kept current by the metrics pipeline on each ``pull_request`` webhook and read
+    by the emit/judge path (which, on the Seer callback, has no payload — hence
+    the counts are stored rather than re-derived). ``verdict`` and the Seer-only
+    counters (``participants_count``, ``reviews_count``) are populated later by
+    the judge path, not the webhook.
+    """
+
     __relocation_scope__ = RelocationScope.Excluded
 
     pull_request = models.OneToOneField(
@@ -334,6 +355,7 @@ class PullRequestMetrics(DefaultFieldsModel):
     files_changed = BoundedPositiveIntegerField(default=0)
     commits_count = BoundedPositiveIntegerField(default=0)
     comments_count = BoundedPositiveIntegerField(default=0)
+    review_comments_count = BoundedPositiveIntegerField(default=0, db_default=0)
     participants_count = BoundedPositiveIntegerField(default=0)
     reviews_count = BoundedPositiveIntegerField(default=0)
     is_assigned = models.BooleanField(default=False)

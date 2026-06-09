@@ -7,7 +7,7 @@ import {debounce, parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -169,36 +169,38 @@ export function SeerRepoTable() {
 
   return (
     <Fragment>
-      <Grid
-        minWidth="0"
-        gap="md"
-        columns={isFetchingAllPages ? '1fr max-content max-content' : '1fr max-content'}
-      >
-        <InputGroup>
-          <InputGroup.LeadingItems disablePointerEvents>
-            <IconSearch />
-          </InputGroup.LeadingItems>
-          <InputGroup.Input
-            size="md"
-            placeholder={t('Search')}
-            value={searchTerm ?? ''}
-            onChange={e =>
-              setSearchTerm(e.target.value, {limitUrlUpdates: debounce(125)})
-            }
-          />
-        </InputGroup>
-
-        {isFetchingAllPages ? <LoadingIndicator mini /> : null}
-
-        <LinkButton
-          variant="primary"
-          size="sm"
-          to={`/settings/${organization.slug}/repos/`}
-          icon={<IconOpen />}
+      <Stack>
+        <Grid
+          minWidth="0"
+          gap="md"
+          columns={isFetchingAllPages ? '1fr max-content max-content' : '1fr max-content'}
         >
-          {t('Manage Repositories')}
-        </LinkButton>
-      </Grid>
+          <InputGroup>
+            <InputGroup.LeadingItems disablePointerEvents>
+              <IconSearch />
+            </InputGroup.LeadingItems>
+            <InputGroup.Input
+              size="md"
+              placeholder={t('Search')}
+              value={searchTerm ?? ''}
+              onChange={e =>
+                setSearchTerm(e.target.value, {limitUrlUpdates: debounce(125)})
+              }
+            />
+          </InputGroup>
+
+          {isFetchingAllPages ? <LoadingIndicator mini /> : null}
+
+          <LinkButton
+            variant="primary"
+            size="sm"
+            to={`/settings/${organization.slug}/repos/`}
+            icon={<IconOpen />}
+          >
+            {t('Manage Repositories')}
+          </LinkButton>
+        </Grid>
+      </Stack>
       <ListItemCheckboxProvider
         hits={repositories?.length ?? 0}
         knownIds={knownIds}

@@ -1,58 +1,77 @@
-import type {ReactNode} from 'react';
-
+import {Alert} from '@sentry/scraps/alert';
 import {InfoTip} from '@sentry/scraps/info';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {t, tct} from 'sentry/locale';
-
-import {SpanCode} from './spanCode';
-import type {LowValueSpanEvidenceData} from './types';
 import {
-  formatCount,
-  formatDurationMs,
-  formatEstimatedCostUsd,
-  getSpanLabel,
-} from './utils';
+  KeyValueData,
+  type KeyValueDataContentProps,
+} from 'sentry/components/keyValueData';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+
+import type {LowValueSpanEvidenceData} from './types';
+import {formatDurationMs, formatEstimatedCostUsd, getSpanLabel} from './utils';
 
 interface ProblemSectionProps {
   evidenceData: LowValueSpanEvidenceData;
 }
 
-function DetailRow({label, value}: {label: string; value: ReactNode}) {
-  return (
-    <Flex align="baseline" gap="sm" wrap="wrap">
-      <Text variant="muted">{label}</Text>
-      <Text>{value}</Text>
-    </Flex>
-  );
+const LOW_VALUE_SPAN_EXPLORE_REFERRER = 'low-value-span-configuration-issue';
+
+function getAffectedSpanQuery(evidenceData: LowValueSpanEvidenceData): string | null {
+  if (!evidenceData.op && !evidenceData.description) {
+    return null;
+  }
+
+  return MutableSearch.fromQueryObject({
+    'span.op': evidenceData.op ?? undefined,
+    'span.description': evidenceData.description ?? undefined,
+  }).formatString();
 }
 
 export function ProblemSection({evidenceData}: ProblemSectionProps) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
   const hasEstimatedCost =
     evidenceData.estimatedCostUsd !== null && evidenceData.estimatedCostUsd > 0;
   const spanCount = evidenceData.extrapolatedCount ?? evidenceData.count;
-
-  return (
-    <Stack gap="lg" padding="lg">
-      <Flex align="baseline" gap="sm" wrap="wrap">
-        <Heading as="h3">{t('Problem')}</Heading>
-      </Flex>
-      <Text>
-        {t(
-          'Sentry found a frequently created span that adds little value. It can make traces harder to read and increase stored span volume.'
-        )}
-      </Text>
-      <Text>
-        {tct('The affected span is [span].', {
-          span: <SpanCode>{getSpanLabel(evidenceData)}</SpanCode>,
-        })}
-      </Text>
-      <Stack gap="xs">
-        <Flex align="baseline" gap="sm" wrap="wrap">
-          <Text variant="muted">{t('Span count')}</Text>
+  const affectedSpanQuery = getAffectedSpanQuery(evidenceData);
+  const affectedSpanExploreUrl = affectedSpanQuery
+    ? getExploreUrl({
+        organization,
+        selection,
+        mode: Mode.SAMPLES,
+        query: affectedSpanQuery,
+        referrer: LOW_VALUE_SPAN_EXPLORE_REFERRER,
+      })
+    : undefined;
+  const contentItems: Array<KeyValueDataContentProps | null> = [
+    {
+      disableFormattedData: true,
+      item: {
+        action: affectedSpanExploreUrl ? {link: affectedSpanExploreUrl} : undefined,
+        key: 'affected-span',
+        subject: t('Affected span'),
+        value: getSpanLabel(evidenceData),
+      },
+    },
+    {
+      disableFormattedData: true,
+      item: {
+        key: 'span-count',
+        subject: t('Span count'),
+        value: (
           <Flex align="center" gap="xs">
-            <Text>{formatCount(spanCount)}</Text>
+            <Text monospace>
+              {spanCount === null ? t('Unknown') : formatAbbreviatedNumber(spanCount)}
+            </Text>
             {evidenceData.extrapolatedCount !== null && (
               <InfoTip
                 size="xs"
@@ -62,26 +81,53 @@ export function ProblemSection({evidenceData}: ProblemSectionProps) {
               />
             )}
           </Flex>
-        </Flex>
-        {hasEstimatedCost && (
-          <Flex align="baseline" gap="sm" wrap="wrap">
-            <Text variant="muted">{t('Estimated cost')}</Text>
-            <Flex align="center" gap="xs">
-              <Text>{formatEstimatedCostUsd(evidenceData.estimatedCostUsd)}</Text>
-              <InfoTip
-                size="xs"
-                title={t(
-                  'This estimate is based on a recent sample of this span, so it may not match your final bill for the billing period.'
-                )}
-              />
-            </Flex>
-          </Flex>
+        ),
+      },
+    },
+    hasEstimatedCost
+      ? {
+          disableFormattedData: true,
+          item: {
+            key: 'estimated-cost',
+            subject: t('Estimated cost'),
+            value: (
+              <Flex align="center" gap="xs">
+                <Text monospace>
+                  {formatEstimatedCostUsd(evidenceData.estimatedCostUsd)}
+                </Text>
+                <InfoTip
+                  size="xs"
+                  title={t(
+                    'This estimate is based on a recent sample of this span, so it may not match your final bill for the billing period.'
+                  )}
+                />
+              </Flex>
+            ),
+          },
+        }
+      : null,
+    {
+      disableFormattedData: true,
+      item: {
+        key: 'average-duration',
+        subject: t('Average duration'),
+        value: formatDurationMs(evidenceData.avgDurationMs),
+      },
+    },
+  ];
+
+  return (
+    <Stack gap="lg">
+      <Alert variant="muted" showIcon>
+        {t(
+          'Sentry found a frequently created span that adds little value. It can make traces harder to read and increases stored span volume.'
         )}
-        <DetailRow
-          label={t('Average duration')}
-          value={formatDurationMs(evidenceData.avgDurationMs)}
-        />
-      </Stack>
+      </Alert>
+      <Grid columns="fit-content(50%) 1fr" border="primary" radius="md" padding="sm">
+        {contentItems.filter(defined).map(contentItem => (
+          <KeyValueData.Content key={contentItem.item.key} {...contentItem} />
+        ))}
+      </Grid>
     </Stack>
   );
 }

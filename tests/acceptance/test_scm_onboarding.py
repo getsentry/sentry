@@ -184,6 +184,180 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
 
+    def test_scm_onboarding_reload_restores_connected_repo(self) -> None:
+        """Reloading the platform-features step restores the connected repo from
+        session storage and re-runs detection. Guards the stale-optimistic-repo
+        cleanup on load against dropping a resolved repo (real id): if it did,
+        the auto-detected section would be replaced by the manual picker."""
+        self.create_github_integration()
+
+        mock_repos = [
+            {
+                "name": "sentry",
+                "identifier": "getsentry/sentry",
+                "default_branch": "master",
+                "external_id": "12345",
+            },
+        ]
+        mock_platforms = [
+            {
+                "platform": "python-django",
+                "language": "Python",
+                "bytes": 50000,
+                "confidence": "high",
+                "priority": 1,
+            }
+        ]
+
+        with (
+            self.feature(
+                {
+                    "organizations:onboarding-scm-experiment": True,
+                    "organizations:onboarding-scm-project-details-experiment": True,
+                    "organizations:integrations-github-platform-detection": True,
+                }
+            ),
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                return_value={"id": "12345"},
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                return_value=mock_platforms,
+            ),
+        ):
+            self.start_onboarding()
+
+            # Connect a repo and advance to the platform-features step.
+            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("sentry")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(
+                xpath='//*[contains(text(), "Auto-detected from your repository")]'
+            )
+            self.browser.wait_until('[role="radio"]')
+
+            # Reload the step. The connected repo (real id) must survive the
+            # session restore so detection re-runs and the auto-detected section
+            # renders again rather than falling back to the manual picker.
+            self.browser.get(f"/onboarding/{self.org.slug}/scm-platform-features/")
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(
+                xpath='//*[contains(text(), "Auto-detected from your repository")]'
+            )
+            self.browser.wait_until('[role="radio"]')
+
+    def test_scm_onboarding_switch_repo_updates_detection(self) -> None:
+        """Switching the connected repo re-runs detection for the new repo and
+        does not leak the previous repo's detected platform."""
+        self.create_github_integration()
+
+        mock_repos = [
+            {
+                "name": "sentry",
+                "identifier": "getsentry/sentry",
+                "default_branch": "master",
+                "external_id": "11111",
+            },
+            {
+                "name": "frontend",
+                "identifier": "getsentry/frontend",
+                "default_branch": "main",
+                "external_id": "22222",
+            },
+        ]
+
+        # Key off "frontend" — a substring unique to the second repo — so the
+        # match holds whether detect_platforms/_validate_repo receive the repo
+        # name or the identifier.
+        def platforms_for(client: object, repo: str) -> list[dict[str, object]]:
+            if "frontend" in repo:
+                return [
+                    {
+                        "platform": "javascript-react",
+                        "language": "JavaScript",
+                        "bytes": 50000,
+                        "confidence": "high",
+                        "priority": 1,
+                    }
+                ]
+            return [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 1,
+                }
+            ]
+
+        def validate_for(client: object, installation: object, repo: str) -> dict[str, str]:
+            return {"id": "22222" if "frontend" in repo else "11111"}
+
+        with (
+            self.feature(
+                {
+                    "organizations:onboarding-scm-experiment": True,
+                    "organizations:onboarding-scm-project-details-experiment": True,
+                    "organizations:integrations-github-platform-detection": True,
+                }
+            ),
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                side_effect=validate_for,
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                side_effect=platforms_for,
+            ),
+        ):
+            self.start_onboarding()
+
+            # Connect the first repo; detection resolves to Django.
+            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("sentry")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(xpath='//*[@role="radio"][contains(., "Django")]')
+
+            # Go back and switch to the second repo; detection must re-run for it.
+            self.browser.click('[aria-label="Back"]')
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-connect"]')
+            # Don't click the input: the selected repo's SingleValueLabel overlays
+            # it and intercepts the click. send_keys focuses and filters directly,
+            # matching the initial-selection path above.
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("frontend")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # New repo's platform is detected; the previous repo's is not shown.
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(xpath='//*[@role="radio"][contains(., "React")]')
+            self.browser.wait_until_not(xpath='//*[@role="radio"][contains(., "Django")]')
+
     def test_scm_onboarding_skip_integration(self) -> None:
         """Skip flow: welcome → skip connect → manual platform → create project."""
         with self.feature(

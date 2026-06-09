@@ -691,7 +691,7 @@ export class MutableSearch {
         t.listValues && t.listValues.length > 0 ? t.listValues : [t.value ?? ''];
       (acc[t.key] ??= []).push(...values);
       return acc;
-    }, {});
+    }, Object.create(null));
   }
 
   getFilterValues(key: string): string[] {

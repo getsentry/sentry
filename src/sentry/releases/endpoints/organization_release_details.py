@@ -32,6 +32,11 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams, VisibilityParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -326,7 +331,9 @@ class OrganizationReleaseDetailsEndpoint(
         },
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
-    def get(self, request: Request, organization, version) -> Response:
+    def get(
+        self, request: Request, organization, version
+    ) -> Response[ReleaseSerializerResponse] | Response[DetailResponse]:
         """
 
         Return details on an individual release.
@@ -411,17 +418,16 @@ class OrganizationReleaseDetailsEndpoint(
             except InvalidSortException:
                 return Response({"detail": "invalid sort"}, status=400)
 
-        return Response(
-            serialize(
-                release,
-                request.user,
-                with_health_data=with_health,
-                with_adoption_stages=with_adoption_stages,
-                summary_stats_period=summary_stats_period,
-                health_stats_period=health_stats_period,
-                current_project_meta=current_project_meta,
-            )
+        data: ReleaseSerializerResponse = serialize(
+            release,
+            request.user,
+            with_health_data=with_health,
+            with_adoption_stages=with_adoption_stages,
+            summary_stats_period=summary_stats_period,
+            health_stats_period=health_stats_period,
+            current_project_meta=current_project_meta,
         )
+        return Response(data)
 
     @extend_schema(
         operation_id="Update an Organization's Release",
@@ -438,7 +444,9 @@ class OrganizationReleaseDetailsEndpoint(
         },
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
-    def put(self, request: Request, organization: Organization, version) -> Response:
+    def put(
+        self, request: Request, organization: Organization, version
+    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
 
         Update a release. This can change some metadata associated with
@@ -465,7 +473,7 @@ class OrganizationReleaseDetailsEndpoint(
 
         if not serializer.is_valid():
             scope.set_tag("failure_reason", "serializer_error")
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data
 
@@ -540,11 +548,10 @@ class OrganizationReleaseDetailsEndpoint(
                 )
 
         no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
-        return Response(
-            serialize(
-                release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
-            )
+        data: ReleaseSerializerResponse = serialize(
+            release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
         )
+        return Response(data)
 
     @extend_schema(
         operation_id="Delete an Organization's Release",
@@ -559,7 +566,9 @@ class OrganizationReleaseDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, version) -> Response:
+    def delete(
+        self, request: Request, organization, version
+    ) -> Response[None] | Response[DetailResponse]:
         """
 
         Permanently remove a release and all of its files.

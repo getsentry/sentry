@@ -15,6 +15,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.testutils import mock_replay, mock_replay_click
 from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.agent.tools import (
@@ -454,6 +455,57 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
 
         assert exc_info.value.status_code == 500
 
+    @patch("sentry.seer.agent.tools.client.get")
+    def test_table_query_forwards_cross_event_params(self, mock_client_get: Mock) -> None:
+        """Cross-event filters are forwarded to /events/ as repeated spanQuery/logQuery/metricQuery params."""
+        mock_resp = Mock()
+        mock_resp.data = {"data": []}
+        mock_client_get.return_value = mock_resp
+
+        execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="span.op:QueryBuilder",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+            span_query=["span.category:http"],
+            log_query=["severity:error"],
+            metric_query=["metric.name:checkout.latency"],
+        )
+
+        mock_client_get.assert_called_once()
+        params = mock_client_get.call_args.kwargs["params"]
+        assert params["spanQuery"] == ["span.category:http"]
+        assert params["logQuery"] == ["severity:error"]
+        assert params["metricQuery"] == ["metric.name:checkout.latency"]
+        # Primary query is unaffected by the cross-event filters.
+        assert params["query"] == "span.op:QueryBuilder"
+
+    @patch("sentry.seer.agent.tools.client.get")
+    def test_table_query_omits_cross_event_params_when_unset(self, mock_client_get: Mock) -> None:
+        """With no cross-event filters the request is unchanged — back-compat for existing callers."""
+        mock_resp = Mock()
+        mock_resp.data = {"data": []}
+        mock_client_get.return_value = mock_resp
+
+        execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.default_span_fields,
+            query="",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+        )
+
+        mock_client_get.assert_called_once()
+        params = mock_client_get.call_args.kwargs["params"]
+        assert "spanQuery" not in params
+        assert "logQuery" not in params
+        assert "metricQuery" not in params
+
     def test_spans_timeseries_with_groupby(self) -> None:
         """Test timeseries query with group_by parameter for aggregates"""
         result = execute_timeseries_query(
@@ -576,6 +628,90 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         # Test with nonexistent organization
         result = get_organization_project_ids(org_id=99999)
         assert result == {"projects": []}
+
+
+class TestSpansCrossTraceQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase):
+    """Integration test for the tool->API cross-event (same-trace) contract."""
+
+    span_fields = ["id", "span.op", "trace", "timestamp"]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.ten_mins_ago = before_now(minutes=10)
+
+        self.trace_with_log = uuid.uuid4().hex
+        self.trace_without_log = uuid.uuid4().hex
+
+        # A matching log lives only in trace_with_log; the other trace gets an unrelated log.
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    {
+                        "body": "crosseventneedle",
+                        "severity_text": "ERROR",
+                        "severity_number": 17,
+                        "trace_id": self.trace_with_log,
+                    },
+                    timestamp=self.ten_mins_ago,
+                ),
+                self.create_ourlog(
+                    {
+                        "body": "unrelatedlog",
+                        "severity_text": "INFO",
+                        "severity_number": 9,
+                        "trace_id": self.trace_without_log,
+                    },
+                    timestamp=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        # One db span in each trace; the primary query (span.op:db) matches both spans,
+        # so any narrowing in the assertions is attributable to the cross-event filter.
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "cross-event probe",
+                        "sentry_tags": {"op": "db"},
+                        "trace_id": self.trace_with_log,
+                    },
+                    start_ts=self.ten_mins_ago,
+                    duration=100,
+                ),
+                self.create_span(
+                    {
+                        "description": "cross-event probe",
+                        "sentry_tags": {"op": "db"},
+                        "trace_id": self.trace_without_log,
+                    },
+                    start_ts=self.ten_mins_ago,
+                    duration=100,
+                ),
+            ]
+        )
+
+    def test_log_cross_event_filter_restricts_to_matching_trace(self) -> None:
+        """log_query restricts spans to those whose trace also contains the matching log."""
+        result = execute_table_query(
+            org_id=self.organization.id,
+            dataset="spans",
+            fields=self.span_fields,
+            query="span.op:db",
+            stats_period="1h",
+            sort="-timestamp",
+            per_page=10,
+            project_slugs=[self.project.slug],
+            log_query=["message:crosseventneedle"],
+        )
+
+        assert result is not None
+        assert "error" not in result, result
+        rows = result["data"]
+        # Only the span whose trace also contains the matching log survives the join.
+        assert len(rows) == 1
+        assert rows[0]["trace"] == self.trace_with_log
 
 
 class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase):
@@ -982,6 +1118,8 @@ class _IssueMetadata(BaseModel):
     type: str
     issueType: str
     issueTypeDescription: str  # Extra field added by get_issue_and_event_details.
+    detectionContext: str | None  # Extra field added by get_issue_and_event_details.
+    troubleshootingHint: str | None  # Extra field added by get_issue_and_event_details.
     issueCategory: str
     hasSeen: bool
     project: _Project
@@ -1498,6 +1636,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["issue"]["issueTypeDescription"] == group.issue_type.description
+        assert result["issue"]["detectionContext"] is None
+        assert result["issue"]["troubleshootingHint"] is None
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
 
@@ -1522,6 +1662,28 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["issue"]["id"] == str(group.id)
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_low_value_span_issue_context(self, mock_tags, mock_ts):
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+        group = self.create_group(
+            project=self.project,
+            type=LowValueSpanConfigurationType.type_id,
+        )
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert isinstance(result, dict)
+        self._assert_issue_response_shape(result)
+        assert "Sentry detector" in result["issue"]["detectionContext"]
+        assert "low telemetry value" in result["issue"]["detectionContext"]
+        assert "manually instrumented" in result["issue"]["troubleshootingHint"]
+        assert "filter the automatically created span" in result["issue"]["troubleshootingHint"]
 
     # --- timeseries ---
 

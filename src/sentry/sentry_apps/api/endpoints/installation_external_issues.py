@@ -14,6 +14,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import SentryAppParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
@@ -26,6 +31,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializerResponse,
 )
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
+from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -60,7 +66,14 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, installation) -> Response:
+    def post(
+        self, request: Request, installation
+    ) -> (
+        Response[PlatformExternalIssueSerializerResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+        | Response[SentryAppPublicErrorBody]
+    ):
         """
         Link a Sentry issue to a resource in an external service through a custom
         integration (Sentry App) installation.
@@ -69,7 +82,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
 
         serializer = PlatformExternalIssueSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         try:
             group_id = int(data.pop("issueId"))
@@ -95,8 +108,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
         if not result.external_issue:
             return Response({"detail": "Failed to create external issue"}, status=500)
 
-        return Response(
-            serialize(
-                objects=result.external_issue, serializer=ResponsePlatformExternalIssueSerializer()
-            )
+        body: PlatformExternalIssueSerializerResponse = serialize(
+            objects=result.external_issue, serializer=ResponsePlatformExternalIssueSerializer()
         )
+        return Response(body)

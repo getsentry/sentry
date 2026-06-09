@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import orjson
 import sentry_sdk
@@ -20,7 +20,6 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import sample_rate_to_float
@@ -30,6 +29,9 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     generate_boost_low_volume_transactions_cache_key,
 )
+
+if TYPE_CHECKING:
+    from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
@@ -93,11 +95,10 @@ def compare_rebalanced_projects_with_cache(
     rebalanced_projects: list[RebalancedItem],
     cached_sample_rates: dict[int, float | None],
 ) -> None:
-    calculated_sample_rates = {
-        int(project.id): project.new_sample_rate for project in rebalanced_projects
-    }
+    rebalanced_projects_by_id = {int(project.id): project for project in rebalanced_projects}
 
-    for project_id, eap_sample_rate in sorted(calculated_sample_rates.items()):
+    for project_id, rebalanced_project in sorted(rebalanced_projects_by_id.items()):
+        eap_sample_rate = rebalanced_project.new_sample_rate
         generic_metrics_sample_rate = cached_sample_rates.get(project_id)
         logger.info(
             "dynamic_sampling.per_org.project_balancing_comparison",
@@ -112,6 +113,7 @@ def compare_rebalanced_projects_with_cache(
                 "is_equal": is_within_relative_tolerance(
                     generic_metrics_sample_rate, eap_sample_rate
                 ),
+                "total_volume_eap": rebalanced_project.count,
             },
         )
 

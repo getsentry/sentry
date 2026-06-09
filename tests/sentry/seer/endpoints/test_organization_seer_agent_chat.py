@@ -104,7 +104,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 456
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
         mock_client_class.return_value = mock_client
 
         data = {"query": "What is this error about?"}
@@ -136,7 +136,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         ):
             self.organization.update_option("sentry:enable_seer_coding", option_enabled)
             mock_client = MagicMock()
-            mock_client.start_run.return_value = 456
+            mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
             mock_client_class.return_value = mock_client
 
             data = {"query": "What is this error about?"}
@@ -295,7 +295,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         self, mock_client_class: MagicMock
     ) -> None:
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 456
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
         mock_client_class.return_value = mock_client
 
         snapshot = {
@@ -320,7 +320,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_ascii_on_page_context_passed_through(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
-        mock_client.start_run.return_value = 456
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
         mock_client_class.return_value = mock_client
 
         ascii_screenshot = "+--------+\n| chart  |\n+--------+"
@@ -349,7 +349,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         run_id = client.start_run(
             prompt="What happened?",
-        )
+        ).seer_run_state_id
 
         assert run_id == 99
 
