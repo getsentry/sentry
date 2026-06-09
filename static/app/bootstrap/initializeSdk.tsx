@@ -234,7 +234,7 @@ export function initializeSdk(config: Config) {
     },
 
     enableLogs: true,
-    dataCollection: {userInfo: true},
+    dataCollection: {},
     _experiments: {
       enableMetrics: true,
     },
