@@ -15,7 +15,8 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.monitors.serializers import MonitorSerializer
+from sentry.apidocs.response_types import ValidationErrorResponse
+from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils.auth import AuthenticatedHttpRequest
 
@@ -47,7 +48,7 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, monitor) -> Response:
+    def get(self, request: Request, project, monitor) -> Response[MonitorSerializerResponse]:
         """
         Retrieves details for a monitor.
         """
@@ -69,7 +70,9 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: AuthenticatedHttpRequest, project, monitor) -> Response:
+    def put(
+        self, request: AuthenticatedHttpRequest, project, monitor
+    ) -> Response[MonitorSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update a monitor.
         """
