@@ -42,9 +42,6 @@ export type {
 } from 'sentry/types/permissions';
 
 /**
- * Repositories, pull requests, and commits
- */
-/**
  * Available only when calling API with `expand=settings` query parameter
  */
 export interface RepositoryWithSettings extends Repository {
@@ -56,9 +53,6 @@ export interface RepositoryWithSettings extends Repository {
 
 export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = ['on_ready_for_review'];
 
-/**
- * Integration Repositories from OrganizationIntegrationReposEndpoint
- */
 export type Commit = {
   dateCreated: string;
   id: string;
@@ -80,9 +74,6 @@ export type Committer = {
   group_owner_id?: number;
 };
 
-/**
- * Sentry Apps
- */
 export interface StacktraceLinkResult {
   integrations: Integration[];
   attemptedUrl?: string;
@@ -151,9 +142,6 @@ export type SentryAppAvatar = Avatar & {
   photoType: SentryAppAvatarPhotoType;
 };
 
-/**
- * Organization Integrations
- */
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
@@ -250,9 +238,6 @@ export interface IntegrationWithConfig extends Integration {
   configOrganization: JsonFormAdapterFieldConfig[];
 }
 
-/**
- * Integration & External issue links
- */
 export interface GroupIntegration extends Integration {
   externalIssues: IntegrationExternalIssue[];
 }
@@ -280,9 +265,6 @@ export type IntegrationIssueConfig = {
   linkIssueConfig?: IssueConfigField[];
 };
 
-/**
- * Project Plugins
- */
 export type PluginProjectItem = {
   configured: boolean;
   enabled: boolean;

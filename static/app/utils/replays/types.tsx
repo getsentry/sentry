@@ -26,27 +26,6 @@ export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal
 export {NodeType} from '@sentry-internal/rrweb-snapshot';
 export {EventType, IncrementalSource} from '@sentry-internal/rrweb';
 
-// Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
-// the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
-// field.
-/**
- * These are deprecated SDK fields that the UI needs to be
- * aware of to maintain backwards compatibility, i.e. for
- * replay recordings for SDK version < 8.22.0
- */
-// These stub types should be coming from the sdk, but they're hard-coded until
-// the SDK updates to the latest version... once that happens delete this!
-// Needed for tests
-// TODO[ryan953]: Remove this once the SDK is exporting the type as part of ReplayBreadcrumbFrame
-// These stub types should be coming from the sdk, but they're hard-coded until
-// the SDK updates to the latest version... once that happens delete this!
-// TODO: more types get added here
-/**
- * Extra breadcrumb types not included in `@sentry/replay`.
- * Also includes mobile types.
- * The navigation breadcrumb has data['from'] marked as optional
- * because the mobile SDK does not send that property currently.
- */
 export function isRecordingFrame(
   attachment: Record<string, any>
 ): attachment is RecordingFrame {
@@ -196,7 +175,6 @@ export function isHydrationErrorFrame(
   return frame.category === 'replay.hydrate-error';
 }
 
-// Breadcrumbs
 // This list must match each of the categories used in `HydratedBreadcrumb` above
 // and any app-specific types that we hydrate (ie: replay.init).
 export const BreadcrumbCategories = [
@@ -222,9 +200,3 @@ export const BreadcrumbCategories = [
   'app.foreground',
   'app.background',
 ];
-
-// Spans
-// OurLogs converted from log to frame for use with jump buttons etc.
-/**
- * This is a result of a custom discover query
- */

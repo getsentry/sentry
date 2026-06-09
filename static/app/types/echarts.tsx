@@ -33,17 +33,4 @@ export type Series = {
   z?: number;
 };
 
-/**
- * Incomplete type for the "highlight" event handler in ECharts. This is taken
- * from a combination of the ECharts documentation page, and data seen in running code
- * in handlers attached to line charts and pie charts.
- */
-/**
- * Incomplete type for the "legendselectchanged" event handler in ECharts. This is extracted from types we were using in the app at one time.
- */
-/**
- * XXX: These are incomplete types and can also vary depending on the component type
- *
- * Taken from https://echarts.apache.org/en/api.html#events.Mouse%20events
- */
 export type DataPoint = Pick<SeriesDataUnit, 'name' | 'value'>;

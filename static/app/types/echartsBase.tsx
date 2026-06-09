@@ -4,6 +4,11 @@ import type EChartsReact from 'echarts-for-react';
 export type ReactEchartsRef = EChartsReact;
 export type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 export type EChartChartReadyHandler = (instance: ECharts) => void;
+/**
+ * Incomplete type for the "highlight" event handler in ECharts. This is taken
+ * from a combination of the ECharts documentation page, and data seen in running code
+ * in handlers attached to line charts and pie charts.
+ */
 interface EChartsHighlightEventParam {
   type: 'highlight';
   batch?: Array<{
@@ -18,6 +23,9 @@ interface EChartsHighlightEventParam {
 }
 export type EChartHighlightHandler = EChartEventHandler<EChartsHighlightEventParam>;
 export type EChartDownplayHandler = EChartEventHandler<EChartsHighlightEventParam>;
+/**
+ * Incomplete type for the "legendselectchanged" event handler in ECharts. This is extracted from types we were using in the app at one time.
+ */
 interface EChartsLegendSelectChangeEventParam {
   name: string;
   selected: Record<string, boolean>;
@@ -26,6 +34,11 @@ interface EChartsLegendSelectChangeEventParam {
 export type EChartLegendSelectChangeHandler =
   EChartEventHandler<EChartsLegendSelectChangeEventParam>;
 type EChartMouseEventData = string | number | Record<string, any>;
+/**
+ * XXX: These are incomplete types and can also vary depending on the component type
+ *
+ * Taken from https://echarts.apache.org/en/api.html#events.Mouse%20events
+ */
 interface EChartMouseEventParam<T = EChartMouseEventData> {
   // subtype of the component to which the clicked glyph belongs
   // i.e. 'scatter', 'line', etc

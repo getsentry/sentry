@@ -27,6 +27,9 @@ export type ExternalTeam = {
   provider: string;
   teamId: string;
 };
+/**
+ * Repositories, pull requests, and commits
+ */
 export enum RepositoryStatus {
   ACTIVE = 'active',
   DISABLED = 'disabled',
@@ -45,6 +48,9 @@ export type Repository = {
   status: RepositoryStatus;
   url: string;
 };
+/**
+ * Integration Repositories from OrganizationIntegrationReposEndpoint
+ */
 export type IntegrationRepository = {
   externalId: string;
   /**
@@ -78,6 +84,9 @@ export type PullRequest = {
   title: string | null;
   author?: CommitAuthor;
 };
+/**
+ * Sentry Apps
+ */
 export type SentryAppStatus =
   | 'unpublished'
   | 'published'
@@ -150,6 +159,9 @@ export type SentryAppWebhookRequest = {
     slug: string;
   };
 };
+/**
+ * Organization Integrations
+ */
 export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_app';
 export type IntegrationFeature = {
   description: string;
@@ -171,6 +183,9 @@ export interface BaseIntegrationProvider {
 export type ConfigData = Record<string, unknown> & {
   installationType?: string;
 };
+/**
+ * Integration & External issue links
+ */
 export type IntegrationExternalIssue = {
   description: string;
   displayName: string;
@@ -195,6 +210,9 @@ export type ExternalIssue = {
   key: string;
   title: string;
 };
+/**
+ * Project Plugins
+ */
 export type PluginNoProject = {
   canDisable: boolean;
   // TODO(ts)

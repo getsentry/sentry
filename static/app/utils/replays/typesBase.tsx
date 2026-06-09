@@ -12,18 +12,30 @@ export type Dimensions = {
   height: number;
   width: number;
 };
+// Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
+// the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
+// field.
 type ReplayWebVitalFrameOps =
   | 'largest-contentful-paint'
   | 'cumulative-layout-shift'
   | 'first-input-delay'
   | 'interaction-to-next-paint';
 type ReplayWebVitalFrameSdk = Extract<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>;
+/**
+ * These are deprecated SDK fields that the UI needs to be
+ * aware of to maintain backwards compatibility, i.e. for
+ * replay recordings for SDK version < 8.22.0
+ */
 type DeprecatedReplayWebVitalFrameData = {
   nodeId?: number;
 };
 interface CompatibleReplayWebVitalFrame extends ReplayWebVitalFrameSdk {
   data: ReplayWebVitalFrameSdk['data'] & DeprecatedReplayWebVitalFrameData;
 }
+// These stub types should be coming from the sdk, but they're hard-coded until
+// the SDK updates to the latest version... once that happens delete this!
+// Needed for tests
+// TODO[ryan953]: Remove this once the SDK is exporting the type as part of ReplayBreadcrumbFrame
 export type RawHydrationErrorFrame = {
   category: 'replay.hydrate-error';
   timestamp: number;
@@ -33,7 +45,10 @@ export type RawHydrationErrorFrame = {
   };
   message?: string;
 };
+// These stub types should be coming from the sdk, but they're hard-coded until
+// the SDK updates to the latest version... once that happens delete this!
 type StubBreadcrumbTypes = RawHydrationErrorFrame;
+// TODO: more types get added here
 type MobileBreadcrumbTypes =
   | {
       category: 'ui.tap';
@@ -77,6 +92,12 @@ type MobileBreadcrumbTypes =
       type: string;
       message?: string;
     };
+/**
+ * Extra breadcrumb types not included in `@sentry/replay`.
+ * Also includes mobile types.
+ * The navigation breadcrumb has data['from'] marked as optional
+ * because the mobile SDK does not send that property currently.
+ */
 type ExtraBreadcrumbTypes =
   | StubBreadcrumbTypes
   | MobileBreadcrumbTypes
@@ -147,6 +168,7 @@ type HydratedSpan<Op extends string> = Overwrite<
   Extract<TRawSpanFrame, {op: Op}>,
   HydratedStartEndDate // TODO: do we need `{id:string}` added too?
 >;
+// Breadcrumbs
 export type BreadcrumbFrame = Overwrite<
   TRawBreadcrumbFrame | ExtraBreadcrumbTypes | FeedbackFrame,
   HydratedTimestamp
@@ -188,6 +210,7 @@ export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
 export type DeviceBatteryFrame = HydratedBreadcrumb<'device.battery'>;
 export type DeviceConnectivityFrame = HydratedBreadcrumb<'device.connectivity'>;
 export type DeviceOrientationFrame = HydratedBreadcrumb<'device.orientation'>;
+// Spans
 export type SpanFrame = Overwrite<TRawSpanFrame, HydratedStartEndDate>;
 export type WebVitalFrame = HydratedSpan<
   | 'largest-contentful-paint'
@@ -211,12 +234,16 @@ export type ResourceFrame = HydratedSpan<
   | 'resource.other'
   | 'resource.script'
 >;
+// OurLogs converted from log to frame for use with jump buttons etc.
 export type OurLogsPseudoFrame = {
   category: 'ourlogs';
   offsetMs: number;
   timestampMs: number;
   data?: undefined;
 };
+/**
+ * This is a result of a custom discover query
+ */
 export type RawReplayError = {
   ['error.type']: Array<string | undefined | null>;
   id: string;
