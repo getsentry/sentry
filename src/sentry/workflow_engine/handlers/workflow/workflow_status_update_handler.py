@@ -62,6 +62,14 @@ def workflow_status_update_handler(
         return
 
     organization = Organization.objects.get_from_cache(pk=activity.project.organization_id)
+
+    if activity.type == ActivityType.SET_RESOLVED.value and features.has(
+        "organizations:workflow-engine-status-change-via-activity", organization
+    ):
+        # The generic activity_handler (invoked via create_group_activity) now owns
+        # status change activities. Skip here to avoid queuing the task twice.
+        return
+
     can_process_seer_activities = features.has(
         "organizations:workflow-engine-evaluate-seer-activities", organization
     )
