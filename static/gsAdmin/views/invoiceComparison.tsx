@@ -157,6 +157,7 @@ function utcIsoToDatetimeLocalValue(iso: string): string {
 }
 
 export function InvoiceComparison() {
+  // TODO(cells) This needs to be a list of cells
   const regions = getRegions();
   const location = useLocation();
   const navigate = useNavigate();

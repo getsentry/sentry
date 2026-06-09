@@ -301,4 +301,29 @@ describe('getLogsSeerLocationQuery', () => {
       {chartType: ChartType.LINE, yAxes: ['count(message)']},
     ]);
   });
+
+  it('applies expanded project ids returned by Seer', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({}),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      result: seerResult({
+        query: 'severity:error',
+        expandedProjectIds: [1, 2],
+      }),
+    });
+
+    expect(query.project).toEqual(['1', '2']);
+  });
+
+  it('leaves project filter untouched when Seer omits expanded project ids', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({project: ['7']}),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      result: seerResult({query: 'severity:error'}),
+    });
+
+    expect(query.project).toEqual(['7']);
+  });
 });

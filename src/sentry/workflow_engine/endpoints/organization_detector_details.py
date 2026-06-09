@@ -67,7 +67,9 @@ def _check_metric_detector_allowed(detector: Detector, organization: Organizatio
         raise ResourceDoesNotExist
 
 
-def remove_detector(request: Request, organization: Organization, detector: Detector) -> Response:
+def remove_detector(
+    request: Request, organization: Organization, detector: Detector
+) -> Response[None]:
     """
     Delete a given detector. This method is used by the OrganizationAlertRuleDetailsEndpoint DELETE method
     for backwards compatibility and can be moved back under DELETE after API deprecation.
@@ -232,7 +234,9 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization, detector: Detector) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, detector: Detector
+    ) -> Response[None]:
         """
         Delete a monitor
         """

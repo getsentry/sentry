@@ -11,6 +11,7 @@ import type {
   SeerRawResponse,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
+  buildSeerMutationResult,
   mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
@@ -68,6 +69,10 @@ export function getLogsSeerLocationQuery({
     ...currentLocation,
     query: {...currentLocation.query},
   };
+
+  if (result.expandedProjectIds?.length) {
+    targetLocation.query.project = result.expandedProjectIds.map(String);
+  }
 
   updateNullableLocation(targetLocation, LOGS_QUERY_KEY, seerQuery.query);
   updateNullableLocation(targetLocation, 'mode', seerQuery.mode);
@@ -150,11 +155,9 @@ export function LogsTabSeerComboBox() {
         },
       });
 
-      return {
-        status: 'ok',
-        unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(response => mapSeerResponseItem(response)),
-      };
+      return buildSeerMutationResult(data, selectedProjectIds, response =>
+        mapSeerResponseItem(response)
+      );
     },
   });
 
@@ -221,8 +224,12 @@ export function LogsTabSeerComboBox() {
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
-    []
+      transformSeerResponse(
+        response,
+        responseItem => mapSeerResponseItem(responseItem),
+        selectedProjectIds
+      ),
+    [selectedProjectIds]
   );
 
   if (!enableAISearch) {

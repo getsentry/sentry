@@ -11,6 +11,7 @@ import type {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   buildSeerDateTimeSelection,
+  buildSeerMutationResult,
   mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
@@ -45,8 +46,12 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
-    []
+      transformSeerResponse(
+        response,
+        responseItem => mapSeerResponseItem(responseItem),
+        selectedProjectIds
+      ),
+    [selectedProjectIds]
   );
 
   const issueListAskSeerMutationOptions = mutationOptions({
@@ -65,11 +70,9 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         },
       });
 
-      return {
-        status: 'ok',
-        unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(response => mapSeerResponseItem(response)),
-      };
+      return buildSeerMutationResult(data, selectedProjectIds, response =>
+        mapSeerResponseItem(response)
+      );
     },
   });
 
@@ -86,6 +89,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         start: resultStart,
         end: resultEnd,
         visualizations,
+        expandedProjectIds,
       } = result;
 
       const dt = buildSeerDateTimeSelection(
@@ -135,6 +139,10 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         ...location.query,
         query: queryToUse,
       };
+
+      if (expandedProjectIds) {
+        newQueryParams.project = expandedProjectIds.map(String);
+      }
 
       // Convert to aliased format for Discover (e.g., "-count()" -> "-count")
       if (sort) {

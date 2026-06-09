@@ -9,8 +9,6 @@ if TYPE_CHECKING:
     from ua_parser.user_agent_parser import _ParseResult
 
 from sentry.constants import MAX_TAG_VALUE_LENGTH
-from sentry.models.options.project_option import ProjectOption
-from sentry.models.project import Project
 
 
 class TagDeriver(abc.ABC):
@@ -126,14 +124,5 @@ ALL_TAG_DERIVERS: list[TagDeriver] = [
 ]
 
 
-def get_enabled_derivers(project: Project) -> list[TagDeriver]:
-    all_options = ProjectOption.objects.get_all_values(project)
-    enabled: list[TagDeriver] = []
-    for deriver in ALL_TAG_DERIVERS:
-        opt_value = all_options.get(deriver.option_key)
-        if opt_value is not None:
-            if opt_value:
-                enabled.append(deriver)
-        elif deriver.default_enabled:
-            enabled.append(deriver)
-    return enabled
+def get_enabled_derivers() -> list[TagDeriver]:
+    return [deriver for deriver in ALL_TAG_DERIVERS if deriver.default_enabled]
