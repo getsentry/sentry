@@ -967,11 +967,7 @@ def _pull_request_lifecycle_state(pull_request: Mapping[str, Any]) -> str:
 
 
 def _pull_request_metrics(pull_request: Mapping[str, Any]) -> dict[str, Any]:
-    """Snapshot the webhook-sourced activity counters into the ``metrics`` JSONB.
-
-    Counts are kept raw (may be absent on partial payloads); emit coalesces them.
-    ``is_assigned`` is derived here since the payload carries assignees, not a flag.
-    """
+    """Snapshot the webhook-sourced activity counters into the ``metrics`` JSONB."""
     return {
         "additions": pull_request.get("additions"),
         "deletions": pull_request.get("deletions"),
@@ -1026,8 +1022,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         """
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
-        # Facts kept current for the PR metrics pipeline so the emit path can
-        # read them off the row (no payload — the judge/Seer path has none).
+        # Lifecycle facts kept current for the PR metrics pipeline.
         head_commit_sha = pull_request["head"]["sha"]
         opened_at = _parse_github_timestamp(pull_request.get("created_at"))
         closed_at = _parse_github_timestamp(pull_request.get("closed_at"))
