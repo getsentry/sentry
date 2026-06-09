@@ -31,6 +31,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.core.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
@@ -253,7 +254,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         },
         examples=SCIMExamples.PROVISION_NEW_TEAM,
     )
-    def post(self, request: Request, organization: Organization, **kwds: Any) -> Response:
+    def post(
+        self, request: Request, organization: Organization, **kwds: Any
+    ) -> Response[OrganizationTeamSCIMSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new team bound to an organization via a SCIM Groups POST
         Request. The slug will have a normalization of uppercases/spaces to
@@ -307,11 +310,11 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
                 event=audit_log.get_event_id("TEAM_ADD"),
                 data=team.get_audit_log_data(),
             )
-            return Response(
-                serialize(team, request.user, TeamSCIMSerializer(expand=["members"])),
-                status=201,
+            body: OrganizationTeamSCIMSerializerResponse = serialize(
+                team, request.user, TeamSCIMSerializer(expand=["members"])
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(body, status=201)
+        return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
 
 @extend_schema(tags=["SCIM"])
@@ -358,18 +361,20 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         },
         examples=SCIMExamples.QUERY_INDIVIDUAL_TEAM,
     )
-    def get(self, request: Request, organization: Organization, team: Team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
+    def get(
+        self, request: Request, organization: Organization, team: Team
+    ) -> Response[OrganizationTeamSCIMSerializerResponse]:  # type: ignore[override]  # convert_args changed shape from baseclass
         """
         Query an individual team with a SCIM Group GET Request.
         - Note that the members field will only contain up to 10000 members.
         """
         query_params = self.get_query_parameters(request)
 
-        context = serialize(
+        body: OrganizationTeamSCIMSerializerResponse = serialize(
             team,
             serializer=TeamSCIMSerializer(expand=_team_expand(query_params["excluded_attributes"])),
         )
-        return Response(context)
+        return Response(body)
 
     def _should_manage_privileges(self, team: Team) -> bool:
         return (
