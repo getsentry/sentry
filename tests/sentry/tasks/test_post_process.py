@@ -2196,25 +2196,6 @@ class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
         assert args[0].id == self.project.id
         assert args[2] == [{"type": "js_no_source", "symbolicator_type": "missing_sourcemap"}]
 
-    def test_processing_errors_eap_not_called_without_feature(
-        self, mock_produce: MagicMock
-    ) -> None:
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-            assert_no_errors=False,
-        )
-        event.data["errors"] = [{"type": "js_no_source"}]
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-
-        mock_produce.assert_not_called()
-
     def test_processing_errors_eap_not_called_without_errors(self, mock_produce: MagicMock) -> None:
         event = self.create_event(
             data={"message": "testing"},
