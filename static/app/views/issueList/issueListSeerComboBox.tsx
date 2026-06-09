@@ -16,6 +16,7 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {getExpandedProjectIds} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -36,9 +37,17 @@ export function IssueListSeerComboBox() {
   const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
 
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
-    []
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
+      const expandedProjectIds = getExpandedProjectIds(
+        (response as unknown as SeerRawResponse).project_ids,
+        selectedProjectIds
+      );
+      return transformSeerResponse(response, responseItem => ({
+        ...mapSeerResponseItem(responseItem),
+        ...(expandedProjectIds ? {expandedProjectIds} : {}),
+      }));
+    },
+    [selectedProjectIds]
   );
 
   const issueListAskSeerMutationOptions = mutationOptions({
@@ -53,10 +62,18 @@ export function IssueListSeerComboBox() {
         },
       });
 
+      const expandedProjectIds = getExpandedProjectIds(
+        data.project_ids,
+        selectedProjectIds
+      );
+
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(response => mapSeerResponseItem(response)),
+        queries: data.responses.map(response => ({
+          ...mapSeerResponseItem(response),
+          ...(expandedProjectIds ? {expandedProjectIds} : {}),
+        })),
       };
     },
   });
@@ -73,6 +90,7 @@ export function IssueListSeerComboBox() {
         statsPeriod,
         start: resultStart,
         end: resultEnd,
+        expandedProjectIds,
       } = result;
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
@@ -112,6 +130,8 @@ export function IssueListSeerComboBox() {
 
       const queryParams = {
         ...omit(location.query, ['page', 'cursor']),
+        // Widen to the agent's expanded scope when it broadened the query.
+        ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
         referrer: 'issue-list',
         query: queryToUse,
         ...(sort ? {sort} : {}),

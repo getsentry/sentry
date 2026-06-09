@@ -17,6 +17,7 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {getExpandedProjectIds} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -44,9 +45,17 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
 
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
-      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
-    []
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
+      const expandedProjectIds = getExpandedProjectIds(
+        (response as unknown as SeerRawResponse).project_ids,
+        selectedProjectIds
+      );
+      return transformSeerResponse(response, responseItem => ({
+        ...mapSeerResponseItem(responseItem),
+        ...(expandedProjectIds ? {expandedProjectIds} : {}),
+      }));
+    },
+    [selectedProjectIds]
   );
 
   const issueListAskSeerMutationOptions = mutationOptions({
@@ -65,10 +74,18 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         },
       });
 
+      const expandedProjectIds = getExpandedProjectIds(
+        data.project_ids,
+        selectedProjectIds
+      );
+
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(response => mapSeerResponseItem(response)),
+        queries: data.responses.map(response => ({
+          ...mapSeerResponseItem(response),
+          ...(expandedProjectIds ? {expandedProjectIds} : {}),
+        })),
       };
     },
   });
@@ -86,6 +103,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         start: resultStart,
         end: resultEnd,
         visualizations,
+        expandedProjectIds,
       } = result;
 
       const dt = buildSeerDateTimeSelection(
@@ -135,6 +153,11 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         ...location.query,
         query: queryToUse,
       };
+
+      // Widen to the agent's expanded scope when it broadened the query.
+      if (expandedProjectIds) {
+        newQueryParams.project = expandedProjectIds.map(String);
+      }
 
       // Convert to aliased format for Discover (e.g., "-count()" -> "-count")
       if (sort) {
