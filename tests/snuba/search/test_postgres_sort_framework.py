@@ -221,7 +221,8 @@ class TestExecutePostgresSort(PostgresSortTestBase):
         # Caller-supplied trend sort weights must reach Snuba through the Postgres sort
         # path, otherwise hybrid aggregations (trends/recommended) silently score with
         # default weights regardless of what the caller requested.
-        weights = {**DEFAULT_TRENDS_WEIGHTS, "relative_volume": 10}
+        weights = DEFAULT_TRENDS_WEIGHTS.copy()
+        weights["relative_volume"] = 10
         strategy = _ts_strategy(snuba_aggregations=["last_seen"])
         with _patch_pg_strategies({"test_sort": strategy}):
             with mock.patch.object(
