@@ -1,10 +1,11 @@
+import type React from 'react';
 import {useEffect, useState} from 'react';
 import {Outlet, useLocation} from 'react-router-dom';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
 
@@ -98,7 +99,12 @@ export function Layout() {
             {/* Mobile: tap-outside backdrop for the drawer */}
             <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />
             {/* Desktop only: thin strip shown when sidebar is collapsed */}
-            <CollapsedSidebar isCollapsed={isCollapsed}>
+            <CollapsedSidebar
+              as="section"
+              isCollapsed={isCollapsed}
+              direction="column"
+              align="center"
+            >
               <Button
                 aria-label="Expand sidebar"
                 variant="transparent"
@@ -108,7 +114,7 @@ export function Layout() {
               />
             </CollapsedSidebar>
             <Sidebar isOpen={sidebarOpen} isCollapsed={isCollapsed}>
-              <SidebarHeader>
+              <Flex align="center" justify="between" gap="md">
                 <Logo to="/_admin/" onClick={closeSidebar}>
                   <IconSentry size="xl" />
                   Admin
@@ -121,71 +127,41 @@ export function Layout() {
                   onClick={toggleCollapsed}
                   icon={<IconChevron direction="left" isDouble />}
                 />
-              </SidebarHeader>
-              <Navigation>
-                <NavLink to="/_admin/" index onClick={closeSidebar}>
+              </Flex>
+              <Navigation
+                onClick={(e: React.MouseEvent<HTMLUListElement>) => {
+                  if ((e.target as HTMLElement).closest('a')) {
+                    closeSidebar();
+                  }
+                }}
+              >
+                <NavLink to="/_admin/" index>
                   Home
                 </NavLink>
-                <NavLink to="/_admin/customers/" onClick={closeSidebar}>
-                  Customers
-                </NavLink>
-                <NavLink to="/_admin/users/" onClick={closeSidebar}>
-                  Users
-                </NavLink>
-                <NavLink to="/_admin/sentry-apps/" onClick={closeSidebar}>
-                  Sentry Apps
-                </NavLink>
-                <NavLink to="/_admin/doc-integrations/" onClick={closeSidebar}>
-                  Doc Integrations
-                </NavLink>
-                <NavLink to="/_admin/broadcasts/" onClick={closeSidebar}>
-                  Broadcasts
-                </NavLink>
-                <NavLink to="/_admin/promocodes/" onClick={closeSidebar}>
-                  Promos
-                </NavLink>
-                <NavLink to="/_admin/beacons/" onClick={closeSidebar}>
-                  Beacons
-                </NavLink>
-                <NavLink to="/_admin/policies/" onClick={closeSidebar}>
-                  Policies
-                </NavLink>
-                <NavLink to="/_admin/options/" onClick={closeSidebar}>
-                  Options
-                </NavLink>
-                <NavLink to="/_admin/debugging-tools/" onClick={closeSidebar}>
-                  Debugging Tools
-                </NavLink>
-                <NavLink to="/_admin/instance-level-oauth" onClick={closeSidebar}>
+                <NavLink to="/_admin/customers/">Customers</NavLink>
+                <NavLink to="/_admin/users/">Users</NavLink>
+                <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
+                <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
+                <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
+                <NavLink to="/_admin/promocodes/">Promos</NavLink>
+                <NavLink to="/_admin/beacons/">Beacons</NavLink>
+                <NavLink to="/_admin/policies/">Policies</NavLink>
+                <NavLink to="/_admin/options/">Options</NavLink>
+                <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
+                <NavLink to="/_admin/instance-level-oauth">
                   Instance level OAuth Clients
                 </NavLink>
-                <NavLink to="/_admin/private-apis/" onClick={closeSidebar}>
-                  Private APIs
-                </NavLink>
-                <NavLink to="/_admin/relocations/" onClick={closeSidebar}>
-                  Relocations
-                </NavLink>
-                <NavLink to="/_admin/employees/" onClick={closeSidebar}>
-                  Sentry Employees
-                </NavLink>
-                <NavLink to="/_admin/billing-plans/" onClick={closeSidebar}>
-                  Billing Plans
-                </NavLink>
-                <NavLink to="/_admin/invoices/" onClick={closeSidebar}>
-                  Invoices
-                </NavLink>
-                <NavLink to="/_admin/billing-platform/" onClick={closeSidebar}>
-                  Billing Platform
-                </NavLink>
-                <NavLink to="/_admin/spike-projection-generation/" onClick={closeSidebar}>
+                <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
+                <NavLink to="/_admin/relocations/">Relocations</NavLink>
+                <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
+                <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
+                <NavLink to="/_admin/invoices/">Invoices</NavLink>
+                <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
+                <NavLink to="/_admin/spike-projection-generation/">
                   Spike Projection Generation
                 </NavLink>
-                <NavLink to="/_admin/launchpad/" onClick={closeSidebar}>
-                  Launchpad (Emerge) Related
-                </NavLink>
-                <NavLink to="/_admin/seer/" onClick={closeSidebar}>
-                  Seer
-                </NavLink>
+                <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
+                <NavLink to="/_admin/seer/">Seer</NavLink>
               </Navigation>
               <SidebarActions>
                 <ThemeToggle
@@ -203,7 +179,7 @@ export function Layout() {
                 </ThemeToggle>
               </SidebarActions>
             </Sidebar>
-            <MainArea>
+            <Flex direction="column" minWidth={0}>
               {/* Mobile only: sticky top bar with hamburger and logo */}
               <MobileTopBar>
                 <Button
@@ -226,7 +202,7 @@ export function Layout() {
               >
                 <Outlet />
               </Container>
-            </MainArea>
+            </Flex>
           </AppContainer>
         </GlobalAlertProvider>
       </ScrapsProviders>
@@ -263,7 +239,7 @@ const Overlay = styled('div')<{isOpen: boolean}>`
   }
 `;
 
-const CollapsedSidebar = styled('section')<{isCollapsed: boolean}>`
+const CollapsedSidebar = styled(Flex)<{isCollapsed: boolean}>`
   display: none;
 
   @media (min-width: 769px) {
@@ -273,8 +249,6 @@ const CollapsedSidebar = styled('section')<{isCollapsed: boolean}>`
     left: 0;
     bottom: 0;
     width: var(--sidebarCollapsedWidth);
-    flex-direction: column;
-    align-items: center;
     padding-top: ${p => p.theme.space['2xl']};
     background: ${p => p.theme.tokens.background.primary};
     border-right: 1px solid ${p => p.theme.tokens.border.primary};
@@ -310,13 +284,6 @@ const Sidebar = styled('section')<{isCollapsed?: boolean; isOpen?: boolean}>`
   }
 `;
 
-const SidebarHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-`;
-
 const SidebarActions = styled('div')`
   display: flex;
   flex-direction: column;
@@ -330,12 +297,6 @@ const CollapseButton = styled(Button)`
   @media (max-width: 768px) {
     display: none;
   }
-`;
-
-const MainArea = styled('div')`
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
 `;
 
 const MobileTopBar = styled('div')`

@@ -494,7 +494,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     const ensuredFilters = filters ?? {};
 
     const resultTable = (
-      <TableScrollWrapper>
+      <Container overflowX={{'2xs': 'visible', sm: 'auto'}}>
         <ResultTable>
           <thead>
             <tr>{columns}</tr>
@@ -509,7 +509,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
                   : this.renderResults()}
           </tbody>
         </ResultTable>
-      </TableScrollWrapper>
+      </Container>
     );
 
     const CustomPanel = inPanel;
@@ -615,15 +615,6 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     );
   }
 }
-
-const TableScrollWrapper = styled('div')`
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-
-  @media (max-width: 768px) {
-    overflow-x: visible;
-  }
-`;
 
 const SortSearchForm = styled('form')`
   display: flex;
