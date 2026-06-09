@@ -45,8 +45,8 @@ class InvokeWorkflowActivityHandlersTest(TestCase):
 
         handler.assert_called_once_with(self.group, self.activity, 123)
 
-    @mock.patch("sentry.workflow_engine.handlers.registry.invoke_activities.metrics")
-    def test_emits_duration_metric_per_handler(self, mock_metrics: MagicMock) -> None:
+    @mock.patch("sentry.utils.metrics.timing")
+    def test_emits_duration_metric_per_handler(self, mock_timing: MagicMock) -> None:
         handler_a = mock.Mock()
         handler_b = mock.Mock()
 
@@ -57,21 +57,15 @@ class InvokeWorkflowActivityHandlersTest(TestCase):
         ):
             invoke_workflow_activity_handlers(self.group, self.activity)
 
-        # One timing per handler, tagged by the registry key, for the overall duration.
-        assert mock_metrics.timing.call_count == 2
-        mock_metrics.timing.assert_any_call(
-            DURATION_METRIC,
-            mock.ANY,
-            tags={"handler": "handler_a", "stat": "total_recording_duration"},
-        )
-        mock_metrics.timing.assert_any_call(
-            DURATION_METRIC,
-            mock.ANY,
-            tags={"handler": "handler_b", "stat": "total_recording_duration"},
-        )
+        # One timing per handler, tagged by the registry key.
+        emitted = [(call.args[0], call.args[3]) for call in mock_timing.call_args_list]
+        assert emitted == [
+            (DURATION_METRIC, {"handler": "handler_a", "result": "success"}),
+            (DURATION_METRIC, {"handler": "handler_b", "result": "success"}),
+        ]
 
-    @mock.patch("sentry.workflow_engine.handlers.registry.invoke_activities.metrics")
-    def test_emits_timing_when_handler_raises(self, mock_metrics: MagicMock) -> None:
+    @mock.patch("sentry.utils.metrics.timing")
+    def test_emits_timing_when_handler_raises(self, mock_timing: MagicMock) -> None:
         handler_a = mock.Mock(side_effect=Exception("Test error"))
         handler_b = mock.Mock()
 
@@ -83,10 +77,9 @@ class InvokeWorkflowActivityHandlersTest(TestCase):
             invoke_workflow_activity_handlers(self.group, self.activity)
 
         # Failed handlers are still timed, and the loop continues to the next handler.
-        assert mock_metrics.timing.call_count == 2
-        mock_metrics.timing.assert_any_call(
-            DURATION_METRIC,
-            mock.ANY,
-            tags={"handler": "handler_a", "stat": "total_recording_duration"},
-        )
+        emitted = [(call.args[0], call.args[3]) for call in mock_timing.call_args_list]
+        assert emitted == [
+            (DURATION_METRIC, {"handler": "handler_a", "result": "failure"}),
+            (DURATION_METRIC, {"handler": "handler_b", "result": "success"}),
+        ]
         handler_b.assert_called_once_with(self.group, self.activity, None)

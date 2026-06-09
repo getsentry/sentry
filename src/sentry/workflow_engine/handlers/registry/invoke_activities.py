@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 from sentry.utils import metrics
 from sentry.workflow_engine.registry import workflow_activity_registry
 from sentry.workflow_engine.types import DetectorId
-from sentry.workflow_engine.utils import scopedstats
 
 if TYPE_CHECKING:
     from sentry.models.activity import Activity
@@ -22,15 +21,19 @@ def invoke_workflow_activity_handlers(
     activity: Activity,
     detector_id: DetectorId | None = None,
 ) -> None:
-    # TODO - move the workflow_activity_registry to the activity model.
+    """
+    Call each workflow activity handler in a consistent way. This allows us to have
+    shared metrics for each activity, and each handler. Showing us the timing metrics
+    for how long each handler took, for a given activity.
+
+    This also means that if there's a new handler registered, it will automatically
+    have metrics and timing support out of the box.
+    """
     for handler_key, handler in workflow_activity_registry.registrations.items():
-        # Each handler gets its own recorder so we can attribute timing per handler. The
-        # recorder always captures the overall wall-clock as `total_recording_duration`;
-        # any `@scopedstats.timer()` inside the handler adds a `calls.<fn>.total_dur`
-        # breakdown into the same collector automatically.
-        recorder = scopedstats.Recorder()
         try:
-            with recorder.record():
+            # metrics.timer emits the duration even when the handler raises,
+            # tagged with result=success|failure.
+            with metrics.timer(DURATION_METRIC, tags={"handler": handler_key}):
                 handler(group, activity, detector_id)
         except Exception:
             logger.exception(
@@ -42,15 +45,3 @@ def invoke_workflow_activity_handlers(
                     "activity_type": activity.type,
                 },
             )
-            continue
-        finally:
-            # Emit the recorded durations as metrics (the backend handles sampling).
-            # `.count` keys are always 1 for a single invocation, so they're skipped.
-            for stat_key, value in recorder.get_result().items():
-                if stat_key.endswith(".count"):
-                    continue
-                metrics.timing(
-                    DURATION_METRIC,
-                    value,
-                    tags={"handler": handler_key, "stat": stat_key},
-                )
