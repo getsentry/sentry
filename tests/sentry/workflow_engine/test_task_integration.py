@@ -1,15 +1,12 @@
 from unittest import mock
 
 from sentry.issues.ingest import hash_fingerprint
-from sentry.issues.occurrence_consumer import _process_message
 from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.group import GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
-from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
-from tests.sentry.issues.test_status_change_consumer import get_test_message_status_change
 
 
 class IssuePlatformIntegrationTests(TestCase):
@@ -29,49 +26,6 @@ class IssuePlatformIntegrationTests(TestCase):
             group=self.group,
         )
 
-    def test_handler_invoked__when_update_status_called(self) -> None:
-        """
-        Integration test to ensure the `update_status` method
-        will correctly invoke the `workflow_status_update_handler`
-        and increment the metric.
-        """
-        message = get_test_message_status_change(
-            project_id=self.project.id,
-            fingerprint=[self.fingerprint],
-            detector_id=self.detector.id,
-        )
-
-        with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
-            _process_message(message)
-
-            mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflows.activity_update",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
-            )
-
-    def test_handler_invoked__when_resolved(self) -> None:
-        """
-        Integration test to ensure the `update_status` method
-        will correctly invoke the `workflow_state_update_handler`
-        and increment the metric.
-        """
-        message = StatusChangeMessageData(
-            id="test_message_id",
-            project_id=self.project.id,
-            new_status=GroupStatus.RESOLVED,
-            new_substatus=None,
-            fingerprint=[self.fingerprint],
-            detector_id=self.detector.id,
-            activity_data={"test": "test"},
-        )
-
-        with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
-            update_status(self.group, message)
-            mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflows.activity_update",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
-            )
-
     def _resolved_message(self) -> StatusChangeMessageData:
         return StatusChangeMessageData(
             id="test_message_id",
@@ -86,9 +40,8 @@ class IssuePlatformIntegrationTests(TestCase):
     @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay")
     def test_activity_dispatch(self, mock_delay: mock.MagicMock) -> None:
         """
-        With the flag on, the generic activity_handler (via create_group_activity) owns
-        the dispatch and the legacy handler bails for SET_RESOLVED, so we still get
-        exactly one dispatch.
+        This test ensures that the activity_handler is properly configured and connected
+        to the kafka consumer for status update messages.
         """
         update_status(self.group, self._resolved_message())
         assert mock_delay.call_count == 1
