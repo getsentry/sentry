@@ -41,8 +41,8 @@ class MissingPipelineStateError(Exception):
     pass
 
 
-class DatadogDCRView:
-    """Dynamic Client Registration (RFC 7591) for Datadog MCP.
+class DatadogOAuth2DCRView:
+    """Dynamic Client Registration for Datadog MCP.
 
     Registers a new OAuth client with the MCP server and stores the resulting
     client_id and client_secret in pipeline state.
@@ -100,7 +100,7 @@ class DatadogDCRView:
 
 
 class DatadogOAuth2LoginView(OAuth2LoginView):
-    """OAuth2 login with PKCE (RFC 7636) for Datadog MCP.
+    """OAuth2 login with PKCE for Datadog MCP.
 
     Reads client_id from pipeline state and adds code_challenge,
     code_challenge_method, and resource to the authorize URL.
@@ -110,21 +110,17 @@ class DatadogOAuth2LoginView(OAuth2LoginView):
         super().__init__(authorize_url=authorize_url, scope=scope)
         self.resource = resource
 
-    def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
-        self.client_id = pipeline.fetch_state("dcr_client_id")
-        return super().dispatch(request, pipeline)
-
     def get_authorize_params(
-        self, state: str, redirect_uri: str, pipeline: IdentityPipeline | None = None
+        self, state: str, redirect_uri: str, pipeline: IdentityPipeline
     ) -> dict[str, str | None]:
-        params = super().get_authorize_params(state, redirect_uri)
+        self.client_id = pipeline.fetch_state("dcr_client_id")
+
+        params = super().get_authorize_params(state, redirect_uri, pipeline)
 
         params["resource"] = self.resource
 
-        # PKCE: Bind the code verifier to the pipeline and use it to generate the code challenge.
         code_verifier = generate_pkce_code_verifier()
-        if pipeline is not None:
-            pipeline.bind_state("pkce_code_verifier", code_verifier)
+        pipeline.bind_state("pkce_code_verifier", code_verifier)
         params["code_challenge"] = generate_pkce_code_challenge(code_verifier)
         params["code_challenge_method"] = "S256"
 

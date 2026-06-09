@@ -214,7 +214,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
 
 
 class VSTSOAuth2LoginView(OAuth2LoginView):
-    def get_authorize_params(self, state, redirect_uri, pipeline=None):
+    def get_authorize_params(self, state, redirect_uri, pipeline):
         params = {
             "client_id": self.client_id,
             "response_type": "code",

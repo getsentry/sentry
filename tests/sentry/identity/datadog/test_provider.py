@@ -15,8 +15,8 @@ from requests.exceptions import SSLError
 
 import sentry.identity
 from sentry.identity.datadog.provider import (
-    DatadogDCRView,
     DatadogOAuth2CallbackView,
+    DatadogOAuth2DCRView,
     DatadogOAuth2LoginView,
     MissingPipelineStateError,
 )
@@ -35,7 +35,7 @@ RESOURCE = "https://mcp.datadoghq.com"
 
 @control_silo_test
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-class DatadogDCRViewTest(TestCase):
+class DatadogOAuth2DCRViewTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.request = RequestFactory().get("/")
@@ -43,7 +43,7 @@ class DatadogDCRViewTest(TestCase):
         self.pipeline.config = {}
         self.pipeline.provider.key = "datadog"
         self.pipeline.fetch_state.return_value = None
-        self.view = DatadogDCRView(register_url=REGISTER_URL)
+        self.view = DatadogOAuth2DCRView(register_url=REGISTER_URL)
 
     @responses.activate
     def test_binds_client_credentials(self, mock_record: MagicMock) -> None:
@@ -265,7 +265,7 @@ class DatadogTestProvider(DummyProvider):
 
     def get_pipeline_views(self):
         return [
-            DatadogDCRView(register_url=REGISTER_URL),
+            DatadogOAuth2DCRView(register_url=REGISTER_URL),
             DatadogOAuth2LoginView(authorize_url=AUTHORIZE_URL, scope="read", resource=RESOURCE),
             DatadogOAuth2CallbackView(access_token_url=TOKEN_URL),
         ]
