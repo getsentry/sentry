@@ -48,6 +48,10 @@ class ProjectVolume:
     drop: int
     num_distinct_transactions: int = 0
 
+    @property
+    def total_without_extrapolation(self) -> int:
+        return self.keep
+
 
 @dataclass(order=True)
 class ProjectTransactionCounts:

@@ -128,7 +128,9 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         rebalanced_projects = run_project_balancing(config, project_volumes)
         config.set_rebalanced_project_sample_rates(rebalanced_projects)
         cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
-        compare_rebalanced_projects_with_cache(config, rebalanced_projects, cached_sample_rates)
+        compare_rebalanced_projects_with_cache(
+            config, rebalanced_projects, cached_sample_rates, project_volumes
+        )
 
     transaction_volumes = get_eap_transaction_volumes(config)
     if not transaction_volumes:
