@@ -1,13 +1,15 @@
+import {allPlatforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 
 import type {LowValueSpanEvidenceData} from './types';
 
 const JAVASCRIPT_SPAN_FILTERING_DOCS_URL =
-  'https://docs.sentry.io/platforms/javascript/configuration/options/#ignorespans';
+  'https://docs.sentry.io/platforms/javascript/configuration/options/#ignoreSpans';
 const PYTHON_SPAN_FILTERING_DOCS_URL =
   'https://docs.sentry.io/platforms/python/configuration/filtering/#filtering-transaction-events';
-const GENERIC_SPAN_FILTERING_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/';
+const GENERIC_FILTERING_DOCS_URL =
+  'https://docs.sentry.io/concepts/data-management/filtering/';
 const JAVASCRIPT_PROJECT_PLATFORMS = new Set<PlatformKey>([
   'bun',
   'capacitor',
@@ -85,6 +87,17 @@ export function isJavaScriptProjectPlatform(
   );
 }
 
+function getPlatformDocsBaseUrl(projectPlatform?: PlatformKey | null): string | null {
+  if (!projectPlatform) {
+    return null;
+  }
+  const platform = allPlatforms.find(({id}) => id === projectPlatform);
+  if (!platform?.link) {
+    return null;
+  }
+  return platform.link.endsWith('/') ? platform.link.slice(0, -1) : platform.link;
+}
+
 export function getSpanFilteringDocsUrl(projectPlatform?: PlatformKey | null): string {
   if (isPythonProjectPlatform(projectPlatform)) {
     return PYTHON_SPAN_FILTERING_DOCS_URL;
@@ -92,7 +105,21 @@ export function getSpanFilteringDocsUrl(projectPlatform?: PlatformKey | null): s
   if (isJavaScriptProjectPlatform(projectPlatform)) {
     return JAVASCRIPT_SPAN_FILTERING_DOCS_URL;
   }
-  return GENERIC_SPAN_FILTERING_DOCS_URL;
+  const platformBase = getPlatformDocsBaseUrl(projectPlatform);
+  if (platformBase) {
+    return `${platformBase}/configuration/filtering/`;
+  }
+  return GENERIC_FILTERING_DOCS_URL;
+}
+
+export function getCustomInstrumentationDocsUrl(
+  projectPlatform?: PlatformKey | null
+): string | null {
+  const platformBase = getPlatformDocsBaseUrl(projectPlatform);
+  if (!platformBase) {
+    return null;
+  }
+  return `${platformBase}/tracing/instrumentation/custom-instrumentation/`;
 }
 
 function toCodeString(value: string | null, fallback: string): string {

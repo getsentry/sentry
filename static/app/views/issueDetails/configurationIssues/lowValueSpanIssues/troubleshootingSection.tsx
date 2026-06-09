@@ -1,8 +1,8 @@
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {ExternalLink} from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -10,6 +10,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import {SpanCode} from './spanCode';
 import type {LowValueSpanEvidenceData} from './types';
 import {
+  getCustomInstrumentationDocsUrl,
   getJavaScriptSpanFilterSnippet,
   getPythonSpanFilterSnippet,
   getSpanFilteringDocsUrl,
@@ -77,9 +78,13 @@ function AutomaticInstrumentationFix({
 
 function ManualInstrumentationFix({
   evidenceData,
+  projectPlatform,
 }: {
   evidenceData: LowValueSpanEvidenceData;
+  projectPlatform?: PlatformKey | null;
 }) {
+  const customInstrumentationDocsUrl = getCustomInstrumentationDocsUrl(projectPlatform);
+
   return (
     <Stack gap="md">
       <Text>{t('This appears to come from custom instrumentation in your code.')}</Text>
@@ -99,6 +104,14 @@ function ManualInstrumentationFix({
           )}
         </Text>
       </Stack>
+      {customInstrumentationDocsUrl && (
+        <Flex align="center" gap="xs">
+          <IconDocs size="xs" />
+          <ExternalLink href={customInstrumentationDocsUrl}>
+            {t('Read the custom instrumentation docs')}
+          </ExternalLink>
+        </Flex>
+      )}
     </Stack>
   );
 }
@@ -141,7 +154,10 @@ export function TroubleshootingSection({
     <Stack gap="lg" padding="lg">
       <Heading as="h3">{t('Troubleshooting')}</Heading>
       {isManualInstrumentation ? (
-        <ManualInstrumentationFix evidenceData={evidenceData} />
+        <ManualInstrumentationFix
+          evidenceData={evidenceData}
+          projectPlatform={projectPlatform}
+        />
       ) : (
         <AutomaticInstrumentationTroubleshooting
           evidenceData={evidenceData}

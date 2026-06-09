@@ -48,6 +48,57 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     expect(screen.queryByText('before_send_transaction')).not.toBeInTheDocument();
   });
 
+  it('links to platform custom instrumentation docs for manual spans', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          spanOrigin: 'manual',
+        }}
+        projectPlatform="python-django"
+      />
+    );
+
+    expect(
+      screen.getByRole('link', {name: 'Read the custom instrumentation docs'})
+    ).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/python/guides/django/tracing/instrumentation/custom-instrumentation/'
+    );
+  });
+
+  it('omits the custom instrumentation link when the platform is unknown', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          spanOrigin: 'manual',
+        }}
+        projectPlatform={null}
+      />
+    );
+
+    expect(
+      screen.queryByRole('link', {name: 'Read the custom instrumentation docs'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('links to the platform-specific filtering docs for non-JS/Python platforms', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={baseEvidenceData}
+        projectPlatform="ruby-rails"
+      />
+    );
+
+    expect(
+      screen.getByRole('link', {name: 'Read the SDK filtering docs'})
+    ).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/ruby/guides/rails/configuration/filtering/'
+    );
+  });
+
   it('recommends JavaScript span filtering and mentions beforeSendSpan', () => {
     render(
       <TroubleshootingSection
