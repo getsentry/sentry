@@ -17,8 +17,8 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiAgentSpan,
   getToolSpansFilter,
@@ -158,18 +158,7 @@ function getAISpanAttributes({
       name: t('Cost'),
       value:
         costValue < 0 ? (
-          <Flex align="center" gap="xs">
-            <IconWarning legacySize="1em" variant="warning" />
-            <InfoText
-              variant="warning"
-              title={tct(
-                'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
-                {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
-              )}
-            >
-              {formatLLMCosts(totalCosts.toString())}
-            </InfoText>
-          </Flex>
+          <NegativeCostInfo cost={totalCosts.toString()} />
         ) : (
           <LLMCosts cost={totalCosts.toString()} />
         ),

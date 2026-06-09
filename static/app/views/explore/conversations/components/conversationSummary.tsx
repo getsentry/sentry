@@ -13,12 +13,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {ExternalLink} from 'sentry/components/links/externalLink';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -26,6 +25,7 @@ import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
   getNumberAttr,
   getStringAttr,
@@ -156,7 +156,7 @@ export function ConversationAggregatesBar({
         label={t('Cost')}
         value={
           aggregates.totalCost < 0 ? (
-            <NegativeCostValue cost={aggregates.totalCost} />
+            <NegativeCostInfo cost={aggregates.totalCost} />
           ) : (
             formatLLMCosts(aggregates.totalCost)
           )
@@ -344,26 +344,6 @@ export function ConversationSummary({
           })
         }
       />
-    </Flex>
-  );
-}
-
-const TOKEN_TROUBLESHOOTING_URL =
-  'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
-
-function NegativeCostValue({cost}: {cost: number}) {
-  return (
-    <Flex align="center" gap="xs">
-      <IconWarning legacySize="1em" variant="warning" />
-      <InfoText
-        variant="warning"
-        title={tct(
-          'Negative costs indicate an error in token count reporting. [link:Follow this guide] to troubleshoot.',
-          {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
-        )}
-      >
-        {formatLLMCosts(cost)}
-      </InfoText>
     </Flex>
   );
 }
