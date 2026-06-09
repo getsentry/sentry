@@ -312,7 +312,12 @@ export function EventsTable({
             >
               <div>
                 <LinkButton
-                  disabled={!target || isEmptyObject(target)}
+                  disabled={
+                    !target ||
+                    (typeof target === 'object' &&
+                      target !== null &&
+                      isEmptyObject(target))
+                  }
                   to={target || {}}
                   size="xs"
                 >
