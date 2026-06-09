@@ -674,16 +674,30 @@ class SlackActionEndpoint(Endpoint):
                 continue
 
             if action_data.get("type") in ("static_select", "external_select"):
+                selected_option = action_data.get("selected_option")
+                if not isinstance(selected_option, dict):
+                    # Slack can dispatch a static_select/external_select interaction
+                    # without a selected_option (e.g. when the menu is opened or
+                    # cleared). Skip these instead of raising a TypeError trying
+                    # to subscript None.
+                    _logger.info(
+                        "slack.action.missing_selected_option",
+                        extra={
+                            "action_id": action_data.get("action_id"),
+                            "type": action_data.get("type"),
+                        },
+                    )
+                    continue
+
+                selected_text = (selected_option.get("text") or {}).get("text")
                 action = BlockKitMessageAction(
                     name=action_name,
-                    label=action_data["selected_option"]["text"]["text"],
+                    label=selected_text,
                     type=action_data["type"],
-                    value=action_data["selected_option"]["value"],
-                    action_id=action_data["action_id"],
-                    block_id=action_data["block_id"],
-                    selected_options=[
-                        {"value": action_data.get("selected_option", {}).get("value")}
-                    ],
+                    value=selected_option.get("value"),
+                    action_id=action_data.get("action_id"),
+                    block_id=action_data.get("block_id"),
+                    selected_options=[{"value": selected_option.get("value")}],
                 )
                 # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
             else:
