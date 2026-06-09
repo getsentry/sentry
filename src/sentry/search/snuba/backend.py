@@ -253,7 +253,7 @@ def issue_activity_type_filter(activity_types: list[int], projects: Sequence[Pro
     group_ids = (
         Activity.objects.filter(
             project__in=projects,
-            type__in=activity_types + [ActivityType.SET_REGRESSION.value],
+            type__in=set(activity_types) | {ActivityType.SET_REGRESSION.value},
         )
         .values("group_id")
         .annotate(
