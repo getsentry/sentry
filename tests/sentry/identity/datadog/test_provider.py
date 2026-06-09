@@ -173,14 +173,6 @@ class DatadogOAuth2LoginViewTest(TestCase):
         assert verifier is not None
         assert len(verifier) > 0
 
-    def test_preserves_existing_code_verifier(self) -> None:
-        pipeline = self._make_pipeline()
-        pipeline.bind_state("pkce_code_verifier", "existing-verifier")
-
-        self.view.dispatch(self.request, pipeline)
-
-        assert pipeline.fetch_state("pkce_code_verifier") == "existing-verifier"
-
     def test_preserves_standard_oauth_params(self) -> None:
         pipeline = self._make_pipeline()
         response = self.view.dispatch(self.request, pipeline)

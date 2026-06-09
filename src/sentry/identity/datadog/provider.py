@@ -115,12 +115,9 @@ class DatadogOAuth2LoginView(OAuth2LoginView):
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         self.client_id = pipeline.fetch_state("dcr_client_id")
 
-        # PKCE: Ensure a code verifier exists and is bound to the pipeline.
-        if existing_code_verifier := pipeline.fetch_state("pkce_code_verifier"):
-            self._code_verifier = existing_code_verifier
-        else:
-            self._code_verifier = generate_pkce_code_verifier()
-            pipeline.bind_state("pkce_code_verifier", self._code_verifier)
+        # PKCE: Bind the code verifier to the pipeline.
+        self._code_verifier = generate_pkce_code_verifier()
+        pipeline.bind_state("pkce_code_verifier", self._code_verifier)
 
         return super().dispatch(request, pipeline)
 
