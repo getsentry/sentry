@@ -5,6 +5,8 @@ import {JiraIntegrationFixture} from 'sentry-fixture/jiraIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PlatformExternalIssueFixture} from 'sentry-fixture/platformExternalIssue';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {PullRequestFixture} from 'sentry-fixture/pullRequest';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
@@ -195,6 +197,81 @@ describe('ExternalIssueSidebarList', () => {
     expect(
       await screen.findByText('Track this issue in Jira, GitHub, etc.')
     ).toBeInTheDocument();
+  });
+
+  it('should not request linked pull requests when the feature is disabled', async () => {
+    const pullRequestsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText('Track this issue in Jira, GitHub, etc.')
+    ).toBeInTheDocument();
+    expect(pullRequestsMock).not.toHaveBeenCalled();
+  });
+
+  it('should render linked pull requests when the feature is enabled', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: ['issue-details-linked-pull-requests'],
+    });
+    const repository = RepositoryFixture({
+      id: '42',
+      name: 'getsentry/sentry',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    const pullRequest = PullRequestFixture({
+      id: '115619',
+      title: 'fix(issues): Render assigned user linked pull requests',
+      repository,
+      externalUrl: 'https://github.com/getsentry/sentry/pull/115619',
+    });
+    const closedPullRequest = PullRequestFixture({
+      id: '115618',
+      title: 'fix(members): Ignore detail response',
+      repository,
+      externalUrl: 'https://github.com/getsentry/sentry/pull/115618',
+    });
+    const pullRequestsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organizationWithFeature.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...pullRequest,
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            status: 'merged',
+          },
+          {
+            ...closedPullRequest,
+            dateLinked: '2026-06-08T23:10:32.000000Z',
+            status: 'closed',
+          },
+        ],
+      },
+    });
+
+    render(<ExternalIssueSidebarList event={event} group={group} project={project} />, {
+      organization: organizationWithFeature,
+    });
+
+    const linkedPullRequest = await screen.findByRole('link', {
+      name: /fix\(issues\): Render assigned user linked pull requests/,
+    });
+
+    expect(linkedPullRequest).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/pull/115619'
+    );
+    expect(screen.getByText('#115619')).toBeInTheDocument();
+    expect(screen.getByText('#115618')).toBeInTheDocument();
+    expect(screen.getAllByText('getsentry/sentry')).toHaveLength(2);
+    expect(screen.getByTestId('linked-pull-request-status-merged')).toBeInTheDocument();
+    expect(screen.getByTestId('linked-pull-request-status-closed')).toBeInTheDocument();
+    expect(pullRequestsMock).toHaveBeenCalledTimes(1);
   });
 
   it('should render dropdown items with subtext correctly', async () => {
