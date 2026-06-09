@@ -7,8 +7,8 @@ import {GenerateSpikeProjectionsForBatch} from 'admin/views/generateSpikeProject
 describe('GenerateSpikeProjectionsForBatch', () => {
   beforeEach(() => {
     ConfigStore.set('cells', [
-      {name: 'us', locality_url: 'https://us.test/api/0/', visible: true},
-      {name: 'eu', locality_url: 'https://eu.test/api/0/', visible: true},
+      {name: 'us', locality_url: 'https://us.test/api/0/'},
+      {name: 'eu', locality_url: 'https://eu.test/api/0/'},
     ]);
   });
 

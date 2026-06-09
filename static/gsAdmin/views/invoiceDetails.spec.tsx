@@ -35,12 +35,10 @@ describe('InvoiceDetails', () => {
       {
         name: 'us',
         locality_url: 'https://us.sentry.io',
-        visible: true,
       },
       {
         name: 'de',
         locality_url: 'https://de.sentry.io',
-        visible: true,
       },
     ]);
   });

@@ -45,9 +45,7 @@ describe('User Details', () => {
       body: [],
     });
 
-    ConfigStore.set('cells', [
-      {name: 'us', locality_url: 'https://us.sentry.io', visible: true},
-    ]);
+    ConfigStore.set('cells', [{name: 'us', locality_url: 'https://us.sentry.io'}]);
   });
 
   afterEach(() => {

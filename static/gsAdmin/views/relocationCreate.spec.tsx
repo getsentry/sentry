@@ -13,7 +13,6 @@ describe('Relocation Create', () => {
       {
         name: 'test',
         locality_url: 'https://example.com/api/0/',
-        visible: true,
       },
     ]);
   });
