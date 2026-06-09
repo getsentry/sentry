@@ -63,7 +63,14 @@ function AsyncTeamAvatar({teamId, ...props}: AsyncTeamAvatarProps) {
   }
 
   if (!team) {
-    return <Avatar type="letter_avatar" name={teamId} identifier={teamId} {...props} />;
+    return (
+      <Avatar
+        type="letter_avatar"
+        name={String(teamId)}
+        identifier={String(teamId)}
+        {...props}
+      />
+    );
   }
 
   return <TeamAvatar team={team} {...props} />;
