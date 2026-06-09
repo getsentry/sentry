@@ -451,4 +451,4 @@ class DetectorSettings:
     filter: Q | None = None
 
 
-WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity"], None]
+WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]
