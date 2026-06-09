@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,20 +9,42 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
+import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Project} from 'sentry/types/project';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  readStorageValue,
+  removeStorageValue,
+  useSessionStorage,
+} from 'sentry/utils/useSessionStorage';
 import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
+import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
 import {useScmPlatformDetection} from 'sentry/views/onboarding/components/useScmPlatformDetection';
+import {useScmProjectDetails} from 'sentry/views/onboarding/components/useScmProjectDetails';
 import {useScmProviders} from 'sentry/views/onboarding/components/useScmProviders';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 const CREATE_PROJECT_MAX_WIDTH = '760px';
+const WIZARD_STORAGE_KEY = 'project-creation-wizard';
 
 interface WizardState {
+  // Id/slug of the project created in this wizard session. The id validates a
+  // return from getting-started (see the mount gate); the slug drives the
+  // getting-started navigation and the project-details reuse check.
+  createdProjectId: string | undefined;
+  createdProjectSlug: string | undefined;
+  projectDetailsForm: ProjectDetailsFormState | undefined;
   // Flips true on the first meaningful action in section 1 (repo selected
   // or "Continue without connecting a repo" clicked). Sections 2 and 3
   // reveal together when this is true. Decoupled from selection state so
@@ -37,6 +59,9 @@ interface WizardState {
 
 const INITIAL_STATE: WizardState = {
   repoStepCompleted: false,
+  createdProjectId: undefined,
+  createdProjectSlug: undefined,
+  projectDetailsForm: undefined,
   selectedFeatures: undefined,
   selectedIntegration: undefined,
   selectedPlatform: undefined,
@@ -44,38 +69,43 @@ const INITIAL_STATE: WizardState = {
 };
 
 export function ScmCreateProject() {
-  // Session-storage backed so a refresh restores how far the user has
-  // progressed. Separate key from new-org onboarding's 'onboarding' key.
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Decide once, before reading the persisted state, whether this mount is a
+  // legitimate return from the created project's getting-started page (mirrors
+  // createProject's autofill condition). If so, keep the persisted wizard so
+  // the user's selections are restored; otherwise reset it so a fresh visit (or
+  // a reload) starts clean. Doing this before useSessionStorage avoids a flash
+  // of stale state.
+  const didResolveEntry = useRef(false);
+  if (!didResolveEntry.current) {
+    didResolveEntry.current = true;
+    const persisted = readStorageValue(WIZARD_STORAGE_KEY, INITIAL_STATE);
+    const isReturnFromGettingStarted =
+      decodeScalar(location.query.referrer) === 'getting-started' &&
+      !!persisted.createdProjectId &&
+      decodeScalar(location.query.project) === persisted.createdProjectId;
+    if (!isReturnFromGettingStarted) {
+      removeStorageValue(WIZARD_STORAGE_KEY);
+    }
+  }
+
+  // Session-storage backed so a return from getting-started restores how far the
+  // user progressed. Separate key from new-org onboarding's 'onboarding' key.
   const [
     {
       repoStepCompleted,
+      createdProjectSlug,
+      projectDetailsForm,
       selectedFeatures,
       selectedIntegration,
       selectedPlatform,
       selectedRepository,
     },
     setState,
-  ] = useSessionStorage('project-creation-wizard', INITIAL_STATE);
-
-  // An optimistic repo (empty id, see useScmRepoSelection) persisted by a
-  // refresh mid-resolution can never fetch detection and would hold the
-  // platform step in a permanent spinner. Drop it once on load, also clearing
-  // the repo-derived platform/features so section 2 doesn't show a platform
-  // with no connected repo (mirrors handleClearDerivedState on a repo change).
-  // Live in-session optimistic selections arrive after mount and keep their
-  // loading state.
-  const hadStaleRepoOnLoad = useRef(!!selectedRepository && !selectedRepository.id);
-  useEffect(() => {
-    if (hadStaleRepoOnLoad.current) {
-      hadStaleRepoOnLoad.current = false;
-      setState(s => ({
-        ...s,
-        selectedRepository: undefined,
-        selectedPlatform: undefined,
-        selectedFeatures: undefined,
-      }));
-    }
-  }, [setState]);
+  ] = useSessionStorage(WIZARD_STORAGE_KEY, INITIAL_STATE);
 
   const canUserCreateProject = useCanCreateProject();
   // Subscribe so the parent re-renders when integration state changes inside
@@ -85,6 +115,12 @@ export function ScmCreateProject() {
   useScmProviders();
 
   useScmPlatformDetection(selectedRepository);
+
+  // Slug of the project to land on. Seeded from a restored session (reuse path)
+  // and updated when a new project is created. Held in a ref so the deferred
+  // navigation reads the latest value without a stale closure.
+  const createdProjectSlugRef = useRef(createdProjectSlug);
+  const [pendingNavigation, setPendingNavigation] = useState(false);
 
   const completeRepoStep = () => {
     setState(s => ({...s, repoStepCompleted: true}));
@@ -125,20 +161,74 @@ export function ScmCreateProject() {
     [setState]
   );
 
-  // Clear state derived from the repository when the repo changes. Platform
-  // and features are repo-dependent (auto-detection seeds them). VDY-76 will
-  // extend this to clear the project-details form too.
+  // Clear state derived from the repository when the repo changes. Platform,
+  // features, and the project-details form are repo-dependent (auto-detection
+  // seeds the platform, which in turn seeds the project name).
   const handleClearDerivedState = useCallback(() => {
     setState(s => ({
       ...s,
       selectedPlatform: undefined,
       selectedFeatures: undefined,
+      projectDetailsForm: undefined,
     }));
   }, [setState]);
 
-  // Clear the project-details form when the platform changes. VDY-76 will
-  // wire this up to actual project-details state.
-  const handleClearProjectDetailsForm = useCallback(() => {}, []);
+  // Clear the persisted project-details form when the platform changes, since
+  // the project name defaults from the platform key.
+  const handleClearProjectDetailsForm = useCallback(() => {
+    setState(s => ({...s, projectDetailsForm: undefined}));
+  }, [setState]);
+
+  const handleProjectDetailsFormChange = useCallback(
+    (projectDetailsFormState: ProjectDetailsFormState | undefined) => {
+      setState(s => ({...s, projectDetailsForm: projectDetailsFormState}));
+    },
+    [setState]
+  );
+
+  const handleProjectCreated = useCallback(
+    (project: Project) => {
+      createdProjectSlugRef.current = project.slug;
+      // Persist id + slug so a return from getting-started is recognized (id)
+      // and the reuse check has the slug. Committed before navigation runs
+      // (see the deferred-navigation effect below).
+      setState(s => ({
+        ...s,
+        createdProjectId: project.id,
+        createdProjectSlug: project.slug,
+      }));
+    },
+    [setState]
+  );
+
+  // Defer the getting-started navigation to an effect so the create-time state
+  // writes above commit (to session storage) before this component unmounts.
+  const handleComplete = useCallback(() => {
+    setPendingNavigation(true);
+  }, []);
+
+  useEffect(() => {
+    if (pendingNavigation && createdProjectSlugRef.current) {
+      navigate(
+        makeProjectsPathname({
+          path: `/${createdProjectSlugRef.current}/getting-started/`,
+          organization,
+        })
+      );
+    }
+  }, [pendingNavigation, navigate, organization]);
+
+  const form = useScmProjectDetails({
+    analyticsFlow: 'project-creation',
+    allowMemberWithoutTeam: true,
+    selectedPlatform,
+    selectedRepository,
+    createdProjectSlug,
+    projectDetailsForm,
+    onProjectCreated: handleProjectCreated,
+    onProjectDetailsFormChange: handleProjectDetailsFormChange,
+    onComplete: handleComplete,
+  });
 
   const showContinueWithoutRepo = !selectedRepository && !repoStepCompleted;
   const showAllSteps = repoStepCompleted;
@@ -234,25 +324,58 @@ export function ScmCreateProject() {
                     onClearProjectDetailsForm={handleClearProjectDetailsForm}
                   />
                 </MotionStack>
-                <ProjectDetailsSection />
+
+                <MotionStack
+                  layout="position"
+                  gap="lg"
+                  border="primary"
+                  radius="md"
+                  padding="lg"
+                >
+                  <Stack gap="md">
+                    <Heading as="h2" size="xl">
+                      {t('Project details')}
+                    </Heading>
+                    <Text variant="muted">
+                      {t('Name your project, assign a team, and set up issue alerts.')}
+                    </Text>
+                  </Stack>
+                  <ScmProjectDetailsCore
+                    analyticsFlow="project-creation"
+                    projectName={form.projectName}
+                    onProjectNameChange={form.onProjectNameChange}
+                    onProjectNameBlur={form.onProjectNameBlur}
+                    teamSlug={form.teamSlug}
+                    onTeamChange={form.onTeamChange}
+                    alertRuleConfig={form.alertRuleConfig}
+                    onAlertChange={form.onAlertChange}
+                    isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
+                  />
+                </MotionStack>
               </Fragment>
             )}
           </LayoutGroup>
+
+          {/* Page-level CTA: always present so the primary action is available
+              regardless of which steps are currently revealed. Disabled until a
+              platform and project details are ready. */}
+          <Stack gap="md">
+            <ProjectCreationErrorAlert error={form.error} />
+            <Flex justify="end">
+              <Button
+                variant="primary"
+                onClick={form.submit}
+                disabled={!form.canSubmit}
+                busy={form.isBusy}
+                icon={<IconProject />}
+              >
+                {t('Create project')}
+              </Button>
+            </Flex>
+          </Stack>
         </Stack>
       </Access>
     </SentryDocumentTitle>
-  );
-}
-
-// Placeholder for VDY-76. Will be replaced with <ScmProjectDetails />.
-function ProjectDetailsSection() {
-  return (
-    <MotionStack gap="lg" border="primary" radius="md" padding="lg" layout="position">
-      <Heading as="h2" size="xl">
-        {t('Project details')}
-      </Heading>
-      <Text variant="muted">{t('Project details step content goes here (VDY-76).')}</Text>
-    </MotionStack>
   );
 }
 
