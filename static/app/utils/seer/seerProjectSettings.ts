@@ -269,10 +269,7 @@ export function getMutateSeerProjectsSettingsOptions({
         url: infiniteUrl,
         data: {
           ...rest,
-          query:
-            selectedIds === 'all'
-              ? query
-              : MutableSearch.fromQueryObject({id: selectedIds}).formatString(),
+          query: selectedIds === 'all' ? query : `id:[${selectedIds.join(',')}]`,
           ...(!isOff &&
             stoppingPoint !== undefined && {
               stoppingPoint,
