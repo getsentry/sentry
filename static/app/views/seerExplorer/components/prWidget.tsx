@@ -78,19 +78,17 @@ export function usePRWidgetData({
       added += patch.added;
       removed += patch.removed;
 
-      if (!stats[patch.repoName]) {
+      if (!Object.hasOwn(stats, patch.repoName)) {
         stats[patch.repoName] = {added: 0, removed: 0};
       }
-      const repoStat = stats[patch.repoName];
-      if (repoStat) {
-        repoStat.added += patch.added;
-        repoStat.removed += patch.removed;
-      }
+      const repoStat = stats[patch.repoName]!;
+      repoStat.added += patch.added;
+      repoStat.removed += patch.removed;
 
-      if (!fileStats[patch.repoName]) {
+      if (!Object.hasOwn(fileStats, patch.repoName)) {
         fileStats[patch.repoName] = [];
       }
-      fileStats[patch.repoName]?.push({
+      fileStats[patch.repoName]!.push({
         added: patch.added,
         path: patch.path,
         removed: patch.removed,
