@@ -50,8 +50,8 @@ import {MetricsHeatMap} from 'sentry/views/explore/metrics/metricsHeatMap';
 import {
   useMetricVisualize,
   useMetricVisualizes,
+  useSetMetricAggregateFields,
   useSetMetricVisualizes,
-  useSetMetricVisualizesAndGroupBys,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
@@ -124,7 +124,7 @@ export function MetricPanel({
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
   const setVisualizes = useSetMetricVisualizes();
-  const setVisualizesAndGroupBys = useSetMetricVisualizesAndGroupBys();
+  const setAggregateFields = useSetMetricAggregateFields();
   // use the biggest interval for the heat map as this produces better patterns
   const [interval, setInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy:
@@ -210,15 +210,14 @@ export function MetricPanel({
   function handleChartTypeChange(newChartType: ChartType) {
     if (newChartType === ChartType.HEATMAP) {
       // Heatmap always uses count() with no group by
-      setVisualizesAndGroupBys(
+      setAggregateFields(
         visualizes.map(v =>
           isVisualizeFunction(v)
             ? updateVisualizeYAxis(v, 'count', traceMetric).replace({
                 chartType: ChartType.HEATMAP,
               })
             : v.replace({chartType: ChartType.HEATMAP})
-        ),
-        []
+        )
       );
     } else if (isHeatmap) {
       // Switching away from heatmap — restore the default aggregate

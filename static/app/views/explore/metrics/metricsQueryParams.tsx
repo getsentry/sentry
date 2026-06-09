@@ -14,12 +14,13 @@ import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateFie
 import {
   QueryParamsContextProvider,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateFields,
   useSetQueryParamsVisualizes,
-  useSetQueryParamsVisualizesAndGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
+  isVisualize,
   isVisualizeEquation,
   isVisualizeFunction,
   parseVisualize,
@@ -212,18 +213,19 @@ export function useSetMetricVisualizes() {
   return setMetricVisualizes;
 }
 
-export function useSetMetricVisualizesAndGroupBys() {
-  const setVisualizesAndGroupBys = useSetQueryParamsVisualizesAndGroupBys();
-  const setMetricVisualizesAndGroupBys = useCallback(
-    (newVisualizes: Visualize[], newGroupBys: GroupBy[]) => {
-      setVisualizesAndGroupBys(
-        newVisualizes.map(v => v.serialize()),
-        newGroupBys
+export function useSetMetricAggregateFields() {
+  const setAggregateFields = useSetQueryParamsAggregateFields();
+  const setMetricAggregateFields = useCallback(
+    (newAggregateFields: Array<Visualize | GroupBy>) => {
+      setAggregateFields(
+        newAggregateFields.map(aggregateField =>
+          isVisualize(aggregateField) ? aggregateField.serialize() : aggregateField
+        )
       );
     },
-    [setVisualizesAndGroupBys]
+    [setAggregateFields]
   );
-  return setMetricVisualizesAndGroupBys;
+  return setMetricAggregateFields;
 }
 
 function updateQueryParams(

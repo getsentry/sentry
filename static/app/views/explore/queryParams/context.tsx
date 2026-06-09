@@ -18,7 +18,7 @@ import type {
   WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {deriveUpdatedManagedFields} from 'sentry/views/explore/queryParams/managedFields';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -324,47 +324,6 @@ export function useSetQueryParamsVisualizes() {
 
       for (const visualize of iter) {
         aggregateFields.push(visualize);
-      }
-
-      setQueryParams({aggregateFields});
-    },
-    [queryParams, setQueryParams]
-  );
-}
-
-export function useSetQueryParamsVisualizesAndGroupBys() {
-  const queryParams = useQueryParams();
-  const setQueryParams = useSetQueryParams();
-
-  return useCallback(
-    (visualizes: BaseVisualize[], groupBys: GroupBy[]) => {
-      const aggregateFields: WritableAggregateField[] = [];
-
-      const visualizeIter = visualizes[Symbol.iterator]();
-      const groupByIter = groupBys[Symbol.iterator]();
-
-      for (const aggregateField of queryParams.aggregateFields) {
-        if (isVisualize(aggregateField)) {
-          const {value: visualize, done} = visualizeIter.next();
-          if (!done) {
-            aggregateFields.push(visualize);
-          }
-        } else if (isGroupBy(aggregateField)) {
-          const {value: groupBy, done} = groupByIter.next();
-          if (!done) {
-            aggregateFields.push(groupBy);
-          }
-        } else {
-          throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
-        }
-      }
-
-      for (const visualize of visualizeIter) {
-        aggregateFields.push(visualize);
-      }
-
-      for (const groupBy of groupByIter) {
-        aggregateFields.push(groupBy);
       }
 
       setQueryParams({aggregateFields});
