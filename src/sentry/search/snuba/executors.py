@@ -34,14 +34,18 @@ from sentry.issues.search import (
     group_categories_from,
     group_types_from,
 )
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.occurrences.search_executor import EAP_SORT_STRATEGIES, run_eap_group_search
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
+from sentry.types.activity import ActivityType
 from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import (
@@ -889,6 +893,84 @@ def recommended_issue_platform_aggregation(
     )
 
 
+# Seer agent progress stages, mirroring the `issue.agent` search filter
+# (ISSUE_AGENT_TO_ACTIVITY_TYPES in sentry.issues.issue_search). A group's signal is
+# the furthest stage reached, normalized to [0, 1].
+ISSUE_AGENT_STAGE_SIGNALS: dict[int, float] = {
+    ActivityType.SEER_RCA_COMPLETED.value: 0.25,
+    ActivityType.SEER_SOLUTION_COMPLETED.value: 0.5,
+    ActivityType.SEER_CODING_COMPLETED.value: 0.75,
+    ActivityType.SEER_PR_CREATED.value: 1.0,
+}
+
+
+def resolve_assignment_signal(
+    actor: Any | None, organization: Organization, group_ids: list[int]
+) -> dict[int, float]:
+    """Assignment affinity for the viewer: 1.0 for groups assigned directly to them,
+    0.5 for groups assigned to one of their teams, absent otherwise."""
+    if actor is None or not getattr(actor, "is_authenticated", False):
+        return {}
+    assignments = list(
+        GroupAssignee.objects.filter(group_id__in=group_ids).values_list(
+            "group_id", "user_id", "team_id"
+        )
+    )
+    team_ids: set[int] = set()
+    if any(team_id is not None for _, _, team_id in assignments):
+        team_ids = {team.id for team in Team.objects.get_for_user(organization, actor)}
+    signal: dict[int, float] = {}
+    for group_id, user_id, team_id in assignments:
+        if user_id is not None and user_id == actor.id:
+            signal[group_id] = 1.0
+        elif team_id is not None and team_id in team_ids:
+            signal[group_id] = 0.5
+    return signal
+
+
+def resolve_issue_agent_signal(
+    actor: Any | None, organization: Organization, group_ids: list[int]
+) -> dict[int, float]:
+    """Furthest Seer agent stage reached per group, normalized to [0, 1]."""
+    activities = Activity.objects.filter(
+        group_id__in=group_ids, type__in=list(ISSUE_AGENT_STAGE_SIGNALS)
+    ).values_list("group_id", "type")
+    signal: dict[int, float] = {}
+    for group_id, activity_type in activities:
+        signal[group_id] = max(signal.get(group_id, 0.0), ISSUE_AGENT_STAGE_SIGNALS[activity_type])
+    return signal
+
+
+def recommended_v2_strategy() -> PostgresSortStrategy:
+    """Recommended sort v2: the Snuba recommended score (recency/spike/severity/user
+    impact/event volume) plus additive boosts for viewer assignment, Seer fixability,
+    and Seer agent progress."""
+    assignment_weight = options.get("snuba.search.recommended-v2.assignment-weight")
+    fixability_weight = options.get("snuba.search.recommended-v2.fixability-weight")
+    agent_weight = options.get("snuba.search.recommended-v2.agent-weight")
+
+    def score_fn(data: dict[str, Any]) -> float:
+        return (
+            (data.get("recommended") or 0.0)
+            + assignment_weight * data.get("assignment", 0.0)
+            + fixability_weight * (data.get("fixability") or 0.0)
+            + agent_weight * data.get("agent", 0.0)
+        )
+
+    return PostgresSortStrategy(
+        postgres_fields={"fixability": "seer_fixability_score"},
+        snuba_aggregations=["recommended"],
+        signal_resolvers={
+            "assignment": resolve_assignment_signal,
+            "agent": resolve_issue_agent_signal,
+        },
+        score_fn=score_fn,
+        # seer_fixability_score is null for most groups; score those as 0 rather
+        # than excluding them.
+        exclude_null_postgres=False,
+    )
+
+
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
@@ -905,6 +987,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "new": "first_seen",
         "trends": "trends",
         "recommended": "recommended",
+        # Postgres-data sort; mapped to the recommended aggregation so the chunked
+        # Snuba path can take over when there are too many candidates to score in memory.
+        "recommended_v2": "recommended",
         "user": "user_count",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
@@ -930,7 +1015,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     @property
     def postgres_sort_strategies(self) -> dict[str, PostgresSortStrategy]:
-        return {}
+        return {"recommended_v2": recommended_v2_strategy()}
 
     def _apply_type_visibility_filter(
         self,
