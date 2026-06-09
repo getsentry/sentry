@@ -256,6 +256,21 @@ describe('EventTagsTree', () => {
     expect(screen.queryByText('undefined tag')).not.toBeInTheDocument();
   });
 
+  it('renders tags rooted at object prototype property names', async () => {
+    const prototypeTagEvent = EventFixture({
+      tags: [{key: 'constructor.name', value: 'Event'}],
+    });
+
+    render(<EventTags projectSlug={project.slug} event={prototypeTagEvent} />, {
+      organization,
+    });
+
+    expect(mockDetailedProject).toHaveBeenCalled();
+    expect(await screen.findByText('constructor', {selector: 'div'})).toBeInTheDocument();
+    expect(screen.getByText('name', {selector: 'div'})).toBeInTheDocument();
+    expect(screen.getByText('Event')).toBeInTheDocument();
+  });
+
   it("renders 'Add to event highlights' option based on highlights", async () => {
     const highlightsEvent = EventFixture({
       tags: [
