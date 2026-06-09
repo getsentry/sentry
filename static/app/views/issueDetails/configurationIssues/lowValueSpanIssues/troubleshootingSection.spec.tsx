@@ -48,6 +48,41 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     expect(screen.queryByText('before_send_transaction')).not.toBeInTheDocument();
   });
 
+  it('links to the platform-redirect custom instrumentation docs for manual spans', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={{
+          ...baseEvidenceData,
+          spanOrigin: 'manual',
+        }}
+        projectPlatform={null}
+      />
+    );
+
+    expect(
+      screen.getByRole('link', {name: 'Read the custom instrumentation docs'})
+    ).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platform-redirect/?next=/tracing/instrumentation/custom-instrumentation/'
+    );
+  });
+
+  it('uses the platform-redirect filtering docs as a fallback', () => {
+    render(
+      <TroubleshootingSection
+        evidenceData={baseEvidenceData}
+        projectPlatform="ruby-rails"
+      />
+    );
+
+    expect(
+      screen.getByRole('link', {name: 'Read the SDK filtering docs'})
+    ).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platform-redirect/?next=/configuration/filtering/'
+    );
+  });
+
   it('recommends JavaScript span filtering and mentions beforeSendSpan', () => {
     render(
       <TroubleshootingSection
