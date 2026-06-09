@@ -8,7 +8,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.types.activity import ActivityType
+from sentry.types.activity import STATUS_CHANGE_VIA_ACTIVITY_FLAG, ActivityType
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_status_change_consumer import get_test_message_status_change
 
@@ -94,7 +94,7 @@ class IssuePlatformIntegrationTests(TestCase):
         update_status(self.group, self._resolved_message())
         assert mock_delay.call_count == 1
 
-    @with_feature("organizations:workflow-engine-status-change-via-activity")
+    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
     @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay")
     def test_single_dispatch__flag_on(self, mock_delay: mock.MagicMock) -> None:
         """

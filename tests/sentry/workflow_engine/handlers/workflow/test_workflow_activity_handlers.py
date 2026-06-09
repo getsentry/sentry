@@ -8,6 +8,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
     SEER_WORKFLOW_ACTIVITIES,
+    STATUS_CHANGE_VIA_ACTIVITY_FLAG,
     activity_handler,
     seer_activity_handler,
 )
@@ -162,7 +163,7 @@ class GenericActivityHandlerTest(TestCase):
         activity_handler(self.group, self.activity, self.detector.id)
         mock_metrics.incr.assert_not_called()
 
-    @with_feature("organizations:workflow-engine-status-change-via-activity")
+    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
@@ -174,7 +175,7 @@ class GenericActivityHandlerTest(TestCase):
 
         mock_process_workflow_activity.delay.assert_not_called()
 
-    @with_feature("organizations:workflow-engine-status-change-via-activity")
+    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
@@ -189,7 +190,7 @@ class GenericActivityHandlerTest(TestCase):
             detector_id=self.detector.id,
         )
 
-    @with_feature("organizations:workflow-engine-status-change-via-activity")
+    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
@@ -205,7 +206,7 @@ class GenericActivityHandlerTest(TestCase):
             detector_id=self.detector.id,
         )
 
-    @with_feature("organizations:workflow-engine-status-change-via-activity")
+    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
     )
