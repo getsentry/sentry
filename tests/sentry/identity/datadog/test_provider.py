@@ -52,8 +52,8 @@ class DatadogDCRViewTest(TestCase):
         self.pipeline.bind_state.assert_any_call("dcr_client_secret", "new-client-secret")
 
     @responses.activate
-    def test_skips_registration_when_client_id_exists(self) -> None:
-        self.pipeline.fetch_state.return_value = "existing-id"
+    def test_skips_registration_when_client_credentials_exist(self) -> None:
+        self.pipeline.fetch_state.return_value = "existing"
 
         self.view.dispatch(self.request, self.pipeline)
 

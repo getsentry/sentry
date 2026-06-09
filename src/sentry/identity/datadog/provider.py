@@ -53,7 +53,7 @@ class DatadogDCRView:
         self.register_url = register_url
 
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
-        if pipeline.fetch_state("dcr_client_id"):
+        if pipeline.fetch_state("dcr_client_id") and pipeline.fetch_state("dcr_client_secret"):
             return pipeline.next_step()
 
         redirect_uri = absolute_uri(_redirect_url(pipeline))
@@ -101,9 +101,9 @@ class DatadogOAuth2LoginView(OAuth2LoginView):
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         self.client_id = pipeline.fetch_state("dcr_client_id")
 
-        # Ensure a code verifier exists and is bound to the pipeline.
-        if existing := pipeline.fetch_state("pkce_code_verifier"):
-            self._code_verifier = existing
+        # PKCE: Ensure a code verifier exists and is bound to the pipeline.
+        if existing_code_verifier := pipeline.fetch_state("pkce_code_verifier"):
+            self._code_verifier = existing_code_verifier
         else:
             self._code_verifier = generate_pkce_code_verifier()
             pipeline.bind_state("pkce_code_verifier", self._code_verifier)
@@ -115,7 +115,7 @@ class DatadogOAuth2LoginView(OAuth2LoginView):
 
         params["resource"] = self.resource
 
-        # Use the code verifier to generate the code challenge.
+        # PKCE: Use the code verifier to generate the code challenge.
         assert self._code_verifier is not None
         params["code_challenge"] = generate_pkce_code_challenge(self._code_verifier)
         params["code_challenge_method"] = "S256"
@@ -153,13 +153,13 @@ class DatadogOAuth2CallbackView(OAuth2CallbackView):
     def get_access_token(self, pipeline: IdentityPipeline, code: str) -> Response:
         data = self.get_token_params(code=code, redirect_uri=absolute_uri(_redirect_url(pipeline)))
 
-        # Add code verifier to the token params.
+        # PKCE: Add code verifier to the token params.
         code_verifier = pipeline.fetch_state("pkce_code_verifier")
         if not code_verifier:
             raise MissingPipelineStateError("PKCE code_verifier missing from pipeline state")
         data["code_verifier"] = code_verifier
 
-        # Include client id and secret in header.
+        # DCR: Include client id and secret in header.
         client_id = pipeline.fetch_state("dcr_client_id")
         client_secret = pipeline.fetch_state("dcr_client_secret")
         if not client_id or not client_secret:
