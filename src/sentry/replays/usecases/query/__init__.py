@@ -165,6 +165,9 @@ def attempt_compressed_condition(
 
     (block OR block) OR block => (block OR block OR block)
     """
+    if not result:
+        result.append(condition)
+        return
     if isinstance(result[-1], condition_type):
         result[-1].conditions.append(condition)
     else:
