@@ -27,6 +27,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
@@ -432,7 +433,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         organization: Organization,
         member: OrganizationMember,
         acting_member: OrganizationMember,
-    ) -> Response:
+    ) -> Response[None] | Response[DetailResponse]:
         # Members can only delete invitations
         if not member.is_pending:
             return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
@@ -470,7 +471,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         request: Request,
         organization: Organization,
         member: OrganizationMember,
-    ) -> Response:
+    ) -> Response[None] | Response[DetailResponse]:
         """
         Remove an organization member.
         """

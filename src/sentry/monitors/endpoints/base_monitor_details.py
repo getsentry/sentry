@@ -68,7 +68,9 @@ class MonitorDetailsMixin(BaseEndpointMixin):
 
         return self.respond(serialize(updated_monitor, request.user))
 
-    def delete_monitor(self, request: Request, project: Project, monitor: Monitor) -> Response:
+    def delete_monitor(
+        self, request: Request, project: Project, monitor: Monitor
+    ) -> Response[None]:
         """
         Delete a monitor or monitor environments.
         """
