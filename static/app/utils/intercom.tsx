@@ -78,8 +78,7 @@ async function initIntercom(orgSlug: string): Promise<void> {
       shutdown();
       boot(intercomSettings);
 
-      const nextIntercomState = {orgSlug, settings: intercomSettings};
-      intercomState = nextIntercomState;
+      intercomState = {orgSlug, settings: intercomSettings};
     } catch (error) {
       // Reset so user can retry on next click
       bootPromise = null;
