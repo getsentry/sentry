@@ -955,6 +955,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         actor: Any | None,
         start: datetime,
         end: datetime,
+        aggregate_kwargs: TrendsSortWeights | None = None,
         *,
         referrer: str,
     ) -> CursorResult[Group] | None:
@@ -1017,6 +1018,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 search_filters=search_filters,
                 referrer=referrer,
                 actor=actor,
+                aggregate_kwargs=aggregate_kwargs,
             )
             snuba_data = {gid: {sort_field: score} for gid, score in snuba_groups}
             candidate_ids = list(snuba_data.keys())
@@ -1151,6 +1153,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 actor=actor,
                 start=start,
                 end=end,
+                aggregate_kwargs=aggregate_kwargs,
                 referrer=referrer,
             )
             if pg_result is not None:

@@ -10,7 +10,11 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
 from sentry.models.group import Group, GroupStatus
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
-from sentry.search.snuba.executors import PostgresSnubaQueryExecutor, PostgresSortStrategy
+from sentry.search.snuba.executors import (
+    DEFAULT_TRENDS_WEIGHTS,
+    PostgresSnubaQueryExecutor,
+    PostgresSortStrategy,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import override_options
@@ -212,6 +216,32 @@ class TestExecutePostgresSort(PostgresSortTestBase):
         with _patch_pg_strategies({"test_sort": strategy}):
             results = list(self.make_query("test_sort", query="issue"))
         assert len(results) == 3
+
+    def test_aggregate_kwargs_forwarded_to_snuba(self):
+        # Caller-supplied trend sort weights must reach Snuba through the Postgres sort
+        # path, otherwise hybrid aggregations (trends/recommended) silently score with
+        # default weights regardless of what the caller requested.
+        weights = {**DEFAULT_TRENDS_WEIGHTS, "relative_volume": 10}
+        strategy = _ts_strategy(snuba_aggregations=["last_seen"])
+        with _patch_pg_strategies({"test_sort": strategy}):
+            with mock.patch.object(
+                PostgresSnubaQueryExecutor,
+                "snuba_search",
+                return_value=([(g.id, 1) for g in self.groups], len(self.groups)),
+            ) as snuba_spy:
+                self.backend.query(
+                    [self.project],
+                    search_filters=[],
+                    environments=None,
+                    count_hits=False,
+                    sort_by="test_sort",
+                    date_from=None,
+                    date_to=None,
+                    cursor=None,
+                    aggregate_kwargs=weights,
+                    referrer=Referrer.TESTING_TEST,
+                )
+        assert snuba_spy.call_args.kwargs["aggregate_kwargs"] == weights
 
     def test_signal_resolver_influences_score(self):
         boosted = self.groups[0].id
