@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Any, TypedDict, cast
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
 from django.db import models
 from django.http import HttpRequest
@@ -141,7 +142,12 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
             value = f"https:{value}"
         elif not value.startswith(("http://", "https://")):
             value = f"https://{value}"
-        URLValidator(schemes=["http", "https"])(value)
+        # DRF already converts a DjangoValidationError from here into a 400, but
+        # re-raise as a DRF ValidationError explicitly so the contract is obvious.
+        try:
+            URLValidator(schemes=["http", "https"])(value)
+        except DjangoValidationError:
+            raise serializers.ValidationError("Enter a valid URL.")
         return value
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:

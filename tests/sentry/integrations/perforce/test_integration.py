@@ -273,10 +273,11 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["web_url"] == "https://swarm.example.com"
 
-        # Garbage is still rejected after normalization.
+        # Garbage is still rejected after normalization. CamelSnakeSerializer keys
+        # error output in camelCase, so the field surfaces as "webUrl".
         bad = PerforceInstallationSerializer(data={**base, "web_url": "not a url"})
         assert not bad.is_valid()
-        assert "web_url" in bad.errors
+        assert "webUrl" in bad.errors
 
     def test_format_source_url_strips_leading_slash_from_relative_path(self) -> None:
         """Test that leading slash is stripped from relative paths"""
