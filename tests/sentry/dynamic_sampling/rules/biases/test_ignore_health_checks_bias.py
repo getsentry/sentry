@@ -92,11 +92,11 @@ def matches_health_check_globs(transaction_name: str) -> bool:
         ("heartbeat", "*heartbeat*"),
         ("service-heartbeat-check", "*heartbeat*"),
         # Pattern: */health{/*,}
-        ("/api/health", "*/health{/*,}"),
-        ("/api/health/foo", "*/health{/*,}"),
-        ("GET /health", "*/health{/*,}"),
-        ("GET /health/", "*/health{/*,}"),
-        ("/v1/health", "*/health{/*,}"),
+        ("/api/health", "*/health{/,}"),
+        ("/api/health/", "*/health{/,}"),
+        ("GET /health", "*/health{/,}"),
+        ("GET /health/", "*/health{/,}"),
+        ("/v1/health", "*/health{/,}"),
         # Pattern: */healthy{/,}
         ("/api/healthy", "*/healthy{/,}"),
         ("/api/healthy/", "*/healthy{/,}"),
@@ -146,6 +146,14 @@ def matches_health_check_globs(transaction_name: str) -> bool:
         ("/api/up/", "*/up{/,}"),
         ("GET /up", "*/up{/,}"),
         ("/status/up", "*/up{/,}"),
+        # Pattern: */actuator/health{/*,}
+        ("/actuator/health", "*/actuator/health{/*,}"),
+        ("/actuator/health/db", "*/actuator/health{/*,}"),
+        ("GET /actuator/health/db", "*/actuator/health{/*,}"),
+        # Pattern: */manage/health{/*,}
+        ("/manage/health", "*/actuator/health{/*,}"),
+        ("/manage/health/db", "*/actuator/health{/*,}"),
+        ("GET /manage/health/db", "*/actuator/health{/*,}"),
     ],
 )
 def test_health_check_globs_match_health_endpoints(
