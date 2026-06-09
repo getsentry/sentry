@@ -3124,12 +3124,6 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "workflow_engine.activity_type_registry.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",

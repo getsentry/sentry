@@ -5,7 +5,10 @@ import pytest
 
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.registry import activity_handler_registry
-from sentry.notifications.notification_action.types import ActivityHandler
+from sentry.notifications.notification_action.types import (
+    ActivityHandler,
+    ActivityHandlerValidationError,
+)
 from sentry.notifications.notification_action.utils import (
     execute_via_activity_type_registry,
     execute_via_group_type_registry,
@@ -60,18 +63,18 @@ class TestActivityHandlerValidation(ActivityHandlerTest):
         assert result == activity
 
     def test_not_an_activity(self) -> None:
-        with pytest.raises(ValueError, match="not an Activity"):
+        with pytest.raises(ActivityHandlerValidationError, match="not an Activity"):
             self.mock_handler.validate_activity(self._make_invocation(self.group_event))
 
     def test_incompatible_type(self) -> None:
-        with pytest.raises(ValueError, match="not compatible"):
+        with pytest.raises(ActivityHandlerValidationError, match="not compatible"):
             self.mock_handler.validate_activity(
                 self._make_invocation(self._make_activity(ActivityType.NOTE))
             )
 
     def test_unknown_type(self) -> None:
         activity = Activity(project=self.project, group=self.group, type=99999)
-        with pytest.raises(ValueError, match="Unknown activity type"):
+        with pytest.raises(ActivityHandlerValidationError, match="Unknown activity type"):
             self.mock_handler.validate_activity(self._make_invocation(activity))
 
 
@@ -110,7 +113,7 @@ class TestExecuteViaGroupTypeRegistryActivityPath(ActivityHandlerTest):
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_activity_type_registry")
     def test_option_enabled_uses_registry(self, mock_execute: mock.MagicMock) -> None:
         invocation = self._make_invocation(self._make_activity())
-        with self.options({"workflow_engine.activity_type_registry.enabled": True}):
+        with self.feature({"organizations:workflow-engine-evaluate-seer-activities": True}):
             execute_via_group_type_registry(invocation)
         mock_execute.assert_called_once_with(invocation=invocation)
 
@@ -118,7 +121,7 @@ class TestExecuteViaGroupTypeRegistryActivityPath(ActivityHandlerTest):
         activity = self._make_activity()
         invocation = self._make_invocation(activity)
         with (
-            self.options({"workflow_engine.activity_type_registry.enabled": False}),
+            self.feature({"organizations:workflow-engine-evaluate-seer-activities": False}),
             mock.patch.object(activity, "send_notification") as mock_send,
         ):
             execute_via_group_type_registry(invocation)
@@ -132,7 +135,7 @@ class TestExecuteViaGroupTypeRegistryActivityPath(ActivityHandlerTest):
         activity = self._make_activity()
         invocation = self._make_invocation(activity)
         with (
-            self.options({"workflow_engine.activity_type_registry.enabled": True}),
+            self.feature({"organizations:workflow-engine-evaluate-seer-activities": True}),
             mock.patch.object(activity, "send_notification") as mock_send,
         ):
             execute_via_group_type_registry(invocation)

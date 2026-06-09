@@ -547,6 +547,10 @@ class BaseActionValidatorHandler(ABC):
         pass
 
 
+class ActivityHandlerValidationError(Exception):
+    pass
+
+
 class ActivityHandler(ABC):
     """
     Abstract base class for handling ActionInvocations pertaining to activity.
@@ -559,13 +563,15 @@ class ActivityHandler(ABC):
     def validate_activity(cls, invocation: ActionInvocation) -> Activity:
         workflow_event = invocation.event_data.event
         if not isinstance(workflow_event, Activity):
-            raise ValueError("WorkflowEventData.event is not an Activity")
+            raise ActivityHandlerValidationError("WorkflowEventData.event is not an Activity")
         try:
             activity_type = ActivityType(workflow_event.type)
         except ValueError:
-            raise ValueError(f"Unknown activity type: {workflow_event.type}")
+            raise ActivityHandlerValidationError(f"Unknown activity type: {workflow_event.type}")
         if activity_type not in cls.compatible_activity_types:
-            raise ValueError(f"Activity type {activity_type} is not compatible with this handler")
+            raise ActivityHandlerValidationError(
+                f"Activity type {activity_type} is not compatible with this handler"
+            )
         return workflow_event
 
     @classmethod
