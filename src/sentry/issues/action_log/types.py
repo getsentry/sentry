@@ -64,6 +64,9 @@ class GroupActionType(IntEnum):
     CREATE_EXTERNAL_ISSUE = 18
     LINK_EXTERNAL_ISSUE = 19
     UNLINK_EXTERNAL_ISSUE = 20
+    CREATE_PLATFORM_EXTERNAL_ISSUE = 21
+    LINK_PLATFORM_EXTERNAL_ISSUE = 22
+    UNLINK_PLATFORM_EXTERNAL_ISSUE = 23
 
 
 class GroupAction(BaseModel, abc.ABC):
@@ -225,3 +228,33 @@ class UnlinkExternalIssueAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.UNLINK_EXTERNAL_ISSUE
+
+
+class CreatePlatformExternalIssueAction(GroupAction):
+    service_type: str
+    display_name: str
+    web_url: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE
+
+
+class LinkPlatformExternalIssueAction(GroupAction):
+    service_type: str
+    display_name: str
+    web_url: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE
+
+
+class UnlinkPlatformExternalIssueAction(GroupAction):
+    service_type: str
+    display_name: str
+    web_url: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE

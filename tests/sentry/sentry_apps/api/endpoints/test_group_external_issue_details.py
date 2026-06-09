@@ -1,3 +1,4 @@
+from sentry.issues.action_log import ActionSource
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
 
@@ -21,6 +22,29 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
 
         assert response.status_code == 204, response.content
         assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
+
+    def test_deletes_external_issue_records_action_log(self) -> None:
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            response = self.client.delete(self.url, format="json")
+
+        assert response.status_code == 204, response.content
+
+        records = [
+            r
+            for r in logs.records
+            if r.message == "group.action_log"
+            and getattr(r, "action") == "unlink_platform_external_issue"
+        ]
+        assert len(records) == 1
+        record = records[0]
+        assert getattr(record, "source") == ActionSource.WEB
+        assert getattr(record, "actor_id") == str(self.user.id)
+        assert getattr(record, "group_id") == str(self.group.id)
+        assert getattr(record, "metadata") == {
+            "service_type": "sentry-app",
+            "display_name": "App#issue-1",
+            "web_url": "https://example.com/app/issues/1",
+        }
 
     def test_handles_non_existing_external_issue(self) -> None:
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/external-issues/99999/"
