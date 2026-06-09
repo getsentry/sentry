@@ -741,10 +741,14 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         # Compare netloc of the installation account URL with the installation
         # URL from the previous pipeline step. This ensures we always have a
         # matching domain + port combination before building the integration.
-        if (
-            urlparse(installation["account"]["html_url"]).netloc
-            != state["installation_data"]["url"]
-        ):
+        account_netloc = urlparse(installation["account"]["html_url"]).netloc
+        state_netloc = state["installation_data"]["url"]
+        if not account_netloc or not state_netloc:
+            raise IntegrationError(
+                "The GitHub Enterprise domain is not valid. Please check the domain and port combination."
+            )
+
+        if account_netloc.lower() != state_netloc.lower():
             raise IntegrationError(
                 "The GitHub Enterprise domain does not match the expected domain. Please check the domain and port combination."
             )
@@ -756,6 +760,11 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         installation = self._get_ghe_installation_info(
             installation_data, identity["access_token"], state["installation_id"]
         )
+
+        if not installation:
+            raise IntegrationError(
+                "Ensure the user has sufficient permissions to access the installation."
+            )
 
         if options.get("github-enterprise.disallow-domain-mismatch"):
             self.ensure_matching_domain(state, installation)

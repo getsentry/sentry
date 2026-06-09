@@ -1434,3 +1434,16 @@ class GitHubEnterpriseApiPipelineTest(APITestCase):
             str(ie.value.message)
             == "The GitHub Enterprise domain does not match the expected domain. Please check the domain and port combination."
         )
+
+    def test_ensure_matching_domain_method_with_different_casing(self) -> None:
+        state = {
+            "installation_data": {
+                "url": "github.com",
+            },
+        }
+        installation = {
+            "account": {
+                "html_url": "https://GitHub.com/test-org",
+            },
+        }
+        GitHubEnterpriseIntegrationProvider.ensure_matching_domain(state, installation)
