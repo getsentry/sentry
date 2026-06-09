@@ -1167,6 +1167,11 @@ class PullRequestReviewThreadEventWebhook(GitHubWebhook):
     WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_review_thread,)
 
 
+class CheckSuiteWebhook(GitHubWebhook):
+    EVENT_TYPE = IntegrationWebhookEventType.CHECK_SUITE
+    WEBHOOK_EVENT_PROCESSORS = ()
+
+
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
     """
@@ -1193,6 +1198,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT: PullRequestReviewCommentEventWebhook,
         GithubWebhookType.PULL_REQUEST_REVIEW_THREAD: PullRequestReviewThreadEventWebhook,
         GithubWebhookType.PUSH: PushEventWebhook,
+        GithubWebhookType.CHECK_SUITE: CheckSuiteWebhook,
     }
 
     def get_handler(self, event_type: GithubWebhookType) -> type[GitHubWebhook] | None:

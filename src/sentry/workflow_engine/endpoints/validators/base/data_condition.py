@@ -79,11 +79,17 @@ class BaseDataConditionValidator(
                 raise serializers.ValidationError("Invalid comparison value for condition type")
 
         try:
-            return validate_json_schema(value, handler.comparison_json_schema)
+            validated = validate_json_schema(value, handler.comparison_json_schema)
         except JsonValidationError:
             raise serializers.ValidationError(
                 f"Value, {value} does not match JSON Schema for comparison"
             )
+
+        organization = self.context.get("organization")
+        if organization is not None:
+            validated = handler.validate_comparison(validated, organization)
+
+        return validated
 
     def validate_condition_result(self, value: Any) -> Any:
         """

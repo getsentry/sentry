@@ -23,6 +23,7 @@ from fixtures.github import (
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook import (
+    CheckSuiteWebhook,
     GitHubIntegrationsWebhookEndpoint,
     InstallationRepositoriesEventWebhook,
 )
@@ -129,6 +130,52 @@ class WebhookTest(APITestCase):
         )
 
         assert response.status_code == 400
+
+
+class SCMOnlyWebhookTest(APITestCase):
+    """Tests for webhook event types that have no legacy processors and only
+    publish to the SCM event stream."""
+
+    def setUp(self) -> None:
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+    def create_github_integration_and_repo(self) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="12345",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        self.create_repo(
+            self.project,
+            external_id="35129377",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+    @patch("sentry.integrations.github.webhook.produce_event_to_scm_stream")
+    @patch.object(CheckSuiteWebhook, "_handle", autospec=True)
+    def test_check_suite_handler_is_noop_and_publishes_to_scm_stream(
+        self, mock_handle: MagicMock, mock_produce: MagicMock
+    ) -> None:
+        self.create_github_integration_and_repo()
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="check_suite",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+        assert CheckSuiteWebhook.WEBHOOK_EVENT_PROCESSORS == ()
+        mock_handle.assert_called_once()
+        mock_produce.assert_called_once()
 
 
 @control_silo_test
