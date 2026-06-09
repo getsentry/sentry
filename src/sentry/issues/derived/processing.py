@@ -5,10 +5,10 @@ from datetime import datetime
 from django.db.models import Q
 
 from sentry.issues.derived.aggregators import AGGREGATORS
+from sentry.issues.derived.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.issues.derived.lib import Pipeline
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
-from sentry.models.groupderiveddata import EPOCH, GroupDerivedData
 
 logger = logging.getLogger(__name__)
 

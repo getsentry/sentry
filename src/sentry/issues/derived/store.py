@@ -10,8 +10,8 @@ and Features don't have to.
 from typing import Any
 
 from sentry.issues.derived.fields import PROGRESS, VIEW_COUNT
+from sentry.issues.derived.groupderiveddata import GroupDerivedData
 from sentry.issues.derived.lib import Feature, Pipeline, State
-from sentry.models.groupderiveddata import GroupDerivedData
 
 # Features whose values are stored in dedicated model columns rather than
 # the JSON blob. Keyed by Feature object, value is the column name on
