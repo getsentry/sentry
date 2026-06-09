@@ -8,6 +8,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
+import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgent';
 import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPoint';
 import {t, tct, tn} from 'sentry/locale';
@@ -24,6 +25,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
+  mutableSearch: MutableSearch;
   onSortClick: (key: Sort) => void;
   settings: SeerProjectSettingResponse[];
   sort: Sort;
@@ -74,7 +76,7 @@ const COLUMNS = [
   },
 ];
 
-export function ProjectTableHeader({settings, onSortClick, sort}: Props) {
+export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
@@ -151,8 +153,8 @@ export function ProjectTableHeader({settings, onSortClick, sort}: Props) {
               onChange={value => {
                 mutate(
                   {
-                    query: '',
-                    projectIds,
+                    query: mutableSearch.formatString(),
+                    selectedIds,
                     agent: value,
                   },
                   {
@@ -181,8 +183,8 @@ export function ProjectTableHeader({settings, onSortClick, sort}: Props) {
               onChange={value => {
                 mutate(
                   {
-                    query: '',
-                    projectIds,
+                    query: mutableSearch.formatString(),
+                    selectedIds,
                     stoppingPoint: value,
                   },
                   {

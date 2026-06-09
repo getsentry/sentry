@@ -85,16 +85,17 @@ export function SeerProjectTable() {
   const stoppingPointOptions = useStoppingPointSelectOptions();
 
   // Main fetch call
+  const mutableSearch = MutableSearch.fromQueryObject({
+    reposCount: '>0',
+    agent: agentFilter === 'all' ? undefined : agentFilter,
+    name: searchTerm,
+  });
   const queryOptions = infiniteQueryOptions({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
       query: {
         per_page: 25,
-        query: MutableSearch.fromQueryObject({
-          reposCount: '>0',
-          agent: agentFilter === 'all' ? undefined : agentFilter,
-          name: searchTerm,
-        }),
+        query: mutableSearch,
         sortBy,
       },
     }),
@@ -176,7 +177,12 @@ export function SeerProjectTable() {
         endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
         <InfiniteTable.Table columns="max-content 2fr max-content repeat(2, 1fr)">
-          <ProjectTableHeader settings={data ?? []} sort={sortBy} onSortClick={setSort} />
+          <ProjectTableHeader
+            settings={data ?? []}
+            sort={sortBy}
+            onSortClick={setSort}
+            mutableSearch={mutableSearch}
+          />
 
           <InfiniteTable.Scrollable>
             {isPending ? (

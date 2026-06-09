@@ -247,10 +247,10 @@ export function getMutateSeerProjectsSettingsOptions({
   return mutationOptions({
     mutationFn: (
       data: SeerBulkProjectSettingUpdatePayload & {
-        projectIds: ListItemCheckboxState['selectedIds'];
+        selectedIds: ListItemCheckboxState['selectedIds'];
       }
     ) => {
-      const {stoppingPoint, query, projectIds, ...rest} = data;
+      const {stoppingPoint, query, selectedIds, ...rest} = data;
 
       const integrationId =
         data.agent && data.agent !== 'seer'
@@ -270,9 +270,10 @@ export function getMutateSeerProjectsSettingsOptions({
         url: infiniteUrl,
         data: {
           ...rest,
-          query: MutableSearch.fromQueryObject({
-            id: projectIds === 'all' ? query : projectIds,
-          }).formatString(),
+          query:
+            selectedIds === 'all'
+              ? query
+              : MutableSearch.fromQueryObject({id: selectedIds}).formatString(),
           ...(!isOff &&
             stoppingPoint !== undefined && {
               stoppingPoint,
@@ -306,7 +307,7 @@ export function getMutateSeerProjectsSettingsOptions({
       }
 
       const shouldUpdate = (item: SeerProjectSettingResponse) =>
-        data.projectIds === 'all' || data.projectIds.includes(item.projectId);
+        data.selectedIds === 'all' || data.selectedIds.includes(item.projectId);
 
       queryClient.setQueriesData(
         {queryKey: [infiniteUrl], exact: false},
@@ -326,7 +327,7 @@ export function getMutateSeerProjectsSettingsOptions({
         }
       );
 
-      if (data.projectIds === 'all') {
+      if (data.selectedIds === 'all') {
         queryClient.setQueriesData(
           {predicate: q => isSingleProjectSettingsQuery(q.queryKey)},
           (prev: ApiResponse<SeerProjectSettingResponse> | undefined) => {
@@ -337,7 +338,7 @@ export function getMutateSeerProjectsSettingsOptions({
           }
         );
       } else {
-        for (const slug of data.projectIds) {
+        for (const slug of data.selectedIds) {
           const singleQueryKey = getSeerProjectSettingsQueryOptions({
             organization,
             project: {slug} as AvatarProject,
