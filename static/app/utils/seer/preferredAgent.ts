@@ -43,7 +43,7 @@ export function useKnownAgents() {
 export function useSeerAgentSelectOptions() {
   const integrations = useKnownAgents();
 
-  return useMemo(() => {
+  return useMemo((): Array<{label: string; value: SeerAgent}> => {
     return [
       {value: 'seer' as const, label: t('Seer')},
       {
@@ -54,7 +54,7 @@ export function useSeerAgentSelectOptions() {
         value: CodingAgentProvider.CLAUDE_CODE_AGENT,
         label: integrations.find(i => i.provider === 'claude_code')?.name ?? t('Claude'),
       },
-    ] as Array<{label: string; value: SeerAgent}>;
+    ];
   }, [integrations]);
 }
 
@@ -83,15 +83,18 @@ export function buildHandoffPayload(
   agent: PreferredAgentIntegration,
   autoCreatePr: boolean
 ): ProjectSeerPreferences['automation_handoff'] {
-  if (agent === 'seer' || !PROVIDER_TO_HANDOFF_TARGET[agent.provider]) {
+  if (agent === 'seer') {
     return undefined;
   }
-  return {
-    handoff_point: 'root_cause',
-    target: PROVIDER_TO_HANDOFF_TARGET[agent.provider],
-    integration_id: Number(agent.id),
-    auto_create_pr: autoCreatePr,
-  };
+  const target = PROVIDER_TO_HANDOFF_TARGET[agent.provider];
+  return target
+    ? {
+        handoff_point: 'root_cause',
+        target,
+        integration_id: Number(agent.id),
+        auto_create_pr: autoCreatePr,
+      }
+    : undefined;
 }
 
 /**
