@@ -132,7 +132,7 @@ def emit_pr_metrics_row(
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return False
 
-    close_action = (
+    close_action: CloseAction = (
         CLOSE_ACTION_MERGED if pull_request.merged_at is not None else CLOSE_ACTION_CLOSED
     )
     row = build_pr_metrics_row(
