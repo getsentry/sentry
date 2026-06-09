@@ -179,7 +179,7 @@ export function Layout() {
                 </ThemeToggle>
               </SidebarActions>
             </Sidebar>
-            <Flex direction="column" minWidth={0}>
+            <Flex direction="column" minWidth={0} inert={sidebarOpen || undefined}>
               {/* Mobile only: sticky top bar with hamburger and logo */}
               <MobileTopBar>
                 <Button
@@ -269,7 +269,12 @@ const Sidebar = styled('section')<{isCollapsed?: boolean; isOpen?: boolean}>`
   background: ${p => p.theme.tokens.background.primary};
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: 100;
-  transition: transform 0.2s ease;
+  /* Delay visibility until after the slide animation so hidden sidebar is
+     removed from the tab order once off-screen. */
+  visibility: ${p => (p.isCollapsed ? 'hidden' : 'visible')};
+  transition:
+    transform 0.2s ease,
+    visibility 0s linear ${p => (p.isCollapsed ? '0.2s' : '0s')};
 
   /* Desktop: collapsed state slides off-screen */
   transform: translateX(${p => (p.isCollapsed ? '-100%' : '0')});
@@ -281,6 +286,10 @@ const Sidebar = styled('section')<{isCollapsed?: boolean; isOpen?: boolean}>`
   /* Mobile: open state overrides desktop collapsed state */
   @media (max-width: 768px) {
     transform: translateX(${p => (p.isOpen ? '0' : '-100%')});
+    visibility: ${p => (p.isOpen ? 'visible' : 'hidden')};
+    transition:
+      transform 0.2s ease,
+      visibility 0s linear ${p => (p.isOpen ? '0s' : '0.2s')};
   }
 `;
 
