@@ -425,6 +425,13 @@ class SeerAgentClient:
         ):
             agent_run_options["use_agent_sandbox"] = True
 
+        if features.has(
+            "organizations:seer-explorer-embeds",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_embeds"] = True
+
         user_id = (
             self.user.id
             if self.user and hasattr(self.user, "id") and self.user.id is not None
@@ -564,6 +571,13 @@ class SeerAgentClient:
             actor=self.user,
         ):
             agent_run_options["use_agent_sandbox"] = True
+
+        if features.has(
+            "organizations:seer-explorer-embeds",
+            self.organization,
+            actor=self.user,
+        ):
+            agent_run_options["enable_embeds"] = True
 
         response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
 
