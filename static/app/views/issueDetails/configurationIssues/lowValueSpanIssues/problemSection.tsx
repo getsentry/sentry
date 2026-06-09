@@ -120,7 +120,7 @@ export function ProblemSection({evidenceData}: ProblemSectionProps) {
     <Stack gap="lg">
       <Alert variant="muted" showIcon>
         {t(
-          'Sentry found a frequently created span that adds little value. It can make traces harder to read and increase stored span volume.'
+          'Sentry found a frequently created span that adds little value. It can make traces harder to read and increases stored span volume.'
         )}
       </Alert>
       <Grid columns="fit-content(50%) 1fr" border="primary" radius="md" padding="sm">
