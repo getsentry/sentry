@@ -156,19 +156,29 @@ def relay_server(relay_server_setup, settings):
 
     url = relay_server_setup["url"]
 
+    # Wait for Relay's readiness probe rather than a bare GET, which only proves
+    # the HTTP server is up. Readiness reports whether Relay can actually accept
+    # envelopes (authenticated with the upstream, spool capacity, memory). Posting
+    # before then races initialization and Relay rejects the request with a 503,
+    # which is the source of long-standing minidump test flakiness. This mirrors
+    # production, where load balancers route ingest traffic only to Relays that
+    # pass this same `/api/relay/healthcheck/ready/` probe.
+    readiness_url = f"{url}/api/relay/healthcheck/ready/"
     for i in range(8):
         try:
-            requests.get(url)
-            break
+            if requests.get(readiness_url).status_code == 200:
+                break
         except Exception as ex:
             if i == 7:
                 _log.exception(str(ex))
                 raise ValueError(
                     f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
                 ) from ex
-            time.sleep(0.1 * 2**i)
+        time.sleep(0.1 * 2**i)
     else:
-        raise ValueError("relay did not start in time")
+        raise ValueError(
+            f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}) {readiness_url}:\n{container.logs().decode()}"
+        )
 
     yield {"url": relay_server_setup["url"]}
 
