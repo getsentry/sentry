@@ -107,20 +107,23 @@ function getTagTreeRows({
   project,
   isLast,
 }: EventTagsTreeRowProps & {uniqueKey: string}): React.ReactNode[] {
-  const subtreeTags = Array.from(content.subtree.keys());
-  const subtreeRows = subtreeTags.reduce<React.ReactNode[]>((rows, tag, i) => {
-    const branchRows = getTagTreeRows({
-      event,
-      project,
-      tagKey: tag,
-      content: content.subtree.get(tag)!,
-      spacerCount: spacerCount + 1,
-      isLast: i === subtreeTags.length - 1,
-      // Encoding the trunk index with the branch index ensures uniqueness for the key
-      uniqueKey: `${uniqueKey}-${i}`,
-    });
-    return rows.concat(branchRows);
-  }, []);
+  const subtreeEntries = Array.from(content.subtree.entries());
+  const subtreeRows = subtreeEntries.reduce<React.ReactNode[]>(
+    (rows, [tag, tagContent], i) => {
+      const branchRows = getTagTreeRows({
+        event,
+        project,
+        tagKey: tag,
+        content: tagContent,
+        spacerCount: spacerCount + 1,
+        isLast: i === subtreeEntries.length - 1,
+        // Encoding the trunk index with the branch index ensures uniqueness for the key
+        uniqueKey: `${uniqueKey}-${i}`,
+      });
+      return rows.concat(branchRows);
+    },
+    []
+  );
   return [
     <EventTagsTreeRow
       key={`${tagKey}-${spacerCount}-${uniqueKey}`}
