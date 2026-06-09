@@ -32,6 +32,12 @@ const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
 
 type TraceIconEdge = 'start' | 'end' | null;
+export type TraceTimeCompressionManagerOptions = {
+  enabled: boolean;
+  indicators: TraceTree['indicators'];
+  nodes: BaseNode[];
+  traceSpace: [start: number, duration: number];
+};
 
 interface TraceIconPlacement {
   anchorTimestamp: number;
@@ -161,12 +167,7 @@ export class VirtualizedViewManager {
   scheduler: TraceScheduler;
   view: TraceView;
   time_compression = TraceTimeCompression.Disabled();
-  timeCompressionOptions: {
-    enabled: boolean;
-    indicators: TraceTree['indicators'];
-    nodes: BaseNode[];
-    traceSpace: [start: number, duration: number];
-  } | null = null;
+  timeCompressionOptions: TraceTimeCompressionManagerOptions | null = null;
 
   constructor(
     columns: {
@@ -215,8 +216,8 @@ export class VirtualizedViewManager {
     this.time_compression = compression;
   }
 
-  recomputeTimeCompression() {
-    if (!this.timeCompressionOptions) {
+  recomputeTimeCompression(options = this.timeCompressionOptions) {
+    if (!options) {
       this.time_compression = TraceTimeCompression.Disabled([
         this.view.to_origin,
         this.view.trace_space.width,
@@ -225,7 +226,7 @@ export class VirtualizedViewManager {
     }
 
     this.time_compression = TraceTimeCompression.FromVisibleItems({
-      ...this.timeCompressionOptions,
+      ...options,
       physicalWidth: this.view.trace_physical_space.width,
     });
   }

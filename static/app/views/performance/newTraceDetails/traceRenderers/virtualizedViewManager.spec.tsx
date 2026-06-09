@@ -1,5 +1,6 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
@@ -70,6 +71,36 @@ describe('VirtualizedViewManger', () => {
     expect(recomputeSpy.mock.invocationCallOrder[0]).toBeLessThan(
       dispatchSpy.mock.invocationCallOrder[0]!
     );
+  });
+
+  it('uses explicit time compression options over previously stored options', () => {
+    const manager = new VirtualizedViewManager(
+      {
+        list: {width: 0.5},
+        span_list: {width: 0.5},
+      },
+      new TraceScheduler(),
+      new TraceView(),
+      ThemeFixture()
+    );
+
+    manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
+    manager.timeCompressionOptions = {
+      enabled: true,
+      traceSpace: [0, 1000],
+      nodes: [{type: 'span', space: [100, 10]} as BaseNode],
+      indicators: [],
+    };
+
+    manager.recomputeTimeCompression({
+      enabled: true,
+      traceSpace: [10_000, 2000],
+      nodes: [{type: 'span', space: [10_500, 10]} as BaseNode],
+      indicators: [],
+    });
+
+    expect(manager.time_compression.start).toBe(10_000);
+    expect(manager.time_compression.duration).toBe(2000);
   });
 
   it('re-dispatches the container content box when scrollbar width changes', () => {

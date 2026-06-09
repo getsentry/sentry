@@ -43,7 +43,10 @@ import {
   useVirtualizedList,
   type VirtualizedRow,
 } from './traceRenderers/traceVirtualizedList';
-import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import type {
+  TraceTimeCompressionManagerOptions,
+  VirtualizedViewManager,
+} from './traceRenderers/virtualizedViewManager';
 import {TraceLoadingRow} from './traceRow/traceLoadingRow';
 import {
   TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME,
@@ -180,7 +183,7 @@ export function Trace({
     [trace.list, forceRerender]
   );
 
-  const timeCompressionOptions = useMemo(() => {
+  const timeCompressionOptions = useMemo((): TraceTimeCompressionManagerOptions => {
     const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
     return {
       enabled: traceState.preferences.compressed_timeline && trace.type === 'trace',
@@ -209,14 +212,16 @@ export function Trace({
       }),
     [physicalWidth, timeCompressionOptions]
   );
+  const timeCompressionOptionsRef = useRef(timeCompressionOptions);
+  timeCompressionOptionsRef.current = timeCompressionOptions;
 
   useLayoutEffect(() => {
     manager.timeCompressionOptions = timeCompressionOptions;
-    manager.setTimeCompression(timeCompression);
+    manager.recomputeTimeCompression(timeCompressionOptions);
     manager.recomputeTimelineIntervals();
     manager.recomputeSpanToPXMatrix();
     manager.draw();
-  }, [manager, timeCompression, timeCompressionOptions]);
+  }, [manager, physicalWidth, timeCompressionOptions]);
 
   const traceStatePreferencesRef = useRef<
     Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
@@ -231,14 +236,15 @@ export function Trace({
       manager.draw();
     };
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] = () => {
-      setPhysicalWidth(manager.view.trace_physical_space.width);
-      manager.recomputeTimeCompression();
+      const nextPhysicalWidth = manager.view.trace_physical_space.width;
+      setPhysicalWidth(nextPhysicalWidth);
+      manager.recomputeTimeCompression(timeCompressionOptionsRef.current);
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw();
     };
     const onTraceSpaceChange: TraceEvents['initialize trace space'] = () => {
-      manager.recomputeTimeCompression();
+      manager.recomputeTimeCompression(timeCompressionOptionsRef.current);
       manager.recomputeTimelineIntervals();
       manager.recomputeSpanToPXMatrix();
       manager.draw();
@@ -249,7 +255,8 @@ export function Trace({
       manager.draw(view);
     };
     const onDividerResizeEnd: TraceEvents['divider resize end'] = () => {
-      setPhysicalWidth(manager.view.trace_physical_space.width);
+      const nextPhysicalWidth = manager.view.trace_physical_space.width;
+      setPhysicalWidth(nextPhysicalWidth);
     };
 
     scheduler.on('set trace view', onTraceViewChange);
