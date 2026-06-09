@@ -91,7 +91,7 @@ def matches_health_check_globs(transaction_name: str) -> bool:
         ("POST /heartbeat", "*heartbeat*"),
         ("heartbeat", "*heartbeat*"),
         ("service-heartbeat-check", "*heartbeat*"),
-        # Pattern: */health{/*,}
+        # Pattern: */health{/,}
         ("/api/health", "*/health{/,}"),
         ("/api/health/", "*/health{/,}"),
         ("GET /health", "*/health{/,}"),
