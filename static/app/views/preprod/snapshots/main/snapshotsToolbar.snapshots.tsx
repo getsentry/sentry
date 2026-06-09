@@ -119,27 +119,29 @@ describe('SnapshotsToolbar', () => {
     it.snapshot.breakpoints(
       ['xs', 'sm', 'md'],
       'all controls',
-      width => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{width: '100%'}}>
-            <SnapshotsToolbarWithControls
-              viewMode="list"
-              onViewModeChange={noop}
-              progress={{current: 3, total: 12, percent: 25}}
-              sort={{value: 'diff', onChange: noop}}
-              diff={{
-                mode: 'split',
-                onModeChange: noop,
-                overlayColor: '#f55459',
-                onOverlayColorChange: noop,
-                // Mirror production's `showSplit={breakpoints.sm}`.
-                showSplit: width >= parseInt(themes[themeName].breakpoints.sm, 10),
-              }}
-              solo={{isActive: false, onToggle: noop}}
-            />
-          </div>
-        </ThemeProvider>
-      ),
+      width => {
+        const isSm = width >= parseInt(themes[themeName].breakpoints.sm, 10);
+        return (
+          <ThemeProvider theme={themes[themeName]}>
+            <div style={{width: '100%'}}>
+              <SnapshotsToolbarWithControls
+                viewMode="list"
+                onViewModeChange={noop}
+                progress={{current: 3, total: 12, percent: 25}}
+                sort={{value: 'diff', onChange: noop}}
+                diff={{
+                  mode: isSm ? 'split' : 'wipe',
+                  onModeChange: noop,
+                  overlayColor: '#f55459',
+                  onOverlayColorChange: noop,
+                  showSplit: isSm,
+                }}
+                solo={{isActive: false, onToggle: noop}}
+              />
+            </div>
+          </ThemeProvider>
+        );
+      },
       {tags: {area: 'snapshots'}}
     );
 

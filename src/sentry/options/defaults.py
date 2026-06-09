@@ -774,13 +774,6 @@ register("vsts_new.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Azure DevOps Integration Social Login Flow
-register(
-    "vsts.social-auth-migration",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Add consent prompt for Azure DevOps Integration
 register(
@@ -3672,7 +3665,14 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
+# TODO(cells): Routes the org listing through the control silo endpoint instead of
+# fanning out across cells. Remove once the cell fan-out path is deleted.
+register(
+    "cells.use-control-org-listing",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # SCM
 

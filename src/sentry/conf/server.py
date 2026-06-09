@@ -2711,6 +2711,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
+    "taskworker-push": "default",
     "taskworker-billing": "default",
     "taskworker-billing-dlq": "default",
     "taskworker-buffer": "default",
@@ -2725,6 +2726,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-example": "default",
     "taskworker-ingest": "default",
     "taskworker-ingest-dlq": "default",
+    "taskworker-ingest-push": "default",
     "taskworker-ingest-errors": "default",
     "taskworker-ingest-errors-dlq": "default",
     "taskworker-ingest-errors-postprocess": "default",

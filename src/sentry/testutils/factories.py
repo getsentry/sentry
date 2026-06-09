@@ -75,6 +75,8 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -1266,6 +1268,34 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_group_activity(group, *args, **kwargs):
         return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_action_log_entry(
+        group, type=None, actor_type=None, actor_id=None, source=None, data=None, *args, **kwargs
+    ) -> GroupActionLogEntry:
+        if type is None:
+            type = GroupActionType.VIEW
+        if actor_type is None:
+            actor_type = GroupActorType.SYSTEM
+        if actor_id is None:
+            actor_id = 1234
+        if source is None:
+            source = "testutils.factories"
+        if data is None:
+            data = {}
+
+        return GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project.id,
+            type=type,
+            actor_type=actor_type,
+            actor_id=actor_id,
+            source=source,
+            data=data,
+            *args,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

@@ -51,6 +51,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
@@ -750,7 +751,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         },
         examples=ReleaseExamples.CREATE_RELEASE,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new release for the given organization. Releases are used by Sentry to
         improve error reporting by correlating first-seen events with the release that may
@@ -913,11 +916,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 update_org_auth_token_last_used(request.auth, [project.id for project in projects])
 
             scope.set_tag("success_status", status)
-            return Response(
-                serialize(release, request.user, no_snuba_for_release_creation=True), status=status
+            data: ReleaseSerializerResponse = serialize(
+                release, request.user, no_snuba_for_release_creation=True
             )
+            return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
-        return Response(serializer.errors, status=400)
+        return Response(as_validation_errors(serializer), status=400)
 
 
 class OrganizationReleaseTimeseriesData(TypedDict):

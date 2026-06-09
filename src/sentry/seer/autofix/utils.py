@@ -37,7 +37,6 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, Autof
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
-    SeerApiError,
     SeerAutomationHandoffConfiguration,
     SeerPermissionError,
     SeerProjectPreference,
@@ -144,11 +143,6 @@ class CodingAgentStatus(StrEnum):
         return status_mapping.get(cursor_status.upper(), None)
 
 
-class AutofixTriggerSource(StrEnum):
-    ROOT_CAUSE = "root_cause"
-    SOLUTION = "solution"
-
-
 class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
@@ -229,12 +223,6 @@ class GetAutofixStatePrRequest(TypedDict):
     pr_id: int
 
 
-class GetAutofixPromptRequest(TypedDict):
-    run_id: int
-    include_root_cause: bool
-    include_solution: bool
-
-
 class StoreCodingAgentStatesRequest(TypedDict):
     run_id: int
     coding_agent_states: list[dict[str, Any]]
@@ -249,34 +237,6 @@ def make_get_autofix_state_request(
         connection_pool or autofix_connection_pool,
         "/v1/automation/autofix/state",
         body=orjson.dumps(body),
-        viewer_context=viewer_context,
-    )
-
-
-def make_get_autofix_state_pr_request(
-    body: GetAutofixStatePrRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/state/pr",
-        body=orjson.dumps(body),
-        viewer_context=viewer_context,
-    )
-
-
-def make_get_autofix_prompt_request(
-    body: GetAutofixPromptRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/automation/autofix/prompt",
-        body=orjson.dumps(body),
-        timeout=timeout,
         viewer_context=viewer_context,
     )
 
@@ -960,24 +920,6 @@ def get_autofix_state(
     return None
 
 
-def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | None:
-    body = GetAutofixStatePrRequest(provider=provider, pr_id=pr_id)
-    response = make_get_autofix_state_pr_request(body)
-
-    if response.status >= 400:
-        raise Exception(f"Seer request failed with status {response.status}")
-    result = response.json()
-
-    if not result:
-        return None
-
-    state = result.get("state", None)
-    if state is None:
-        return None
-
-    return AutofixState.validate(state)
-
-
 def is_seer_scanner_rate_limited(project: Project, organization: Organization) -> bool:
     """
     Check if Seer Scanner automation is rate limited for a given project and organization.
@@ -1144,50 +1086,6 @@ def is_seer_autotriggered_autofix_rate_limited_and_increment(
             category=DataCategory.SEER_AUTOFIX,
         )
     return is_rate_limited
-
-
-def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: bool) -> str:
-    """Get the autofix prompt from Seer API."""
-
-    body = GetAutofixPromptRequest(
-        run_id=run_id,
-        include_root_cause=include_root_cause,
-        include_solution=include_solution,
-    )
-    response = make_get_autofix_prompt_request(body, timeout=15)
-
-    if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
-
-    response_data = orjson.loads(response.data)
-
-    return response_data.get("prompt")
-
-
-def get_coding_agent_prompt(
-    run_id: int,
-    trigger_source: AutofixTriggerSource,
-    instruction: str | None = None,
-    short_id: str | None = None,
-) -> str:
-    """Get the coding agent prompt with prefix from Seer API."""
-    include_root_cause = trigger_source in [
-        AutofixTriggerSource.ROOT_CAUSE,
-        AutofixTriggerSource.SOLUTION,
-    ]
-    include_solution = trigger_source == AutofixTriggerSource.SOLUTION
-
-    autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
-
-    base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
-
-    if short_id:
-        base_prompt = f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the commit message."
-
-    if instruction and instruction.strip():
-        base_prompt = f"{base_prompt}\n\n{instruction.strip()}"
-
-    return f"{base_prompt}\n\n{autofix_prompt}"
 
 
 def update_coding_agent_state(

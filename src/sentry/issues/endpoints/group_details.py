@@ -191,7 +191,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         examples=IssueExamples.GROUP_DETAILS,
     )
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def get(self, request: Request, group: Group) -> Response:
+    def get(self, request: Request, group: Group) -> Response[GroupDetailsResponse]:
         """
         Return details on an individual issue, including its basic stats, comment
         and user-report counts, and a summary of the latest event.
@@ -209,7 +209,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
-            data = serialize(
+            data: GroupDetailsResponse = serialize(
                 group, request.user, GroupSerializerSnuba(environment_ids=environment_ids)
             )
 
@@ -277,7 +277,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     ),
                 )
                 integration_issues = serialize(
-                    external_issues,
+                    list(external_issues),
                     request.user,
                     serializer=ExternalIssueSerializer(),
                 )

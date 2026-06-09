@@ -11,6 +11,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
@@ -22,6 +23,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -35,7 +37,6 @@ import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/
 import InstalledPlugin from 'sentry/views/settings/organizationIntegrations/installedPlugin';
 import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import {PluginDeprecationAlert} from 'sentry/views/settings/organizationIntegrations/pluginDeprecationAlert';
-import {WebhookDetailedView} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
 
 // TODO @sentaur-athena: remove this once we have a solution to deprecate these plugins
 const TEMPORARY_PERMITTED_PLUGINS = new Set(['amazon-sqs']);
@@ -373,12 +374,20 @@ const AddButton = styled(Button)`
 function PluginDetailedView() {
   const {integrationSlug} = useParams<{integrationSlug: string}>();
   const organization = useOrganization();
+  const location = useLocation();
 
   if (
     integrationSlug === 'webhooks' &&
     organization.features.includes('legacy-webhook-ui')
   ) {
-    return <WebhookDetailedView />;
+    return (
+      <Redirect
+        to={
+          normalizeUrl(`/settings/${organization.slug}/integrations/legacy-webhooks/`) +
+          location.search
+        }
+      />
+    );
   }
 
   return <DefaultView />;
