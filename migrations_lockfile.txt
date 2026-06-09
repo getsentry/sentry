@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0017_drop_old_fk_columns
+seer: 0018_add_pr_iteration_models
 
 sentry: 1113_extend_repository_name_length
 
