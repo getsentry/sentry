@@ -9,6 +9,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSource,
 )
 from sentry.pr_metrics.attribution import (
+    _parse_pr_number,
     attribute_delegated_agent_pull_request,
     attribute_seer_created_pull_requests,
     recompute_pull_request_attribution,
@@ -287,6 +288,28 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
         # Scoped to the given org's same-named repo — never this org's.
         assert not PullRequest.objects.filter(repository_id=self.repo.id).exists()
         assert PullRequest.objects.filter(repository_id=other_repo.id).exists()
+
+
+class ParsePrNumberTest(TestCase):
+    def test_extracts_number_from_supported_url_shapes(self) -> None:
+        # Each provider segment the regex recognizes must yield the trailing number.
+        cases = [
+            ("https://github.com/getsentry/sentry/pull/42", 42),
+            ("https://github.com/getsentry/sentry/pulls/7", 7),
+            ("https://gitlab.com/getsentry/sentry/merge_requests/13", 13),
+        ]
+        for url, expected in cases:
+            assert _parse_pr_number(url) == expected
+
+    def test_returns_none_when_no_pr_segment(self) -> None:
+        # A branch/tree URL or a number-less path must not be mistaken for a PR.
+        cases = [
+            "https://github.com/getsentry/sentry/tree/123",
+            "https://github.com/getsentry/sentry/pulls",
+            "https://github.com/getsentry/sentry",
+        ]
+        for url in cases:
+            assert _parse_pr_number(url) is None
 
 
 class RecordAttributionSignalTest(TestCase):
