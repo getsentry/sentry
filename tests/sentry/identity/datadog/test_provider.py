@@ -27,6 +27,41 @@ from sentry.users.models.identity import IdentityProvider
 
 
 @control_silo_test
+class DatadogDCRViewTest(TestCase):
+    REGISTER_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/register"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.request = RequestFactory().get("/")
+        self.pipeline = MagicMock()
+        self.pipeline.config = {}
+        self.pipeline.fetch_state.return_value = None
+        self.view = DatadogDCRView(register_url=self.REGISTER_URL)
+
+    @responses.activate
+    def test_binds_client_credentials(self) -> None:
+        responses.add(
+            responses.POST,
+            self.REGISTER_URL,
+            json={"client_id": "new-client-id", "client_secret": "new-client-secret"},
+        )
+
+        self.view.dispatch(self.request, self.pipeline)
+
+        self.pipeline.bind_state.assert_any_call("dcr_client_id", "new-client-id")
+        self.pipeline.bind_state.assert_any_call("dcr_client_secret", "new-client-secret")
+
+    @responses.activate
+    def test_skips_registration_when_client_id_exists(self) -> None:
+        self.pipeline.fetch_state.return_value = "existing-id"
+
+        self.view.dispatch(self.request, self.pipeline)
+
+        assert len(responses.calls) == 0
+        self.pipeline.next_step.assert_called_once()
+
+
+@control_silo_test
 class DatadogOAuth2LoginViewTest(TestCase):
     def setUp(self) -> None:
         sentry.identity.register(DummyProvider)
