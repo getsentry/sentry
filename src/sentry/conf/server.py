@@ -2345,6 +2345,7 @@ DEAD = object()
 # This will eventually get set from values in SENTRY_OPTIONS during
 # sentry.runner.initializer:bootstrap_options
 SECRET_KEY = DEAD
+SENTRY_LOGGING_FORMAT = DEAD
 EMAIL_BACKEND = DEAD
 EMAIL_HOST = DEAD
 EMAIL_PORT = DEAD
@@ -2711,6 +2712,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     # Taskworker topics
     "taskworker": "default",
     "taskworker-dlq": "default",
+    "taskworker-push": "default",
     "taskworker-billing": "default",
     "taskworker-billing-dlq": "default",
     "taskworker-buffer": "default",

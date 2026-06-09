@@ -64,7 +64,7 @@ cd /path/to/sentry && .venv/bin/prek run -q
 prek detects changed files automatically. To run a specific hook:
 
 ```bash
-.venv/bin/prek run -q mypy --files src/sentry/foo/bar.py
+SENTRY_MYPY_PRE_PUSH=1 .venv/bin/prek run -q mypy --files src/sentry/foo/bar.py --stage pre-push
 .venv/bin/prek run -q ruff --files src/sentry/foo/bar.py
 ```
 
