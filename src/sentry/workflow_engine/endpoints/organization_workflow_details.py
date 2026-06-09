@@ -125,7 +125,9 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, workflow: Workflow
+    ) -> Response[None]:
         """
         Deletes an alert.
         """

@@ -38,6 +38,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.services.auth import auth_service
@@ -337,7 +338,9 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, member) -> Response:
+    def delete(
+        self, request: Request, organization, member
+    ) -> Response[None] | Response[DetailResponse]:
         """
         Delete an organization member with a SCIM User DELETE Request.
         """

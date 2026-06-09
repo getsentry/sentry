@@ -69,6 +69,7 @@ class Topic(Enum):
     # Taskworker topics
     TASKWORKER = "taskworker"
     TASKWORKER_DLQ = "taskworker-dlq"
+    TASKWORKER_PUSH = "taskworker-push"
     TASKWORKER_BILLING = "taskworker-billing"
     TASKWORKER_BILLING_DLQ = "taskworker-billing-dlq"
     TASKWORKER_BUFFER = "taskworker-buffer"

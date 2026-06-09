@@ -7,7 +7,7 @@ import threading
 from pathlib import Path
 
 from sentry.preprod.snapshots.image_diff.types import OdiffResponse
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 
 def _find_odiff_binary() -> str:
@@ -125,6 +125,15 @@ class OdiffServer:
             except RuntimeError:
                 self._kill_process()
                 raise
+
+            # This server is one reused subprocess; if the stream desyncs, a comparison would
+            # silently inherit a prior pair's verdict. Fail loudly instead of corrupting results.
+            if response.requestId != self._request_id:
+                self._kill_process()
+                metrics.incr("preprod.snapshots.odiff.requestid_mismatch")
+                raise RuntimeError(
+                    f"odiff response id {response.requestId} != request id {self._request_id}"
+                )
 
         if response.error:
             raise RuntimeError(f"odiff error: {response.error}")

@@ -1,5 +1,3 @@
-from typing import Any
-
 from rest_framework import serializers
 
 from sentry.api.api_owners import ApiOwner
@@ -25,7 +23,7 @@ class TeamAvatarEndpoint(AvatarMixin[TeamAvatar], TeamEndpoint):
     }
     object_type = "team"
     model = TeamAvatar
-    serializer_cls: type[serializers.Serializer[dict[str, Any]]] = TeamAvatarSerializer
+    serializer_cls = TeamAvatarSerializer
 
     def get_avatar_filename(self, obj):
         return f"{obj.slug}.png"

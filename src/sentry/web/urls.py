@@ -1193,6 +1193,12 @@ urlpatterns += [
                     DisabledMemberView.as_view(),
                     name="sentry-organization-disabled-member",
                 ),
+                # Need to serve the org-slug-prefixed share route for self-hosted
+                re_path(
+                    r"^(?P<organization_slug>[^/]+)/share/(?:group|issue)/(?P<share_id>[^/]+)/$",
+                    SharedGroupDetailsView.as_view(auth_required=False),
+                    name="sentry-customer-domain-group-shared",
+                ),
                 # need to force these to React and ensure organization_slug is captured
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/(?P<sub_page>[\w_-]+)/",
