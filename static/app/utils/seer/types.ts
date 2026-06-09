@@ -43,6 +43,25 @@ export type SeerProjectSetting = {
   stopping_point: UserFacingStoppingPoint;
 };
 
+export type SeerProjectRepoResponse = {
+  branchName: string | null;
+  branchOverrides: Array<{
+    branchName: string;
+    id: string;
+    tagName: string;
+    tagValue: string;
+  }>;
+  externalId: string;
+  id: string;
+  instructions: string | null;
+  integrationId: string | null;
+  name: string;
+  organizationId: string;
+  owner: string;
+  provider: string;
+  repositoryId: string;
+};
+
 // Mirrors python serializer: ProjectSettingsUpdateSerializer
 export type SeerProjectSettingUpdatePayload = {
   agent?: SeerAgent;

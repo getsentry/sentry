@@ -5,30 +5,23 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
-import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
-import {LoadingError} from 'sentry/components/loadingError';
-import {Placeholder} from 'sentry/components/placeholder';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {
   useSeerAgentSelectOptions,
   useKnownAgents,
-  getCodingAgentSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
 import {
   getMutateSeerProjectSettingsOptions,
   getSeerProjectSettingsQueryOptions,
   seerProjectSettingsSchema,
 } from 'sentry/utils/seer/seerProjectSettings';
-import {
-  PROJECT_STOPPING_POINT_OPTIONS,
-  getProjectStoppingPointMutationOptions,
-  getProjectStoppingPointValue,
-} from 'sentry/utils/seer/stoppingPoint';
-import type {SeerAgent} from 'sentry/utils/seer/types';
+import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type NightShiftValue = 'on' | 'off' | 'default';
@@ -52,29 +45,50 @@ function getNightShiftValue(project: DetailedProject): NightShiftValue {
 
 interface Props {
   canWrite: boolean;
-  preference: ProjectSeerPreferences;
+
   project: DetailedProject;
 }
 
-export function AutofixAgent({canWrite, preference, project}: Props) {
+export function AutofixAgent({canWrite, project}: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const updateProject = useUpdateProject(project);
-
-  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
-  const agentSelectOptions = useSeerAgentSelectOptions();
   const knownAgents = useKnownAgents();
 
-  const stoppingPointMutationOptions = getProjectStoppingPointMutationOptions({
-    organization,
-    queryClient,
-  });
+  const agentSelectOptions = useSeerAgentSelectOptions();
+  const stoppingPointOptions = useStoppingPointSelectOptions();
 
-  const stoppingPointValue = getProjectStoppingPointValue(project, preference);
+  const updateProject = useUpdateProject(project);
 
-  const {data: projectSettings} = useQuery(
-    getSeerProjectSettingsQueryOptions({organization, project})
+  const {data, isPending, isError, error} = useQuery(
+    getSeerProjectSettingsQueryOptions({
+      organization,
+      project: {slug: project.slug},
+    })
   );
+
+  if (isPending) {
+    return (
+      <Flex justify="center" padding="xl">
+        <LoadingIndicator />
+      </Flex>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Flex justify="center" padding="xl">
+        <Text variant="muted">{t('Error: %s', error.message)}</Text>
+      </Flex>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Flex justify="center" padding="xl">
+        <Text variant="muted">{t('No data found')}</Text>
+      </Flex>
+    );
+  }
 
   const disabledReason = canWrite
     ? null
@@ -85,10 +99,10 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
       <AutoSaveForm
         name="agent"
         schema={seerProjectSettingsSchema}
-        initialValue={projectSettings?.agent ?? 'seer'}
+        initialValue={data.agent}
         mutationOptions={getMutateSeerProjectSettingsOptions({
           organization,
-          project,
+          project: {slug: project.slug},
           queryClient,
           knownAgents,
         })}
@@ -110,54 +124,26 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
               }
             )}
           >
-            {agentOptions.isPending ? (
-              <Placeholder height="36px" width="100%" />
-            ) : agentOptions.isError ? (
-              <LoadingError />
-            ) : (
-              <field.Select
-                disabled={Boolean(disabledReason)}
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={
-                  agentSelectOptions as Array<{
-                    label: string;
-                    value: SeerAgent;
-                  }>
-                }
-              />
-            )}
+            <field.Select
+              disabled={!canWrite}
+              multiple={false}
+              onChange={field.handleChange}
+              options={agentSelectOptions}
+              value={field.state.value}
+            />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
 
       <AutoSaveForm
         name="stoppingPoint"
-        schema={z.object({
-          stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
+        schema={seerProjectSettingsSchema}
+        initialValue={data.stoppingPoint}
+        mutationOptions={getMutateSeerProjectSettingsOptions({
+          organization,
+          project: {slug: project.slug},
+          queryClient,
         })}
-        initialValue={stoppingPointValue}
-        mutationOptions={{
-          mutationFn: (vars, fnCtx) =>
-            stoppingPointMutationOptions.mutationFn!({...vars, project}, fnCtx),
-          onMutate: (vars, fnCtx) =>
-            stoppingPointMutationOptions.onMutate!({...vars, project}, fnCtx),
-          onError: (error, vars, mutateResult, fnCtx) =>
-            stoppingPointMutationOptions.onError?.(
-              error,
-              {...vars, project},
-              mutateResult,
-              fnCtx
-            ),
-          onSettled: (data, error, vars, mutateResult, fnCtx) =>
-            stoppingPointMutationOptions.onSettled?.(
-              data,
-              error,
-              {...vars, project},
-              mutateResult,
-              fnCtx
-            ),
-        }}
       >
         {field => (
           <field.Layout.Row
@@ -172,10 +158,10 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
             )}
           >
             <field.Select
-              disabled={Boolean(disabledReason)}
+              disabled={!canWrite}
               value={field.state.value}
               onChange={field.handleChange}
-              options={PROJECT_STOPPING_POINT_OPTIONS}
+              options={stoppingPointOptions}
             />
           </field.Layout.Row>
         )}
