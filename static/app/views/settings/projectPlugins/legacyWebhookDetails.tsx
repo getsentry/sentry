@@ -146,8 +146,8 @@ export default function LegacyWebhookDetails() {
 
   return (
     <div>
-      <SentryDocumentTitle title="WebHooks" projectSlug={project.slug} />
-      <SettingsPageHeader title="WebHooks" />
+      <SentryDocumentTitle title="Webhooks" projectSlug={project.slug} />
+      <SettingsPageHeader title="Webhooks" />
       <Alert.Container>
         <Alert variant="warning">
           {tct(

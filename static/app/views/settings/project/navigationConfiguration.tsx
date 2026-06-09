@@ -215,29 +215,20 @@ export function getNavigationConfiguration({
       id: 'settings-legacy-integrations',
       name: t('Legacy Integrations'),
       items: [
-        ...(hasLegacyWebhookUI
-          ? []
-          : [
-              {
-                path: `${pathPrefix}/plugins/`,
-                title: t('Legacy Integrations'),
-                description: t(
-                  'View, enable, and disable all integrations for a project'
-                ),
-                id: 'legacy_integrations',
-                recordAnalytics: true,
-              },
-            ]),
-        ...(hasLegacyWebhookUI
-          ? [
-              {
-                path: `${pathPrefix}/legacy-webhooks/`,
-                title: t('Webhooks (Legacy)'),
-                id: 'webhook_details',
-                recordAnalytics: true,
-              },
-            ]
-          : []),
+        hasLegacyWebhookUI
+          ? {
+              path: `${pathPrefix}/legacy-webhooks/`,
+              title: t('Webhooks (Legacy)'),
+              id: 'webhook_details',
+              recordAnalytics: true,
+            }
+          : {
+              path: `${pathPrefix}/plugins/`,
+              title: t('Legacy Integrations'),
+              description: t('View, enable, and disable all integrations for a project'),
+              id: 'legacy_integrations',
+              recordAnalytics: true,
+            },
         ...plugins
           .filter(plugin => !hasLegacyWebhookUI || plugin.id !== 'webhooks')
           .map(plugin => ({
