@@ -17,6 +17,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {ListSelectAllCheckbox} from 'sentry/utils/list/listSelectAllCheckbox';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useKnownAgents} from 'sentry/utils/seer/preferredAgent';
 import {getMutateSeerProjectsSettingsOptions} from 'sentry/utils/seer/seerProjectSettings';
 import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
@@ -94,11 +95,13 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
     [settings, selectedIds]
   );
 
+  const projectsById = useProjectsById();
   const knownAgents = useKnownAgents();
 
   const {mutate} = useMutation(
     getMutateSeerProjectsSettingsOptions({
       organization,
+      projectsById,
       queryClient,
       knownAgents,
     })

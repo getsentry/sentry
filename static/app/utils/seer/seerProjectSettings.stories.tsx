@@ -24,6 +24,7 @@ import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
+import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {
   useSeerAgentSelectOptions,
   useKnownAgents,
@@ -439,7 +440,7 @@ export default Storybook.story('SeerProjectSettings', story => {
   story('Autofix Bulk Dropdown Menus', () => {
     function Example({projectSlugs}: {projectSlugs: string[]}) {
       const {projects} = useProjects();
-      const projectIds = projectSlugs
+      const selectedIds = projectSlugs
         .map(slug => projects.find(p => p.slug === slug)?.id)
         .filter(defined);
       const [lastAgent, setLastAgent] = useState<SeerAgent | undefined>(undefined);
@@ -449,11 +450,13 @@ export default Storybook.story('SeerProjectSettings', story => {
 
       const organization = useOrganization();
       const queryClient = useQueryClient();
+      const projectsById = useProjectsById();
       const knownAgents = useKnownAgents();
 
       const {mutate} = useMutation(
         getMutateSeerProjectsSettingsOptions({
           organization,
+          projectsById,
           queryClient,
           knownAgents,
         })
@@ -468,7 +471,7 @@ export default Storybook.story('SeerProjectSettings', story => {
                 setLastAgent(value);
                 mutate({
                   query: '',
-                  projectIds,
+                  selectedIds,
                   agent: value,
                 });
               }}
@@ -479,7 +482,7 @@ export default Storybook.story('SeerProjectSettings', story => {
                 setLastStoppingPoint(value);
                 mutate({
                   query: '',
-                  projectIds,
+                  selectedIds,
                   stoppingPoint: value,
                 });
               }}

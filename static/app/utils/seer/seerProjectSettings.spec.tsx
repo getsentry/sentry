@@ -447,12 +447,20 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
     };
   }
 
+  const defaultProjectsById = new Map([
+    ['1', {slug: 'project-a'} as any],
+    ['2', {slug: 'project-b'} as any],
+    ['3', {slug: 'project-c'} as any],
+  ]);
+
   function renderBulkMutationHook({
     agents,
     items,
+    projectsById = defaultProjectsById,
   }: {
     agents?: CodingAgentIntegration[];
     items?: SeerProjectSettingResponse[];
+    projectsById?: Map<string, any>;
   } = {}) {
     const queryClient = makeTestQueryClient();
 
@@ -474,6 +482,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
         useMutation(
           getMutateSeerProjectsSettingsOptions({
             organization,
+            projectsById,
             queryClient,
             knownAgents: agents,
           })
@@ -502,7 +511,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       await act(async () => {
         await result.current.mutateAsync({
           agent: 'seer',
-          projectIds: ['1', '2'],
+          selectedIds: ['1', '2'],
         });
       });
 
@@ -515,7 +524,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       );
     });
 
-    it('sends original query when projectIds is all', async () => {
+    it('sends original query when selectedIds is all', async () => {
       const mock = MockApiClient.addMockResponse({
         url: bulkUrl,
         method: 'PUT',
@@ -527,7 +536,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       await act(async () => {
         await result.current.mutateAsync({
           agent: 'seer',
-          projectIds: 'all',
+          selectedIds: 'all',
           query: 'is:enabled',
         });
       });
@@ -553,7 +562,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       await act(async () => {
         await result.current.mutateAsync({
           agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-          projectIds: ['1'],
+          selectedIds: ['1'],
         });
       });
 
@@ -582,7 +591,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       await act(async () => {
         await result.current.mutateAsync({
           stoppingPoint: 'off',
-          projectIds: ['1'],
+          selectedIds: ['1'],
         });
       });
 
@@ -607,7 +616,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       await act(async () => {
         await result.current.mutateAsync({
           stoppingPoint: 'open_pr',
-          projectIds: ['1'],
+          selectedIds: ['1'],
         });
       });
 
@@ -640,7 +649,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       await act(async () => {
         await result.current.mutateAsync({
           agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
-          projectIds: ['1', '3'],
+          selectedIds: ['1', '3'],
         });
       });
 
@@ -664,7 +673,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       });
     });
 
-    it('updates all projects when projectIds is all', async () => {
+    it('updates all projects when selectedIds is all', async () => {
       MockApiClient.addMockResponse({
         url: bulkUrl,
         method: 'PUT',
@@ -676,7 +685,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       await act(async () => {
         await result.current.mutateAsync({
           stoppingPoint: 'root_cause',
-          projectIds: 'all',
+          selectedIds: 'all',
         });
       });
 
@@ -701,6 +710,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       });
 
       const queryClient = makeTestQueryClient();
+      const projectsById = new Map([['1', {slug: 'project-a'} as any]]);
 
       const infiniteQueryKey = getInfiniteSeerProjectsSettingsQueryOptions({
         organization,
@@ -727,6 +737,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
           useMutation(
             getMutateSeerProjectsSettingsOptions({
               organization,
+              projectsById,
               queryClient,
               knownAgents,
             })
@@ -742,7 +753,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       await act(async () => {
         await result.current.mutateAsync({
           agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-          projectIds: ['project-a'],
+          selectedIds: ['1'],
         });
       });
 
@@ -767,7 +778,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       await act(async () => {
         await result.current.mutateAsync({
           stoppingPoint: 'off',
-          projectIds: ['1'],
+          selectedIds: ['1'],
         });
       });
 
@@ -798,7 +809,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
         try {
           await result.current.mutateAsync({
             agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            projectIds: ['1'],
+            selectedIds: ['1'],
           });
         } catch {
           // expected

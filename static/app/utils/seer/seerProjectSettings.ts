@@ -152,10 +152,7 @@ export function getMutateSeerProjectSettingsOptions({
       const jsonUpdates: Partial<SeerProjectSettingResponse> = {};
       if (data.agent !== undefined) {
         jsonUpdates.agent = data.agent;
-        const resolved = resolveIntegrationId(data.agent, knownAgents);
-        if (resolved !== undefined) {
-          jsonUpdates.integrationId = resolved;
-        }
+        jsonUpdates.integrationId = resolveIntegrationId(data.agent, knownAgents) ?? null;
       }
       if (data.stoppingPoint !== undefined) {
         if (data.stoppingPoint === 'off') {
@@ -220,10 +217,12 @@ export function getMutateSeerProjectSettingsOptions({
 
 export function getMutateSeerProjectsSettingsOptions({
   organization,
+  projectsById,
   queryClient,
   knownAgents,
 }: {
   organization: Organization;
+  projectsById: Map<string, AvatarProject>;
   queryClient: QueryClient;
   knownAgents?: CodingAgentIntegration[];
 }) {
@@ -292,10 +291,7 @@ export function getMutateSeerProjectsSettingsOptions({
       const jsonUpdates: Partial<SeerProjectSettingResponse> = {};
       if (data.agent !== undefined) {
         jsonUpdates.agent = data.agent;
-        const resolved = resolveIntegrationId(data.agent, knownAgents);
-        if (resolved !== undefined) {
-          jsonUpdates.integrationId = resolved;
-        }
+        jsonUpdates.integrationId = resolveIntegrationId(data.agent, knownAgents) ?? null;
       }
       if (data.stoppingPoint !== undefined) {
         if (data.stoppingPoint === 'off') {
@@ -338,10 +334,14 @@ export function getMutateSeerProjectsSettingsOptions({
           }
         );
       } else {
-        for (const slug of data.selectedIds) {
+        for (const projectId of data.selectedIds) {
+          const project = projectsById.get(projectId);
+          if (!project) {
+            continue;
+          }
           const singleQueryKey = getSeerProjectSettingsQueryOptions({
             organization,
-            project: {slug} as AvatarProject,
+            project,
           }).queryKey;
           queryClient.setQueryData(
             singleQueryKey,

@@ -173,7 +173,7 @@ export function SeerProjectTable() {
       </Stack>
       <ListItemCheckboxProvider
         hits={data?.length ?? 0}
-        knownIds={data?.map(item => item.projectId) ?? []}
+        knownIds={data?.map(item => String(item.projectId)) ?? []}
         endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
         <InfiniteTable.Table columns="max-content 2fr max-content repeat(2, 1fr)">
@@ -222,7 +222,7 @@ export function SeerProjectTable() {
                       <InfiniteTable.RowCell>
                         <ListItemSelectCheckbox
                           htmlPrefix="seer-project-settings"
-                          value={item.projectId}
+                          value={String(item.projectId)}
                         />
                       </InfiniteTable.RowCell>
                       <InfiniteTable.RowCell>
