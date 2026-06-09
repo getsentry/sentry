@@ -9,7 +9,6 @@ import {
 } from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -113,19 +112,19 @@ export function useSeerAgentSelectOptions() {
   }, [knownAgents]);
 }
 
-export function useOrgDefaultAgent() {
+export function useOrgDefaultAgentOption() {
   const organization = useOrganization();
   const {data: knownAgents} = useQuery(
     knownAgentIntegrationsQueryOptions({organization})
   );
 
-  return useMemo((): 'seer' | AgentIntegration => {
+  return useMemo((): AutofixAgentSelectOption => {
     if (organization.defaultCodingAgentIntegrationId) {
       const match = knownAgents?.find(
         i => i.id === String(organization.defaultCodingAgentIntegrationId)
       );
       if (match) {
-        return match;
+        return `${match.provider}::${match.id}`;
       }
     }
     return 'seer';
@@ -137,39 +136,20 @@ export function useOrgDefaultAgent() {
  * Returns undefined for Seer (no external handoff needed).
  */
 export function buildHandoffPayload(
-  agent: 'seer' | AgentIntegration,
+  agent: PreferredAgentProvider,
+  integrationId: string | undefined,
   autoCreatePr: boolean
 ): ProjectSeerPreferences['automation_handoff'] {
   if (agent === 'seer') {
     return undefined;
   }
-  const target = PROVIDER_TO_HANDOFF_TARGET[agent.provider];
+  const target = PROVIDER_TO_HANDOFF_TARGET[agent];
   return target
     ? {
         handoff_point: 'root_cause',
         target,
-        integration_id: Number(agent.id),
+        integration_id: Number(integrationId),
         auto_create_pr: autoCreatePr,
       }
     : undefined;
-}
-
-/**
- * Returns the list of coding agent integrations formatted as select options,
- * with Seer Agent as the first/default option.
- */
-export function getCodingAgentSelectQueryOptions({
-  organization,
-}: {
-  organization: Organization;
-}) {
-  return queryOptions({
-    ...organizationIntegrationsCodingAgents(organization),
-    select: (data): Array<{label: string; value: 'seer' | CodingAgentIntegration}> => [
-      {value: 'seer', label: t('Seer Agent')},
-      ...(data.json.integrations ?? [])
-        .filter(integration => integration.id)
-        .map(integration => ({value: integration, label: integration.name})),
-    ],
-  });
 }
