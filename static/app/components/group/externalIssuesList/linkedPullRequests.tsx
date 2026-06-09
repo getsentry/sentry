@@ -109,7 +109,7 @@ function LinkedPullRequestRow({pullRequest}: {pullRequest: LinkedPullRequest}) {
               </Text>
             </Flex>
             <Flex as="span" align="center" gap="xs" minWidth={0}>
-              <IconRepository size="xs" variant="muted" />
+              <RepositoryIcon size="xs" variant="muted" />
               <Text
                 as="span"
                 ellipsis
@@ -179,4 +179,8 @@ const PullRequestRow = styled(ExternalLink)`
     color: ${p => p.theme.tokens.content.primary};
     background: ${p => p.theme.tokens.background.secondary};
   }
+`;
+
+const RepositoryIcon = styled(IconRepository)`
+  transform: translateY(1px);
 `;
