@@ -99,7 +99,7 @@ class DatadogDCRViewTest(TestCase):
 
         self.view.dispatch(self.request, self.pipeline)
 
-        self.pipeline.error.assert_called_once_with("Could not parse DCR response")
+        self.pipeline.error.assert_called_once_with("Could not decode a JSON Response")
         self.pipeline.bind_state.assert_not_called()
         assert_failure_metric(mock_record, "json_error")
 
