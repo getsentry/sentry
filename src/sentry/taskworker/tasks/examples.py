@@ -146,6 +146,6 @@ def task_that_produces(
     for i in range(production_count):
         logger.debug(f"Producing message {i} onto topic {destination_topic}...")
         producer.produce(
-            topic=Topic(destination_topic),
+            dest=Topic(destination_topic),
             payload=KafkaPayload(key=None, value=payload, headers=[]),
         )
