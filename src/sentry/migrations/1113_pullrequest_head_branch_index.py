@@ -10,7 +10,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1110_pullrequest_head_branch"),
+        ("sentry", "1112_pullrequest_head_branch"),
     ]
 
     operations = [

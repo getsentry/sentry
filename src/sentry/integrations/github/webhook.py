@@ -761,6 +761,15 @@ class PushEventWebhook(GitHubWebhook):
                 }
             )
 
+        super()._handle(
+            github_event=github_event,
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+            **kwargs,
+        )
+
 
 class IssuesEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#issuesevent"""

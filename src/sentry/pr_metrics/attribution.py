@@ -174,11 +174,20 @@ def record_referenced_issue_signal(
             if attr is not None:
                 return attr
             # Concurrent create won the race — re-read the winner's row and merge.
-            attr = PullRequestAttribution.objects.select_for_update().get(
-                pull_request=pull_request,
-                signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-                source=PullRequestAttributionSource.WEBHOOK_DATA,
+            # Use filter().first() rather than get(): the IntegrityError could also
+            # come from a FK violation if the PullRequest was concurrently deleted,
+            # in which case no attribution row exists and we should silently bail.
+            attr = (
+                PullRequestAttribution.objects.select_for_update()
+                .filter(
+                    pull_request=pull_request,
+                    signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
+                    source=PullRequestAttributionSource.WEBHOOK_DATA,
+                )
+                .first()
             )
+            if attr is None:
+                return None
             details = _merge_webhook_key(
                 normalize_signal_details(attr.signal_details), webhook_key, group_ids
             )

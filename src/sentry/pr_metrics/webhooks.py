@@ -23,6 +23,7 @@ from typing import Any
 
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
+from django.db.models import Q
 
 from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -34,6 +35,7 @@ from sentry.models.pullrequest import (
     PullRequestActivityType,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestLifecycleState,
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.activity_types import (
@@ -242,9 +244,13 @@ def handle_push_attribution(
 
     try:
         pr = PullRequest.objects.get(
+            Q(state__isnull=True) | ~Q(state=PullRequestLifecycleState.MERGED),
             organization_id=organization.id,
             repository_id=repo.id,
             head_branch=branch,
+            # Merged PRs can never be reopened; skip them to avoid attributing
+            # commits on a reused branch to a long-closed PR. Null state (old
+            # rows pre-lifecycle-tracking) is allowed through conservatively.
         )
     except PullRequest.DoesNotExist:
         return
