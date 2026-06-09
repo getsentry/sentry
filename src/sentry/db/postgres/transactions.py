@@ -53,9 +53,13 @@ def django_test_transaction_water_mark(using: str | None = None) -> Generator[No
         yield
     finally:
         connection.run_on_commit = old_run_on_commit
-        hybrid_cloud.simulated_transaction_watermarks.state[using] = min(
-            hybrid_cloud.simulated_transaction_watermarks.get_transaction_depth(connection), prev
-        )
+        # Restore the watermark to the baseline that was in effect on entry. We
+        # intentionally do not take min() with the current depth: a transient drop
+        # below `prev` only happens when the connection's outer test transactions
+        # were reset (e.g. a connection close mid-block), and latching the watermark
+        # down to that value leaves the connection permanently "above watermark"
+        # once it re-enters its atomics, producing spurious CrossTransactionAssertionErrors.
+        hybrid_cloud.simulated_transaction_watermarks.state[using] = prev
 
 
 class InTestTransactionEnforcement(threading.local):

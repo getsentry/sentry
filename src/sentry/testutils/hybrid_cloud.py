@@ -121,13 +121,21 @@ class EnforceNoCrossTransactionWrapper:
         # when tasks fire synchronously, or other work is done in a test that would normally be separated by
         # different connections / processes.  If you believe this is the case, context the #project-hybrid-cloud channel
         # for assistance.
+        if open_transactions:
+            # Capture the watermark baseline and the actual per-connection
+            # transaction depths so a failure pinpoints which connection drifted
+            # rather than just naming the symptom.
+            diagnostics = (
+                f" (watermarks={dict(simulated_transaction_watermarks.state)}, "
+                f"depths={{{', '.join(f'{c.alias}={SimulatedTransactionWatermarks.get_transaction_depth(c)}' for c in connections.all())}}})"
+            )
         if len(open_transactions) >= 2:
             raise CrossTransactionAssertionError(
-                f"Found mixed open transactions between dbs {open_transactions}"
+                f"Found mixed open transactions between dbs {open_transactions}{diagnostics}"
             )
         if open_transactions and self.alias not in open_transactions:
             raise CrossTransactionAssertionError(
-                f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
+                f"Transaction opened for db {open_transactions}, but command running against db {self.alias}{diagnostics}"
             )
 
         return execute(*params)
