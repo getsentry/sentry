@@ -110,7 +110,7 @@ def compare_rebalanced_projects_with_cache(
         generic_metrics_sample_rate = cached_sample_rates.get(project_id)
         project_volume = project_volumes_by_id.get(project_id)
         eap_volume_without_extrapolation = (
-            project_volume.total_without_extrapolation if project_volume is not None else None
+            project_volume.keep if project_volume is not None else None
         )
         logger.info(
             "dynamic_sampling.per_org.project_balancing_comparison",
