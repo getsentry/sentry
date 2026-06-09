@@ -469,6 +469,7 @@ export default typescript.config([
     plugins: {'@sentry/scraps': sentryScrapsPlugin},
     rules: {
       '@sentry/scraps/no-core-import': 'error',
+      '@sentry/scraps/no-double-dollar-interpolation': 'error',
       '@sentry/scraps/no-token-import': 'error',
       '@sentry/scraps/prefer-info-text': 'error',
       '@sentry/scraps/use-semantic-token': [
