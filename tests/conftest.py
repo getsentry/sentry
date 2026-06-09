@@ -103,30 +103,60 @@ def setup_enforce_monotonic_transactions(request: pytest.FixtureRequest) -> Gene
 
 
 @pytest.fixture(autouse=True)
-def repair_leaked_transactions() -> Generator[None]:
-    """Prevent a single transaction leak from poisoning the whole xdist worker.
+def repair_leaked_transactions(request: pytest.FixtureRequest) -> Generator[None]:
+    """Contain (and surface) a transaction leak so it can't poison the worker.
 
     When a test fails partway through a multi-database operation it can leave a
     savepoint open on the (process-shared) connection that Django's rollback
-    does not unwind. Because the cross-transaction guard compares each
-    connection's transaction depth against a watermark that is re-baselined at
-    the start of every test, the leftover savepoint makes every subsequent test
-    on that worker raise CrossTransactionAssertionError (or "pop from empty
-    list") in setUp/teardown -- turning one flake into hundreds of failures.
+    does not unwind. The cross-transaction guard compares each connection's
+    transaction depth against a watermark that is re-baselined at the start of
+    every test (hardcoded to 2 for a Django ``TestCase``), so the leftover
+    savepoint leaves the connection permanently "above watermark". Every
+    subsequent test on that worker then fails in setUp/teardown with
+    ``CrossTransactionAssertionError`` (or "pop from empty list") -- turning a
+    single flake into hundreds of failures attributed to innocent tests.
 
-    After each test, close any connection still left above its watermark so the
-    next test gets a clean connection. On a healthy test there is nothing above
-    the watermark, so this is a no-op and adds no latency.
+    Note that ``connection.close()`` does NOT fix this: while the connection is
+    still inside the ``TestCase`` class-level atomic block, Django's ``close()``
+    only sets ``closed_in_transaction`` and leaves ``savepoint_ids`` /
+    ``in_atomic_block`` (and therefore the inflated depth) intact. So we reset
+    the connection's transaction bookkeeping ourselves -- mirroring what
+    ``connect()`` does -- to guarantee the next test starts clean.
+
+    On a healthy test nothing is above the watermark, so this is a no-op and
+    adds no latency. When a leak IS found we fail loudly, naming the offending
+    test and database(s): a leaked open transaction is a real bug that should be
+    fixed at the source, not silently swallowed.
     """
     from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 
     yield
 
+    leaked = simulated_transaction_watermarks.connections_above_watermark()
+    if not leaked:
+        return
+
+    # Force each leaked connection back to a pristine, transaction-free state so
+    # the leak cannot cascade into the next test on this worker.
     for conn in connections.all():
-        if simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
-            connection=conn
-        ):
+        if conn.alias not in leaked:
+            continue
+        try:
             conn.close()
+        finally:
+            conn.connection = None
+            conn.savepoint_ids = []
+            conn.atomic_blocks = []
+            conn.in_atomic_block = False
+            conn.closed_in_transaction = False
+            conn.needs_rollback = False
+
+    pytest.fail(
+        f"{request.node.nodeid} leaked an open transaction on db(s) "
+        f"{sorted(leaked)}. This corrupts transaction state for the rest of the "
+        f"xdist worker; the test must close its transactions before returning.",
+        pytrace=False,
+    )
 
 
 @pytest.fixture(autouse=True)
