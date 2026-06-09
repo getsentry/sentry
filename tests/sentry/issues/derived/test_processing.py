@@ -19,6 +19,7 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived import processing
 from sentry.issues.derived.aggregators import AGGREGATORS
+from sentry.issues.derived.groupderiveddata import GroupDerivedData
 from sentry.issues.derived.lib import (
     AggregatorResult,
     Feature,
@@ -30,7 +31,6 @@ from sentry.issues.derived.processing import pipeline, process_group_log
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group
-from sentry.models.groupderiveddata import GroupDerivedData
 from sentry.testutils.cases import TestCase
 
 SOURCE = ActionSource.API

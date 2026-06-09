@@ -65,7 +65,6 @@ from .groupshare import *  # NOQA
 from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
-from .groupderiveddata import *  # NOQA
 from .importchunk import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .options import *  # NOQA
