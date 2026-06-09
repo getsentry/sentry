@@ -126,7 +126,12 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
         return value.strip().rstrip("/")
 
     def validate_web_url(self, value: str) -> str:
-        return value.rstrip("/")
+        value = value.strip().rstrip("/")
+        # The Swarm web URL is used verbatim as the base of stacktrace links, so it
+        # must carry a scheme; otherwise links render as schemeless/relative URLs.
+        if value and not value.startswith(("http://", "https://")):
+            value = f"https://{value}"
+        return value
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if attrs["p4port"].startswith("ssl") and not attrs.get("ssl_fingerprint"):
@@ -254,37 +259,59 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         Args:
             repo: Repository object
             filepath: File path, may include #revision (e.g., "app/file.cpp#1")
-            branch: Stream name (e.g., "main", "dev") to be inserted after depot path.
-                   For Perforce streams: //depot/stream/path/to/file
+            branch: Either a Perforce stream name (e.g., "main", "dev") inserted after
+                   the depot path, or a changelist number (all digits) passed by the
+                   stacktrace-link layer as the commit "sha". A changelist is a revision,
+                   not a stream, so it is rendered as a revision specifier
+                   ("@<changelist>") rather than spliced into the depot path.
 
         Returns:
             Formatted URL (p4:// or Swarm web viewer URL)
         """
         # Use client's build_depot_path to handle both relative and absolute paths correctly
         client = self.get_client()
-        full_path = client.build_depot_path(repo, filepath, branch)
 
-        # If Swarm web viewer is configured, use it
-        # Web URL is stored in Integration.metadata
+        # `branch` is overloaded by the generic stacktrace-link layer: it is either a
+        # stream name (the code mapping's default branch, e.g. "main") or a commit
+        # "sha". In Perforce a commit sha is a changelist number (all digits). A
+        # changelist is a *revision*, not a stream, so it must not be passed to
+        # build_depot_path as a stream -- doing so yields a bogus
+        # "//depot/<changelist>/..." path. Render it as a revision specifier instead.
+        changelist: str | None = None
+        stream = branch
+        if branch is not None and branch.isdigit():
+            changelist = branch
+            stream = None
+
+        full_path = client.build_depot_path(repo, filepath, stream)
+
+        # A file revision may also arrive embedded in the path via the Symbolic
+        # transformer's "#<rev>" syntax (e.g. "file.cpp#1").
+        path_without_rev = full_path
+        file_revision: str | None = None
+        if "#" in full_path:
+            path_without_rev, file_revision = full_path.rsplit("#", 1)
+
+        # Swarm uses "@<changelist>" as the revision specifier for a changelist.
+        revision = file_revision or (f"@{changelist}" if changelist else None)
+
+        # If Swarm web viewer is configured, use it.
+        # Web URL is stored in Integration.metadata.
         web_url = self.model.metadata.get("web_url")
 
         if web_url:
-            # Extract file revision from filepath if present (e.g., "file.cpp#1")
-            revision = None
-            path_without_rev = full_path
-            if "#" in full_path:
-                path_without_rev, revision = full_path.rsplit("#", 1)
-
             # Swarm format: /files/<depot_path>?v=<revision>
             if revision:
-                url = f"{web_url}/files{path_without_rev}?v={revision}"
-            else:
-                url = f"{web_url}/files{full_path}"
-            return url
+                return f"{web_url}/files{path_without_rev}?v={revision}"
+            return f"{web_url}/files{path_without_rev}"
 
-        # Default: p4:// protocol URL with file revision (#) syntax
-        # Strip leading // from full_path to avoid p4:////
-        url = f"p4://{full_path.lstrip('/')}"
+        # Default: p4:// protocol URL with revision syntax.
+        # Strip leading // from the path to avoid p4:////
+        url = f"p4://{path_without_rev.lstrip('/')}"
+        if file_revision:
+            url = f"{url}#{file_revision}"
+        elif changelist:
+            url = f"{url}@{changelist}"
         return url
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:

@@ -5,6 +5,7 @@ import responses
 from django.urls import reverse
 
 from sentry.integrations.perforce.integration import (
+    PerforceInstallationSerializer,
     PerforceIntegration,
     PerforceIntegrationProvider,
 )
@@ -171,6 +172,85 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp"
         assert "depot/depot" not in url
+
+    def _swarm_installation(self, external_id: str) -> PerforceIntegration:
+        """Create a Perforce integration configured with a Swarm web viewer."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce",
+            external_id=external_id,
+            metadata={
+                "web_url": "https://swarm.example.com",
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "testuser",
+                "password": "testpass",
+            },
+        )
+        return integration.get_installation(self.organization.id)  # type: ignore[assignment]
+
+    def test_format_source_url_swarm_viewer_changelist_branch(self) -> None:
+        """
+        A numeric `branch` is a changelist (the commit "sha"), not a stream. It must be
+        rendered as a Swarm revision (?v=@<changelist>) and must NOT be spliced into the
+        depot path as "//depot/<changelist>/...".
+        """
+        installation = self._swarm_installation("perforce-test-swarm-cl")
+
+        url = installation.format_source_url(
+            repo=self.repo, filepath="app/services/processor.cpp", branch="2998"
+        )
+
+        assert url == "https://swarm.example.com/files//depot/app/services/processor.cpp?v=@2998"
+        # Regression guard: the changelist must not become a path segment.
+        assert "/2998/" not in url
+
+    def test_format_source_url_swarm_viewer_changelist_with_stream_in_path(self) -> None:
+        """
+        Mirrors the real demo setup: the stream ("main/") is part of the mapped path
+        (from the code mapping's source root) and the changelist arrives via `branch`.
+        """
+        installation = self._swarm_installation("perforce-test-swarm-cl-stream")
+
+        url = installation.format_source_url(
+            repo=self.repo,
+            filepath="main/Source/SentryTower/Player/SentryTowerTurret.cpp",
+            branch="2998",
+        )
+
+        assert url == (
+            "https://swarm.example.com/files"
+            "//depot/main/Source/SentryTower/Player/SentryTowerTurret.cpp?v=@2998"
+        )
+        assert "/2998/" not in url
+
+    def test_format_source_url_swarm_viewer_stream_branch(self) -> None:
+        """A non-numeric `branch` is a stream name and is inserted after the depot."""
+        installation = self._swarm_installation("perforce-test-swarm-stream")
+
+        url = installation.format_source_url(
+            repo=self.repo, filepath="app/services/processor.cpp", branch="main"
+        )
+
+        assert url == "https://swarm.example.com/files//depot/main/app/services/processor.cpp"
+
+    def test_format_source_url_p4_protocol_changelist_branch(self) -> None:
+        """Without a Swarm viewer, a changelist branch uses Perforce '@<changelist>' syntax."""
+        url = self.installation.format_source_url(
+            repo=self.repo, filepath="app/services/processor.cpp", branch="2998"
+        )
+        assert url == "p4://depot/app/services/processor.cpp@2998"
+
+    def test_validate_web_url_adds_scheme(self) -> None:
+        """A web URL without a scheme is normalized to https:// so links aren't relative."""
+        serializer = PerforceInstallationSerializer()
+        assert serializer.validate_web_url("swarm.example.com") == "https://swarm.example.com"
+        assert serializer.validate_web_url("swarm.example.com/") == "https://swarm.example.com"
+        # An existing scheme is preserved.
+        assert (
+            serializer.validate_web_url("https://swarm.example.com") == "https://swarm.example.com"
+        )
+        assert serializer.validate_web_url("http://swarm.example.com") == "http://swarm.example.com"
 
     def test_format_source_url_strips_leading_slash_from_relative_path(self) -> None:
         """Test that leading slash is stripped from relative paths"""
