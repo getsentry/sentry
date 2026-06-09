@@ -2172,7 +2172,6 @@ class SDKCrashMonitoringTestMixin(BasePostProcessGroupMixin):
 
 @patch("sentry.processing_errors.eap.producer.produce_processing_errors_to_eap")
 class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
-    @with_feature("organizations:processing-errors-eap")
     def test_processing_errors_eap_called_with_errors(self, mock_produce: MagicMock) -> None:
         event = self.create_event(
             data={
@@ -2216,7 +2215,6 @@ class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
 
         mock_produce.assert_not_called()
 
-    @with_feature("organizations:processing-errors-eap")
     def test_processing_errors_eap_not_called_without_errors(self, mock_produce: MagicMock) -> None:
         event = self.create_event(
             data={"message": "testing"},
