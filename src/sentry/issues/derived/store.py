@@ -9,7 +9,7 @@ and Features don't have to.
 
 from typing import Any
 
-from sentry.issues.derived.fields import LAST_PROGRESSED_AT, PROGRESS, VIEW_COUNT
+from sentry.issues.derived.features import LAST_PROGRESSED_AT, PROGRESS, VIEW_COUNT
 from sentry.issues.derived.framework import Feature, Pipeline, State
 from sentry.issues.derived.groupderiveddata import GroupDerivedData
 
