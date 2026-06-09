@@ -103,3 +103,61 @@ class AuditLogEntrySerializerTest(TestCase):
         serializer = AuditLogEntrySerializer()
         result = serialize(log, serializer=serializer)
         assert result["note"] == ""
+
+    def test_no_actor_does_not_crash(self) -> None:
+        """When actor is None (user was deleted, SET_NULL applied), serialization works."""
+        log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("TEAM_ADD"),
+            actor=None,
+            actor_label="deleted-user@example.com",
+            datetime=timezone.now(),
+            data={"slug": "New Team"},
+        )
+
+        serializer = AuditLogEntrySerializer()
+        result = serialize(log, serializer=serializer)
+
+        # Actor should fall back to the label-based name
+        assert result["actor"]["name"] == "deleted-user@example.com"
+
+    def test_no_target_user_does_not_crash(self) -> None:
+        """When target_user is None, targetUser falls back to the raw ID."""
+        log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("MEMBER_INVITE"),
+            actor=self.user,
+            target_user=None,
+            datetime=timezone.now(),
+            data={},
+        )
+
+        serializer = AuditLogEntrySerializer()
+        result = serialize(log, serializer=serializer)
+
+        assert result["targetUser"] is None
+
+    def test_actor_not_misaligned_across_entries(self) -> None:
+        """Multiple entries with a mix of valid and no-actor entries should not misalign."""
+        valid_log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("TEAM_ADD"),
+            actor=self.user,
+            datetime=timezone.now(),
+            data={"slug": "Team A"},
+        )
+        no_actor_log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("TEAM_ADD"),
+            actor=None,
+            actor_label="removed-user@example.com",
+            datetime=timezone.now(),
+            data={"slug": "Team B"},
+        )
+
+        serializer = AuditLogEntrySerializer()
+        results = serialize([valid_log, no_actor_log], serializer=serializer)
+        by_id = {r["id"]: r for r in results}
+
+        assert by_id[str(valid_log.id)]["actor"]["username"] == self.user.username
+        assert by_id[str(no_actor_log.id)]["actor"]["name"] == "removed-user@example.com"

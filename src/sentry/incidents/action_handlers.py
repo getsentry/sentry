@@ -11,6 +11,8 @@ from django.conf import settings
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
+logger = logging.getLogger(__name__)
+
 from sentry import analytics, features
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.charts.types import ChartSize
@@ -302,10 +304,18 @@ def email_users(
     notification_uuid: str | None = None,
     detector_serialized_response: DetectorSerializerResponse | None = None,
 ) -> list[int]:
-    users = user_service.get_many_by_id(ids=[user_id for user_id, _ in targets])
+    users_by_id = {
+        u.id: u for u in user_service.get_many_by_id(ids=[user_id for user_id, _ in targets])
+    }
     sent_to_users = []
-    for index, (user_id, email) in enumerate(targets):
-        user = users[index]
+    for user_id, email in targets:
+        user = users_by_id.get(user_id)
+        if user is None:
+            logger.warning(
+                "incidents.action_handlers.missing_user",
+                extra={"user_id": user_id},
+            )
+            continue
         # TODO(iamrajjoshi): Temporarily assert that alert_threshold is not None
         # This should be removed when we update the typing and fetch the trigger_threshold in the new system
         if trigger_status == TriggerStatus.ACTIVE:

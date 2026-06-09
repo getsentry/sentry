@@ -41,20 +41,23 @@ class AuditLogEntrySerializer(Serializer):
         prefetch_related_objects(item_list, "actor")
         prefetch_related_objects(item_list, "target_user")
 
-        users = {
-            d["id"]: d
-            for d in serialize(
-                {i.actor for i in item_list if i.actor_id}
-                | {i.target_user for i in item_list if i.target_user_id},
-                user,
-            )
+        # Filter out None values from the set: a prefetched FK can be None if
+        # the referenced user was deleted but the SET_NULL cascade hasn't
+        # propagated yet, or due to data integrity issues.
+        actor_set = {i.actor for i in item_list if i.actor_id and i.actor is not None}
+        target_user_set = {
+            i.target_user for i in item_list if i.target_user_id and i.target_user is not None
         }
+
+        users = {d["id"]: d for d in serialize(actor_set | target_user_set, user) if d is not None}
 
         return {
             item: {
                 "actor": (
-                    users[str(item.actor_id)]
-                    if item.actor_id and not override_actor_id(item.actor)
+                    users.get(str(item.actor_id), {"name": item.get_actor_name()})
+                    if item.actor_id
+                    and item.actor is not None
+                    and not override_actor_id(item.actor)
                     else {"name": item.get_actor_name()}
                 ),
                 "targetUser": users.get(str(item.target_user_id)) or item.target_user_id,

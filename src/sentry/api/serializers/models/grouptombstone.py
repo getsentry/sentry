@@ -14,7 +14,7 @@ class GroupTombstoneSerializer(Serializer):
 
         attrs = {}
         for item in item_list:
-            attrs[item] = {"user": users.get(item.actor_id, {})}
+            attrs[item] = {"user": users.get(item.actor_id)}
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs):

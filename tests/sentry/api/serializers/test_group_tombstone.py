@@ -30,3 +30,37 @@ class GroupTombstoneSerializerTest(TestCase):
         assert result["message"] == group.message
         assert result["culprit"] == group.culprit
         assert result["actor"]["email"] == "foo@example.com"
+
+    def test_deleted_actor_returns_none(self) -> None:
+        """When actor_id points to a non-existent user, actor should be None, not {}."""
+        group = self.create_group()
+        tombstone = GroupTombstone.objects.create(
+            project_id=group.project_id,
+            level=group.level,
+            message=group.message,
+            culprit=group.culprit,
+            data=group.data,
+            actor_id=999999999,
+            previous_group_id=group.id,
+        )
+
+        result = serialize(tombstone, self.user)
+
+        assert result["actor"] is None
+
+    def test_no_actor_id_returns_none(self) -> None:
+        """When actor_id is None, actor should be None."""
+        group = self.create_group()
+        tombstone = GroupTombstone.objects.create(
+            project_id=group.project_id,
+            level=group.level,
+            message=group.message,
+            culprit=group.culprit,
+            data=group.data,
+            actor_id=None,
+            previous_group_id=group.id,
+        )
+
+        result = serialize(tombstone, self.user)
+
+        assert result["actor"] is None
