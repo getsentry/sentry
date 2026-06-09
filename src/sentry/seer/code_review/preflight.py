@@ -84,7 +84,11 @@ class CodeReviewPreflightService:
         return None
 
     def _check_org_feature_enablement(self) -> PreflightDenialReason | None:
-        if self._is_seat_based_seer_plan_org or self._is_code_review_beta_org:
+        if (
+            self._is_seat_based_seer_plan_org
+            or self._is_code_review_beta_org
+            or self._is_gitlab_la_org
+        ):
             return None
 
         return PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
@@ -101,6 +105,15 @@ class CodeReviewPreflightService:
         then that means that they've opened a PR before, and either have a seat already OR it's their
         "Free action."
         """
+        # GitLab LA orgs run with no seat-based billing wired up yet — skip the
+        # contributor lookup entirely. Once they're moved onto seat-based-seer
+        # (which takes precedence below) this bypass is no longer taken.
+        # The PR_AUTHOR_EXCLUDED check below is skipped on this path because it
+        # is keyed off contributor.alias (GitHub-shaped usernames). GitLab bot
+        # filtering is tracked as a follow-up on SCM-99.
+        if self._is_gitlab_la_org and not self._is_seat_based_seer_plan_org:
+            return None
+
         if self.integration_id is None or self.pr_author_external_id is None:
             return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
@@ -145,3 +158,7 @@ class CodeReviewPreflightService:
     @cached_property
     def _is_code_review_beta_org(self) -> bool:
         return features.has("organizations:code-review-beta", self.organization)
+
+    @cached_property
+    def _is_gitlab_la_org(self) -> bool:
+        return features.has("organizations:seer-gitlab-support", self.organization)
