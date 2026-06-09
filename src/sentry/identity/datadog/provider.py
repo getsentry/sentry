@@ -45,7 +45,7 @@ class DatadogDCRView:
     """Dynamic Client Registration (RFC 7591) for Datadog MCP.
 
     Registers a new OAuth client with the MCP server and stores the resulting
-    client_id / client_secret in pipeline state for subsequent views.
+    client_id and client_secret in pipeline state.
     """
 
     def __init__(self, register_url: str) -> None:
@@ -85,7 +85,7 @@ class DatadogDCRView:
                 data = orjson.loads(safe_urlread(resp))
             except orjson.JSONDecodeError:
                 lifecycle.record_failure("json_error")
-                return pipeline.error("Could not parse DCR response")
+                return pipeline.error("Could not decode a JSON Response")
 
             client_id = data.get("client_id")
             client_secret = data.get("client_secret")
@@ -102,8 +102,8 @@ class DatadogDCRView:
 class DatadogOAuth2LoginView(OAuth2LoginView):
     """OAuth2 login with PKCE (RFC 7636) for Datadog MCP.
 
-    Reads client_id from pipeline state (set by DatadogDCRView) and adds
-    code_challenge, code_challenge_method, and resource to the authorize URL.
+    Reads client_id from pipeline state and adds code_challenge,
+    code_challenge_method, and resource to the authorize URL.
     """
 
     _code_verifier: str | None = None
@@ -140,8 +140,8 @@ class DatadogOAuth2LoginView(OAuth2LoginView):
 class DatadogOAuth2CallbackView(OAuth2CallbackView):
     """OAuth2 callback with PKCE + client_secret_basic for Datadog MCP.
 
-    Reads client_id / client_secret from pipeline state.
-    Credentials are sent via Basic auth header, not in the POST body.
+    Adds code verifier to the authorize URL. Reads client_id / client_secret
+    from pipeline state and sends them via Basic auth header.
     """
 
     def exchange_token(
