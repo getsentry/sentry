@@ -106,29 +106,26 @@ class DatadogOAuth2LoginView(OAuth2LoginView):
     code_challenge_method, and resource to the authorize URL.
     """
 
-    _code_verifier: str | None = None
-
     def __init__(self, authorize_url: str, scope: str, resource: str) -> None:
         super().__init__(authorize_url=authorize_url, scope=scope)
         self.resource = resource
 
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         self.client_id = pipeline.fetch_state("dcr_client_id")
-
-        # PKCE: Bind the code verifier to the pipeline.
-        self._code_verifier = generate_pkce_code_verifier()
-        pipeline.bind_state("pkce_code_verifier", self._code_verifier)
-
         return super().dispatch(request, pipeline)
 
-    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | None]:
+    def get_authorize_params(
+        self, state: str, redirect_uri: str, pipeline: IdentityPipeline | None = None
+    ) -> dict[str, str | None]:
         params = super().get_authorize_params(state, redirect_uri)
 
         params["resource"] = self.resource
 
-        # PKCE: Use the code verifier to generate the code challenge.
-        assert self._code_verifier is not None
-        params["code_challenge"] = generate_pkce_code_challenge(self._code_verifier)
+        # PKCE: Bind the code verifier to the pipeline and use it to generate the code challenge.
+        code_verifier = generate_pkce_code_verifier()
+        if pipeline is not None:
+            pipeline.bind_state("pkce_code_verifier", code_verifier)
+        params["code_challenge"] = generate_pkce_code_challenge(code_verifier)
         params["code_challenge_method"] = "S256"
 
         return params

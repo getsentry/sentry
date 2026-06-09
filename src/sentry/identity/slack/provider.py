@@ -104,7 +104,7 @@ class SlackOAuth2LoginView(OAuth2LoginView):
         if user_scope is not None:
             self.user_scope = user_scope
 
-    def get_authorize_params(self, state, redirect_uri):
+    def get_authorize_params(self, state, redirect_uri, pipeline=None):
         data = super().get_authorize_params(state, redirect_uri)
 
         # XXX(meredith): Bot apps must be added manually to channels, and link unfurling
