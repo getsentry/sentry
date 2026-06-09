@@ -23,7 +23,6 @@ from sentry.issues.derived.fields import (
     AUTOFIX_PRS,
     CLOSING_PRS,
     LAST_OPENED,
-    LAST_SEEN,
     PROGRESS,
     RECENT_VIEWERS,
     STATUS,
@@ -78,23 +77,11 @@ def test_view_increments_count() -> None:
     assert state[VIEW_COUNT] == 2
 
 
-def test_view_updates_last_seen() -> None:
-    p = Pipeline([track_views], version=1)
-    state = p.initial_state()
-    t1 = _ts(hour=1)
-    t2 = _ts(hour=2)
-    state = p.step(state, FakeEntry(type=GroupActionType.VIEW, date_added=t1))
-    assert state[LAST_SEEN] == t1.timestamp()
-    state = p.step(state, FakeEntry(type=GroupActionType.VIEW, date_added=t2))
-    assert state[LAST_SEEN] == t2.timestamp()
-
-
 def test_view_ignores_non_view() -> None:
     p = Pipeline([track_views], version=1)
     state = p.initial_state()
     state = p.step(state, FakeEntry(type=GroupActionType.COMMENT))
     assert state[VIEW_COUNT] == 0
-    assert state[LAST_SEEN] is None
 
 
 # ---------------------------------------------------------------------------
@@ -582,7 +569,6 @@ def test_full_pipeline_constructs() -> None:
     state = p.initial_state()
     assert state[STATUS] == IssueStatus.OPEN
     assert state[VIEW_COUNT] == 0
-    assert state[LAST_SEEN] is None
     assert state[WAS_AUTOFIXED] is False
     assert state[PROGRESS] == Progress.IDENTIFIED
 
@@ -613,5 +599,4 @@ def test_full_pipeline_mixed_events() -> None:
     )
     assert state[STATUS] == IssueStatus.CLOSED
     assert state[VIEW_COUNT] == 1
-    assert state[LAST_SEEN] == _ts(hour=1).timestamp()
     assert state[WORKING_ON] == {}

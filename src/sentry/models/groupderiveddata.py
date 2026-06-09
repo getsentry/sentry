@@ -34,7 +34,6 @@ class GroupDerivedData(DefaultFieldsModel):
     data = models.JSONField(default=dict)
 
     # Column-backed features — promoted from JSON for indexing/querying.
-    last_seen = models.FloatField(null=True, default=None)
     view_count = BoundedPositiveIntegerField(default=0)
     progress = models.CharField(max_length=32, null=True, default="identified")
 

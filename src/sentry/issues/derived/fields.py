@@ -29,7 +29,6 @@ class WorkingOnEntry(BaseModel):
         frozen = True
 
 
-LAST_SEEN = Feature[float | None]("last_seen", default=None)
 VIEW_COUNT = Feature[int]("view_count", default=0)
 STATUS = Feature[str]("status", default=IssueStatus.OPEN)
 LAST_OPENED = Feature[float | None]("last_opened", default=None)
