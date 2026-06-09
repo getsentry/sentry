@@ -30,29 +30,6 @@ class Codec[T]:
 IDENTITY_CODEC: Codec[Any] = Codec()
 
 
-class PydanticDictCodec(Codec[dict[str, Any]]):
-    """Codec for dict[str, PydanticModel] values."""
-
-    def __init__(self, model: type[Any]) -> None:
-        self._model = model
-
-    def dump(self, value: dict[str, Any]) -> dict[str, Any]:
-        return {k: v.dict() for k, v in value.items()}
-
-    def load(self, raw: dict[str, Any]) -> dict[str, Any]:
-        return {k: self._model(**v) for k, v in raw.items()}
-
-
-class FrozenSetCodec(Codec[frozenset[str]]):
-    """Codec for frozenset[str] — stored as a JSON list."""
-
-    def dump(self, value: frozenset[str]) -> list[str]:
-        return sorted(value)
-
-    def load(self, raw: list[str]) -> frozenset[str]:
-        return frozenset(raw)
-
-
 # ---------------------------------------------------------------------------
 # Feature
 # ---------------------------------------------------------------------------

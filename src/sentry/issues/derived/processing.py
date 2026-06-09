@@ -9,10 +9,15 @@ from sentry.issues.derived.framework import Pipeline
 from sentry.issues.derived.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-pipeline = Pipeline(AGGREGATORS, version=1)
+# Pipeline with current aggregators. Versioned because in principle
+# we may want to change it in place and correlate that to existing derived data
+# for invalidation purposes.
+# TODO: Shouldn't it be versioned by a feature set hash? To be sorted out later.
+PIPELINE = Pipeline(AGGREGATORS, version=1)
 
 DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100
@@ -116,9 +121,10 @@ def process_group_log_batch(
     target_pipeline: Pipeline | None = None,
 ) -> ProcessResult:
     """Process a single batch of pending entries. Schedules a task if not caught up."""
-    p = target_pipeline or pipeline
-    derived = _ensure_derived(group_id)
-    has_more = _process_batch(p, derived, group_id, batch_size)
+    with metrics.timer("issues.derived.process_batch"):
+        p = target_pipeline or PIPELINE
+        derived = _ensure_derived(group_id)
+        has_more = _process_batch(p, derived, group_id, batch_size)
     return ProcessResult(derived=derived, caught_up=not has_more)
 
 
@@ -128,10 +134,47 @@ def process_group_log(
     target_pipeline: Pipeline | None = None,
 ) -> GroupDerivedData:
     """Fully drain all pending entries for a group, processing in batches."""
-    p = target_pipeline or pipeline
+    p = target_pipeline or PIPELINE
     derived = _ensure_derived(group_id)
 
     while _process_batch(p, derived, group_id, batch_size):
         pass
 
     return derived
+
+
+def invalidate_group_derived_data(
+    group_id: int,
+    cursor: tuple[datetime, int] | None = None,
+) -> None:
+    """Invalidate derived state when the action log has been mutated.
+
+    Call this when entries have been inserted, modified, or deleted in a way
+    that means the materialised GroupDerivedData no longer reflects the true
+    state of the log — e.g. after back-filling historical actions or deleting
+    entries that were written in error.
+
+    If *cursor* is provided as ``(date_added, id)`` of the earliest affected
+    entry, the row is reset to just before that point so only the affected
+    suffix is reprocessed.  Without a cursor the entire row is deleted and
+    will be rebuilt from scratch on the next processing pass.
+    """
+    if cursor is None:
+        GroupDerivedData.objects.filter(group_id=group_id).delete()
+        return
+
+    # Only invalidate if the row has already processed past the affected point.
+    cursor_date, cursor_id = cursor
+    deleted, _ = GroupDerivedData.objects.filter(
+        Q(group_id=group_id)
+        & (Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)),
+    ).delete()
+    if deleted:
+        logger.info(
+            "issues.derived.invalidated",
+            extra={
+                "group_id": group_id,
+                "cursor_date": str(cursor_date),
+                "cursor_id": cursor_id,
+            },
+        )

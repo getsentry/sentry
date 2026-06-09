@@ -1,13 +1,9 @@
-from datetime import timedelta
-
 import pytest
-from django.utils import timezone
 
 from sentry import options
 from sentry.issues.action_log.base import ActionSource, publish_action
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
-    AutofixPrCreatedAction,
     GroupAction,
     GroupActionActor,
     GroupActionType,
@@ -19,6 +15,7 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived import processing
 from sentry.issues.derived.aggregators import AGGREGATORS
+from sentry.issues.derived.features import STATUS, VIEW_COUNT
 from sentry.issues.derived.framework import (
     AggregatorResult,
     Feature,
@@ -27,7 +24,11 @@ from sentry.issues.derived.framework import (
     aggregator,
 )
 from sentry.issues.derived.groupderiveddata import GroupDerivedData
-from sentry.issues.derived.processing import pipeline, process_group_log
+from sentry.issues.derived.processing import (
+    PIPELINE,
+    invalidate_group_derived_data,
+    process_group_log,
+)
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group
@@ -53,13 +54,13 @@ class ProcessGroupLogTest(TestCase):
         super().setUp()
         options.set("issues.action-log.write-to-db", True)
         # Enable mutation checking so aggregators that modify state in place fail.
-        self._original_pipeline = processing.pipeline
-        processing.pipeline = Pipeline(
-            AGGREGATORS, version=processing.pipeline.version, check_mutations=True
+        self._original_pipeline = processing.PIPELINE
+        processing.PIPELINE = Pipeline(
+            AGGREGATORS, version=processing.PIPELINE.version, check_mutations=True
         )
 
     def tearDown(self) -> None:
-        processing.pipeline = self._original_pipeline
+        processing.PIPELINE = self._original_pipeline
         options.delete("issues.action-log.write-to-db")
         super().tearDown()
 
@@ -201,118 +202,49 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.data["status"] == "closed"
 
-    def test_recent_viewers_tracks_user(self) -> None:
+    # --- invalidation ---
+
+    def test_invalidate_deletes_row(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        assert GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+        invalidate_group_derived_data(group.id)
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+    def test_invalidate_with_cursor_deletes_if_past(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+
+        # Cursor at the processed entry — row should be deleted.
+        invalidate_group_derived_data(group.id, cursor=(derived.cursor_date, derived.cursor_id))
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+    def test_invalidate_with_cursor_noop_if_not_reached(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        old_cursor = derived.cursor_id
+
+        # Cursor beyond what we've processed — row should be untouched.
+        future = derived.cursor_date.replace(year=derived.cursor_date.year + 1)
+        invalidate_group_derived_data(group.id, cursor=(future, old_cursor + 1000))
+        derived.refresh_from_db()
+        assert derived.cursor_id == old_cursor
+
+    def test_invalidate_then_reprocess(self) -> None:
         group = self.create_group()
         user = self.user
-
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
-        viewers = derived.data["recent_viewers"]
-        assert str(user.id) in viewers
-
-    def test_recent_viewers_multiple_users(self) -> None:
-        group = self.create_group()
-        user_a = self.user
-        user_b = self.create_user()
-
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user_a.id))
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user_b.id))
-        derived = process_group_log(group.id)
-        viewers = derived.data["recent_viewers"]
-        assert str(user_a.id) in viewers
-        assert str(user_b.id) in viewers
-
-    def test_recent_viewers_updates_timestamp(self) -> None:
-        group = self.create_group()
-        user = self.user
-
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
         derived = process_group_log(group.id)
-        viewers = derived.data["recent_viewers"]
-        assert len(viewers) == 1
-        assert str(user.id) in viewers
+        assert derived.view_count == 2
 
-    def test_recent_viewers_expires_stale(self) -> None:
-        group = self.create_group()
-        user_old = self.user
-        user_new = self.create_user()
-        now = timezone.now()
-
-        GroupActionLogEntry.objects.create(
-            group_id=group.id,
-            project_id=group.project_id,
-            type=0,
-            actor_type=GroupActorType.USER,
-            actor_id=user_old.id,
-            source=SOURCE,
-            data={},
-            date_added=now - timedelta(days=60),
-        )
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user_new.id))
-
-        GroupDerivedData.objects.filter(group_id=group.id).delete()
+        invalidate_group_derived_data(group.id)
         derived = process_group_log(group.id)
-        viewers = derived.data["recent_viewers"]
-        assert str(user_old.id) not in viewers
-        assert str(user_new.id) in viewers
-
-    def test_recent_viewers_ignores_no_user(self) -> None:
-        group = self.create_group()
-
-        _publish(group=group, action=ViewAction())
-        derived = process_group_log(group.id)
-        assert derived.data["recent_viewers"] == {}
-
-    # --- working_on ---
-
-    def test_working_on_includes_viewer(self) -> None:
-        group = self.create_group()
-        user = self.user
-
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
-        working = derived.data["working_on"]
-        assert str(user.id) in working
-
-    def test_working_on_empty_when_closed(self) -> None:
-        group = self.create_group()
-        user = self.user
-
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
-        assert derived.data["working_on"] == {}
-
-    def test_working_on_resets_on_reopen(self) -> None:
-        group = self.create_group()
-        user_before = self.user
-        user_after = self.create_user()
-
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user_before.id))
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user_before.id))
-        _publish(group=group, action=UnresolveAction(), actor=GroupActionActor.user(user_before.id))
-        # Only user_after views after reopen
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user_after.id))
-        derived = process_group_log(group.id)
-        working = derived.data["working_on"]
-        assert str(user_after.id) in working
-        assert str(user_before.id) not in working
-
-    def test_working_on_since_preserved(self) -> None:
-        group = self.create_group()
-        user = self.user
-
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
-        first_since = derived.data["working_on"][str(user.id)]["since"]
-
-        # Second view shouldn't move "since" forward
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
-        assert derived.data["working_on"][str(user.id)]["since"] == first_since
-
-    # --- autofix / resolved_in_pull_request ---
+        assert derived.view_count == 2  # rebuilt from scratch
 
     def test_resolved_in_pull_request_closes(self) -> None:
         group = self.create_group()
@@ -325,173 +257,6 @@ class ProcessGroupLogTest(TestCase):
         )
         derived = process_group_log(group.id)
         assert derived.data["status"] == "closed"
-
-    def test_autofix_pr_tracked(self) -> None:
-        group = self.create_group()
-
-        _publish(
-            group=group,
-            action=AutofixPrCreatedAction(
-                run_id="run-1",
-                pull_requests=[
-                    {
-                        "repo_name": "getsentry/sentry",
-                        "pull_request": {"pr_id": 101, "pr_number": 99},
-                    }
-                ],
-            ),
-        )
-        derived = process_group_log(group.id)
-        assert "101" in derived.data["autofix_prs"]
-
-    def test_was_autofixed_when_resolved_by_autofix_pr(self) -> None:
-        group = self.create_group()
-        user = self.user
-
-        _publish(
-            group=group,
-            action=AutofixPrCreatedAction(
-                run_id="run-1",
-                pull_requests=[{"repo_name": "getsentry/sentry", "pull_request": {"pr_id": 101}}],
-            ),
-        )
-        _publish(
-            group=group,
-            action=ResolvedInPullRequestAction(pull_request=101),
-            actor=GroupActionActor.user(user.id),
-        )
-        derived = process_group_log(group.id)
-        assert derived.data["was_autofixed"] is True
-
-    def test_not_autofixed_when_resolved_by_different_pr(self) -> None:
-        group = self.create_group()
-        user = self.user
-
-        _publish(
-            group=group,
-            action=AutofixPrCreatedAction(
-                run_id="run-1",
-                pull_requests=[{"repo_name": "getsentry/sentry", "pull_request": {"pr_id": 101}}],
-            ),
-        )
-        _publish(
-            group=group,
-            action=ResolvedInPullRequestAction(pull_request=999),
-            actor=GroupActionActor.user(user.id),
-        )
-        derived = process_group_log(group.id)
-        assert derived.data["was_autofixed"] is False
-
-    def test_not_autofixed_when_manually_resolved(self) -> None:
-        group = self.create_group()
-        user = self.user
-
-        _publish(
-            group=group,
-            action=AutofixPrCreatedAction(
-                run_id="run-1",
-                pull_requests=[{"repo_name": "getsentry/sentry", "pull_request": {"pr_id": 101}}],
-            ),
-        )
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
-        assert derived.data["was_autofixed"] is False
-
-    def test_was_autofixed_stays_true_after_reopen(self) -> None:
-        group = self.create_group()
-        user = self.user
-
-        _publish(
-            group=group,
-            action=AutofixPrCreatedAction(
-                run_id="run-1",
-                pull_requests=[{"repo_name": "getsentry/sentry", "pull_request": {"pr_id": 101}}],
-            ),
-        )
-        _publish(
-            group=group,
-            action=ResolvedInPullRequestAction(pull_request=101),
-            actor=GroupActionActor.user(user.id),
-        )
-        _publish(group=group, action=UnresolveAction(), actor=GroupActionActor.user(user.id))
-        derived = process_group_log(group.id)
-        assert derived.data["was_autofixed"] is True
-
-    def test_not_autofixed_when_already_closed(self) -> None:
-        group = self.create_group()
-        user = self.user
-
-        _publish(
-            group=group,
-            action=AutofixPrCreatedAction(
-                run_id="run-1",
-                pull_requests=[{"repo_name": "getsentry/sentry", "pull_request": {"pr_id": 101}}],
-            ),
-        )
-        _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
-        # Issue is already closed; this RESOLVED_IN_PULL_REQUEST is a no-op on status
-        _publish(
-            group=group,
-            action=ResolvedInPullRequestAction(pull_request=101),
-            actor=GroupActionActor.user(user.id),
-        )
-        derived = process_group_log(group.id)
-        assert derived.data["was_autofixed"] is False
-
-    def test_query_autofixed_groups(self) -> None:
-        """
-        Three groups with realistic event streams. All three have autofix PRs
-        created. Only group 1 actually gets closed by its autofix PR.
-        Verifies the pipeline and ORM query correctly identify just that one.
-        """
-        user_a = self.user
-        user_b = self.create_user()
-        groups = [self.create_group() for _ in range(3)]
-        autofix_pr_ids = {g.id: 1000 + i for i, g in enumerate(groups)}
-
-        # All three get views and autofix PRs
-        for g in groups:
-            _publish(group=g, action=ViewAction(), actor=GroupActionActor.user(user_a.id))
-            _publish(
-                group=g,
-                action=AutofixPrCreatedAction(
-                    run_id=f"run-{g.id}",
-                    pull_requests=[
-                        {
-                            "repo_name": "getsentry/sentry",
-                            "pull_request": {"pr_id": autofix_pr_ids[g.id]},
-                        }
-                    ],
-                ),
-            )
-
-        # Group 0: manually resolved (not by autofix PR)
-        _publish(group=groups[0], action=ResolveAction(), actor=GroupActionActor.user(user_a.id))
-
-        # Group 1: resolved by its autofix PR
-        _publish(
-            group=groups[1],
-            action=ResolvedInPullRequestAction(pull_request=autofix_pr_ids[groups[1].id]),
-            actor=GroupActionActor.user(user_b.id),
-        )
-
-        # Group 2: resolved by a different (non-autofix) PR, then reopened
-        _publish(
-            group=groups[2],
-            action=ResolvedInPullRequestAction(pull_request=9999),
-            actor=GroupActionActor.user(user_a.id),
-        )
-        _publish(group=groups[2], action=UnresolveAction(), actor=GroupActionActor.user(user_b.id))
-
-        for g in groups:
-            process_group_log(g.id)
-
-        autofixed = list(
-            Group.objects.filter(
-                groupderiveddata__data__was_autofixed=True,
-            ).values_list("id", flat=True)
-        )
-        assert autofixed == [groups[1].id]
 
 
 # --- Pure Python tests (no DB) ---
@@ -537,14 +302,12 @@ class GroupDerivedDataStoreTest(TestCase):
         super().tearDown()
 
     def test_load_returns_defaults_for_empty_data(self) -> None:
-        from sentry.issues.derived.fields import STATUS, VIEW_COUNT
-
         group = self.create_group()
         derived = GroupDerivedData.objects.create(
             group=group,
             data={},
         )
-        state = GroupDerivedDataStore.load(pipeline, derived)
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
         assert state[VIEW_COUNT] == 0
         assert state[STATUS] == "open"
 
@@ -556,36 +319,8 @@ class GroupDerivedDataStoreTest(TestCase):
         _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(user.id))
         derived = process_group_log(group.id)
 
-        state = GroupDerivedDataStore.load(pipeline, derived)
-        update = GroupDerivedDataStore.build_update(pipeline, state)
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        update = GroupDerivedDataStore.build_update(PIPELINE, state)
 
         assert update["data"] == derived.data
         assert update["view_count"] == derived.view_count
-
-    def test_round_trip_with_rich_types(self) -> None:
-        """Codec-backed features (WorkingOnEntry, frozenset) survive round-trip."""
-        from sentry.issues.derived.fields import AUTOFIX_PRS, WORKING_ON
-
-        group = self.create_group()
-        user = self.user
-
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
-        _publish(
-            group=group,
-            action=AutofixPrCreatedAction(
-                run_id="run-1",
-                pull_requests=[{"repo_name": "getsentry/sentry", "pull_request": {"pr_id": 101}}],
-            ),
-        )
-        derived = process_group_log(group.id)
-
-        state1 = GroupDerivedDataStore.load(pipeline, derived)
-        update = GroupDerivedDataStore.build_update(pipeline, state1)
-
-        # Simulate persisting and reloading.
-        GroupDerivedDataStore.apply_to_instance(derived, update)
-        state2 = GroupDerivedDataStore.load(pipeline, derived)
-
-        assert state2[WORKING_ON] == state1[WORKING_ON]
-        assert state2[AUTOFIX_PRS] == state1[AUTOFIX_PRS]
-        assert isinstance(state2[AUTOFIX_PRS], frozenset)
