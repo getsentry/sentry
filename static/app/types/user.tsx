@@ -5,9 +5,6 @@ import type {UserEnrolledAuthenticator} from './auth';
 import type {Scope} from './core';
 import type {Avatar} from './coreBase';
 
-/**
- * Avatars are a more primitive version of User.
- */
 export interface User extends Omit<AvatarUser, 'options'> {
   canReset2fa: boolean;
   dateJoined: string;
@@ -42,8 +39,6 @@ export interface User extends Omit<AvatarUser, 'options'> {
   authenticators?: UserEnrolledAuthenticator[];
 }
 
-// XXX(epurkhiser): we should understand how this is diff from User['emails]
-// above
 /**
  * API tokens and Api Applications.
  */
@@ -68,5 +63,3 @@ export interface InternalAppApiToken extends BaseApiToken {
 export interface NewInternalAppApiToken extends InternalAppApiToken {
   token: string;
 }
-
-// Used in user session history.

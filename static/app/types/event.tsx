@@ -47,9 +47,6 @@ import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
 
 /**
- * Grouping Configuration.
- */
-/**
  * SDK Update metadata
  */
 type EnableIntegrationSuggestion = {
@@ -143,10 +140,6 @@ export type ExceptionType = {
   values?: ExceptionValue[];
 };
 
-// This type is incomplete
-/**
- * Event interface types.
- */
 export type EntryDebugMeta = {
   data: {
     images?: Array<Image | null>;
@@ -220,11 +213,6 @@ export type EntryMap = {
 
 // Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
 
-// https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
-// https://develop.sentry.dev/sdk/event-payloads/contexts/#runtime-context
-// OpenTelemetry Context
-// https://develop.sentry.dev/sdk/performance/opentelemetry/#opentelemetry-context
-// event.contexts.flags can be overriden by the user so the type is not strict
 export type EventContexts = {
   'Current Culture'?: CultureContext;
   'Memory Info'?: MemoryInfoContext;

@@ -1,6 +1,9 @@
 import type {IssueType} from 'sentry/types/groupBase';
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
+/**
+ * Grouping Configuration.
+ */
 export type EventGroupComponent = {
   contributes: boolean;
   hint: string | null;
@@ -81,6 +84,7 @@ export enum LockType {
   SLEEPING = 4,
   BLOCKED = 8,
 }
+// This type is incomplete
 export type EventMetadata = {
   current_level?: number;
   directive?: string;
@@ -106,6 +110,9 @@ export enum EventOrGroupType {
   AGGREGATE_TRANSACTION = 'aggregateTransaction',
   GENERIC = 'generic',
 }
+/**
+ * Event interface types.
+ */
 export enum EntryType {
   EXCEPTION = 'exception',
   MESSAGE = 'message',
@@ -225,6 +232,7 @@ export enum DeviceContextKey {
   LOW_POWER_MODE = 'low_power_mode',
   THERMAL_STATE = 'thermal_state',
 }
+// https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
 export interface DeviceContext
   extends Partial<Record<DeviceContextKey, unknown>>, BaseContext {
   type: 'device';
@@ -284,6 +292,7 @@ enum RuntimeContextKey {
   RAW_DESCRIPTION = 'raw_description',
   VERSION = 'version',
 }
+// https://develop.sentry.dev/sdk/event-payloads/contexts/#runtime-context
 export interface RuntimeContext
   extends Partial<Record<RuntimeContextKey, unknown>>, BaseContext {
   type: 'runtime';
@@ -303,6 +312,8 @@ enum OtelContextKey {
   ATTRIBUTES = 'attributes',
   RESOURCE = 'resource',
 }
+// OpenTelemetry Context
+// https://develop.sentry.dev/sdk/performance/opentelemetry/#opentelemetry-context
 export interface OtelContext
   extends Partial<Record<OtelContextKey, unknown>>, BaseContext {
   type: 'otel';
@@ -408,6 +419,7 @@ export interface ResponseContext {
   data: unknown;
   type: 'response';
 }
+// event.contexts.flags can be overriden by the user so the type is not strict
 export type FeatureFlag = {flag?: string; result?: boolean};
 export type Flags = {values?: Array<FeatureFlag | null>};
 export type Measurement = {value: number; type?: string; unit?: string};

@@ -1,5 +1,8 @@
 import type {Avatar, ObjectStatus} from 'sentry/types/coreBase';
 
+/**
+ * Organization summaries are sent when you request a list of all organizations
+ */
 export interface OrganizationSummary {
   avatar: Avatar;
   dateCreated: string;
@@ -20,17 +23,29 @@ export interface OrganizationSummary {
     name: string;
   };
 }
+/**
+ * Users that exist in CommitAuthors but are not members of the organization.
+ * These users commit to repos installed for the organization.
+ */
 export interface MissingMember {
   commitCount: number;
   email: string;
   // The user's ID in the repository provider (e.g. Github username)
   externalId: string;
 }
+/**
+ * Minimal organization shape from SharedProjectSerializer.
+ * Backend provides {slug, name}. Features is added client-side
+ * for compatibility with OrganizationContext.
+ */
 export type SharedViewOrganization = {
   slug: string;
   features?: string[];
   name?: string;
 };
+/**
+ * Discover queries and result sets.
+ */
 export type SavedQueryVersions = 1 | 2;
 export type Confidence = 'high' | 'low' | null;
 export type EventsStatsData = Array<
@@ -55,6 +70,10 @@ export type EventsStatsSeries<F extends string> = {
   };
   timestamps: number[];
 };
+/**
+ * Session API types.
+ */
+// Base type for series style API response
 export interface SeriesApi {
   groups: Array<{
     by: Record<string, string | number>;

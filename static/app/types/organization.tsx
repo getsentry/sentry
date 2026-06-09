@@ -27,9 +27,6 @@ import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
 
 /**
- * Organization summaries are sent when you request a list of all organizations
- */
-/**
  * Detailed organization (e.g. when requesting details for a single org)
  */
 export interface Organization extends OrganizationSummary {
@@ -196,15 +193,6 @@ export interface TeamMember extends Member {
   teamSlug?: string;
 }
 
-/**
- * Users that exist in CommitAuthors but are not members of the organization.
- * These users commit to repos installed for the organization.
- */
-/**
- * Minimal organization shape from SharedProjectSerializer.
- * Backend provides {slug, name}. Features is added client-side
- * for compatibility with OrganizationContext.
- */
 export type AuditLog = {
   actor: User;
   data: any;
@@ -228,9 +216,6 @@ export type AccessRequest = {
   }>;
 };
 
-/**
- * Discover queries and result sets.
- */
 export interface NewQuery {
   fields: readonly string[];
   name: string;
@@ -306,8 +291,3 @@ export type GroupedMultiSeriesEventsStats = Record<
     order: number;
   }
 >;
-
-/**
- * Session API types.
- */
-// Base type for series style API response

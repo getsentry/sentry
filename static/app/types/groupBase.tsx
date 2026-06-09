@@ -5,6 +5,9 @@ import type {EventMetadata, EventOrGroupType, Level} from 'sentry/types/eventBas
 import type {AvatarUser} from 'sentry/types/userBase';
 
 export type EntryData = Record<string, any | any[]>;
+/**
+ * Saved issues searches
+ */
 export type RecentSearch = {
   dateCreated: string;
   id: string;
@@ -13,6 +16,7 @@ export type RecentSearch = {
   query: string;
   type: SavedSearchType;
 };
+// XXX: Deprecated Sentry 9 attributes are not included here.
 export type SavedSearch = {
   dateCreated: string;
   id: string;
@@ -210,6 +214,7 @@ export enum IssueTitle {
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
   LOW_VALUE_SPAN_CONFIGURATION = 'AI Detected Low-Value Span',
 }
+// endpoint: /api/0/organizations/:orgSlug/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
@@ -221,6 +226,7 @@ export type IssueAttachment = {
   size: number;
   type: string;
 };
+// endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
 export type EventAttachment = IssueAttachment;
 export type TagValue = {
   count: number;
@@ -254,6 +260,9 @@ export type TagWithTopValues = {
   uniqueValues: number;
   canDelete?: boolean;
 };
+/**
+ * Inbox, issue owners and Activity
+ */
 export type Annotation = {
   displayName: string;
   url: string;
@@ -285,6 +294,7 @@ export type SuggestedOwnerReason =
   | 'projectOwnership'
   // TODO: codeowners may no longer exist
   | 'codeowners';
+// Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
   date_added: string;
   owner: string;
@@ -358,6 +368,9 @@ export interface ReprocessingStatusDetails {
   } | null;
   pendingEvents: number;
 }
+/**
+ * The payload sent when marking reviewed
+ */
 export interface MarkReviewed {
   inbox: false;
 }
@@ -419,6 +432,9 @@ export interface GroupTombstone {
 export interface GroupTombstoneHelper extends GroupTombstone {
   isTombstone: true;
 }
+/**
+ * Datascrubbing
+ */
 export type Meta = {
   chunks: ChunkType[];
   err: MetaError[];

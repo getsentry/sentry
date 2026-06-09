@@ -1,4 +1,7 @@
 import type {Avatar} from 'sentry/types/coreBase';
+/**
+ * Avatars are a more primitive version of User.
+ */
 export type AvatarUser = {
   email: string;
   id: string;
@@ -20,6 +23,8 @@ export enum StacktraceOrder {
   MOST_RECENT_LAST = 1,
   MOST_RECENT_FIRST = 2,
 }
+// XXX(epurkhiser): we should understand how this is diff from User['emails]
+// above
 export type UserEmail = {
   email: string;
   isPrimary: boolean;
@@ -53,6 +58,7 @@ export type OrgAuthToken = {
   projectLastUsedId?: string;
   tokenLastCharacters?: string;
 };
+// Used in user session history.
 export type InternetProtocol = {
   countryCode: string | null;
   firstSeen: string;

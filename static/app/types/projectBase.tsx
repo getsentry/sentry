@@ -8,6 +8,7 @@ export type SeerNightshiftTweaks = {
   reasoning_effort?: 'low' | 'medium' | 'high';
 };
 export type ProjectStats = TimeseriesValue[];
+// Response from project_keys endpoints.
 export type ProjectKey = {
   browserSdk: {
     choices: Array<[key: string, value: string]>;

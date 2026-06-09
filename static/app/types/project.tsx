@@ -158,7 +158,6 @@ export type Project = ProjectSummary;
 
 export type MinimalProject = Pick<ProjectSummary, 'id' | 'slug' | 'platform'>;
 
-// Response from project_keys endpoints.
 export type ProjectSdkUpdates = {
   projectId: string;
   sdkName: string;

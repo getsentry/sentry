@@ -1,3 +1,6 @@
+/**
+ * Visual representation of a project/team/organization/user
+ */
 export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'default';
   avatarUuid: string | null;
@@ -16,8 +19,15 @@ export type Actor = {
   email?: string;
 };
 export type DateString = Date | string | null;
+/**
+ * Simple timeseries data used in groups, projects and release health.
+ */
 export type TimeseriesValue = [timestamp: number, value: number];
+// taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
 export type Writable<T> = {-readonly [K in keyof T]: T[K]};
+/**
+ * The 'other' option format used by checkboxes, radios and more.
+ */
 export type Choice = readonly [
   value: string | number,
   label: string | number | React.ReactElement,
@@ -33,6 +43,9 @@ export enum Outcome {
   CARDINALITY_LIMITED = 'cardinality_limited',
   DROPPED = 'dropped', // this is not a real outcome coming from the server
 }
+/**
+ * Represents a pinned page filter sentinel value
+ */
 export type PinnedPageFilter = 'projects' | 'environments' | 'datetime';
 type EmptyState = {type: 'empty'};
 type InitialState = {type: 'initial'};

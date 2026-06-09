@@ -39,10 +39,6 @@ import type {User} from './user';
 import type {AvatarUser} from './userBase';
 
 /**
- * Saved issues searches
- */
-// XXX: Deprecated Sentry 9 attributes are not included here.
-/**
  * These are issue categories that are generally filterable in the UI.
  * Do not include deprecated or test categories.
  */
@@ -239,8 +235,6 @@ export function isOccurrenceBased(typeId: number | undefined): boolean {
   return !PERFORMANCE_REGRESSION_TYPE_IDS.has(typeId);
 }
 
-// endpoint: /api/0/organizations/:orgSlug/issues/:issueId/attachments/?limit=50
-// endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
 /**
  * Issue Tags
  */
@@ -269,10 +263,6 @@ export type Tag = {
 
 export type TagCollection = Record<string, Tag>;
 
-/**
- * Inbox, issue owners and Activity
- */
-// Received from the backend to denote suggested owners of an issue
 export type IssueOwnership = {
   autoAssignment:
     | 'Auto Assign to Suspect Commits'
@@ -695,9 +685,6 @@ export interface TeamParticipant extends Team {
 }
 
 /**
- * The payload sent when marking reviewed
- */
-/**
  * The payload sent when updating a group's status
  */
 
@@ -796,9 +783,6 @@ export type SimpleGroup = {
   type: EventOrGroupType;
 };
 
-/**
- * Datascrubbing
- */
 /**
  * Old User Feedback
  */
