@@ -29,6 +29,8 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
   const {
     collapseAll,
     event,
+    defaultExpandedFrameIndex,
+    emptySourceNotation,
     frames,
     hasScmSourceContext,
     lastFrameIndex,
@@ -39,8 +41,15 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
   } = useStackTraceContext();
 
   const registers = row.frameIndex === frames.length - 1 ? stacktrace.registers : {};
+  const isSingleEmptySourceFrame =
+    emptySourceNotation && frames.length === 1 && row.frameIndex === 0;
   const [isExpanded, setIsExpanded] = useState(
-    () => !collapseAll && row.frameIndex === lastFrameIndex
+    () =>
+      !collapseAll &&
+      row.frameIndex ===
+        (defaultExpandedFrameIndex === undefined
+          ? lastFrameIndex
+          : defaultExpandedFrameIndex)
   );
 
   const isFrameExpandable = frameHasExpandableDetails({
@@ -48,6 +57,7 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
     registers,
     platform,
     hasScmSourceContext,
+    emptySourceNotation: isSingleEmptySourceFrame,
   });
 
   const frameContextId = useId();
@@ -62,6 +72,8 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
       hiddenFramesExpanded: !!hiddenFrameToggleMap[row.frameIndex],
       isExpandable: isFrameExpandable,
       isExpanded,
+      isSubFrame: row.isSubFrame,
+      isUsedForGrouping: row.isUsedForGrouping,
       nextFrame: row.nextFrame,
       platform,
       timesRepeated: row.timesRepeated,
@@ -78,6 +90,8 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
       hiddenFrameToggleMap,
       isExpanded,
       isFrameExpandable,
+      row.isSubFrame,
+      row.isUsedForGrouping,
       platform,
       row.frame,
       row.frameIndex,
