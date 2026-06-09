@@ -109,7 +109,7 @@ class OrganizationReportContextFactory:
                 start=prev_start,
                 end=prev_end,
                 ctx=ctx,
-                referrer=Referrer.REPORTS_OUTCOMES_PREVIOUS_WEEK.value,
+                referrer=Referrer.REPORTS_OUTCOMES.value,
             )
             for data in event_counts:
                 project_id = data["project_id"]
