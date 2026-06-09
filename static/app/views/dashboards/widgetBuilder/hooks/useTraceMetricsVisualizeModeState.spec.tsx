@@ -265,6 +265,58 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
   });
 
+  it('clears legend aliases when switching to equation mode and restores them on return', async () => {
+    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['sum(value,alpha_metric,counter,none)'],
+            legendAlias: ['my alias'],
+          },
+        },
+      },
+    });
+
+    // Switch to equation mode — aliases should be cleared
+    mockNavigate.mockClear();
+    act(() => {
+      result.current.handleModeToggle(true);
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            legendAlias: [],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    // Switch back to series mode — aliases should be restored
+    mockNavigate.mockClear();
+    act(() => {
+      result.current.handleModeToggle(false);
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            legendAlias: ['my alias'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+  });
+
   it('restores equation yAxis when toggling to equation mode with a cached snapshot', async () => {
     const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
