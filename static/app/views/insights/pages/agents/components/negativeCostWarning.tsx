@@ -19,8 +19,8 @@ interface NegativeCostInfoProps {
  */
 export function NegativeCostInfo({cost}: NegativeCostInfoProps) {
   return (
-    <Flex display="inline-flex" align="center" gap="xs">
-      <IconWarning legacySize="1em" variant="warning" />
+    <Flex as="span" display="inline-flex" align="center" gap="xs">
+      <IconWarning size="xs" variant="warning" />
       <InfoText
         variant="warning"
         title={tct(
