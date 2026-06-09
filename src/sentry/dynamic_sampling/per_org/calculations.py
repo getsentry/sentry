@@ -141,7 +141,6 @@ def compare_rebalanced_projects_with_cache(
 
 
 def _emit_project_balancing_debug_metrics(
-    *,
     org_id: int,
     project_id: int,
     eap_sample_rate: float,
