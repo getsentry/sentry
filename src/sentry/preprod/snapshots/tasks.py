@@ -623,6 +623,22 @@ def _process_chunk(
 
             diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
 
+            if not is_changed:
+                metrics.incr("preprod.snapshots.odiff.unchanged_with_diff_hash")
+                logger.info(
+                    "preprod.snapshots.odiff.unchanged_with_diff_hash",
+                    extra={
+                        "name": name,
+                        "org_id": org_id,
+                        "head_artifact_id": head_artifact_id,
+                        "base_artifact_id": base_artifact_id,
+                        "head_hash": head_hash,
+                        "base_hash": base_hash,
+                        "changed_pixels": diff_result.changed_pixels,
+                        "threshold": threshold,
+                    },
+                )
+
             images[name] = ComparisonImageResult(
                 status="changed" if is_changed else "unchanged",
                 head_hash=head_hash,

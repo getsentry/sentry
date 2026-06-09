@@ -215,7 +215,9 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         request=None,
         responses={204: None, 403: RESPONSE_FORBIDDEN, 404: RESPONSE_NOT_FOUND},
     )
-    def delete(self, request: Request, organization: Organization, snapshot_id: str) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, snapshot_id: str
+    ) -> Response[None] | Response[DetailResponse]:
         """
         Delete a snapshot and all associated data (images, comparisons, metrics).
 
