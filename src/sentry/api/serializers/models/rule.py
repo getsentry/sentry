@@ -107,8 +107,8 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
     conditions: list[dict]
     filters: list[dict]
     actions: list[dict]
-    actionMatch: str
-    filterMatch: str
+    actionMatch: str | None
+    filterMatch: str | None
     frequency: int
     name: str
     dateCreated: datetime
@@ -486,7 +486,9 @@ class WorkflowEngineRuleSerializer(Serializer):
                 except NoRegistrationExistsError:
                     raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
 
-            condition_data["name"] = handler.render_label(condition_data)
+            condition_data["name"] = handler.render_label(
+                condition_data, organization_id=project.organization_id
+            )
             return condition_data
 
         def generate_condition_filters(conditions: list[DataCondition], is_filter: bool):

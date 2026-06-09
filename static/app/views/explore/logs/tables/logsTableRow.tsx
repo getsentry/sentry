@@ -499,7 +499,7 @@ export const LogRowContent = memo(function LogRowContent({
 
           if (!defined(value)) {
             return (
-              <LogTableBodyCell key={field}>
+              <LogTableBodyCell key={field} reservePinGutter={!!pin}>
                 {shouldRenderActions ? (
                   <Flex position="relative" height="100%" width="100%" justify="end">
                     {pin}
@@ -533,7 +533,11 @@ export const LogRowContent = memo(function LogRowContent({
           };
 
           return (
-            <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
+            <LogTableBodyCell
+              key={field}
+              data-test-id={'log-table-cell-' + field}
+              reservePinGutter={!!pin}
+            >
               {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}

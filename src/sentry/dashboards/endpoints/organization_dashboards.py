@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, Required, TypedDict
+from typing import Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
@@ -524,7 +524,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         list_serializer = DashboardListSerializer()
 
-        def handle_results(results: list[Dashboard]) -> list[dict[str, Any]]:
+        def handle_results(results: list[Dashboard]) -> list[DashboardListResponse]:
             return serialize(
                 results,
                 request.user,

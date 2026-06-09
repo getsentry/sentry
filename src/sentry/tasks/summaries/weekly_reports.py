@@ -767,6 +767,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
+        "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
     }
 
 

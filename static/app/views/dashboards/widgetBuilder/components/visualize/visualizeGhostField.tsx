@@ -2,11 +2,11 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {
   generateFieldAsString,
   parseFunction,

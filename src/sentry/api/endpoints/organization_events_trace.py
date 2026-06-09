@@ -886,7 +886,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
 
     def get_projects(
         self,
-        request: HttpRequest,
+        request: Request,
         organization: Organization | RpcOrganization,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
@@ -1413,7 +1413,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
 
     def get_projects(
         self,
-        request: HttpRequest,
+        request: Request,
         organization: Organization | RpcOrganization,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,

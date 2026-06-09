@@ -27,7 +27,7 @@ from sentry.workflow_engine.tasks.utils import (
     ProjectNotActiveError,
     build_workflow_event_data_from_event,
 )
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import DetectorId, WorkflowEventData
 from sentry.workflow_engine.utils import log_context, scopedstats
 
 logger = log_context.get_logger(__name__)
@@ -40,7 +40,7 @@ logger = log_context.get_logger(__name__)
     retry=Retry(times=3, delay=5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-def process_workflow_activity(activity_id: int, group_id: int, detector_id: int) -> None:
+def process_workflow_activity(activity_id: int, group_id: int, detector_id: DetectorId) -> None:
     """
     Process a workflow task identified by the given activity, group, and detector.
 

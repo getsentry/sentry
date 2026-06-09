@@ -93,6 +93,8 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "issueType": "performance_n_plus_one_db_queries",
     "sessionCount": 0,
     "latestEventHasAttachments": False,
+    "matchingEventId": None,
+    "matchingEventEnvironment": None,
 }
 
 MUTATE_ISSUE_RESULT: MutateIssueResponse = {

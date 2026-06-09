@@ -331,7 +331,7 @@ def trigger_autofix_agent(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
-        )
+        ).seer_run_state_id
 
         # Make sure to log billing event for seer autofix whenever a new run is started
         quotas.backend.record_seer_run(

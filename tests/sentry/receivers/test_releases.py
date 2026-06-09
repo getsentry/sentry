@@ -208,7 +208,7 @@ class ResolvedInCommitTest(TestCase):
         # The self-assign is attributed to the commit author, not logged as a system action.
         assign_records = [r for r in logs.records if r.__dict__.get("action") == "assign"]
         assert len(assign_records) == 1
-        assert assign_records[0].__dict__["actor_id"] == user.id
+        assert assign_records[0].__dict__["actor_id"] == str(user.id)
         assert assign_records[0].__dict__["actor_type"] == "user"
         assert assign_records[0].__dict__["source"] == "system"
 

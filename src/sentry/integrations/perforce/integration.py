@@ -22,7 +22,11 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.perforce.client import PerforceClient
+from sentry.integrations.perforce.client import (
+    InvalidP4Port,
+    PerforceClient,
+    validate_p4port_transport,
+)
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
@@ -123,7 +127,12 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
     charset = ChoiceField(choices=Charset.choices, default=Charset.NONE)
 
     def validate_p4port(self, value: str) -> str:
-        return value.strip().rstrip("/")
+        value = value.strip().rstrip("/")
+        try:
+            validate_p4port_transport(value)
+        except InvalidP4Port as e:
+            raise serializers.ValidationError(str(e))
+        return value
 
     def validate_web_url(self, value: str) -> str:
         return value.rstrip("/")
@@ -167,9 +176,16 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         self._client: PerforceClient | None = None
 
     def get_repo_external_id(self, repo: Mapping[str, Any]) -> str:
-        raise NotImplementedError(
-            "Perforce external_id is derived from the depot path, not the API response"
-        )
+        """
+        Derive the external_id for a depot.
+
+        Perforce has no provider-side repository id, so the depot path (e.g.
+        ``//depot``) is the stable identifier. This must match what the
+        manual-add path stores (``PerforceRepositoryProvider.get_repository_data``)
+        so periodic sync and manual adds converge on the same Repository rows
+        instead of creating duplicates.
+        """
+        return f"//{repo['name']}"
 
     def get_client(self) -> PerforceClient:
         """Get the Perforce client instance."""
@@ -370,7 +386,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
                     {
                         "name": depot_name,
                         "identifier": depot_path,
-                        "external_id": "",  # Perforce derives external_id from the user-provided depot path, not the API response
+                        "external_id": self.get_repo_external_id(depot),
                         "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )

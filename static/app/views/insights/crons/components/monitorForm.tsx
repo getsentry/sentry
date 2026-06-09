@@ -5,6 +5,7 @@ import {Observer} from 'mobx-react-lite';
 
 import {Alert, AlertLink} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
@@ -24,7 +25,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';

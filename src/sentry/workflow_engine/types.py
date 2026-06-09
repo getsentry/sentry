@@ -43,9 +43,10 @@ T = TypeVar("T")
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
 
-GroupId: TypeAlias = int
-DataConditionGroupId: TypeAlias = int
 ActionId: TypeAlias = int
+DataConditionGroupId: TypeAlias = int
+DetectorId: TypeAlias = int
+GroupId: TypeAlias = int
 WorkflowId: TypeAlias = int
 
 
@@ -406,7 +407,7 @@ class DataConditionHandler(Generic[T]):
         raise NotImplementedError
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         return cls.label_template.format(**condition_data)
 
 

@@ -268,7 +268,7 @@ class TestTriggerAutofixAgent(TestCase):
         """Sends correct started webhook for all autofix steps."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = 12345
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
         mock_client.continue_run.return_value = 12345
 
         step_to_action = {
@@ -326,7 +326,7 @@ class TestTriggerAutofixAgent(TestCase):
         """SeerAgentClient is constructed with project from the group."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = 123
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
 
         trigger_autofix_agent(
             group=self.group,
@@ -349,7 +349,7 @@ class TestTriggerAutofixAgent(TestCase):
         """start_run is called with metadata containing group_id even without stopping_point."""
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = 123
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
 
         trigger_autofix_agent(
             group=self.group,
@@ -387,7 +387,7 @@ class TestTriggerAutofixAgent(TestCase):
     ):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = 12345
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
 
         trigger_autofix_agent(
             group=self.group,
@@ -473,7 +473,7 @@ class TestTriggerAutofixAgent(TestCase):
     ):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = 123
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
 
         trigger_autofix_agent(
             group=self.group,
@@ -500,7 +500,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = 123
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
 
         trigger_autofix_agent(
             group=self.group,
@@ -524,7 +524,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = 123
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
 
         trigger_autofix_agent(
             group=self.group,
@@ -546,7 +546,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = 123
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
 
         with self.feature("organizations:seer-autofix-code-review"):
             trigger_autofix_agent(
@@ -571,7 +571,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = 123
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=123)
 
         with self.feature("organizations:seer-autofix-code-review"):
             trigger_autofix_agent(

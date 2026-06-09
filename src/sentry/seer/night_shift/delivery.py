@@ -70,6 +70,14 @@ def deliver_night_shift_result(
     options = (run.extras or {}).get("options") or {}
     dry_run = bool(options.get("dry_run", False))
 
+    # A failed dispatch may have left a stale error_message even though Seer went
+    # on to process the run and is now delivering verdicts. Clear it so the run's
+    # state reflects the successful delivery.
+    if (run.extras or {}).get("error_message"):
+        extras = {**run.extras}
+        del extras["error_message"]
+        run.update(extras=extras)
+
     _process_verdicts(
         run=run,
         organization=run.organization,

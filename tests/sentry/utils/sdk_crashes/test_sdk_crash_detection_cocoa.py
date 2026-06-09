@@ -905,12 +905,132 @@ class CocoaSDKSwizzleWrapperTestMixin(BaseSDKCrashDetectionMixin):
         )
 
 
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+class CocoaSDKCoreDataTrackerTestMixin(BaseSDKCrashDetectionMixin):
+    """Tests for SentryCoreDataTracker/SentryCoreDataSwizzlingHelper conditional SDK crash detection.
+
+    These frames swizzle NSManagedObjectContext save:/executeFetchRequest: to add tracing spans.
+    Crashes inside CoreData internals (e.g., doesNotRecognizeSelector: during merge policy
+    resolution) are app-level misconfigurations, not SDK bugs.
+
+    Note: Frames are ordered from oldest (caller) to youngest (exception).
+    """
+
+    def test_core_data_tracker_only_sdk_frames_not_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        SentryCoreDataTracker and SentryCoreDataSwizzlingHelper are the only SDK frames.
+        The crash is inside CoreData internals, not caused by the SDK.
+        """
+        frames = [
+            {
+                "function": "start_wqthread",
+                "package": "/usr/lib/system/libsystem_pthread.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "developerSubmittedBlockToNSManagedObjectContextPerform",
+                "package": "/System/Library/Frameworks/CoreData.framework/CoreData",
+                "in_app": False,
+            },
+            {
+                "function": "__52+[SentryCoreDataSwizzlingHelper swizzleWithTracker:]_block_invoke_2.19",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryCoreDataTracker managedObjectContext:save:originalImp:]",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[NSManagedObjectContext save:]",
+                "package": "/System/Library/Frameworks/CoreData.framework/CoreData",
+                "in_app": False,
+            },
+            {
+                "function": "-[NSMergePolicy resolveConstraintConflicts:error:]",
+                "package": "/System/Library/Frameworks/CoreData.framework/CoreData",
+                "in_app": False,
+            },
+            {
+                "function": "-[NSObject(NSObject) doesNotRecognizeSelector:]",
+                "package": "/usr/lib/libobjc.A.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "objc_exception_throw",
+                "package": "/usr/lib/libobjc.A.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "__exceptionPreprocess",
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            False,
+            mock_sdk_crash_reporter,
+        )
+
+    def test_core_data_tracker_with_other_sdk_frame_reported(
+        self, mock_sdk_crash_reporter: MagicMock
+    ) -> None:
+        """
+        SentryCoreDataTracker is in the stack, but there's another non-instrumentation SDK frame.
+        This IS an SDK crash.
+        """
+        frames = [
+            {
+                "function": "developerSubmittedBlockToNSManagedObjectContextPerform",
+                "package": "/System/Library/Frameworks/CoreData.framework/CoreData",
+                "in_app": False,
+            },
+            {
+                "function": "__52+[SentryCoreDataSwizzlingHelper swizzleWithTracker:]_block_invoke_2.19",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryCoreDataTracker managedObjectContext:save:originalImp:]",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryHub captureEvent:]",
+                "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+                "in_app": False,
+            },
+            {
+                "function": "objc_exception_throw",
+                "package": "/usr/lib/libobjc.A.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "__exceptionPreprocess",
+                "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+                "in_app": False,
+            },
+        ]
+
+        self.execute_test(
+            get_crash_event_with_frames(frames),
+            True,
+            mock_sdk_crash_reporter,
+        )
+
+
 class SDKCrashDetectionCocoaTest(
     TestCase,
     CococaSDKFilenameTestMixin,
     CococaSDKFramesTestMixin,
     CococaSDKFunctionTestMixin,
     CocoaSDKSwizzleWrapperTestMixin,
+    CocoaSDKCoreDataTrackerTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)

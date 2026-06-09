@@ -6,6 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -34,7 +35,6 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

@@ -95,11 +95,15 @@ class ProxyLatencyPipe(Pipe):
         metric_latency.labels(target=target).observe((time.perf_counter_ns() - ts) / 1_000_000)
 
 
-def build_proxied_headers(request: Any, target: str) -> list[tuple[str, str]]:
+def build_proxied_headers(
+    request: Any, target: str, pass_host: bool = False
+) -> list[tuple[str, str]]:
     rv = []
     forwarded_added = False
     client_host = request._scope.client.rsplit(":", 1)[0]
     server_host = httpx.URL(target)._uri_reference.netloc
+    if pass_host:
+        server_host = request.host or server_host
     for key in request.headers.keys():
         if key in REQUEST_HEADERS_FILTERED:
             continue
@@ -143,6 +147,12 @@ def build_proxied_request(
     )
 
 
+def get_cell_address(cell: Cell) -> str:
+    if app.config.endpoints.use_cell_gw and cell.api_gateway_address:
+        return cell.api_gateway_address
+    return cell.address
+
+
 def get_timeout(path: str) -> float | None:
     for segments, timeout in TIMEOUT_OVERRIDES:
         if all(segment in path for segment in segments):
@@ -160,7 +170,7 @@ def adapt_response(presp: httpx.Response) -> Any:
 
 
 async def proxy_cell_request(cell: Cell, request: Any) -> Any:
-    target_url = urljoin(cell.address, request.path)
+    target_url = urljoin(get_cell_address(cell), request.path)
     headers = build_proxied_cell_headers(request, cell.address)
     timeout = get_timeout(request.path)
 
@@ -209,7 +219,7 @@ async def proxy_cell_request(cell: Cell, request: Any) -> Any:
 
 async def proxy_control_request(request: Any) -> Any:
     target_url = urljoin(app.config.endpoints.control, request.path)
-    headers = build_proxied_headers(request, app.config.endpoints.control)
+    headers = build_proxied_headers(request, app.config.endpoints.control, pass_host=True)
 
     try:
         req = build_proxied_request(

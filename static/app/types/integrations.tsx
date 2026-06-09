@@ -144,10 +144,13 @@ export type CommitFile = {
 };
 
 export type PullRequest = {
+  dateCreated: string;
   externalUrl: string;
   id: string;
+  message: string | null;
   repository: Repository;
-  title: string;
+  title: string | null;
+  author?: CommitAuthor;
 };
 
 /**

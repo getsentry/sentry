@@ -809,6 +809,174 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                     )
 
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
+    )
+    def test_release_date_used_as_cutoff(
+        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
+    ):
+        """
+        When a group has a first_release, the release date should be used
+        as the upper bound for suspect commit filtering instead of group.first_seen.
+        This prevents blaming commits that were landed after the release was built.
+        """
+        now = datetime.now(tz=datetime_timezone.utc)
+
+        # Release was shipped 28 days ago
+        release = self.create_release(
+            project=self.project,
+            version="v1.0",
+            date_added=now - timedelta(days=28),
+        )
+
+        # Commit A: 30 days ago (before the release, within 60-day window) — valid
+        blame_before_release = FileBlameInfo(
+            repo=self.repo,
+            path="sentry/models/release.py",
+            ref="master",
+            code_mapping=self.code_mapping,
+            lineno=39,
+            commit=CommitInfo(
+                commitId="commit-before-release",
+                committedDate=now - timedelta(days=30),
+                commitMessage="old valid commit",
+                commitAuthorName=None,
+                commitAuthorEmail="admin@localhost",
+            ),
+        )
+
+        # Commit B: 1 day ago (after the release) — should be excluded
+        blame_after_release = FileBlameInfo(
+            repo=self.repo,
+            path="sentry/models/release.py",
+            ref="master",
+            code_mapping=self.code_mapping,
+            lineno=39,
+            commit=CommitInfo(
+                commitId="commit-after-release",
+                committedDate=now - timedelta(days=1),
+                commitMessage="recent commit after release",
+                commitAuthorName=None,
+                commitAuthorEmail="admin@localhost",
+            ),
+        )
+
+        mock_get_commit_context.return_value = [blame_after_release, blame_before_release]
+
+        self.event.group.first_release = release
+        self.event.group.first_seen = now
+        self.event.group.save()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        # The commit after the release should be excluded; the older valid commit should be selected
+        assert GroupOwner.objects.filter(group=self.event.group).exists()
+        group_owner = GroupOwner.objects.get(group=self.event.group)
+        created_commit = Commit.objects.get(key="commit-before-release")
+        assert group_owner.context["commitId"] == created_commit.id
+
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
+    )
+    def test_no_release_falls_back_to_first_seen(
+        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
+    ):
+        """
+        When the group has no first_release, the behavior should fall back
+        to using group.first_seen as the cutoff.
+        """
+        now = datetime.now(tz=datetime_timezone.utc)
+
+        mock_get_commit_context.return_value = [self.blame_recent]
+
+        self.event.group.first_release = None
+        self.event.group.first_seen = now
+        self.event.group.save()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        # blame_recent is 1 day old, first_seen is now, so it should be selected
+        assert GroupOwner.objects.filter(group=self.event.group).exists()
+
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    @patch("sentry.analytics.record")
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
+    )
+    def test_release_date_released_preferred_over_date_added(
+        self, mock_get_commit_context, mock_record, mock_process_suspect_commits
+    ):
+        """
+        When a release has date_released set, it should be preferred over date_added.
+        """
+        now = datetime.now(tz=datetime_timezone.utc)
+
+        release = self.create_release(
+            project=self.project,
+            version="v3.0",
+            date_added=now - timedelta(days=5),
+            date_released=now - timedelta(days=28),
+        )
+
+        # This commit is between date_released (28d ago) and date_added (5d ago),
+        # so it should be excluded because date_released is the real ship date.
+        blame_between_dates = FileBlameInfo(
+            repo=self.repo,
+            path="sentry/models/release.py",
+            ref="master",
+            code_mapping=self.code_mapping,
+            lineno=39,
+            commit=CommitInfo(
+                commitId="commit-between-dates",
+                committedDate=now - timedelta(days=10),
+                commitMessage="commit between dates",
+                commitAuthorName=None,
+                commitAuthorEmail="admin@localhost",
+            ),
+        )
+
+        mock_get_commit_context.return_value = [blame_between_dates]
+
+        self.event.group.first_release = release
+        self.event.group.first_seen = now
+        self.event.group.save()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+                sdk_name="sentry.python",
+            )
+
+        # The commit is after date_released, so it should be excluded
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
         side_effect=ApiError("File not found", code=404),
