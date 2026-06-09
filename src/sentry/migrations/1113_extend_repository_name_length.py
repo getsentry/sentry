@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1110_add_team_avatar"),
+        ("sentry", "1112_pullrequest_metrics_fields"),
     ]
 
     operations = [
