@@ -27,6 +27,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import DashboardParams, GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import (
     Dashboard,
@@ -126,7 +127,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     )
     def delete(
         self, request: Request, organization: Organization, dashboard: Dashboard
-    ) -> Response:
+    ) -> Response[None] | Response[DetailResponse]:
         """
         Delete an organization's custom dashboard.
         """

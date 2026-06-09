@@ -181,7 +181,7 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
     )
     def delete(
         self, request: Request, project_key: ProjectKey, project: Project, **kwargs
-    ) -> Response:
+    ) -> Response[None]:
         """
         Delete a client key for a given project.
         """
