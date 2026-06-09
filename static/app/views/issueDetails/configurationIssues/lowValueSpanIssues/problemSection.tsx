@@ -10,18 +10,14 @@ import {
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import type {LowValueSpanEvidenceData} from './types';
-import {
-  formatCount,
-  formatDurationMs,
-  formatEstimatedCostUsd,
-  getSpanLabel,
-} from './utils';
+import {formatDurationMs, formatEstimatedCostUsd, getSpanLabel} from './utils';
 
 interface ProblemSectionProps {
   evidenceData: LowValueSpanEvidenceData;
@@ -73,7 +69,7 @@ export function ProblemSection({evidenceData}: ProblemSectionProps) {
         subject: t('Span count'),
         value: (
           <Flex align="center" gap="xs">
-            <Text monospace>{formatCount(spanCount)}</Text>
+            <Text monospace>{formatAbbreviatedNumber(spanCount)}</Text>
             {evidenceData.extrapolatedCount !== null && (
               <InfoTip
                 size="xs"
