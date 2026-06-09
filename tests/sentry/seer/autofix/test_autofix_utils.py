@@ -1,7 +1,6 @@
 from typing import Any
 from unittest.mock import Mock, patch
 
-import orjson
 import pytest
 
 from sentry.constants import (
@@ -19,7 +18,6 @@ from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixStoppingPoint,
-    AutofixTriggerSource,
     AutomationCodingAgent,
     CodingAgentProviderType,
     CodingAgentStatus,
@@ -29,8 +27,6 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     deduplicate_repositories,
     extract_api_error_message,
-    get_autofix_prompt,
-    get_coding_agent_prompt,
     get_org_default_seer_automation_handoff,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
@@ -42,7 +38,6 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
-    SeerApiError,
     SeerAutomationHandoffConfiguration,
     SeerProjectPreference,
     SeerRepoDefinition,
@@ -53,216 +48,6 @@ from sentry.seer.models.project_repository import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
-
-
-class TestGetAutofixPrompt(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.run_id = 12345
-        self.mock_response_data = {
-            "run_id": self.run_id,
-            "prompt": "Test prompt content",
-            "has_root_cause": True,
-            "has_solution": True,
-        }
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_root_cause_params(self, mock_make_request):
-        """Test get_autofix_prompt sends correct params for root cause."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = orjson.dumps(self.mock_response_data)
-        mock_make_request.return_value = mock_response
-
-        result = get_autofix_prompt(self.run_id, True, False)
-
-        assert result == "Test prompt content"
-
-        mock_make_request.assert_called_once()
-        call = mock_make_request.call_args
-        # Positional args: (connection_pool, path)
-        assert call.args[0] is not None
-        assert call.args[1] == "/v1/automation/autofix/prompt"
-
-        # Keyword args
-        expected_body = {
-            "run_id": self.run_id,
-            "include_root_cause": True,
-            "include_solution": False,
-        }
-        actual_body = orjson.loads(call.kwargs["body"])  # bytes -> dict
-        assert actual_body == expected_body
-        assert call.kwargs["timeout"] == 15
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_solution_params(self, mock_make_request):
-        """Test get_autofix_prompt sends correct params for solution."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = orjson.dumps(self.mock_response_data)
-        mock_make_request.return_value = mock_response
-
-        result = get_autofix_prompt(self.run_id, True, True)
-
-        assert result == "Test prompt content"
-
-        call = mock_make_request.call_args
-        expected_body = {
-            "run_id": self.run_id,
-            "include_root_cause": True,
-            "include_solution": True,
-        }
-        actual_body = orjson.loads(call.kwargs["body"])  # bytes -> dict
-        assert actual_body == expected_body
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_http_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt raises on HTTP error status."""
-        mock_response = Mock()
-        mock_response.status = 404
-        mock_response.data = orjson.dumps({})
-        mock_make_request.return_value = mock_response
-
-        with pytest.raises(SeerApiError):
-            get_autofix_prompt(self.run_id, True, True)
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_timeout_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt propagates timeout errors."""
-        mock_make_request.side_effect = Exception("Request timed out")
-
-        with pytest.raises(Exception):
-            get_autofix_prompt(self.run_id, True, True)
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_connection_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt propagates connection errors."""
-        mock_make_request.side_effect = Exception("Connection failed")
-
-        with pytest.raises(Exception):
-            get_autofix_prompt(self.run_id, True, True)
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_json_decode_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt propagates JSON decode errors."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = b"invalid orjson"
-        mock_make_request.return_value = mock_response
-
-        with pytest.raises(Exception):
-            get_autofix_prompt(self.run_id, True, True)
-
-
-class TestGetCodingAgentPrompt(TestCase):
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_success(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with successful autofix prompt."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION)
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_root_cause_trigger(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with root_cause trigger."""
-        mock_get_autofix_prompt.return_value = "Root cause analysis prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.ROOT_CAUSE)
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nRoot cause analysis prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, False)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with custom instruction."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(
-            12345, AutofixTriggerSource.SOLUTION, "Use TypeScript instead of JavaScript"
-        )
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nUse TypeScript instead of JavaScript\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_blank_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with blank instruction is ignored."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, "   ")
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_empty_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with empty instruction is ignored."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, "")
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_short_id(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt includes Fixes line when short_id is provided."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(
-            12345, AutofixTriggerSource.SOLUTION, None, short_id="AIML-2301"
-        )
-
-        assert "Fixes AIML-2301" in result
-        assert "Include 'Fixes AIML-2301' in the commit message" in result
-        assert "Please fix the following issue" in result
-        assert "This is the autofix prompt" in result
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_without_short_id(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt does not include Fixes line when short_id is None."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id=None)
-
-        assert "Fixes" not in result
-        assert "Please fix the following issue" in result
-        assert "This is the autofix prompt" in result
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_short_id_and_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt includes both Fixes line and instruction."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(
-            12345,
-            AutofixTriggerSource.SOLUTION,
-            "Be careful with backwards compatibility",
-            short_id="PROJ-1234",
-        )
-
-        assert "Fixes PROJ-1234" in result
-        assert "Be careful with backwards compatibility" in result
-        assert "Please fix the following issue" in result
-        assert "This is the autofix prompt" in result
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_empty_short_id(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt does not include Fixes line when short_id is empty string."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id="")
-
-        assert "Fixes" not in result
-        assert "Please fix the following issue" in result
 
 
 class TestAutofixStateParsing(TestCase):

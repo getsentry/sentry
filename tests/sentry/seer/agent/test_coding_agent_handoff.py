@@ -29,7 +29,7 @@ class TestLaunchCodingAgents(TestCase):
         self.run_id = 12345
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_successful_launch(self, mock_validate, mock_store):
         """Test successful coding agent launch."""
         mock_integration = MagicMock()
@@ -62,7 +62,7 @@ class TestLaunchCodingAgents(TestCase):
         )
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_launch_raises_value_error(self, mock_validate, mock_store):
         """Test that ValueError from integration launch is handled as failure."""
         mock_integration = MagicMock()
@@ -85,7 +85,7 @@ class TestLaunchCodingAgents(TestCase):
         mock_installation.launch.assert_called_once()
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_multiple_repos_partial_failure(self, mock_validate, mock_store):
         """Test handling of partial failures across multiple repos."""
         from requests import HTTPError
@@ -115,7 +115,7 @@ class TestLaunchCodingAgents(TestCase):
         assert mock_store.call_args.kwargs["organization_id"] == self.organization.id
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_branch_name_is_sanitized(self, mock_validate, mock_store):
         """Test that branch name is sanitized before launch."""
         mock_integration = MagicMock()
@@ -177,7 +177,7 @@ class TestLaunchCodingAgents(TestCase):
         assert "Copilot license" in failure["error_message"]
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
-    @patch("sentry.seer.agent.coding_agent_handoff._validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_verify_branch_error_returns_cursor_github_access_failure_type(
         self, mock_validate, mock_store
     ):
@@ -219,7 +219,7 @@ class TestResolveClient(TestCase):
         super().setUp()
         self.organization = self.create_organization()
 
-    @patch(f"{MOCK_HANDOFF_PATH}._validate_and_get_integration")
+    @patch(f"{MOCK_HANDOFF_PATH}.validate_and_get_integration")
     def test_returns_installation_for_cursor(self, mock_validate):
         mock_integration = MagicMock()
         mock_integration.provider = "cursor"
@@ -234,7 +234,7 @@ class TestResolveClient(TestCase):
         assert installation is mock_installation
         mock_validate.assert_called_once_with(self.organization, 1)
 
-    @patch(f"{MOCK_HANDOFF_PATH}._validate_and_get_integration")
+    @patch(f"{MOCK_HANDOFF_PATH}.validate_and_get_integration")
     def test_returns_installation_for_claude_code(self, mock_validate):
         mock_integration = MagicMock()
         mock_integration.provider = "claude_code"

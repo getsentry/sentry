@@ -18,7 +18,6 @@ from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.seer.agent.tools import get_trace_item_attributes
-from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.endpoints.seer_rpc import (
     bulk_get_project_preferences,
     check_repository_integrations_status,
@@ -29,7 +28,6 @@ from sentry.seer.endpoints.seer_rpc import (
     get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
-    trigger_coding_agent_launch,
     validate_repo,
 )
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -1678,96 +1676,3 @@ class TestGetOrganizationFeatures(APITestCase):
         with self.feature("organizations:seer-agent-source-code-search"):
             result = get_organization_features(org_id=self.organization.id, user_id=0)
         assert result == {"features": ["seer-agent-source-code-search"]}
-
-
-class TestTriggerCodingAgentLaunch:
-    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
-    def test_not_found_returns_integration_not_found_error_code(self, mock_launch):
-        from sentry.seer.autofix.coding_agent import IntegrationNotFound
-
-        mock_launch.side_effect = IntegrationNotFound()
-
-        result = trigger_coding_agent_launch(
-            organization_id=1,
-            project_id=4,
-            integration_id=2,
-            run_id=3,
-        )
-
-        assert result == {"success": False, "error_code": "integration_not_found"}
-
-    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
-    def test_organization_not_found_does_not_return_integration_error_code(self, mock_launch):
-        from sentry.seer.autofix.coding_agent import OrganizationNotFound
-
-        mock_launch.side_effect = OrganizationNotFound()
-
-        result = trigger_coding_agent_launch(
-            organization_id=1,
-            project_id=4,
-            integration_id=2,
-            run_id=3,
-        )
-
-        assert result == {"success": False}
-        assert result.get("error_code") != "integration_not_found"
-
-    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
-    def test_autofix_state_not_found_does_not_return_integration_error_code(self, mock_launch):
-        from sentry.seer.autofix.coding_agent import AutofixStateNotFound
-
-        mock_launch.side_effect = AutofixStateNotFound()
-
-        result = trigger_coding_agent_launch(
-            organization_id=1,
-            project_id=4,
-            integration_id=2,
-            run_id=3,
-        )
-
-        assert result == {"success": False}
-        assert result.get("error_code") != "integration_not_found"
-
-
-class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
-    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
-    def test_integration_not_found_clears_handoff_project_options(self, mock_launch):
-        mock_launch.side_effect = IntegrationNotFound()
-
-        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
-        self.project.update_option(
-            "sentry:seer_automation_handoff_target", "cursor_background_agent"
-        )
-        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
-        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
-
-        result = trigger_coding_agent_launch(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            integration_id=42,
-            run_id=99,
-        )
-
-        assert result == {"success": False, "error_code": "integration_not_found"}
-        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
-        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
-        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
-
-    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
-    def test_integration_not_found_skips_clear_when_project_outside_org(self, mock_launch):
-        """Project IDs outside the caller org must not have their preferences mutated."""
-        mock_launch.side_effect = IntegrationNotFound()
-
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-        other_project.update_option("sentry:seer_automation_handoff_point", "root_cause")
-
-        result = trigger_coding_agent_launch(
-            organization_id=self.organization.id,
-            project_id=other_project.id,
-            integration_id=42,
-            run_id=99,
-        )
-
-        assert result == {"success": False, "error_code": "integration_not_found"}
-        assert other_project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
