@@ -155,9 +155,9 @@ def compute_was_autofixed(state: StateView, entry: GroupActionLogEntry) -> Aggre
 # Forward-only ordering (later value never reverts to an earlier one,
 # except via REGRESSED which restarts the cycle):
 #
-#   IDENTIFIED → TRIAGED → DIAGNOSED → FIX_PROPOSED → FIX_APPLIED → FIX_DEPLOYED
-#       │            │          │            │               │             │
-#       └────────────┴──────────┴────────────┴───────────────┴─────────────┘
+#   IDENTIFIED → TRIAGED → DIAGNOSED → FIX_PROPOSED → FIX_APPLIED
+#       │            │          │            │               │
+#       └────────────┴──────────┴────────────┴───────────────┘
 #                                   │
 #                               (RESOLVE / RESOLVED_IN_PULL_REQUEST)
 #                                   ↓
@@ -167,6 +167,10 @@ def compute_was_autofixed(state: StateView, entry: GroupActionLogEntry) -> Aggre
 #                                   ↓
 #                               REGRESSED → TRIAGED → ...
 #
+# Rank order: IDENTIFIED < REGRESSED < TRIAGED < ... < FIX_APPLIED
+# REGRESSED is ranked just above IDENTIFIED so any triage action
+# (ASSIGN, SET_PRIORITY, etc.) advances it forward to TRIAGED.
+#
 # Action type → minimum Progress level:
 #   ASSIGN, SET_PRIORITY, MARK_REVIEWED,
 #   TRIGGER_AUTOFIX                        →  TRIAGED
@@ -174,7 +178,6 @@ def compute_was_autofixed(state: StateView, entry: GroupActionLogEntry) -> Aggre
 #   AUTOFIX_CODING_COMPLETE                →  FIX_PROPOSED
 #   AUTOFIX_PR_CREATED                     →  FIX_PROPOSED
 #   (PR merged — no action type yet)       →  FIX_APPLIED
-#   (deploy seen — no action type yet)     →  FIX_DEPLOYED
 #   RESOLVE, RESOLVED_IN_PULL_REQUEST      →  None (closed)
 #   UNRESOLVE                              →  REGRESSED
 
@@ -186,7 +189,6 @@ _PROGRESS_ORDER = [
     Progress.DIAGNOSED,
     Progress.FIX_PROPOSED,
     Progress.FIX_APPLIED,
-    Progress.FIX_DEPLOYED,
 ]
 _PROGRESS_RANK = {p: i for i, p in enumerate(_PROGRESS_ORDER)}
 
