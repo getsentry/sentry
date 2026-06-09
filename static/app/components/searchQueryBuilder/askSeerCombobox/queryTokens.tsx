@@ -8,6 +8,9 @@ import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
+import {useProjects} from 'sentry/utils/useProjects';
+
+const MAX_PROJECT_CHIPS = 3;
 
 export function QueryTokens({
   groupBys,
@@ -17,9 +20,11 @@ export function QueryTokens({
   start,
   end,
   visualizations,
+  expandedProjectIds,
 }: QueryTokensProps) {
   const tokens = [];
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
+  const {projects} = useProjects();
   const parsedQuery = query ? parseQueryBuilderValue(query, getFieldDefinition) : null;
   if (query && parsedQuery?.length) {
     tokens.push(
@@ -94,6 +99,31 @@ export function QueryTokens({
       >
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
         <ExploreGroupBys>{statsPeriod}</ExploreGroupBys>
+      </Flex>
+    );
+  }
+
+  if (expandedProjectIds && expandedProjectIds.length > 0) {
+    const shownSlugs = expandedProjectIds
+      .slice(0, MAX_PROJECT_CHIPS)
+      .map(id => projects.find(project => project.id === String(id))?.slug ?? String(id));
+    const overflowCount = expandedProjectIds.length - shownSlugs.length;
+    tokens.push(
+      <Flex
+        as="span"
+        align="center"
+        wrap="wrap"
+        gap="xs"
+        overflow="hidden"
+        key="projects"
+      >
+        <ExploreParamTitle>{t('Projects')}</ExploreParamTitle>
+        {shownSlugs.map(slug => (
+          <ExploreGroupBys key={slug}>{slug}</ExploreGroupBys>
+        ))}
+        {overflowCount > 0 ? (
+          <ExploreGroupBys>{t('+%s more', overflowCount)}</ExploreGroupBys>
+        ) : null}
       </Flex>
     );
   }
