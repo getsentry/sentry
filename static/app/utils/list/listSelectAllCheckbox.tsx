@@ -11,7 +11,6 @@ export function ListSelectAllCheckbox({
 }) {
   return (
     <Checkbox
-      id="project-table-select-all"
       checked={isAllSelected}
       disabled={data.length === 0}
       onChange={() => {
