@@ -96,12 +96,15 @@ def upsert_pr_metrics_summary(
         metrics.incr("pr_metrics.upsert.skipped", tags={"reason": "pr_not_found"})
         return {"success": False, "error": "pull_request_not_found"}
 
-    # Only the verdict is written here; the webhook keeps the activity counters
-    # current, so we must not clobber them with a partial upsert.
+    # Only write the verdict, and only when reported: a None verdict means "not
+    # provided", so it must not clear a verdict already stored by an earlier call.
+    # The webhook keeps the activity counters current, so this partial upsert must
+    # not clobber them either.
+    defaults = {"verdict": verdict} if verdict is not None else {}
     with transaction.atomic(using=router.db_for_write(PullRequestMetrics)):
         PullRequestMetrics.objects.update_or_create(
             pull_request=pull_request,
-            defaults={"verdict": verdict},
+            defaults=defaults,
         )
         for signal_type, source, signal_details in parsed_attributions:
             record_attribution_signal(

@@ -142,6 +142,22 @@ class UpsertPrMetricsSummaryTest(TestCase):
         assert metrics.is_assigned is True
 
     @patch("sentry.analytics.record")
+    def test_omitted_verdict_does_not_clear_existing(self, mock_record: Any) -> None:
+        self._track()
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, verdict="merged_unchanged"
+        )
+
+        # A later call with no verdict (e.g. an attribution-only update) must not
+        # null out the verdict a prior call stored.
+        result = self._call()
+
+        assert result == {"success": True}
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+
+    @patch("sentry.analytics.record")
     def test_pull_request_not_found(self, mock_record: Any) -> None:
         result = upsert_pr_metrics_summary(
             pull_request_id=self.pull_request.id + 1000,
