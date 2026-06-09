@@ -80,7 +80,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         Get a list of requests to join org/team.
         If any requests are redundant (user already joined the team), they are not returned.
         """
-        if request.access.has_scope("org:write"):
+        if request.access.has_scope("org:read"):
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
                     team__organization=organization,
@@ -89,7 +89,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                 ).select_related("team", "member")
             )
 
-        elif request.access.has_scope("team:write") and request.access.team_ids_with_membership:
+        elif request.access.has_scope("team:read") and request.access.team_ids_with_membership:
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
                     member__user_is_active=True,
