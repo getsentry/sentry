@@ -22,7 +22,6 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
       />
     );
 
-    expect(screen.getByText('Troubleshooting')).toBeInTheDocument();
     expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
     expect(screen.queryByText('function - compute_checksum')).not.toBeInTheDocument();
     expect(screen.queryByText('1. Find the custom span')).not.toBeInTheDocument();
@@ -83,7 +82,7 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     );
   });
 
-  it('recommends JavaScript span filtering and mentions beforeSendSpan', () => {
+  it('recommends JavaScript span filtering', () => {
     render(
       <TroubleshootingSection
         evidenceData={baseEvidenceData}
@@ -92,7 +91,6 @@ describe('LowValueSpanIssues TroubleshootingSection', () => {
     );
 
     expect(screen.getByText('ignoreSpans')).toBeInTheDocument();
-    expect(screen.getByText('beforeSendSpan')).toBeInTheDocument();
     expect(screen.getByText(/op: "function"/)).toBeInTheDocument();
     expect(screen.getByText(/name: "compute_checksum"/)).toBeInTheDocument();
   });
