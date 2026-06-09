@@ -67,11 +67,7 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
-          <AutofixAgent
-            canWrite={canWrite}
-            preference={preference ?? DEFAULT_PREFERENCE}
-            project={project}
-          />
+          <AutofixAgent canWrite={canWrite} project={project} />
           <Feature features="organizations:seer-night-shift-settings">
             <NightShift canWrite={canWrite} project={project} />
           </Feature>
