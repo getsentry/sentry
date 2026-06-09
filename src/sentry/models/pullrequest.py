@@ -116,11 +116,9 @@ class PullRequest(Model):
     state = models.CharField(max_length=32, null=True, choices=PullRequestLifecycleState.choices)
     head_commit_sha = models.CharField(max_length=64, null=True)
     draft = models.BooleanField(null=True)
-    # Webhook-sourced activity counters (additions, deletions, files_changed,
-    # commits_count, comments_count, review_comments_count, is_assigned). A
-    # single JSONB column rather than one column per counter: the metric set is
-    # provisional and expected to grow, and this avoids widening the hot
-    # PullRequest table with many sparse integer columns.
+    # Webhook-sourced activity counters - a single JSONB column rather than one
+    # column per counter: the metric set is provisional and expected to grow,
+    # so this avoids migrations each time. Also, there're no queries on these.
     metrics = models.JSONField(null=True)
 
     objects: ClassVar[PullRequestManager] = PullRequestManager()
