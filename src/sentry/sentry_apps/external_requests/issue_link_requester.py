@@ -10,7 +10,11 @@ from requests import RequestException
 
 from sentry.http import safe_urlread
 from sentry.models.group import Group
-from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
+from sentry.sentry_apps.external_requests.utils import (
+    integrator_error_message,
+    send_and_save_sentry_app_request,
+    validate,
+)
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
     SentryAppExternalRequestFailureReason,
@@ -122,9 +126,12 @@ class IssueLinkRequester:
                 )
 
                 raise SentryAppIntegratorError(
-                    message=f"Issue occurred while trying to contact {self.sentry_app.slug} to link issue",
+                    message=integrator_error_message(
+                        e.response,
+                        f"Issue occurred while trying to contact {self.sentry_app.slug} to link issue",
+                    ),
                     webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
-                    status_code=500,
+                    status_code=e.response.status_code if e.response is not None else 502,
                 )
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e, extra={**extras})
