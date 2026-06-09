@@ -797,7 +797,7 @@ HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
     "*health-check*",
     "*heartbeat*",
-    "*/health{/*,}",
+    "*/health{/,}",
     "*/healthy{/,}",
     "*/healthz{/,}",
     "*/health_check{/,}",
@@ -809,6 +809,9 @@ HEALTH_CHECK_GLOBS = [
     "*/readyz{/,}",
     "*/ping{/,}",
     "*/up{/,}",
+    # Globs for Spring Boot: https://docs.spring.io/spring-boot/api/rest/actuator/health.html
+    "*/actuator/health{/*,}",
+    "*/manage/health{/*,}",
 ]
 
 
