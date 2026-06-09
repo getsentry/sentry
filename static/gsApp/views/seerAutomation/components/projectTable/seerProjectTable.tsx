@@ -176,7 +176,7 @@ export function SeerProjectTable() {
         knownIds={data?.map(item => String(item.projectId)) ?? []}
         endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
-        <InfiniteTable.Table columns="max-content 2fr max-content repeat(2, 1fr)">
+        <InfiniteTable.Table columns="max-content 2fr 74px repeat(2, 1fr)">
           <ProjectTableHeader
             settings={data ?? []}
             sort={sortBy}
