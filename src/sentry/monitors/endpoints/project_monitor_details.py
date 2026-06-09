@@ -91,7 +91,7 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project, monitor) -> Response:
+    def delete(self, request: Request, project, monitor) -> Response[None]:
         """
         Delete a monitor or monitor environments.
         """
