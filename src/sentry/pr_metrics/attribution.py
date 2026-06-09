@@ -110,6 +110,30 @@ def _merge_webhook_key(
     return {k: v for k, v in details.items() if v}
 
 
+def _create_referenced_issue_attribution(
+    pull_request: PullRequest,
+    signal_details: dict[str, Any],
+    is_valid: bool,
+) -> PullRequestAttribution | None:
+    """Try to INSERT a new REFERENCED_ISSUE attribution row.
+
+    Returns the created row on success. On IntegrityError (a concurrent writer
+    created the row first) returns None — the caller must fall back to an update.
+    The savepoint ensures the outer transaction remains alive after the error.
+    """
+    try:
+        with transaction.atomic(using=router.db_for_write(PullRequestAttribution)):
+            return PullRequestAttribution.objects.create(
+                pull_request=pull_request,
+                signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
+                source=PullRequestAttributionSource.WEBHOOK_DATA,
+                signal_details=signal_details,
+                is_valid=is_valid,
+            )
+    except IntegrityError:
+        return None  # concurrent create won the race — caller retries as update
+
+
 def record_referenced_issue_signal(
     *,
     pull_request: PullRequest,
@@ -124,10 +148,8 @@ def record_referenced_issue_signal(
     group. ``select_for_update`` serialises concurrent deliveries on the same row.
 
     Returns ``None`` when the call is a no-op: a first write that would produce
-    no valid references, or a first write that lost a concurrent-create race
-    (the loser's data is applied via a retry update on the winner's row).
+    no valid references.
     """
-
     with transaction.atomic(using=router.db_for_write(PullRequestAttribution)):
         try:
             attr = PullRequestAttribution.objects.select_for_update().get(
@@ -148,19 +170,10 @@ def record_referenced_issue_signal(
             # needs to exist once at least one webhook source has references.
             if not is_valid:
                 return None
-            try:
-                with transaction.atomic(using=router.db_for_write(PullRequestAttribution)):
-                    return PullRequestAttribution.objects.create(
-                        pull_request=pull_request,
-                        signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-                        source=PullRequestAttributionSource.WEBHOOK_DATA,
-                        signal_details=details,
-                        is_valid=is_valid,
-                    )
-            except IntegrityError:
-                pass  # concurrent create won the race — re-read and apply as update
-
-            # The row now exists (written by the concurrent winner); lock and merge.
+            attr = _create_referenced_issue_attribution(pull_request, details, is_valid)
+            if attr is not None:
+                return attr
+            # Concurrent create won the race — re-read the winner's row and merge.
             attr = PullRequestAttribution.objects.select_for_update().get(
                 pull_request=pull_request,
                 signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,

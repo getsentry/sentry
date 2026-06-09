@@ -464,11 +464,6 @@ def handle_review_thread(
     _write_activity_row(pr, webhook_id, event_type, payload)
 
 
-def _group_ids(groups: Any) -> list[int]:
-    """Return a sorted list of group IDs from a find_referenced_groups() result."""
-    return sorted(g.id for g in groups)
-
-
 def _get_pull_request(
     organization: Organization, repo: Repository, pull_request: dict[str, Any] | None
 ) -> PullRequest | None:
