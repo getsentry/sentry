@@ -17,7 +17,8 @@ describe('LowValueSpanIssues ProblemSection', () => {
   it('renders low-value span evidence from the occurrence', () => {
     render(<ProblemSection evidenceData={evidenceData} />);
 
-    expect(screen.getByText('Problem')).toBeInTheDocument();
+    expect(screen.getByText(/frequently created span/)).toBeInTheDocument();
+    expect(screen.getByText('Affected span')).toBeInTheDocument();
     expect(screen.getByText('function - compute_checksum')).toBeInTheDocument();
     expect(screen.getByText('Span count')).toBeInTheDocument();
     expect(screen.getByText('60,000')).toBeInTheDocument();
