@@ -519,7 +519,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
         bulkUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {agent: 'seer', query: 'id:1 id:2'},
+          data: {agent: 'seer', query: 'id:[1,2]'},
         })
       );
     });
@@ -573,7 +573,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
           data: {
             agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
             integrationId: '123',
-            query: 'id:1',
+            query: 'id:[1]',
           },
         })
       );
@@ -599,7 +599,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
         bulkUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {automationTuning: 'off', query: 'id:1'},
+          data: {automationTuning: 'off', query: 'id:[1]'},
         })
       );
     });
@@ -627,7 +627,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
           data: {
             stoppingPoint: 'open_pr',
             automationTuning: 'medium',
-            query: 'id:1',
+            query: 'id:[1]',
           },
         })
       );
