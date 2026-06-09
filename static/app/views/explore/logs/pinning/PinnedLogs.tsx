@@ -1,30 +1,46 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {GridRow} from 'sentry/components/tables/gridEditable/styles';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TableBody} from 'sentry/views/explore/components/table';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {LogTableRowItem} from 'sentry/views/explore/logs/utils';
 
 interface Props {
   allRows: LogTableRowItem[];
   logsPinning: LogsPinning;
+  pinnedLogsQuery: ReturnType<typeof usePinnedLogsQuery>;
   renderRow: (dataRow: LogTableRowItem) => React.ReactNode;
 }
 
-export function PinnedLogs({allRows, logsPinning, renderRow}: Props) {
+export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: Props) {
+  const {fetchedRows: fetchedPinnedRows, isPending: isFetchingPinnedRows} =
+    pinnedLogsQuery;
   const [expanded, setExpanded] = useState(true);
   const pinnedRows = logsPinning.getPinnedRowIds();
 
   const onInitialize = useCallback(() => {
     setExpanded(true);
   }, []);
+
+  const rowById = useMemo(() => {
+    const map = new Map<string, LogTableRowItem>();
+    for (const row of fetchedPinnedRows) {
+      map.set(row[OurLogKnownFieldKey.ID], row);
+    }
+    for (const row of allRows) {
+      map.set(row[OurLogKnownFieldKey.ID], row);
+    }
+    return map;
+  }, [allRows, fetchedPinnedRows]);
 
   if (!pinnedRows.length) {
     return null;
@@ -34,11 +50,18 @@ export function PinnedLogs({allRows, logsPinning, renderRow}: Props) {
     <PinnedTableBody data-test-id="pinned-logs-table-body" ref={onInitialize}>
       {expanded &&
         pinnedRows.map(rowId => {
-          const dataRow = allRows.find(datum => datum[OurLogKnownFieldKey.ID] === rowId);
+          const dataRow = rowById.get(rowId);
 
-          // TODO(LOGS-781): this is not correct yet because the virtualizer might not have found it yet.
-          // Will have to manually re-fetch data.
           if (!dataRow) {
+            if (isFetchingPinnedRows) {
+              return (
+                <GridRow key={rowId}>
+                  <PinnedGridBodyCell>
+                    <LoadingIndicator mini />
+                  </PinnedGridBodyCell>
+                </GridRow>
+              );
+            }
             return null;
           }
 

@@ -3,11 +3,9 @@ from jsonschema import ValidationError
 
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.condition.seer_activity_trigger_handler import (
-    SeerActivityTriggerHandler,
     SeerActivityTriggerStage,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -17,21 +15,11 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        # TODO(Leander): Remove after registering
-        condition_handler_registry.registrations[self.condition] = SeerActivityTriggerHandler
-        condition_handler_registry.reverse_lookup[SeerActivityTriggerHandler] = self.condition
-
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison=[SeerActivityTriggerStage.RCA_COMPLETED],
             condition_result=True,
         )
-
-    def tearDown(self) -> None:
-        super().tearDown()
-        # TODO(Leander): Remove after registering
-        condition_handler_registry.registrations.pop(self.condition, None)
-        condition_handler_registry.reverse_lookup.pop(SeerActivityTriggerHandler, None)
 
     def _create_event_data(self, activity_type: ActivityType) -> WorkflowEventData:
         activity = self.create_group_activity(group=self.group, type=activity_type.value)

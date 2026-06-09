@@ -16,9 +16,8 @@ from sentry.dynamic_sampling.per_org.calculations import (
     run_project_balancing,
     run_transaction_balancing,
 )
-from sentry.dynamic_sampling.per_org.queries import ProjectVolume
+from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import ProjectTransactions
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -102,6 +101,7 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "eap_sample_rate": 0.25,
                 "relative_deviation": pytest.approx(0.2),
                 "is_equal": False,
+                "total_volume_eap": 100,
             },
             {
                 "org_id": org.id,
@@ -110,6 +110,7 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "eap_sample_rate": 1.0,
                 "relative_deviation": pytest.approx(0.04),
                 "is_equal": True,
+                "total_volume_eap": 0,
             },
         ]
 
@@ -137,14 +138,12 @@ def _project_transactions(
     org_id: int,
     project_id: int,
     transaction_counts: list[tuple[str, float]],
-) -> ProjectTransactions:
-    return {
-        "org_id": org_id,
-        "project_id": project_id,
-        "transaction_counts": transaction_counts,
-        "total_num_transactions": sum(count for _, count in transaction_counts),
-        "total_num_classes": len(transaction_counts),
-    }
+) -> ProjectTransactionCounts:
+    return ProjectTransactionCounts(
+        org_id=org_id,
+        project_id=project_id,
+        transaction_counts=transaction_counts,
+    )
 
 
 class TransactionBalancingCalculationsTest(TestCase):
@@ -166,6 +165,7 @@ class TransactionBalancingCalculationsTest(TestCase):
         ) as model_run:
             run_transaction_balancing(
                 config,
+                [_project_volume(project_a.id), _project_volume(project_b.id)],
                 [
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
@@ -190,6 +190,7 @@ class TransactionBalancingCalculationsTest(TestCase):
         ) as model_run:
             result = run_transaction_balancing(
                 config,
+                [_project_volume(project_a.id), _project_volume(project_b.id)],
                 [
                     _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
                     _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
@@ -198,6 +199,32 @@ class TransactionBalancingCalculationsTest(TestCase):
 
         sample_rates = [call.args[-1].sample_rate for call in model_run.call_args_list]
         assert sample_rates == [0.5]
+        assert set(result.keys()) == {project_a.id}
+
+    def test_run_transaction_balancing_skips_projects_without_project_volume(self) -> None:
+        org = self.create_organization()
+        project_a = self.create_project(organization=org)
+        project_b = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.get_project_sample_rates.return_value = {project_a.id: 0.5, project_b.id: 0.5}
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
+            side_effect=lambda model_input: ([], model_input.sample_rate),
+        ) as model_run:
+            # project_b has transactions but no matching ProjectVolume — it must be
+            # skipped instead of raising a KeyError that aborts the whole org's run.
+            result = run_transaction_balancing(
+                config,
+                [_project_volume(project_a.id)],
+                [
+                    _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
+                    _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
+                ],
+            )
+
+        assert model_run.call_count == 1
         assert set(result.keys()) == {project_a.id}
 
     def test_get_cached_rebalanced_transaction_sample_rates(self) -> None:
@@ -300,3 +327,69 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert extras[1]["generic_metrics_sample_rate"] is None
         assert extras[1]["relative_deviation"] is None
         assert extras[1]["is_equal"] is False
+
+
+def _branch3_project_volume(project_id: int) -> ProjectVolume:
+    """The full-project totals that drive TransactionsRebalancingModel into
+    branch 3 (explicit pool too small to absorb its budget share), producing an
+    implicit rate below the base sample rate."""
+    return ProjectVolume(
+        project_id=project_id, total=1000, keep=0, drop=0, num_distinct_transactions=10
+    )
+
+
+def _branch3_transactions(org_id: int, project_id: int) -> ProjectTransactionCounts:
+    return ProjectTransactionCounts(
+        org_id=org_id, project_id=project_id, transaction_counts=[("tiny", 5.0)]
+    )
+
+
+class TransactionBalancingImplicitFactorFloorTest(TestCase):
+    """Tests for the implicit factor floor that clamps the implicit factor
+    via budget redistribution from the explicit pool."""
+
+    def test_factor_one_lifts_implicit_rate_to_base(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.get_project_sample_rates.return_value = {project.id: 0.1}
+
+        result = run_transaction_balancing(
+            config,
+            [_branch3_project_volume(project.id)],
+            [_branch3_transactions(org.id, project.id)],
+        )
+
+        named_rates, implicit_rate = result[project.id]
+        assert implicit_rate == pytest.approx(0.1)
+        # Explicit rate is reduced from 1.0 to absorb the extra implicit budget,
+        # so the overall budget remains at total * base_sample_rate = 100.
+        assert len(named_rates) == 1
+        new_explicit_rate = named_rates[0].new_sample_rate
+        total = 1000.0
+        total_explicit = 5.0
+        total_implicit = total - total_explicit
+        kept = new_explicit_rate * total_explicit + implicit_rate * total_implicit
+        assert kept == pytest.approx(total * 0.1, abs=1e-6)
+
+    def test_no_change_when_implicit_already_above_floor(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.get_project_sample_rates.return_value = {project.id: 0.1}
+
+        # Branch 2 scenario: small long tail relative to its share → implicit_rate=1.0,
+        # which is already well above any factor floor we'd set.
+        project_volume = ProjectVolume(
+            project_id=project.id, total=1010, keep=0, drop=0, num_distinct_transactions=11
+        )
+        project_transactions = ProjectTransactionCounts(
+            org_id=org.id, project_id=project.id, transaction_counts=[("heavy", 1000.0)]
+        )
+
+        result = run_transaction_balancing(config, [project_volume], [project_transactions])
+
+        _, implicit_rate = result[project.id]
+        assert implicit_rate == 1.0

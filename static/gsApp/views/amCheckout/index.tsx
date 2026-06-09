@@ -27,10 +27,8 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {withApi} from 'sentry/utils/withApi';
-import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
-import {ZendeskLink} from 'getsentry/components/zendeskLink';
 import {
   ANNUAL,
   MONTHLY,
@@ -556,8 +554,6 @@ function AMCheckout(props: Props) {
     loadStripe(ConfigStore.get('getsentry.stripePublishKey')!);
   }, []);
 
-  const hasIntercom = organization.features.includes('intercom-support');
-
   useEffect(() => {
     trackGetsentryAnalytics('am_checkout.viewed', {
       organization,
@@ -568,13 +564,11 @@ function AMCheckout(props: Props) {
   }, [organization, subscription]);
 
   useEffect(() => {
-    if (hasIntercom) {
-      trackGetsentryAnalytics('intercom_link.viewed', {
-        organization,
-        source: 'checkout',
-      });
-    }
-  }, [hasIntercom, organization]);
+    trackGetsentryAnalytics('intercom_link.viewed', {
+      organization,
+      source: 'checkout',
+    });
+  }, [organization]);
 
   useEffect(() => {
     if (subscription.canSelfServe) {
@@ -753,7 +747,7 @@ function AMCheckout(props: Props) {
                   help: (
                     <ExternalLink href="https://www.sentry.help/en/collections/18842102-account-billing" />
                   ),
-                  contact: hasIntercom ? (
+                  contact: (
                     <Button
                       size="zero"
                       variant="link"
@@ -775,14 +769,6 @@ function AMCheckout(props: Props) {
                     >
                       <Text variant="accent">{t('ask Support')}</Text>
                     </Button>
-                  ) : hasZendesk() ? (
-                    <Button size="zero" variant="link" onClick={activateZendesk}>
-                      <Text variant="accent">{t('ask Support')}</Text>
-                    </Button>
-                  ) : (
-                    <ZendeskLink subject="Billing Question" source="checkout">
-                      {t('ask Support')}
-                    </ZendeskLink>
                   ),
                 })}
               </Text>

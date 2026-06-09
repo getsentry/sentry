@@ -1677,6 +1677,9 @@ def test_flush_lock(
 
 
 def test_flush_lock_released_after_done_flush(buffer: SpansBuffer) -> None:
+    """
+    A single flusher releases the segment flush lock during cleanup.
+    """
     process_spans(
         [
             Span(
@@ -1702,6 +1705,78 @@ def test_flush_lock_released_after_done_flush(buffer: SpansBuffer) -> None:
         buffer.done_flush_segments(rv)
         assert buffer.client.exists(lock_key) == 0
 
+    assert_clean(buffer.client)
+
+
+def test_flush_lock_cleanup_releases_stale_queue_entry(buffer: SpansBuffer) -> None:
+    """
+    Two shard queues can contain the same segment.
+
+    The first flusher produces the segment and releases the lock during cleanup.
+    The second flusher then acquires the lock and removes its stale queue entry
+    without producing spans again.
+    """
+    process_spans(
+        [
+            Span(
+                payload=_payload("b" * 16),
+                trace_id="a" * 32,
+                span_id="b" * 16,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=1,
+                partition=0,
+            ),
+        ],
+        buffer,
+        now=0,
+    )
+
+    process_spans(
+        [
+            Span(
+                payload=_payload("a" * 16),
+                trace_id="a" * 32,
+                span_id="a" * 16,
+                parent_span_id="b" * 16,
+                segment_id=None,
+                project_id=1,
+                partition=1,
+            ),
+        ],
+        buffer,
+        now=0,
+    )
+
+    buffer_a = SpansBuffer(assigned_shards=[0], slice_id=buffer.slice_id)
+    buffer_b = SpansBuffer(assigned_shards=[1], slice_id=buffer.slice_id)
+
+    with override_options({"spans.buffer.flusher.flush-lock-ttl": 10}):
+        rv_a = buffer_a.flush_segments(now=11)
+        rv_b = buffer_b.flush_segments(now=11)
+
+        segment_key = next(iter(rv_a))
+        queue_key_a = buffer_a.store.get_queue_key(0)
+        queue_key_b = buffer_b.store.get_queue_key(1)
+        lock_key = buffer_a.store.get_flush_lock_key(segment_key)
+
+        assert len(rv_a) == 1
+        assert rv_b == {}
+        assert buffer.client.zscore(queue_key_a, segment_key) is not None
+        assert buffer.client.zscore(queue_key_b, segment_key) is not None
+
+        buffer_a.done_flush_segments(rv_a)
+
+        assert buffer.client.zscore(queue_key_a, segment_key) is None
+        assert buffer.client.zscore(queue_key_b, segment_key) is not None
+        assert buffer.client.exists(lock_key) == 0
+
+        stale_rv = buffer_b.flush_segments(now=12)
+        assert stale_rv[segment_key].spans == []
+        buffer_b.done_flush_segments(stale_rv)
+
+    assert buffer.client.zscore(queue_key_b, segment_key) is None
     assert_clean(buffer.client)
 
 

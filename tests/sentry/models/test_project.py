@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from unittest.mock import MagicMock, patch
 
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
@@ -34,7 +35,15 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
-from sentry.workflow_engine.models import Detector, DetectorWorkflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    Detector,
+    DetectorWorkflow,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
@@ -57,344 +66,6 @@ class ProjectTest(APITestCase, TestCase):
         OrganizationMember.objects.get(user_id=user.id, organization=org)
 
         assert list(project.member_set.all()) == []
-
-    def test_transfer_to_organization(self) -> None:
-        from_org = self.create_organization()
-        team = self.create_team(organization=from_org)
-        to_org = self.create_organization()
-
-        project = self.create_project(teams=[team])
-        project_other = self.create_project(teams=[team])
-
-        rule = self.create_project_rule(
-            name="Golden Rule",
-            project=project,
-            environment_id=Environment.get_or_create(project, "production").id,
-        )
-        environment_from_new = self.create_environment(organization=from_org)
-        environment_from_existing = self.create_environment(organization=from_org)
-        environment_to_existing = self.create_environment(
-            organization=to_org, name=environment_from_existing.name
-        )
-
-        monitor = Monitor.objects.create(
-            name="test-monitor",
-            slug="test-monitor",
-            organization_id=from_org.id,
-            project_id=project.id,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-
-        monitor_also = Monitor.objects.create(
-            name="test-monitor-also",
-            slug="test-monitor-also",
-            organization_id=from_org.id,
-            project_id=project.id,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-        monitor_env_new = MonitorEnvironment.objects.create(
-            monitor=monitor_also, environment_id=environment_from_new.id
-        )
-        monitor_env_existing = MonitorEnvironment.objects.create(
-            monitor=monitor_also, environment_id=environment_from_existing.id
-        )
-
-        monitor_other = Monitor.objects.create(
-            name="test-monitor-other",
-            slug="test-monitor-other",
-            organization_id=from_org.id,
-            project_id=project_other.id,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-
-        monitor_to = Monitor.objects.create(
-            name="test-monitor",
-            slug="test-monitor",
-            organization_id=to_org.id,
-            project_id=self.create_project(name="other-project").id,
-            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
-        )
-
-        project.transfer_to(organization=to_org)
-
-        project = Project.objects.get(id=project.id)
-
-        assert project.teams.count() == 0
-        assert project.organization_id == to_org.id
-
-        updated_rule = project.rule_set.get(label="Golden Rule")
-        assert updated_rule.id == rule.id
-        assert updated_rule.environment_id != rule.environment_id
-        assert updated_rule.environment_id == Environment.get_or_create(project, "production").id
-
-        # check to make sure old monitor is scheduled for deletion
-        assert CellScheduledDeletion.objects.filter(
-            object_id=monitor.id, model_name="Monitor"
-        ).exists()
-
-        updated_monitor = Monitor.objects.get(slug="test-monitor-also")
-        assert updated_monitor.id == monitor_also.id
-        assert updated_monitor.organization_id == to_org.id
-        assert updated_monitor.project_id == project.id
-        monitor_env_new.refresh_from_db()
-        environment_to_new = Environment.objects.get(id=monitor_env_new.environment_id)
-        assert environment_to_new.organization_id == to_org.id
-        assert environment_to_new.name == environment_from_new.name
-        monitor_env_existing.refresh_from_db()
-        assert monitor_env_existing.environment_id == environment_to_existing.id
-
-        unmoved_monitor = Monitor.objects.get(slug="test-monitor-other")
-        assert unmoved_monitor.id == monitor_other.id
-        assert unmoved_monitor.organization_id == from_org.id
-        assert unmoved_monitor.project_id == project_other.id
-
-        existing_monitor = Monitor.objects.get(id=monitor_to.id)
-        assert existing_monitor.id == monitor_to.id
-        assert existing_monitor.organization_id == to_org.id
-        assert existing_monitor.project_id == monitor_to.project_id
-
-    def test_transfer_to_organization_slug_collision(self) -> None:
-        from_org = self.create_organization()
-        team = self.create_team(organization=from_org)
-        project = self.create_project(teams=[team], slug="matt")
-        to_org = self.create_organization()
-        # conflicting project slug
-        self.create_project(slug="matt", organization=to_org)
-
-        assert Project.objects.filter(organization=to_org).count() == 1
-
-        project.transfer_to(organization=to_org)
-
-        project = Project.objects.get(id=project.id)
-
-        assert project.teams.count() == 0
-        assert project.organization_id == to_org.id
-        assert project.slug != "matt"
-        assert Project.objects.filter(organization=to_org).count() == 2
-        assert Project.objects.filter(organization=from_org).count() == 0
-
-    def test_transfer_to_organization_releases(self) -> None:
-        from_org = self.create_organization()
-        team = self.create_team(organization=from_org)
-        to_org = self.create_organization()
-
-        project = self.create_project(teams=[team])
-
-        def project_props(proj: Project):
-            return {
-                "id": proj.id,
-                "slug": proj.slug,
-                "name": proj.name,
-                "forced_color": proj.forced_color,
-                "public": proj.public,
-                "date_added": proj.date_added,
-                "status": proj.status,
-                "first_event": proj.first_event,
-                "flags": proj.flags,
-                "platform": proj.platform,
-            }
-
-        project_before = project_props(project)
-
-        environment = Environment.get_or_create(project, "production")
-        release = Release.get_or_create(project=project, version="1.0")
-
-        ReleaseProjectEnvironment.objects.create(
-            project=project, release=release, environment=environment
-        )
-
-        assert Environment.objects.filter(id=environment.id).exists()
-        assert Environment.objects.filter(organization_id=from_org.id, projects=project).exists()
-
-        assert EnvironmentProject.objects.filter(environment=environment, project=project).exists()
-        assert ReleaseProjectEnvironment.objects.filter(
-            project=project, release=release, environment=environment
-        ).exists()
-        assert ReleaseProject.objects.filter(project=project, release=release).exists()
-
-        project.transfer_to(organization=to_org)
-
-        project = Project.objects.get(id=project.id)
-        project_after = project_props(project)
-
-        assert project_before == project_after
-        assert project.teams.count() == 0
-        assert project.organization_id == to_org.id
-
-        assert Environment.objects.filter(id=environment.id).exists()
-        assert not EnvironmentProject.objects.filter(
-            environment=environment, project=project
-        ).exists()
-        assert not ReleaseProjectEnvironment.objects.filter(
-            project=project, release=release, environment=environment
-        ).exists()
-        assert not ReleaseProject.objects.filter(project=project, release=release).exists()
-
-    def test_delete_on_transfer_repository_project_path_configs(self) -> None:
-        from_org = self.create_organization()
-        to_org = self.create_organization()
-        team = self.create_team(organization=from_org)
-        project = self.create_project(teams=[team])
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration, org_integration = self.create_provider_integration_for(
-                from_org, self.user, provider="github"
-            )
-
-        repository = Repository.objects.create(
-            organization_id=from_org.id,
-            name="example-repo",
-            integration_id=integration.id,
-        )
-
-        project_repo, _ = ProjectRepository.objects.get_or_create(
-            project=project,
-            repository=repository,
-            defaults={"source": ProjectRepositorySource.MANUAL},
-        )
-        repository_project_path_config = RepositoryProjectPathConfig.objects.create(
-            organization_integration_id=org_integration.id,
-            organization_id=from_org.id,
-            integration_id=integration.id,
-            stack_root="/app",
-            source_root="/src",
-            default_branch="main",
-            project_repository=project_repo,
-        )
-
-        ProjectCodeOwners.objects.create(
-            project=project,
-            repository_project_path_config=repository_project_path_config,
-            raw="*.py @getsentry/test-team",
-        )
-
-        project.transfer_to(organization=to_org)
-
-        assert RepositoryProjectPathConfig.objects.filter(organization_id=from_org.id).count() == 0
-        assert RepositoryProjectPathConfig.objects.filter(organization_id=to_org.id).count() == 0
-
-        assert (
-            RepositoryProjectPathConfig.objects.filter(
-                project_repository__project_id=project.id
-            ).count()
-            == 0
-        )
-
-        assert ProjectCodeOwners.objects.filter(project_id=project.id).count() == 0
-
-    def test_transfer_to_organization_alert_rules(self) -> None:
-        from_org = self.create_organization()
-        from_user = self.create_user()
-        self.create_member(user=from_user, role="member", organization=from_org)
-        team = self.create_team(organization=from_org)
-        to_org = self.create_organization()
-        to_team = self.create_team(organization=to_org)
-        to_user = self.create_user()
-        self.create_member(user=to_user, role="member", organization=to_org)
-
-        project = self.create_project(teams=[team])
-        environment = Environment.get_or_create(project, "production")
-
-        # should lose their owners
-        alert_rule = self.create_alert_rule(
-            organization=self.organization,
-            projects=[project],
-            owner=Actor.from_identifier(f"team:{team.id}"),
-            environment=environment,
-        )
-        snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
-        rule1 = self.create_project_rule(name="another test rule", project=project, owner_team=team)
-        rule2 = self.create_project_rule(name="rule4", project=project, owner_user_id=from_user.id)
-
-        # should keep their owners
-        rule3 = self.create_project_rule(name="rule2", project=project, owner_team=to_team)
-        rule4 = self.create_project_rule(name="rule3", project=project, owner_user_id=to_user.id)
-
-        assert EnvironmentProject.objects.count() == 1
-        assert snuba_query.environment is not None
-        assert snuba_query.environment.id == environment.id
-
-        project.transfer_to(organization=to_org)
-
-        alert_rule.refresh_from_db()
-        rule1.refresh_from_db()
-        rule2.refresh_from_db()
-        rule3.refresh_from_db()
-        rule4.refresh_from_db()
-        snuba_query.refresh_from_db()
-
-        assert (
-            Environment.objects.exclude(id=environment.id).count() == 1
-        )  # not the same as the from_org env
-        assert EnvironmentProject.objects.count() == 1
-        assert snuba_query.environment != environment
-        assert alert_rule.organization_id == to_org.id
-        assert alert_rule.user_id is None
-        assert alert_rule.team_id is None
-
-        for rule in (rule1, rule2):
-            assert rule.owner_user_id is None
-            assert rule.owner_team_id is None
-
-        assert rule3.owner_user_id is None
-        assert rule3.owner_team_id
-
-        assert rule4.owner_user_id
-        assert rule4.owner_team_id is None
-
-    def test_transfer_to_organization_external_issues(self) -> None:
-        from_org = self.create_organization()
-        to_org = self.create_organization()
-
-        project = self.create_project(organization=from_org)
-        group = self.create_group(project=project)
-        other_project = self.create_project(organization=from_org)
-        other_group = self.create_group(project=other_project)
-
-        self.integration = self.create_integration(
-            organization=self.organization,
-            provider="jira",
-            name="Jira",
-            external_id="jira:1",
-        )
-        ext_issue = ExternalIssue.objects.create(
-            organization_id=from_org.id,
-            integration_id=self.integration.id,
-            key="123",
-        )
-        other_ext_issue = ExternalIssue.objects.create(
-            organization_id=from_org.id,
-            integration_id=self.integration.id,
-            key="124",
-        )
-        group_link = GroupLink.objects.create(
-            group_id=group.id,
-            project_id=group.project_id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=ext_issue.id,
-        )
-        other_group_link = GroupLink.objects.create(
-            group_id=other_group.id,
-            project_id=other_group.project_id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=other_ext_issue.id,
-        )
-
-        project.transfer_to(organization=to_org)
-        project.refresh_from_db()
-        other_project.refresh_from_db()
-        ext_issue.refresh_from_db()
-        other_ext_issue.refresh_from_db()
-        group_link.refresh_from_db()
-        other_group_link.refresh_from_db()
-
-        assert project.organization_id == to_org.id
-        assert ext_issue.organization_id == to_org.id
-        assert group_link.project_id == project.id
-
-        assert other_project.organization_id == from_org.id
-        assert other_ext_issue.organization_id == from_org.id
-        assert other_group_link.project_id == other_project.id
 
     def test_get_absolute_url(self) -> None:
         url = self.project.get_absolute_url()
@@ -480,89 +151,438 @@ class ProjectTest(APITestCase, TestCase):
         assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).count() == 1
         assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).count() == 1
 
-    def test_transfer_to_organization_with_metric_issue_detector_and_workflow(self) -> None:
-        from_org = self.create_organization()
-        team = self.create_team(organization=from_org)
-        to_org = self.create_organization()
-        project = self.create_project(teams=[team])
 
-        detector = self.create_detector(project=project)
-        data_source = self.create_data_source(organization=from_org)
-        data_source.detectors.add(detector)
-        workflow = self.create_workflow(organization=from_org)
-        self.create_detector_workflow(detector=detector, workflow=workflow)
+class TestProjectTransfer(TestCase):
+    def setUp(self) -> None:
+        self.from_org = self.create_organization()
+        self.team = self.create_team(organization=self.from_org)
+        self.to_org = self.create_organization()
+        self.project = self.create_project(teams=[self.team])
 
-        project.transfer_to(organization=to_org)
+        self.detector = self.create_detector(project=self.project)
+        self.data_source = self.create_data_source(organization=self.from_org)
+        self.data_source.detectors.add(self.detector)
+        self.workflow = self.create_workflow(organization=self.from_org)
+        self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
 
-        project.refresh_from_db()
-        detector.refresh_from_db()
-        data_source.refresh_from_db()
-        workflow.refresh_from_db()
-
-        assert project.organization_id == to_org.id
-        assert detector.project_id == project.id
-        assert data_source.organization_id == to_org.id
-        assert workflow.organization_id == to_org.id
-        assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
-
-    def test_transfer_to_organization_with_workflow_data_condition_groups(self) -> None:
-        from_org = self.create_organization()
-        team = self.create_team(organization=from_org)
-        to_org = self.create_organization()
-        project = self.create_project(teams=[team])
-
-        detector = self.create_detector(project=project)
-        workflow = self.create_workflow(organization=from_org)
-        self.create_detector_workflow(detector=detector, workflow=workflow)
-        condition_group = self.create_data_condition_group(organization=from_org)
-        self.create_workflow_data_condition_group(
-            workflow=workflow, condition_group=condition_group
+    def test_transfer_to_organization(self) -> None:
+        project_other = self.create_project(teams=[self.team])
+        rule = self.create_project_rule(
+            name="Golden Rule",
+            project=self.project,
+            environment_id=Environment.get_or_create(self.project, "production").id,
+        )
+        environment_from_new = self.create_environment(organization=self.from_org)
+        environment_from_existing = self.create_environment(organization=self.from_org)
+        environment_to_existing = self.create_environment(
+            organization=self.to_org, name=environment_from_existing.name
         )
 
-        project.transfer_to(organization=to_org)
+        monitor = Monitor.objects.create(
+            name="test-monitor",
+            slug="test-monitor",
+            organization_id=self.from_org.id,
+            project_id=self.project.id,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
 
-        project.refresh_from_db()
-        detector.refresh_from_db()
-        workflow.refresh_from_db()
+        monitor_also = Monitor.objects.create(
+            name="test-monitor-also",
+            slug="test-monitor-also",
+            organization_id=self.from_org.id,
+            project_id=self.project.id,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+        monitor_env_new = MonitorEnvironment.objects.create(
+            monitor=monitor_also, environment_id=environment_from_new.id
+        )
+        monitor_env_existing = MonitorEnvironment.objects.create(
+            monitor=monitor_also, environment_id=environment_from_existing.id
+        )
+
+        monitor_other = Monitor.objects.create(
+            name="test-monitor-other",
+            slug="test-monitor-other",
+            organization_id=self.from_org.id,
+            project_id=project_other.id,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        monitor_to = Monitor.objects.create(
+            name="test-monitor",
+            slug="test-monitor",
+            organization_id=self.to_org.id,
+            project_id=self.create_project(name="other-project").id,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        self.project.transfer_to(organization=self.to_org)
+
+        self.project = Project.objects.get(id=self.project.id)
+
+        assert self.project.teams.count() == 0
+        assert self.project.organization_id == self.to_org.id
+
+        updated_rule = self.project.rule_set.get(label="Golden Rule")
+        assert updated_rule.id == rule.id
+        assert updated_rule.environment_id != rule.environment_id
+        assert (
+            updated_rule.environment_id == Environment.get_or_create(self.project, "production").id
+        )
+
+        # check to make sure old monitor is scheduled for deletion
+        assert CellScheduledDeletion.objects.filter(
+            object_id=monitor.id, model_name="Monitor"
+        ).exists()
+
+        updated_monitor = Monitor.objects.get(slug="test-monitor-also")
+        assert updated_monitor.id == monitor_also.id
+        assert updated_monitor.organization_id == self.to_org.id
+        assert updated_monitor.project_id == self.project.id
+        monitor_env_new.refresh_from_db()
+        environment_to_new = Environment.objects.get(id=monitor_env_new.environment_id)
+        assert environment_to_new.organization_id == self.to_org.id
+        assert environment_to_new.name == environment_from_new.name
+        monitor_env_existing.refresh_from_db()
+        assert monitor_env_existing.environment_id == environment_to_existing.id
+
+        unmoved_monitor = Monitor.objects.get(slug="test-monitor-other")
+        assert unmoved_monitor.id == monitor_other.id
+        assert unmoved_monitor.organization_id == self.from_org.id
+        assert unmoved_monitor.project_id == project_other.id
+
+        existing_monitor = Monitor.objects.get(id=monitor_to.id)
+        assert existing_monitor.id == monitor_to.id
+        assert existing_monitor.organization_id == self.to_org.id
+        assert existing_monitor.project_id == monitor_to.project_id
+
+    def test_transfer_to_organization_slug_collision(self) -> None:
+        # give the project being transferred a slug that collides with an
+        # existing project in the target org
+        self.project.update(slug="matt")
+        self.create_project(slug="matt", organization=self.to_org)
+
+        assert Project.objects.filter(organization=self.to_org).count() == 1
+
+        self.project.transfer_to(organization=self.to_org)
+
+        self.project = Project.objects.get(id=self.project.id)
+
+        assert self.project.teams.count() == 0
+        assert self.project.organization_id == self.to_org.id
+        assert self.project.slug != "matt"
+        assert Project.objects.filter(organization=self.to_org).count() == 2
+        assert Project.objects.filter(organization=self.from_org).count() == 0
+
+    def test_transfer_to_organization_releases(self) -> None:
+        def project_props(proj: Project):
+            return {
+                "id": proj.id,
+                "slug": proj.slug,
+                "name": proj.name,
+                "forced_color": proj.forced_color,
+                "public": proj.public,
+                "date_added": proj.date_added,
+                "status": proj.status,
+                "first_event": proj.first_event,
+                "flags": proj.flags,
+                "platform": proj.platform,
+            }
+
+        project_before = project_props(self.project)
+
+        environment = Environment.get_or_create(self.project, "production")
+        release = Release.get_or_create(project=self.project, version="1.0")
+
+        ReleaseProjectEnvironment.objects.create(
+            project=self.project, release=release, environment=environment
+        )
+
+        assert Environment.objects.filter(id=environment.id).exists()
+        assert Environment.objects.filter(
+            organization_id=self.from_org.id, projects=self.project
+        ).exists()
+
+        assert EnvironmentProject.objects.filter(
+            environment=environment, project=self.project
+        ).exists()
+        assert ReleaseProjectEnvironment.objects.filter(
+            project=self.project, release=release, environment=environment
+        ).exists()
+        assert ReleaseProject.objects.filter(project=self.project, release=release).exists()
+
+        self.project.transfer_to(organization=self.to_org)
+
+        self.project = Project.objects.get(id=self.project.id)
+        project_after = project_props(self.project)
+
+        assert project_before == project_after
+        assert self.project.teams.count() == 0
+        assert self.project.organization_id == self.to_org.id
+
+        assert Environment.objects.filter(id=environment.id).exists()
+        assert not EnvironmentProject.objects.filter(
+            environment=environment, project=self.project
+        ).exists()
+        assert not ReleaseProjectEnvironment.objects.filter(
+            project=self.project, release=release, environment=environment
+        ).exists()
+        assert not ReleaseProject.objects.filter(project=self.project, release=release).exists()
+
+    def test_delete_on_transfer_repository_project_path_configs(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration, org_integration = self.create_provider_integration_for(
+                self.from_org, self.user, provider="github"
+            )
+
+        repository = Repository.objects.create(
+            organization_id=self.from_org.id,
+            name="example-repo",
+            integration_id=integration.id,
+        )
+
+        project_repo, _ = ProjectRepository.objects.get_or_create(
+            project=self.project,
+            repository=repository,
+            defaults={"source": ProjectRepositorySource.MANUAL},
+        )
+        repository_project_path_config = RepositoryProjectPathConfig.objects.create(
+            organization_integration_id=org_integration.id,
+            organization_id=self.from_org.id,
+            integration_id=integration.id,
+            stack_root="/app",
+            source_root="/src",
+            default_branch="main",
+            project_repository=project_repo,
+        )
+
+        ProjectCodeOwners.objects.create(
+            project=self.project,
+            repository_project_path_config=repository_project_path_config,
+            raw="*.py @getsentry/test-team",
+        )
+
+        self.project.transfer_to(organization=self.to_org)
+
+        assert (
+            RepositoryProjectPathConfig.objects.filter(organization_id=self.from_org.id).count()
+            == 0
+        )
+        assert (
+            RepositoryProjectPathConfig.objects.filter(organization_id=self.to_org.id).count() == 0
+        )
+
+        assert (
+            RepositoryProjectPathConfig.objects.filter(
+                project_repository__project_id=self.project.id
+            ).count()
+            == 0
+        )
+
+        assert ProjectCodeOwners.objects.filter(project_id=self.project.id).count() == 0
+
+    def test_transfer_to_organization_alert_rules(self) -> None:
+        from_user = self.create_user()
+        self.create_member(user=from_user, role="member", organization=self.from_org)
+        to_team = self.create_team(organization=self.to_org)
+        to_user = self.create_user()
+        self.create_member(user=to_user, role="member", organization=self.to_org)
+
+        self.project = self.create_project(teams=[self.team])
+        environment = Environment.get_or_create(self.project, "production")
+
+        # should lose their owners
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            owner=Actor.from_identifier(f"team:{self.team.id}"),
+            environment=environment,
+        )
+        snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
+        rule1 = self.create_project_rule(
+            name="another test rule", project=self.project, owner_team=self.team
+        )
+        rule2 = self.create_project_rule(
+            name="rule4", project=self.project, owner_user_id=from_user.id
+        )
+
+        # should keep their owners
+        rule3 = self.create_project_rule(name="rule2", project=self.project, owner_team=to_team)
+        rule4 = self.create_project_rule(
+            name="rule3", project=self.project, owner_user_id=to_user.id
+        )
+
+        assert EnvironmentProject.objects.count() == 1
+        assert snuba_query.environment is not None
+        assert snuba_query.environment.id == environment.id
+
+        self.project.transfer_to(organization=self.to_org)
+
+        alert_rule.refresh_from_db()
+        rule1.refresh_from_db()
+        rule2.refresh_from_db()
+        rule3.refresh_from_db()
+        rule4.refresh_from_db()
+        snuba_query.refresh_from_db()
+
+        assert (
+            Environment.objects.exclude(id=environment.id).count() == 1
+        )  # not the same as the from_org env
+        assert EnvironmentProject.objects.count() == 1
+        assert snuba_query.environment != environment
+        assert alert_rule.organization_id == self.to_org.id
+        assert alert_rule.user_id is None
+        assert alert_rule.team_id is None
+
+        for rule in (rule1, rule2):
+            assert rule.owner_user_id is None
+            assert rule.owner_team_id is None
+
+        assert rule3.owner_user_id is None
+        assert rule3.owner_team_id
+
+        assert rule4.owner_user_id
+        assert rule4.owner_team_id is None
+
+    def test_transfer_to_organization_external_issues(self) -> None:
+        group = self.create_group(project=self.project)
+        other_project = self.create_project(organization=self.from_org)
+        other_group = self.create_group(project=other_project)
+
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="jira",
+            name="Jira",
+            external_id="jira:1",
+        )
+        ext_issue = ExternalIssue.objects.create(
+            organization_id=self.from_org.id,
+            integration_id=self.integration.id,
+            key="123",
+        )
+        other_ext_issue = ExternalIssue.objects.create(
+            organization_id=self.from_org.id,
+            integration_id=self.integration.id,
+            key="124",
+        )
+        group_link = GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=ext_issue.id,
+        )
+        other_group_link = GroupLink.objects.create(
+            group_id=other_group.id,
+            project_id=other_group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=other_ext_issue.id,
+        )
+
+        self.project.transfer_to(organization=self.to_org)
+        self.project.refresh_from_db()
+        other_project.refresh_from_db()
+        ext_issue.refresh_from_db()
+        other_ext_issue.refresh_from_db()
+        group_link.refresh_from_db()
+        other_group_link.refresh_from_db()
+
+        assert self.project.organization_id == self.to_org.id
+        assert ext_issue.organization_id == self.to_org.id
+        assert group_link.project_id == self.project.id
+
+        assert other_project.organization_id == self.from_org.id
+        assert other_ext_issue.organization_id == self.from_org.id
+        assert other_group_link.project_id == other_project.id
+
+    def test_transfer_to_organization_with_metric_issue_detector_and_workflow(self) -> None:
+        self.project.transfer_to(organization=self.to_org)
+
+        self.project.refresh_from_db()
+        self.detector.refresh_from_db()
+        self.data_source.refresh_from_db()
+        self.workflow.refresh_from_db()
+
+        assert self.project.organization_id == self.to_org.id
+        assert self.detector.project_id == self.project.id
+        assert self.data_source.organization_id == self.to_org.id
+        assert self.workflow.organization_id == self.to_org.id
+        assert DetectorWorkflow.objects.filter(
+            detector=self.detector, workflow=self.workflow
+        ).exists()
+
+    def test_transfer_to_organization_with_workflow_data_condition_groups(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+            to_integration = self.create_integration(
+                organization=self.to_org, external_id="to-slack", provider="slack"
+            )
+
+        condition_group = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=condition_group
+        )
+        action = self.create_action(
+            integration_id=from_integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
+
+        self.project.transfer_to(organization=self.to_org)
+
+        self.project.refresh_from_db()
+        self.detector.refresh_from_db()
+        self.workflow.refresh_from_db()
         condition_group.refresh_from_db()
 
-        assert project.organization_id == to_org.id
-        assert detector.project_id == project.id
-        assert workflow.organization_id == to_org.id
-        assert condition_group.organization_id == to_org.id
+        assert self.project.organization_id == self.to_org.id
+        assert self.detector.project_id == self.project.id
+        assert self.workflow.organization_id == self.to_org.id
+        assert condition_group.organization_id == self.to_org.id
         wdcg = condition_group.workflowdataconditiongroup_set.first()
         assert wdcg is not None
-        assert wdcg.workflow_id == workflow.id
+        assert wdcg.workflow_id == self.workflow.id
 
-    def test_transfer_to_organization_does_not_transfer_shared_workflows(self) -> None:
-        from_org = self.create_organization()
-        team = self.create_team(organization=from_org)
-        to_org = self.create_organization()
+        # The workflow moved in place; the destination org has a matching active Slack integration,
+        # so the same action is remapped to it and stays active.
+        action.refresh_from_db()
+        assert action.integration_id == to_integration.id
+        assert action.status == ObjectStatus.ACTIVE
 
-        project_a = self.create_project(teams=[team], name="Project A")
-        project_b = self.create_project(teams=[team], organization=from_org, name="Project B")
+    def test_transfer_to_organization_clones_shared_workflows(self) -> None:
+        project_a = self.create_project(teams=[self.team], name="Project A")
+        project_b = self.create_project(
+            teams=[self.team], organization=self.from_org, name="Project B"
+        )
 
         detector_a = self.create_detector(project=project_a)
         detector_b = self.create_detector(project=project_b)
 
-        shared_workflow = self.create_workflow(organization=from_org, name="Shared Workflow")
+        # Shared across both projects' detectors, so it must be cloned (not moved) on transfer.
+        # The owner belongs to the old org, so the clone must drop it.
+        shared_workflow = self.create_workflow(
+            organization=self.from_org, name="Shared Workflow", owner_team_id=self.team.id
+        )
         self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
         self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
 
-        exclusive_workflow = self.create_workflow(organization=from_org, name="Exclusive Workflow")
+        exclusive_workflow = self.create_workflow(
+            organization=self.from_org, name="Exclusive Workflow"
+        )
         self.create_detector_workflow(detector=detector_a, workflow=exclusive_workflow)
 
-        shared_dcg = self.create_data_condition_group(organization=from_org)
+        shared_dcg = self.create_data_condition_group(organization=self.from_org)
         self.create_workflow_data_condition_group(
             workflow=shared_workflow, condition_group=shared_dcg
         )
 
-        exclusive_dcg = self.create_data_condition_group(organization=from_org)
+        exclusive_dcg = self.create_data_condition_group(organization=self.from_org)
         self.create_workflow_data_condition_group(
             workflow=exclusive_workflow, condition_group=exclusive_dcg
         )
 
-        project_a.transfer_to(organization=to_org)
+        project_a.transfer_to(organization=self.to_org)
 
         project_a.refresh_from_db()
         project_b.refresh_from_db()
@@ -573,91 +593,344 @@ class ProjectTest(APITestCase, TestCase):
         shared_dcg.refresh_from_db()
         exclusive_dcg.refresh_from_db()
 
-        assert project_a.organization_id == to_org.id
-        assert project_b.organization_id == from_org.id
+        assert project_a.organization_id == self.to_org.id
+        assert project_b.organization_id == self.from_org.id
         assert detector_a.project_id == project_a.id
         assert detector_b.project_id == project_b.id
-        assert shared_workflow.organization_id == from_org.id
-        assert exclusive_workflow.organization_id == to_org.id
-        assert shared_dcg.organization_id == from_org.id
-        assert exclusive_dcg.organization_id == to_org.id
-        assert DetectorWorkflow.objects.filter(
-            detector=detector_a, workflow=shared_workflow
-        ).exists()
-        assert DetectorWorkflow.objects.filter(
-            detector=detector_b, workflow=shared_workflow
-        ).exists()
+
+        # The exclusive workflow is moved as-is.
+        assert exclusive_workflow.organization_id == self.to_org.id
+        assert exclusive_dcg.organization_id == self.to_org.id
         assert DetectorWorkflow.objects.filter(
             detector=detector_a, workflow=exclusive_workflow
         ).exists()
 
+        # The original shared workflow stays behind for project_b, no longer linked to detector_a,
+        # and keeps its owner.
+        assert shared_workflow.organization_id == self.from_org.id
+        assert shared_workflow.owner_team_id == self.team.id
+        assert shared_dcg.organization_id == self.from_org.id
+        assert DetectorWorkflow.objects.filter(
+            detector=detector_b, workflow=shared_workflow
+        ).exists()
+        assert not DetectorWorkflow.objects.filter(
+            detector=detector_a, workflow=shared_workflow
+        ).exists()
+
+        # detector_a is re-pointed onto a clone of the shared workflow that lives in the new org.
+        clone = Workflow.objects.get(organization=self.to_org, name="Shared Workflow")
+        assert clone.id != shared_workflow.id
+        assert DetectorWorkflow.objects.filter(detector=detector_a, workflow=clone).exists()
+
+        # The owner is dropped on the clone since it belongs to the old org.
+        assert clone.owner_team_id is None
+        assert clone.owner_user_id is None
+
+        # The clone has its own condition group in the new org; the original is untouched.
+        clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
+            workflow=clone
+        ).values_list("condition_group_id", flat=True)
+        assert shared_dcg.id not in clone_condition_group_ids
+        assert (
+            DataConditionGroup.objects.filter(
+                id__in=clone_condition_group_ids, organization=self.to_org
+            ).count()
+            == 1
+        )
+
+    def test_transfer_to_organization_clones_shared_workflow_actions(self) -> None:
+        project_a = self.create_project(teams=[self.team], name="Project A")
+        project_b = self.create_project(
+            teams=[self.team], organization=self.from_org, name="Project B"
+        )
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=self.from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+        action = self.create_action()
+        self.create_data_condition_group_action(action=action, condition_group=shared_dcg)
+
+        project_a.transfer_to(organization=self.to_org)
+
+        # The clone gets its own Action copy; the original Action is untouched and still attached
+        # to the workflow that stays behind.
+        clone = Workflow.objects.get(organization=self.to_org, name="Shared Workflow")
+        clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
+            workflow=clone
+        ).values_list("condition_group_id", flat=True)
+        clone_actions = Action.objects.filter(
+            dataconditiongroupaction__condition_group_id__in=clone_condition_group_ids
+        )
+        assert clone_actions.count() == 1
+        clone_action = clone_actions.get()
+        assert clone_action.id != action.id
+        assert clone_action.type == action.type
+        assert clone_action.data == action.data
+        assert clone_action.config == action.config
+
+        assert DataConditionGroupAction.objects.filter(
+            condition_group=shared_dcg, action=action
+        ).exists()
+
+    def test_transfer_to_organization_remaps_integration_action_to_destination_integration(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+            to_integration = self.create_integration(
+                organization=self.to_org, external_id="to-slack", provider="slack"
+            )
+
+        project_a = self.create_project(teams=[self.team], name="Project A")
+        project_b = self.create_project(
+            teams=[self.team], organization=self.from_org, name="Project B"
+        )
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=self.from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+        action = self.create_action(
+            integration_id=from_integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=shared_dcg)
+
+        project_a.transfer_to(organization=self.to_org)
+
+        # The destination org has a matching active Slack integration, so the cloned action is
+        # remapped to it and stays active.
+        clone = Workflow.objects.get(organization=self.to_org, name="Shared Workflow")
+        clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
+            workflow=clone
+        ).values_list("condition_group_id", flat=True)
+        clone_action = Action.objects.get(
+            dataconditiongroupaction__condition_group_id__in=clone_condition_group_ids
+        )
+        assert clone_action.id != action.id
+        assert clone_action.integration_id == to_integration.id
+        assert clone_action.status == ObjectStatus.ACTIVE
+
+        # The original action stays behind untouched.
+        action.refresh_from_db()
+        assert action.integration_id == from_integration.id
+        assert action.status == ObjectStatus.ACTIVE
+
+    def test_transfer_to_organization_disables_integration_action_without_destination_integration(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+
+        project_a = self.create_project(teams=[self.team], name="Project A")
+        project_b = self.create_project(
+            teams=[self.team], organization=self.from_org, name="Project B"
+        )
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=self.from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+        action = self.create_action(
+            integration_id=from_integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=shared_dcg)
+
+        project_a.transfer_to(organization=self.to_org)
+
+        # The destination org has no matching integration, so the cloned action keeps the original
+        # integration_id but is disabled.
+        clone = Workflow.objects.get(organization=self.to_org, name="Shared Workflow")
+        clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
+            workflow=clone
+        ).values_list("condition_group_id", flat=True)
+        clone_action = Action.objects.get(
+            dataconditiongroupaction__condition_group_id__in=clone_condition_group_ids
+        )
+        assert clone_action.id != action.id
+        assert clone_action.integration_id == from_integration.id
+        assert clone_action.status == ObjectStatus.DISABLED
+
+        # The original action stays behind untouched.
+        action.refresh_from_db()
+        assert action.status == ObjectStatus.ACTIVE
+
+    def test_transfer_to_organization_disables_integration_action_with_multiple_destination_integrations(
+        self,
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            from_integration = self.create_integration(
+                organization=self.from_org, external_id="from-slack", provider="slack"
+            )
+            self.create_integration(
+                organization=self.to_org, external_id="to-slack-1", provider="slack"
+            )
+            self.create_integration(
+                organization=self.to_org, external_id="to-slack-2", provider="slack"
+            )
+
+        project_a = self.create_project(teams=[self.team], name="Project A")
+        project_b = self.create_project(
+            teams=[self.team], organization=self.from_org, name="Project B"
+        )
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=self.from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+        action = self.create_action(
+            integration_id=from_integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.create_data_condition_group_action(action=action, condition_group=shared_dcg)
+
+        project_a.transfer_to(organization=self.to_org)
+
+        # The destination org has multiple active Slack integrations, so we can't tell which one
+        # the action meant; the cloned action keeps the original integration_id but is disabled.
+        clone = Workflow.objects.get(organization=self.to_org, name="Shared Workflow")
+        clone_condition_group_ids = WorkflowDataConditionGroup.objects.filter(
+            workflow=clone
+        ).values_list("condition_group_id", flat=True)
+        clone_action = Action.objects.get(
+            dataconditiongroupaction__condition_group_id__in=clone_condition_group_ids
+        )
+        assert clone_action.id != action.id
+        assert clone_action.integration_id == from_integration.id
+        assert clone_action.status == ObjectStatus.DISABLED
+
+        # The original action stays behind untouched.
+        action.refresh_from_db()
+        assert action.status == ObjectStatus.ACTIVE
+
+    def test_transfer_to_organization_clones_shared_workflows_is_idempotent(self) -> None:
+        project_a = self.create_project(teams=[self.team], name="Project A")
+        project_b = self.create_project(
+            teams=[self.team], organization=self.from_org, name="Project B"
+        )
+
+        detector_a = self.create_detector(project=project_a)
+        detector_b = self.create_detector(project=project_b)
+
+        shared_workflow = self.create_workflow(organization=self.from_org, name="Shared Workflow")
+        self.create_detector_workflow(detector=detector_a, workflow=shared_workflow)
+        self.create_detector_workflow(detector=detector_b, workflow=shared_workflow)
+
+        shared_dcg = self.create_data_condition_group(organization=self.from_org)
+        self.create_workflow_data_condition_group(
+            workflow=shared_workflow, condition_group=shared_dcg
+        )
+
+        project_a.transfer_to(organization=self.to_org)
+
+        clone = Workflow.objects.get(organization=self.to_org, name="Shared Workflow")
+        clone_condition_group_ids = list(
+            WorkflowDataConditionGroup.objects.filter(workflow=clone).values_list(
+                "condition_group_id", flat=True
+            )
+        )
+
+        # After the first transfer the clone is exclusive to project_a's detector, so a second
+        # transfer should move it as-is without producing another clone or new condition groups.
+        project_a.transfer_to(organization=self.to_org)
+
+        assert (
+            Workflow.objects.filter(organization=self.to_org, name="Shared Workflow").count() == 1
+        )
+        clone.refresh_from_db()
+        assert clone.organization_id == self.to_org.id
+        assert DetectorWorkflow.objects.filter(detector=detector_a, workflow=clone).exists()
+        assert (
+            list(
+                WorkflowDataConditionGroup.objects.filter(workflow=clone).values_list(
+                    "condition_group_id", flat=True
+                )
+            )
+            == clone_condition_group_ids
+        )
+
     def test_transfer_to_organization_with_detector_workflow_condition_group(self) -> None:
-        from_org = self.create_organization()
-        team = self.create_team(organization=from_org)
-        to_org = self.create_organization()
-        project = self.create_project(teams=[team])
+        workflow_condition_group = self.create_data_condition_group(organization=self.from_org)
+        self.detector.workflow_condition_group = workflow_condition_group
+        self.detector.save()
 
-        detector = self.create_detector(project=project)
-        workflow_condition_group = self.create_data_condition_group(organization=from_org)
-        detector.workflow_condition_group = workflow_condition_group
-        detector.save()
+        self.project.transfer_to(organization=self.to_org)
 
-        project.transfer_to(organization=to_org)
-
-        project.refresh_from_db()
-        detector.refresh_from_db()
+        self.project.refresh_from_db()
+        self.detector.refresh_from_db()
         workflow_condition_group.refresh_from_db()
 
-        assert project.organization_id == to_org.id
-        assert detector.project_id == project.id
-        assert workflow_condition_group.organization_id == to_org.id
-        assert detector.workflow_condition_group_id == workflow_condition_group.id
+        assert self.project.organization_id == self.to_org.id
+        assert self.detector.project_id == self.project.id
+        assert workflow_condition_group.organization_id == self.to_org.id
+        assert self.detector.workflow_condition_group_id == workflow_condition_group.id
 
     def test_transfer_to_organization_with_workflow_when_condition_groups(self) -> None:
-        from_org = self.create_organization()
-        to_org = self.create_organization()
-        team = self.create_team(organization=from_org)
-        project = self.create_project(teams=[team])
-
-        detector = self.create_detector(project=project)
-        when_condition_group = self.create_data_condition_group(organization=from_org)
+        detector = self.create_detector(project=self.project)
+        when_condition_group = self.create_data_condition_group(organization=self.from_org)
         workflow = self.create_workflow(
-            organization=from_org, when_condition_group=when_condition_group
+            organization=self.from_org, when_condition_group=when_condition_group
         )
         self.create_detector_workflow(detector=detector, workflow=workflow)
 
-        project.transfer_to(organization=to_org)
+        self.project.transfer_to(organization=self.to_org)
 
-        project.refresh_from_db()
+        self.project.refresh_from_db()
         detector.refresh_from_db()
         workflow.refresh_from_db()
         when_condition_group.refresh_from_db()
 
-        assert project.organization_id == to_org.id
-        assert detector.project_id == project.id
-        assert workflow.organization_id == to_org.id
-        assert when_condition_group.organization_id == to_org.id
+        assert self.project.organization_id == self.to_org.id
+        assert detector.project_id == self.project.id
+        assert workflow.organization_id == self.to_org.id
+        assert when_condition_group.organization_id == self.to_org.id
 
     def test_transfer_to_organization_updates_workflow_environment(self) -> None:
-        from_org = self.create_organization()
-        to_org = self.create_organization()
-        team = self.create_team(organization=from_org)
-        project = self.create_project(teams=[team])
+        env = self.create_environment(project=self.project, name="production")
+        self.workflow.update(environment_id=env.id)
+        self.project.transfer_to(organization=self.to_org)
 
-        env = self.create_environment(project=project, name="production")
-        detector = self.create_detector(project=project)
-        workflow = self.create_workflow(organization=from_org, environment=env)
-        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.workflow.refresh_from_db()
 
-        project.transfer_to(organization=to_org)
-
-        workflow.refresh_from_db()
-
-        assert workflow.organization_id == to_org.id
-        assert workflow.environment_id is not None
-        assert workflow.environment_id != env.id
-        new_env = Environment.objects.get(id=workflow.environment_id)
-        assert new_env.organization_id == to_org.id
+        assert self.workflow.organization_id == self.to_org.id
+        assert self.workflow.environment_id is not None
+        assert self.workflow.environment_id != env.id
+        new_env = Environment.objects.get(id=self.workflow.environment_id)
+        assert new_env.organization_id == self.to_org.id
         assert new_env.name == "production"
 
     def test_transfer_to_organization_nulls_detector_owner(self) -> None:

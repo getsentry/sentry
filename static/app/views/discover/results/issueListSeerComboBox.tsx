@@ -1,42 +1,30 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import type {
+  AskSeerSearchQuery,
+  SeerRawResponse,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
-  useSearchQueryBuilderAI,
-  useSearchQueryBuilderLayout,
-  useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {Token} from 'sentry/components/searchSyntax/parser';
-import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+  buildSeerDateTimeSelection,
+  mapSeerResponseItem,
+  transformSeerResponse,
+  useInitialSeerQuery,
+  useSelectedProjectIds,
+  useSelectedProjectIdsForMutation,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
-
-interface IssuesAskSeerTranslateResponse {
-  responses: Array<{
-    end: string | null;
-    group_by: string[];
-    mode: string;
-    query: string;
-    sort: string;
-    start: string | null;
-    stats_period: string;
-    visualization: Array<{chart_type: number; y_axes: string[]}>;
-  }>;
-  unsupported_reason: string | null;
-}
 
 interface IssueListSeerComboBoxProps {
   onSearch: (query: string) => void;
@@ -45,114 +33,33 @@ interface IssueListSeerComboBoxProps {
 export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const {setRunId} = useAiQueryContext();
-  const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
-  const {currentInputValueRef} = useSearchQueryBuilderLayout();
   const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
 
-  let initialSeerQuery = '';
-  const queryDetails = useMemo(() => {
-    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
-    const parsedQuery = parseQuery(queryToUse);
-    return {parsedQuery, queryToUse};
-  }, [committedQuery, query, parseQuery]);
+  const initialSeerQuery = useInitialSeerQuery();
+  const selectedProjectIds = useSelectedProjectIds();
+  const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
 
-  const inputValue = currentInputValueRef.current.trim();
-
-  // Only filter out FREE_TEXT tokens if there's actual input value to filter by
-  const filteredCommittedQuery = queryDetails?.parsedQuery
-    ?.filter(
-      token =>
-        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
-    )
-    ?.map(token => stringifyToken(token))
-    ?.join(' ')
-    ?.trim();
-
-  // Use filteredCommittedQuery if it has content.
-  // Only fall back to queryToUse when there's no inputValue to filter by.
-  // This prevents duplication when the entire query is free text matching inputValue.
-  if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
-    initialSeerQuery = filteredCommittedQuery;
-  } else if (!inputValue && queryDetails?.queryToUse) {
-    initialSeerQuery = queryDetails.queryToUse;
-  }
-
-  if (inputValue) {
-    initialSeerQuery =
-      initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
-  }
-
-  // Get selected project IDs for the polling variant
-  const selectedProjectIds = useMemo(() => {
-    if (
-      pageFilters.selection.projects?.length > 0 &&
-      pageFilters.selection.projects?.[0] !== -1
-    ) {
-      return pageFilters.selection.projects;
-    }
-    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
-  }, [pageFilters.selection.projects, projects]);
-
-  // Transform the final_response from Seer to match the expected format
   const transformResponse = useCallback(
-    (response: AskSeerSearchQuery): AskSeerSearchQuery[] => {
-      const seerResponse = response as unknown as {
-        responses?: Array<{
-          end: string | null;
-          group_by: string[];
-          mode: string;
-          query: string;
-          sort: string;
-          start: string | null;
-          stats_period: string;
-          visualization: Array<{chart_type: number; y_axes: string[]}>;
-        }>;
-      };
-
-      if (seerResponse.responses && Array.isArray(seerResponse.responses)) {
-        return seerResponse.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-          mode: r?.mode ?? 'samples',
-          visualizations:
-            r?.visualization?.map(v => ({
-              chartType: v.chart_type,
-              yAxes: v.y_axes ?? [],
-            })) ?? [],
-        }));
-      }
-
-      return [response];
-    },
+    (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
+      transformSeerResponse(response, responseItem => mapSeerResponseItem(responseItem)),
     []
   );
 
   const issueListAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
-      const selectedProjects =
-        pageFilters.selection.projects?.length > 0 &&
-        pageFilters.selection.projects?.[0] !== -1
-          ? pageFilters.selection.projects
-          : projects.filter(p => p.isMember).map(p => p.id);
-
       const user = ConfigStore.get('user');
-      const data = await fetchMutation<IssuesAskSeerTranslateResponse>({
+      const data = await fetchMutation<SeerRawResponse>({
         url: `/organizations/${organization.slug}/search-agent/translate/`,
         method: 'POST',
         data: {
           org_id: organization.id,
           org_slug: organization.slug,
           natural_language_query: queryToSubmit,
-          project_ids: selectedProjects,
+          project_ids: selectedProjectIdsForMutation,
           strategy: 'Errors',
           user_email: user?.email,
         },
@@ -161,20 +68,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       return {
         status: 'ok',
         unsupported_reason: data.unsupported_reason,
-        queries: data.responses.map(r => ({
-          query: r?.query ?? '',
-          sort: r?.sort ?? '',
-          groupBys: r?.group_by ?? [],
-          statsPeriod: r?.stats_period ?? '',
-          start: r?.start ?? null,
-          end: r?.end ?? null,
-          mode: r?.mode ?? 'samples',
-          visualizations:
-            r?.visualization?.map(v => ({
-              chartType: v.chart_type as ChartType,
-              yAxes: v.y_axes ?? [],
-            })) ?? [],
-        })),
+        queries: data.responses.map(response => mapSeerResponseItem(response)),
       };
     },
   });
@@ -194,28 +88,19 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         visualizations,
       } = result;
 
-      let start: DateString = null;
-      let end: DateString = null;
+      const dt = buildSeerDateTimeSelection(
+        resultStart,
+        resultEnd,
+        statsPeriod,
+        pageFilters.selection.datetime
+      );
 
-      if (resultStart && resultEnd) {
-        // Strip 'Z' suffix to treat UTC dates as local time
-        const startLocal = resultStart.endsWith('Z')
-          ? resultStart.slice(0, -1)
-          : resultStart;
-        const endLocal = resultEnd.endsWith('Z') ? resultEnd.slice(0, -1) : resultEnd;
-        start = new Date(startLocal).toISOString();
-        end = new Date(endLocal).toISOString();
-      } else {
-        start = pageFilters.selection.datetime.start;
-        end = pageFilters.selection.datetime.end;
-      }
+      const start = dt.start;
+      const end = dt.end;
 
-      // Get yAxis from visualizations
       const yAxis =
         visualizations?.length > 0 ? visualizations[0]?.yAxes?.[0] : undefined;
 
-      // Build columns (field) from groupBys and visualizations
-      // Columns should be [groupBy fields..., visualization yAxes...]
       const columns: string[] = [];
       if (groupBys && groupBys.length > 0) {
         columns.push(...groupBys);
@@ -244,17 +129,14 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         query: queryToUse,
       });
 
-      // Apply the search query
       onSearch(queryToUse);
 
-      // Build the new query params
       const newQueryParams: Record<string, string | string[] | null | undefined> = {
         ...location.query,
         query: queryToUse,
       };
 
-      // Apply sort if provided - convert to aliased format for Discover
-      // e.g., "-count()" -> "-count"
+      // Convert to aliased format for Discover (e.g., "-count()" -> "-count")
       if (sort) {
         const isDescending = sort.startsWith('-');
         const sortField = isDescending ? sort.substring(1) : sort;
@@ -262,32 +144,32 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         newQueryParams.sort = isDescending ? `-${aliasedSortField}` : aliasedSortField;
       }
 
-      // Apply yAxis if provided
       if (yAxis) {
         newQueryParams.yAxis = yAxis;
       }
 
-      // Apply columns (field) if we have groupBys or visualizations
       if (columns.length > 0) {
         newQueryParams.field = columns;
       }
 
-      // Apply date range
       if (resultStart && resultEnd) {
         newQueryParams.start = typeof start === 'string' ? start : start?.toISOString();
         newQueryParams.end = typeof end === 'string' ? end : end?.toISOString();
         newQueryParams.statsPeriod = undefined;
+        // Seer absolute ranges are UTC; carry the flag so Discover charts
+        // display them in UTC instead of the page's local timezone.
+        newQueryParams.utc = dt.utc ? 'true' : undefined;
       } else if (statsPeriod) {
         newQueryParams.statsPeriod = statsPeriod;
         newQueryParams.start = undefined;
         newQueryParams.end = undefined;
+        newQueryParams.utc = dt.utc ? 'true' : undefined;
       }
 
       if (runId !== undefined) {
         setRunId(runId);
       }
 
-      // Navigate with all params
       navigate(
         {...location, query: newQueryParams},
         {replace: true, preventScrollReset: true}

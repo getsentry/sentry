@@ -83,6 +83,7 @@ class Topic(Enum):
     TASKWORKER_EXAMPLE = "taskworker-example"
     TASKWORKER_INGEST = "taskworker-ingest"
     TASKWORKER_INGEST_DLQ = "taskworker-ingest-dlq"
+    TASKWORKER_INGEST_PUSH = "taskworker-ingest-push"
     TASKWORKER_INGEST_ERRORS = "taskworker-ingest-errors"
     TASKWORKER_INGEST_ERRORS_DLQ = "taskworker-ingest-errors-dlq"
     TASKWORKER_INGEST_ERRORS_POSTPROCESS = "taskworker-ingest-errors-postprocess"

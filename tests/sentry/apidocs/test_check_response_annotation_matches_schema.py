@@ -191,8 +191,12 @@ class FooEndpoint:
     assert mismatches[0].annot == frozenset({"FooResponse"})
 
 
-def test_annotation_has_extra_T_not_in_decorator_fires() -> None:
-    """If the annotation union declares a `T` that the decorator doesn't, fail."""
+def test_annotation_has_extra_T_not_in_decorator_passes() -> None:
+    """Under the subset linter, the annotation MAY declare arms the decorator
+    doesn't. These are internal-only type contracts (e.g. local error
+    TypedDicts not exposed in OpenAPI via inline_sentry_response_serializer).
+    The decorator's typed-T set still has to be a subset of the annotation's,
+    but the annotation is free to declare more."""
     source = """
 from typing import TypedDict
 from drf_spectacular.utils import extend_schema
@@ -202,20 +206,17 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 class FooResponse(TypedDict):
     x: int
 
-class GhostResponse(TypedDict):
-    y: int
+class LocalErrorBody(TypedDict):
+    error: str
 
 class FooEndpoint:
     @extend_schema(
         responses={200: inline_sentry_response_serializer("Foo", FooResponse)},
     )
-    def get(self) -> Response[FooResponse] | Response[GhostResponse]:
+    def get(self) -> Response[FooResponse] | Response[LocalErrorBody]:
         return Response({"x": 1})
 """
-    mismatches = _run(source)
-    assert len(mismatches) == 1
-    assert mismatches[0].decl == frozenset({"FooResponse"})
-    assert mismatches[0].annot == frozenset({"FooResponse", "GhostResponse"})
+    assert _run(source) == []
 
 
 def test_multi_2xx_decorator_with_union_annotation() -> None:
@@ -416,4 +417,98 @@ class FooEndpoint:
     def get(self) -> Response[FooResponse]:
         return Response({"x": 1})
 """
+    assert _run(source) == []
+
+
+def test_decorator_opaque_RESPONSE_constants_with_annotation_error_arm_passes() -> None:
+    """API-as-today scenario: decorator declares only the 200 schema via
+    `inline_sentry_response_serializer` and uses opaque `RESPONSE_*` constants
+    for errors. Annotation declares the full union including a local error
+    TypedDict. Under subset semantics this passes — the annotation is
+    internal-only enrichment that doesn't change the published OpenAPI."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+
+RESPONSE_BAD_REQUEST = OpenApiResponse(description="Bad Request")
+
+class FooResponse(TypedDict):
+    x: int
+
+class FooErrorBody(TypedDict):
+    detail: str
+
+class FooEndpoint:
+    @extend_schema(
+        responses={
+            200: inline_sentry_response_serializer("Foo", FooResponse),
+            400: RESPONSE_BAD_REQUEST,
+        },
+    )
+    def get(self) -> Response[FooResponse] | Response[FooErrorBody]:
+        return Response({"x": 1})
+"""
+    assert _run(source) == []
+
+
+def test_decorator_typed_error_must_appear_in_annotation() -> None:
+    """If the decorator declares a typed error arm via
+    `inline_sentry_response_serializer`, the annotation MUST include that T.
+    Drift in this direction is still caught."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+
+class FooResponse(TypedDict):
+    x: int
+
+class TypedErrorBody(TypedDict):
+    detail: str
+
+class FooEndpoint:
+    @extend_schema(
+        responses={
+            200: inline_sentry_response_serializer("Foo", FooResponse),
+            400: inline_sentry_response_serializer("Err", TypedErrorBody),
+        },
+    )
+    def get(self) -> Response[FooResponse]:
+        return Response({"x": 1})
+"""
+    mismatches = _run(source)
+    assert len(mismatches) == 1
+    assert mismatches[0].decl == frozenset({"FooResponse", "TypedErrorBody"})
+    assert mismatches[0].annot == frozenset({"FooResponse"})
+
+
+def test_linter_is_name_agnostic_about_typeddicts() -> None:
+    """The linter must not special-case any TypedDict name (no DetailResponse
+    skip, no shape-based heuristics). It compares the sets of names as-is."""
+    source = """
+from typing import TypedDict
+from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
+from sentry.apidocs.utils import inline_sentry_response_serializer
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+class FooEndpoint:
+    @extend_schema(
+        responses={200: inline_sentry_response_serializer("Foo", FooResponse)},
+    )
+    def get(self) -> Response[FooResponse] | Response[DetailResponse]:
+        return Response({"x": 1})
+"""
+    # decorator set = {FooResponse}, annotation set = {FooResponse, DetailResponse}
+    # {FooResponse} ⊆ {FooResponse, DetailResponse} → passes
+    # Critically: the linter passes NOT because it special-cases DetailResponse,
+    # but because the subset rule accepts any extra annotation arm.
     assert _run(source) == []

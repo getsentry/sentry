@@ -1,10 +1,17 @@
+from typing import TypedDict
+
 from django.core.cache import cache
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.deploy import Deploy
 from sentry.models.group import Group
 from sentry.models.releasecommit import ReleaseCommit
@@ -13,22 +20,38 @@ from sentry.models.repository import Repository
 from sentry.utils.hashlib import hash_values
 
 
+class ReleaseSetupStepResponse(TypedDict):
+    # One of: tag, repo, commit, deploy.
+    step: str
+    complete: bool
+
+
+@extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project) -> Response:
+    @extend_schema(
+        operation_id="Retrieve a Project's Release Setup Progress",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListReleaseSetupSteps", list[ReleaseSetupStepResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(self, request: Request, project) -> Response[list[ReleaseSetupStepResponse]]:
         """
-        Get list with release setup progress for a project
-        1. tag an error
-        2. link a repo
-        3. associate commits
-        4. tell sentry about a deploy
+        Return the release-setup onboarding progress for a project: whether the project
+        has tagged an error, linked a repo, associated commits, and reported a deploy.
         """
-
         tag_key = "onboard_tag:1:%s" % (project.id)
         repo_key = "onboard_repo:1:%s" % (project.organization_id)
         commit_key = "onboard_commit:1:%s" % hash_values([project.organization_id, project.id])

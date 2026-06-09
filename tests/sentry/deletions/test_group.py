@@ -14,6 +14,8 @@ from sentry.deletions.defaults.group import (
     update_group_hash_metadata_in_batches,
 )
 from sentry.deletions.tasks.groups import delete_groups_for_project
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
@@ -70,6 +72,14 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         Activity.objects.create(
             group=event.group, project=self.project, type=ActivityType.SET_RESOLVED.value
         )
+        GroupActionLogEntry.objects.create(
+            group_id=event.group.id,
+            project_id=event.project_id,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+            data={},
+        )
 
         return event
 
@@ -97,6 +107,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not Activity.objects.filter(group_id=event.group.id).exists()
         assert not GroupRedirect.objects.filter(group_id=event.group.id).exists()
         assert not GroupHash.objects.filter(group_id=event.group.id).exists()
+        assert not GroupActionLogEntry.objects.filter(group_id=event.group.id).exists()
         assert not Group.objects.filter(id=event.group.id).exists()
         assert not nodestore.backend.get(self._get_node_id(event))
         assert not nodestore.backend.get(self._get_node_id(event2))

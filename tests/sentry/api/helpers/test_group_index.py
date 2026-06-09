@@ -28,6 +28,7 @@ from sentry.api.helpers.group_index.update import (
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.issues.issue_search import parse_search_query
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -140,6 +141,28 @@ class UpdateGroupsTest(TestCase):
         assert not send_robust.called
         assert send_unresolved.called
 
+    def test_outer_action_context_overrides_request_source(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolved", "substatus": None})
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+
+        with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
+            with action_context_scope(
+                source=ActionSource.SLACK, actor=GroupActionActor.user(self.user.id)
+            ):
+                update_groups(request, group_list)
+
+        resolve_records = [
+            r
+            for r in logs.records
+            if r.message == "group.action_log" and getattr(r, "action") == "resolve"
+        ]
+        assert len(resolve_records) == 1
+        assert getattr(resolve_records[0], "source") == ActionSource.SLACK
+        assert getattr(resolve_records[0], "actor_id") == str(self.user.id)
+
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -158,6 +181,34 @@ class UpdateGroupsTest(TestCase):
         assert unresolved_group.status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
+        # Resolving "now" has no commit associated with it.
+        assert send_robust.call_args.kwargs["commit_id"] is None
+
+    @patch("sentry.signals.issue_resolved.send_robust")
+    def test_resolving_group_in_commit(self, send_robust: Mock) -> None:
+        unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
+        repo = self.create_repo(project=unresolved_group.project)
+        commit = self.create_commit(project=unresolved_group.project, repo=repo)
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
+        request = _wrap_request(
+            http_request,
+            data={
+                "status": "resolved",
+                "statusDetails": {"inCommit": {"commit": commit.key, "repository": repo.name}},
+            },
+        )
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        unresolved_group.refresh_from_db()
+
+        assert unresolved_group.status == GroupStatus.RESOLVED
+        assert send_robust.called
+        assert send_robust.call_args.kwargs["resolution_type"] == "in_commit"
+        assert send_robust.call_args.kwargs["commit_id"] == commit.id
 
     @patch("sentry.signals.issue_ignored.send_robust")
     @patch("sentry.issues.status_change.post_save")
@@ -1249,48 +1300,6 @@ class DeleteGroupsTest(TestCase):
 
 
 class GetSemverReleasesTest(TestCase):
-    def test_greatest_semver_releases(self) -> None:
-        """Test get_semver_releases orders releases by semver."""
-        release_1 = self.create_release(version="test@2.2", project=self.project)
-        release_2 = self.create_release(version="test@10.0+1000", project=self.project)
-        release_3 = self.create_release(version="test@2.2-alpha", project=self.project)
-        release_4 = self.create_release(version="test@2.2.3", project=self.project)
-        release_5 = self.create_release(version="test@2.20.3", project=self.project)
-        release_6 = self.create_release(version="test@2.20.3.3", project=self.project)
-        release_7 = self.create_release(version="test@10.0+998", project=self.project)
-        release_8 = self.create_release(version="test@10.0+x22", project=self.project)
-        release_9 = self.create_release(version="test@10.0+a23", project=self.project)
-        release_10 = self.create_release(version="test@10.0", project=self.project)
-        release_11 = self.create_release(version="test@10.0-abc", project=self.project)
-        release_12 = self.create_release(version="test@10.0+999", project=self.project)
-        # Non-semver releases that will be filtered out by filter_to_semver()
-        self.create_release(version="test@some_thing", project=self.project)
-        self.create_release(version="random_junk", project=self.project)
-
-        releases = list(get_semver_releases(self.project))
-
-        # Without build code ordering, 10.0 releases (same semver, different build codes)
-        # are not in deterministic order. Just verify they're grouped at the top.
-        all_10_releases = {
-            release_2,
-            release_7,
-            release_8,
-            release_9,
-            release_10,
-            release_11,
-            release_12,
-        }
-
-        assert len(releases) == 12
-        assert set(releases[:7]) == all_10_releases
-        assert releases[7:] == [
-            release_6,
-            release_5,
-            release_4,
-            release_1,
-            release_3,
-        ]
-
     def test_greatest_semver_releases_with_build_code(self) -> None:
         """Test get_semver_releases orders releases by semver and build code."""
         release_1 = self.create_release(version="test@2.2", project=self.project)
@@ -1309,8 +1318,7 @@ class GetSemverReleasesTest(TestCase):
         self.create_release(version="test@some_thing", project=self.project)
         self.create_release(version="random_junk", project=self.project)
 
-        with self.feature("organizations:semver-ordering-with-build-code"):
-            releases = list(get_semver_releases(self.project))
+        releases = list(get_semver_releases(self.project))
 
         expected_order = [
             release_8,  # test@10.0+x22
@@ -1348,11 +1356,10 @@ class GetSemverReleasesTest(TestCase):
         )
         self.create_release(version="test@1.0+99", project=self.project)
 
-        with self.feature("organizations:semver-ordering-with-build-code"):
-            greatest = greatest_semver_release(self.project)
-            assert greatest is not None
-            assert greatest.id == release_with_highest_build.id
-            assert greatest.version == "test@1.0+100"
+        greatest = greatest_semver_release(self.project)
+        assert greatest is not None
+        assert greatest.id == release_with_highest_build.id
+        assert greatest.version == "test@1.0+100"
 
 
 class TestHandleReleases(TestCase):

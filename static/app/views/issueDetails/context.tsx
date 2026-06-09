@@ -8,7 +8,7 @@ import {
   type Reducer,
 } from 'react';
 
-import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorSection';
+import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorDetails';
 
 export const enum SectionKey {
   /**

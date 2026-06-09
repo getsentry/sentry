@@ -5,6 +5,8 @@
  * Intercom is lazily initialized on first "Contact Support" click.
  */
 
+import type {boot as intercomBoot} from '@intercom/messenger-js-sdk';
+
 import {Client} from 'sentry/api';
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -22,16 +24,17 @@ interface IntercomJwtResponse {
   userData: IntercomUserData;
 }
 
-let hasBooted = false;
+type IntercomSettings = Parameters<typeof intercomBoot>[0];
+
 let bootPromise: Promise<void> | null = null;
-let bootedOrgSlug: string | null = null;
+let intercomState: {orgSlug: string; settings: IntercomSettings} | null = null;
 
 /**
  * Initialize Intercom with identity verification.
  * Only fetches JWT and boots on first call.
  */
 async function initIntercom(orgSlug: string): Promise<void> {
-  if (hasBooted) {
+  if (intercomState) {
     return;
   }
 
@@ -53,9 +56,7 @@ async function initIntercom(orgSlug: string): Promise<void> {
         `/organizations/${orgSlug}/intercom-jwt/`
       );
 
-      // Boot Intercom with user data
-      const {default: Intercom} = await import('@intercom/messenger-js-sdk');
-      Intercom({
+      const intercomSettings: IntercomSettings = {
         app_id: intercomAppId,
         user_id: jwtData.userData.userId,
         user_hash: jwtData.jwt,
@@ -67,10 +68,42 @@ async function initIntercom(orgSlug: string): Promise<void> {
           name: jwtData.userData.organizationName,
         },
         hide_default_launcher: true,
-      });
+      };
 
-      hasBooted = true;
-      bootedOrgSlug = orgSlug;
+      // Intercom's session cookie is scoped to .sentry.io and survives the
+      // hard navigation between org subdomains, so a plain boot resumes the
+      // previous org's session. Load the SDK, drop the stale session cookie,
+      // then boot clean with this org's identity.
+      const {
+        boot,
+        default: Intercom,
+        show,
+        onShow,
+        shutdown,
+      } = await import('@intercom/messenger-js-sdk');
+      Intercom(intercomSettings);
+      shutdown();
+      boot(intercomSettings);
+
+      const nextIntercomState = {orgSlug, settings: intercomSettings};
+      intercomState = nextIntercomState;
+      let hasRebootedAfterShow = false;
+
+      // After Intercom is opened, reboot with the same settings. Intercom needs
+      // the cookie to be cleared again after showing so the company updates
+      // correctly after switching orgs.
+      onShow(() => {
+        if (intercomState !== nextIntercomState || hasRebootedAfterShow) {
+          return;
+        }
+
+        hasRebootedAfterShow = true;
+        setTimeout(() => {
+          shutdown();
+          boot(intercomSettings);
+          show();
+        }, 2000);
+      });
     } catch (error) {
       // Reset so user can retry on next click
       bootPromise = null;
@@ -83,19 +116,20 @@ async function initIntercom(orgSlug: string): Promise<void> {
 
 /**
  * Shutdown Intercom and clear session data.
- * Call this when user logs out or switches organizations.
+ *
+ * Used for logout and same-page (SPA) org switches. Customer-domain org
+ * switches are hard navigations, so their cleanup happens after Messenger show.
  */
 export async function shutdownIntercom(): Promise<void> {
-  if (!hasBooted) {
+  if (!intercomState) {
     return;
   }
 
   const {shutdown} = await import('@intercom/messenger-js-sdk');
   shutdown();
 
-  hasBooted = false;
   bootPromise = null;
-  bootedOrgSlug = null;
+  intercomState = null;
 }
 
 /**
@@ -105,7 +139,7 @@ export async function shutdownIntercom(): Promise<void> {
  */
 export async function showIntercom(orgSlug: string): Promise<void> {
   // If booted for a different org, shutdown first to re-initialize with new org context
-  if (hasBooted && bootedOrgSlug !== orgSlug) {
+  if (intercomState && intercomState.orgSlug !== orgSlug) {
     await shutdownIntercom();
   }
 

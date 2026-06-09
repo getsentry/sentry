@@ -38,8 +38,8 @@ def _get_signature(project_id, plugin_id, token):
 @cell_silo_endpoint
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (StrictProjectPermission, DisallowImpersonatedTokenCreation)
 
