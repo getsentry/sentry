@@ -51,17 +51,15 @@ def upsert_pr_metrics_summary(
     organization_id: int,
     repository_id: int,
     verdict: str | None = None,
-    participants_count: int | None = None,
-    reviews_count: int | None = None,
     attributions: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Persist Seer's judge result for a PR and emit the enriched metrics row.
 
     Inbound Seer RPC (Seer → Sentry), invoked once Seer has judged a forwarded
-    terminal PR event. Persists the ``verdict`` and the Seer-derived counters onto
-    ``PullRequestMetrics`` (leaving the webhook-sourced counters untouched),
-    records any Seer-derived ``PullRequestAttribution`` signals, then re-emits the
-    now judge-enriched ``pr_metrics.row``.
+    terminal PR event. Persists the ``verdict`` onto ``PullRequestMetrics``
+    (leaving the webhook-sourced counters untouched), records any Seer-derived
+    ``PullRequestAttribution`` signals, then re-emits the now judge-enriched
+    ``pr_metrics.row``.
 
     The PR is located by its Sentry id but constrained to the reported
     ``organization_id``/``repository_id``, so a mismatched id can't reach another
@@ -98,18 +96,12 @@ def upsert_pr_metrics_summary(
         metrics.incr("pr_metrics.upsert.skipped", tags={"reason": "pr_not_found"})
         return {"success": False, "error": "pull_request_not_found"}
 
-    # Only the judge-derived fields are written here; the webhook keeps the
-    # activity counters current, so we must not clobber them with a partial upsert.
-    seer_fields: dict[str, Any] = {"verdict": verdict}
-    if participants_count is not None:
-        seer_fields["participants_count"] = participants_count
-    if reviews_count is not None:
-        seer_fields["reviews_count"] = reviews_count
-
+    # Only the verdict is written here; the webhook keeps the activity counters
+    # current, so we must not clobber them with a partial upsert.
     with transaction.atomic(using=router.db_for_write(PullRequestMetrics)):
         PullRequestMetrics.objects.update_or_create(
             pull_request=pull_request,
-            defaults=seer_fields,
+            defaults={"verdict": verdict},
         )
         for signal_type, source, signal_details in parsed_attributions:
             record_attribution_signal(

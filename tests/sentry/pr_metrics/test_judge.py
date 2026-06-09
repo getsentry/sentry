@@ -131,13 +131,11 @@ class UpsertPrMetricsSummaryTest(TestCase):
             pull_request=self.pull_request, additions=10, deletions=5, is_assigned=True
         )
 
-        result = self._call(verdict="merged_unchanged", participants_count=3, reviews_count=2)
+        result = self._call(verdict="merged_unchanged")
 
         assert result == {"success": True}
         metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
         assert metrics.verdict == "merged_unchanged"
-        assert metrics.participants_count == 3
-        assert metrics.reviews_count == 2
         # Webhook-sourced counters survive the judge upsert.
         assert metrics.additions == 10
         assert metrics.deletions == 5
