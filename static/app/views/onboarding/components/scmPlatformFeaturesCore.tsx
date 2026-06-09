@@ -59,6 +59,10 @@ const CHANGE_PLATFORM_CLICKED_EVENT = {
   onboarding: 'onboarding.scm_platform_change_platform_clicked',
   'project-creation': 'project_creation.scm_platform_change_platform_clicked',
 } as const;
+const SKIP_DETECTION_CLICKED_EVENT = {
+  onboarding: 'onboarding.scm_skip_detection_clicked',
+  'project-creation': 'project_creation.scm_skip_detection_clicked',
+} as const;
 
 interface ScmPlatformFeaturesCoreProps {
   analyticsFlow: ScmAnalyticsFlow;
@@ -350,7 +354,13 @@ export function ScmPlatformFeaturesCore({
 
   function handleChangePlatformClick() {
     setShowManualPicker(true);
-    if (!isDetecting) {
+    // Distinguish bailing *while detection is still running* (a latency-driven
+    // abandonment signal) from changing an already-detected platform.
+    if (isDetecting) {
+      trackAnalytics(SKIP_DETECTION_CLICKED_EVENT[analyticsFlow], {
+        organization,
+      });
+    } else {
       trackAnalytics(CHANGE_PLATFORM_CLICKED_EVENT[analyticsFlow], {
         organization,
       });
