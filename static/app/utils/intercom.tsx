@@ -26,16 +26,15 @@ interface IntercomJwtResponse {
 
 type IntercomSettings = Parameters<typeof intercomBoot>[0];
 
-let hasBooted = false;
 let bootPromise: Promise<void> | null = null;
-let bootedOrgSlug: string | null = null;
+let intercomState: {orgSlug: string; settings: IntercomSettings} | null = null;
 
 /**
  * Initialize Intercom with identity verification.
  * Only fetches JWT and boots on first call.
  */
 async function initIntercom(orgSlug: string): Promise<void> {
-  if (hasBooted) {
+  if (intercomState) {
     return;
   }
 
@@ -78,14 +77,33 @@ async function initIntercom(orgSlug: string): Promise<void> {
       const {
         boot,
         default: Intercom,
+        show,
+        onShow,
         shutdown,
       } = await import('@intercom/messenger-js-sdk');
       Intercom(intercomSettings);
       shutdown();
       boot(intercomSettings);
 
-      hasBooted = true;
-      bootedOrgSlug = orgSlug;
+      const nextIntercomState = {orgSlug, settings: intercomSettings};
+      intercomState = nextIntercomState;
+      let hasRebootedAfterShow = false;
+
+      // After Intercom is opened, reboot with the same settings. Intercom needs
+      // the cookie to be cleared again after showing so the company updates
+      // correctly after switching orgs.
+      onShow(() => {
+        if (intercomState !== nextIntercomState || hasRebootedAfterShow) {
+          return;
+        }
+
+        hasRebootedAfterShow = true;
+        setTimeout(() => {
+          shutdown();
+          boot(intercomSettings);
+          show();
+        }, 2000);
+      });
     } catch (error) {
       // Reset so user can retry on next click
       bootPromise = null;
@@ -100,19 +118,18 @@ async function initIntercom(orgSlug: string): Promise<void> {
  * Shutdown Intercom and clear session data.
  *
  * Used for logout and same-page (SPA) org switches. Customer-domain org
- * switches are hard navigations, so their cleanup happens in initIntercom.
+ * switches are hard navigations, so their cleanup happens after Messenger show.
  */
 export async function shutdownIntercom(): Promise<void> {
-  if (!hasBooted) {
+  if (!intercomState) {
     return;
   }
 
   const {shutdown} = await import('@intercom/messenger-js-sdk');
   shutdown();
 
-  hasBooted = false;
   bootPromise = null;
-  bootedOrgSlug = null;
+  intercomState = null;
 }
 
 /**
@@ -122,7 +139,7 @@ export async function shutdownIntercom(): Promise<void> {
  */
 export async function showIntercom(orgSlug: string): Promise<void> {
   // If booted for a different org, shutdown first to re-initialize with new org context
-  if (hasBooted && bootedOrgSlug !== orgSlug) {
+  if (intercomState && intercomState.orgSlug !== orgSlug) {
     await shutdownIntercom();
   }
 

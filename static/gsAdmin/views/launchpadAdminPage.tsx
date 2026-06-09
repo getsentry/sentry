@@ -28,6 +28,7 @@ export function LaunchpadAdminPage() {
   const [batchDeleteArtifactIds, setBatchDeleteArtifactIds] = useState('');
   const [downloadArtifactId, setDownloadArtifactId] = useState('');
   const [fetchedArtifactInfo, setFetchedArtifactInfo] = useState<any>(null);
+  // TODO(cells) We need localities here for host
   const regions = getRegions();
   const [region, setRegion] = useState(regions[0] ?? null);
 

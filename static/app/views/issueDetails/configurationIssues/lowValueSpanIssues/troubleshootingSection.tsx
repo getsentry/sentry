@@ -1,8 +1,8 @@
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {ExternalLink} from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -10,6 +10,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import {SpanCode} from './spanCode';
 import type {LowValueSpanEvidenceData} from './types';
 import {
+  getCustomInstrumentationDocsUrl,
   getJavaScriptSpanFilterSnippet,
   getPythonSpanFilterSnippet,
   getSpanFilteringDocsUrl,
@@ -99,6 +100,12 @@ function ManualInstrumentationFix({
           )}
         </Text>
       </Stack>
+      <Flex align="center" gap="xs">
+        <IconDocs size="xs" />
+        <ExternalLink href={getCustomInstrumentationDocsUrl()}>
+          {t('Read the custom instrumentation docs')}
+        </ExternalLink>
+      </Flex>
     </Stack>
   );
 }

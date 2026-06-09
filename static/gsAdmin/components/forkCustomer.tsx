@@ -41,6 +41,7 @@ class ForkCustomerActionImpl extends Component<Props> {
     const api = new Client({headers: {Accept: 'application/json; charset=utf-8'}});
     const {organization} = this.props;
     const {regionUrl} = this.state;
+    // TODO(cells) this needs to be a list of localities.
     const regions = getRegions();
     const region = regions.find(r => r.url === regionUrl);
 

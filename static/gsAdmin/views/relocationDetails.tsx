@@ -181,6 +181,7 @@ export function RelocationDetails() {
   const [artifactsState, setArtifactsState] = useState(ArtifactsState.DISABLED);
   const navigate = useNavigate();
 
+  // TODO(cells) This needs to be a list of cells.
   const regions = getRegions();
   const region = regions.find((r: any) => r.name === regionName);
   const regionClient = new Client({baseUrl: `${region?.url || ''}/api/0`});

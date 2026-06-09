@@ -10,6 +10,7 @@ from django.test import override_settings
 from django.urls import get_resolver
 
 from sentry import options
+from sentry.auth.staff import Staff
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
@@ -100,6 +101,8 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory) -> None:
     def normalize(value: dict[str, Any]):
         # Removing the region lists as it varies based on silo mode.
         # See Region.to_url()
+        value.pop("localities")
+        value.pop("cells")
         value.pop("regions")
         value.pop("memberRegions")
         value["links"].pop("regionUrl")
@@ -162,6 +165,13 @@ def test_client_config_default_region_data() -> None:
     request.user = user
     result = get_client_config(request)
 
+    assert len(result["localities"]) == 1
+    localities = result["localities"]
+    assert localities[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert localities[0]["url"] == options.get("system.url-prefix")
+
+    assert len(result["cells"]) == 0, "No staff session"
+
     assert len(result["regions"]) == 1
     regions = result["regions"]
     assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
@@ -191,6 +201,12 @@ def test_client_config_empty_region_data() -> None:
     assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
     assert regions[0]["url"] == options.get("system.url-prefix")
 
+    assert len(result["cells"]) == 0, "no staff session"
+    assert len(result["localities"]) == 1
+    localities = result["localities"]
+    assert localities[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert localities[0]["url"] == options.get("system.url-prefix")
+
 
 @multiregion_client_config_test
 @django_db_all
@@ -198,6 +214,11 @@ def test_client_config_with_region_data() -> None:
     request, user = make_user_request_from_org()
     request.user = user
     result = get_client_config(request)
+
+    assert len(result["cells"]) == 0, "no staff session"
+    assert len(result["localities"]) == 2
+    localities = result["localities"]
+    assert {r["name"] for r in localities} == {"eu", "us"}
 
     assert len(result["regions"]) == 2
     regions = result["regions"]
@@ -234,6 +255,29 @@ def test_client_config_with_hidden_region_data() -> None:
     regions = result["regions"]
     assert {r["name"] for r in regions} == {"us"}
     assert len(result["memberRegions"]) == 1
+
+    assert len(result["localities"]) == 1
+    localities = result["localities"]
+    assert {r["name"] for r in localities} == {"us"}
+
+
+@control_silo_test(cells=hidden_regions)
+@django_db_all
+def test_client_config_with_hidden_cell_membership() -> None:
+    request, user = make_user_request_from_org()
+
+    Factories.create_organization(slug="acme-co", owner=user, cell="eu")
+    request.user = user
+
+    result = get_client_config(request)
+
+    # Localities (customer facing) don't include hidden cells/localities
+    assert len(result["localities"]) == 1
+    localities = result["localities"]
+    assert [r["name"] for r in localities] == ["us"]
+
+    # Cell list is hidden for regular users.
+    assert len(result["cells"]) == 0
 
 
 @multiregion_client_config_test
@@ -279,6 +323,57 @@ def test_client_config_with_single_tenant_membership() -> None:
     assert len(result["memberRegions"]) == 2
     regions = result["memberRegions"]
     assert {r["name"] for r in regions} == {"us", "acme"}
+
+
+@control_silo_test(cells=create_test_cells("us", "eu"))
+@django_db_all
+def test_client_config_with_staff_session_fills_cells() -> None:
+    request, user = make_user_request_from_org()
+    user.is_staff = True
+    request.user = user
+
+    # Simulate an active staff session
+    staff = Staff(request)
+    staff.set_logged_in(user)
+    request.staff = staff
+
+    result = get_client_config(request)
+
+    assert len(result["localities"]) == 2
+    localities = result["localities"]
+    # default historical cell (us) is first
+    assert [r["name"] for r in localities] == ["us", "eu"]
+
+    assert len(result["cells"]) == 2
+    cells = result["cells"]
+    # visible cells sorted by name.
+    assert [r["name"] for r in cells] == ["eu", "us"]
+    assert [r["locality_url"] for r in cells] == ["http://eu.testserver", "http://us.testserver"]
+
+
+@control_silo_test(cells=hidden_regions)
+@django_db_all
+def test_client_config_with_staff_session_includes_hidden_cells() -> None:
+    request, user = make_user_request_from_org()
+    user.is_staff = True
+    request.user = user
+
+    # Simulate an active staff session
+    staff = Staff(request)
+    staff.set_logged_in(user)
+    request.staff = staff
+
+    result = get_client_config(request)
+
+    # Localities (customer facing) don't include hidden cells/localities
+    assert len(result["localities"]) == 1
+    localities = result["localities"]
+    assert [r["name"] for r in localities] == ["us"]
+
+    # Cells list includes hidden items last
+    assert len(result["cells"]) == 2
+    cells = result["cells"]
+    assert [r["name"] for r in cells] == ["us", "eu"]
 
 
 @multiregion_client_config_test

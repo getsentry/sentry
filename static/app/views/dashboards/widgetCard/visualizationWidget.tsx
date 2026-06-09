@@ -47,10 +47,10 @@ import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plott
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {NegativeCostWarning} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
   SeriesColorIndicator,
   WidgetFooterTable,
@@ -378,9 +378,7 @@ function VisualizationWidgetContent({
             </Tooltip>
             <TextAlignRight>
               {dataType === 'currency' && value !== null && value < 0 ? (
-                <NegativeCostWarning>
-                  {formatBreakdownLegendValue(value, dataType, dataUnit)}
-                </NegativeCostWarning>
+                <NegativeCostInfo cost={value} />
               ) : (
                 formatBreakdownLegendValue(value, dataType, dataUnit)
               )}

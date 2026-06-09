@@ -125,6 +125,13 @@ class Cell:
 
         return self.name == settings.SENTRY_MONOLITH_REGION
 
+    def api_serialize(self) -> dict[str, Any]:
+        """Serialize a Cell into a JSON compatible dict"""
+        locality_name = get_locality_name_for_cell(self.name)
+        locality = get_locality_by_name(locality_name)
+
+        return {"name": self.name, "locality_url": locality.to_url(""), "visible": self.visible}
+
 
 class CellResolutionError(Exception):
     """Indicate that a cell's identity could not be resolved."""

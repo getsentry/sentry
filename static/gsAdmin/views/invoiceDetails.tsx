@@ -32,6 +32,7 @@ export function InvoiceDetails() {
     orgId: string;
     region: string;
   }>();
+  // TODO(cells) this needs a list of cells (and their localities)
   const regionInfo = getRegions().find(
     (r: any) => r.name.toLowerCase() === region.toLowerCase()
   );

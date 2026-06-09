@@ -33,6 +33,7 @@ import type {
   EChartDataZoomHandler,
   EChartDownplayHandler,
   EChartHighlightHandler,
+  ECharts,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';

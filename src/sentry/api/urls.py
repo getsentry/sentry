@@ -292,6 +292,7 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
+    GroupPullRequestsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -1294,6 +1295,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/(?P<issue_id>[^/]+)/pull-requests/$",
+        GroupPullRequestsEndpoint.as_view(),
+        name="sentry-api-0-organization-group-pull-requests",
     ),
     # first-last-release is only available via org-scoped URL (legacy URL deprecated for cellularization)
     re_path(

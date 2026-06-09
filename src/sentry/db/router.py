@@ -92,7 +92,6 @@ class SiloRouter:
         "sentry_pagerdutyservice": SiloMode.CELL,
         "sentry_projectavatar": SiloMode.CELL,
         "sentry_scheduledjob": SiloMode.CONTROL,
-        "sentry_teamavatar": SiloMode.CELL,
         "sentry_projecttemplate": SiloMode.CELL,
         "sentry_projecttemplateoption": SiloMode.CELL,
         "sentry_neglectedrule": SiloMode.CELL,
