@@ -134,53 +134,67 @@ def relay_server_setup(live_server, tmpdir_factory):
 
 @pytest.fixture(scope="function")
 def relay_server(relay_server_setup, settings):
+    # Imported lazily: this module is loaded as a pytest plugin before Django is set up,
+    # and override_options pulls in app code that requires configured settings.
+    from sentry.testutils.helpers.options import override_options
+
     adjust_settings_for_relay_tests(settings)
     options = relay_server_setup["options"]
-    with get_docker_client() as docker_client:
-        container_name = _relay_server_container_name()
-        _remove_container_if_exists(docker_client, container_name)
-        # Docker may not release the host port binding immediately after
-        # container removal; retry to ride out the race window.
-        for attempt in range(5):
-            try:
-                container = docker_client.containers.run(**options)
-                break
-            except docker.errors.APIError as e:
-                if "address already in use" in str(e) and attempt < 4:
-                    time.sleep(1 * 1.5**attempt)
-                    _remove_container_if_exists(docker_client, container_name)
-                    continue
-                raise
 
-    _log.info("Waiting for Relay container to start")
+    # `relay.endpoint-fetch-config.enabled` (default True since #114947) makes Relay's
+    # minidump/unreal endpoints resolve the project config synchronously before queueing.
+    # The test project's config is never warm in Relay, so that fetch times out and Relay
+    # rejects the upload with a 503 (ProjectUnavailable) -- the cause of the minidump test
+    # flakiness. These tests cover the ingestion pipeline, not the endpoint-fetch path
+    # (which also needs an objectstore the symbolicator mode doesn't run), so turn it off.
+    # It is served to the test Relay via the upstream global config, hence the override
+    # must wrap Relay startup.
+    with override_options({"relay.endpoint-fetch-config.enabled": False}):
+        # Keep the docker client open through the readiness wait so the error paths
+        # below can still fetch `container.logs()` for diagnostics.
+        with get_docker_client() as docker_client:
+            container_name = _relay_server_container_name()
+            _remove_container_if_exists(docker_client, container_name)
+            # Docker may not release the host port binding immediately after
+            # container removal; retry to ride out the race window.
+            for attempt in range(5):
+                try:
+                    container = docker_client.containers.run(**options)
+                    break
+                except docker.errors.APIError as e:
+                    if "address already in use" in str(e) and attempt < 4:
+                        time.sleep(1 * 1.5**attempt)
+                        _remove_container_if_exists(docker_client, container_name)
+                        continue
+                    raise
 
-    url = relay_server_setup["url"]
+            _log.info("Waiting for Relay container to start")
 
-    # Wait for Relay's readiness probe rather than a bare GET, which only proves
-    # the HTTP server is up. Readiness reports whether Relay can actually accept
-    # envelopes (authenticated with the upstream, spool capacity, memory). Posting
-    # before then races initialization and Relay rejects the request with a 503,
-    # which is the source of long-standing minidump test flakiness. This mirrors
-    # production, where load balancers route ingest traffic only to Relays that
-    # pass this same `/api/relay/healthcheck/ready/` probe.
-    readiness_url = f"{url}/api/relay/healthcheck/ready/"
-    for i in range(8):
-        try:
-            if requests.get(readiness_url).status_code == 200:
-                break
-        except Exception as ex:
-            if i == 7:
-                _log.exception(str(ex))
+            url = relay_server_setup["url"]
+
+            # Gate on Relay's readiness probe rather than a bare GET, which only proves the
+            # HTTP server is up. Readiness reports whether Relay can actually accept envelopes
+            # (authenticated with the upstream, spool capacity, memory); posting before then
+            # races startup and Relay rejects the request with a 503. This mirrors production,
+            # where load balancers route ingest traffic only to Relays passing this same probe.
+            readiness_url = f"{url}/api/relay/healthcheck/ready/"
+            for i in range(8):
+                try:
+                    if requests.get(readiness_url).status_code == 200:
+                        break
+                except Exception as ex:
+                    if i == 7:
+                        _log.exception(str(ex))
+                        raise ValueError(
+                            f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
+                        ) from ex
+                time.sleep(0.1 * 2**i)
+            else:
                 raise ValueError(
-                    f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
-                ) from ex
-        time.sleep(0.1 * 2**i)
-    else:
-        raise ValueError(
-            f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}) {readiness_url}:\n{container.logs().decode()}"
-        )
+                    f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}) {readiness_url}:\n{container.logs().decode()}"
+                )
 
-    yield {"url": relay_server_setup["url"]}
+        yield {"url": relay_server_setup["url"]}
 
 
 def adjust_settings_for_relay_tests(settings):
