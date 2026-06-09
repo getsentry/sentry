@@ -122,7 +122,7 @@ def activity_handler(
 
     logging_ctx["activity_name"] = activity_type.name
 
-    # Record every activity that reaches this handler, before any filtering.
+    # Record every activity that reaches this handler, before filtering for support.
     # This allows us to track all of the registered activities that could be
     # supported by the platform.
     metrics.incr(
