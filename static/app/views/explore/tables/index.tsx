@@ -1,6 +1,5 @@
 import {Fragment, useEffect} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
@@ -10,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
-import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -21,9 +19,11 @@ import {
   useQueryParamsAggregateFields,
   useQueryParamsCrossEvents,
   useQueryParamsFields,
+  useQueryParamsVisualizes,
   useSetQueryParamsAggregateFields,
   useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -54,6 +54,8 @@ export function ExploreTables(props: ExploreTablesProps) {
 
   const fields = useQueryParamsFields();
   const setFields = useSetQueryParamsFields();
+  const visualizes = useQueryParamsVisualizes();
+  const isEquation = visualizes.some(isVisualizeEquation);
 
   const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
@@ -92,10 +94,15 @@ export function ExploreTables(props: ExploreTablesProps) {
   };
 
   useEffect(() => {
-    if ((tab === Tab.TRACE || tab === Tab.ATTRIBUTE_BREAKDOWNS) && hasCrossEvents) {
+    if (isEquation && (tab === Tab.TRACE || tab === Tab.SPAN)) {
+      setTab(Mode.AGGREGATE, 'effect');
+      return;
+    }
+
+    if ((tab === Tab.TRACE && hasCrossEvents) || tab === Tab.ATTRIBUTE_BREAKDOWNS) {
       setTab(Tab.SPAN, 'effect');
     }
-  }, [hasCrossEvents, setTab, tab]);
+  }, [hasCrossEvents, isEquation, setTab, tab]);
 
   return (
     <Fragment>
@@ -107,29 +114,33 @@ export function ExploreTables(props: ExploreTablesProps) {
           disableOverflow
         >
           <TabList variant="floating">
-            <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
+            <TabList.Item
+              key={Tab.SPAN}
+              disabled={isEquation}
+              tooltip={{
+                title: isEquation
+                  ? t('Span samples are not available for equations')
+                  : undefined,
+              }}
+            >
+              {t('Span Samples')}
+            </TabList.Item>
             <TabList.Item
               key={Tab.TRACE}
-              disabled={hasCrossEvents}
+              disabled={hasCrossEvents || isEquation}
               tooltip={{
-                title: hasCrossEvents
-                  ? t(
-                      'Trace samples do not yet work with Cross-Event queries. Use the Spans tab instead.'
-                    )
-                  : undefined,
+                title: isEquation
+                  ? t('Trace samples are not available for equations')
+                  : hasCrossEvents
+                    ? t(
+                        'Trace samples do not yet work with Cross-Event queries. Use the Spans tab instead.'
+                      )
+                    : undefined,
               }}
             >
               {t('Trace Samples')}
             </TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-            <TabList.Item
-              key={Tab.ATTRIBUTE_BREAKDOWNS}
-              textValue={t('Attribute Breakdowns')}
-              disabled={hasCrossEvents}
-            >
-              {t('Attribute Breakdowns')}
-              <FeatureBadge type="beta" />
-            </TabList.Item>
           </TabList>
         </Tabs>
         {tab === Tab.SPAN ? (
@@ -141,13 +152,7 @@ export function ExploreTables(props: ExploreTablesProps) {
             {t('Edit Table')}
           </Button>
         ) : (
-          <Tooltip
-            title={
-              tab === Tab.TRACE
-                ? t('Editing columns is available for span samples only')
-                : t('Use the Group By and Visualize controls to change table columns')
-            }
-          >
+          <Tooltip title={t('Editing columns is available for span samples only')}>
             <Button disabled onClick={openColumnEditor} icon={<IconEdit />} size="sm">
               {t('Edit Table')}
             </Button>
@@ -157,7 +162,6 @@ export function ExploreTables(props: ExploreTablesProps) {
       {tab === Tab.SPAN && <SpansTable {...props} />}
       {tab === Tab.TRACE && <TracesTable {...props} />}
       {tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
-      {tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}
     </Fragment>
   );
 }

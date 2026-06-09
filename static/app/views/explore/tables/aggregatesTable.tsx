@@ -21,8 +21,8 @@ import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {CellAction} from 'sentry/views/discover/table/cellAction';
@@ -39,6 +39,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -51,11 +52,12 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
   useQueryParamsVisualizes,
+  useSetQueryParams,
+  useSetQueryParamsAggregateCursor,
   useSetQueryParamsAggregateSortBys,
 } from 'sentry/views/explore/queryParams/context';
-import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
-import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
+import {generateTargetQuery, prettifyAggregation} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -67,7 +69,6 @@ interface AggregatesTableProps {
 export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const theme = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
   const {projects} = useProjects();
 
   const {result, eventView} = aggregatesTableResult;
@@ -81,6 +82,8 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const setSorts = useSetQueryParamsAggregateSortBys();
   const query = useQueryParamsQuery();
   const aggregateCursor = useQueryParamsAggregateCursor();
+  const setAggregateCursor = useSetQueryParamsAggregateCursor();
+  const setQueryParams = useSetQueryParams();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -120,8 +123,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
-  const cursorHandler: CursorHandler = (cursor, path, q) =>
-    navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}});
+  const cursorHandler: CursorHandler = cursor => setAggregateCursor(cursor);
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'aggregates',
@@ -215,16 +217,28 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
                 {
                   key: 'view-samples',
                   label: t('View Samples'),
-                  to: viewSamplesTarget({
-                    location,
-                    query,
-                    fields,
-                    groupBys,
-                    visualizes,
-                    sorts,
-                    row,
-                    projects,
-                  }),
+                  onAction: () => {
+                    const {
+                      fields: newFields,
+                      search: newSearch,
+                      sortBys: newSortBys,
+                    } = generateTargetQuery({
+                      location: {...location, query: {...location.query}},
+                      fields,
+                      groupBys,
+                      sorts,
+                      row,
+                      projects,
+                      search: new MutableSearch(query),
+                      yAxes: visualizes.map(visualize => visualize.yAxis),
+                    });
+                    setQueryParams({
+                      mode: Mode.SAMPLES,
+                      fields: newFields,
+                      query: newSearch.formatString(),
+                      sortBys: newSortBys,
+                    });
+                  },
                 },
               ];
 

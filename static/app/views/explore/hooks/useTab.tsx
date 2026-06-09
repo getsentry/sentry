@@ -1,14 +1,11 @@
 import {useCallback, useMemo} from 'react';
 
-import {decodeScalar} from 'sentry/utils/queryString';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
-import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
-
-const SPANS_TABLE_KEY = 'table';
+import {
+  useQueryParamsMode,
+  useQueryParamsTable,
+  useSetQueryParams,
+} from 'sentry/views/explore/queryParams/context';
 
 export enum Tab {
   SPAN = 'span',
@@ -17,11 +14,9 @@ export enum Tab {
 }
 
 export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
-  const location = useLocation();
-  const navigate = useNavigate();
   const mode = useQueryParamsMode();
-
-  const table = decodeScalar(location.query[SPANS_TABLE_KEY]);
+  const table = useQueryParamsTable();
+  const setQueryParams = useSetQueryParams();
 
   const tab: Mode | Tab = useMemo(() => {
     // HACK: This is pretty gross but to not break anything in the
@@ -44,23 +39,19 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
 
   const setTab = useCallback(
     (newTab: Mode | Tab) => {
-      const target = getTargetWithReadableQueryParams(location, {
+      setQueryParams({
         mode: newTab === Mode.AGGREGATE ? Mode.AGGREGATE : Mode.SAMPLES,
+        table:
+          newTab === Tab.TRACE
+            ? 'trace'
+            : newTab === Tab.ATTRIBUTE_BREAKDOWNS
+              ? 'attribute_breakdowns'
+              : newTab === Tab.SPAN
+                ? 'span'
+                : null,
       });
-
-      updateNullableLocation(
-        target,
-        SPANS_TABLE_KEY,
-        newTab === Tab.TRACE
-          ? 'trace'
-          : newTab === Tab.ATTRIBUTE_BREAKDOWNS
-            ? 'attribute_breakdowns'
-            : null
-      );
-
-      navigate(target);
     },
-    [location, navigate]
+    [setQueryParams]
   );
 
   return [tab, setTab];

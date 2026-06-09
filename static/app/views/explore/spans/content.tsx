@@ -1,5 +1,4 @@
-import {Fragment, useMemo} from 'react';
-import type {ReactNode} from 'react';
+import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -8,14 +7,13 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {TourContextProvider} from 'sentry/components/tours/components';
-import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   useMaxPickableDays,
   type MaxPickableDaysOptions,
@@ -27,51 +25,36 @@ import {
   MAX_PERIOD_FOR_CROSS_EVENTS,
 } from 'sentry/views/explore/constants';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {
-  useQueryParamsCrossEvents,
-  useQueryParamsId,
-  useQueryParamsTitle,
-} from 'sentry/views/explore/queryParams/context';
-import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
-import {SpansCommandPaletteActions} from 'sentry/views/explore/spans/spansCommandPaletteActions';
-import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
-import {
-  EXPLORE_SPANS_TOUR_GUIDE_KEY,
-  ExploreSpansTourContext,
-  ORDERED_EXPLORE_SPANS_TOUR,
-  useExploreSpansTourModal,
-  type ExploreSpansTour,
-} from 'sentry/views/explore/spans/tour';
-import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
+  SpanCardsQueryParamsProvider,
+  useHasAnySpanCardCrossEvents,
+} from 'sentry/views/explore/spans/spanCardsQueryParams';
+import {SpanCardsTabContent} from 'sentry/views/explore/spans/spanCardsTab';
+import {SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {TopBar} from 'sentry/views/navigation/topBar';
-
-function useHasCrossEvents() {
-  const crossEvents = useQueryParamsCrossEvents();
-  return defined(crossEvents) && crossEvents.length > 0;
-}
 
 export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
   return (
-    <SpansQueryParamsProvider>
+    <SpanCardsQueryParamsProvider>
       <ExploreContentInner />
-    </SpansQueryParamsProvider>
+    </SpanCardsQueryParamsProvider>
   );
 }
 
 function ExploreContentInner() {
   const organization = useOrganization();
-  const hasCrossEvents = useHasCrossEvents();
+  const hasCrossEvents = useHasAnySpanCardCrossEvents();
   const onboardingProject = useOnboardingProject();
   const dataCategoryMaxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
 
-  const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
+  const crossEventsDateOverride: MaxPickableDaysOptions = {
     defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
     maxPickableDays: dataCategoryMaxPickableDays.maxPickableDays,
     maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
@@ -79,85 +62,40 @@ function ExploreContentInner() {
   };
 
   const maxPickableDays = hasCrossEvents
-    ? CROSS_EVENTS_DATE_OVERRIDE
+    ? crossEventsDateOverride
     : dataCategoryMaxPickableDays;
 
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
-      <SpansCommandPaletteActions />
       <PageFiltersContainer
         maxPickableDays={datePageFilterProps.maxPickableDays}
         maxDateRange={datePageFilterProps.maxDateRange}
       >
         <AnalyticsArea name="explore.spans">
-          <AiQueryProvider>
-            <Stack flex={1}>
-              <SpansTabWrapper>
-                <SpansTabHeader />
-                {defined(onboardingProject) ? (
-                  <SpansTabOnboarding
-                    organization={organization}
-                    project={onboardingProject}
-                    datePageFilterProps={datePageFilterProps}
-                  />
-                ) : (
-                  <SpansTabContent datePageFilterProps={datePageFilterProps} />
-                )}
-              </SpansTabWrapper>
-            </Stack>
-          </AiQueryProvider>
+          <Stack flex={1}>
+            <SpansTabHeader />
+            {defined(onboardingProject) ? (
+              <SpansTabOnboarding
+                organization={organization}
+                project={onboardingProject}
+                datePageFilterProps={datePageFilterProps}
+              />
+            ) : (
+              <SpanCardsTabContent datePageFilterProps={datePageFilterProps} />
+            )}
+          </Stack>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
 
-function SpansTabWrapper({children}: SpansTabContextProps) {
-  return (
-    <SpansTabTourProvider>
-      <SpansTabTourTrigger />
-      {children}
-    </SpansTabTourProvider>
-  );
-}
-
-interface SpansTabContextProps {
-  children: ReactNode;
-}
-
-function SpansTabTourProvider({children}: SpansTabContextProps) {
-  const {data: assistantData} = useAssistant();
-  const isTourCompleted = useMemo(() => {
-    const tourData = assistantData?.find(
-      item => item.guide === EXPLORE_SPANS_TOUR_GUIDE_KEY
-    );
-
-    // Prevent tour from showing until assistant data is loaded
-    return tourData?.seen ?? true;
-  }, [assistantData]);
-
-  return (
-    <TourContextProvider<ExploreSpansTour>
-      tourKey={EXPLORE_SPANS_TOUR_GUIDE_KEY}
-      isCompleted={isTourCompleted}
-      orderedStepIds={ORDERED_EXPLORE_SPANS_TOUR}
-      TourContext={ExploreSpansTourContext}
-    >
-      {children}
-    </TourContextProvider>
-  );
-}
-
-function SpansTabTourTrigger() {
-  useExploreSpansTourModal();
-  return null;
-}
-
 function SpansTabHeader() {
-  const id = useQueryParamsId();
-  const title = useQueryParamsTitle();
+  const location = useLocation();
+  const id = decodeScalar(location.query[ID_KEY]);
+  const title = decodeScalar(location.query[TITLE_KEY]);
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(id);
 
@@ -196,10 +134,6 @@ function SpansTabHeader() {
           title || t('Traces')
         )}
         {titleContent}
-      </TopBar.Slot>
-      <TopBar.Slot name="actions">
-        <StarSavedQueryButton />
-        {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
       </TopBar.Slot>
       <TopBar.Slot name="feedback">
         <FeedbackButton

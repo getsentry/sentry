@@ -41,6 +41,8 @@ const SPANS_GROUP_BY_KEY = 'groupBy';
 const SPANS_VISUALIZATION_KEY = 'visualize';
 const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
 const SPANS_EXTRAPOLATE_KEY = 'extrapolate';
+const SPANS_INTERVAL_KEY = 'interval';
+const SPANS_TABLE_KEY = 'table';
 const SPANS_ID_KEY = ID_KEY;
 const SPANS_TITLE_KEY = TITLE_KEY;
 const SPANS_CROSS_EVENTS_KEY = 'crossEvents';
@@ -57,6 +59,8 @@ export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
   const extrapolate = decodeScalar(location.query?.[SPANS_EXTRAPOLATE_KEY], '1') === '1';
+  const interval = decodeScalar(location.query?.[SPANS_INTERVAL_KEY]);
+  const table = decodeScalar(location.query?.[SPANS_TABLE_KEY]);
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
   const query = decodeScalar(location.query[SPANS_QUERY_KEY]) ?? '';
 
@@ -81,6 +85,11 @@ export function getReadableQueryParamsFromLocation(
 
   return new ReadableQueryParams({
     extrapolate,
+    interval,
+    table:
+      table === 'trace' || table === 'attribute_breakdowns' || table === 'span'
+        ? table
+        : undefined,
     mode,
     query,
 
@@ -116,6 +125,14 @@ export function getTargetWithReadableQueryParams(
   );
   updateNullableLocation(target, SPANS_QUERY_KEY, writableQueryParams.query);
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
+  updateNullableLocation(target, SPANS_CURSOR_KEY, writableQueryParams.cursor);
+  updateNullableLocation(
+    target,
+    SPANS_AGGREGATE_CURSOR,
+    writableQueryParams.aggregateCursor
+  );
+  updateNullableLocation(target, SPANS_INTERVAL_KEY, writableQueryParams.interval);
+  updateNullableLocation(target, SPANS_TABLE_KEY, writableQueryParams.table);
 
   updateNullableLocation(
     target,
@@ -162,7 +179,7 @@ export function getTargetWithReadableQueryParams(
   return target;
 }
 
-function defaultFields(): string[] {
+export function defaultFields(): string[] {
   return [
     SpanFields.ID,
     SpanFields.NAME,
@@ -173,7 +190,7 @@ function defaultFields(): string[] {
   ];
 }
 
-function defaultSortBys(fields: string[]): Sort[] {
+export function defaultSortBys(fields: string[]): Sort[] {
   if (fields.includes('timestamp')) {
     return [
       {
@@ -195,7 +212,7 @@ function defaultSortBys(fields: string[]): Sort[] {
   return [];
 }
 
-function defaultGroupBys(): [GroupBy] {
+export function defaultGroupBys(): [GroupBy] {
   return [{groupBy: ''}];
 }
 
@@ -241,7 +258,7 @@ function getSpansAggregateFieldsFromLocation(location: Location): AggregateField
   ];
 }
 
-function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
+export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
   for (const aggregateField of aggregateFields) {
     if (isVisualize(aggregateField)) {
       return [
