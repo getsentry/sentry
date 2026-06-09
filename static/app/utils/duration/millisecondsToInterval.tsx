@@ -5,7 +5,7 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
  * These values are copied from VALID_GRANULARITIES in src/sentry/search/eap/constants.py
  * and _VALID_GRANULARITY_SECS in snuba (snuba/web/rpc/v1/endpoint_time_series.py).
  */
-const VALID_INTERVALS: Array<[number, string]> = [
+const VALID_INTERVALS = [
   [15 * 1000, '15s'],
   [30 * 1000, '30s'],
   [60 * 1000, '1m'],
@@ -21,7 +21,7 @@ const VALID_INTERVALS: Array<[number, string]> = [
   [6 * 3600 * 1000, '6h'],
   [12 * 3600 * 1000, '12h'],
   [24 * 3600 * 1000, '1d'],
-];
+] as const;
 
 type MillisecondsToClosestIntervalOptions = {
   availableIntervals?: Array<{label: string; value: string}>;
@@ -40,11 +40,11 @@ export function millisecondsToClosestInterval(
   if (ms <= 0 || !Number.isFinite(ms)) {
     return undefined;
   }
-  if (ms < VALID_INTERVALS[0]![0]) {
+  if (ms < VALID_INTERVALS[0][0]) {
     if (options?.availableIntervals) {
       return options.availableIntervals[0]?.value;
     }
-    return VALID_INTERVALS[0]![1];
+    return VALID_INTERVALS[0][1];
   }
   if (ms >= VALID_INTERVALS[VALID_INTERVALS.length - 1]![0]) {
     if (options?.availableIntervals) {
@@ -56,7 +56,7 @@ export function millisecondsToClosestInterval(
   // Find the interval duration that is closest to ms
   let closestInterval = options?.availableIntervals
     ? options.availableIntervals[0]?.value
-    : VALID_INTERVALS[0]![1];
+    : VALID_INTERVALS[0][1];
   const closestIntervalDurationMs = intervalToMilliseconds(closestInterval!);
   let smallestDiff = Math.abs(ms - closestIntervalDurationMs);
 

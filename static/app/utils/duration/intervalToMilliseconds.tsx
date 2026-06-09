@@ -8,7 +8,7 @@
  */
 
 export function intervalToMilliseconds(interval: string): number {
-  const pattern = /^(\d+)([wdhms])$/;
+  const pattern = /^(\d+)([wdhm])$/;
   const matches = pattern.exec(interval);
   if (!matches) {
     return 0;
@@ -19,7 +19,6 @@ export function intervalToMilliseconds(interval: string): number {
     d: 60 * 60 * 24,
     h: 60 * 60,
     m: 60,
-    s: 1,
   };
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return parseInt(value!, 10) * multipliers[unit!] * 1000;

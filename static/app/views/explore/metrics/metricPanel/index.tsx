@@ -182,8 +182,7 @@ export function MetricPanel({
     selection,
     interval,
     chartContainerWidth,
-    intervalOptions,
-    false
+    intervalOptions
   );
   const yBuckets = getHeatmapYBuckets(selection, xBucketInterval, chartContainerWidth);
 
@@ -424,12 +423,8 @@ function getHeatmapXBucketInterval(
   selection: PageFilters,
   interval: string,
   chartContainerWidth: number,
-  intervalOptions: Array<{label: string; value: string}>,
-  useInterval?: boolean
+  intervalOptions: Array<{label: string; value: string}>
 ): string {
-  if (useInterval) {
-    return interval;
-  }
   const timeRangeInMs = getDiffInMinutes(selection.datetime) * 60 * 1000;
   const msPerXBucket = Math.round(
     timeRangeInMs / (chartContainerWidth / PIXELS_PER_X_BUCKET)
@@ -437,10 +432,7 @@ function getHeatmapXBucketInterval(
   const xBucketInterval = millisecondsToClosestInterval(msPerXBucket, {
     availableIntervals: intervalOptions,
   });
-  if (!xBucketInterval) {
-    return interval;
-  }
-  return xBucketInterval;
+  return xBucketInterval || interval;
 }
 
 /**
