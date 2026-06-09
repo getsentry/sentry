@@ -21,10 +21,6 @@ export type {
    * @deprecated Use `import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';` directly instead.
    */
   ApiQueryKey,
-  /**
-   * @deprecated Use `import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';` directly instead.
-   */
-  QueryKeyEndpointOptions,
 };
 
 // Overrides to the default react-query options.
