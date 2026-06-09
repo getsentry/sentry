@@ -50,6 +50,9 @@ export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer bottom': 0.5,
 };
 
+export const TRACE_WATERFALL_TIME_COMPRESSION_FEATURE =
+  'trace-waterfall-time-compression';
+
 export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: false,
@@ -157,22 +160,26 @@ function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
 export function getInitialTracePreferences(
   key: string,
   default_state: TracePreferencesState,
-  source: 'issues' | 'replay' | 'trace_view'
+  source: 'issues' | 'replay' | 'trace_view',
+  options: {enableCompressedTimeline?: boolean} = {}
 ): TracePreferencesState {
   const stored = loadTraceViewPreferences(key);
   const preferences = {...default_state};
+  const enableCompressedTimeline = options.enableCompressedTimeline ?? true;
 
   if (stored) {
     preferences.autogroup = stored.autogroup;
     preferences.missing_instrumentation = stored.missing_instrumentation;
     preferences.layout = stored.drawer_layout;
 
-    if (source === 'issues' || source === 'replay') {
+    if (source === 'issues' || source === 'replay' || !enableCompressedTimeline) {
       preferences.compressed_timeline = false;
     } else {
       preferences.compressed_timeline =
         stored.compressed_timeline ?? default_state.compressed_timeline;
     }
+  } else if (!enableCompressedTimeline) {
+    preferences.compressed_timeline = false;
   }
 
   return preferences;

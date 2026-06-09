@@ -101,6 +101,42 @@ describe('tracePreferences', () => {
     ).toBe(true);
   });
 
+  it('keeps compressed timeline disabled when the feature is not enabled', () => {
+    localStorage.setItem(
+      'trace-waterfall-preferences',
+      JSON.stringify({
+        drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
+        missing_instrumentation: false,
+        autogroup: {parent: true, sibling: true},
+        compressed_timeline: true,
+      })
+    );
+
+    expect(
+      getInitialTracePreferences(
+        'trace-waterfall-preferences',
+        {
+          ...DEFAULT_TRACE_VIEW_PREFERENCES,
+        },
+        'trace_view',
+        {enableCompressedTimeline: false}
+      ).compressed_timeline
+    ).toBe(false);
+  });
+
+  it('defaults compressed timeline off when the feature is not enabled', () => {
+    expect(
+      getInitialTracePreferences(
+        'trace-waterfall-preferences',
+        {
+          ...DEFAULT_TRACE_VIEW_PREFERENCES,
+        },
+        'trace_view',
+        {enableCompressedTimeline: false}
+      ).compressed_timeline
+    ).toBe(false);
+  });
+
   it('uses the provided compressed timeline default when the stored value is invalid', () => {
     localStorage.setItem(
       'trace-waterfall-preferences',

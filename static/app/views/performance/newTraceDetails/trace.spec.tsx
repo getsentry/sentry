@@ -1238,11 +1238,14 @@ describe('trace view', () => {
       it('redraws the trace when compressed timeline changes', async () => {
         mockTracePreferences({compressed_timeline: true});
         mockQueryString('?node=span-span0&node=txn-1');
+        const organization = OrganizationFixture({
+          features: ['trace-waterfall-time-compression'],
+        });
 
         const drawSpy = jest.spyOn(VirtualizedViewManager.prototype, 'draw');
 
         try {
-          await completeTestSetup();
+          await completeTestSetup({organization});
 
           const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
           await userEvent.click(preferencesDropdownTrigger);
@@ -1261,14 +1264,36 @@ describe('trace view', () => {
         }
       });
 
-      it('recomputes compressed timeline when expanding or collapsing rows changes visible nodes', async () => {
+      it('hides and disables compressed timeline without the feature flag', async () => {
         mockTracePreferences({compressed_timeline: true});
         mockQueryString('?node=span-span0&node=txn-1');
 
         const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
 
         try {
-          const {virtualizedContainer} = await completeTestSetup();
+          await completeTestSetup();
+
+          const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
+          await userEvent.click(preferencesDropdownTrigger);
+
+          expect(screen.queryByText('Compressed Timeline')).not.toBeInTheDocument();
+          expect(compressionSpy.mock.calls.at(-1)?.[0]?.enabled).toBe(false);
+        } finally {
+          compressionSpy.mockRestore();
+        }
+      });
+
+      it('recomputes compressed timeline when expanding or collapsing rows changes visible nodes', async () => {
+        mockTracePreferences({compressed_timeline: true});
+        mockQueryString('?node=span-span0&node=txn-1');
+        const organization = OrganizationFixture({
+          features: ['trace-waterfall-time-compression'],
+        });
+
+        const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
+
+        try {
+          const {virtualizedContainer} = await completeTestSetup({organization});
           await within(virtualizedContainer).findAllByText(/Autogrouped/i);
 
           const initialNodeCount =
