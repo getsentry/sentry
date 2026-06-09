@@ -178,7 +178,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(
         self, request: Request, organization: Organization, action: NotificationAction
-    ) -> Response:
+    ) -> Response[None]:
         """
         Deletes a Spike Protection Notification Action.
 

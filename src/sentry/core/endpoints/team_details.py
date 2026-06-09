@@ -23,6 +23,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams, TeamParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.team import Team, TeamStatus
@@ -149,7 +150,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         },
     )
     @sudo_required
-    def delete(self, request: Request, team) -> Response:
+    def delete(self, request: Request, team) -> Response[None] | Response[DetailResponse]:
         """
         Schedules a team for deletion.
 
