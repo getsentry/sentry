@@ -218,7 +218,8 @@ def prepare_organization_report(
             lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
             return
 
-    cache_project_metrics(ctx, organization_id)
+    if not dry_run:
+        cache_project_metrics(ctx, organization_id)
 
     # Finally, deliver the reports
     batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
