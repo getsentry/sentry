@@ -58,9 +58,6 @@ from sentry.pr_metrics.activity_types import (
 )
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.emit import (
-    CLOSE_ACTION_CLOSED,
-    CLOSE_ACTION_MERGED,
-    CloseAction,
     emit_pr_metrics_row,
     needs_judge,
 )
@@ -160,8 +157,9 @@ def handle_emission(
 ) -> None:
     """Emit a metrics row on a terminal (close/merge) PR webhook for a tracked PR.
 
-    GitHub fires a single ``closed`` action for both merges and plain closes; the
-    ``merged`` flag disambiguates. All non-terminal actions are ignored.
+    GitHub's single ``closed`` action covers both merges and plain closes; emit
+    derives which from the stored row, so this handler only filters for ``closed``
+    and delegates. All non-terminal actions are ignored.
     """
     if event.get("action") != "closed":
         return
@@ -173,12 +171,6 @@ def handle_emission(
     if pr is None:
         return
 
-    # pr is set, so the payload is present and non-null (subscript narrows it).
-    pull_request = event["pull_request"]
-    close_action: CloseAction = (
-        CLOSE_ACTION_MERGED if pull_request.get("merged") else CLOSE_ACTION_CLOSED
-    )
-
     if needs_judge(pr):
         # The judge path (forward to Seer, emit on the judge result) isn't wired
         # yet, so fall through to immediate emit — a judge-eligible PR still
@@ -188,7 +180,7 @@ def handle_emission(
             extra={"organization_id": organization.id, "pull_request_id": pr.id},
         )
 
-    emit_pr_metrics_row(pull_request=pr, close_action=close_action)
+    emit_pr_metrics_row(pull_request=pr)
 
 
 def handle_metrics(
