@@ -5,7 +5,6 @@ from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.workflow_engine import WorkflowEngineActivityAction
 from sentry.notifications.platform.types import NotificationTarget
 from sentry.types.activity import ActivityType
-from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -27,22 +26,12 @@ def build_activity_data(
     invocation: ActionInvocation, activity: Activity
 ) -> WorkflowEngineActivityAction:
     detector = invocation.detector
-    organization = detector.project.organization
-    group = invocation.event_data.group
-
-    group_url = None
-    if group:
-        group_url = absolute_uri(group.get_absolute_url())
 
     return WorkflowEngineActivityAction(
         workflow_id=invocation.workflow_id,
         activity_type=activity.type,
-        activity_details=activity.data or {},
+        activity_id=activity.id,
         notification_uuid=invocation.notification_uuid,
-        organization_id=organization.id,
-        project_id=detector.project_id,
-        group_id=group.id if group else None,
-        group_url=group_url,
         detector_id=detector.id,
     )
 

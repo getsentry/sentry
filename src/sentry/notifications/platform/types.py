@@ -341,8 +341,8 @@ class CodeBlock(NotificationBodyFormattingBlock):
 
 @dataclass
 class BoldTextBlock(NotificationBodyTextBlock):
-    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT]
     text: str
+    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT] = NotificationBodyTextBlockType.BOLD_TEXT
 
 
 @dataclass

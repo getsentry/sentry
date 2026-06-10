@@ -76,10 +76,7 @@ class TestSlackActivityHandler(BaseWorkflowTest):
         assert isinstance(data, WorkflowEngineActivityAction)
         assert data.workflow_id == self.workflow.id
         assert data.activity_type == ActivityType.SEER_RCA_STARTED.value
-        assert data.activity_details == {"some_key": "some_value"}
-        assert data.organization_id == self.organization.id
-        assert data.project_id == self.project.id
-        assert data.group_id == self.group.id
+        assert data.activity_id == activity.id
         assert data.detector_id == self.detector.id
 
         mock_instance = mock_subscripted.return_value
