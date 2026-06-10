@@ -106,47 +106,55 @@ function makeMatch(
   return {id, pathname, params: matchParams, data: undefined, handle: handle ?? {}};
 }
 
-const orgMatchParams = {orgId: 'org-slug'};
+const currentOrgMatchParams = {orgId: 'curr-org-slug'};
 
 const matches: UIMatch[] = [
-  makeMatch('0', '/', orgMatchParams, {path: '/'}),
-  makeMatch('0-0', '/', orgMatchParams, undefined),
-  makeMatch('0-0-0', '/settings', orgMatchParams, {
+  makeMatch('0', '/', currentOrgMatchParams, {path: '/'}),
+  makeMatch('0-0', '/', currentOrgMatchParams, undefined),
+  makeMatch('0-0-0', '/settings', currentOrgMatchParams, {
     path: '/settings/',
     name: 'Settings',
   }),
-  makeMatch('0-0-0-0', '/settings/org-slug', orgMatchParams, {
+  makeMatch('0-0-0-0', '/settings/org-slug', currentOrgMatchParams, {
     path: ':orgId/',
     name: 'Organizations',
   }),
-  makeMatch('0-0-0-0-0', '/settings/org-slug', orgMatchParams, undefined),
-  makeMatch('0-0-0-0-0-0', '/settings/org-slug/api-keys', orgMatchParams, {
+  makeMatch('0-0-0-0-0', '/settings/org-slug', currentOrgMatchParams, undefined),
+  makeMatch('0-0-0-0-0-0', '/settings/org-slug/api-keys', currentOrgMatchParams, {
     path: 'api-keys/',
     name: 'API Key',
   }),
 ];
 
-const projectMatchParams = {orgId: 'org-slug', projectId: 'project-slug'};
+const currentProjectMatchParams = {
+  orgId: 'curr-org-slug',
+  projectId: 'curr-project-slug',
+};
 
 const projectMatches: UIMatch[] = [
-  makeMatch('0', '/', projectMatchParams, {path: '/'}),
-  makeMatch('0-0', '/', projectMatchParams, undefined),
-  makeMatch('0-0-0', '/settings', projectMatchParams, {
+  makeMatch('0', '/', currentProjectMatchParams, {path: '/'}),
+  makeMatch('0-0', '/', currentProjectMatchParams, undefined),
+  makeMatch('0-0-0', '/settings', currentProjectMatchParams, {
     path: '/settings/',
     name: 'Settings',
   }),
-  makeMatch('0-0-0-0', '/settings/org-slug', projectMatchParams, {
+  makeMatch('0-0-0-0', '/settings/org-slug', currentProjectMatchParams, {
     path: ':orgId/',
     name: 'Organizations',
   }),
-  makeMatch('0-0-0-0-0', '/settings/org-slug/project-slug', projectMatchParams, {
+  makeMatch('0-0-0-0-0', '/settings/org-slug/project-slug', currentProjectMatchParams, {
     path: ':projectId',
     name: 'Projects',
   }),
-  makeMatch('0-0-0-0-0-0', '/settings/org-slug/project-slug/alerts', projectMatchParams, {
-    path: 'alerts/',
-    name: 'Alerts',
-  }),
+  makeMatch(
+    '0-0-0-0-0-0',
+    '/settings/org-slug/project-slug/alerts',
+    currentProjectMatchParams,
+    {
+      path: 'alerts/',
+      name: 'Alerts',
+    }
+  ),
 ];
 
 describe('recreateRoute with matches', () => {
