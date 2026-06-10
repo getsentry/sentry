@@ -157,9 +157,10 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         if not run_id:
             return Response({"session": None}, status=404)
 
-        seer_run_state_id = resolve_seer_run_state_id(run_id, organization)
-        if isinstance(seer_run_state_id, Response):
-            return seer_run_state_id
+        seer_run_id_or_response = resolve_seer_run_state_id(run_id, organization)
+        if isinstance(seer_run_id_or_response, Response):
+            return seer_run_id_or_response
+        seer_run_state_id = seer_run_id_or_response
 
         try:
             client = SeerAgentClient(organization, request.user)
@@ -260,9 +261,10 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 reasoning_effort="medium",
             )
             if run_id:
-                seer_run_state_id = resolve_seer_run_state_id(run_id, organization)
-                if isinstance(seer_run_state_id, Response):
+                seer_run_id_or_response = resolve_seer_run_state_id(run_id, organization)
+                if isinstance(seer_run_id_or_response, Response):
                     return Response({"detail": "Invalid run_id"}, status=400)
+                seer_run_state_id = seer_run_id_or_response
                 # Continue existing conversation
                 result_run_id = client.continue_run(
                     run_id=seer_run_state_id,

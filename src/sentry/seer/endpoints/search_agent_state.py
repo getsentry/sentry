@@ -106,9 +106,10 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        seer_run_id = resolve_seer_run_state_id(run_id, organization)
-        if isinstance(seer_run_id, Response):
-            return seer_run_id
+        seer_run_id_or_response = resolve_seer_run_state_id(run_id, organization)
+        if isinstance(seer_run_id_or_response, Response):
+            return seer_run_id_or_response
+        seer_run_id = seer_run_id_or_response
 
         try:
             viewer_context = SeerViewerContext(
