@@ -48,7 +48,8 @@ export function WidgetCardConfidenceFooter({
     seriesName?.match(/.* : Other$|^Other$/)
   );
 
-  // Guard against division by zero — widgets with no aggregates can exist due to API bugs (see DAIN-1712)
+  // All queries share the same aggregates, so queries[0] is representative.
+  // Fallback to 1 to guard against division by zero (DAIN-1712).
   const aggregatesCount = widget.queries[0]?.aggregates.length || 1;
   const topEventsCountExcludingOther =
     timeseriesResults?.length && widget.queries[0]?.columns.length
