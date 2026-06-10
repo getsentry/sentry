@@ -279,19 +279,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client.continue_run.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_post_continue_with_unmirrored_run_returns_409(
-        self, mock_client_class: MagicMock
-    ) -> None:
-        run = self.create_seer_run(organization=self.organization, seer_run_state_id=None)
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        response = self.client.post(f"{self.url}{run.uuid}/", {"query": "More"}, format="json")
-
-        assert response.status_code == 409
-        mock_client.continue_run.assert_not_called()
-
-    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_conversation_enable_coding(self, mock_client_class: MagicMock) -> None:
         for i, (feature_enabled, option_enabled) in enumerate(
             [(True, True), (True, False), (False, True), (False, False)]

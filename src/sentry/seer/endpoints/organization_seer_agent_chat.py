@@ -264,11 +264,6 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             if run_id:
                 seer_run_id_or_response = resolve_seer_run_state_id(run_id, organization)
                 if isinstance(seer_run_id_or_response, Response):
-                    # Pass through the resolver's 4xx (unknown / malformed id). A
-                    # 2xx poll status means the run exists but isn't mirrored yet
-                    # (or its mirror failed), which isn't a continuable state.
-                    if seer_run_id_or_response.status_code < 400:
-                        return Response({"detail": "Run is not ready"}, status=409)
                     return seer_run_id_or_response
                 seer_run_state_id = seer_run_id_or_response
                 # Continue existing conversation
