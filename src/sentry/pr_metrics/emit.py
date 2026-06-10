@@ -163,20 +163,13 @@ def emit_pr_metrics_row(
     Takes only the canonical ``PullRequest`` — no webhook payload — so Seer's
     judge can call it directly via RPC callback.
     """
-    # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
-    # and rides along on the emitted row, so the two can't diverge.
-    attributions = _active_attributions(pull_request)
-    if not attributions:
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
-        return False
-
     close_action: CloseAction = (
         CLOSE_ACTION_MERGED if pull_request.merged_at is not None else CLOSE_ACTION_CLOSED
     )
     row = build_pr_metrics_row(
         pull_request=pull_request,
         close_action=close_action,
-        attributions=attributions,
+        attributions=_active_attributions(pull_request),
         group_ids=_resolved_group_ids(pull_request),
     )
     analytics.record(row)
