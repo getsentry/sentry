@@ -10,7 +10,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1109_add_group_action_log_entry"),
+        ("sentry", "1113_extend_repository_name_length"),
     ]
 
     operations = [
