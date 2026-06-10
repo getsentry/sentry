@@ -24,6 +24,8 @@ from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
+from sentry.models.pullrequest import PullRequestAttributionSignalType
+from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
 from sentry.seer.autofix.utils import (
     AutofixState,
     CodingAgentProviderType,
@@ -145,10 +147,17 @@ def poll_github_copilot_agents(
     autofix_state: AutofixState | None = None,
     user_id: int = 0,
     coding_agents: dict[str, Any] | None = None,
+    organization_id: int = 0,
 ) -> None:
     agents = coding_agents or (autofix_state.coding_agents if autofix_state else None)
     if not agents:
         return
+
+    # Mirror poll_claude_code_agents: fall back to the run's org when a caller
+    # passes autofix_state without an explicit organization_id.
+    organization_id = organization_id or (
+        autofix_state.request.organization_id if autofix_state else 0
+    )
 
     user_access_token: str | None = None
 
@@ -215,6 +224,22 @@ def poll_github_copilot_agents(
                         status=new_status,
                         result=result,
                     )
+
+                    if is_task_done and pr_url:
+                        try:
+                            attribute_delegated_agent_pull_request(
+                                organization_id=organization_id,
+                                signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT,
+                                repo_full_name=f"{owner}/{repo}",
+                                repo_provider="github",
+                                pr_url=pr_url,
+                                agent_id=agent_id,
+                            )
+                        except Exception:
+                            logger.exception(
+                                "coding_agent.github_copilot.pr_attribution_failed",
+                                extra={"agent_id": agent_id, "pr_url": pr_url},
+                            )
 
                     logger.info(
                         "coding_agent.github_copilot.pr_update",
@@ -314,6 +339,22 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
                 status=new_status,
                 result=result,
             )
+
+            if new_status == CodingAgentStatus.COMPLETED and result is not None and result.pr_url:
+                try:
+                    attribute_delegated_agent_pull_request(
+                        organization_id=org_id,
+                        signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+                        repo_full_name=result.repo_full_name,
+                        repo_provider=result.repo_provider,
+                        pr_url=result.pr_url,
+                        agent_id=agent_id,
+                    )
+                except Exception:
+                    logger.exception(
+                        "coding_agent.claude_code.pr_attribution_failed",
+                        extra={"agent_id": agent_id, "pr_url": result.pr_url},
+                    )
 
         logger.info(
             "coding_agent.claude_code.poll_update",

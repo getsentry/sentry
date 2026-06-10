@@ -137,13 +137,13 @@ def _get_pull_request_status(
     if response is None:
         return "unknown"
 
-    if response.get("draft"):
-        return "draft"
     if response.get("merged"):
         return "merged"
     state = response.get("state")
     if state == "closed":
         return "closed"
+    if response.get("draft"):
+        return "draft"
     if state == "open":
         return "open"
     return "unknown"

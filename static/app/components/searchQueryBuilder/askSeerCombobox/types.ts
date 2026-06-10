@@ -68,7 +68,8 @@ export interface AskSeerStep {
  * Response from the /search-agent/start/ endpoint.
  */
 export interface AskSeerStartResponse {
-  run_id: number;
+  run_id: number | null;
+  sentry_run_id?: string;
 }
 
 /**
