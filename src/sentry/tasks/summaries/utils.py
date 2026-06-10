@@ -10,7 +10,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
-from snuba_sdk.orderby import Direction, OrderBy
+from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
@@ -299,7 +299,8 @@ def _org_key_errors_snuba_chunk(
             Column("group_id", entity=events_entity),
         ],
         orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(min(len(project_ids) * 10, 10000)),
+        limitby=LimitBy([Column("project_id", entity=events_entity)], per_project_limit),
+        limit=Limit(len(project_ids) * per_project_limit),
     )
 
     request = Request(
@@ -315,10 +316,7 @@ def _org_key_errors_snuba_chunk(
         pid = row["events.project_id"]
         if pid not in results:
             results[pid] = []
-        if len(results[pid]) < per_project_limit:
-            results[pid].append(
-                {"events.group_id": row["events.group_id"], "count()": row["count()"]}
-            )
+        results[pid].append({"events.group_id": row["events.group_id"], "count()": row["count()"]})
 
     return results
 
