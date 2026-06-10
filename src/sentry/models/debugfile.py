@@ -241,6 +241,8 @@ class ProjectDebugFile(Model):
         return frozenset((self.data or {}).get("features", []))
 
     def _get_objectstore_session(self) -> Session:
+        from sentry.models.project import Project
+
         org_id = Project.objects.get_from_cache(id=self.project_id).organization_id
         return get_debug_files_session(org=org_id, project=self.project_id)
 
