@@ -52,7 +52,7 @@ from sentry.apidocs.parameters import (
     IssueParams,
     OrganizationParams,
 )
-from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
@@ -538,7 +538,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         },
     )
     @track_slo_response("workflow")
-    def delete(self, request: Request, organization: Organization) -> Response:
+    def delete(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         projects = self.get_projects(request, organization)
 
         search_fn = functools.partial(

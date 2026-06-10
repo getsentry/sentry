@@ -14,12 +14,14 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestMetrics,
 )
 from sentry.pr_metrics.webhooks import (
     handle_activity,
     handle_attribution,
     handle_comment,
     handle_emission,
+    handle_metrics,
     handle_review,
     handle_review_comment,
     handle_review_thread,
@@ -55,16 +57,10 @@ class HandleWebhookForPrMetricsTest(TestCase):
         self,
         action: str = "opened",
         user_id: int = 999,
-        title: str | None = None,
-        body: str | None = None,
         changes: dict[str, Any] | None = None,
     ) -> None:
         payload = dict(self.base_pr_payload)
         payload["user"] = {"id": user_id, "login": "testbot"}
-        if title is not None:
-            payload["title"] = title
-        if body is not None:
-            payload["body"] = body
         event: dict[str, Any] = {"action": action, "pull_request": payload}
         if changes is not None:
             event["changes"] = changes
@@ -117,7 +113,15 @@ class HandleWebhookForPrMetricsTest(TestCase):
     # --- Action gate ---
 
     def test_irrelevant_actions_skipped(self) -> None:
-        for action in ("synchronize", "closed", "merged", "labeled", "assigned"):
+        for action in (
+            "synchronize",
+            "closed",
+            "merged",
+            "labeled",
+            "assigned",
+            "reopened",
+            "edited",
+        ):
             self._call(action=action, user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
@@ -130,23 +134,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         assert PullRequestAttribution.objects.filter(pull_request=self.pr).count() == 1
 
-    def test_redelivery_with_new_group_updates_signal_details(self) -> None:
-        group1 = self.create_group(project=self.project)
-        url1 = f"http://testserver/issues/{group1.id}"
-        self._call(body=f"Fixes {url1}")
-
-        group2 = self.create_group(project=self.project)
-        url2 = f"http://testserver/issues/{group2.id}"
-        self._call(body=f"Fixes {url1} and also Fixes {url2}")
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.signal_details is not None
-        assert set(attr.signal_details["group_ids"]) == {group1.id, group2.id}
-        assert attr.is_valid is True
-
     def test_redelivery_revives_invalidated_signal(self) -> None:
         self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
         PullRequestAttribution.objects.filter(pull_request=self.pr).update(is_valid=False)
@@ -155,128 +142,6 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.is_valid is True
-
-    # --- Referenced issue attribution ---
-
-    def test_referenced_issue_via_url(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-
-        self._call(body=f"Fixes {url}")
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.source == PullRequestAttributionSource.WEBHOOK_DATA
-        assert attr.signal_details == {"group_ids": [group.id]}
-
-    def test_referenced_issue_group_ids_are_sorted(self) -> None:
-        group1 = self.create_group(project=self.project)
-        group2 = self.create_group(project=self.project)
-        url1 = f"http://testserver/issues/{group1.id}"
-        url2 = f"http://testserver/issues/{group2.id}"
-
-        self._call(body=f"Fixes {url1} and also Fixes {url2}")
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.signal_details is not None
-        stored_ids = attr.signal_details["group_ids"]
-        assert stored_ids == sorted(stored_ids)
-        assert set(stored_ids) == {group1.id, group2.id}
-
-    def test_no_issue_reference_no_referenced_issue_attribution(self) -> None:
-        self._call(title="Refactor internals", body="No issues here.")
-
-        assert not PullRequestAttribution.objects.filter(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        ).exists()
-
-    def test_seer_app_and_referenced_issue_both_written(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-
-        self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID, body=f"Fixes {url}")
-
-        signal_types = set(
-            PullRequestAttribution.objects.filter(pull_request=self.pr).values_list(
-                "signal_type", flat=True
-            )
-        )
-        assert signal_types == {
-            PullRequestAttributionSignalType.SENTRY_APP,
-            PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        }
-
-    # --- reopened / edited refresh ---
-
-    def test_reopened_refreshes_referenced_issue_attribution(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-        self._call(body=f"Fixes {url}")
-
-        group2 = self.create_group(project=self.project)
-        url2 = f"http://testserver/issues/{group2.id}"
-        self._call(action="reopened", body=f"Fixes {url} and Fixes {url2}")
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.signal_details is not None
-        assert set(attr.signal_details["group_ids"]) == {group.id, group2.id}
-        assert attr.is_valid is True
-
-    def test_edited_with_body_change_refreshes_referenced_issue_attribution(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-        self._call(body=f"Fixes {url}")
-
-        group2 = self.create_group(project=self.project)
-        url2 = f"http://testserver/issues/{group2.id}"
-        self._call(
-            action="edited",
-            body=f"Fixes {url} and Fixes {url2}",
-            changes={"body": {"from": f"Fixes {url}"}},
-        )
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.signal_details is not None
-        assert set(attr.signal_details["group_ids"]) == {group.id, group2.id}
-
-    def test_edited_without_description_change_skips_refresh(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-        self._call(body=f"Fixes {url}")
-
-        # edited but only labels changed — no body/title in changes
-        self._call(action="edited", changes={"label": {"name": "bug"}})
-
-        assert PullRequestAttribution.objects.filter(pull_request=self.pr).count() == 1
-
-    def test_edited_removes_issue_reference_invalidates_attribution(self) -> None:
-        group = self.create_group(project=self.project)
-        url = f"http://testserver/issues/{group.id}"
-        self._call(body=f"Fixes {url}")
-
-        self._call(
-            action="edited",
-            body="No issue reference anymore.",
-            changes={"body": {"from": f"Fixes {url}"}},
-        )
-
-        attr = PullRequestAttribution.objects.get(
-            pull_request=self.pr,
-            signal_type=PullRequestAttributionSignalType.REFERENCED_ISSUE,
-        )
-        assert attr.is_valid is False
 
     # --- Feature flag ---
 
@@ -315,7 +180,8 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
-CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)  # past year avoids S015
+OPENED_AT = datetime(2020, 6, 4, 9, 0, 0, tzinfo=timezone.utc)  # past year avoids S015
+CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
 @with_feature("organizations:pr-metrics-emit")
@@ -333,29 +199,31 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             source=PullRequestAttributionSource.SEER_DATA,
             is_valid=True,
         )
+        # The metrics processor persists the counters before emission runs.
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, additions=1, deletions=2, is_assigned=True
+        )
 
-    def _payload(self, *, merged: bool = True) -> dict[str, Any]:
-        # Lifecycle is read from the stored PR row; the payload supplies only the
-        # PR number, the merged flag, and the open time.
-        return {
-            "number": 42,
-            "merged": merged,
-            "created_at": "2026-06-04T09:00:00Z",
-        }
+    def _payload(self) -> dict[str, Any]:
+        # Emission reads every fact off the stored PR row; the payload is only
+        # used to resolve the PR by number.
+        return {"number": 42}
 
     def _call(self, *, action: str = "closed", merged: bool = True) -> None:
         if action == "closed":
-            # PullRequestEventWebhook._handle persists lifecycle on the PR row
-            # before the emission processor runs; emit reads it from there.
+            # PullRequestEventWebhook._handle persists every lifecycle fact on the
+            # PR row before the emission processor runs; emit reads it there.
             self.pull_request.update(
                 head_commit_sha=HEAD_SHA,
+                opened_at=OPENED_AT,
                 closed_at=CLOSED_AT,
                 merged_at=CLOSED_AT if merged else None,
                 merge_commit_sha=MERGE_SHA if merged else None,
+                draft=False,
             )
         handle_emission(
             github_event=GithubWebhookType.PULL_REQUEST,
-            event={"action": action, "pull_request": self._payload(merged=merged)},
+            event={"action": action, "pull_request": self._payload()},
             organization=self.organization,
             repo=self.repo,
         )
@@ -425,6 +293,90 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
             extra={"repository_id": self.repo.id, "pr_number": 9999},
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+
+
+@with_feature("organizations:pr-metrics-emit")
+@cell_silo_test
+class HandleWebhookForPrMetricsCountersTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="42"
+        )
+
+    def _call(self, *, action: str = "opened", **counters: Any) -> None:
+        payload: dict[str, Any] = {"number": 42, **counters}
+        handle_metrics(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": action, "pull_request": payload},
+            organization=self.organization,
+            repo=self.repo,
+        )
+
+    def test_creates_metrics_row_from_payload(self) -> None:
+        self._call(
+            additions=10,
+            deletions=4,
+            changed_files=2,
+            commits=3,
+            comments=1,
+            review_comments=5,
+            assignees=[{"login": "octocat"}],
+        )
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.additions == 10
+        assert metrics.deletions == 4
+        assert metrics.files_changed == 2
+        assert metrics.commits_count == 3
+        assert metrics.comments_count == 1
+        assert metrics.review_comments_count == 5
+        assert metrics.is_assigned is True
+
+    def test_absent_counts_default_to_zero(self) -> None:
+        self._call()
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.additions == 0
+        assert metrics.review_comments_count == 0
+        assert metrics.is_assigned is False
+
+    def test_refreshes_existing_row_without_forking(self) -> None:
+        self._call(action="opened", additions=1)
+        self._call(action="synchronize", additions=20, deletions=7)
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.additions == 20
+        assert metrics.deletions == 7
+        assert PullRequestMetrics.objects.filter(pull_request=self.pull_request).count() == 1
+
+    def test_preserves_seer_only_columns_on_update(self) -> None:
+        # The webhook owns the activity counters; the judge path owns verdict /
+        # reviews_count / participants_count. An update must not stomp them.
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, reviews_count=3, participants_count=2
+        )
+        self._call(additions=9)
+
+        metrics = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics.additions == 9
+        assert metrics.reviews_count == 3
+        assert metrics.participants_count == 2
+
+    def test_does_nothing_when_flag_off(self) -> None:
+        with self.feature({"organizations:pr-metrics-emit": False}):
+            self._call(additions=5)
+        assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
+
+    def test_missing_pr_writes_nothing(self) -> None:
+        handle_metrics(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": "opened", "pull_request": {"number": 9999, "additions": 1}},
+            organization=self.organization,
+            repo=self.repo,
+        )
+        assert PullRequestMetrics.objects.count() == 0
 
 
 @with_feature("organizations:pr-metrics-activity")

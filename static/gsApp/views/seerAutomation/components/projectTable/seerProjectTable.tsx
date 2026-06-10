@@ -1,242 +1,138 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {
+  infiniteQueryOptions,
   useInfiniteQuery,
-  useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import {debounce, parseAsString, useQueryState} from 'nuqs';
+import {createParser, debounce, parseAsString, useQueryState} from 'nuqs';
 
 import SeerConfigConnect2 from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {AutoSaveForm} from '@sentry/scraps/form';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {
-  bulkAutofixAutomationSettingsInfiniteOptions,
-  useUpdateBulkAutofixAutomationSettings,
-} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {DetailedProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import {getCodingAgentSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
+import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {
-  getFilteredCodingAgentName,
-  type PreferredAgentProvider,
-} from 'sentry/utils/seer/preferredAgentFilter';
+  useSeerAgentSelectOptions,
+  knownAgentIntegrationsQueryOptions,
+  coalesePreferredAgent,
+} from 'sentry/utils/seer/preferredAgent';
 import {
-  preferredAgentFilterParser,
-  filterCodingAgentQueryOptions,
-} from 'sentry/utils/seer/preferredAgentFilter';
+  getMutateSeerProjectSettingsOptions,
+  getInfiniteSeerProjectsSettingsQueryOptions,
+  seerProjectSettingsSchema,
+} from 'sentry/utils/seer/seerProjectSettings';
 import {
-  getProjectStoppingPointMutationOptions,
-  getProjectStoppingPointValueFromSettings,
-  PROJECT_STOPPING_POINT_SORT_ORDER,
+  coaleseStoppingPoint,
+  useStoppingPointSelectOptions,
 } from 'sentry/utils/seer/stoppingPoint';
+import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 
 import {ProjectTableHeader} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
-import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+
+const estimateSize = () => 41;
+
+const parseAsAgentFilter = createParser<'all' | AutofixAgentSelectOption>({
+  parse: value => {
+    if (value === 'all' || value === 'seer') {
+      return value;
+    }
+    if (
+      [
+        CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+        CodingAgentProvider.CLAUDE_CODE_AGENT,
+      ].some(prefix => value.startsWith(`${prefix}::`))
+    ) {
+      return value as AutofixAgentSelectOption;
+    }
+    return null;
+  },
+  serialize: String,
+});
 
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const organization = useOrganization();
-  const {
-    projects: allProjects,
-    fetching: fetchingProjects,
-    fetchError: projectFetchError,
-  } = useProjects();
+  const canWrite = useCanWriteSettings();
 
-  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
-  const codingAgentCompactSelectOptions = useQuery(
-    filterCodingAgentQueryOptions({
-      organization,
-    })
-  );
-
-  const autofixSettingsQueryOptions = bulkAutofixAutomationSettingsInfiniteOptions({
-    organization,
-  });
-  const result = useInfiniteQuery({
-    ...autofixSettingsQueryOptions,
-    select: ({pages}) =>
-      Object.fromEntries(
-        pages
-          .flatMap(page => page.json)
-          .map(setting => [String(setting.projectId), setting] as const)
-      ),
-  });
-  useFetchAllPages({result});
-  const {
-    data: autofixSettingsByProjectId,
-    isPending: isPendingSettings,
-    hasNextPage: hasNextSettingsPage,
-    isFetchingNextPage: isFetchingNextSettingsPage,
-    isError: isErrorSettings,
-  } = result;
-
-  const projects = useMemo(() => {
-    return allProjects.filter(project => {
-      const setting = autofixSettingsByProjectId?.[project.id];
-      return setting?.reposCount;
-    });
-  }, [allProjects, autofixSettingsByProjectId]);
-
-  const {data: integrations, isPending: isPendingIntegrations} = useQuery({
-    ...organizationIntegrationsCodingAgents(organization),
-    select: data => data.json.integrations ?? [],
-  });
-
-  const {mutate: mutateStoppingPoint} = useMutation(
-    getProjectStoppingPointMutationOptions({organization, queryClient})
-  );
-
-  const {mutate: updateBulkAutofixAutomationSettings} =
-    useUpdateBulkAutofixAutomationSettings({
-      onSuccess: (_data, variables) => {
-        const {projectIds, ...updates} = variables;
-        const projectIdSet = new Set(projectIds);
-
-        queryClient.setQueryData(autofixSettingsQueryOptions.queryKey, oldData => {
-          if (!oldData) {
-            return oldData;
-          }
-          return {
-            ...oldData,
-            pages: oldData.pages.map(page => ({
-              ...page,
-              json: page.json.map(setting =>
-                projectIdSet.has(String(setting.projectId))
-                  ? {
-                      ...setting,
-                      ...(updates.autofixAutomationTuning !== undefined && {
-                        autofixAutomationTuning: updates.autofixAutomationTuning,
-                      }),
-                      ...(updates.automatedRunStoppingPoint !== undefined && {
-                        automatedRunStoppingPoint: updates.automatedRunStoppingPoint,
-                      }),
-                    }
-                  : setting
-              ),
-            })),
-          };
-        });
-
-        for (const projectId of projectIds) {
-          if (updates.autofixAutomationTuning !== undefined) {
-            ProjectsStore.onUpdateSuccess({
-              id: projectId,
-              autofixAutomationTuning: updates.autofixAutomationTuning ?? undefined,
-            } as Partial<DetailedProject>);
-          }
-        }
-      },
-    });
-
+  // Query Values
   const [agentFilter, setAgentFilter] = useQueryState(
     'agent',
-    preferredAgentFilterParser
+    parseAsAgentFilter.withDefault('all')
   );
-
   const [searchTerm, setSearchTerm] = useQueryState(
-    'query',
+    'name',
     parseAsString.withDefault('')
   );
-
-  const [sort, setSort] = useQueryState(
-    'sort',
-    parseAsSort.withDefault({field: 'project', kind: 'asc'})
+  const [sortBy, setSort] = useQueryState(
+    'sortBy',
+    parseAsSort.withDefault({field: 'name', kind: 'asc'})
   );
 
-  const sortedProjects = useMemo(() => {
-    return projects.toSorted((a, b) => {
-      if (sort.field === 'project') {
-        return sort.kind === 'asc'
-          ? a.slug.localeCompare(b.slug)
-          : b.slug.localeCompare(a.slug);
-      }
+  // Supporting fetch calls
+  const projectsById = useProjectsById();
+  const {data: knownAgents} = useQuery(
+    knownAgentIntegrationsQueryOptions({organization})
+  );
+  const agentSelectOptions = useSeerAgentSelectOptions();
+  const stoppingPointOptions = useStoppingPointSelectOptions();
 
-      const aSettings = autofixSettingsByProjectId?.[a.id];
-      const bSettings = autofixSettingsByProjectId?.[b.id];
-
-      if (sort.field === 'agent') {
-        const aAgent = aSettings?.automationHandoff?.target ?? 'seer';
-        const bAgent = bSettings?.automationHandoff?.target ?? 'seer';
-        return sort.kind === 'asc'
-          ? aAgent.localeCompare(bAgent)
-          : bAgent.localeCompare(aAgent);
-      }
-
-      if (sort.field === 'steps') {
-        const aStoppingPointOrder =
-          PROJECT_STOPPING_POINT_SORT_ORDER[
-            getProjectStoppingPointValueFromSettings(aSettings)
-          ];
-        const bStoppingPointOrder =
-          PROJECT_STOPPING_POINT_SORT_ORDER[
-            getProjectStoppingPointValueFromSettings(bSettings)
-          ];
-        return sort.kind === 'asc'
-          ? aStoppingPointOrder - bStoppingPointOrder
-          : bStoppingPointOrder - aStoppingPointOrder;
-      }
-
-      if (sort.field === 'repo_count') {
-        return sort.kind === 'asc'
-          ? (aSettings?.reposCount ?? 0) - (bSettings?.reposCount ?? 0)
-          : (bSettings?.reposCount ?? 0) - (aSettings?.reposCount ?? 0);
-      }
-
-      return 0;
-    });
-  }, [projects, sort, autofixSettingsByProjectId]);
-
-  const filteredProjects = useMemo(() => {
-    let filtered = sortedProjects;
-
-    const lowerCase = searchTerm?.toLowerCase() ?? '';
-    if (lowerCase) {
-      filtered = filtered.filter(project =>
-        project.slug.toLowerCase().includes(lowerCase)
-      );
-    }
-
-    if (agentFilter) {
-      filtered = filtered.filter(project => {
-        const settings = autofixSettingsByProjectId?.[project.id];
-        const projectAgentId = settings?.automationHandoff?.target
-          ? String(settings.automationHandoff.target)
-          : 'seer';
-        return projectAgentId === agentFilter;
-      });
-    }
-
-    return filtered;
-  }, [sortedProjects, searchTerm, agentFilter, autofixSettingsByProjectId]);
+  // Main fetch call
+  const mutableSearch = MutableSearch.fromQueryObject({
+    reposCount: '>0',
+    agent: agentFilter === 'all' ? undefined : agentFilter,
+    name: searchTerm,
+  });
+  const queryOptions = infiniteQueryOptions({
+    ...getInfiniteSeerProjectsSettingsQueryOptions({
+      organization,
+      query: {
+        per_page: 25,
+        query: mutableSearch,
+        sortBy,
+      },
+    }),
+    select: ({pages}) => pages.flatMap(page => page.json),
+  });
+  const result = useInfiniteQuery(queryOptions);
+  useFetchAllPages({result});
+  const {data, isPending, isError, error, hasNextPage} = result;
 
   if (
-    !fetchingProjects &&
-    !isPendingSettings &&
-    !hasNextSettingsPage &&
-    projects.length === 0
+    !isError &&
+    !isPending &&
+    data?.length === 0 &&
+    !hasNextPage &&
+    searchTerm === '' &&
+    agentFilter === 'all'
   ) {
     return (
       <Container display="flex" padding="2xl" border="primary" radius="md">
@@ -265,104 +161,180 @@ export function SeerProjectTable() {
   }
 
   return (
-    <ListItemCheckboxProvider
-      hits={filteredProjects.length}
-      knownIds={filteredProjects.map(project => project.id)}
-      endpointOptions={{
-        query: {query: searchTerm, sort, agent: agentFilter},
-      }}
-    >
-      <Stack gap="lg">
-        <Flex gap="md">
-          {codingAgentCompactSelectOptions.data?.length ? (
-            <CompactSelect<'' | PreferredAgentProvider>
+    <Fragment>
+      <Stack>
+        <Flex gap="md" wrap="wrap">
+          {agentSelectOptions.length ? (
+            <CompactSelect<'all' | AutofixAgentSelectOption>
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} size="md" prefix={t('Agent')}>
-                  {agentFilter ? triggerProps.children : t('All')}
+                  {triggerProps.children}
                 </OverlayTrigger.Button>
               )}
-              options={codingAgentCompactSelectOptions.data ?? []}
-              onChange={option => setAgentFilter(option.value || null)}
-              value={agentFilter ?? ''}
+              options={[{value: 'all', label: t('All')}, ...agentSelectOptions]}
+              onChange={option => setAgentFilter(option.value)}
+              value={agentFilter ?? 'all'}
             />
           ) : null}
-
-          <InputGroup style={{width: '100%'}}>
+          <InputGroup style={{flex: 1}}>
             <InputGroup.LeadingItems disablePointerEvents>
               <IconSearch />
             </InputGroup.LeadingItems>
             <InputGroup.Input
               size="md"
               placeholder={t('Search')}
-              value={searchTerm ?? ''}
+              value={searchTerm}
               onChange={e =>
                 setSearchTerm(e.target.value, {limitUrlUpdates: debounce(125)})
               }
             />
           </InputGroup>
-
           <AddProjectButton />
         </Flex>
-        <SimpleTableWithColumns>
+      </Stack>
+      <ListItemCheckboxProvider
+        hits={data?.length ?? 0}
+        knownIds={data?.map(item => String(item.projectId)) ?? []}
+        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+      >
+        <InfiniteTable.Table columns="max-content 2fr 74px repeat(2, 1fr)">
           <ProjectTableHeader
-            agentOptions={agentOptions}
+            settings={data ?? []}
+            sort={sortBy}
             onSortClick={setSort}
-            projects={filteredProjects}
-            sort={sort}
-            updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
+            mutableSearch={mutableSearch}
           />
 
-          {fetchingProjects ||
-          isPendingSettings ||
-          hasNextSettingsPage ||
-          isFetchingNextSettingsPage ? (
-            <SimpleTable.Empty key="loading">
-              <LoadingIndicator />
-            </SimpleTable.Empty>
-          ) : projectFetchError || isErrorSettings ? (
-            <SimpleTable.Empty>
-              <LoadingError />
-            </SimpleTable.Empty>
-          ) : filteredProjects.length === 0 ? (
-            <SimpleTable.Empty>
-              {searchTerm
-                ? agentFilter
-                  ? tct('No projects found matching [searchTerm] with [agentFilter]', {
-                      searchTerm: <code>{searchTerm}</code>,
-                      agentFilter: <code>{getFilteredCodingAgentName(agentFilter)}</code>,
-                    })
-                  : tct('No projects found matching [searchTerm]', {
-                      searchTerm: <code>{searchTerm}</code>,
-                    })
-                : agentFilter
-                  ? tct('No projects found with [agentFilter]', {
-                      agentFilter: <code>{getFilteredCodingAgentName(agentFilter)}</code>,
-                    })
-                  : t('No projects found')}
-            </SimpleTable.Empty>
-          ) : (
-            filteredProjects.map(project => (
-              <SeerProjectTableRow
-                key={project.id}
-                autofixSettings={autofixSettingsByProjectId?.[project.id]}
-                integrations={integrations ?? []}
-                isPendingIntegrations={isPendingIntegrations}
-                mutateStoppingPoint={mutateStoppingPoint}
-                project={project}
-                agentOptions={agentOptions}
-              />
-            ))
-          )}
-        </SimpleTableWithColumns>
-      </Stack>
-    </ListItemCheckboxProvider>
+          <InfiniteTable.Scrollable>
+            {isPending ? (
+              <Flex justify="center" align="center" padding="xl" style={{minHeight: 200}}>
+                <LoadingIndicator />
+              </Flex>
+            ) : isError ? (
+              <Flex justify="center" align="center" padding="xl" style={{minHeight: 200}}>
+                <LoadingError message={error?.message} />
+              </Flex>
+            ) : data.length === 0 ? (
+              <InfiniteTable.Empty>
+                {searchTerm
+                  ? agentFilter === 'all'
+                    ? tct('No projects found matching [searchTerm]', {
+                        searchTerm: <code>{searchTerm}</code>,
+                      })
+                    : tct('No projects found matching [searchTerm] with [agentFilter]', {
+                        searchTerm: <code>{searchTerm}</code>,
+                        agentFilter: <code>{agentFilter}</code>,
+                      })
+                  : agentFilter === 'all'
+                    ? t('No projects found')
+                    : tct('No projects found with [agentFilter]', {
+                        agentFilter: <code>{agentFilter}</code>,
+                      })}
+              </InfiniteTable.Empty>
+            ) : (
+              <Fragment>
+                <InfiniteTable.Body
+                  estimateSize={estimateSize}
+                  queryResult={result}
+                  select={_ => _ ?? []}
+                >
+                  {item => (
+                    <InfiniteTable.Row>
+                      <InfiniteTable.RowCell>
+                        <ListItemSelectCheckbox
+                          htmlPrefix="seer-project-settings"
+                          value={String(item.projectId)}
+                        />
+                      </InfiniteTable.RowCell>
+                      <InfiniteTable.RowCell>
+                        <Link
+                          to={{
+                            pathname: `/settings/${organization.slug}/seer/projects/${item.projectSlug}/`,
+                            query: location.query,
+                          }}
+                        >
+                          <ProjectBadge
+                            disableLink
+                            project={
+                              projectsById.get(item.projectId) ?? {slug: item.projectSlug}
+                            }
+                            avatarSize={16}
+                          />
+                        </Link>
+                      </InfiniteTable.RowCell>
+                      <InfiniteTable.RowCell>
+                        <Text tabular>{item.reposCount}</Text>
+                      </InfiniteTable.RowCell>
+                      <InfiniteTable.RowCell overflow="visible">
+                        <AutoSaveForm
+                          name="agentOption"
+                          schema={seerProjectSettingsSchema}
+                          initialValue={coalesePreferredAgent(
+                            item.agent,
+                            item.integrationId
+                          )}
+                          mutationOptions={getMutateSeerProjectSettingsOptions({
+                            organization,
+                            project: {slug: item.projectSlug},
+                            queryClient,
+                            knownAgents,
+                          })}
+                        >
+                          {field => (
+                            <field.Select
+                              disabled={!canWrite}
+                              menuPortalTarget={document.body}
+                              multiple={false}
+                              onChange={field.handleChange}
+                              options={agentSelectOptions}
+                              // @ts-expect-error: Select component does not have a size prop defined
+                              size="xs"
+                              value={field.state.value}
+                            />
+                          )}
+                        </AutoSaveForm>
+                      </InfiniteTable.RowCell>
+                      <InfiniteTable.RowCell>
+                        <Stack align="stretch" flex="1">
+                          <AutoSaveForm
+                            name="stoppingPoint"
+                            schema={seerProjectSettingsSchema}
+                            initialValue={coaleseStoppingPoint(
+                              item.stoppingPoint,
+                              item.automationTuning
+                            )}
+                            mutationOptions={getMutateSeerProjectSettingsOptions({
+                              organization,
+                              project: {slug: item.projectSlug},
+                              queryClient,
+                            })}
+                          >
+                            {field => (
+                              <field.Select
+                                disabled={!canWrite}
+                                menuPortalTarget={document.body}
+                                onChange={field.handleChange}
+                                options={stoppingPointOptions}
+                                // @ts-expect-error: Select component does not have a size prop defined
+                                size="xs"
+                                value={field.state.value}
+                              />
+                            )}
+                          </AutoSaveForm>
+                        </Stack>
+                      </InfiniteTable.RowCell>
+                    </InfiniteTable.Row>
+                  )}
+                </InfiniteTable.Body>
+                <InfiniteTable.LoadingRow queryResult={result} />
+              </Fragment>
+            )}
+          </InfiniteTable.Scrollable>
+        </InfiniteTable.Table>
+      </ListItemCheckboxProvider>
+    </Fragment>
   );
 }
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: max-content 3fr max-content minmax(240px, 1fr) minmax(200px, 1fr);
-  overflow: visible;
-`;
 
 function AddProjectButton() {
   const {openModal} = useModal();

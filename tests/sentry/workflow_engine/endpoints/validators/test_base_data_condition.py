@@ -121,6 +121,63 @@ class TestComplexBaseDataConditionValidator(TestCase):
         assert validator.is_valid() is False
 
 
+class TestAssignedToScopeValidator(TestCase):
+    def setUp(self) -> None:
+        self.other_org = self.create_organization()
+        self.other_team = self.create_team(organization=self.other_org)
+        self.other_user = self.create_user()
+        self.create_member(organization=self.other_org, user=self.other_user)
+
+    def _validator(self, comparison: dict[str, Any]) -> BaseDataConditionValidator:
+        return BaseDataConditionValidator(
+            data={
+                "type": Condition.ASSIGNED_TO.value,
+                "comparison": comparison,
+                "conditionResult": True,
+            },
+            context={"organization": self.organization},
+        )
+
+    def test_team__in_org(self) -> None:
+        validator = self._validator({"targetType": "Team", "targetIdentifier": self.team.id})
+        assert validator.is_valid() is True
+
+    def test_team__foreign_org(self) -> None:
+        validator = self._validator({"targetType": "Team", "targetIdentifier": self.other_team.id})
+        assert validator.is_valid() is False
+        assert "not part of the organization" in str(validator.errors).lower()
+
+    def test_member__in_org(self) -> None:
+        validator = self._validator({"targetType": "Member", "targetIdentifier": self.user.id})
+        assert validator.is_valid() is True
+
+    def test_member__foreign_org(self) -> None:
+        validator = self._validator(
+            {"targetType": "Member", "targetIdentifier": self.other_user.id}
+        )
+        assert validator.is_valid() is False
+        assert "not part of the organization" in str(validator.errors).lower()
+
+    def test_unassigned__no_identifier(self) -> None:
+        validator = self._validator({"targetType": "Unassigned"})
+        assert validator.is_valid() is True
+
+    def test_non_integer_identifier(self) -> None:
+        validator = self._validator({"targetType": "Team", "targetIdentifier": "not-an-int"})
+        assert validator.is_valid() is False
+
+    def test_no_organization_context(self) -> None:
+        # Without org context the scope check is skipped (schema-only validation).
+        validator = BaseDataConditionValidator(
+            data={
+                "type": Condition.ASSIGNED_TO.value,
+                "comparison": {"targetType": "Team", "targetIdentifier": self.other_team.id},
+                "conditionResult": True,
+            },
+        )
+        assert validator.is_valid() is True
+
+
 class ExampleConditionValidator(AbstractDataConditionValidator[int, bool]):
     def validate_comparison(self, value: Any) -> int:
         if isinstance(value, int):

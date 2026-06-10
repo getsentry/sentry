@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 import {FTCConsentLocation} from 'getsentry/types';
 

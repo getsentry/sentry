@@ -352,7 +352,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     )
     def delete(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
-    ) -> Response:
+    ) -> Response[None]:
         """
         Deletes a data forwarder for an organization. All project-specific overrides will be deleted as well.
         """

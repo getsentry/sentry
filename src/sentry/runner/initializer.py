@@ -117,6 +117,7 @@ options_mapper = {
     # 'system.databases': 'DATABASES',
     # 'system.debug': 'DEBUG',
     "system.secret-key": "SECRET_KEY",
+    "system.logging-format": "SENTRY_LOGGING_FORMAT",
     "mail.backend": "EMAIL_BACKEND",
     "mail.host": "EMAIL_HOST",
     "mail.port": "EMAIL_PORT",
@@ -210,7 +211,6 @@ def configure_structlog() -> None:
     import structlog
     from django.conf import settings
 
-    from sentry import options
     from sentry.logging import LoggingFormat
 
     kwargs: dict[str, Any] = {
@@ -223,11 +223,7 @@ def configure_structlog() -> None:
         ],
     }
 
-    fmt_from_env = os.environ.get("SENTRY_LOG_FORMAT")
-    if fmt_from_env:
-        settings.SENTRY_OPTIONS["system.logging-format"] = fmt_from_env.lower()
-
-    fmt = options.get("system.logging-format")
+    fmt = settings.SENTRY_LOGGING_FORMAT
 
     if fmt == LoggingFormat.HUMAN:
         from sentry.logging.handlers import HumanRenderer
@@ -297,6 +293,13 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         )
 
     bootstrap_options(settings, config["options"])
+
+    # The SENTRY_LOG_FORMAT env var (e.g. the `--logformat` CLI flag) overrides
+    # the configured SENTRY_LOGGING_FORMAT (which options_mapper populated from
+    # the system.logging-format option in bootstrap_options).
+    fmt_from_env = os.environ.get("SENTRY_LOG_FORMAT")
+    if fmt_from_env:
+        settings.SENTRY_LOGGING_FORMAT = fmt_from_env.lower()
 
     logging.raiseExceptions = settings.DEBUG
 
