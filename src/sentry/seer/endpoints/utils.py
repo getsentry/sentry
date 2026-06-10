@@ -15,7 +15,8 @@ if TYPE_CHECKING:
 
 class ResolvedSeerRun(NamedTuple):
     seer_run_state_id: int
-    uuid: str
+    # None for legacy runs created before SeerRun mirroring, which have no row.
+    uuid: str | None
 
 
 def resolve_seer_run(run_id: str | int, organization: Organization) -> ResolvedSeerRun | Response:
@@ -28,6 +29,9 @@ def resolve_seer_run(run_id: str | int, organization: Organization) -> ResolvedS
     ``processing`` / ``error`` session status while the run's Seer id isn't
     mirrored yet or its mirror failed. Callers narrow with
     ``isinstance(result, Response)``.
+
+    A numeric id with no mirror row falls back to a bare passthrough (UUID
+    ``None``) so runs predating mirroring still resolve.
     """
     try:
         seer_run_state_id = int(run_id)
@@ -38,9 +42,7 @@ def resolve_seer_run(run_id: str | int, organization: Organization) -> ResolvedS
         run = SeerRun.objects.filter(
             seer_run_state_id=seer_run_state_id, organization=organization
         ).first()
-        if run is None:
-            return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
-        return ResolvedSeerRun(seer_run_state_id, str(run.uuid))
+        return ResolvedSeerRun(seer_run_state_id, str(run.uuid) if run else None)
 
     try:
         run_uuid = uuid_module.UUID(str(run_id))

@@ -23,7 +23,6 @@ class SearchAgentStateEndpointTest(APITestCase):
         mock_request.return_value = Mock(
             status=200, json=Mock(return_value={"session": {"status": "completed"}})
         )
-        self.create_seer_run(type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=42)
         with self.feature(self.features):
             response = self.get_success_response(self.organization.slug, "42")
         assert response.data["session"]["status"] == "completed"
