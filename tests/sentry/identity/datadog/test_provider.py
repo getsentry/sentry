@@ -387,7 +387,7 @@ class DatadogOAuthPipelineIntegrationTest(TestCase):
 
 
 @control_silo_test
-class DatadogIdentityProviderBuildIdentityTest(TestCase):
+class DatadogIdentityProviderTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.provider = DatadogIdentityProvider()
@@ -442,14 +442,6 @@ class DatadogIdentityProviderBuildIdentityTest(TestCase):
         assert result["id"] == "dd-user-456"
         assert result["email"] is None
         assert result["name"] is None
-
-
-@control_silo_test
-class DatadogIdentityProviderRefreshTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.provider = DatadogIdentityProvider()
-        self.provider.config = {"site": "datadoghq.com"}
 
     @responses.activate
     def test_get_refresh_token_success(self) -> None:
