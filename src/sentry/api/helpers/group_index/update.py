@@ -727,8 +727,15 @@ def handle_other_status_updates(
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
     with transaction.atomic(router.db_for_write(Group)):
-        changed_group_ids = set(queryset.exclude(status=new_status).values_list("id", flat=True))
-        queryset.exclude(status=new_status).update(status=new_status, substatus=new_substatus)
+        # Single UPDATE ... RETURNING id so the changed ids come straight from the rows the
+        # UPDATE actually touched -- no separate SELECT that could desync under a concurrent
+        # status change.
+        changed_group_ids = {
+            row[0]
+            for row in queryset.exclude(status=new_status).update_with_returning(
+                ["id"], status=new_status, substatus=new_substatus
+            )
+        }
         GroupResolution.objects.filter(group__in=group_ids).delete()
         # Also delete commit/PR resolution links when unresolving to prevent
         # showing old "resolved by commit" after manual re-resolution
