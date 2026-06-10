@@ -244,6 +244,24 @@ describe('getLogsSeerLocationQuery', () => {
     expect(query.logsSortBys).toEqual(['-severity']);
   });
 
+  it('preserves the existing aggregate sort when Seer omits one', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({
+        logsAggregateSortBys: ['-count(message)'],
+      }),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      result: seerResult({
+        query: 'severity:error',
+        mode: 'aggregates',
+        visualizations: [{chartType: ChartType.BAR, yAxes: ['count(message)']}],
+      }),
+    });
+
+    expect(query.mode).toBe(Mode.AGGREGATE);
+    expect(query.logsAggregateSortBys).toEqual(['-count(message)']);
+  });
+
   it('uses nullable query updates for datetime params', () => {
     const relativeQuery = getLogsSeerLocationQuery({
       currentLocation: locationWithQuery({
