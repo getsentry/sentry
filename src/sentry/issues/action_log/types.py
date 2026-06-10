@@ -14,13 +14,18 @@ from pydantic import BaseModel
 class GroupActorType(IntEnum):
     SYSTEM = 0
     USER = 1
+    # An integration (Sentry App) acting via its token; actor_id is the SentryApp id.
+    # internal vs public is derived from SentryApp.status at read time, not a separate type.
+    SENTRY_APP = 2
+    # An organization-scoped token (OrgAuthToken, or legacy ApiKey); actor_id is the org id.
+    ORG = 3
 
 
 @dataclasses.dataclass(frozen=True)
 class GroupActionActor:
     """
-    Use GroupActionActor.user(id) for user-initiated actions,
-    or SYSTEM_ACTOR for system-initiated actions.
+    Who initiated an action. Use the constructors: user(id) for a human, sentry_app(id) for
+    an integration token, org(id) for an org-scoped token, or SYSTEM_ACTOR for Sentry itself.
     """
 
     actor_type: GroupActorType
@@ -29,6 +34,14 @@ class GroupActionActor:
     @classmethod
     def user(cls, user_id: int) -> GroupActionActor:
         return cls(actor_type=GroupActorType.USER, actor_id=user_id)
+
+    @classmethod
+    def sentry_app(cls, sentry_app_id: int) -> GroupActionActor:
+        return cls(actor_type=GroupActorType.SENTRY_APP, actor_id=sentry_app_id)
+
+    @classmethod
+    def org(cls, organization_id: int) -> GroupActionActor:
+        return cls(actor_type=GroupActorType.ORG, actor_id=organization_id)
 
 
 # Default GroupActionActor for Sentry-initiated actions.

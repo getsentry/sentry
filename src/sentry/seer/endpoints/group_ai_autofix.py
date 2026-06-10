@@ -30,9 +30,8 @@ from sentry.apidocs.response_types import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
-    GroupActionActor,
     publish_action,
+    resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.types import TriggerAutofixAction
@@ -288,11 +287,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     group_id=group.id,
                     organization_id=group.project.organization_id,
                     project_id=group.project_id,
-                    actor=(
-                        GroupActionActor.user(request.user.id)
-                        if request.user and request.user.is_authenticated
-                        else SYSTEM_ACTOR
-                    ),
+                    actor=resolve_action_actor(request),
                 )
             kickoff_body: AutofixPostResponse = {"run_id": run_id}
             return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)

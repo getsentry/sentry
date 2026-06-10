@@ -108,6 +108,43 @@ def resolve_action_source(request: Request) -> str:
     return ActionSource.API
 
 
+def resolve_action_actor(request: Request) -> GroupActionActor:
+    """
+    Determine *who* initiated an action from a request, mirroring resolve_action_source (*how*).
+
+    Region-side ``request.auth`` is an ``AuthenticatedToken`` whose ``kind`` distinguishes the
+    caller: an org/legacy token is the organization acting, a token tied to an ApiApplication is
+    an integration (Sentry App) acting, and everything else authenticated is the user. Falls back
+    to SYSTEM_ACTOR when there is no authenticated caller.
+    """
+    auth = getattr(request, "auth", None)
+    kind = getattr(auth, "kind", None)
+
+    if kind in ("org_auth_token", "api_key"):
+        organization_id = getattr(auth, "organization_id", None)
+        if organization_id is not None:
+            return GroupActionActor.org(organization_id)
+    elif kind == "api_token":
+        # A token bound to an ApiApplication belongs to an integration; resolve the owning
+        # SentryApp (control silo) so the actor is the app, not its proxy user.
+        application_id = getattr(auth, "application_id", None)
+        if application_id is not None:
+            from sentry.sentry_apps.services.app import app_service
+
+            sentry_app = app_service.get_by_application_id(application_id=application_id)
+            if sentry_app is not None:
+                return GroupActionActor.sentry_app(sentry_app.id)
+        user_id = getattr(auth, "user_id", None)
+        if user_id is not None:
+            return GroupActionActor.user(user_id)
+
+    user = getattr(request, "user", None)
+    if user is not None and getattr(user, "is_authenticated", False):
+        return GroupActionActor.user(user.id)
+
+    return SYSTEM_ACTOR
+
+
 @dataclass(frozen=True)
 class ActionContext:
     source: str
@@ -157,7 +194,14 @@ def publish_action(
     prefer publish_action_from_context().
     """
     action_name = action.get_type().name.lower()
-    metrics.incr("issues.action_log", tags={"action": action_name, "source": source})
+    metrics.incr(
+        "issues.action_log",
+        tags={
+            "action": action_name,
+            "source": source,
+            "actor_type": actor.actor_type.name.lower(),
+        },
+    )
     logger.info(
         "group.action_log",
         extra={
