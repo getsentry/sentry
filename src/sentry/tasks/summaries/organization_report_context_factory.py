@@ -128,9 +128,9 @@ class OrganizationReportContextFactory:
                 project_id = data["project_id"]
                 if project_id not in missed_project_ids:
                     continue
-                project_ctx = ctx.projects_context_map.get(project_id)
-                if project_ctx is None:
+                if project_id not in ctx.projects_context_map:
                     continue
+                project_ctx = ctx.projects_context_map[project_id]
                 total = data["total"]
                 if data["outcome"] != Outcome.ACCEPTED:
                     continue
