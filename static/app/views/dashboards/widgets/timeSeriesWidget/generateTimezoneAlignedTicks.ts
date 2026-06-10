@@ -1,5 +1,6 @@
-import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
+
+import {DAY, HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 
 type TimeUnit = 'second' | 'minute' | 'hour' | 'day' | 'month' | 'year';
 
@@ -41,13 +42,14 @@ export function generateTimezoneAlignedTicks(
     return [];
   }
 
-  const start = performance.now();
-
   const {unit, step} = pickInterval(startMs, endMs, splitNumber);
   const cursor = snapToRoundBoundary(startMs, unit, step, timezone);
   const ticks: number[] = [];
 
-  // Safety limit to prevent infinite loops
+  // The cursor starts before `startMs` (snapped back to a round boundary),
+  // so early iterations may fall outside the range and get skipped. The
+  // maxIterations guard prevents an infinite loop if cursor.add() doesn't
+  // advance (e.g., a moment-timezone edge case).
   const maxIterations = splitNumber * 10;
   let iterations = 0;
 
@@ -59,36 +61,35 @@ export function generateTimezoneAlignedTicks(
     iterations++;
   }
 
-  Sentry.metrics.distribution(
-    'dashboards.widget.generate_timezone_aligned_ticks',
-    performance.now() - start,
-    {
-      unit: 'millisecond',
-      attributes: {interval_unit: unit, tick_count: String(ticks.length)},
-    }
-  );
-
   return ticks;
 }
 
 /**
- * Durations in milliseconds for each time unit. Month and year use nominal
- * values (30d, 365d) since exact durations vary — this is only used for
- * picking the right order-of-magnitude interval, not for precise arithmetic.
+ * Nominal durations in milliseconds for each time unit. Month and year use
+ * approximate values (30d, 365d) since exact durations vary — this is only
+ * used for picking the right order-of-magnitude interval, not for precise
+ * arithmetic.
  */
 const UNIT_DURATIONS: Record<TimeUnit, number> = {
-  second: 1000,
-  minute: 60 * 1000,
-  hour: 3600 * 1000,
-  day: 86400 * 1000,
-  month: 30 * 86400 * 1000,
-  year: 365 * 86400 * 1000,
+  second: SECOND,
+  minute: MINUTE,
+  hour: HOUR,
+  day: DAY,
+  month: 30 * DAY,
+  year: 365 * DAY,
 };
 
 /**
- * Mirrors ECharts' `scaleIntervals` (echarts/src/scale/Time.ts:281-306).
- * Each (unit, step) pair represents a possible tick interval, ordered from
- * finest to coarsest granularity.
+ * A table of candidate tick intervals, mirroring ECharts' own
+ * `scaleIntervals` (echarts/src/scale/Time.ts:281-306). Each entry defines
+ * a time unit and the "round" step sizes allowed for that unit. For example,
+ * `{unit: 'hour', steps: [1, 2, 4, 6, 12]}` means we might place ticks
+ * every 1, 2, 4, 6, or 12 hours — but never every 3 or 5 hours, because
+ * those don't divide evenly into a day and would produce non-round labels.
+ *
+ * {@link pickInterval} flattens this into duration-sorted (unit, step)
+ * pairs and picks the smallest one whose duration exceeds the approximate
+ * per-tick interval for the given time range and desired tick count.
  */
 const INTERVAL_LEVELS: Array<{steps: number[]; unit: TimeUnit}> = [
   {unit: 'second', steps: [1, 2, 5, 10, 15, 20, 30]},

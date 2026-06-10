@@ -53,8 +53,8 @@ describe('generateTimezoneAlignedTicks', () => {
   describe('timezone alignment', () => {
     it('places ticks at PST midnight boundaries for America/Los_Angeles', () => {
       const tz = 'America/Los_Angeles';
-      const start = toMs('2025-01-15 00:00:00', tz);
-      const end = toMs('2025-01-16 00:00:00', tz);
+      const start = toEpochMs('2025-01-15 00:00:00', tz);
+      const end = toEpochMs('2025-01-16 00:00:00', tz);
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
@@ -70,8 +70,8 @@ describe('generateTimezoneAlignedTicks', () => {
 
     it('places ticks at IST boundaries for Asia/Kolkata (UTC+5:30)', () => {
       const tz = 'Asia/Kolkata';
-      const start = toMs('2025-01-15 00:00:00', tz);
-      const end = toMs('2025-01-16 00:00:00', tz);
+      const start = toEpochMs('2025-01-15 00:00:00', tz);
+      const end = toEpochMs('2025-01-16 00:00:00', tz);
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
@@ -106,8 +106,8 @@ describe('generateTimezoneAlignedTicks', () => {
     it('handles spring forward (America/New_York, March 2025)', () => {
       const tz = 'America/New_York';
       // DST transition: March 9, 2025 at 2:00 AM → 3:00 AM
-      const start = toMs('2025-03-07 00:00:00', tz);
-      const end = toMs('2025-03-12 00:00:00', tz);
+      const start = toEpochMs('2025-03-07 00:00:00', tz);
+      const end = toEpochMs('2025-03-12 00:00:00', tz);
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
@@ -129,8 +129,8 @@ describe('generateTimezoneAlignedTicks', () => {
     it('handles fall back (America/New_York, November 2025)', () => {
       const tz = 'America/New_York';
       // DST transition: November 2, 2025 at 2:00 AM → 1:00 AM
-      const start = toMs('2025-10-31 00:00:00', tz);
-      const end = toMs('2025-11-05 00:00:00', tz);
+      const start = toEpochMs('2025-10-31 00:00:00', tz);
+      const end = toEpochMs('2025-11-05 00:00:00', tz);
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
@@ -153,8 +153,8 @@ describe('generateTimezoneAlignedTicks', () => {
   describe('half-hour timezones', () => {
     it('handles Asia/Kolkata (+5:30) multi-day span', () => {
       const tz = 'Asia/Kolkata';
-      const start = toMs('2025-01-10 00:00:00', tz);
-      const end = toMs('2025-01-20 00:00:00', tz);
+      const start = toEpochMs('2025-01-10 00:00:00', tz);
+      const end = toEpochMs('2025-01-20 00:00:00', tz);
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
@@ -167,8 +167,8 @@ describe('generateTimezoneAlignedTicks', () => {
 
     it('handles Asia/Kathmandu (+5:45)', () => {
       const tz = 'Asia/Kathmandu';
-      const start = toMs('2025-01-15 00:00:00', tz);
-      const end = toMs('2025-01-16 00:00:00', tz);
+      const start = toEpochMs('2025-01-15 00:00:00', tz);
+      const end = toEpochMs('2025-01-16 00:00:00', tz);
 
       const ticks = generateTimezoneAlignedTicks(start, end, 5, tz);
 
@@ -260,8 +260,8 @@ describe('generateTimezoneAlignedTicks', () => {
   });
 });
 
-/** Convert a timezone-local datetime string to UTC milliseconds. */
-function toMs(dateStr: string, timezone: string): number {
+/** Convert a timezone-local datetime string to UTC epoch milliseconds. */
+function toEpochMs(dateStr: string, timezone: string): number {
   return moment.tz(dateStr, timezone).valueOf();
 }
 

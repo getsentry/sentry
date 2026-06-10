@@ -442,19 +442,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // are independent in ECharts and must both be set. The label formatter
   // (`formatXAxisTimestamp`) then cascades through format levels based on what
   // round boundary each tick falls on, producing mixed-granularity labels.
-  const startMilliseconds = earliestTimeStamp
-    ? new Date(earliestTimeStamp).getTime()
-    : undefined;
-  const endMilliseconds = latestTimeStamp
-    ? new Date(latestTimeStamp).getTime()
-    : undefined;
   const timezone = utc ? 'UTC' : getUserTimezone();
   const customTicks = useMemo(() => {
-    if (startMilliseconds === undefined || endMilliseconds === undefined) {
+    if (earliestTimeStamp === undefined || latestTimeStamp === undefined) {
       return;
     }
-    return generateTimezoneAlignedTicks(startMilliseconds, endMilliseconds, 10, timezone);
-  }, [startMilliseconds, endMilliseconds, timezone]);
+    return generateTimezoneAlignedTicks(earliestTimeStamp, latestTimeStamp, 10, timezone);
+  }, [earliestTimeStamp, latestTimeStamp, timezone]);
 
   const xAxis = showXAxis
     ? {
