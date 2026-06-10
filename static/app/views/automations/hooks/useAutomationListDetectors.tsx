@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQueries, useQuery} from '@tanstack/react-query';
+import chunk from 'lodash/chunk';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -52,24 +53,31 @@ export function useAutomationListDetectors(): UseAutomationListDetectorsResult {
     return [...new Set(automations.flatMap(a => a.detectorIds))];
   }, [automations]);
 
-  const {data, isLoading, isError} = useQuery({
-    ...detectorListApiOptions(organization, {
-      ids: detectorIds,
-      limit: MAX_DETECTORS_PER_REQUEST,
-    }),
-    enabled: detectorIds.length > 0,
+  const chunks = useMemo(
+    () => chunk(detectorIds, MAX_DETECTORS_PER_REQUEST),
+    [detectorIds]
+  );
+
+  const detectorQueries = useQueries({
+    queries: chunks.map(ids =>
+      detectorListApiOptions(organization, {
+        ids,
+        limit: MAX_DETECTORS_PER_REQUEST,
+      })
+    ),
   });
 
-  const detectorsById = useMemo(() => {
-    const map = new Map<string, Detector>();
-    if (!data) {
-      return map;
+  const isLoading = detectorQueries.some(q => q.isLoading);
+  const isError = detectorQueries.some(q => q.isError);
+
+  const detectorsById = new Map<string, Detector>();
+  for (const q of detectorQueries) {
+    if (q.data) {
+      for (const detector of q.data) {
+        detectorsById.set(detector.id, detector);
+      }
     }
-    for (const detector of data) {
-      map.set(detector.id, detector);
-    }
-    return map;
-  }, [data]);
+  }
 
   return {detectorsById, isLoading, isError};
 }
