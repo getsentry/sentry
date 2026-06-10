@@ -1,3 +1,4 @@
+import {useMatches, type UIMatch} from 'react-router-dom';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -7,20 +8,55 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/utils/useRoutes');
+jest.mock('react-router-dom');
 
 // /settings/:orgId/:projectId/(searches/:searchId/)alerts/
-const projectRoutes = [
-  {path: '/', childRoutes: []},
-  {childRoutes: []},
-  {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
-  {name: 'Organizations', path: ':orgId/', childRoutes: []},
-  {name: 'Projects', path: ':projectId/', childRoutes: []},
-  {name: 'Alerts', path: 'alerts/'},
+const projectRoutes: UIMatch[] = [
+  {
+    id: '0',
+    pathname: '/',
+    params: {},
+    data: undefined,
+    handle: {path: '/', children: []},
+  },
+  {
+    id: '1',
+    pathname: '/',
+    params: {},
+    data: undefined,
+    handle: {children: []},
+  },
+  {
+    id: '2',
+    pathname: '/settings/',
+    params: {},
+    data: undefined,
+    handle: {path: '/settings/', name: 'Settings', indexRoute: {}, children: []},
+  },
+  {
+    id: '3',
+    pathname: '/settings/:orgId/',
+    params: {orgId: 'albertos-apples'},
+    data: undefined,
+    handle: {name: 'Organizations', path: ':orgId/', children: []},
+  },
+  {
+    id: '4',
+    pathname: '/settings/albertos-apples/:projectId/',
+    params: {orgId: 'albertos-apples', projectId: 'my-project'},
+    data: undefined,
+    handle: {name: 'Projects', path: ':projectId/', children: []},
+  },
+  {
+    id: '5',
+    pathname: '/settings/albertos-apples/my-project/alerts/',
+    params: {orgId: 'albertos-apples', projectId: 'my-project'},
+    data: undefined,
+    handle: {name: 'Alerts', path: 'alerts/'},
+  },
 ];
 
 describe('withDomainRedirect', () => {
@@ -131,7 +167,7 @@ describe('withDomainRedirect', () => {
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });
-    jest.mocked(useRoutes).mockReturnValue(projectRoutes);
+    jest.mocked(useMatches).mockReturnValue(projectRoutes);
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {router} = render(<WrappedComponent />, {
@@ -158,7 +194,7 @@ describe('withDomainRedirect', () => {
       slug: 'albertos-apples',
     });
 
-    jest.mocked(useRoutes).mockReturnValue([]);
+    jest.mocked(useMatches).mockReturnValue([]);
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {router} = render(<WrappedComponent />, {
@@ -185,7 +221,7 @@ describe('withDomainRedirect', () => {
       sentryUrl: 'https://sentry.io',
       subdomain: '',
     });
-    jest.mocked(useRoutes).mockReturnValue(projectRoutes);
+    jest.mocked(useMatches).mockReturnValue(projectRoutes);
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {router} = render(<WrappedComponent />, {

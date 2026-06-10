@@ -50,7 +50,7 @@ describe('recreateRoute', () => {
   });
 
   it('has correct path with route object with many roots (starts with "/")', () => {
-    const r = [
+    const multiRootRoutes = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
       {path: '/foo/', childRoutes: []},
@@ -62,7 +62,9 @@ describe('recreateRoute', () => {
       {path: 'api-keys/', name: 'API Key'},
     ];
 
-    expect(recreateRoute(r[4]!, {routes: r, params})).toBe('/foo/bar/');
+    expect(recreateRoute(multiRootRoutes[4]!, {routes: multiRootRoutes, params})).toBe(
+      '/foo/bar/'
+    );
   });
 
   it('returns correct path to a string (at the end of the routes)', () => {
