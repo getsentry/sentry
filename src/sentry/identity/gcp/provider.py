@@ -100,7 +100,7 @@ class GCPIdentityProvider(OAuth2Provider):
             "id": user_id,
             "email": user_data.get("email"),
             "name": user_data.get("name", user_data.get("email")),
-            "scopes": sorted(self.oauth_scopes),
+            "scopes": sorted(self.get_oauth_scopes()),
             "data": self.get_oauth_data(data),
         }
 
