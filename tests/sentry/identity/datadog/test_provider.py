@@ -30,7 +30,7 @@ from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.users.models.identity import Identity
 
 REGISTER_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/register"
 AUTHORIZE_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/authorize"
@@ -313,7 +313,7 @@ class DatadogOAuthPipelineIntegrationTest(TestCase):
         sentry.identity.register(DatadogTestProvider)
         super().setUp()
         self.request = self._make_request()
-        self.identity_provider = IdentityProvider.objects.create(type="datadog-test")
+        self.identity_provider = self.create_identity_provider(type="datadog-test")
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -393,13 +393,14 @@ class DatadogIdentityProviderTest(TestCase):
         super().setUp()
         self.provider = DatadogIdentityProvider()
         self.provider.config = {"site": "datadoghq.com"}
-        self.identity_provider = IdentityProvider.objects.create(type="datadog")
+        self.identity_provider = self.create_identity_provider(type="datadog")
 
     @patch("sentry.identity.datadog.provider.get_user_info")
     def test_build_identity(self, mock_get_user_info: MagicMock) -> None:
         mock_get_user_info.return_value = {
-            "id": "dd-user-123",
-            "attributes": {"email": "user@example.com", "name": "Test User"},
+            "user_uuid": "dd-user-123",
+            "user_email": "user@example.com",
+            "user_name": "Test User",
         }
 
         result = self.provider.build_identity(
@@ -409,7 +410,7 @@ class DatadogIdentityProviderTest(TestCase):
                     "refresh_token": "refresh-xyz",
                     "expires_in": 3600,
                     "token_type": "Bearer",
-                    "scope": "apm_read",
+                    "scope": "mcp_read",
                 },
                 "dcr_client_id": "dcr-client-id",
                 "dcr_client_secret": "dcr-client-secret",
@@ -424,7 +425,7 @@ class DatadogIdentityProviderTest(TestCase):
         assert result["data"]["refresh_token"] == "refresh-xyz"
         assert "expires" in result["data"]
         assert result["data"]["token_type"] == "Bearer"
-        assert result["data"]["scope"] == "apm_read"
+        assert result["data"]["scope"] == "mcp_read"
         assert result["data"]["client_id"] == "dcr-client-id"
         assert result["data"]["client_secret"] == "dcr-client-secret"
         assert result["data"]["site"] == "datadoghq.com"
@@ -438,7 +439,7 @@ class DatadogIdentityProviderTest(TestCase):
 
     @patch("sentry.identity.datadog.provider.get_user_info")
     def test_build_identity_missing_user_attributes(self, mock_get_user_info: MagicMock) -> None:
-        mock_get_user_info.return_value = {"id": "dd-user-456", "attributes": {}}
+        mock_get_user_info.return_value = {"user_uuid": "dd-user-456"}
 
         result = self.provider.build_identity({"data": {"access_token": "token"}})
 
@@ -455,8 +456,11 @@ class DatadogIdentityProviderTest(TestCase):
             "site": "datadoghq.com",
         }
         data.update(data_overrides)
-        return Identity.objects.create(
-            idp=self.identity_provider, user=self.user, external_id="dd-user-123", data=data
+        return self.create_identity(
+            user=self.user,
+            identity_provider=self.identity_provider,
+            external_id="dd-user-123",
+            data=data,
         )
 
     @responses.activate

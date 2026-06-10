@@ -31,6 +31,7 @@ from sentry.utils.http import absolute_uri
 MCP_REGISTER_PATH = "/api/unstable/mcp-server/register"
 MCP_AUTHORIZE_PATH = "/api/unstable/mcp-server/authorize"
 MCP_TOKEN_PATH = "/api/unstable/mcp-server/token"
+MCP_ENDPOINT_PATH = "/api/unstable/mcp-server/mcp"
 
 
 def _basic_auth_header(client_id: str, client_secret: str) -> str:
@@ -38,13 +39,34 @@ def _basic_auth_header(client_id: str, client_secret: str) -> str:
 
 
 def get_user_info(access_token: str, site: str) -> dict[str, Any]:
-    """Fetch the current Datadog user via ``GET /api/v2/current_user``."""
-    url = f"https://api.{site}/api/v2/current_user"
-    resp = safe_urlopen(url, method="GET", headers={"Authorization": f"Bearer {access_token}"})
+    """Fetch the current Datadog user via the MCP ``datadog://mcp/whoami`` resource."""
+    url = f"https://mcp.{site}{MCP_ENDPOINT_PATH}"
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+
+    init_resp = safe_urlopen(
+        url,
+        method="POST",
+        headers=headers,
+        json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+    )
+    init_resp.raise_for_status()
+    headers["Mcp-Session-Id"] = init_resp.headers["mcp-session-id"]
+
+    resp = safe_urlopen(
+        url,
+        method="POST",
+        headers=headers,
+        json={
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "resources/read",
+            "params": {"uri": "datadog://mcp/whoami"},
+        },
+    )
     resp.raise_for_status()
 
     body = orjson.loads(safe_urlread(resp))
-    return body["data"]
+    return orjson.loads(body["result"]["contents"][0]["text"])
 
 
 def generate_pkce_code_verifier() -> str:
@@ -208,6 +230,7 @@ class DatadogIdentityProvider(OAuth2Provider):
     name = "Datadog"
 
     oauth_scopes: tuple[str, ...] = (
+        "mcp_read",
         "apm_read",
         "error_tracking_read",
         "events_read",
@@ -216,7 +239,6 @@ class DatadogIdentityProvider(OAuth2Provider):
         "logs_read_data",
         "metrics_read",
         "monitors_read",
-        "user_self_profile_read",
     )
 
     def _get_mcp_base_url(self) -> str:
@@ -235,7 +257,7 @@ class DatadogIdentityProvider(OAuth2Provider):
             ),
             DatadogOAuth2LoginView(
                 authorize_url=self.get_oauth_authorize_url(),
-                scope=",".join(self.get_oauth_scopes()),
+                scope=" ".join(self.get_oauth_scopes()),
                 resource=self._get_mcp_base_url(),
             ),
             DatadogOAuth2CallbackView(
@@ -265,9 +287,9 @@ class DatadogIdentityProvider(OAuth2Provider):
 
         return {
             "type": IntegrationProviderSlug.DATADOG,
-            "id": user["id"],
-            "email": user.get("attributes", {}).get("email"),
-            "name": user.get("attributes", {}).get("name"),
+            "id": user["user_uuid"],
+            "email": user.get("user_email"),
+            "name": user.get("user_name"),
             "scopes": [],
             "data": oauth_data,
         }
