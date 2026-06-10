@@ -26,7 +26,7 @@ from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.identity import IdentityProvider
+from sentry.users.models.identity import Identity, IdentityProvider
 
 REGISTER_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/register"
 AUTHORIZE_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/authorize"
@@ -40,9 +40,12 @@ class DatadogOAuth2DCRViewTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.request = RequestFactory().get("/")
+        self.request.user = self.user
+        self.identity_provider = IdentityProvider.objects.create(type="datadog")
         self.pipeline = MagicMock()
         self.pipeline.config = {}
         self.pipeline.provider.key = "datadog"
+        self.pipeline.provider_model = self.identity_provider
         self.pipeline.fetch_state.return_value = None
         self.view = DatadogOAuth2DCRView(register_url=REGISTER_URL)
 
@@ -120,6 +123,42 @@ class DatadogOAuth2DCRViewTest(TestCase):
         self.pipeline.error.assert_called_once_with("DCR response missing client credentials")
         self.pipeline.bind_state.assert_not_called()
         assert_failure_metric(mock_record, "missing_credentials")
+
+    @responses.activate
+    def test_existing_identity_and_credentials(self, mock_record: MagicMock) -> None:
+        Identity.objects.create(
+            idp=self.identity_provider,
+            user=self.user,
+            external_id="dd-user-123",
+            data={"client_id": "existing-client", "client_secret": "existing-secret"},
+        )
+
+        self.view.dispatch(self.request, self.pipeline)
+
+        assert len(responses.calls) == 0
+        self.pipeline.bind_state.assert_any_call("dcr_client_id", "existing-client")
+        self.pipeline.bind_state.assert_any_call("dcr_client_secret", "existing-secret")
+        self.pipeline.next_step.assert_called_once()
+
+    @responses.activate
+    def test_existing_identity_missing_credentials(self, mock_record: MagicMock) -> None:
+        Identity.objects.create(
+            idp=self.identity_provider,
+            user=self.user,
+            external_id="dd-user-123",
+            data={},
+        )
+        responses.add(
+            responses.POST,
+            REGISTER_URL,
+            json={"client_id": "new-client", "client_secret": "new-secret"},
+        )
+
+        self.view.dispatch(self.request, self.pipeline)
+
+        assert len(responses.calls) == 1
+        self.pipeline.bind_state.assert_any_call("dcr_client_id", "new-client")
+        self.pipeline.bind_state.assert_any_call("dcr_client_secret", "new-secret")
 
 
 @control_silo_test

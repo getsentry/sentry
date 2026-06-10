@@ -19,6 +19,7 @@ from sentry.identity.oauth2 import (
 )
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
+from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
 
@@ -54,6 +55,21 @@ class DatadogOAuth2DCRView:
     def dispatch(self, request: HttpRequest, pipeline: IdentityPipeline) -> HttpResponseBase:
         if pipeline.fetch_state("dcr_client_id") and pipeline.fetch_state("dcr_client_secret"):
             return pipeline.next_step()
+
+        # Reuse DCR credentials from an existing identity if possible.
+        if pipeline.provider_model and request.user.is_authenticated:
+            try:
+                existing_identity = Identity.objects.get(
+                    idp=pipeline.provider_model, user=request.user
+                )
+                client_id = existing_identity.data.get("client_id")
+                client_secret = existing_identity.data.get("client_secret")
+                if client_id and client_secret:
+                    pipeline.bind_state("dcr_client_id", client_id)
+                    pipeline.bind_state("dcr_client_secret", client_secret)
+                    return pipeline.next_step()
+            except Identity.DoesNotExist:
+                pass
 
         with record_event(
             IntegrationPipelineViewType.DCR_REGISTRATION, pipeline.provider.key
