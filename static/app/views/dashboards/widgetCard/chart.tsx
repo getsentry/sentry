@@ -59,6 +59,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {RageAndDeadClicksWidgetVisualization} from 'sentry/views/dashboards/widgets/rageAndDeadClicksWidget/rageAndDeadClicksVisualization';
 import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -442,6 +443,15 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 
   // Create Bars plottables from the transformed data
   const plottables = categoricalSeriesData.map(series => new Bars(series));
+  // Guard against all-null data (no plottable values) to avoid throwing inside
+  // CategoricalSeriesWidgetVisualization, which would surface as an ErrorBoundary error.
+  if (!plottablesCanBeVisualized(plottables)) {
+    return (
+      <StyledErrorPanel>
+        <IconWarning variant="primary" size="lg" />
+      </StyledErrorPanel>
+    );
+  }
 
   return (
     <ChartWrapper autoHeightResize>
