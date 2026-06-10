@@ -85,7 +85,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
             "workflow_engine.process_workflow_activity.invalid_activity_type",
             extra={"activity_type": activity.type},
         )
-        activity_type = activity.type
+        activity_type = "invalid"
 
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
