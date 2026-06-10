@@ -35,15 +35,20 @@ def _parse_attributions(
 
     Returns the parsed ``(signal_type, source, signal_details)`` tuples. Raises if
     the payload is the wrong shape (not a list of objects → ``TypeError``), is
-    missing a required key (``KeyError``), or names a signal type or source we
-    don't recognize (``ValueError``) — the caller rejects the whole batch rather
-    than silently dropping malformed signals.
+    missing a required key (``KeyError``), names a signal type or source we don't
+    recognize, or carries a non-object ``signal_details`` (``ValueError``) — the
+    caller rejects the whole batch rather than silently dropping malformed signals.
     """
     parsed = []
     for entry in raw:
         signal_type = PullRequestAttributionSignalType(entry["signal_type"])
         source = PullRequestAttributionSource(entry["source"])
-        parsed.append((signal_type, source, entry.get("signal_details")))
+        signal_details = entry.get("signal_details")
+        # signal_details is persisted as a JSON object; reject scalars/arrays here
+        # so record_attribution_signal's dict(...) can't raise mid-transaction.
+        if signal_details is not None and not isinstance(signal_details, Mapping):
+            raise ValueError("signal_details must be an object or null")
+        parsed.append((signal_type, source, signal_details))
     return parsed
 
 
